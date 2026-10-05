@@ -1,6 +1,7 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { createEdielMessageEvent, listAckMessagesForSource } from '@/lib/ediel/db'
+import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
 
 const REPLACEABLE = new Set(['draft', 'prepared', 'queued', 'failed'])
@@ -21,7 +22,7 @@ export async function supersedeWrongDraftsForDecision(params: {
   desiredFamily: AckFamily
   desiredOutcome?: AckOutcome | null
 }): Promise<{ supersededIds: string[]; blockedFinalAckId: string | null }> {
-  const existing = await listAckMessagesForSource({ sourceMessageId: params.sourceMessage.id })
+  const existing = await listBusinessAckMessagesForSource({ sourceMessageId: params.sourceMessage.id, companyId: params.sourceMessage.company_id, environment: params.sourceMessage.environment, actorUserId: params.actorUserId, ackFamily: params.desiredFamily })
   const opposite = existing.filter((row) => isOppositeAck(row, params.desiredFamily, params.desiredOutcome))
   const finalConflict = opposite.find((row) => FINAL.has(String(row.status ?? '').toLowerCase()))
 

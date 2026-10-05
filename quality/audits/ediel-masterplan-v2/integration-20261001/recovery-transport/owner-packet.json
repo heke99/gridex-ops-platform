@@ -1,0 +1,260 @@
+{
+  "owner": "recovery-transport",
+  "workspace": "/workspace/scratch/145123787247/gridex-recovery",
+  "branch": "work/recovery-transport-20261001",
+  "baseSha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "incomingSha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "codeVersion": "Owner working tree in pending preserving merge; final composed head qualification remains root-owned",
+  "paths": [
+    "__tests__/ediel-decision-evidence-retention-port.test.ts",
+    "__tests__/ediel-prodat-recovery-gateway.test.ts",
+    "__tests__/ediel-prodat-reporting-chain.test.ts",
+    "__tests__/ediel-prodat-reporting-smtp.test.ts",
+    "__tests__/ediel-service-permission-recovery-origin.test.ts",
+    "__tests__/ediel-signed-brp-intake.test.ts",
+    "__tests__/ediel-smtp-post-acceptance.test.ts",
+    "__tests__/fixtures/ediel-transport-journal.ts",
+    "app/admin/ediel/signed-brp-declarations/page.tsx",
+    "app/admin/ediel/signed-brp-declarations/workspace.tsx",
+    "app/api/ediel/signed-brp-declarations/[artifactId]/original/route.ts",
+    "app/api/ediel/signed-brp-declarations/[artifactId]/review/route.ts",
+    "app/api/ediel/signed-brp-declarations/[artifactId]/revoke/route.ts",
+    "app/api/ediel/signed-brp-declarations/[artifactId]/route.ts",
+    "app/api/ediel/signed-brp-declarations/route.ts",
+    "app/api/ediel/signed-brp-declarations/scope/route.ts",
+    "app/retention/decision-evidence/workspace.tsx",
+    "lib/ediel/operations/businessExpectationSweep.ts",
+    "lib/ediel/prodat/prodatDeathStatusAuthority.ts",
+    "lib/ediel/production/lifeEventCertificationSource.ts",
+    "lib/ediel/production/lifeEventSource.ts",
+    "lib/ediel/production/signedBrpDeclarationHttp.ts",
+    "lib/ediel/production/signedBrpDeclarationIntake.ts",
+    "lib/ediel/retention/decisionEvidenceClasses.ts",
+    "lib/ediel/services/administration.ts",
+    "lib/ediel/services/permissionOrigin.ts",
+    "lib/ediel/sources/correctionOutboundDispatch.ts",
+    "lib/ediel/transport/index.part-2.ts",
+    "lib/ediel/transport/sendLock.ts",
+    "scripts/ediel-intake-original-custody-sql-regression.mjs",
+    "scripts/ediel-recovery-current-catalog-sql-regression.mjs",
+    "scripts/ediel-signed-brp-intake-current-sql-regression.mjs",
+    "supabase/migrations/20261001103438_ediel_recovery_current_execution_catalog_and_lock_order.sql",
+    "supabase/migrations/20261001103744_ediel_signed_brp_source_authenticated_intake.sql",
+    "supabase/migrations/20261001103902_ediel_signed_brp_intake_original_copy_retention.sql",
+    "supabase/migrations/20261001115100_ediel_supply_rescission_original_copy_retention.sql"
+  ],
+  "files": [
+    {
+      "path": "__tests__/ediel-decision-evidence-retention-port.test.ts",
+      "sha256": "96febfe149edf163bad88fef0cd6c2e35c93ce813ea19a1bda51dfcb1b7c1950"
+    },
+    {
+      "path": "__tests__/ediel-prodat-recovery-gateway.test.ts",
+      "sha256": "850775342a04b79467ef632b435ddd65cac96bd33f88ce1bfb70ed6eb3bf59d1"
+    },
+    {
+      "path": "__tests__/ediel-prodat-reporting-chain.test.ts",
+      "sha256": "59fedef6278c848b5c2864a9d2b14131b07627c334fc1abb889981d8e4e33564"
+    },
+    {
+      "path": "__tests__/ediel-prodat-reporting-smtp.test.ts",
+      "sha256": "42c16eb49a49fb683020791191eea37b040065955c8ba50e1ae98a84c7b98de9"
+    },
+    {
+      "path": "__tests__/ediel-service-permission-recovery-origin.test.ts",
+      "sha256": "b738853e7bfcae1caf7f986bb8babeef29f8b3ab0134f09340b18c345999a9d1"
+    },
+    {
+      "path": "__tests__/ediel-signed-brp-intake.test.ts",
+      "sha256": "dfa515f15a8fdccdfb7722a33bd7539a833de70bb21b19e23dbfbec034ebfd9a"
+    },
+    {
+      "path": "__tests__/ediel-smtp-post-acceptance.test.ts",
+      "sha256": "e0a6d4d4824053a36a53ce857cba14120b2f9d7273020e9aee29b62912b09309"
+    },
+    {
+      "path": "__tests__/fixtures/ediel-transport-journal.ts",
+      "sha256": "0a64e14c193ce28543d1fa269a5f4c75e904a0f0e3bc6dd83fbef0b5fa85248e"
+    },
+    {
+      "path": "app/admin/ediel/signed-brp-declarations/page.tsx",
+      "sha256": "052d737ed17646f409fa51622d127fe1ad73ac2f982d4c690e1cf19d3ff292ec"
+    },
+    {
+      "path": "app/admin/ediel/signed-brp-declarations/workspace.tsx",
+      "sha256": "df43d85b9c296993acdcbc4e178e145eb6392f0661c4ffb8089bd062b1ed814e"
+    },
+    {
+      "path": "app/api/ediel/signed-brp-declarations/[artifactId]/original/route.ts",
+      "sha256": "9cc4ddb5c7dbdc1c1ec6deb693140216b443c0336bed277a43c9392cd1a4dde8"
+    },
+    {
+      "path": "app/api/ediel/signed-brp-declarations/[artifactId]/review/route.ts",
+      "sha256": "8d1b192a4e3629f3fc0f801987df1cee554f522740c98de0a12b7de5d4048198"
+    },
+    {
+      "path": "app/api/ediel/signed-brp-declarations/[artifactId]/revoke/route.ts",
+      "sha256": "697de98f36fd38ae4faf515e484fd968d1302b8b3ecb05abb48aaace109497f7"
+    },
+    {
+      "path": "app/api/ediel/signed-brp-declarations/[artifactId]/route.ts",
+      "sha256": "4fdb272e20f9c953a1e43ec486b4ad82ec822febb2690c2e05569614e2aad669"
+    },
+    {
+      "path": "app/api/ediel/signed-brp-declarations/route.ts",
+      "sha256": "b9b23ddf376754bc7f39bfcee52b1d6801172b935bc200399950bbc1828ee558"
+    },
+    {
+      "path": "app/api/ediel/signed-brp-declarations/scope/route.ts",
+      "sha256": "82f785188388038c997e6739b6029b12028f197845f6a9db80ccdd3066ece2e0"
+    },
+    {
+      "path": "app/retention/decision-evidence/workspace.tsx",
+      "sha256": "2cc99a7ce7d4b56c774e5cb39d094b7946b4ebfc2acd2cc30371f429b9b1c754"
+    },
+    {
+      "path": "lib/ediel/operations/businessExpectationSweep.ts",
+      "sha256": "bb8b005ec18a37140d69ba9e5840f96ff611c5a2155a6adbece63d9998c4f08e"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDeathStatusAuthority.ts",
+      "sha256": "db5cdee8bcc2f7bb7f7e7770714315ac99da2a6e192b03d7500f34c4572b0784"
+    },
+    {
+      "path": "lib/ediel/production/lifeEventCertificationSource.ts",
+      "sha256": "4b51613993497a3a2fe4c19d49548b9c991530675600e4e67981088fe888b29a"
+    },
+    {
+      "path": "lib/ediel/production/lifeEventSource.ts",
+      "sha256": "fc3081f2557a8c468652609943ff2f3dae8970ab0d8f010aecde020f7f916cc6"
+    },
+    {
+      "path": "lib/ediel/production/signedBrpDeclarationHttp.ts",
+      "sha256": "d7544bc77813c2f99f3b2bd94b0008645e5a1afb13ba99a2391d2ed82d1a97df"
+    },
+    {
+      "path": "lib/ediel/production/signedBrpDeclarationIntake.ts",
+      "sha256": "dbe704695e8e3389afdaa7189817d11d1859ac5c6f75ad0ec32802be804da3e8"
+    },
+    {
+      "path": "lib/ediel/retention/decisionEvidenceClasses.ts",
+      "sha256": "78eadf4f67d28d6f9092e7d37280cd5f2be101db3f90b7ad17a9d0adf360bb23"
+    },
+    {
+      "path": "lib/ediel/services/administration.ts",
+      "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8"
+    },
+    {
+      "path": "lib/ediel/services/permissionOrigin.ts",
+      "sha256": "7b06e95ef84ef762d538cf7938bb60a019c210531701ff95f0af3cade31a5062"
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "sha256": "4eab7465b7359afb1d8c082181cb8f2bcce6761bf91238142d4f0bd0b4cf0cd0"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "sha256": "c416392ac403bc602a9be292521d4846bf854a2bef7f25b3fb3958dcb7ff6342"
+    },
+    {
+      "path": "lib/ediel/transport/sendLock.ts",
+      "sha256": "2dfe7da5d39e920cb35ea07466d78f44b2bf5f4d53139117fba7b08938f0de4f"
+    },
+    {
+      "path": "scripts/ediel-intake-original-custody-sql-regression.mjs",
+      "sha256": "90ecb57f287b49b4c877f82add132574ce058879f10688b97521ec3d40b92e8d"
+    },
+    {
+      "path": "scripts/ediel-recovery-current-catalog-sql-regression.mjs",
+      "sha256": "e7c02415bf12931a3ea4d1143a1394a958d3448fd9a080758c01d1abbbdbeb5f"
+    },
+    {
+      "path": "scripts/ediel-signed-brp-intake-current-sql-regression.mjs",
+      "sha256": "ade61fb829a8ed4e137389a669ed5393d7474209cca9d63271ac842e1ce026f7"
+    },
+    {
+      "path": "supabase/migrations/20261001103438_ediel_recovery_current_execution_catalog_and_lock_order.sql",
+      "sha256": "3fb868df39610fa263e03c2821c3fbc38e9e55a80c420721d713af28b6ad22cc"
+    },
+    {
+      "path": "supabase/migrations/20261001103744_ediel_signed_brp_source_authenticated_intake.sql",
+      "sha256": "32eddcf3645e253b578188d2078da2d674a92f96861847f1e4a39b164ecdd444"
+    },
+    {
+      "path": "supabase/migrations/20261001103902_ediel_signed_brp_intake_original_copy_retention.sql",
+      "sha256": "58a87a544e0e3a8fbf2879bbdc12724b47eb81927dd8d06e21945a8e50aa19f6"
+    },
+    {
+      "path": "supabase/migrations/20261001115100_ediel_supply_rescission_original_copy_retention.sql",
+      "sha256": "88bdcf7aac1f8b8cdc5d49f2c55b7dc24bb3be00fae5dfa118f50cb1cac58081"
+    }
+  ],
+  "ruleFamilies": {
+    "P-09_SC-030_AT-P-09": "Preserves distinct immediate failed correction and qualified terminal event source; source-only genuine test classification retains nullable intent",
+    "TR-05_SC-040_AT-TR-05": "Terminal service lineage and separate actual current communication.write prepare / communication.send execute;62832+65415 already union;65733 fresh protectedUD preparation is new next scope and is not falsely closed by this report",
+    "DB-05": "Executable/UI supported5 already installed BRP+certification classes; my2signedBRP intake originals; history2contractsource intake originals; nationalH source original; independent qualified per-copy custody/purge/current source revocation",
+    "TEN-01_CALL-03": "Current Auth user/company/membership/catalog and executionphase authorization rechecks retained; source intake derives actual session actor; private direct DB/RPC paths denied"
+  },
+  "features": [
+    "Resolved15 owner conflicts preserving current requested-change timing/source and incoming terminal recovery/source-only classification",
+    "Signed BRP original intake archive+issuer-purpose HMAC+separate reviewer+immutable native declaration/origin atomic commit+current issuer/reviewer/custody recheck in consumer",
+    "Operator signed BRP workspace archive/preview/read/reload/two exact original downloads/review/revoke through same protected server command module",
+    "Per-copy original custody on BRP intake and nationalH source with existing retention workflow; no seeded legal period or issuer competence"
+  ],
+  "verification": [
+    {
+      "kind": "vitest",
+      "suites": 6,
+      "tests": 80,
+      "status": "PASS",
+      "scope": "Recoverygateway/serviceorigin/reportingSMTP/postacceptance/newBRP/decisionEvidencePort"
+    },
+    {
+      "kind": "vitest",
+      "suites": 1,
+      "tests": 52,
+      "status": "PASS",
+      "scope": "Reportingchain strict pinned predeclared original and exact nullable registry source read"
+    },
+    {
+      "kind": "vitest",
+      "suites": 3,
+      "tests": 151,
+      "status": "PASS",
+      "scope": "Recoveryreportingcontext/dateboundaries/dateevent-send"
+    },
+    {
+      "kind": "isolated_actual_sql_bodies",
+      "checks": 34,
+      "status": "PASS",
+      "scope": "Current phase/catalog/revocation/delegate metadata/mechanical lock ordering; synthetic auth/delegate schema; not genuine native/source evidence"
+    },
+    {
+      "kind": "isolated_actual_sql_bodies",
+      "checks": 287,
+      "status": "PASS",
+      "scope": "Composed exact BRP intake, independent original-copy purge/current consumer and nationalH custody; includes predecessor204; synthetic Auth, registry, signed contract, purpose issuers and empty H grammar/bilateral lock boundary; not authentic Supabase/legal source/race/browser evidence"
+    },
+    {
+      "kind": "eslint",
+      "status": "PASS",
+      "scope": "Assigned TS+retention UI+new API/UI/test; unused fixture import corrected and rechecked"
+    },
+    {
+      "kind": "tsc",
+      "status": "PASS",
+      "scope": "New signed-BRP module/API/UI using targeted config and actual imported app dependencies"
+    }
+  ],
+  "externalBlockers": [
+    "Source-purpose BRP legal issuer key/representation and authentic signed declaration originals intentionally unseeded; no caller approval/verified/actor flag can substitute; archive/read available, approval/consumer fail held",
+    "NationalH authentic legal source issuer and prerequisites owned by scripts source stage; protected custody contains no fabricated issuer or retention period"
+  ],
+  "remainingRootQualification": [
+    "One frozen composed codeSha and evidenceSha",
+    "Authentic blank DB replay/upgrade/generated schema types fingerprint/native HTTP concurrency/rollback/retry/RBAC/actual browser clicks including new source UI",
+    "Required exact published-head CI",
+    "Shared Ediel nav discovery link /admin/ediel/signed-brp-declarations"
+  ],
+  "nextOwnerScope": "Fresh actor-bound protectedUD preparation for correctedZ01/Z0365733 semantic port; affected existing extra files to be reported before edits"
+}

@@ -1,0 +1,14 @@
+{
+  "gate": "full",
+  "command": [
+    "npm",
+    "test",
+    "--",
+    "--reporter=json",
+    "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/full.json"
+  ],
+  "exit": 0,
+  "seconds": 50.18,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-full.log",
+  "sha256": "aa45223051321b0b3f4c970335fac84e5894439442ae9eeda59e52bf32dcda90"
+}

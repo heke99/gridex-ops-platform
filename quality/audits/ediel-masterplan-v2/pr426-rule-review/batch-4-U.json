@@ -1,0 +1,1508 @@
+{
+ "batch": 4,
+ "family": "U",
+ "head": "829902eb",
+ "rules": [
+  {
+   "id": "U-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/businessSemantics.ts:263-275",
+      "lib/ediel/rulebook/businessSemantics.ts:296-321",
+      "lib/ediel/rulebook/utiltsMarketSemantics.ts:39-63",
+      "lib/ediel/tenant/resolveInboundTenant.ts:464-472"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-business-semantics.test.ts :: does not confuse metering permission, historical access, values or forecasts",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds stale local identity and unsupported local roles without fabricating sender object errors"
+     ],
+     "gap": "Values, forecasts, aggregates and requests are kept apart through domainObject and operationKind, and inbound tenant resolution checks the receiver role. The outbound and automation gates still always use supplierSupport, a Supplier-only matrix, instead of the tenant's current role."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:331-337",
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:60-81",
+      "lib/ediel/scopedCapabilityReadiness.ts:58-60"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: blocks supplier E66 and fail-closes E73 without bilateral proof/requested application"
+     ],
+     "gap": "Only the supplier role, E73 and bilateral proof are allowed. There is no role-specific admission for a grid owner, BRP or ESCO with the product and direction evidence the rule asks for."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:66-69",
+      "lib/ediel/utilts/utiltsMessageSupportRegistry.ts:98",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:332-337"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: blocks supplier E66 and fail-closes E73 without bilateral proof/requested application",
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: models the supplier-facing directions instead of broad both-direction aliases"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/businessSemantics.ts:263-275"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-business-semantics.test.ts :: does not confuse metering permission, historical access, values or forecasts"
+     ],
+     "gap": "No test checks admission by the actual role, for example a non-supplier tenant."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:66-69"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: blocks supplier E66 and fail-closes E73 without bilateral proof/requested application"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The outbound UTILTS gate is always a Supplier gate, whatever the tenant's role. The rule explicitly forbids this.",
+     "evidence": [
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:331-337",
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:60-69"
+     ]
+    },
+    {
+     "claim": "autoStateMutationAllowed is derived only from supplierSupport.",
+     "evidence": [
+      "lib/ediel/rulebook/businessSemantics.ts:321"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/canonicalObservationScope.ts:83-153"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-canonical-observation-scope.test.ts :: keeps own IDE, SEQ, RFF224/527 and QTY220/136 without flattening observations",
+      "__tests__/ediel-utilts-canonical-observation-scope.test.ts :: keeps duplicate transaction, observation and register IDs as separate physical occurrences",
+      "__tests__/ediel-utilts-canonical-observation-scope.test.ts :: never donates header or transaction RFF to an observation and keeps unknown qualifiers visible"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:199-254",
+      "lib/ediel/utiltsEngine.part-1.ts:1549-1554"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-transaction-disposition.test.ts :: keeps valid transactions accepted when sibling transactions fail at different layers",
+      "__tests__/ediel-utilts-transaction-persistence.test.ts :: keeps SG5 field 512 and field 532 as separate UTC instants in their respective series",
+      "__tests__/ediel-utilts-consumption-contract.test.ts :: takes own quality/product/register from physical fields, never QTY qualifier or a sibling"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:365-366",
+      "lib/ediel/utiltsEngine.part-1.ts:1574-1576",
+      "lib/ediel/utiltsEngine.part-1.ts:1595-1622",
+      "lib/ediel/flows/utiltsDataRequest.part-1.ts:391-409"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-canonical-observation-scope.test.ts :: separates all messages, even with duplicate IDE/SEQ and different leading families"
+     ],
+     "gap": "Object checks use each transaction's own LOC. The normalized payload still exposes the first LOC172 and first QTY in the file, and the legacy series fallback uses them when no transaction decision contract is present."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/canonicalObservationScope.ts:83-153"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-profile-own-scope.test.ts :: does not manufacture an IDE from global summary facts"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/utiltsDataRequest.part-1.ts:391-409"
+     ],
+     "tests": [],
+     "gap": "No test shows that the first-QTY/LOC fallback cannot be reached for multi-IDE files."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "transactionIssueReference falls back to facts.transactionId, which is the first IDE or TN in the file. Issues from a later IDE that has no ID can therefore be attributed to the first transaction, while the disposition uses transaction-N.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:711-721",
+      "lib/ediel/utiltsEngine.part-1.ts:1576",
+      "lib/ediel/utiltsEngine.part-1.ts:211"
+     ]
+    },
+    {
+     "claim": "The message-level meterPointId, gridAreaId and quantity come from the first segment in the whole file.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:1574-1575",
+      "lib/ediel/utiltsEngine.part-1.ts:1595",
+      "lib/ediel/utiltsEngine.part-1.ts:1622"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.ts:851-888",
+      "lib/ediel/utiltsEngine.ts:903-963"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-guide-execution-order.test.ts :: runs functional checks only for the valid sibling in a mixed E66 message",
+      "__tests__/ediel-utilts-guide-execution-order.test.ts :: rejects physical %s before guide or functional checks",
+      "__tests__/ediel-utilts-guide-execution-order.test.ts :: does not run functional interval checks when the message header fails its guide"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/utiltsDataRequest.part-1.ts:706-797",
+      "lib/ediel/utiltsEngine.part-1.ts:199-254"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-transaction-disposition.test.ts :: proves the canonical 95 accepted / 3 guide / 2 processability partial-success split"
+     ],
+     "gap": "Per-transaction ACK emission is tested only at the disposition level. In the canonical decision path, the UTILTS_ERR branch returns before it plans sibling APERAKs."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.ts:944-953",
+      "lib/ediel/utiltsEngine.part-1.ts:227-235"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-guide-execution-order.test.ts :: does not execute the functional interval-count check for a guide-rejected E66 IDE"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-044",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/utiltsDataRequest.part-1.ts:719-795",
+      "lib/ediel/core/runtimeDecision.ts:296-303"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-transaction-disposition.test.ts :: keeps guide APERAK error details when the message also has processability faults"
+     ],
+     "gap": "No end-to-end test of the three IDEs producing positive APERAK, negative APERAK and ERR. The canonical responsePlan contains only UTILTS_ERR. Positive APERAK for the accepted IDE requires BGM AB."
+    },
+    {
+     "effect": "SC-045",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.ts:456-470",
+      "lib/ediel/flows/utiltsDataRequest.part-1.ts:688-704"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-guide-execution-order.test.ts :: does not run functional interval checks when the message header fails its guide",
+      "__tests__/ediel-received-utilts-header-validation.test.ts :: records the actual header owner and exactly matches decoded negative wire without ACW"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-047",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:377-391",
+      "lib/ediel/utiltsEngine.ts:70-93"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-object-context-boundary.test.ts :: keeps UNKNOWN_METERING_POINT fail-closed once a tenant is known but the object is unresolved"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-048",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:1283-1285",
+      "lib/ediel/utiltsEngine.ts:343"
+     ],
+     "tests": [],
+     "gap": "E50 exists only for specific checks. No behavioural test asserts E50 for a period fault, and there is no general E50 period check."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Latent code turns guide errors (514) into functional E50/E19 depending on whether the index is even or odd. It is dead code today because nothing emits UTILTS_E66_MISSING_METER_READING, but it contradicts the rule if that code is ever revived.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:959-1021",
+      "lib/ediel/utiltsEngine.part-1.ts:1641"
+     ]
+    },
+    {
+     "claim": "When functional_rejected, resolveUtiltsDecision plans only UTILTS_ERR and drops the sibling negative and positive APERAKs.",
+     "evidence": [
+      "lib/ediel/core/runtimeDecision.ts:296-303"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-04",
+   "verdict": "CONTRADICTED",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:188-216"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-transaction-persistence.test.ts :: keeps SG5 field 512 and field 532 as separate UTC instants in their respective series"
+     ],
+     "gap": "512 and 532 are stored but never used to decide which data version is current."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:190-203",
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:228-230"
+     ],
+     "tests": [],
+     "gap": "The latest arrival always gets version+1 and is_current=true, and the previous version is set to is_current=false. An older version that arrives late therefore overwrites the newer one."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:1268-1290"
+     ],
+     "tests": [],
+     "gap": "No ERR is raised for arrival order (searches for late/stale/ankomst found nothing), but no test proves it. Retroactive billing change is not prevented because the late data becomes current."
+    },
+    {
+     "effect": "SC-046",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:190-230"
+     ],
+     "tests": [],
+     "gap": "No PGlite or behavioural test exists, and the code overwrites the newer active version."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "persist_series_v2 picks the current series by arrival order and version_no, not by 512/532.",
+     "evidence": [
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:190-230"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-05",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/periodicReasonGuide.ts:9",
+      "lib/ediel/utilts/periodicReasonAuthority.ts:22",
+      "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql:38",
+      "lib/ediel/utilts.ts:418",
+      "lib/ediel/utilts.ts:476"
+     ],
+     "tests": [
+      "__tests__/ediel-periodic-dgi-reason-authority.test.ts :: consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner",
+      "__tests__/ediel-periodic-dgi-reason-authority.test.ts :: permits E88 only with the actual scoped two-contract review receipts returned by the native owner",
+      "scripts/ediel-periodic-dgi-reason-sql-regression.mjs :: periodicCheck E23 default / E88 with two signed reviews",
+      "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts :: renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC"
+     ],
+     "gap": "Outbound always writes E23 for DGI. There is no outbound path for an agreed E88 (see defect)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/periodicReasonAuthority.ts:22-25",
+      "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql:114-129",
+      "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql:229-262"
+     ],
+     "tests": [
+      "scripts/ediel-periodic-dgi-reason-sql-regression.mjs :: rollbackReason inactive reviewer / revoked representation / changed NAD+MR",
+      "__tests__/ediel-periodic-dgi-reason-authority.test.ts :: preserves other qualified receiver roles only with their protected same-source not-applicable receipt"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/periodicReasonGuide.ts:15-22",
+      "lib/ediel/utilts.ts:417-418"
+     ],
+     "tests": [
+      "__tests__/ediel-periodic-dgi-reason-authority.test.ts :: rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+      "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts :: cannot turn a payload flag or payload reason into an authenticated E88 exception"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/periodicReasonGuide.ts:9"
+     ],
+     "tests": [
+      "__tests__/ediel-periodic-dgi-reason-authority.test.ts :: holds %s before positive effects without fabricating field223 rejection"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts.ts:476"
+     ],
+     "tests": [
+      "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts :: keeps nonperiodic DDQ own reason unchanged"
+     ],
+     "gap": "E88 applies only to non-DGI E66. DGI traffic gets E23."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The outbound DGI E66 renderer hardcodes E23. A bilaterally agreed E88 can never be emitted, which contradicts the 'om inte annat överenskommet' exception on the send side.",
+     "evidence": [
+      "lib/ediel/utilts.ts:418",
+      "lib/ediel/utilts.ts:476"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utiltsApplicationReference.ts:45-50",
+      "lib/ediel/rulebook/utiltsApplicationReference.ts:137-158",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:164-168",
+      "lib/ediel/sources/dataRequestStructure.ts:6-15"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-runtime-closure.test.ts :: resolves UTILTS request targets only from exact canonical evidence",
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: uses the exact requested-message Application Reference and never generates one heuristically"
+     ],
+     "gap": "Object, party and period are bound through requireDataRequestStructure. The product (timeSeriesProduct) is never rendered or checked. There is no outbound E74 flow and no test of prepareAndQueueUtiltsE73."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/utiltsSupplierRequest.ts:55-85",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:119-123",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:290-305"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: blocks supplier E66 and fail-closes E73 without bilateral proof/requested application"
+     ],
+     "gap": "Requires a bilateral capability. There is no customer/ESCO grant or mandate check. 'Monitor the result' only sets status 'sent'; nothing correlates the response or tracks a deadline."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utiltsApplicationReference.ts:13-50",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:7"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-runtime-closure.test.ts :: resolves UTILTS request targets only from exact canonical evidence"
+     ],
+     "gap": "The registry has no 23-DGI-E73, so it cannot be built. Requests need a meter point and period, but there is no mandate check."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/flows/utiltsSupplierRequest.ts:35-52",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:164"
+     ],
+     "tests": [],
+     "gap": "No behavioural test runs the E73 flow end to end."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:46-58"
+     ],
+     "tests": [],
+     "gap": "actorRole is discarded."
+    },
+    {
+     "effect": "SC-052",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utiltsApplicationReference.ts:153",
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:46-58"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: uses the exact requested-message Application Reference and never generates one heuristically"
+     ],
+     "gap": "An E66 request with route 23-DGI-E66-* passes. An S02 request auto-resolves 23-DDQ-S02-S without checking the actor's role or right."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "resolveCanonicalUtiltsApplicationReference ignores actorRole. A DGI/ESCO E73 that requests S02 silently gets 23-DDQ-S02-S, so the right to S02 is assumed.",
+     "evidence": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:46-58",
+      "lib/ediel/rulebook/utiltsApplicationReference.ts:153"
+     ]
+    },
+    {
+     "claim": "The E73 send path checks no data-access grant or mandate. It checks only bilateral capability and structure.",
+     "evidence": [
+      "lib/ediel/flows/utiltsSupplierRequest.ts:55-85",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:170-171"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-07",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utilts25A4.ts:33-46",
+      "lib/ediel/rulebook/utilts25A4.ts:128-143",
+      "lib/ediel/rulebook/utiltsMarketSemantics.ts:40-52"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-effective-date.test.ts :: holds unused S06 outbound while retaining historical parsing on %s",
+      "__tests__/ediel-utilts-effective-date.test.ts :: blocks removed future codes and discontinued S08 outbound",
+      "__tests__/ediel-canonical-policy-batch-regression.test.ts :: enforces the S08 live-use cutoff without breaking historical replay"
+     ],
+     "gap": "S06 is blocked only for outbound and live_inbound S06 is allowed. E30/S01/S04 are marked not_supplier_flow, but no test checks it."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:322-326",
+      "lib/ediel/rulebook/businessSemantics.ts:315-321"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-policy-batch-regression.test.ts :: enforces the S08 live-use cutoff without breaking historical replay"
+     ],
+     "gap": "historical:false is hardcoded for every UTILTS profile, including S06. autoStateMutationAllowed is untested."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:60-80",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:331-337"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: blocks supplier E66 and fail-closes E73 without bilateral proof/requested application"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utilts25A4.ts:119-143"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-effective-date.test.ts :: holds unused S06 outbound while retaining historical parsing on %s"
+     ],
+     "gap": "No role-based test for inbound E30/S01/S04."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts:67"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: blocks supplier E66 and fail-closes E73 without bilateral proof/requested application"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "S06 'not in use' is enforced only outbound. Live inbound S06 still passes the policy and the runtime pairs it like an active profile.",
+     "evidence": [
+      "lib/ediel/rulebook/utilts25A4.ts:130",
+      "lib/ediel/utiltsEngine.ts:536",
+      "lib/ediel/utiltsEngine.ts:603"
+     ]
+    },
+    {
+     "claim": "Semantics mark every UTILTS profile historical:false, including S06.",
+     "evidence": [
+      "lib/ediel/rulebook/businessSemantics.ts:315"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts:72-108",
+      "lib/ediel/utilts/structuralComparison.ts:95-110",
+      "lib/ediel/sources/structuralSourceReadset.ts:49"
+     ],
+     "tests": [
+      "__tests__/ediel-received-structural-qualification.test.ts :: activated original monthly readings without approved structure are held, not nationally rejected or accepted"
+     ],
+     "gap": "Comparison is against a received, dated PRODAT readset. Z14 content is skipped entirely, so the information an ESCO actually received is never used. There is no ESCO/Z14 test."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts:124-137"
+     ],
+     "tests": [
+      "__tests__/ediel-received-structural-qualification.test.ts :: an incomplete, corrupt or cross-tenant snapshot cannot release applicable readings"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/structuralComparison.ts:101",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts:124"
+     ],
+     "tests": [
+      "__tests__/ediel-received-structural-qualification.test.ts :: activated original monthly readings without approved structure are held, not nationally rejected or accepted"
+     ],
+     "gap": "No national E61/E62 is raised, but every ESCO E66 with meter/register stays in internal_review, so supplier PRODAT is in effect required before acceptance."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts:83-88"
+     ],
+     "tests": [
+      "__tests__/ediel-received-structural-qualification.test.ts :: ordinary high-resolution energy without meter/register observations needs no source-authority IO"
+     ],
+     "gap": "Not conditioned on the role or the Z14 profile."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts:124-137"
+     ],
+     "tests": [
+      "__tests__/ediel-received-structural-qualification.test.ts :: held transactions cannot fall through to positive APERAK even with original BGM AB"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-049",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/sources/structuralSourceReadset.ts:49",
+      "lib/ediel/utilts/structuralComparison.ts:101"
+     ],
+     "tests": [],
+     "gap": "There is no ESCO-with-valid-Z14 scenario test. The outcome is a hold rather than evaluation against the conditions in Z14."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The structure resolver ignores Z14 as a source. A DGI/ESCO receiver with only Z14 can therefore never reach 'matched' for meter/register E66 and is permanently held.",
+     "evidence": [
+      "lib/ediel/sources/structuralSourceReadset.ts:49",
+      "lib/ediel/utilts/structuralComparison.ts:101"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-09",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:52",
+      "lib/ediel/utilts/consumptionContract.ts:159",
+      "lib/ediel/utilts/transactionPersistence.ts:118"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-quantity-precision.test.ts :: keeps NULL separate from zero and rejects numeric exponent at guide stage",
+      "__tests__/ediel-e66-monthly-billing-resolution.test.ts :: preserves EDIFACT 802 as one month and only emits QTY+136 as billable energy",
+      "__tests__/ediel-utilts-consumption-contract.test.ts :: takes own quality/product/register from physical fields, never QTY qualifier or a sibling"
+     ],
+     "gap": "No single test covers the whole set of types (sign, power/effect, resolution) at once."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "supabase/migrations/20260930161718_ediel_utilts_e30_energy_source_and_null_quality.sql",
+      "supabase/migrations/20260923103000_ediel_utilts_committed_retry_guard.sql:119-140"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-decimal-sql-regression.mjs :: validate_contract_v1/validate_decimal_source_v2 exact decimals",
+      "__tests__/ediel-utilts-consumption-contract.test.ts :: takes own quality/product/register from physical fields, never QTY qualifier or a sibling"
+     ],
+     "gap": "Exact decimals and source quality are tested. The correction trail (version_no/supersedes_series_id/correction_reason) is never exercised by a behavioural test."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/inboundBusinessOutcome.ts:39-49",
+      "lib/ediel/utilts/transactionPersistence.ts:120"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-consumption-contract.test.ts :: retains source missing energy as NULL/ownquality46 without a consumer zero",
+      "scripts/ediel-utilts-decimal-sql-regression.mjs :: QTY NULL wire vs '0' contract rejected",
+      "__tests__/ediel-canonical-policy-batch-regression.test.ts :: keeps S02 forecast out of billing and E31 out of individual-customer scope"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "Same gap as on_pass: the correction trail is untested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/inboundBusinessOutcome.ts:39-49"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-policy-batch-regression.test.ts :: keeps S02 forecast out of billing and E31 out of individual-customer scope",
+      "__tests__/ediel-utilts-consumption-contract.test.ts :: retains source missing energy as NULL/ownquality46 without a consumer zero"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-053",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/consumptionContract.ts:192"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-negative-ack-own-content.test.ts :: missing own6060 fails full syntax before national ERC, while zero and NULL retain distinct source meanings",
+      "__tests__/ediel-utilts-s02-required-scope.test.ts :: a real zero forecast remains an own QTY135 value"
+     ],
+     "gap": "Not run as integration/E2E against the real system."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "U-10",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/resolution.ts:59-128",
+      "lib/ediel/utilts/profiles.ts:100-115"
+     ],
+     "tests": [
+      "__tests__/ediel-e66-monthly-billing-resolution.test.ts :: does not reject the 802 monthly structure with a minute-based interval-count error"
+     ],
+     "gap": "Months are counted with setUTCMonth, so lengths follow the calendar."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utilts/resolution.ts:93"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-err-gateway.test.ts :: real %s functional rejection obeys the canonical ERR gateway for its own IDE (2 quarters, 1 observation)"
+     ],
+     "gap": "No test asserts that a full +0100 day gives 96."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:103-114",
+      "lib/ediel/utiltsEngine.ts:349-370"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-err-gateway.test.ts :: real %s functional rejection obeys the canonical ERR gateway for its own IDE"
+     ],
+     "gap": "The count is always derived and never hardcoded. No test asserts that a matching energy sum fails to mask the gap."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utilts/resolution.ts:93"
+     ],
+     "tests": [],
+     "gap": "The 96-quarter case is not tested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:108"
+     ],
+     "tests": [],
+     "gap": "No test pairs a correct energy sum with missing quarters."
+    },
+    {
+     "effect": "SC-050",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:108-114"
+     ],
+     "tests": [],
+     "gap": "There is no 88-of-96 fixture with a matching energy sum. The nearest test uses 1 of 2 quarters."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The legacy E66 count in the kernel is minute-based (period minutes / DTM+354 value) and only applies to the resolution values 15/60. The canonical profile check is what actually guards U-10.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:765-776",
+      "lib/ediel/utiltsEngine.part-1.ts:1292-1304"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-11",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/utilts25A4.ts:78-110",
+      "lib/ediel/utiltsEngine.ts:396-431"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: keeps E19 through 25-A-3 and removes the same processability rejection from 25-A-4",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: removes October individual E66 %s rejection while preserving the prior rule",
+      "__tests__/ediel-utilts-effective-date.test.ts :: encodes the exact 25-A-4 processability changes without mutating 25-A-3 history"
+     ],
+     "gap": "E19 removal and the E66 point-level E90/E98 removal are tested. E97 is not tested. Retention of E90/E97/E98 for E30/aggregates under 25-A-4 is not tested."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:103-114",
+      "lib/ediel/utiltsEngine.ts:349-370"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-err-gateway.test.ts :: real %s functional rejection obeys the canonical ERR gateway for its own IDE (2026-10-01 -> E87)",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: keeps field 501 required and reads its value with the declared UNA"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:108-114"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-err-gateway.test.ts :: real %s functional rejection obeys the canonical ERR gateway for its own IDE"
+     ],
+     "gap": "E87 in the profile check is not suppressed by E19."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utiltsEngine.ts:410-421"
+     ],
+     "tests": [],
+     "gap": "E30/aggregate retention is untested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:108"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-err-gateway.test.ts :: real %s functional rejection obeys the canonical ERR gateway for its own IDE"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-050",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/utilts/profiles.ts:108-114"
+     ],
+     "tests": [],
+     "gap": "Untested, as for U-10."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Kernel E87 is suppressed when E19/E90/E98 exists for the same IDE. Under 25-A-4 those codes are removed afterwards, and the kernel E87 is rebuilt only when QTY+220 is present or the format is not 806. The profile DST check (E87) probably covers the gap, but this is not tested.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:1296-1303",
+      "lib/ediel/utiltsEngine.ts:354-358",
+      "lib/ediel/utiltsEngine.ts:405-421"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-12",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/packagingGuide.ts:19-40",
+      "lib/ediel/utiltsEngine.ts:916-930",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:456-459"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: groups own transaction reasons without treating observation quality as a reason"
+     ],
+     "gap": "Same-reason checking is implemented. A meter change or a different stage requiring separate packages is not implemented (no hits for meter change/mätarbyte)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "Searched for batch planner/planUtiltsBatch/splitUtilts/groupUtilts: no hits in lib or app. The only check is a reject/preflight guard. Nothing splits into compatible groups or preserves references or period coverage."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/packagingGuide.ts:39"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: groups own transaction reasons without treating observation quality as a reason",
+      "__tests__/ediel-utilts-negative-ack-own-content.test.ts :: $defect copies each IDE own received $field into its negative ACK"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "There is no planner."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/packagingGuide.ts:39",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:457"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: groups own transaction reasons without treating observation quality as a reason"
+     ],
+     "gap": "Outbound preflight is only tested for MESSAGE_COUNT, not for MIXED_REASONS."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "U-13",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts.ts:446",
+      "lib/ediel/rulebook/fieldMatrix.ts:321-322",
+      "lib/ediel/utilts/headerGuide.ts:154-180"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: rejects missing or invalid BGM function 204 before a real E66 E19",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: rejects invalid or missing acknowledgement request 313 before E19"
+     ],
+     "gap": "Receiving 5 and NA is tested. The outbound builder hardcodes 9+AB, but no test checks that outbound UTILTS BGM is 9+AB."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:321-322",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:456-466"
+     ],
+     "tests": [],
+     "gap": "There is no separate outbound profile. Send and preflight use the same fieldMatrix as receiving (5/9, AB/NA), so an outbound UTILTS with 5 or NA is not stopped. Only the builder's hardcoded string keeps outbound at 9+AB."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/headerGuide.ts:154-180",
+      "lib/ediel/utiltsEngine.part-1.ts:1354-1360"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: rejects missing or invalid BGM function 204 before a real E66 E19 (allowedFive)",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: rejects invalid or missing acknowledgement request 313 before E19 (NA)",
+      "__tests__/ediel-utilts-err-canonical-guide.test.ts :: preserves allowed received function5 and requestNA without inventing rejection"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts.ts:446"
+     ],
+     "tests": [],
+     "gap": "Same gap as condition/on_pass: no outbound 9/AB assertion and no separate outbound profile."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/headerGuide.ts:154-180"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: rejects invalid or missing acknowledgement request 313 before E19"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The send path does not enforce function 9/AB for outbound UTILTS. A manually created row with 5/NA passes preflight.",
+     "evidence": [
+      "lib/ediel/rulebook/fieldMatrix.ts:321-322",
+      "lib/ediel/utilts/headerGuide.ts:156"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-14",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql:157-230",
+      "lib/ediel/utilts/positiveAckAuthority.ts:51-72",
+      "lib/ediel/core/kernel.ts:486",
+      "lib/ediel/transport/index.part-2.ts:378"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts :: refuses a syntactically accepted manual positive ACK when no committed storage authority exists",
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: (U-14/ACK-03 block, l.174-187)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:148-263",
+      "lib/ediel/utilts/transactionPersistence.ts:212-243"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-consumption-native.test.ts :: internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry"
+     ],
+     "gap": "The ACK intent is stored as planned_response_type in the same transaction as the data."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql:183-187"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts :: holds transmission when accepted storage has no final binding to this ACK",
+      "__tests__/ediel-utilts-persistence-processor.test.ts :: processor holds internal persistence failure before ACK or sinks"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql:248-261"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-consumption-native.test.ts :: internal SQL storage failure rolls back receipt and ACK reservation..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql:183-186"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts :: creates from committed storage while ACK finalization is still pending"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-054",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/transactionPersistence.ts:243",
+      "lib/ediel/sla/checkAckDeadlines.ts:46-58"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-consumption-native.test.ts :: internal SQL storage failure rolls back...",
+      "__tests__/ediel-utilts-persistence-processor.test.ts :: processor holds internal persistence failure before ACK or sinks"
+     ],
+     "gap": "'Failure and deadline are monitored': nothing shows the aperak_due timer staying open or raising an alarm after a storage failure. No test ties them together."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Migration 003807 runs CREATE OR REPLACE on public.gridex_require_utilts_positive_ack_authority_v1. This overwrites the UTILTS_ERR dispatcher that 003657 created (the old body was renamed to require_positive_before_received_err_v1). The current definition rejects every source whose family is not UTILTS, so positive APERAK for received UTILTS_ERR raises utilts_positive_ack_storage_unavailable. The received-err regression test does not load 003807.",
+     "evidence": [
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql:154-171",
+      "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql:157,173-174",
+      "lib/ediel/utilts/positiveAckAuthority.ts:53",
+      "scripts/ediel-received-err-response-sql-regression.mjs:46,79"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-15",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/packagingGuide.ts:6-44",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:456-459",
+      "lib/ediel/utiltsEngine.ts:917-935"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: keeps U15 national one-message packaging distinct from syntax",
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: groups own transaction reasons without treating observation quality as a reason",
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: holds quarter/month mixes from each own SG5 resolution"
+     ],
+     "gap": "Phases (MKS) are covered implicitly by the one-UNH rule. Nothing checks the UNB Application Reference against the content. No test covers MULTIPLE_RECEIVERS."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts.ts:446-456"
+     ],
+     "tests": [],
+     "gap": "There is no batch planner. The builder emits one transaction per message, so it complies trivially, but nothing groups compatible transactions per receiver."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/messages.ts:42-75",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:456-459"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: uses the same UTILTS single-message national packaging guard before send"
+     ],
+     "gap": "Applies only when the payload goes through buildEdifactEnvelope (see defect)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/packagingGuide.ts:6-44"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: keeps U15 national one-message packaging distinct from syntax"
+     ],
+     "gap": "Same gaps as condition and on_pass."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/messages.ts:59-75"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: uses the same UTILTS single-message national packaging guard before send"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "At SMTP send, payload preflight (packaging and the 1MB/999 limit) only runs through assertEdielSendLock when there is extra context. A plain UTILTS row that was not built with buildEdifactEnvelope is not rechecked at send.",
+     "evidence": [
+      "lib/ediel/transport/index.part-2.ts:406",
+      "lib/ediel/transport/sendLock.ts:19"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-16",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:76-82,453-465",
+      "lib/ediel/fileEngine.ts:427-431"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: keeps the technical ten MB recommendation advisory",
+      "__tests__/ediel-packing-limit-authority.test.ts :: counts actual transaction occurrences for the conservative 999 outgoing limit"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:461-465"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: keeps one MB outgoing/incoming packing severity independent of actual whole syntax rejection"
+     ],
+     "gap": "Outbound is held at 1MB/999. Receiver capacity and full grammar limits are not documented in code or any registry (searched for capacity/mottagarkapacitet: no hits). The 1MB limit is 1_000_000 bytes, not 1 MiB."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:80-81,462-464"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: keeps one MB outgoing/incoming packing severity...",
+      "__tests__/ediel-packing-limit-authority.test.ts :: counts actual transaction occurrences..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:461-465"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: counts actual transaction occurrences for the conservative 999 outgoing limit"
+     ],
+     "gap": "Receiver capacity documentation is missing."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:462"
+     ],
+     "tests": [
+      "__tests__/ediel-packing-limit-authority.test.ts :: keeps one MB outgoing/incoming packing severity..."
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The 1MB/999 limit is not rechecked at send for UTILTS without extra context (same path as the U-15 defect).",
+     "evidence": [
+      "lib/ediel/transport/index.part-2.ts:406"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-17",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.ts:448",
+      "lib/ediel/utiltsEngine.ts:451",
+      "lib/ediel/utiltsEngine.ts:931",
+      "lib/ediel/utilts/packagingGuide.ts:10",
+      "lib/ediel/utilts/packagingGuide.ts:15",
+      "lib/ediel/utilts/observationOrderGuide.ts:20",
+      "lib/ediel/utilts/aperakSourceText.ts:57",
+      "lib/ediel/aperakEngine.ts:166"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-negative-ack-own-content.test.ts :: cases UTILTS_OBSERVATION_TIME_ORDER field DTM/2380 / UTILTS_OBSERVATION_BLOCK_NOT_CONTIGUOUS field QTY/6063",
+      "__tests__/ediel-utilts-aperak-source-text.test.ts :: uses the actual failed header component (field 202)"
+     ],
+     "gap": "Numbered fields are used first. Element references are used only where no field number exists."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:164-168"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-physical-scope.test.ts :: preserves a source-selected element fallback up to 17 characters"
+     ],
+     "gap": "Tested only at render level, with the made-up value 'DTM/C507/2005-REF'. No validator emits DTM/2005 end-to-end."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:166",
+      "lib/ediel/utilts/aperakSourceText.ts:57"
+     ],
+     "tests": [],
+     "gap": "No test covers the throw at >17 chars or an invalid reference (utilts_aperak_field_reference_invalid). No test shows that a missing field number is never guessed from the qualifier."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/observationOrderGuide.ts:20"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-negative-ack-own-content.test.ts :: own-content cases"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:166"
+     ],
+     "tests": [],
+     "gap": "Same as on_failure: no negative test."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The text fallback regex accepts only TAG/[Cnnn/]nnnn, but the renderer accepts any value of 17 chars or fewer. So 'DTM/C507/2005-REF' renders but would give null source text via utiltsApplicationErrorText.",
+     "evidence": [
+      "lib/ediel/utilts/aperakSourceText.ts:57",
+      "lib/ediel/aperakEngine.ts:166"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-18",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/observationOrderGuide.ts:6-73",
+      "lib/ediel/utiltsEngine.ts:936"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: rejects a reading between two energy observations",
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: rejects own descending times but never compares sibling blocks or IDEs",
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: rejects the same numeric reading and time even when its lexical precision differs",
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: keeps time order and duplicate readings in the actual own register scope"
+     ],
+     "gap": "Implemented on the parse side only. The builder side is missing: payloadPreflight runs packagingGuide but not utiltsObservationOrderGuideIssues (grep ObservationOrder outside the guide and the engine returned nothing)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/observationOrderGuide.ts:5"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: allows %s then %s"
+     ],
+     "gap": "Never reorders. Either block order is accepted."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/observationOrderGuide.ts:36-40"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: allows %s then %s",
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: rejects a reading between two energy observations"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/observationOrderGuide.ts"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-negative-ack-own-content.test.ts :: UTILTS_OBSERVATION_BLOCK_NOT_CONTIGUOUS / TIME_ORDER / METER_READING_DUPLICATED"
+     ],
+     "gap": "No test for the builder side."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/observationOrderGuide.ts:36"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-observation-order-guide.test.ts :: allows %s then %s"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The duplicate key includes the reading value. Two readings with the same register and the same time but different values are not flagged as duplicated.",
+     "evidence": [
+      "lib/ediel/utilts/observationOrderGuide.ts:66"
+     ]
+    },
+    {
+     "claim": "Register and meter (AES/MG) state carries over across SEQ groups without its own RFF, so the register scope may be inherited from a previous observation.",
+     "evidence": [
+      "lib/ediel/utilts/observationOrderGuide.ts:15-17",
+      "lib/ediel/utilts/observationOrderGuide.ts:27-29"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "U-19",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "ABSENT",
+     "code": [
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts:104"
+     ],
+     "tests": [],
+     "gap": "No UTILTS code reads field 226 to correlate with a PRODAT case. grep for prodat_transaction_reference, '226' and prodat correlat* in lib finds only the matrix and testing/aperakErrorRuleRegistry.ts:1540 (test-data tooling)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "No optional correlation is used."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts:104",
+      "lib/ediel/rulebook/utiltsRulebook.ts:169"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-field-matrix.test.ts :: (static matrix values only)"
+     ],
+     "gap": "E66 has 226='D', and no RFF qualifier check rejects it. Fixtures without RFF+TN are accepted only implicitly (__tests__/helpers/utiltsObservationHandoff.ts). There is no explicit behaviour test for E66 with a missing or non-TN 226."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "No correlation behaviour exists."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts:104"
+     ],
+     "tests": [],
+     "gap": "No explicit test."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The generic field matrix maps 226 to RFF+LI, but the UTILTS matrix maps it to RFF+TN.",
+     "evidence": [
+      "lib/ediel/rulebook/fieldMatrix.ts:352",
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts:104"
+     ]
+    },
+    {
+     "claim": "The RFF+TN PRODAT reference (226) is used as a fallback for the message's own transactionId/transactionReference when IDE is missing, which mixes up correlation and identity.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:1576",
+      "lib/ediel/utilts.ts:309"
+     ]
+    }
+   ]
+  }
+ ]
+}

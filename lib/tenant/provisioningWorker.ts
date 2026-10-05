@@ -1,4 +1,5 @@
 import { deliverCompanyInvitationIntent } from '@/lib/auth/companyInvitationFlow'
+import { getCompanyProductionReadiness } from '@/lib/ediel/productionReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 
 type ClaimedProvisioningJob = {
@@ -42,7 +43,49 @@ async function complete(input: {
   if (error) throw error
 }
 
+async function processEdielReadinessRevalidation(job: ClaimedProvisioningJob) {
+  try {
+    // System revalidation is deliberately readiness-only. The readiness evaluator
+    // persists evidence for the current immutable snapshot but does not create a
+    // dry-run and does not transition production back to live.
+    const readiness = await getCompanyProductionReadiness(job.company_id, {
+      checkedBy: null,
+      persist: true,
+    })
+
+    // A newer snapshot may have superseded this queued job before it was claimed.
+    // In that case the evaluation above is already bound to the current snapshot;
+    // the newer snapshot also has its own idempotent job, so this job can complete
+    // without ever reviving stale evidence.
+    await complete({ job, succeeded: true })
+    return {
+      outcome: 'completed' as const,
+      readinessStatus: readiness.status,
+      snapshotId: readiness.configurationSnapshot.id,
+      superseded: readiness.configurationSnapshot.id !== job.idempotency_key,
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await complete({
+      job,
+      succeeded: false,
+      errorCode: 'ediel_readiness_revalidation_failed',
+      errorMessage: message,
+    })
+    return {
+      outcome: 'failed' as const,
+      readinessStatus: null,
+      snapshotId: null,
+      superseded: false,
+    }
+  }
+}
+
 async function processClaimedJob(job: ClaimedProvisioningJob) {
+  if (job.job_key === 'ediel_readiness_revalidate') {
+    return processEdielReadinessRevalidation(job)
+  }
+
   if (job.job_key !== 'auth_invite') {
     await complete({
       job,
@@ -50,7 +93,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       errorCode: 'unsupported_provisioning_job',
       errorMessage: `Provisioning job type ${job.job_key} is not supported.`,
     })
-    return 'failed' as const
+    return { outcome: 'failed' as const }
   }
 
   const { data, error } = await supabaseService
@@ -66,7 +109,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       errorCode: 'invitation_intent_lookup_failed',
       errorMessage: error.message,
     })
-    return 'failed' as const
+    return { outcome: 'failed' as const }
   }
   const invitation = data as InvitationRow | null
   if (!invitation) {
@@ -76,7 +119,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       errorCode: 'invitation_intent_missing',
       errorMessage: 'The durable invitation intent is missing.',
     })
-    return 'failed' as const
+    return { outcome: 'failed' as const }
   }
 
   const providerStatus = typeof invitation.metadata?.provider_delivery_status === 'string'
@@ -84,7 +127,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
     : null
   if (invitation.status !== 'pending' || (providerStatus === 'sent' && invitation.invited_user_id)) {
     await complete({ job, succeeded: true })
-    return 'completed' as const
+    return { outcome: 'completed' as const }
   }
   if (!invitation.token) {
     await complete({
@@ -93,7 +136,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       errorCode: 'invitation_token_missing',
       errorMessage: 'The durable invitation intent has no delivery token.',
     })
-    return 'failed' as const
+    return { outcome: 'failed' as const }
   }
 
   try {
@@ -110,7 +153,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       sendEmail: true,
     })
     await complete({ job, succeeded: true })
-    return 'completed' as const
+    return { outcome: 'completed' as const }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await complete({
@@ -119,7 +162,7 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       errorCode: 'auth_invite_delivery_failed',
       errorMessage: message,
     })
-    return 'failed' as const
+    return { outcome: 'failed' as const }
   }
 }
 
@@ -139,7 +182,7 @@ export async function processCompanyProvisioningJobs(input: {
   const outcomes = await Promise.all(jobs.map((job) => processClaimedJob(job)))
   return {
     claimed: jobs.length,
-    completed: outcomes.filter((outcome) => outcome === 'completed').length,
-    failed: outcomes.filter((outcome) => outcome === 'failed').length,
+    completed: outcomes.filter((item) => item.outcome === 'completed').length,
+    failed: outcomes.filter((item) => item.outcome === 'failed').length,
   }
 }

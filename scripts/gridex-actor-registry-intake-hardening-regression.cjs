@@ -14,7 +14,9 @@ function assert(condition, message) {
 }
 
 const intakeForm = read('components/admin/customers/CustomerIntakeForm.tsx')
-const intakeActions = read('app/admin/customers/actions.ts')
+// actions.ts is a facade over split implementation parts; scan all of them.
+const intakeActions = ['actions.ts', 'actions.part-1.ts', 'actions.part-2.ts', 'actions.part-3.ts', 'actions.part-4.ts']
+  .map((file) => read(`app/admin/customers/${file}`)).join('\n')
 const actorPage = read('app/admin/ediel/actors/page.tsx')
 const actorActions = read('app/admin/ediel/actors/actions.ts')
 const masterdataDb = read('lib/masterdata/db.ts')

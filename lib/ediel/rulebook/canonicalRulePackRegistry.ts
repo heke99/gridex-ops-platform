@@ -1,7 +1,21 @@
 import { supabaseService } from '@/lib/supabase/service'
+import {canonicalRegisteredEdielGuideScopes} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { EdielDirection } from '@/lib/ediel/types'
+import {
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+
+export type OriginalRulePackWitness = Readonly<{
+  rulePack: Record<string, unknown>
+  messageProfile: Record<string, unknown>
+  guideSources: readonly Record<string, unknown>[]
+}>
 
 export type CanonicalRulePackResolution = {
+  /** Exact named DB version; source semantic projections never overwrite it. */
+  originalVersion: string
+  originalSnapshot: OriginalRulePackWitness
   rulePackId: string
   messageProfileId: string
   market: 'electricity'
@@ -15,6 +29,8 @@ export type CanonicalRulePackResolution = {
   sourceHash: string
   fieldMatrixVersion: string | null
   profileKey: string
+  /** Actual activation-row key; distinct from the source-owned semantic key. */
+  databaseProfileKey?: string
   businessProcess: string
   phase: string | null
   profile: Record<string, unknown>
@@ -26,6 +42,8 @@ export type CanonicalRulePackResolution = {
 }
 
 type DbRow = {
+  original_version?: unknown
+  original_snapshot?: unknown
   rule_pack_id?: unknown
   message_profile_id?: unknown
   market?: unknown
@@ -49,6 +67,16 @@ type DbRow = {
   state_machine_ready?: unknown
 }
 
+type SourceCanonicalResolution = {
+  policy: CanonicalEdielPolicy
+  family: 'PRODAT' | 'UTILTS'
+  associationAssignedCode: string
+  profileKey: string
+  businessProcess: string
+  phase: string | null
+  profile: Record<string, unknown>
+}
+
 function requiredText(row: DbRow, key: keyof DbRow): string {
   const value = row[key]
   if (typeof value !== 'string' || !value.trim()) {
@@ -68,18 +96,85 @@ function booleanValue(row: DbRow, key: keyof DbRow): boolean {
   return row[key] as boolean
 }
 
-function normalizeRow(value: unknown): CanonicalRulePackResolution {
+function isCalendarDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000-')) return false
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+function evidenceDate(value: unknown, field: 'valid_from' | 'valid_to'): string {
+  if (!isCalendarDate(value)) throw new Error(`canonical_rule_pack_evidence_date_invalid:${field}`)
+  return value
+}
+
+
+function freezeWitness<T>(value:T):T {
+  if (value && typeof value === 'object') {for(const child of Object.values(value))freezeWitness(child);Object.freeze(value)}
+  return value
+}
+
+function originalWitness(row: DbRow): { originalVersion: string; originalSnapshot: OriginalRulePackWitness } {
+  const snapshot = row.original_snapshot
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw new Error('canonical_original_rule_witness_missing')
+  const witness = snapshot as Record<string, unknown>
+  const pack = witness.rulePack as Record<string, unknown> | undefined
+  const profile = witness.messageProfile as Record<string, unknown> | undefined
+  const sources = witness.guideSources
+  if (Object.keys(witness).length !== 3 || !pack || typeof pack !== 'object' || Array.isArray(pack)
+    || !profile || typeof profile !== 'object' || Array.isArray(profile) || !Array.isArray(sources)
+    || pack.id !== row.rule_pack_id || profile.id !== row.message_profile_id || profile.rule_pack_id !== row.rule_pack_id
+    || profile.profile_key !== row.profile_key || pack.source_hash !== row.source_hash
+    || pack.guide_version !== row.guide_version || pack.guide_revision !== row.guide_revision
+    || sources.some(source => !source || typeof source !== 'object' || Array.isArray(source) || source.rule_pack_id !== row.rule_pack_id)) {
+    throw new Error('canonical_original_rule_witness_scope_mismatch')
+  }
+  const originalVersion = `${requiredText(row, 'guide_version')}:r${requiredText(row, 'guide_revision')}`
+  if (row.original_version !== originalVersion) throw new Error('canonical_original_rule_witness_version_mismatch')
+  return { originalVersion, originalSnapshot: freezeWitness(structuredClone(witness)) as OriginalRulePackWitness }
+}
+
+/** Serializable projection of the actual locked registry response. The caller
+ * must be the just-executed canonical owner, never persisted status metadata. */
+export function receivedOriginalRulePackWitness(value: unknown): {
+  profileKey: string; messageProfileId: string; rulePackId: string; sourceHash: string; version: string; snapshot: OriginalRulePackWitness
+} | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const evidence = value as Record<string, unknown>
+  const profileKey = evidence.databaseProfileKey ?? evidence.profileKey
+  if (typeof profileKey !== 'string' || !profileKey || profileKey.length > 128 || profileKey !== profileKey.trim()
+    || typeof evidence.messageProfileId !== 'string' || typeof evidence.rulePackId !== 'string'
+    || typeof evidence.sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.sourceHash)
+    || typeof evidence.version !== 'string' || !evidence.version || evidence.version.length > 128) return null
+  try {
+    const snapshot = evidence.snapshot as OriginalRulePackWitness
+    const checked = originalWitness({ original_version: evidence.version, original_snapshot: snapshot,
+      rule_pack_id: evidence.rulePackId, message_profile_id: evidence.messageProfileId, profile_key: profileKey,
+      source_hash: evidence.sourceHash, guide_version: snapshot.rulePack.guide_version, guide_revision: snapshot.rulePack.guide_revision })
+    return { profileKey, messageProfileId: evidence.messageProfileId, rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash,
+      version: checked.originalVersion, snapshot: checked.originalSnapshot }
+  } catch { return null }
+}
+
+function normalizeDbEvidence(value: unknown): CanonicalRulePackResolution {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('canonical_rule_pack_result_invalid')
   }
   const row = value as DbRow
   const profile = row.profile
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
-    throw new Error('canonical_rule_pack_profile_invalid')
+    throw new Error('canonical_rule_pack_profile_evidence_invalid')
   }
   const market = requiredText(row, 'market')
   if (market !== 'electricity') throw new Error(`canonical_rule_pack_market_invalid:${market}`)
+  const validFrom = evidenceDate(row.valid_from, 'valid_from')
+  const validTo = row.valid_to === null ? null : evidenceDate(row.valid_to, 'valid_to')
+  if (validTo && validTo < validFrom) throw new Error('canonical_rule_pack_evidence_date_window_invalid')
+  const sourceHash = requiredText(row, 'source_hash')
+  // Matches the existing SQL constraint; format validation is not proof that
+  // the source document itself has been independently acquired/certified.
+  if (!/^[a-f0-9]{64}$/.test(sourceHash)) throw new Error('canonical_rule_pack_evidence_source_hash_invalid')
   return {
+    ...originalWitness(row),
     rulePackId: requiredText(row, 'rule_pack_id'),
     messageProfileId: requiredText(row, 'message_profile_id'),
     market: 'electricity',
@@ -87,10 +182,10 @@ function normalizeRow(value: unknown): CanonicalRulePackResolution {
     guideVersion: requiredText(row, 'guide_version'),
     guideRevision: requiredText(row, 'guide_revision'),
     unhAssociationCode: requiredText(row, 'unh_association_code'),
-    validFrom: requiredText(row, 'valid_from'),
-    validTo: nullableText(row.valid_to),
+    validFrom,
+    validTo,
     sourceDocument: requiredText(row, 'source_document'),
-    sourceHash: requiredText(row, 'source_hash'),
+    sourceHash,
     fieldMatrixVersion: nullableText(row.field_matrix_version),
     profileKey: requiredText(row, 'profile_key'),
     businessProcess: requiredText(row, 'business_process'),
@@ -104,49 +199,266 @@ function normalizeRow(value: unknown): CanonicalRulePackResolution {
   }
 }
 
+function normalizeIdentifier(value: string | null | undefined): string {
+  return String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
+}
+
+function requiredProfileText(profile: Record<string, unknown>, key: string): string {
+  const value = profile[key]
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`canonical_rule_pack_evidence_profile_field_missing:${key}`)
+  }
+  return value.trim()
+}
+
+function assertPolicyDirection(policy: CanonicalEdielPolicy, direction: EdielDirection): void {
+  const canonicalDirection = policy.semantics.direction
+  if (canonicalDirection !== 'both' && canonicalDirection !== direction) {
+    throw new Error(`canonical_source_direction_not_allowed:${policy.code}:${direction}:${canonicalDirection}`)
+  }
+}
+
+function policyProfileSnapshot(policy: CanonicalEdielPolicy): Record<string, unknown> {
+  return {
+    profileKey: policy.profileKey,
+    messageCode: policy.code,
+    transactionSubtype: policy.subtype,
+    transactionReasonCode: policy.transactionReasonCode,
+    processGroup: policy.processGroup,
+    phase: policy.phase,
+    applicationReference: policy.applicationReference,
+    associationAssignedCode: policy.associationAssignedCode,
+    guideRevision: policy.guide.guideRevision,
+    effectiveFrom: policy.guide.effectiveFrom,
+    effectiveTo: policy.guide.effectiveTo,
+    direction: policy.direction,
+    bilateralRequired: policy.bilateralRequired,
+    businessEffect: policy.semantics.businessEffect,
+    dataScope: policy.semantics.dataScope,
+  }
+}
+
+function resolveSourceCanonical(params: {
+  family: 'PRODAT' | 'UTILTS'
+  messageCode: string
+  transactionSubtype?: string | null
+  applicationReference?: string | null
+  requestedMessageCode?: string | null
+  direction: EdielDirection
+  businessDate: string
+  canonicalPolicy?: CanonicalEdielPolicy
+}): SourceCanonicalResolution {
+  // Preserve the caller's selected wire context. UTILTS references can be
+  // multi-valued and must never be guessed by an outbound bootstrap.
+  // PRODAT's established single-authority fallback is retained for callers
+  // that have not supplied an Application Reference.
+  const applicationReference = params.canonicalPolicy?.applicationReference ?? (params.applicationReference || (params.family === 'PRODAT'
+    ? resolveCanonicalEdielPolicy({
+      family: params.family,
+      messageCode: params.messageCode,
+      subtypeOrReasonCode: params.transactionSubtype,
+      direction: 'outbound',
+      referenceDate: params.businessDate,
+      mode: 'catalog_evidence',
+    }).applicationReference : null))
+  const policy = params.canonicalPolicy ?? resolveCanonicalEdielPolicy({
+    family: params.family,
+    messageCode: params.messageCode,
+    subtypeOrReasonCode: params.transactionSubtype,
+    direction: params.direction,
+    referenceDate: params.businessDate,
+    applicationReference,
+    requestedMessageCode: params.requestedMessageCode,
+    mode: 'catalog_evidence',
+  })
+  if (params.canonicalPolicy && (policy.family !== params.family || policy.code !== params.messageCode.toUpperCase()
+    || policy.direction !== params.direction || policy.referenceDate !== params.businessDate
+    || normalizeIdentifier(policy.subtype) !== normalizeIdentifier(params.transactionSubtype)
+    || params.applicationReference && policy.applicationReference !== params.applicationReference)) {
+    throw new Error('canonical_selected_policy_scope_mismatch')
+  }
+  assertPolicyDirection(policy, params.direction)
+
+  if (policy.family !== 'PRODAT' && policy.family !== 'UTILTS') {
+    throw new Error(`canonical_source_family_invalid:${policy.family}`)
+  }
+  if (!policy.profileKey) throw new Error(`canonical_source_profile_key_missing:${policy.family}:${policy.code}`)
+  if (!policy.associationAssignedCode) throw new Error(`canonical_source_association_missing:${policy.family}:${policy.code}`)
+
+  return {
+    policy,
+    family: policy.family,
+    associationAssignedCode: policy.associationAssignedCode,
+    profileKey: policy.profileKey,
+    businessProcess: policy.processGroup ?? policy.semantics.businessProcess,
+    phase: policy.phase,
+    profile: policyProfileSnapshot(policy),
+  }
+}
+
+function assertDbEvidenceMatchesSource(input: {
+  evidence: CanonicalRulePackResolution
+  source: SourceCanonicalResolution
+  businessDate: string
+  canonicalPolicy?: CanonicalEdielPolicy
+}) {
+  const { evidence, source, businessDate } = input
+  if (normalizeIdentifier(evidence.family) !== source.family) {
+    throw new Error(`canonical_rule_pack_evidence_family_mismatch:${evidence.family}:${source.family}`)
+  }
+  if (normalizeIdentifier(evidence.unhAssociationCode) !== normalizeIdentifier(source.associationAssignedCode)) {
+    throw new Error(`canonical_rule_pack_evidence_association_mismatch:${evidence.unhAssociationCode}:${source.associationAssignedCode}`)
+  }
+  if (evidence.validFrom > businessDate || (evidence.validTo && evidence.validTo < businessDate)) {
+    throw new Error(`canonical_rule_pack_evidence_date_mismatch:${businessDate}:${evidence.validFrom}:${evidence.validTo ?? 'open'}`)
+  }
+
+  // ediel_message_profiles.profile_key is a stable DB evidence identifier
+  // (for example PRODAT:Z01:L:26.A:r3), not the semantic runtime profile key
+  // (for example prodat_z01_customer_identity_request). Verify the row by the
+  // normative identity fields it evidences instead of comparing those two
+  // different identifier namespaces.
+  const profileFamily = normalizeIdentifier(requiredProfileText(evidence.profile, 'family'))
+  if (profileFamily !== source.family) {
+    throw new Error(`canonical_rule_pack_evidence_profile_family_mismatch:${profileFamily}:${source.family}`)
+  }
+  const profileMessageCode = normalizeIdentifier(requiredProfileText(evidence.profile, 'messageCode'))
+  const sourceMessageCode = normalizeIdentifier(source.policy.code)
+  if (profileMessageCode !== sourceMessageCode) {
+    throw new Error(`canonical_rule_pack_evidence_message_code_mismatch:${profileMessageCode}:${sourceMessageCode}`)
+  }
+
+  if (source.family === 'PRODAT') {
+    const profileSubtype = normalizeIdentifier(requiredProfileText(evidence.profile, 'transactionSubtype'))
+    const sourceSubtype = normalizeIdentifier(source.policy.subtype)
+    if (profileSubtype !== sourceSubtype) {
+      throw new Error(`canonical_rule_pack_evidence_subtype_mismatch:${profileSubtype}:${sourceSubtype || 'missing'}`)
+    }
+
+    const profileDirection = requiredProfileText(evidence.profile, 'canonicalDirection').toLowerCase()
+    if (profileDirection !== source.policy.direction && profileDirection !== 'both') {
+      throw new Error(`canonical_rule_pack_evidence_direction_mismatch:${profileDirection}:${source.policy.direction}`)
+    }
+
+    const sourceReason = normalizeIdentifier(source.policy.transactionReasonCode)
+    if (sourceReason) {
+      const profileReason = normalizeIdentifier(requiredProfileText(evidence.profile, 'reasonForTransaction'))
+      if (profileReason !== sourceReason) {
+        throw new Error(`canonical_rule_pack_evidence_reason_mismatch:${profileReason}:${sourceReason}`)
+      }
+    }
+  }
+
+  if (source.family === 'UTILTS') {
+    // E5SE5A is shared by the retained guide revisions; it cannot prove which
+    // revision the activation row evidences. The existing SQL projection stores
+    // the complete guide version and a separate numeric revision.
+    const expectedVersion = normalizeIdentifier(source.policy.guide.guideRevision)
+    const expectedRevision = /-(\d+)$/.exec(source.policy.guide.guideRevision)?.[1]
+    if (!expectedRevision) throw new Error('canonical_source_guide_revision_missing')
+    if (normalizeIdentifier(evidence.guideVersion) !== expectedVersion) {
+      throw new Error('canonical_rule_pack_evidence_guide_mismatch')
+    }
+    if (evidence.guideRevision !== expectedRevision) {
+      throw new Error('canonical_rule_pack_evidence_guide_revision_mismatch')
+    }
+    if (normalizeIdentifier(requiredProfileText(evidence.profile, 'guideVersion')) !== expectedVersion) {
+      throw new Error('canonical_rule_pack_evidence_profile_guide_mismatch')
+    }
+    if (requiredProfileText(evidence.profile, 'guideRevision') !== expectedRevision) {
+      throw new Error('canonical_rule_pack_evidence_profile_revision_mismatch')
+    }
+    return
+  }
+
+  const scope=canonicalRegisteredEdielGuideScopes().find(item=>item.family==='PRODAT'&&item.canonicalGuideRevision===source.policy.guide.guideRevision)
+  if(!scope||normalizeIdentifier(evidence.guideVersion)!==normalizeIdentifier(scope.guideVersion)){
+    throw new Error(`canonical_rule_pack_evidence_guide_mismatch:${evidence.guideVersion}:${source.policy.guide.guideRevision}`)
+  }
+  if(evidence.guideRevision!==scope.guideRevision)throw new Error('canonical_rule_pack_evidence_guide_revision_mismatch')
+  if(normalizeIdentifier(requiredProfileText(evidence.profile,'guideVersion'))!==normalizeIdentifier(scope.guideVersion))throw new Error('canonical_rule_pack_evidence_profile_guide_mismatch')
+  if(requiredProfileText(evidence.profile,'guideRevision')!==scope.guideRevision)throw new Error('canonical_rule_pack_evidence_profile_revision_mismatch')
+}
+
+/**
+ * Canonical policy resolves all normative Ediel semantics first. Supabase is
+ * queried only for an activated evidence row (stable IDs, checksum/readiness)
+ * matching that policy decision. DB profile JSON can never redefine runtime
+ * message function, subtype, direction, Application Reference, ACK or guide.
+ */
 export async function resolveCanonicalRulePack(params: {
   family: 'PRODAT' | 'UTILTS'
   messageCode: string
   transactionSubtype?: string | null
+  applicationReference?: string | null
+  requestedMessageCode?: string | null
   direction: EdielDirection
   businessDate: string
+  canonicalPolicy?: CanonicalEdielPolicy
   requireBuilder?: boolean
   requireStateMachine?: boolean
 }): Promise<CanonicalRulePackResolution> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.businessDate)) {
+  if (!isCalendarDate(params.businessDate)) {
     throw new Error('canonical_rule_pack_business_date_invalid')
   }
-  const subtype = params.family === 'PRODAT'
-    ? String(params.transactionSubtype ?? '').trim().toUpperCase()
-    : ''
-  if (params.family === 'PRODAT' && !subtype) {
-    throw new Error(`canonical_rule_pack_subtype_required:${params.messageCode}`)
-  }
 
-  const { data, error } = await supabaseService.rpc('resolve_canonical_ediel_rule_pack', {
+  const source = resolveSourceCanonical(params)
+  const subtype = params.family === 'PRODAT'
+    ? String(source.policy.subtype ?? '').trim().toUpperCase()
+    : ''
+
+  // During explicitly accepted inbound grace the complete previous guide has
+  // already passed. Lookup its last normative day, retaining actual admission
+  // in the policy. Activation cannot select a different guide for this owner.
+  const lookupDate = params.direction === 'inbound' && source.policy.previousGuideGraceActive && source.policy.guide.effectiveTo !== null && params.businessDate > source.policy.guide.effectiveTo
+    ? source.policy.guide.effectiveTo ?? source.policy.guide.effectiveFrom : params.businessDate
+  const { data, error } = await supabaseService.rpc('resolve_canonical_ediel_rule_pack_with_witness_v1', {
     p_market: 'electricity',
-    p_family: params.family,
-    p_message_code: params.messageCode.trim().toUpperCase(),
+    p_family: source.family,
+    p_message_code: source.policy.code,
     p_transaction_subtype: subtype,
     p_direction: params.direction,
-    p_business_date: params.businessDate,
+    p_business_date: lookupDate,
   })
-  if (error) throw new Error(`canonical_rule_pack_resolution_failed:${error.message}`)
+  if (error) throw new Error(`canonical_rule_pack_evidence_resolution_failed:${error.message}`)
   const rows = Array.isArray(data) ? data : data ? [data] : []
   if (rows.length !== 1) {
-    throw new Error(`canonical_rule_pack_resolution_count:${rows.length}:${params.family}:${params.messageCode}:${subtype}`)
+    throw new Error(`canonical_rule_pack_evidence_count:${rows.length}:${params.family}:${params.messageCode}:${subtype}`)
   }
-  const resolved = normalizeRow(rows[0])
-  if (!resolved.parserReady || !resolved.validatorReady || !resolved.ackReady) {
-    throw new Error(`canonical_rule_pack_runtime_incomplete:${resolved.profileKey}`)
+
+  const evidence = normalizeDbEvidence(rows[0])
+  assertDbEvidenceMatchesSource({ evidence, source, businessDate: lookupDate })
+
+  if (!evidence.parserReady || !evidence.validatorReady || !evidence.ackReady) {
+    throw new Error(`canonical_rule_pack_evidence_runtime_incomplete:${evidence.profileKey}`)
   }
-  if (params.requireBuilder !== false && params.direction === 'outbound' && !resolved.builderReady) {
-    throw new Error(`canonical_rule_pack_builder_not_ready:${resolved.profileKey}`)
+  if (params.requireBuilder !== false && params.direction === 'outbound' && !evidence.builderReady) {
+    throw new Error(`canonical_rule_pack_evidence_builder_not_ready:${evidence.profileKey}`)
   }
-  if (params.requireStateMachine !== false && !resolved.stateMachineReady) {
-    throw new Error(`canonical_rule_pack_state_machine_not_ready:${resolved.profileKey}`)
+  if (params.requireStateMachine !== false && !evidence.stateMachineReady) {
+    throw new Error(`canonical_rule_pack_evidence_state_machine_not_ready:${evidence.profileKey}`)
   }
-  return resolved
+
+  return {
+    ...evidence,
+    family: source.family,
+    guideVersion: source.policy.guide.guideRevision,
+    guideRevision: source.policy.guide.guideRevision,
+    unhAssociationCode: source.associationAssignedCode,
+    // Activation may be narrower than the normative guide. Never widen it,
+    // and keep its document paired with its hash. Normative dates/document
+    // belong to the source policy, not to invented activation evidence.
+    validFrom: evidence.validFrom > source.policy.guide.effectiveFrom
+      ? evidence.validFrom : source.policy.guide.effectiveFrom,
+    validTo: evidence.validTo && source.policy.guide.effectiveTo
+      ? (evidence.validTo < source.policy.guide.effectiveTo ? evidence.validTo : source.policy.guide.effectiveTo)
+      : evidence.validTo ?? source.policy.guide.effectiveTo,
+    databaseProfileKey: evidence.profileKey,
+    profileKey: source.profileKey,
+    businessProcess: source.businessProcess,
+    phase: source.phase,
+    profile: source.profile,
+  }
 }
 
 export function assertLegacyRuleSnapshotMatchesCanonical(params: {
@@ -154,10 +466,10 @@ export function assertLegacyRuleSnapshotMatchesCanonical(params: {
   legacyVersion: string | null | undefined
   legacyProfileKey: string | null | undefined
 }) {
-  const normalize = (value: string | null | undefined) => String(value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
-  const expectedVersion = normalize(params.canonical.guideVersion)
-  const actualVersion = normalize(params.legacyVersion)
-  if (!actualVersion || (actualVersion !== expectedVersion && actualVersion !== normalize(params.canonical.unhAssociationCode))) {
+  const expectedVersion = normalizeIdentifier(params.canonical.guideVersion)
+  const actualVersion = normalizeIdentifier(params.legacyVersion)
+  const expectedAssociation = normalizeIdentifier(params.canonical.unhAssociationCode)
+  if (!actualVersion || (actualVersion !== expectedVersion && actualVersion !== expectedAssociation)) {
     throw new Error(`legacy_rule_snapshot_version_mismatch:${actualVersion || 'missing'}:${expectedVersion}`)
   }
   if (!String(params.legacyProfileKey ?? '').trim()) {

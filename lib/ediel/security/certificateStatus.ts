@@ -122,6 +122,23 @@ export function evaluateCertificateStatus(
     }
   }
 
+  const blockedStatuses = new Set(['revoked', 'suspended', 'inactive', 'archived', 'deleted', 'invalid', 'expired', 'not_yet_valid', 'validation_failed'])
+  const lifecycleStatus = String(input.status ?? '').trim().toLowerCase()
+  const securityStatus = String(input.encryption_status ?? '').trim().toLowerCase()
+  const suppliedValidFrom = input.valid_from ?? input.certificate_valid_from
+  const suppliedValidTo = input.valid_to ?? input.certificate_valid_to
+  if (blockedStatuses.has(lifecycleStatus) || blockedStatuses.has(securityStatus) || String(metadataText(input, 'crlStatus', 'crl_status') ?? '').toLowerCase() === 'revoked'
+    || (suppliedValidFrom && !validFrom) || (suppliedValidTo && !validTo)
+    || Number.isNaN(now.getTime()) || (validFrom && validFrom.getTime() > now.getTime())
+    || (validFrom && validTo && validFrom.getTime() >= validTo.getTime())) {
+    return {
+      status: 'validation_failed', isUsableForSmime: false,
+      validFrom: validFrom?.toISOString() ?? null, validTo: validTo?.toISOString() ?? null,
+      daysUntilExpiry: null, renewalAvailableFrom: null,
+      message: 'Certifikatet är spärrat, inaktivt eller har ogiltiga/ännu inte giltiga tidsgränser.',
+    }
+  }
+
   if (!validTo && isInboundPrivateEnvReference(input)) {
     return {
       status: 'runtime_validation_required',
@@ -150,7 +167,8 @@ export function evaluateCertificateStatus(
   const daysUntilExpiry = Math.ceil((validTo.getTime() - now.getTime()) / MS_PER_DAY)
   const renewalAvailableFrom = new Date(validTo.getTime() - renewalWindowDays * MS_PER_DAY)
 
-  if (daysUntilExpiry < 0) {
+  // Rounded days are a UI warning value, never validity authority.
+  if (validTo.getTime() <= now.getTime()) {
     return {
       status: 'expired',
       isUsableForSmime: false,

@@ -1,0 +1,8 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+
+__tests__/ediel-prodat-permission-ack-consumers.test.ts(39,113): error TS2542: Index signature in type 'Parts' only permits reading.
+__tests__/ediel-prodat-permission-ack.test.ts(40,113): error TS2542: Index signature in type 'Parts' only permits reading.
+__tests__/permission-ack-register-observation.test.ts(7,113): error TS2542: Index signature in type 'Parts' only permits reading.

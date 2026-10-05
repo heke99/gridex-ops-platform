@@ -67,7 +67,12 @@ export async function GET(request: NextRequest) {
   const requiredScopes = query.diagnostics
     ? ['website_contracts.read', 'website_contracts.diagnostics']
     : ['website_contracts.read']
+  // Phase timings (ms) recorded in the request log only, to locate latency before optimizing.
+  const timings: Record<string, number> = {}
+  let phaseStart = Date.now()
+  const lap = (phase: string) => { const now = Date.now(); timings[phase] = now - phaseStart; phaseStart = now }
   const auth = await requireIntegrationApiAccess(request, requiredScopes)
+  lap('auth')
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     const headers = new Headers({
@@ -80,15 +85,13 @@ export async function GET(request: NextRequest) {
 
   let currentTenantReference: string | null = null
   try {
-    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc(
-      'public_contract_feed_fingerprint_v1',
-      {
-        p_company_id: auth.context.companyId,
-        p_customer_type: query.customerType,
-        p_channel: 'website',
-      },
-    )
+    const { data: fingerprintRows, error: fingerprintError } = await supabaseService.rpc('public_contract_feed_fingerprint_v1', {
+      p_company_id: auth.context.companyId,
+      p_customer_type: query.customerType,
+      p_channel: 'website',
+    })
     if (fingerprintError) throw fingerprintError
+    lap('fingerprint')
     const fingerprintRow = (Array.isArray(fingerprintRows) ? fingerprintRows[0] : fingerprintRows) as {
       fingerprint?: string | null
     } | null
@@ -110,15 +113,29 @@ export async function GET(request: NextRequest) {
         request,
         statusCode: 304,
         startedAt,
-        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint },
+        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint, timings_ms: timings },
       })
       return new NextResponse(null, { status: 304, headers: earlyHeaders })
     }
-    const [revision, tenant] = await Promise.all([
-      loadPublicationRevision(auth.context.companyId, 'website'),
-      loadExternalTenantContext(auth.client),
+
+    // These reads are independent once the feed fingerprint misses. Starting
+    // them together removes an avoidable network/database waterfall from the
+    // website checkout path without changing freshness or validation rules.
+    // Each branch's own duration is logged (load_revision/load_tenant/load_offers) so the critical
+    // path inside 'load' can be measured before anything is optimized.
+    const branch = <T,>(name: string, work: Promise<T>) => {
+      const branchStart = Date.now()
+      return work.then((value) => { timings[`load_${name}`] = Date.now() - branchStart; return value })
+    }
+    const [revision, tenant, offers] = await Promise.all([
+      branch('revision', loadPublicationRevision(auth.context.companyId, 'website')),
+      branch('tenant', loadExternalTenantContext(auth.client).then((tenant) => {
+        currentTenantReference = tenant.tenant_reference
+        return tenant
+      })),
+      branch('offers', loadPublicContracts({ client: auth.client, customerType: query.customerType })),
     ])
-    currentTenantReference = tenant.tenant_reference
+    lap('load')
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     const headers = responseHeaders({
@@ -128,7 +145,6 @@ export async function GET(request: NextRequest) {
       requestId: currentRequestId,
     })
 
-    const offers = await loadPublicContracts({ client: auth.client, customerType: query.customerType })
     const data: Record<string, unknown>[] = []
     const mappingIssues: Array<{
       canonical_offer_reference: string
@@ -269,6 +285,7 @@ export async function GET(request: NextRequest) {
       ...(diagnosticsPayload ? { diagnostics: diagnosticsPayload } : {}),
     })
     const responseEtag = query.diagnostics ? representationEtag : fingerprintEtag
+    lap('build')
     headers.ETag = responseEtag
 
     if (!query.diagnostics && ifNoneMatchMatches(request, responseEtag)) {
@@ -299,6 +316,7 @@ export async function GET(request: NextRequest) {
         diagnostics: query.diagnostics,
         publication_revision: revision.revision,
         representation_etag: responseEtag,
+        timings_ms: timings,
       },
     })
     await scheduleUsageEvent({

@@ -1,3 +1,12 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
+import { unstable_rethrow } from 'next/navigation'
+import {resolveTgtReportingBuildContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
+import {assertTgtReportingDraft} from '@/lib/ediel/testing/tgtReportingPermissionDraft'
+import {resolveTgtDateEventRoute,resolveTgtDateEventBuildContext,dateEventRuntimeSuite} from '@/lib/ediel/testing/tgtDateEventContext'
+import {assertTgtDateEventDraft} from '@/lib/ediel/testing/tgtDateEventSource'
+import { buildTgtRegisterFactNotes } from '@/lib/ediel/testing/tgtRegisterFacts'
+import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
+import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 // Extracted from actions.ts; keep public imports on the facade module.
 
 import { revalidatePath } from "next/cache"
@@ -9,7 +18,7 @@ import { pollAndIngestEdielMailbox, sendQueuedEdielMessage } from "@/lib/ediel/o
 
 
 
-import { attachEdielMessageToTestRun, createEdielMessage, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listAckMessagesForSource, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
+import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
 
 
 
@@ -23,6 +32,13 @@ import { registerEdielFile } from "@/lib/ediel/fileEngine"
 import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry"
 
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact"
+import {buildEdielTgtRegisteredCustomerEventDraft} from '@/lib/ediel/testing/tgtEdifact.part-4'
+import {prepareTgtCustomerEventOriginal,prepareTgtCustomerLifeEventSource} from '@/lib/ediel/testing/tgtCustomerLifeEventSource'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority'
+import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority'
+import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from "@/lib/ediel/testing/tgtTestDataStore"
 
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight"
@@ -226,6 +242,7 @@ export async function sendEdielMessageAction(formData: FormData) {
 
     await revalidateRelatedMessage(edielMessageId);
   } catch (error) {
+    unstable_rethrow(error)
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     try {
@@ -617,6 +634,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
       testRunId: testRun.id,
     });
   } catch (error) {
+    unstable_rethrow(error)
     const message = error instanceof Error ? error.message : String(error);
     await updateEdielTestRunStatus({
       actorUserId: context.userId,
@@ -815,16 +833,10 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   if (!stepNo) throw new Error("Välj vilket TGT-steg som ska genereras");
 
   let companyId = formString(formData.get("companyId"));
-  if (testRunId) {
-    const { data, error } = await supabaseService
-      .from("ediel_test_runs")
-      .select("company_id")
-      .eq("id", testRunId)
-      .maybeSingle();
-    if (error) throw error;
-    companyId =
-      companyId ??
-      (typeof data?.company_id === "string" ? data.company_id : null);
+  const run=testRunId ? await requireScopedEdielTestRunForAction(testRunId,context) : null;
+  if (run) {
+    if ((companyId && companyId!==run.company_id) || run.role_code!==roleCode || run.test_case_code!==testCaseCode || run.test_suite!==testSuite) throw new Error('TGT_RUN_CONTEXT_MISMATCH');
+    companyId=run.company_id;
   }
   if (!companyId) {
     const scope = await getOperationalCompanyScope(context.userId);
@@ -835,11 +847,17 @@ export async function createEdielTgtDraftAction(formData: FormData) {
       "Välj bolag innan TGT-utkast skapas. Utkastet måste använda bolagets Ediel-ID från databasen.",
     );
   }
+  await requireCompanyScopedActionAccess(companyId,{anyOf:['ediel_testing.write','communication.write']});
   await requireCompanyOperationalForWrites(companyId);
+  const definition=getEdielTgtTestCaseByCode(testSuite,roleCode,testCaseCode);
+  const step=definition?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
+  if (!definition || !step || step.actor !== 'gridex') throw new Error('TGT_STEP_CONTEXT_INVALID');
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
-    testSuite: "TGT",
+    testSuite: run?dateEventRuntimeSuite(run):"TGT",
     actorRole: roleCode,
+    // ACKs use the selected case's source-family profile.
+    messageFamily:definition.suite,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -848,28 +866,63 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testCaseCode,
   );
 
-  const draft = buildEdielTgtDraft({
+  const dateBuild=run && step?.family==='PRODAT' ? await resolveTgtDateEventBuildContext({run,stepNo,code:step.code,runtime:systemTestContext,
+    testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
+  const reportingBuild=run&&step.family==='PRODAT'&&step.code==='Z13'?await resolveTgtReportingBuildContext({run,stepNo,runtime:systemTestContext}):undefined;
+  const registerFacts=reportingBuild?.facts??dateBuild?.facts;
+  // Current tenant actor authority precedes any classified source read.
+  if(run&&step.family==='PRODAT'&&step.code==='Z09')await assertEdielTenantActor({companyId,actorUserId:context.userId,permissionAnyOf:['communication.write','ediel_testing.write']});
+  const classifiedOriginal=run?await prepareTgtCustomerEventOriginal({companyId,runId:run.id,stepNo,actorUserId:context.userId,family:step.family,code:step.code}):undefined;
+  const buildParams = {
     actorUserId: context.userId,
     testSuite,
     roleCode,
     testCaseCode,
     stepNo,
-    importedTestData,
+    importedTestData:reportingBuild?.testData??importedTestData,
+    registerFacts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
+    testRunId:run?.id ?? null,
     systemTestContext,
-  });
+  };
+  const draft=classifiedOriginal?buildEdielTgtRegisteredCustomerEventDraft(buildParams,classifiedOriginal):buildEdielTgtDraft(buildParams);
+  let deathStatusContext;
+  if(classifiedOriginal&&run){
+    const route=await resolveTgtDateEventRoute(run,step.code,systemTestContext);
+    if(!route.communicationRouteId)throw Error('tgt_customer_event_actual_route_required');
+    if(route.senderId!==draft.messageInput.senderEdielId||route.receiverId!==draft.messageInput.receiverEdielId
+      ||route.senderSubaddress!==(draft.messageInput.senderSubAddress??null)||route.receiverSubaddress!==(draft.messageInput.receiverSubAddress??null)
+      ||route.applicationReference!==draft.messageInput.applicationReference)throw Error('tgt_customer_event_original_route_mismatch');
+    draft.messageInput.communicationRouteId=route.communicationRouteId;
+    draft.messageInput.routeProfileId=route.routeProfileId;
+    draft.messageInput.mailbox=route.mailbox;
+    draft.messageInput.receiverEmail=route.receiverEmail;
+    deathStatusContext=await prepareTgtCustomerLifeEventSource({draft,companyId,runId:run.id,stepNo,actorUserId:context.userId});
+  }
 
   const blockingIssues = draft.validationIssues.filter(
     (issue) => issue.severity === "error",
   );
   if (blockingIssues.length > 0) {
-    throw new Error(
+    const qualification=run ? await resolveSourceQualifiedNegativeFixtureDraft({companyId,runId:run.id,stepNo,actorUserId:context.userId,
+      rawPayload:draft.messageInput.rawPayload ?? '',diagnosticCodes:blockingIssues.map(issue=>issue.code)}) : null;
+    if (!qualification) throw new Error(
       `TGT-utkastet är blockerat: ${blockingIssues
         .map((issue) => `${issue.title}: ${issue.description}`)
         .join(" | ")}`,
     );
+    bindSourceQualifiedNegativeFixtureDraft(draft.messageInput,qualification);
+    draft.messageInput.status='prepared';
+    draft.messageInput.parsedPayload={...draft.messageInput.parsedPayload,readyForDownload:true,negativeFixtureEvidence:{registrationId:qualification.registrationId,originalFileSha256:qualification.originalFileSha256,expectedOutcome:'negative'}};
+  } else if (draft.messageInput.messageFamily==='PRODAT'||draft.messageInput.messageFamily==='UTILTS') {
+    const qualification=run?await resolveSourceQualifiedPositiveFixtureDraft({companyId,runId:run.id,stepNo,actorUserId:context.userId,
+      rawPayload:draft.messageInput.rawPayload??'',diagnosticCodes:[]}):null;
+    if(!qualification)throw new Error('ediel_positive_fixture_original_required');
+    bindSourceQualifiedPositiveFixtureDraft(draft.messageInput,qualification);
   }
 
-  const message = await createEdielMessage(draft.messageInput);
+  assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
+  assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
+  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context,deathStatusContext});
 
   if (testRunId) {
     await attachEdielMessageToTestRun({
@@ -885,6 +938,36 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   await revalidateRelatedMessage(message.id);
   revalidateEdiel(message.id);
+}
+
+/** An explicit operator assertion attached to this authorized test run. This
+ * stores evidence only: no status promotion, message creation or market send. */
+export async function saveEdielTgtRegisterFactsAction(formData:FormData) {
+  const context=await requireEdielWriteActionAccess();
+  const testRunId=formString(formData.get('testRunId'));
+  const stepNo=formNumber(formData.get('stepNo'));
+  if (!testRunId || !stepNo) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  const run=await requireScopedEdielTestRunForAction(testRunId,context);
+  await requireCompanyScopedActionAccess(run.company_id, {
+    anyOf: ['ediel_testing.write', 'communication.write'],
+  });
+  await requireCompanyOperationalForWrites(run.company_id);
+  const step=getEdielTgtTestCaseByCode(run.test_suite,run.role_code,run.test_case_code)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
+  if (!step || step.actor!=='gridex' || step.family!=='PRODAT' || !['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10'].includes(step.code)) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  const raw=formString(formData.get('registerFacts'));
+  const sourceNote=formString(formData.get('sourceNote'));
+  if (!raw || raw.length>32768 || !sourceNote) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  const facts:unknown=JSON.parse(raw);
+  const imported=await getEdielTgtDynamicTestDataForCase(run.test_suite,run.role_code,run.test_case_code);
+  const dateEventRoute=facts && typeof facts==='object' && 'dateEventObjects' in facts
+    ? await resolveTgtDateEventRoute(run,step.code,await requireEdielSystemTestRuntimeContext({companyId:run.company_id,testSuite:dateEventRuntimeSuite(run),actorRole:run.role_code,messageFamily:'PRODAT'})):undefined;
+  const notes=buildTgtRegisterFactNotes({run,stepNo,code:step.code,actorId:context.userId,sourceNote,facts,dateEventRoute,
+    testData:imported ?? getEdielTgtTestDataForCase(run.test_suite,run.role_code,run.test_case_code)});
+  const {data,error}=await supabaseService.from('ediel_test_runs').update({notes,updated_by:context.userId})
+    .eq('company_id',run.company_id).eq('id',run.id).eq('updated_at',run.updated_at).select('id').maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('PRODAT_REGISTER_FACTS_CONCURRENT_UPDATE');
+  revalidateEdiel();
 }
 
 export async function runEdielTgtAutopilotAction(formData: FormData) {
@@ -1050,9 +1133,8 @@ export async function recalculateInboundAckAction(formData: FormData) {
     throw new Error("ACK kan bara räknas om från inbound-meddelanden.");
   }
 
-  const existingAckMessages = await listAckMessagesForSource({
-    sourceMessageId: edielMessageId,
-    companyId: sourceMessage.company_id ?? null,
+  const existingAckMessages = await listBusinessAckMessagesForSource({
+    sourceMessageId: edielMessageId, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
   });
   const supersedableAckMessages = existingAckMessages.filter((message) => {
     const status = String(message.status ?? "").toLowerCase();

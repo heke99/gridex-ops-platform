@@ -13,6 +13,15 @@ function assertContains(path, needles) {
   }
 }
 
+function assertNotContains(path, needles) {
+  const content = read(path)
+  for (const needle of needles) {
+    if (content.includes(needle)) {
+      throw new Error(`${path} innehåller utfasat kontrakt: ${needle}`)
+    }
+  }
+}
+
 assertContains('app/admin/platform/api-clients/page.tsx', [
   'API-klienter för Mina sidor',
   'Gridex hemsida',
@@ -35,20 +44,15 @@ assertContains('lib/integrations/apiAuth.ts', [
   "request.headers.get('x-api-key')",
   'originAllowed',
   'client.allowed_origins',
-  // The in-process limiter became the atomic DB rate-limit RPC.
   'integration_api_rate_limit_check',
 ])
 
 assertContains('app/api/v1/customer-portal/sync/route.ts', [
-  // The sync scope was renamed to customer_sync.write.
   "requireIntegrationApiAccess(request, ['customer_sync.write'])",
   'insufficient_identity_factors',
   'E-post eller en ensam uppgift räcker inte',
 ])
 
-
-// Identity resolution moved into the shared customerResolver; the active
-// status filter is enforced there.
 assertContains('lib/customer-portal/externalApi.ts', [
   'resolvePortalCustomer',
   'customerPortalJson',
@@ -90,9 +94,6 @@ assertContains('supabase/migrations/20260609143000_batch_6_api_clients_customer_
   'customer_portal_identities_external_uidx',
 ])
 
-// The API docs were rewritten in Swedish; the invariants carry over:
-// OPS is master (source of truth), tenant comes from the API key (never a
-// client-sent company_id) and the identity resolver gates access.
 assertContains('docs/gridex-customer-portal-api.md', [
   'OPS är master för kund',
   'aldrig skicka ett fritt `company_id`',
@@ -100,9 +101,6 @@ assertContains('docs/gridex-customer-portal-api.md', [
   '/developers/customer-portal-api',
 ])
 
-// The guide was rewritten in Swedish; the same invariants carry over:
-// the frontend never talks to OPS directly, tenant comes from the API key
-// and external_customer_id is the integration identity.
 assertContains('docs/external-website-api-integration-guide.md', [
   '/developers/customer-portal-api',
   'Frontend får aldrig anropa OPS direkt med API-nyckel',
@@ -110,17 +108,29 @@ assertContains('docs/external-website-api-integration-guide.md', [
   'external_customer_id',
 ])
 
-
-// The support-event regex moved into the shared isSupportEvent helper.
-assertContains('app/api/v1/website/customer-events/route.ts', [
-  "support_out_of_scope",
-  'isSupportEvent',
-])
+// Phase 5 supersedes the old support_out_of_scope policy. Support/case events
+// stay on the already-published customer-event APIs and project into canonical
+// customer_cases with tenant identity and idempotency preserved.
+for (const path of [
+  'app/api/v1/events/route.ts',
+  'app/api/v1/website/customer-events/route.ts',
+]) {
+  assertContains(path, [
+    'isSupportEvent',
+    'createSupportCaseFromCustomerEvent',
+    'recordWebsiteCustomerEvent',
+  ])
+  assertNotContains(path, ['support_out_of_scope'])
+}
 assertContains('lib/customer-portal/customerEvents.ts', [
   "^customer\\.(support|case)(?:_|$)",
 ])
+assertContains('lib/customer-cases/support.ts', [
+  "from('customer_cases')",
+  "support_idempotency_key",
+  "createCustomerCase({",
+])
 
-// The developer page was rebuilt around the Website API / Mina sidor docs.
 assertContains('app/developers/customer-portal-api/page.tsx', [
   'Website API, Mina sidor-koppling',
   'WEBSITE_INTEGRATION_BASE_URL',

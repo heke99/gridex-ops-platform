@@ -20,6 +20,8 @@ const actorUserId = String(process.env.GRIDEX_E2E_ACTOR_USER_ID || '').trim()
 const confirmedStaging = process.env.GRIDEX_E2E_CONFIRM_STAGING === 'YES'
 const allowMutation = process.env.GRIDEX_E2E_ALLOW_MUTATION === 'YES'
 const targetKind = String(process.env.GRIDEX_E2E_TARGET || '').toLowerCase()
+const stagingProjectRef = String(process.env.GRIDEX_E2E_STAGING_PROJECT_REF || '').trim()
+const productionProjectRef = 'piidsfebjqjmnepdpnas'
 
 function fail(message) {
   console.error(message)
@@ -34,6 +36,14 @@ if (!confirmedStaging || !allowMutation || targetKind !== 'staging') {
 }
 if (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production' && process.env.GRIDEX_E2E_PRODUCTION_CONTEXT === 'YES') {
   fail('Runtime tenant E2E refuses to mutate a production execution context.')
+}
+let targetHost = ''
+try { targetHost = new URL(baseUrl).hostname } catch { /* rejected below */ }
+if (stagingProjectRef === productionProjectRef || targetHost === `${productionProjectRef}.supabase.co`) {
+  fail('Runtime tenant E2E refuses the production Supabase project.')
+}
+if (!/^[a-z0-9]{20}$/.test(stagingProjectRef) || baseUrl !== `https://${stagingProjectRef}.supabase.co`) {
+  fail('Runtime tenant E2E requires the approved staging project URL and GRIDEX_E2E_STAGING_PROJECT_REF.')
 }
 
 const headers = {

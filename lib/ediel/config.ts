@@ -1,3 +1,4 @@
+import type { EdielActorRole } from '@/lib/ediel/core/marketRole'
 // lib/ediel/config.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -16,7 +17,7 @@ import {
   type ResolvedInboundEdielMessageRuleRow,
   type ResolvedVersionWindow,
 } from '@/lib/ediel/core/versionRegistry'
-import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
+import { resolveRouteTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 type ResolveMessageVersionInput = {
   family: string
@@ -152,7 +153,11 @@ export function hasActiveUnencryptedProductionOverride(
   if (!expiresAt) return false
   const parsed = new Date(expiresAt)
   if (Number.isNaN(parsed.getTime())) return false
-  return parsed.getTime() > now.getTime()
+  if (parsed.getTime() <= now.getTime()) return false
+  // These legacy administrative fields do not identify a source-qualified T
+  // exception, its authorized decision or the required transport evidence.
+  // Keep the stored request visible, but never activate plaintext from it.
+  return false
 }
 
 export function evaluateProductionTransportSecurity(params: {
@@ -174,7 +179,10 @@ export function evaluateProductionTransportSecurity(params: {
   const issues: EdielRouteRuntimeIssue[] = []
   const overrideActive = hasActiveUnencryptedProductionOverride(runtime, params.now)
   const family = sanitize(params.messageFamily ?? runtime.message_family)?.toUpperCase()
-  const transportSecurityMode = normalizeTransportSecurityMode(runtime.transport_security_mode)
+  const transportSecurityMode = resolveRouteTransportSecurityMode({
+    transportSecurityMode: runtime.transport_security_mode,
+    encryptionMode: runtime.encryption_mode,
+  })
   const encryptionMode =
     transportSecurityMode === 'required_encrypted' || transportSecurityMode === 'encrypted'
       ? 'smime'
@@ -196,7 +204,7 @@ export function evaluateProductionTransportSecurity(params: {
       key: 'production_prodat_smime_required',
       severity: 'error',
       label: 'Produktion PRODAT kräver S/MIME',
-      resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override med orsak.',
+      resolution: 'Koppla ett giltigt mottagarcertifikat och sätt encryption_mode=smime. Ett klartextundantag kräver styrkt normativ grund och behörigt beslut.',
     })
   }
 
@@ -228,17 +236,22 @@ export function evaluateProductionTransportSecurity(params: {
 
 export async function getActiveEdielActorSettings(
   environment: EdielEnvironment = 'test',
-  companyId?: string | null
+  companyId?: string | null,
+  /** Operational role of the process (TEN-02/TEN-05). A tenant may hold one
+   * active profile per role; without a role, several active profiles stay ambiguous. */
+  actorRole?: EdielActorRole | null,
 ): Promise<EdielActorSettingsRow | null> {
   const scopedCompanyId = sanitize(companyId)
 
   if (scopedCompanyId) {
-    const scoped = await supabaseService
+    let scopedQuery = supabaseService
       .from('ediel_actor_settings')
       .select('*')
       .eq('environment', environment)
       .eq('company_id', scopedCompanyId)
       .eq('is_active', true)
+    if (actorRole) scopedQuery = scopedQuery.eq('actor_role', actorRole)
+    const scoped = await scopedQuery
       .order('id', { ascending: true })
       .limit(2)
 
@@ -423,24 +436,6 @@ export function buildEdielRouteRuntimeIssues(params: {
 
   issues.push(...evaluateProductionTransportSecurity({ runtime: params.runtime }).issues)
 
-  if (!sanitize(params.runtime.application_reference)) {
-    issues.push({
-      key: 'application_reference_missing',
-      severity: 'warning',
-      label: 'application_reference saknas',
-      resolution: 'Fyll i application_reference så runtime inte behöver falla tillbaka på default.',
-    })
-  }
-
-  if (!sanitize(params.runtime.default_message_version)) {
-    issues.push({
-      key: 'default_message_version_missing',
-      severity: 'warning',
-      label: 'default_message_version saknas',
-      resolution: 'Fyll i routeprofilens version-default om du vill ha explicita route overrides.',
-    })
-  }
-
   return issues
 }
 
@@ -465,18 +460,23 @@ export function explainEdielRouteRuntime(params: {
   }
 }
 
+/**
+ * Legacy-only default helper.
+ *
+ * Canonical EDIFACT families require message-level context and must resolve
+ * Application Reference through the canonical rulebooks. A route/subaddress is
+ * not sufficient evidence and may never manufacture a protocol value.
+ */
 export function buildDefaultApplicationReference(params: {
   actorSubAddress?: string | null
   process: string
 }) {
-  const rawSub = sanitize(params.actorSubAddress)?.toUpperCase() ?? 'DDQ'
   const process = sanitize(params.process)?.toUpperCase() ?? 'EDIEL'
+  if (['PRODAT', 'UTILTS', 'UTILTS_ERR', 'APERAK', 'CONTRL'].includes(process)) {
+    throw new Error(`canonical_application_reference_message_context_required:${process}`)
+  }
+
+  const rawSub = sanitize(params.actorSubAddress)?.toUpperCase() ?? 'DDQ'
   const sub = rawSub.includes('DGI') ? 'DGI' : rawSub.includes('DDQ') ? 'DDQ' : rawSub.slice(0, 3) || 'DDQ'
-
-  if (process === 'PRODAT') return `23-${sub}-PRODAT`.slice(0, 14)
-  if (process === 'UTILTS' || process === 'UTILTS_ERR') return `23-${sub}-UTILTS`.slice(0, 14)
-  if (process === 'APERAK') return `23-${sub}-APERAK`.slice(0, 14)
-  if (process === 'CONTRL') return `23-${sub}-CONTRL`.slice(0, 14)
-
   return `23-${sub}-${process.replace(/[^A-Z0-9]/g, '').slice(0, 6)}`.slice(0, 14)
 }

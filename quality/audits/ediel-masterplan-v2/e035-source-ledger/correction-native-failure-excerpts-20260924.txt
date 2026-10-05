@@ -1,0 +1,86 @@
+Sanitized native qualification failure excerpts; actual CI output, not a synthetic test run.
+
+Run 35935812643, published head 18debd5c
+2026-09-23T23:57:41.6892311Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:41.7710683Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:41.8475037Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:41.9267953Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:42.0022578Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:42.0788308Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:42.1549918Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:42.2319297Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:42.3482996Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4311055Z  FAIL  scripts/ediel-correction-context-native.test.ts > real capture is idempotent, separately witnessed, hash-bound and independent of mutable source status
+2026-09-23T23:57:56.4319692Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4391778Z  FAIL  scripts/ediel-correction-context-native.test.ts > cross-company/environment and unauthorized actor never append
+2026-09-23T23:57:56.4396609Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4409751Z  FAIL  scripts/ediel-correction-context-native.test.ts > same-transaction witness is rejected, later committed readback can recover interrupted capture
+2026-09-23T23:57:56.4412780Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4424541Z  FAIL  scripts/ediel-correction-context-native.test.ts > client RPC and all direct DML are denied; owner mutation and truncate are append-only
+2026-09-23T23:57:56.4426756Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4438124Z  FAIL  scripts/ediel-correction-context-native.test.ts > different sealed originals with equal bytes keep distinct source provenance
+2026-09-23T23:57:56.4440040Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4448919Z  FAIL  scripts/ediel-correction-context-native.test.ts > original byte/hash substitution and source ID reuse cannot relabel a captured concern
+2026-09-23T23:57:56.4450833Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4460411Z  FAIL  scripts/ediel-correction-context-native.test.ts > communication permission is required even if another test-only capability exists
+2026-09-23T23:57:56.4462705Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4474993Z  FAIL  scripts/ediel-correction-context-native.test.ts > capture facts are absent at a pre-capture cutoff and immutable across a later retry
+2026-09-23T23:57:56.4477870Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4490384Z  FAIL  scripts/ediel-correction-context-native.test.ts > lost concern witness preserves discoverable raw C and an actual saved older source snapshot
+2026-09-23T23:57:56.4492909Z ERROR:  canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3
+2026-09-23T23:57:56.4502387Z  Test Files  1 failed | 3 passed (4)
+2026-09-23T23:57:56.4503200Z       Tests  9 failed | 195 passed (204)
+
+Run 35936657744, published head 90a9bd63
+2026-09-24T00:08:30.8249280Z ERROR:  correction_capture_actor_unavailable
+2026-09-24T00:08:31.5446271Z ERROR:  last_functioning_admin_cannot_be_removed_or_downgraded
+2026-09-24T00:08:31.8855086Z ERROR:  correction_capture_actor_unavailable
+2026-09-24T00:08:40.9930632Z  FAIL  scripts/ediel-correction-context-native.test.ts > real capture is idempotent, separately witnessed, hash-bound and independent of mutable source status
+2026-09-24T00:08:40.9975178Z  FAIL  scripts/ediel-correction-context-native.test.ts > same-transaction witness is rejected, later committed readback can recover interrupted capture
+2026-09-24T00:08:40.9980139Z ERROR:  correction_capture_actor_unavailable
+2026-09-24T00:08:40.9991827Z  FAIL  scripts/ediel-correction-context-native.test.ts > client RPC and all direct DML are denied; owner mutation and truncate are append-only
+2026-09-24T00:08:40.9999877Z  FAIL  scripts/ediel-correction-context-native.test.ts > different sealed originals with equal bytes keep distinct source provenance
+2026-09-24T00:08:41.0005841Z  FAIL  scripts/ediel-correction-context-native.test.ts > original byte/hash substitution and source ID reuse cannot relabel a captured concern
+2026-09-24T00:08:41.0015205Z  FAIL  scripts/ediel-correction-context-native.test.ts > communication permission is required even if another test-only capability exists
+2026-09-24T00:08:41.0017280Z ERROR:  last_functioning_admin_cannot_be_removed_or_downgraded
+2026-09-24T00:08:41.0025382Z  FAIL  scripts/ediel-correction-context-native.test.ts > capture facts are absent at a pre-capture cutoff and immutable across a later retry
+2026-09-24T00:08:41.0031889Z  FAIL  scripts/ediel-correction-context-native.test.ts > lost concern witness preserves discoverable raw C and an actual saved older source snapshot
+2026-09-24T00:08:41.0033992Z ERROR:  correction_capture_actor_unavailable
+2026-09-24T00:08:41.0043911Z  Test Files  1 failed | 3 passed (4)
+2026-09-24T00:08:41.0044729Z       Tests  8 failed | 196 passed (204)
+
+Run 35938086638, published head dba55466
+2026-09-24T00:26:21.5473066Z  FAIL  scripts/ediel-correction-context-native.test.ts > real capture is idempotent, separately witnessed, hash-bound and independent of mutable source status
+2026-09-24T00:26:21.5478981Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5566369Z  FAIL  scripts/ediel-correction-context-native.test.ts > cross-company/environment and unauthorized actor never append
+2026-09-24T00:26:21.5568692Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5590404Z  FAIL  scripts/ediel-correction-context-native.test.ts > same-transaction witness is rejected, later committed readback can recover interrupted capture
+2026-09-24T00:26:21.5592990Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5614917Z  FAIL  scripts/ediel-correction-context-native.test.ts > client RPC and all direct DML are denied; owner mutation and truncate are append-only
+2026-09-24T00:26:21.5617388Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5639225Z  FAIL  scripts/ediel-correction-context-native.test.ts > different sealed originals with equal bytes keep distinct source provenance
+2026-09-24T00:26:21.5640990Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5656590Z  FAIL  scripts/ediel-correction-context-native.test.ts > original byte/hash substitution and source ID reuse cannot relabel a captured concern
+2026-09-24T00:26:21.5658866Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5674131Z  FAIL  scripts/ediel-correction-context-native.test.ts > a separate actor with only ediel_testing.write cannot capture
+2026-09-24T00:26:21.5676451Z  FAIL  scripts/ediel-correction-context-native.test.ts > a separate actor with only communication.read cannot capture
+2026-09-24T00:26:21.5678392Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5694329Z  FAIL  scripts/ediel-correction-context-native.test.ts > capture facts are absent at a pre-capture cutoff and immutable across a later retry
+2026-09-24T00:26:21.5696107Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5715571Z  FAIL  scripts/ediel-correction-context-native.test.ts > lost concern witness preserves discoverable raw C and an actual saved older source snapshot
+2026-09-24T00:26:21.5717719Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5733401Z  FAIL  scripts/ediel-correction-context-native.test.ts > an operationally paused company cannot append a concern despite its active actor
+2026-09-24T00:26:21.5735192Z AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5754710Z  Test Files  1 failed | 3 passed (4)
+2026-09-24T00:26:21.5756276Z       Tests  11 failed | 195 passed (206)
+2026-09-24T00:26:21.5792331Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5809743Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5815246Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5821817Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5827921Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5833714Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5842407Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5848401Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5854034Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5860222Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality
+2026-09-24T00:26:21.5866147Z ##[error]AssertionError: expected +0 to be 1 // Object.is equality

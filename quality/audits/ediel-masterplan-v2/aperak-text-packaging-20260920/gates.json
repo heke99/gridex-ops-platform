@@ -1,0 +1,75 @@
+[
+  {
+    "name": "typecheck",
+    "command": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "exit": 0,
+    "seconds": 5.91,
+    "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76"
+  },
+  {
+    "name": "typecheck-tests",
+    "command": [
+      "npm",
+      "run",
+      "typecheck:tests"
+    ],
+    "exit": 0,
+    "seconds": 3.28,
+    "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602"
+  },
+  {
+    "name": "typecheck-scripts",
+    "command": [
+      "npm",
+      "run",
+      "typecheck:scripts"
+    ],
+    "exit": 0,
+    "seconds": 1.22,
+    "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae"
+  },
+  {
+    "name": "lint",
+    "command": [
+      "npm",
+      "run",
+      "lint"
+    ],
+    "exit": 0,
+    "seconds": 73.96,
+    "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b"
+  },
+  {
+    "name": "diffcheck",
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit": 0,
+    "seconds": 0.02,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "runtime-equality",
+    "command": [
+      "git",
+      "diff",
+      "--exit-code",
+      "59113128",
+      "--",
+      "lib",
+      "__tests__",
+      "quality/vitest.config.ts",
+      ".github/workflows",
+      "scripts"
+    ],
+    "exit": 0,
+    "seconds": 0.01,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

@@ -1,3 +1,4 @@
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 // lib/ediel/selftest.ts
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -11,7 +12,6 @@ import {
 import {
   buildAperakDraft,
   buildContrlDraft,
-  buildUtiltsErrDraft,
 } from '@/lib/ediel/ack'
 import {
   createCanonicalAckMessage,
@@ -127,7 +127,18 @@ function ensureActiveSuite(suite: string) {
   }
 }
 
-function buildProdatInboundRaw(params: {
+/** ENV-03: UNT counts UNH..UNT from the actually serialised segments; never a
+ * handwritten count that goes stale when optional segments are present. */
+function serializeSimulatedInterchange(unbAndMessage: string[], interchangeReference: string): string {
+  const unhIndex = unbAndMessage.findIndex((segment) => segment.startsWith('UNH+'))
+  if (unhIndex < 0) throw new Error('simulated_interchange_unh_required')
+  const unhReference = unbAndMessage[unhIndex].split('+')[1]
+  const messageSegmentCount = unbAndMessage.length - unhIndex + 1
+  const segments = [...unbAndMessage, `UNT+${messageSegmentCount}+${unhReference}`, `UNZ+1+${interchangeReference}`]
+  return `${segments.join("'")}'`
+}
+
+export function buildProdatInboundRaw(params: {
   code: 'Z04' | 'Z05' | 'Z06' | 'Z10'
   senderEdielId: string
   receiverEdielId: string
@@ -154,14 +165,12 @@ function buildProdatInboundRaw(params: {
     params.street || params.postalCode || params.city
       ? `ADR+${params.street ?? ''}+${params.postalCode ?? ''}+${params.city ?? ''}`
       : null,
-    `UNT+${startDate ? '8' : '7'}+1`,
-    `UNZ+1+${params.externalReference}`,
-  ].filter(Boolean)
+  ].filter((segment): segment is string => Boolean(segment))
 
-  return `${segments.join("'")}'`
+  return serializeSimulatedInterchange(segments, params.externalReference)
 }
 
-function buildUtiltsInboundRaw(params: {
+export function buildUtiltsInboundRaw(params: {
   code: 'S02' | 'S03' | 'E66' | 'E31'
   senderEdielId: string
   receiverEdielId: string
@@ -193,11 +202,9 @@ function buildUtiltsInboundRaw(params: {
     `DTM+163:${periodEnd}:102`,
     params.readingType ? `CCI+${params.readingType}` : null,
     typeof params.quantity === 'number' ? `QTY+Z13:${params.quantity}:KWH` : null,
-    `UNT+${typeof params.quantity === 'number' ? '9' : '8'}+1`,
-    `UNZ+1+${params.externalReference}`,
-  ].filter(Boolean)
+  ].filter((segment): segment is string => Boolean(segment))
 
-  return `${segments.join("'")}'`
+  return serializeSimulatedInterchange(segments, params.externalReference)
 }
 
 async function setTestRunStatus(params: {
@@ -286,16 +293,9 @@ async function createNegativeUtiltsErr(params: {
 }): Promise<string> {
   const sourceMessage = await loadSourceMessage(params.sourceMessageId)
 
-  const utiltsErr = await createCanonicalAckMessage({
-    actorUserId: params.actorUserId,
-    sourceMessage,
-    ackFamily: 'UTILTS_ERR',
-    draft: buildUtiltsErrDraft({
-      actorUserId: params.actorUserId,
-      sourceMessage,
-      messageText: params.messageText,
-    }),
-  })
+  const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage,ackFamily:'UTILTS_ERR',messageText:params.messageText})
+  if(prepared.kind==='existing')return prepared.message.id
+  const utiltsErr=await createCanonicalAckMessage({actorUserId:params.actorUserId,sourceMessage,ackFamily:'UTILTS_ERR',draft:prepared.draft})
 
   return utiltsErr.id
 }

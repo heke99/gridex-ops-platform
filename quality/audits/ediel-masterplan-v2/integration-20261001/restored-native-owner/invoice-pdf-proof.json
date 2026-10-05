@@ -1,0 +1,106 @@
+{
+  "baseCommit": "1578ddb8b308fad429963ffe3aa6aa601ecf770c",
+  "criterion": "DB05 / E035 actual finance PDF copies",
+  "wholeLiteralApproved": false,
+  "sourceClasses": [
+    "customer_invoice_document_pdf_bytes",
+    "invoice_export_document_pdf_bytes",
+    "customer_invoice_pdf_bytes"
+  ],
+  "files": {
+    "app/api/v1/customer/invoices/[id]/route.ts": "7ee21fa9ddabcc45432534fd204dacde9e87764763b4c18ad1f53ee4306d6039",
+    "lib/customer-portal/db.ts": "d4b1826574559bb8bde2508339498c778c2dd3ab8139719f3ad3351f94e571cb",
+    "lib/partner-api/core.ts": "4c18d38c0e7c2d26d12d1924f25bab8ecd1480989248697ba6cb5aa240913e4e",
+    "lib/partner-api/simple.ts": "b072180d67b41826062b414523044fa433c1cb51dec5be35a83c325ce827cdf1",
+    "__tests__/ediel-invoice-file-retention.test.ts": "cf307a8e5a093a0c5da0274aeb999857f01dd135107898d3a431e90d323feb3d",
+    "app/api/ediel/invoice-file-retention/route.ts": "aa42a3774600994f5dab8caf5bfe71ffe7af015688755ffd3fc5941fe7e42dfd",
+    "app/retention/invoice-files/actions.ts": "779f50a9d0557f62d6d397f6e5e02117f326c483055d94d18907ec221a24bc88",
+    "app/retention/invoice-files/page.tsx": "a1d3e740f04b8771ce9f1c86a1f19458a14f5f8d6ab4e4fa1df21d1c76153202",
+    "app/retention/invoice-files/workspace.tsx": "a10017b3e93c59e8ce82ef5953880426bd1e838db4a9989d1e0f078cbc2882d4",
+    "e2e/browser/ediel-invoice-file-retention-local.spec.mjs": "37a3e8f684b60a0cb7632ca178741c27eb4bd87647a6d325aac3d8efee467b74",
+    "lib/ediel/retention/invoiceFileRetention.ts": "a34c5371e22f75b72091a1be2c947e9debfed456e246933864c483888aecc64d",
+    "lib/ediel/retention/invoiceFiles.catalog.ts": "d3edab5e694c6f75b79ac161f4e98fcd8b778ec541d65ab1b5b861a367c1fa2c",
+    "scripts/ediel-invoice-file-retention-browser-native.config.ts": "099fa2cad274e0bcaa490156bf652c693bad399c181528234274172bdc469c9e",
+    "scripts/ediel-invoice-file-retention-browser-native.test.ts": "b1f2d134e7cbb9a085239d2d31247ffe84fcf281e7ef29416eb503af9d291f97",
+    "scripts/ediel-invoice-file-retention-native.test.ts": "b0b29e10f67351ee5c72b0c23bba87ef0346970c6d4c34b3b047ba80fa5f80b3",
+    "scripts/ediel-invoice-file-retention-sql-regression.mjs": "66421a71fc263b58def5781975ba4f6b43b7b128529300a06970b103f24e4cb6",
+    "scripts/helpers/ediel-invoice-file-retention-native-fixture.ts": "789b395e04433e135419e5bb5f9fc126ccfe571f8964223825eeeea8d2dfa8ab",
+    "scripts/helpers/ediel-invoice-file-retention-sql-fixture.mjs": "fe0c4e276041666cc14179344b8ec8fcc790ce2b1e4eb628614b3a45de96d509",
+    "supabase/migrations/20261001071000_ediel_invoice_file_copy_class_retention.sql": "1b07b113b8e48923326c6d2d0fce0dea0f5fdb515a76161c345b94b538ffa9e9",
+    "supabase/migrations/20261001071100_ediel_invoice_customer_document_locator_scope.sql": "9ddce769c1c95950dc3205b1eaf7b71f51ff39fe49858cac653f9a241463270a",
+    "supabase/migrations/20261001071200_ediel_finance_copy_closed_export_states.sql": "e9418653c4db676d8b5797176b6c74aa6affe4c4545b8945bb321e0592454e08"
+  },
+  "verification": {
+    "exactLockSha256": "1c8eb8730937a96799a4a53665e4f060f020b9513fa87ec5e2d550678a562cf8",
+    "unit": {
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-invoice-file-retention.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "scope": "finite GoTrue/nativeRPC/Storage ports; not native authority"
+    },
+    "sql": {
+      "command": "EDIEL_PGLITE_MODULE=<installed PGlite> node scripts/ediel-invoice-file-retention-sql-regression.mjs",
+      "result": "PASS actual new71000+71100+71200 functions with synthetic schema/Auth/issuer/qualified-billing/Storage-metadata boundary",
+      "proof": [
+        "each of three actual copy captures separately signed and reviewed",
+        "signed wrong-byte-length held",
+        "four finished-but-open export statuses remain open",
+        "URL-only shared reference held",
+        "current separate-reviewer DENY blocks",
+        "late third tombstone failure rolls back all copies",
+        "metadata DELETE requires native tombstone/current policy/reviewer/Auth",
+        "receipt replay leaves bytes absent; restore/private-role forging denied",
+        "all sixteen existing finance copy mechanisms still pass"
+      ],
+      "physicalStorageDeletion": false,
+      "supabaseReplay": false,
+      "issuerApproval": false
+    },
+    "lint": {
+      "result": "PASS owned17 files, then changed unit/helper again"
+    },
+    "scopedTypes": {
+      "result": "PASS zero diagnostics",
+      "roots": [
+        "new invoice modules/API/UI/native/browser files"
+      ],
+      "wholeApplication": false
+    },
+    "native": {
+      "ordinarySuite": "scripts/ediel-invoice-file-retention-native.test.ts",
+      "cases": 2,
+      "result": "NOT_RUN",
+      "scope": "actual signed contract PDF publication/signature/archive plus GoTrue and Storage capture/current DENY/foreign/read-only; manual public invoice is explicitly unqualified, missing billing-owner basis must hold",
+      "privateApprovedBillingOrPolicySeeds": false
+    },
+    "browser": {
+      "nativeConfig": "scripts/ediel-invoice-file-retention-browser-native.config.ts",
+      "nativeTest": "scripts/ediel-invoice-file-retention-browser-native.test.ts",
+      "playwright": "e2e/browser/ediel-invoice-file-retention-local.spec.mjs",
+      "cases": 3,
+      "result": "NOT_RUN",
+      "initialAndPostEnv": [
+        "GRIDEX_INVOICE_FILE_RETENTION_FIXTURE_PATH",
+        "GRIDEX_EDIEL_CASE_TEST_PASSWORD",
+        "GRIDEX_INVOICE_FILE_RETENTION_VERIFY_AFTER_BROWSER=1"
+      ],
+      "expected": [
+        "archived writer keyboard exact capture replay and held billing basis",
+        "read-only mobile375 and zoom2/current mutation denial",
+        "foreign company cannot select/read/inject body company",
+        "post browser one captured source exact actual hash and zero policies/tombstones/delete events/market originals; actual Storage bytes retained"
+      ]
+    }
+  },
+  "remainingInternalEvidence": [
+    "authentic exact-head clean+upgrade schema/type/fingerprint",
+    "ordinary native and initial/browser/post on same freeze",
+    "genuine qualified financial underlay producer chain for positive native policy/purge; current native fixture intentionally holds missing billing authority",
+    "actual sessionJWT Storage DELETE and real HTTP404 plus finish/readback on qualified whole shared-reference graph"
+  ],
+  "externalConditions": [
+    "actual source-specific signed legal retention policy and issuer competence for each copy/current period/purpose/separate reviewer; no legal period guessed",
+    "remote URL ownership cannot be established through forbidden real provider traffic and is held, not treated as owned physical byte copy"
+  ],
+  "retainedHistory": "native source hash/length/captured identities, exact class decisions/reviews/revocations/tombstones/events and ordinary scalar invoice history retained; accepted completion receipt before fresh policy checks; no byte resurrection or cascade"
+}

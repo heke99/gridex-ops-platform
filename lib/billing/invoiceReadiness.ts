@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { isCanonicalUtiltsDecimal, sumUtiltsDecimals } from '@/lib/ediel/utilts/exactDecimal'
+import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import {
   companyAllowsEstimatedMeteringValues,
   evaluateMeteringCompletenessForMonth,
@@ -238,38 +240,19 @@ export async function lockBillingPeriod(input: {
   reason?: string | null
   metadata?: Record<string, unknown>
 }) {
-  const { billingMonth, year, month } = monthParts(input.billingMonth)
-  const status = input.status ?? 'locked'
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabaseService.from('billing_period_locks').upsert({
-    company_id: input.companyId,
-    billing_year: year,
-    billing_month: month,
-    status,
-    locked_by: input.actorUserId ?? null,
-    locked_at: now,
-    unlocked_by: null,
-    unlocked_at: null,
-    lock_reason: input.reason ?? 'Fakturaperioden är låst.',
-    metadata: input.metadata ?? {},
-    updated_at: now,
-  }, { onConflict: 'company_id,billing_year,billing_month' }).select('*').maybeSingle()
-
-  if (error && !isMissingRelationError(error)) throw error
-
-  await supabaseService.from('price_period_locks').upsert({
-    company_id: input.companyId,
-    billing_month: billingMonth,
-    lock_scope: 'billing_period',
-    status: 'locked',
-    locked_by: input.actorUserId ?? null,
-    locked_at: now,
-    reason: input.reason ?? 'Fakturaperioden är låst.',
-    metadata: input.metadata ?? {},
-  }, { onConflict: 'company_id,billing_month,lock_scope' }).then(() => null)
-
-  return data
+  const { billingMonth } = monthParts(input.billingMonth)
+  // Billing lock and price lock are written together; neither can drift from the other.
+  const { data, error } = await supabaseService.rpc('gridex_set_billing_period_lock_v1', {
+    p_company_id: input.companyId,
+    p_billing_month: billingMonth,
+    p_locked: true,
+    p_status: input.status ?? 'locked',
+    p_actor_user_id: input.actorUserId ?? null,
+    p_reason: input.reason ?? null,
+    p_metadata: input.metadata ?? {},
+  })
+  if (error) throw error
+  return (data as { lock?: unknown } | null)?.lock ?? null
 }
 
 export async function unlockBillingPeriod(input: {
@@ -278,44 +261,19 @@ export async function unlockBillingPeriod(input: {
   actorUserId?: string | null
   reason?: string | null
 }) {
-  const { billingMonth, year, month } = monthParts(input.billingMonth)
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabaseService.from('billing_period_locks').upsert({
-    company_id: input.companyId,
-    billing_year: year,
-    billing_month: month,
-    status: 'reopened',
-    unlocked_by: input.actorUserId ?? null,
-    unlocked_at: now,
-    lock_reason: input.reason ?? 'Fakturaperioden har låsts upp.',
-    updated_at: now,
-  }, { onConflict: 'company_id,billing_year,billing_month' }).select('*').maybeSingle()
-
-  if (error && !isMissingRelationError(error)) throw error
-
-  await supabaseService
-    .from('price_period_locks')
-    .update({
-      status: 'unlocked',
-      reason: input.reason ?? 'Fakturaperioden har låsts upp.',
-    })
-    .eq('company_id', input.companyId)
-    .eq('billing_month', billingMonth)
-    .in('lock_scope', ['billing_period', 'invoice_export'])
-    .then(() => null)
-
-  // Locked pricing runs are DB-trigger protected; the only supported unlock path
-  // is this audited RPC. Tolerate its absence until Migration B has been applied.
-  const unlockRuns = await supabaseService.rpc('gridex_unlock_pricing_runs_for_month', {
+  const { billingMonth } = monthParts(input.billingMonth)
+  // Reopening also unlocks the price lock and the month's pricing runs, atomically.
+  const { data, error } = await supabaseService.rpc('gridex_set_billing_period_lock_v1', {
     p_company_id: input.companyId,
     p_billing_month: billingMonth,
+    p_locked: false,
+    p_status: null,
     p_actor_user_id: input.actorUserId ?? null,
-    p_reason: input.reason ?? 'billing_period_unlocked',
+    p_reason: input.reason ?? null,
+    p_metadata: {},
   })
-  if (unlockRuns.error && !isMissingRelationError(unlockRuns.error)) throw unlockRuns.error
-
-  return data
+  if (error) throw error
+  return (data as { lock?: unknown } | null)?.lock ?? null
 }
 
 export async function lockBillingPeriodForInvoiceExport(input: {
@@ -344,6 +302,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
 }) {
   const { billingMonth, year, month } = monthParts(input.billingMonth)
   const issues: InvoiceReadinessIssue[] = []
+  const blockedUnderlayIds = new Set<string>()
 
   const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
@@ -356,7 +315,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -368,11 +327,27 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     if (page.length < pageSize) break
   }
 
+  for (let offset = 0; offset < underlays.length; offset += pageSize) {
+    const page = underlays.slice(offset, offset + pageSize)
+    const { data, error } = await supabaseService.rpc('gridex_read_billing_underlay_source_basis_v1', { p_company_id: input.companyId, p_underlay_ids: page.map(row => String(row.id)) })
+    if (error) throw error
+    if (!Array.isArray(data) || data.length !== page.length) throw new Error('invoice_underlay_source_basis_missing')
+    const bases = new Map((data as JsonRecord[]).map(basis => [String(basis.id), basis]))
+    for (const row of page) {
+      const basis = bases.get(String(row.id))
+      if (!basis || (basis.totalKwh !== null && !isCanonicalUtiltsDecimal(basis.totalKwh))) throw new Error('invoice_underlay_source_basis_invalid')
+      row.total_kwh = basis.totalKwh
+      if (basis.qualified !== true || basis.correctionRequired === true) {
+        blockedUnderlayIds.add(String(row.id))
+        issues.push({ code: basis.correctionRequired === true ? 'billing_source_correction_required' : 'billing_source_basis_unavailable', message: `Underlag ${String(row.id)} saknar aktuellt låst källunderlag eller kräver rättelseprövning.`, severity: 'blocked' })
+      }
+    }
+  }
+
   if (underlays.length === 0) {
     issues.push({ code: 'no_underlays', message: 'Inga faktureringsunderlag finns för perioden.', severity: 'blocked' })
   }
 
-  const blockedUnderlayIds = new Set<string>()
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
     for (const row of underlays) blockedUnderlayIds.add(String(row.id))
   }
@@ -727,23 +702,45 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   // non-overlapping and (unless the tenant explicitly allows it) non-estimated
   // metering coverage for every billed metering point in the period.
   let meteringCompleteness: Awaited<ReturnType<typeof evaluateMeteringCompletenessForMonth>> | null = null
+  // Preliminary (estimated) periods and their reconciliations are billed on
+  // purpose without complete final values; only regular periods are gated.
+  const isEstimateFlow = (row: Record<string, unknown>) => {
+    const payload = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {}
+    return Boolean(payload.estimate) || Boolean(payload.reconciliation_of)
+  }
   const meteringPoints = underlays
+    .filter((row) => !isEstimateFlow(row))
     .map((row) => ({
       meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : '',
       expectedKwh: typeof row.total_kwh === 'number' ? row.total_kwh : typeof row.total_kwh === 'string' ? Number(row.total_kwh) : null,
     }))
     .filter((entry) => entry.meteringPointId)
   if (meteringPoints.length > 0) {
-    const allowEstimated = await companyAllowsEstimatedMeteringValues(input.companyId)
+    const [allowEstimated, requirements] = await Promise.all([
+      companyAllowsEstimatedMeteringValues(input.companyId),
+      loadMeteringResolutionRequirements({
+        companyId: input.companyId,
+        meteringPointIds: meteringPoints.map((entry) => entry.meteringPointId),
+        onDate: `${billingMonth}-01`,
+      }),
+    ])
     meteringCompleteness = await evaluateMeteringCompletenessForMonth({
       companyId: input.companyId,
       billingMonth,
-      meteringPoints,
+      meteringPoints: meteringPoints.map((entry) => {
+        const requirement = requirements.get(entry.meteringPointId)
+        return {
+          ...entry,
+          requiredResolution: requirement?.contractResolution ?? null,
+          meterCannotDeliver: requirement?.meterCannotDeliver ?? false,
+        }
+      }),
       allowEstimatedValues: allowEstimated,
     })
     for (const issue of meteringCompleteness.issues) {
       if (issue.severity === 'blocked') {
         for (const underlay of underlays) {
+          if (isEstimateFlow(underlay)) continue
           const meteringPointId = typeof underlay.metering_point_id === 'string' ? underlay.metering_point_id : null
           if (!issue.meteringPointId || issue.meteringPointId === meteringPointId) {
             blockedUnderlayIds.add(String(underlay.id))
@@ -758,11 +755,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
   }
 
-  const totalKwh = underlays.reduce((sum, row) => {
-    const raw = row.total_kwh
-    const value = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : 0
-    return sum + (Number.isFinite(value) ? value : 0)
-  }, 0)
+  const totalKwh = sumUtiltsDecimals(underlays.flatMap(row => isCanonicalUtiltsDecimal(row.total_kwh) ? [row.total_kwh] : []))
 
   const readyUnderlayIds = underlays
     .filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !blockedUnderlayIds.has(String(row.id)))

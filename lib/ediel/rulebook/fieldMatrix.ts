@@ -1,3 +1,21 @@
+import {prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement} from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import {isProdatFieldInInapplicableParent} from '@/lib/ediel/prodat/prodatParentApplicability'
+import {prodatEndUserWireSubtype} from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import {prodatProductMarket} from '@/lib/ediel/rulebook/prodatProductScope'
+import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { prodatFreeTextField, prodatFreeTextPresent } from '@/lib/ediel/prodat/prodatFreeText'
+import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
+import {prodatFieldDiagnostic, prodatErrorOccurrence, type ProdatErrorOccurrence} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
+import { prodatRegisterFieldState, prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatRegisterGroups, prodatRegisterRuleScopes, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatDateExcludedBySubtype, prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { parseUna } from '@/lib/ediel/core/una'
+import { prodatPartyField, prodatPartyRuleScopes, prodatPartyState, prodatPartySegmentFromSource, readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
+import { prodatDocumentField, prodatDocumentState, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { prodatReferenceField, prodatReferencePresent, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { prodatCharacteristicField, prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { EdielRulebookIssue, EdielRulebookRequirement } from '@/lib/ediel/rulebook/rulebook'
 
 export type RulebookFieldRule = {
@@ -21,13 +39,34 @@ export type RulebookFieldRule = {
   source?: 'static' | 'registry'
 }
 
+export type ProdatIgnoredField = {
+  fieldNumber: string
+  sourceRule: 'PRODAT26A:P119'
+  occurrence: ProdatErrorOccurrence
+}
+
 export type FieldMatrixEvaluationInput = {
+  /** P119 incoming exclusions are distinct from outgoing construction checks. */
+  direction?: 'inbound' | 'outbound'
+  onIgnoredField?: (field: ProdatIgnoredField) => void
+  una?: EdifactServiceStringAdvice
   family?: string | null
   code?: string | null
   rawSegments?: readonly string[] | null
   applicationReference?: string | null
   expectedApplicationReference?: string | null
   mode?: 'send' | 'parse' | 'test'
+}
+
+/** Emit a projection of an existing field decision, never an independent rule. */
+export function recordIgnoredProdatField(input: FieldMatrixEvaluationInput, fieldNumber: string | undefined, scopedSegments: readonly string[], scope?: ProdatErrorOccurrence['scope'], lineIndex?: number): void {
+  if (input.direction !== 'inbound' || !fieldNumber || !input.onIgnoredField) return
+  const physical = scopedSegments.length ? scopedSegments : lineIndex === undefined ? scopedSegments
+    : prodatRegisterGroups(input.rawSegments ?? [], input.una, input.code).groups.find(group => group.lineIndex === lineIndex)?.segments.map(segment => segment.raw) ?? []
+  const descriptor = canonicalProdat26AFieldRules(input.code ?? '').find(rule => rule.fieldNumber === fieldNumber)
+  if (!descriptor || !fieldRulePresentInScope({...descriptor, requirement:'forbidden'}, {...input, rawSegments:physical})) return
+  const occurrence = prodatErrorOccurrence(input, physical, scope ?? (prodatRegisterFieldScope(fieldNumber) === 'header' ? 'header' : prodatRegisterFieldScope(fieldNumber) === 'local' ? 'register' : 'object'), lineIndex)
+  if (occurrence) input.onIgnoredField({fieldNumber, sourceRule:'PRODAT26A:P119', occurrence})
 }
 
 function normalize(value: string | null | undefined): string {
@@ -172,6 +211,21 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const date = normalize(rule.family) === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (date) { const value = prodatDateValue(date.fieldNumber, rawSegments, input.una); return value ? [value] : [] }
+  const party = normalize(rule.family) === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (party) return prodatPartyState(party.fieldNumber, rawSegments, input.una).values.map(normalize)
+  const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (document) {
+    const value = prodatDocumentValue(document.fieldNumber, rawSegments, input.una)
+    // P26.A BGM/4343 is the literal AB/NA code. Do not turn a lowercase
+    // source value into an accepted code while the ACK guard rejects it.
+    return value ? [document.fieldNumber === '313' ? value : normalize(value)] : []
+  }
+  const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (reference) return prodatReferenceValues(reference.fieldNumber, rawSegments, input.una).map(normalize)
+  const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (characteristic) return prodatCharacteristicValues(characteristic.fieldNumber, rawSegments, input.una).map(normalize)
   const value = (() => {
     switch (rule.fieldKey) {
       case 'application_reference':
@@ -269,7 +323,7 @@ const UTILTS_COMMON: RulebookFieldRule[] = [
   { family: 'UTILTS', code: '*', fieldNumber: '205', scope: 'header', fieldKey: 'document_date', label: 'Message date', segmentPath: 'DTM+137', requirement: 'required', errorCodeIfMissing: 'DOCUMENT_DATE_MISSING' },
   { family: 'UTILTS', code: '*', fieldNumber: '206', scope: 'header', fieldKey: 'timezone', label: 'Time zone', segmentPath: 'DTM+735', requirement: 'required', errorCodeIfMissing: 'TIMEZONE_MISSING' },
   { family: 'UTILTS', code: '*', fieldNumber: '501', scope: 'header', fieldKey: 'market', label: 'Market/Sector Area', segmentPath: 'MKS/7293', requirement: 'required', allowedValues: ['23', '27'], errorCodeIfMissing: 'MKS_MISSING', errorCodeIfInvalid: 'UTILTS_MARKET_INVALID' },
-  { family: 'UTILTS', code: '*', fieldNumber: '502', scope: 'header', fieldKey: 'phase_domain', label: 'Phase/Domain', segmentPath: 'MKS/C332/3496', requirement: 'required', allowedValues: ['E02', 'E03', 'E04', 'E05'], errorCodeIfMissing: 'UTILTS_PHASE_MISSING', errorCodeIfInvalid: 'UTILTS_PHASE_INVALID' },
+  { family: 'UTILTS', code: '*', fieldNumber: '502', scope: 'header', fieldKey: 'phase_domain', label: 'Phase/Domain', segmentPath: 'MKS/C332/3496', requirement: 'required', allowedValues: ['E02', 'E03', 'E04'], errorCodeIfMissing: 'UTILTS_PHASE_MISSING', errorCodeIfInvalid: 'UTILTS_PHASE_INVALID' },
   { family: 'UTILTS', code: '*', fieldNumber: '207', scope: 'header', fieldKey: 'sender_party', label: 'Sender', segmentPath: 'NAD+MS/C082/3039', requirement: 'required', errorCodeIfMissing: 'NAD_MS_MISSING' },
   { family: 'UTILTS', code: '*', fieldNumber: '208', scope: 'header', fieldKey: 'receiver_party', label: 'Recipient', segmentPath: 'NAD+MR/C082/3039', requirement: 'required', errorCodeIfMissing: 'NAD_MR_MISSING' },
   { family: 'UTILTS', code: '*', fieldNumber: '509', scope: 'header', fieldKey: 'ancillary_role', label: 'Ancillary Role', segmentPath: 'NAD+DDQ|NAD+DGI|NAD+PQ', requirement: 'required', errorCodeIfMissing: 'UTILTS_ANCILLARY_ROLE_MISSING' },
@@ -375,9 +429,75 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
   return STATIC_FIELD_RULES.filter((rule) => rule.family === f && (rule.code === '*' || rule.code === c))
 }
 
+/** Resolve only mapped NAD rules; other rule families retain their own scope. */
+function partyRoleForRule(rule: RulebookFieldRule) {
+  if (normalize(rule.family) !== 'PRODAT') return null
+  const groups = { END_USER_GROUP: 'UD', INSTALLATION_GROUP: 'IT', INVOICEE_GROUP: 'IV', party_fr: 'FR', party_do: 'DO' } as const
+  return prodatPartyField(rule.fieldNumber ?? rule.fieldKey)?.partyQualifier
+    ?? groups[(rule.fieldNumber ?? rule.fieldKey) as keyof typeof groups] ?? null
+}
+
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
+  const scopes = normalize(rule.family) === 'PRODAT' ? prodatRegisterRuleScopes(rule.fieldNumber ?? rule.fieldKey, input.rawSegments ?? [], input.una, input.code) : null
+  if (!scopes) return fieldRulePresentInScope(rule, input)
+  const values = scopes.map(scope => fieldRulePresentInScope(rule, { ...input, rawSegments: scope.map(row => row.raw) }))
+  return ['forbidden', 'not_used'].includes(rule.requirement) ? values.some(Boolean) : values.every(Boolean)
+}
+
+function fieldRulePresentInScope(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const freeText = normalize(rule.family) === 'PRODAT' ? prodatFreeTextField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (freeText) return prodatFreeTextPresent(freeText, rawSegments, { una: input.una, code: input.code, forbidden: ['forbidden', 'not_used'].includes(rule.requirement) })
+  const register = normalize(rule.family) === 'PRODAT' ? prodatRegisterFieldState(rule.fieldNumber ?? rule.fieldKey, rawSegments, input.una) : null
+  if (register) return ['forbidden','not_used'].includes(rule.requirement) ? register.present : Boolean(register.value) && !register.malformed
+  const date = normalize(rule.family) === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (date) {
+    const states = prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => prodatDateState(date.fieldNumber, scope, input.una))
+    return ['forbidden', 'not_used'].includes(rule.requirement) ? states.some(state => state.present) : states.every(state => Boolean(state.value))
+  }
+  const partyRole = partyRoleForRule(rule)
+  if (partyRole) {
+    const party = prodatPartyField(rule.fieldNumber ?? rule.fieldKey)
+    const forbidden = rule.requirement === 'forbidden' || rule.requirement === 'not_used'
+    const present = prodatPartyRuleScopes(partyRole, rawSegments, input.una).map(scope => {
+      if (!party) return Boolean(prodatPartySegmentFromSource(partyRole, scope, input.una))
+      const state = prodatPartyState(party.fieldNumber, scope, input.una)
+      return forbidden ? state.present : Boolean(state.value)
+    })
+    return forbidden ? present.some(Boolean) : present.every(Boolean)
+  }
+  const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (document) {
+    const state = prodatDocumentState(document.fieldNumber, rawSegments, input.una)
+    return rule.requirement === 'forbidden' || rule.requirement === 'not_used' ? state.present : Boolean(state.value)
+  }
+  const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (reference) return prodatReferencePresent(reference.fieldNumber, rawSegments, {
+    una: input.una, forbidden: rule.requirement === 'forbidden' || rule.requirement === 'not_used',
+  })
+  const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (characteristic) return prodatCharacteristicPresent(characteristic.fieldNumber, rawSegments, {
+    una: input.una, forbidden: rule.requirement === 'forbidden' || rule.requirement === 'not_used',
+  })
+
+  // The canonical PRODAT 26-A matrix is field-level, while several rows share
+  // the same EDIFACT segment. Segment-level presence therefore cannot be used
+  // for those rows: a normal LIN does not imply a sub-line number, and the
+  // mandatory NAD+FR party identity does not imply field 315 (organisation no).
+  // Resolve the shared-segment cells explicitly before the generic field-key
+  // switch so PRODAT names such as net_area also cannot collide with UTILTS.
+  if (normalize(rule.family) === 'PRODAT' && rule.source === 'static') {
+    const una = input.una ?? parseUna(null)
+    const source = rawSegments.map((raw, index) => ({ raw, index, tag: raw.split(una.dataElementSeparator)[0].toUpperCase(), elements: [] }))
+    switch (rule.fieldNumber) {
+      case '312':
+        return Boolean(segmentComposite(source.find(segment => segment.tag === 'UNH'), 2, una)[4]?.trim())
+      default:
+        break
+    }
+  }
+
   switch (rule.fieldKey) {
     case 'application_reference':
       return Boolean(applicationReference)
@@ -483,53 +603,158 @@ export function validateFieldMatrixPayload(
     issues.push(issue({ severity: 'error', code: 'UTILTS_CODE_NOT_ALLOWED', title: 'UTILTS-kod saknar profil', description: `${code} finns inte i UTILTS E5SE5A-profilerna.`, fieldPath: 'BGM/C002/1001' }))
   }
 
-  for (const rule of rules) {
-    const present = fieldRulePresent(rule, { ...input, rawSegments })
-    if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
-      if (!present) continue
-      issues.push(issue({
-        severity: 'error',
-        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
-        title: `${rule.label} får inte skickas`,
-        description: `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
-        fieldPath: rule.segmentPath,
-      }))
-      continue
+  if (family === 'PRODAT') {
+    for (const problem of prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments, input.una), input.una, code).problems) {
+      const rule = rules.find(rule => rule.fieldNumber === problem.fieldNumber)
+      if (rule) issues.push(issue({scope:'prodat_register', severity:'error', code:'PRODAT_REGISTER_STRUCTURE_INVALID', title:'Ogiltig PRODAT-registerstruktur',
+        prodatDiagnostic: prodatFieldDiagnostic(problem.fieldNumber, prodatRegisterFieldState(problem.fieldNumber, prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments,input.una),input.una,code).groups[problem.lineIndex]?.segments ?? [],input.una)?.present ? 'invalid' : 'missing', input, [], 'PRODAT26A:P47/114–116', problem.lineIndex),
+        description:`Fält ${problem.fieldNumber}, LIN ${problem.lineIndex + 1}: ${problem.reason} (P26.A s.47,114–116).`, fieldPath:rule.segmentPath}))
     }
-
-    const requiredByDependency = dependencyApplies(rule, { ...input, rawSegments })
-    const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
-    if (!shouldEvaluate) continue
-    if (!present) {
-      const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
-      issues.push(issue({
-        severity,
-        code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
-        title: `${rule.label} saknas`,
-        description: `${rule.segmentPath ?? rule.fieldKey} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
-        fieldPath: rule.segmentPath,
-      }))
-      continue
+    // Scope errors cannot disappear just because an optional field is sought
+    // in its correct scope. Only evaluate fields present in the selected rules.
+    for (const failure of prodatDateSyntaxIssues(rawSegments, input.una).filter(value => value.kind === 'scope')) {
+      const rule = rules.find(value => value.fieldNumber === failure.fieldNumber)
+      if (rule) issues.push(issue({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        prodatDiagnostic: prodatFieldDiagnostic(rule.fieldNumber,'invalid',input,[],'PRODAT26A:P43/49–52',undefined,'header'),
+        title: `${rule.label} finns i fel segmentgrupp`, description: 'DTM måste tillhöra sitt eget meddelandehuvud eller LIN-objekt enligt P26.A s.43,49–52.', fieldPath: rule.segmentPath }))
     }
+  }
 
-    const allowedValues = (rule.allowedValues ?? []).map(normalize).filter(Boolean)
-    if (allowedValues.length === 0) continue
-    const actualValues = fieldValuesForRule(rule, { ...input, rawSegments })
-    if (actualValues.length === 0 || actualValues.some((value) => !allowedValues.includes(value))) {
-      issues.push(issue({
-        severity: rule.severity ?? 'error',
-        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_CODE_LIST_INVALID',
-        title: `${rule.label} har otillåtet värde`,
-        description: `${rule.segmentPath ?? rule.fieldKey} måste vara ett av ${allowedValues.join(', ')}.`,
-        fieldPath: rule.segmentPath,
-      }))
+  for (const baseRule of rules) {
+    const role = partyRoleForRule(baseRule)
+    const date = family === 'PRODAT' ? prodatDateField(baseRule.fieldNumber ?? baseRule.fieldKey) : null
+    const registerScopes = family === 'PRODAT' ? prodatRegisterRuleScopes(baseRule.fieldNumber ?? baseRule.fieldKey, rawSegments, input.una, code) : null
+    const scopes = registerScopes ? registerScopes.map(scope => scope.map(row => row.raw))
+      : role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw))
+      : date ? prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => scope.map(row => row.raw)) : [rawSegments]
+    for (const scopedSegments of scopes) {
+      // Read field223 only from this LIN object. A renderer's omission is not
+      // validation: an explicitly supplied inapplicable date must be rejected.
+      const excludedDate = date?.dateScope === 'line' && prodatCharacteristicValues('223', scopedSegments, input.una)
+        .some(reason => prodatDateExcludedBySubtype(code, reason, date.fieldNumber))
+      const sourceSubtype = family === 'PRODAT' && input.direction === 'inbound'
+        ? prodatEndUserWireSubtype(code, prodatRegisterTokens(scopedSegments, input.una), input.una ?? parseUna(null)) : null
+      const sourceRequirement = sourceSubtype && prodatSourceSubtypeRule(code, baseRule.fieldNumber ?? '')
+        ? resolveProdatSourceSubtypeRequirement({messageCode:code, fieldNumber:baseRule.fieldNumber ?? '', subtype:sourceSubtype, market:prodatProductMarket(input)}) : null
+      const inactiveParent = sourceSubtype && isProdatFieldInInapplicableParent({messageCode:code,subtype:sourceSubtype,fieldNumber:baseRule.fieldNumber})
+      const rule: RulebookFieldRule = excludedDate || inactiveParent || sourceRequirement === 'forbidden'
+        ? { ...baseRule, requirement:'forbidden' } : baseRule
+      const scopedInput = { ...input, rawSegments: scopedSegments }
+      const emit = (finding: Omit<EdielRulebookIssue, 'blocking'>, kind: 'missing' | 'invalid' = 'invalid',failureEvidence?:ProdatFailureEvidence) => issues.push(issue({...finding, ...(family === 'PRODAT' ? {prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,kind,input,scopedSegments,`PRODAT26A:§2.2:${code}:${rule.fieldNumber}`,undefined,undefined,failureEvidence)} : {})}))
+      // P26.A r3 p119: resolve national applicability BEFORE reading contents.
+      // Full syntax remains an earlier gate; gray dates retain their separately
+      // prescribed format check. No negative APERAK merely for extra X/D-false.
+      if (family === 'PRODAT' && input.direction === 'inbound'
+        && (rule.requirement === 'forbidden' || rule.requirement === 'not_used')) {
+        recordIgnoredProdatField(input, rule.fieldNumber, scopedSegments)
+        const ignoredDate = date ? prodatDateState(date.fieldNumber, scopedSegments, input.una) : null
+        if (ignoredDate?.malformed) emit({severity:'error',code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+          title:`${rule.label} har ogiltigt datum eller format`,
+          description:`${rule.segmentPath}: kontrollera C507-format och kalender enligt P26.A s.43,49–52 och bilaga4 s.119.`,fieldPath:rule.segmentPath})
+        continue
+      }
+      const present = fieldRulePresentInScope(rule, scopedInput)
+      if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
+        if (!present) continue
+        emit({
+          severity: 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
+          title: `${rule.label} får inte skickas`,
+          description: excludedDate
+            ? `${rule.segmentPath ?? rule.fieldKey} får inte skickas för objektets transaktionstyp i ${family} ${code} enligt P26.A §2.2.`
+            : `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
+          fieldPath: rule.segmentPath,
+        })
+        continue
+      }
+
+      const registerState = family === 'PRODAT' ? prodatRegisterFieldState(rule.fieldNumber ?? rule.fieldKey, scopedSegments, input.una) : null
+      if (registerState?.malformed) {
+        emit({severity:'error',code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',title:`${rule.label} har ogiltig registerstruktur`,
+          description:'Kontrollera LIN/C829, QTY/C186 och registerlokala CCI/CAV enligt P26.A s.47,54–58,67,114–116.',fieldPath:rule.segmentPath})
+        continue
+      }
+      const dateState = date ? prodatDateState(date.fieldNumber, scopedSegments, input.una) : null
+      if (dateState?.malformed) {
+        emit({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+          title: `${rule.label} har ogiltigt datum eller format`,
+          description: `${rule.segmentPath}: kontrollera C507, format, kalender, tidszon och entydighet enligt P26.A s.43,49–52.`, fieldPath: rule.segmentPath })
+        continue
+      }
+      const party = family === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+      const partyState = party ? prodatPartyState(party.fieldNumber, scopedSegments, input.una) : null
+      const forbiddenDateOfBirth = party?.fieldNumber === '227' && code === 'Z13'
+        && readProdatParty('UD', scopedSegments, input.una).idQualifier === '1'
+      if (partyState?.malformed || partyState?.tooLong || forbiddenDateOfBirth) {
+        const row=forbiddenDateOfBirth?prodatPartySegmentFromSource('UD',scopedSegments,input.una):null
+        const evidence=row?prodatComponentEvidence(row.raw,'NAD/C082',segmentComposite(row,2,input.una),!partyState?.malformed&&!partyState?.tooLong?[1]:undefined):undefined
+        emit({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? (partyState?.tooLong ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID'),
+          title: `${rule.label} följer inte NAD-fältets struktur`,
+          description: `${rule.segmentPath}: kontrollera komponent, kodlista, längd och part enligt PRODAT 26.A s.45–46,79–83.`,
+          fieldPath: rule.segmentPath,
+        },'invalid',evidence)
+        continue
+      }
+      const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+      const documentState = document ? prodatDocumentState(document.fieldNumber, scopedSegments, input.una) : null
+      if (documentState?.malformed) {
+        emit({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+          title: `${rule.label} har fel struktur`,
+          description: `${rule.segmentPath} följer inte dokumentets element-/komponentstruktur (PRODAT 26.A s.42).`,
+          fieldPath: rule.segmentPath,
+        })
+        continue
+      }
+      if (document?.fieldNumber === '203' && documentState?.value && documentState.value.length > 35) {
+        emit({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_LENGTH_INVALID',
+          title: `${rule.label} är för långt`,
+          description: 'PRODAT BGM/1004 är an..35 (26.A s.42); escapetecken räknas inte dubbelt.',
+          fieldPath: rule.segmentPath,
+        })
+        continue
+      }
+      const requiredByDependency = dependencyApplies(rule, scopedInput)
+      const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
+        || (rule.requirement === 'optional' && Boolean(documentState?.present))
+        || Boolean(partyState?.present) || Boolean(dateState?.present)
+      if (!shouldEvaluate) continue
+      if (!present) {
+        const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
+        emit({
+          severity,
+          code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
+          title: `${rule.label} saknas`,
+          description: `${rule.segmentPath ?? rule.fieldKey} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
+          fieldPath: rule.segmentPath,
+        }, 'missing')
+        continue
+      }
+
+      const allowedValues = (rule.allowedValues ?? []).map(normalize).filter(Boolean)
+      if (allowedValues.length === 0) continue
+      const actualValues = fieldValuesForRule(rule, scopedInput)
+      if (actualValues.length === 0 || actualValues.some((value) => !allowedValues.includes(value))) {
+        emit({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_CODE_LIST_INVALID',
+          title: `${rule.label} har otillåtet värde`,
+          description: `${rule.segmentPath ?? rule.fieldKey} måste vara ett av ${allowedValues.join(', ')}.`,
+          fieldPath: rule.segmentPath,
+        })
+      }
     }
   }
 
   if (family === 'PRODAT') {
-    const bgm = bgmCode(rawSegments)
+    const bgm = prodatDocumentValue('202', rawSegments, input.una)?.toUpperCase() ?? null
     if (bgm && /^Z\d{2}[A-Z]+$/.test(bgm)) {
-      issues.push(issue({ severity: 'error', code: 'PRODAT_COMPOSITE_BGM_CODE', title: 'Fel PRODAT BGM', description: 'BGM ska vara huvudfunktion, t.ex. Z13. Undertyp/status ska ligga i CCI/CAV.', fieldPath: 'BGM/C002/1001' }))
+      issues.push(issue({ severity: 'error', prodatDiagnostic:prodatFieldDiagnostic('202','invalid',input,rawSegments,'PRODAT26A:P42'), code: 'PRODAT_COMPOSITE_BGM_CODE', title: 'Fel PRODAT BGM', description: 'BGM ska vara huvudfunktion, t.ex. Z13. Undertyp/status ska ligga i CCI/CAV.', fieldPath: 'BGM/C002/1001' }))
     }
     if (input.expectedApplicationReference && input.applicationReference && normalize(input.expectedApplicationReference) !== normalize(input.applicationReference)) {
       issues.push(issue({ severity: 'error', code: 'APPLICATION_REFERENCE_MISMATCH', title: 'Fel Application Reference', description: `${code} ska använda ${input.expectedApplicationReference}, men payload har ${input.applicationReference}.`, fieldPath: 'UNB/S005/0026' }))

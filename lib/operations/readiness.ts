@@ -162,12 +162,17 @@ export function evaluateSiteSwitchReadiness(params: {
     }
   }
 
-  if (!site.current_supplier_name?.trim()) {
+  // The current supplier is not needed to address a Z03 supplier-switch
+  // notification to the grid owner. Persisted rows explicitly marked unknown
+  // therefore continue without a switch blocker. If the row is not marked
+  // unknown, keep the existing data-quality issue so contradictory/legacy
+  // states remain visible and fail closed until normalized by master data.
+  if (!site.current_supplier_name?.trim() && !site.current_supplier_unknown) {
     issues.push({
       code: 'current_supplier_missing',
       title: 'Nuvarande leverantör saknas',
       description:
-        'Nuvarande elleverantör bör vara registrerad innan byte skickas vidare.',
+        'Nuvarande elleverantör saknas och anläggningen är inte markerad med okänd nuvarande leverantör.',
       priority: 'normal',
       taskType: 'current_supplier_missing',
     })

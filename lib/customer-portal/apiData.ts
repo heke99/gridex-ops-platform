@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
+import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
 import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import {
@@ -44,6 +45,7 @@ export async function resolvePortalCustomerContext(input: {
     identifiers: { externalCustomerId: input.externalCustomerId },
   })
   if (!resolution.ok) throw new Error(resolution.error)
+  await requirePortalRetentionAccess({ companyId: input.client.company_id, customerId: resolution.customer.customer_id });
 
   return {
     companyId: input.client.company_id,
@@ -70,12 +72,22 @@ export function portalContextFromResolved(input: {
   }
 }
 
+export function shouldLogPortalAccess(route: string): boolean {
+  return route !== '/api/v1/customer/portal-bundle'
+}
+
 async function logPortalAccess(input: {
   context: PortalCustomerContext
   route: string
   action: string
   metadata?: Record<string, unknown>
 }) {
+  await requirePortalRetentionAccess(input.context)
+  // portal-bundle emits one request-level access log through externalApi.ts.
+  // Suppress per-section rows here to avoid 10+ redundant DB roundtrips while
+  // preserving standalone endpoint audit behavior unchanged.
+  if (!shouldLogPortalAccess(input.route)) return
+
   await supabaseService.from('customer_portal_api_access_logs').insert({
     company_id: input.context.companyId,
     customer_id: input.context.customerId,
@@ -336,7 +348,6 @@ export async function listPortalSitesPage(
     selects: [SITE_SELECT, SITE_LEGACY_SELECT, SITE_MINIMAL_SELECT], orderColumn: 'created_at',
   })
 }
-
 
 const WEBSITE_APPLICATION_SELECT = 'id,customer_site_id,metering_point_id,contract_id,status,grid_area_code,price_area_code,resolution_status,facility_data_verified_at,created_at,updated_at'
 const WEBSITE_APPLICATION_MINIMAL_SELECT = 'id,customer_site_id,metering_point_id,contract_id,status,created_at,updated_at'

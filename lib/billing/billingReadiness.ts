@@ -21,6 +21,8 @@
 // Billability is NEVER decided from a cached boolean column. Callers that
 // persist a readiness flag must derive it from this function.
 
+import { resolveInvoiceDeliveryFor } from '@/lib/billing/effectiveInvoiceDelivery'
+
 export type BillingBlocker = {
   code: string
   message: string
@@ -44,7 +46,7 @@ export type BillingReadinessResult = {
 export const BILLABLE_CONTRACT_STATUSES = new Set(['active'])
 
 /** Supply-period statuses that count as active/confirmed delivery. */
-export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set(['active', 'confirmed_by_grid_owner'])
+export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set(['active', 'confirmed_by_grid_owner', 'ended'])
 
 const PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
 
@@ -184,10 +186,9 @@ export function evaluateContractBillingAccountReadiness(input: {
   const contract = input.contract
   const customer = input.customer ?? null
 
-  const recipient =
-    clean(contract?.invoice_recipient) ??
-    clean(customer?.full_name) ??
-    clean(customer?.company_name)
+  const siteAddress = input.billingProfile?.siteAddress
+  const delivery = resolveInvoiceDeliveryFor('readiness', { contract, customer, siteAddress: siteAddress ?? null })
+  const recipient = delivery.recipient
   if (!recipient) {
     blockers.push({
       code: 'invoice_recipient_missing',
@@ -195,17 +196,14 @@ export function evaluateContractBillingAccountReadiness(input: {
     })
   }
 
-  const invoiceEmail = clean(contract?.invoice_email) ?? clean(customer?.invoice_email) ?? clean(customer?.email)
-  const billingStreet = clean(contract?.billing_street) ?? clean(customer?.billing_street)
-  const billingPostalCode = clean(contract?.billing_postal_code) ?? clean(customer?.billing_postal_code)
-  const billingCity = clean(contract?.billing_city) ?? clean(customer?.billing_city)
-  const hasPostalAddress = Boolean(billingStreet && billingPostalCode && billingCity)
+  // No fallback to the customer's contact email; see effectiveInvoiceDelivery.ts.
+  const invoiceEmail = delivery.email
   const sameAsSite = contract?.billing_address_same_as_site === true
-  const siteAddress = input.billingProfile?.siteAddress
+  // Callers that do not load the site address keep the earlier contract-level trust in the flag.
   const siteAddressComplete = siteAddress === undefined
     ? sameAsSite
     : Boolean(clean(siteAddress?.street) && clean(siteAddress?.postalCode) && clean(siteAddress?.city))
-  const hasResolvedPostalAddress = hasPostalAddress || (sameAsSite && siteAddressComplete)
+  const hasResolvedPostalAddress = Boolean(delivery.postalAddress) || (sameAsSite && siteAddressComplete)
   const hasDistribution = Boolean(invoiceEmail || hasResolvedPostalAddress)
   if (!hasDistribution) {
     blockers.push({
@@ -304,6 +302,10 @@ export function evaluateContractBillingAccountReadiness(input: {
     evidence: {
       invoice_recipient: recipient,
       invoice_email: invoiceEmail,
+      invoice_email_source: delivery.emailSource,
+      invoice_recipient_source: delivery.recipientSource,
+      postal_address_source: delivery.postalAddressSource,
+      inherits_customer_billing_profile: delivery.inheritsCustomerProfile,
       has_postal_invoice_address: hasResolvedPostalAddress,
       billing_address_same_as_site: sameAsSite,
       vat_rate: vatRate,
@@ -400,7 +402,9 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     })
   }
   const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
-    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(clean(period.status)?.toLowerCase() ?? '')) return false
+    const status = clean(period.status)?.toLowerCase() ?? ''
+    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(status)) return false
+    if (status === 'ended' && !clean(period.end_date)) return false
     if (clean(period.company_id) && clean(period.company_id) !== input.companyId) return false
     if (
       clean(period.customer_id) &&

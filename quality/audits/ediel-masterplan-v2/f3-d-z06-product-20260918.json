@@ -1,0 +1,114 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "date": "2026-09-18",
+  "unit": "PC-242-Z06",
+  "base_main": "7ff0d6b0aa2082c3942d36d743977ae85cde2a4f",
+  "base_tree": "b0cd2dc6cb1426172316b70c457e3530359d6255",
+  "code_tree": "4aa03f9ba727b4d8bd732fb2872b8011e5554df3",
+  "candidate_scope": {
+    "accepted_predecessor_numeric_D": 7,
+    "candidate": [
+      "Z06:242"
+    ],
+    "other_unaccepted_numeric_D": 102,
+    "original_numeric_D": 110,
+    "parent_group_occurrences_unaccepted": 10
+  },
+  "source_basis": {
+    "original_pdf_rehashed_or_visually_inspected": false,
+    "basis": "Unchanged user-supplied original field, conditional and table projections; P26.A r3 p16/20/68-69; full field note takes precedence over abbreviated conditional expression.",
+    "files": {
+      "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "docs/ediel/masterplan-v2/annex/source_tables.json": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728"
+    }
+  },
+  "code_blobs": {
+    ".github/workflows/ediel-masterplan-v2.yml": "6dd6cec147004170b1b23238183a63629e849902",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts": "3f8eba75f5c70123ab196711e4140a1d18326f19",
+    "__tests__/ediel-prodat-dependent-z06-product.test.ts": "e5031e0fed746fc588e603f135baa0416fd14120",
+    "lib/ediel/prodat/prodatDependentConditionEngine.ts": "00afbd33281186614a70f16c419ed30cc23d3618",
+    "lib/ediel/prodat/prodatSubtypeRequirement.ts": "c45c387c9bc53c80d4dc8b3b28af626d5ef8d59f",
+    "lib/ediel/rulebook/prodatSubtypePolicy.ts": "495cec0cdd5115cd6647359f7f2548dd3feb7fe0",
+    "lib/ediel/rulebook/prodatProductScope.ts": "90b092d139c9af9f35c5d9860a6bd6bc9067cde7"
+  },
+  "verification": {
+    "application_tests": {
+      "passed": 2763,
+      "files": 239,
+      "new_product_subset": 169
+    },
+    "retained_standalone_source": {
+      "passed": 913,
+      "includes_62_Z04_and_851_earlier": true
+    },
+    "quality_tests": 45,
+    "typechecks": {
+      "app": 0,
+      "scripts": 0,
+      "tests_final": 0
+    },
+    "lint": {
+      "errors": 0,
+      "warnings": 99
+    },
+    "source_integrity": {
+      "files": 33,
+      "rules": 121,
+      "contracts": 231
+    },
+    "coverage_percent": {
+      "statements": 34.39,
+      "branches": 27.3,
+      "functions": 41.24,
+      "lines": 35.78
+    },
+    "coverage_ratchet": "PASS_UNCHANGED",
+    "rbac_mechanical_size_performance": "PASS_UNCHANGED",
+    "ordinary_CI": "REQUIRED",
+    "independent_final_head_review": "REQUIRED",
+    "local_build_browser_disposable_replay_claimed": false
+  },
+  "failure_history": [
+    "Initial qualified148-case baseline:128fail/20pass; first implementation148pass. Earlier fixture-authoring attempts retained but not counted as qualified source baseline.",
+    "Additional169-case matrix:18fail/151pass, then9fail/160pass; raw adapter elements array was empty. Fixed release-aware element counting, not assertions. Final product169pass.",
+    "Retained catalog1fail/7pass: Z06 complete-facts market was gas despite EL-only note. Corrected only Z06 facts to electricity; all registry/no-undetermined assertions retained. Product+catalog177pass.",
+    "TypeScript tests failed TS2352 on partial row fixture. Declared typed Partial<EdielMessageRow> and retained explicit partial boundary; final typecheck passed. No suppression or weakened runtime assertions.",
+    "Foreground initial full test and test-typecheck attempts interrupted by tool timeout; incomplete, not passed. Complete serial reruns preserved."
+  ],
+  "artifact_recovery": {
+    "source_artifact": 10555137176,
+    "source_zip_sha256": "a0fd9a1c4a6bf4cc8c6d3e03e9628052cb1bec760c4b76cb952783b69a5aaabf",
+    "inner_source_sha256": "c53403484245956600cf27754218ac5666d878a18ef6a48c1e320406de123426",
+    "dependency_artifact": 10549052365,
+    "dependency_zip_sha256": "ac7f9415abb7dab14a6cd5cd6d0415d17239399aa0469f21f401e51ace5e7508",
+    "lockfile_sha256": "88f4f36c97b4896442c3ce9cb837ea7f93a0fee55e6b63b477421b33b4b73d6b",
+    "synthetic_local_ancestry_publishable": false
+  },
+  "log_sha256": {
+    "baseline-qualified-fixtures.log": "12d2c7ca224c416d7f9194ee93fbef343d7de46fd22244be26387facfd0ae3e1",
+    "initial-implementation.log": "e81be4a0502ef7791d3cf0bc31185b7c2454aa64054e8f025f3a293570ab0b6e",
+    "additional-red.log": "e94881cc24e7e4d4f6d82db701db7f988f0cc89deca11d75c49361b76c4c3f4a",
+    "additional-green.log": "bf4f022744ac0beac7d0165410d0a8d04e467189e901feada8e5f20618c4b64b",
+    "catalog-red.log": "e62b5fe366793b1bfea1954f8032d4b7bc685ace95c56fb47427672765a05145",
+    "product-catalog-green.log": "21549e671685d9cbed3accc9c581574aed508ef9dd71275ceccc2504eb5ca9c9",
+    "full-vitest.log": "1196fef160216e9beaefa3aaf011994d0182dd7bab7ac3124045810721b05904",
+    "retained-source.log": "e8026c709bee1445f8db0d758cb1eacf7fe54f9b20568099dff699445b5f4055",
+    "types-tests-retry.log": "9499558c75aa530ab96a835e220173e57210332399dc47aa5fc83cfeeabaf526",
+    "types-tests-final.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656",
+    "types-scripts.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "types-app.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "lint.log": "41bbaf3ac13a1704e5610913e1b1cae247062fb0bf52d8d26b7ee2e1dcf27526",
+    "coverage.log": "83670dc11a5887ec3cbfff6fd04646eb4a504e741cd86d2678f3a9ca76c4233a",
+    "coverage-ratchet.log": "829803753eef715a5f58a8ad92b4f16a87b0cd4029cd61c0b40fa345bdfcd38e",
+    "quality.log": "681ee6ee5fd3d377c8df9bfc8b9557ab97b49b4be47a92f8452a3e3168bfb04d"
+  },
+  "boundaries": {
+    "PR310": "PAUSED_EXCLUDED",
+    "issue332_full_main_certificate": "OPEN_70_OF_73_NOT_WAIVED",
+    "full_masterplan_live_TGT_release": "NOT_COMPLETE",
+    "live_database_or_market_send": "NONE",
+    "explicit_deployment_or_settings_change": "NONE",
+    "existing_auto_deploy_on_authorized_merge": "POSSIBLE"
+  }
+}

@@ -1,3 +1,8 @@
+import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
+import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
+import { admitUnattributedTechnicalSource, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
@@ -5,6 +10,7 @@ import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
+import type { Database } from '@/supabase/database.types'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -38,45 +44,23 @@ function isUnsafeBatch7aTransactionConflict(error: unknown): boolean {
 }
 
 async function findExistingInboundEdielMessageByCanonicalIdentity(input: {
-  companyId: string
-  inboundEmailMessageId?: string | null
-  parsed: ParsedEdifactEnvelope
-}): Promise<string | null> {
+  companyId: string; environment: 'test' | 'production'; inboundEmailMessageId?: string | null; parsed: ParsedEdifactEnvelope
+}): Promise<EdielMessageRow | null> {
   if (input.inboundEmailMessageId) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('direction', 'inbound')
-      .eq('inbound_email_message_id', input.inboundEmailMessageId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (!error) {
-      const id = (data as { id?: string } | null)?.id ?? null
-      if (id) return id
-    }
+    let query=supabaseService.from('ediel_messages').select('*').eq('company_id',input.companyId).eq('direction','inbound').eq('environment',input.environment).eq('inbound_email_message_id',input.inboundEmailMessageId)
+    query=input.parsed.receiverEdielId?query.eq('receiver_ediel_id',input.parsed.receiverEdielId):query.is('receiver_ediel_id',null)
+    query=input.parsed.applicationReference?query.eq('application_reference',input.parsed.applicationReference):query.is('application_reference',null)
+    const {data,error}=await query.limit(2)
+    if(error)throw error
+    if((data??[]).length>1)throw new Error('ediel_inbound_duplicate_identity_ambiguous')
+    if(data?.[0])return data[0] as EdielMessageRow
   }
-
-  if (input.parsed.interchangeReference && input.parsed.senderEdielId && input.parsed.receiverEdielId) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('direction', 'inbound')
-      .eq('sender_ediel_id', input.parsed.senderEdielId)
-      .eq('receiver_ediel_id', input.parsed.receiverEdielId)
-      .eq('interchange_reference', input.parsed.interchangeReference)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (!error) return (data as { id?: string } | null)?.id ?? null
-    console.warn('[inbound-mail] Kunde inte kontrollera befintlig inbound ediel_message via interchange', error)
-  }
-
-  return null
+  return findInboundDuplicateByCanonicalIdentity(buildInboundCanonicalIdentity({companyId:input.companyId,environment:input.environment,senderEdielId:input.parsed.senderEdielId,receiverEdielId:input.parsed.receiverEdielId,applicationReference:input.parsed.applicationReference,interchangeReference:input.parsed.interchangeReference,transactionReference:input.parsed.transactionReference,externalReference:input.parsed.bgmReference}))
+}
+function assertSameInboundSource(row:EdielMessageRow,input:{companyId:string;environment:'test'|'production';parsed:ParsedEdifactEnvelope}):void {
+  if(row.company_id!==input.companyId||row.environment!==input.environment||row.direction!=='inbound'||row.message_standard!=='edifact'
+    ||row.message_family!==input.parsed.messageFamily||row.message_code!==parsedMessageCode(input.parsed)||row.raw_payload!==input.parsed.rawPayload
+    ||(row.receiver_ediel_id??null)!==(input.parsed.receiverEdielId??null)||(row.application_reference??null)!==(input.parsed.applicationReference??null))throw new Error('canonical_inbound_duplicate_scope_or_original_conflict')
 }
 
 function isNegativeContrL(parsed: ParsedEdifactEnvelope): boolean {
@@ -127,7 +111,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'CONTRL') {
     return {
       contrl_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
-      syntax_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       syntax_check_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeContrL(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeContrL(parsed) ? nowIso() : null,
@@ -139,7 +122,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'APERAK') {
     return {
       aperak_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
-      application_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       functional_check_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeAperak(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeAperak(parsed) ? nowIso() : null,
@@ -151,7 +133,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'UTILTS_ERR') {
     return {
       utilts_err_status: 'received',
-      application_status: 'rejected',
       functional_check_status: 'rejected',
       ack_outcome: 'negative',
       failed_at: nowIso(),
@@ -314,6 +295,7 @@ export async function createParseResult(input: {
 
 export async function createInboundEdielMessage(input: {
   companyId: string
+  actorUserId?: string | null
   environment?: string | null
   inboundEmailMessageId: string
   parseResultId?: string | null
@@ -322,7 +304,8 @@ export async function createInboundEdielMessage(input: {
   meteringPointMatch?: InboundEntityMatch | null
   tenantResolution?: InboundTenantResolution | null
 }): Promise<string | null> {
-  const matchedOutboundId = input.outboundMatch?.status === 'matched' ? input.outboundMatch.entityId : null
+  if(!input.actorUserId||!input.parseResultId)throw new Error('ediel_real_reception_actor_and_parse_required')
+  await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
   const matchedOutboundRequestId =
     input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'outbound_request'
       ? input.outboundMatch.entityId
@@ -335,6 +318,9 @@ export async function createInboundEdielMessage(input: {
       : null
   const matchedMeteringPointId = input.meteringPointMatch?.status === 'matched' ? input.meteringPointMatch.entityId : null
   const matchedOutbound = input.outboundMatch?.candidates?.[0] ?? {}
+  const matchedMetering = input.meteringPointMatch?.status === 'matched'
+    ? input.meteringPointMatch.candidates?.[0] ?? {}
+    : {}
 
   const payload = payloadForInbound({
     parsed: input.parsed,
@@ -346,9 +332,16 @@ export async function createInboundEdielMessage(input: {
 
   const normalizedEnvironment =
     input.environment === 'test' || input.environment === 'production' ? input.environment : null
+  if(!normalizedEnvironment)throw new Error('ediel_inbound_duplicate_scope_required')
   const matchedOperationId =
     typeof matchedOutbound.operation_id === 'string' ? matchedOutbound.operation_id : null
 
+  // The immutable reception owner reads this text selector from the original.
+  // Bind it at birth to the same retained mail as the public UUID link.
+  const receptionBirth: Pick<Database['public']['Tables']['ediel_messages']['Insert'], 'inbound_email_message_id' | 'mailbox_message_id'> = {
+    inbound_email_message_id: input.inboundEmailMessageId,
+    mailbox_message_id: input.inboundEmailMessageId,
+  }
   const insertPayload = {
     company_id: input.companyId,
     environment: normalizedEnvironment,
@@ -369,7 +362,6 @@ export async function createInboundEdielMessage(input: {
     transaction_reference: input.parsed.transactionReference,
     application_reference: input.parsed.applicationReference,
     external_reference: input.parsed.bgmReference,
-    original_message_id: input.parsed.bgmReference,
     raw_payload: input.parsed.rawPayload,
     parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
     validation_report: mergeTenantResolutionIntoPayload({ status: 'parsed_by_batch_7a1_inbound_mail_engine' }, input.tenantResolution),
@@ -381,52 +373,79 @@ export async function createInboundEdielMessage(input: {
           ? 'partially_matched'
           : 'business_unresolved',
     processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
-    inbound_email_message_id: input.inboundEmailMessageId,
+    ...receptionBirth,
     related_message_id: matchedOutboundEdielMessageId,
     outbound_request_id: matchedOutboundRequestId,
     metering_point_id: matchedMeteringPointId,
-    customer_id: typeof matchedOutbound.customer_id === 'string' ? matchedOutbound.customer_id : null,
-    site_id: typeof matchedOutbound.site_id === 'string' ? matchedOutbound.site_id : null,
-    grid_owner_id: typeof matchedOutbound.grid_owner_id === 'string' ? matchedOutbound.grid_owner_id : null,
+    customer_id: typeof matchedOutbound.customer_id === 'string'
+      ? matchedOutbound.customer_id
+      : typeof matchedMetering.customer_id === 'string'
+        ? matchedMetering.customer_id
+        : null,
+    site_id: typeof matchedOutbound.site_id === 'string'
+      ? matchedOutbound.site_id
+      : typeof matchedMetering.site_id === 'string'
+        ? matchedMetering.site_id
+        : null,
+    grid_owner_id: typeof matchedOutbound.grid_owner_id === 'string'
+      ? matchedOutbound.grid_owner_id
+      : typeof matchedMetering.grid_owner_id === 'string'
+        ? matchedMetering.grid_owner_id
+        : null,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
     ...ackColumnsForParsed(input.parsed),
   }
 
-  const existingId = await findExistingInboundEdielMessageByCanonicalIdentity({
-    companyId: input.companyId,
-    inboundEmailMessageId: input.inboundEmailMessageId,
-    parsed: input.parsed,
-  })
-
-  const result = existingId
-    ? await supabaseService
-        .from('ediel_messages')
-        .update({ ...insertPayload, updated_at: nowIso() })
-        .eq('id', existingId)
-        .select('id')
-        .maybeSingle()
-    : await supabaseService
-        .from('ediel_messages')
-        .insert(insertPayload)
-        .select('id')
-        .maybeSingle()
+  const observe=async(messageId:string)=>{
+    const r=await recordInboundReception({companyId:input.companyId,messageId,actorUserId:input.actorUserId!,inboundEmailMessageId:input.inboundEmailMessageId,parseResultId:input.parseResultId!})
+    requireFirstReception(r)
+  }
+  const existing = await findExistingInboundEdielMessageByCanonicalIdentity({companyId:input.companyId,environment:normalizedEnvironment,inboundEmailMessageId:input.inboundEmailMessageId,parsed:input.parsed})
+  if(existing){
+    await observe(existing.id)
+    assertSameInboundSource(existing,{companyId:input.companyId,environment:normalizedEnvironment,parsed:input.parsed})
+    return existing.id
+  }
+  const {data:mailSource,error:mailSourceError}=await supabaseService.from('inbound_email_messages').select('id,company_id,environment,received_at').eq('id',input.inboundEmailMessageId).maybeSingle()
+  if(mailSourceError)throw mailSourceError
+  if(!mailSource||mailSource.id!==input.inboundEmailMessageId||(mailSource.company_id!==null&&mailSource.company_id!==input.companyId)||(mailSource.environment!==null&&mailSource.environment!==normalizedEnvironment)||typeof mailSource.received_at!=='string'||!Number.isFinite(Date.parse(mailSource.received_at)))throw new Error('ediel_actual_inbound_receipt_clock_required')
+  insertPayload.message_received_at=new Date(mailSource.received_at).toISOString()
+  const result=await supabaseService.from('ediel_messages').insert(insertPayload).select('id').maybeSingle()
 
   if (result.error) {
+    if (input.parsed.messageFamily === 'UTILTS' && result.error.code === 'P0U01') {
+      throw new Error('INBOUND_UTILTS_SOURCE_CONFLICT', { cause: result.error })
+    }
+    if (
+      input.parsed.messageFamily === 'PRODAT' &&
+      result.error.code === '23514' &&
+      [
+        'immutable_ediel_payload_cannot_change',
+        'immutable_ediel_received_context_cannot_change',
+        'immutable_ediel_receipt_time_cannot_change',
+        'received_ediel_context_cannot_be_backfilled',
+      ].includes(result.error.message)
+    ) {
+      throw new Error('INBOUND_PRODAT_SOURCE_CONFLICT', { cause: result.error })
+    }
     if (isPostgresUniqueViolation(result.error)) {
       const existingAfterConflict = await findExistingInboundEdielMessageByCanonicalIdentity({
         companyId: input.companyId,
+        environment: normalizedEnvironment,
         inboundEmailMessageId: input.inboundEmailMessageId,
         parsed: input.parsed,
       })
 
       if (existingAfterConflict) {
+        await observe(existingAfterConflict.id)
+        assertSameInboundSource(existingAfterConflict,{companyId:input.companyId,environment:normalizedEnvironment,parsed:input.parsed})
         console.info('[inbound-mail] Inbound ediel_message fanns redan, återanvänder befintlig rad efter unique conflict.', {
-          existingAfterConflict,
+          existingAfterConflict:existingAfterConflict.id,
           inboundEmailMessageId: input.inboundEmailMessageId,
           interchangeReference: input.parsed.interchangeReference,
         })
-        return existingAfterConflict
+        return existingAfterConflict.id
       }
 
       if (isUnsafeBatch7aTransactionConflict(result.error)) {
@@ -442,9 +461,10 @@ export async function createInboundEdielMessage(input: {
     return null
   }
 
-  const edielMessageId = (result.data as { id?: string } | null)?.id ?? existingId
+  const edielMessageId = (result.data as { id?: string } | null)?.id ?? null
 
   if (edielMessageId) {
+    await observe(edielMessageId)
     await supabaseService.from('ediel_message_events').insert({
       company_id: input.companyId,
       ediel_message_id: edielMessageId,
@@ -460,6 +480,7 @@ export async function createInboundEdielMessage(input: {
 
 export async function createUnresolvedInboundEdielMessage(input: {
   companyId?: string | null
+  actorUserId?: string | null
   inboundEmailMessageId: string
   parseResultId?: string | null
   parsed: ParsedEdifactEnvelope
@@ -475,57 +496,26 @@ export async function createUnresolvedInboundEdielMessage(input: {
     parseResultId: input.parseResultId ?? null,
   })
   const resolutionStatus = tenantResolutionStatus(input.tenantStatus)
-  const insertPayload = {
-    company_id: input.companyId ?? null,
-    direction: 'inbound',
-    message_standard: 'edifact',
-    message_family: input.parsed.messageFamily,
-    message_code: parsedMessageCode(input.parsed),
-    status: 'received',
-    sender_ediel_id: input.parsed.senderEdielId,
-    sender_sub_address: input.parsed.senderSubAddress,
-    receiver_ediel_id: input.parsed.receiverEdielId,
-    receiver_sub_address: input.parsed.receiverSubAddress,
-    parsed_unb_sender_ediel_id: input.parsed.senderEdielId,
-    parsed_unb_receiver_ediel_id: input.parsed.receiverEdielId,
-    resolved_company_id: input.companyId ?? null,
-    interchange_reference: input.parsed.interchangeReference,
-    transaction_reference: input.parsed.transactionReference,
-    application_reference: input.parsed.applicationReference,
-    external_reference: input.parsed.bgmReference,
-    original_message_id: input.parsed.bgmReference,
-    raw_payload: input.parsed.rawPayload,
-    parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
-    validation_report: mergeTenantResolutionIntoPayload({
-      status: 'routing_unresolved_manual_review',
-      reasons: input.reasons,
-      candidates: input.candidates,
-      syntaxDecision: 'not_checked',
-      routingDecision: resolutionStatus,
-      note: 'Tenant-routing stoppade affärsuppdatering. Detta är inte ett EDIFACT-syntaxfel och ska inte automatiskt skapa negativ CONTRL.',
-    }, input.tenantResolution),
-    tenant_resolution_status: resolutionStatus,
-    business_match_status: 'blocked',
-    processing_status: resolutionStatus,
-    inbound_email_message_id: input.inboundEmailMessageId,
-    message_received_at: nowIso(),
-    parsed_at: nowIso(),
-    failure_reason: null,
-  }
+  // Local attribution failure is not a protocol/object rejection. Only the
+  // protected prospective custody producer may create this technical original.
+  if (input.companyId || !input.actorUserId || !input.parseResultId ||
+    !['test', 'production'].includes(input.environment ?? '') ||
+    !['PRODAT', 'UTILTS'].includes(input.parsed.messageFamily)) return null
 
-  const { data, error } = await supabaseService
-    .from('ediel_messages')
-    .insert(insertPayload)
-    .select('id')
-    .maybeSingle()
-
-  if (error) {
-    console.warn('[inbound-mail] Kunde inte skapa unresolved inbound ediel_message', error)
+  let edielMessageId: string
+  try {
+    const admitted = await admitUnattributedTechnicalSource({
+      actorUserId: input.actorUserId,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId: input.parseResultId,
+      rawPayload: input.parsed.rawPayload,
+      environment: input.environment!,
+    })
+    edielMessageId = admitted.sourceMessageId
+  } catch (error) {
+    console.warn('[inbound-mail] Teknisk källa hålls utan säker originalauktoritet', error)
     return null
   }
-
-  const edielMessageId = (data as { id?: string } | null)?.id ?? null
-  if (!edielMessageId) return null
 
   await supabaseService.from('ediel_unresolved_items').insert({
     company_id: input.companyId ?? null,
@@ -940,6 +930,7 @@ async function updateBusinessStatusFromInbound(input: {
 
 export async function applySafeInboundStatusUpdate(input: {
   companyId: string
+  environment?: string | null
   parsed: ParsedEdifactEnvelope
   outboundMatch: InboundEntityMatch
   meteringPointMatch: InboundEntityMatch
@@ -952,6 +943,8 @@ export async function applySafeInboundStatusUpdate(input: {
 
   const inboundEdielMessageId = await createInboundEdielMessage({
     companyId: input.companyId,
+    actorUserId: input.actorUserId,
+    environment: input.environment,
     inboundEmailMessageId: input.inboundEmailMessageId ?? '',
     parseResultId: input.parseResultId ?? null,
     parsed: input.parsed,
@@ -959,6 +952,8 @@ export async function applySafeInboundStatusUpdate(input: {
     meteringPointMatch: input.meteringPointMatch,
     tenantResolution: input.tenantResolution ?? null,
   })
+
+  if(!inboundEdielMessageId)throw new Error('ediel_inbound_original_persistence_required')
 
   const responsePayload = payloadForInbound({
     parsed: input.parsed,
@@ -971,7 +966,7 @@ export async function applySafeInboundStatusUpdate(input: {
   if (input.parsed.messageFamily === 'CONTRL') {
     const isNegative = isNegativeContrL(input.parsed)
     if (input.outboundMatch.entityType === 'outbound_request') {
-      await supabaseService
+      const ackRequest = supabaseService
         .from('outbound_requests')
         .update({
           status: isNegative ? 'syntax_rejected' : 'syntax_accepted',
@@ -983,6 +978,8 @@ export async function applySafeInboundStatusUpdate(input: {
         })
         .eq('id', input.outboundMatch.entityId)
         .eq('company_id', input.companyId)
+      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
+      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
 
       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
@@ -1008,7 +1005,7 @@ export async function applySafeInboundStatusUpdate(input: {
   if (input.parsed.messageFamily === 'APERAK') {
     const isNegative = isNegativeAperak(input.parsed)
     if (input.outboundMatch.entityType === 'outbound_request') {
-      await supabaseService
+      const ackRequest = supabaseService
         .from('outbound_requests')
         .update({
           status: isNegative ? 'application_rejected' : 'application_accepted',
@@ -1020,6 +1017,8 @@ export async function applySafeInboundStatusUpdate(input: {
         })
         .eq('id', input.outboundMatch.entityId)
         .eq('company_id', input.companyId)
+      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
+      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
 
       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })

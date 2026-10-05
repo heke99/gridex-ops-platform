@@ -37,7 +37,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Analytics"
+        title="Analys"
         subtitle="En enkel operationsvy för kunder, mätpunkter, mätvärden, prognos och avvikelser."
         userEmail={admin.email}
         workspaceName={scope.companyName}
@@ -45,6 +45,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <AnalyticsTabs active="overview" />
         <AnalyticsFilters
+          monthOnly
           month={month}
           biddingZones={filterOptions.biddingZones}
           gridOwners={filterOptions.gridOwners}
@@ -92,7 +93,7 @@ function buildOverviewCards(metric: Record<string, unknown>, previous: Record<st
   const deviations = missing + asNumber(metric.failed_metering_requests)
   return [
     { key: 'customers', label: 'Kunder totalt', value: formatNumber(asNumber(metric.total_customers)), hint: percentChange(asNumber(metric.total_customers), asNumber(previous?.total_customers)), status: 'info', href: '/admin/customers' },
-    { key: 'new_customers', label: 'Nya kunder denna månad', value: formatNumber(asNumber(metric.new_customers)), hint: percentChange(asNumber(metric.new_customers), asNumber(previous?.new_customers)), status: 'ok', href: '/admin/customers' },
+    { key: 'new_customers', label: 'Nya kunder denna månad', value: metric.new_customers === null ? '–' : formatNumber(asNumber(metric.new_customers)), hint: percentChange(asNumber(metric.new_customers), asNumber(previous?.new_customers)), status: 'ok', href: '/admin/customers' },
     { key: 'sites', label: 'Aktiva anläggningar', value: formatNumber(asNumber(metric.active_sites)), hint: `${formatNumber(asNumber(metric.total_sites))} anläggningar totalt`, status: 'info' },
     { key: 'metering_points', label: 'Aktiva mätpunkter', value: formatNumber(asNumber(metric.active_metering_points)), hint: `${formatNumber(asNumber(metric.total_metering_points))} mätpunkter totalt`, status: 'info', href: '/admin/metering' },
     { key: 'received', label: 'Mottagna mätvärden', value: formatNumber(asNumber(metric.metering_values_received)), hint: 'Inkomna värden för vald period', status: 'ok', href: '/admin/metering' },
@@ -107,7 +108,7 @@ function buildOverviewCards(metric: Record<string, unknown>, previous: Record<st
 function EmptyAnalytics({ userEmail, message }: { userEmail: string | null; message: string }) {
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Analytics" subtitle="Bolag saknas." userEmail={userEmail} />
+      <AdminHeader title="Analys" subtitle="Bolag saknas." userEmail={userEmail} />
       <div className="p-8">
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 font-bold text-amber-900">{message}</div>
       </div>

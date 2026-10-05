@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "created_at_utc": "2026-10-01T13:25:07.594011+00:00",
+  "owner": "/root/history",
+  "branch": "codex/ediel-p15-source-provenance-20261001",
+  "workspace": "/workspace/scratch/145123787247/gridex-p15",
+  "base_sha": "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2",
+  "commit_sha": "fa9c5a088b282cf6f7ffe377af82eceda265a566",
+  "tree_sha": "9f37e12372179efa5a47bc2356affb15bda5ad55",
+  "working_tree_clean": true,
+  "original_ids_component_scope": [
+    "P-15",
+    "AT-P-15",
+    "AT-Z06F-SUPPLIER",
+    "AT-Z06G-SUPPLIER",
+    "AT-Z10M-SUPPLIER"
+  ],
+  "status": "IMPLEMENTED_WIRED_TARGETED; COMPOSED_FINAL_VERIFICATION_NOT_RUN",
+  "files": [
+    {
+      "path": "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "sha256": "98613562644608c7f0bd026dcfc34c57d5cc650757684db9a455dea402231a24"
+    },
+    {
+      "path": "__tests__/ediel-qualified-customer-structure.test.ts",
+      "sha256": "ae4d193723ffa66428a385485f8e9dd91fa55930c3f9d7a042491fb3c2b6d6ca"
+    }
+  ],
+  "root_files_or_refs_mutated": false,
+  "shared_memory_matrix_workflows_registries_modified": false,
+  "read_only_current_dependency_imports": [],
+  "root_cause": {
+    "hypothesis": "Later G overrides all measured fields, removes earlier A state from returned requested interval, but meterSourceMessageId/registerSourceMessageId can still be A; old applied-receipt source set omitted these explicit origins.",
+    "counterexample": "Baseline Z04 day02. A meter_exchange day03 gives meter NEW/register NEWREG. B change_without_reading day04 gives all5 measured values itself and inherits meter/register from A. Same requested day04→05 returns only B state. Native B applied=true, A applied=false was incorrectly returned selected with A meter/register values.",
+    "material_actual_consumers": [
+      "lib/cis/db-shared.ts:buildMeteringPointPayload exposes entire qualifiedStructure as structural_source",
+      "lib/ediel/prodatContext.ts exposes currentStructure in operator candidates",
+      "lib/ediel/sources/dataRequestStructure.ts:requireDataRequestStructure returns full source plus resolution",
+      "lib/ediel/production/brpFieldSource.ts shares same protected helper but current BRP field source remains independently qualified"
+    ],
+    "finding_origin": "Independent static counterexample from /root/script_contracts; reproduced through actual pure structural selection and actual qualified consumer with explicit native IO stand-ins."
+  },
+  "implementation": {
+    "selection_authority": "Existing selectStructuralSources unchanged; no latest-source or scalar fallback chooser added.",
+    "source_set": "Includes state.sourceMessageId, explicit meterSourceMessageId, explicit registerSourceMessageId and every measured field origin, deduplicated in the existing set.",
+    "native_owner": "Existing ediel_read_structural_effect_scope_v1 uses same company/environment/actor/customer/site/point/period/object/agency + source/assessment/protected snapshot/readset/cutoff.",
+    "baseline": "Z04 still qualifies via sole protected current supply owner; unchanged source-native distinction.",
+    "failure": "Absent/unapplied inherited source prevents selected result; failed receipt read throws existing unconfirmed error. Fully applied sources retain exact selected values.",
+    "persisted_effects": "Read path only. No new business mutation, RPC, grant, policy, retention decision or transaction. Actual native read owner and receipt union are unchanged."
+  },
+  "verification": {
+    "red": {
+      "status": "EXPECTED_FAIL",
+      "tests_failed": 5,
+      "existing_pass": 6,
+      "log": "/tmp/ediel-p15-corrected-fixture-red.log",
+      "sha256": "cfa02364c58df40b194067d707759d371c4803e53a952e91922e1bb626d74be3",
+      "reproduced_failure": "Same five expected failure cases with actual Z10 meter exchange and later explicit Z06; real selector plus original1d getter, then runtime restored unchanged."
+    },
+    "green": {
+      "status": "PASS",
+      "files": 2,
+      "tests": 55,
+      "log": "/tmp/ediel-p15-corrected-fixture-green.log",
+      "sha256": "d2328b60b7911e8cd8565ad108ffad6a376bf5c9460d7663a230ccf85279f649",
+      "scope": "ActualZ10 A/Z06 B fixture in qualified getter11 + real structural selection44; surrounding native read responses are explicit stand-ins, no authentic source/native proof."
+    },
+    "scoped_types": {
+      "status": "PASS",
+      "diagnostics": 0,
+      "command": "tsc --project /tmp/ediel-p15-targeted-tsconfig.json --pretty false",
+      "log": "/tmp/ediel-p15-corrected-fixture-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scoped_lint": {
+      "status": "PASS",
+      "errors": 0,
+      "log": "/tmp/ediel-p15-corrected-fixture-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "diff_check": "PASS",
+    "auth_tx_check": "No new auth/TX logic. Added inherited source check reuses existing protected native scope and actor gates; regression binds current actor/company/snapshot/assessment/own tuple. No genuine PostgreSQL privilege/concurrency/rollback claim.",
+    "native_replay_upgrade_browser_build_CI": "NOT_RUN; parent frozen candidate phase",
+    "formal_acceptance": "NOT_VERIFIED; original criteria unchanged"
+  },
+  "read_only_actual_dependency_hashes": [
+    {
+      "path": "lib/cis/db-shared.ts",
+      "sha256": "289de6560100e5d6b2b8db620dfc093228fa62c5460b9e71b64fe5cc5bc351c2"
+    },
+    {
+      "path": "lib/ediel/prodatContext.ts",
+      "sha256": "129ddd56d352ab96b3415bf109a4a532fe7033e95a3479073fc843323fdfa434"
+    },
+    {
+      "path": "lib/ediel/sources/dataRequestStructure.ts",
+      "sha256": "6ef367cdd07770d64c895d523f9942ed221132079877e3da56dcd6ad19e28e94"
+    },
+    {
+      "path": "lib/ediel/production/brpFieldSource.ts",
+      "sha256": "169cf824ceac83e190478806bccf3406fab3b033021d417f4a4336bf934b8f62"
+    },
+    {
+      "path": "lib/ediel/sources/structuralSourceSelection.ts",
+      "sha256": "d93878be93505d1c7ffb4c9c4c15e54d7494376624e5aa03364d2cc9cfda8b5d"
+    },
+    {
+      "path": "supabase/migrations/20261001001231_ediel_protected_dated_brp_source.sql",
+      "sha256": "a17863a5ec47aa4ca771de6855c6f145d6f5e7b7e543b7fd36521e2e873a5655"
+    },
+    {
+      "path": "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "sha256": "9867489d81c902cb4cc49a1ca468e82ca88f577a9ce3b52bb4d158cdaa89c245"
+    }
+  ],
+  "independent_review": {
+    "owner": "/root/script_contracts",
+    "status": "CLEAR_EXACT_RUNTIME_AND_CORRECTED_FIXTURE",
+    "reviewed_commits": [
+      "ed71c323f13b1b73c0b0ab92afc66431508886b2",
+      "fa9c5a088b282cf6f7ffe377af82eceda265a566"
+    ],
+    "reviewed_tree": "9f37e12372179efa5a47bc2356affb15bda5ad55",
+    "checked_runtime_sha256": "98613562644608c7f0bd026dcfc34c57d5cc650757684db9a455dea402231a24",
+    "checked_test_sha256": "ae4d193723ffa66428a385485f8e9dd91fa55930c3f9d7a042491fb3c2b6d6ca",
+    "reviewed_red_log_sha256": "cfa02364c58df40b194067d707759d371c4803e53a952e91922e1bb626d74be3",
+    "reviewed_green_log_sha256": "d2328b60b7911e8cd8565ad108ffad6a376bf5c9460d7663a230ccf85279f649",
+    "scope": "Read-only exact code/test/log review; independent reviewer did not rerun tests. No remaining material P15 finding on old equal-point or new inherited-source scope; all existing export/operator/datarequest/BRP callers use same fixed helper.",
+    "native_formal": "NOT_RUN; NOT_APPROVED"
+  },
+  "skill_routing": {
+    "active": [
+      "using-git-worktrees/isolation",
+      "systematic-debugging",
+      "test-driven-development + writing-good-tests",
+      "verification-before-completion",
+      "source/spec-to-code compliance using existing original P15 component mapping"
+    ],
+    "not_triggered": [
+      "No Next/React UI edit, API or storage/schema migration, public library usage change",
+      "No broad audit/refactor/security/supply-chain scan/full inventory; bounded provenance bug only"
+    ],
+    "memory_handling": "Root remains sole shared memory/matrix writer; complete checkpoint handoff supplied in this scratch receipt."
+  },
+  "compatibility_and_rollback": {
+    "migrations": "NONE; all existing migration bytes unchanged",
+    "interface": "Existing input/output types and native APIs unchanged; previously unsupported/unapplied inherited values now fail closed",
+    "existing_qualified_behavior": "Preserved by positive applied source control and existing regression set",
+    "rollback": "Git revert own bounded application commit only if required; no DB/data/source-journal reversal. Reverting would reopen proven source-qualification defect."
+  },
+  "external_records": "Before-ledger sources, instrument/register authentic originals, current actor ownership and exact applied receipt must remain genuine. No fixture, scalar record or acceptance status substitutes for them.",
+  "verification_pre_fixture_correction": {
+    "status": "SUPERSEDED_FOR_NEW5_TEST_PROVENANCE",
+    "reason": "Independent review found impossible Z06 + meter_exchange fixture; actual source parser requires Z10. Runtime correction was CLEAR, but new test provenance needed actual Z10 A and explicit Z06 B.",
+    "original_commit_sha": "ed71c323f13b1b73c0b0ab92afc66431508886b2",
+    "original_tree_sha": "dcb2f183bb476dee594ba2158bb5faa9ef018d99",
+    "recorded_results": {
+      "red": {
+        "status": "EXPECTED_FAIL",
+        "tests_failed": 5,
+        "existing_pass": 6,
+        "log": "/tmp/ediel-p15-corrected-fixture-red.log",
+        "sha256": "cfa02364c58df40b194067d707759d371c4803e53a952e91922e1bb626d74be3",
+        "reproduced_failure": "Same five expected failure cases with actual Z10 meter exchange and later explicit Z06; real selector plus original1d getter, then runtime restored unchanged."
+      },
+      "green": {
+        "status": "PASS",
+        "files": 2,
+        "tests": 55,
+        "log": "/tmp/ediel-p15-corrected-fixture-green.log",
+        "sha256": "d2328b60b7911e8cd8565ad108ffad6a376bf5c9460d7663a230ccf85279f649",
+        "scope": "ActualZ10 A/Z06 B fixture in qualified getter11 + real structural selection44; surrounding native read responses are explicit stand-ins, no authentic source/native proof."
+      },
+      "scoped_types": {
+        "status": "PASS",
+        "diagnostics": 0,
+        "command": "tsc --project /tmp/ediel-p15-targeted-tsconfig.json --pretty false",
+        "log": "/tmp/ediel-p15-corrected-fixture-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scoped_lint": {
+        "status": "PASS",
+        "errors": 0,
+        "log": "/tmp/ediel-p15-corrected-fixture-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "diff_check": "PASS",
+      "auth_tx_check": "No new auth/TX logic. Added inherited source check reuses existing protected native scope and actor gates; regression binds current actor/company/snapshot/assessment/own tuple. No genuine PostgreSQL privilege/concurrency/rollback claim.",
+      "native_replay_upgrade_browser_build_CI": "NOT_RUN; parent frozen candidate phase",
+      "formal_acceptance": "NOT_VERIFIED; original criteria unchanged"
+    }
+  },
+  "commits": [
+    "ed71c323f13b1b73c0b0ab92afc66431508886b2",
+    "fa9c5a088b282cf6f7ffe377af82eceda265a566"
+  ],
+  "updated_at_utc": "2026-10-01T13:35:16.185402+00:00",
+  "fixture_correction": {
+    "path": "__tests__/ediel-qualified-customer-structure.test.ts",
+    "changes": "A uses actualZ10 meter_exchange; later B explicitly resets toZ06 after cloning A. Only two fixture lines changed, all criteria/oracles/native ports unchanged.",
+    "runtime_sha256_unchanged": "98613562644608c7f0bd026dcfc34c57d5cc650757684db9a455dea402231a24",
+    "original_runtime_commit_preserved_as_ancestor": true
+  }
+}

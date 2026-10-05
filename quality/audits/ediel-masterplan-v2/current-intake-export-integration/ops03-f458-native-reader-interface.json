@@ -1,0 +1,260 @@
+{
+  "version": 1,
+  "created_at": "2026-10-05T14:31:15Z",
+  "reviewer": "ten08_rule_review",
+  "scope": "Read-only existing OPS03 native-reader interface handoff; not a whole-card re-review or execution",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 594,
+  "branch": "codex/ediel-ops03-complete-20261005",
+  "head": "f458dd9c2ff225b023d33ca88acc909f799249df",
+  "tree": "3de04cdd30de702e1480178a1cc334751f925aac",
+  "head_tree_remote_REST_and_local_Git_equal": true,
+  "owner_allocation": {
+    "scanner": "root: scripts/ediel-masterplan-test-coverage.cjs",
+    "runner": "Existing OPS03 author: scripts/gridex-full-production-e2e.cjs",
+    "consumer_test": "Existing OPS03 author: __tests__/ediel-ops-03-code-release-evidence.test.ts",
+    "workflow": "Retained existing full-e2e workflow owner; no reviewer mutation"
+  },
+  "reused_design": [
+    {
+      "path": "/workspace/agent-review-checkpoints/native-tag-consumer-design.md",
+      "sha256": "7b031fd7f95fce9ea3d723569e914316d0850422b0704e93021afed5a7b7980b"
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/native-tag-consumer-design.json",
+      "sha256": "dbfb1481d8e2ef179b5ee421145cdaf673203d42d8e654ef9dcf76845673ee17"
+    }
+  ],
+  "prior_public_handoffs": [
+    5995110582,
+    5995884138,
+    5995927534
+  ],
+  "new_public_metadata_handoff": {
+    "issue": 594,
+    "comment": 5996580453,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/594#issuecomment-5996580453"
+  },
+  "inputs": [
+    {
+      "path": "scripts/gridex-full-production-e2e.cjs",
+      "sha256": "e2080180d84ab2099037a4c8bf3e3e00bad6a7e2411172ff9bca93bc73e64d8c",
+      "literal_digest_pin_in_runner": false
+    },
+    {
+      "path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "sha256": "40fe71613663c2587b2742599d8efe1447d7dacf14d2591bb66575adfa35a602",
+      "literal_digest_pin_in_runner": false
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "sha256": "4deaaee591c492bb0e6e973837b3df763e646711ac3872bc4de1b7a955768b28",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/ediel-sc-003-005-service-native.test.ts",
+      "sha256": "2989d5d7b6d0ee85ae450dcbaed3204f72ed92fb277d9ec245798c5aa637c0db",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/ediel-prodat-mixed-native.test.ts",
+      "sha256": "2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+      "sha256": "b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/helpers/ediel-mixed-prodat-native-wire.ts",
+      "sha256": "205e06a7d4a94aeabd4ef9e64c8b0953a558a8fea0844a96213a322eb968126a",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "__tests__/ediel-transport-byte-integrity.test.ts",
+      "sha256": "8552b2921e1b76aa77f9a6181db117ca9e04366f57233e76e151cd605b70d530",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-register-tgt-workflow.test.ts",
+      "sha256": "bfb52aa18f28f62794546d881a798bc2d979dc532bced44c0564741aa95d81ed",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": "scripts/check-ediel-masterplan-v2.cjs",
+      "sha256": "4ed209736d9aa05ca07e56943bb043b62e36f26069a96771c34d03f90a96591c",
+      "literal_digest_pin_in_runner": true
+    },
+    {
+      "path": ".github/workflows/ediel-sc071-native.yml",
+      "sha256": "6e30b3f00f9ab6660eaf61327d881c6336e9e7b6d45e487cd3b888e143640f0b",
+      "literal_digest_pin_in_runner": false
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json",
+      "sha256": "ed96171e58321ca8623bb1b5b30a11a3f506739ca5811d21939a3d6cb0c124a3",
+      "literal_digest_pin_in_runner": false
+    },
+    {
+      "path": "scripts/ediel-masterplan-test-coverage.cjs",
+      "sha256": "e23a0789eb9ea1fb9c7cda2f06901ecb075f9f9a2df1ad04900072e5d44f1bbe",
+      "literal_digest_pin_in_runner": false
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/annex/A_Regelkort.md",
+      "sha256": "8934ac1cc3f6467a8971b1ec40afca220de5c0496350aaef5df525799ae84533",
+      "literal_digest_pin_in_runner": false
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md",
+      "sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+      "literal_digest_pin_in_runner": false
+    }
+  ],
+  "current_interface": {
+    "internal_function": "consumeReviewedCodeEvidence(root, source, blockers, modes)",
+    "line": 142,
+    "called_only_by": "assembleEdielReleaseEvidence at line337",
+    "internal_return": [
+      "caseEvidence",
+      "ciQualified"
+    ],
+    "readVerifiedIndividualCaseResults": false,
+    "module_exports": false,
+    "require_main_guard": false,
+    "safe_import_supported": false,
+    "CLI_top_level_start": 364,
+    "top_level_runner_starts": 384,
+    "default_mode": "smoke"
+  },
+  "verified_existing_native_channel": {
+    "workflow": ".github/workflows/ops-hardening.yml",
+    "job": "clean-migration-replay",
+    "artifact": "gridex-rem-002-clean-replay",
+    "member": "rem002-native-junit.xml",
+    "case_bindings": 2,
+    "same_candidate_head_required": true,
+    "latest_pull_request_or_push_run": true,
+    "whole_run_completed_success_required": true,
+    "source_input_base": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "immutable_tree_mode_type_blob_path": true,
+    "four_owned_regular_file_exceptions_only": true,
+    "owned_coverage_exact_atomic_two_row_delta_only": true,
+    "API_repository_and_commit_tree_checked": true,
+    "attempt_scoped_unique_successful_job_checked": true,
+    "artifact_repository_head_run_and_upload_window_checked": true,
+    "archive_digest_and_size_checked": true,
+    "unique_selected_ZIP_member_checked": true,
+    "selected_member_read_by_unzip_no_extraction": true,
+    "DTD_entities_rejected": true,
+    "exact_classname_and_name_required": true,
+    "single_selected_case_required": true,
+    "failure_error_skip_rejected": true,
+    "source_case_and_helpers_hash_checked": true,
+    "all_current_literal_case_helper_workflow_config_document_pins_match_Git_bytes": true
+  },
+  "output_limits": {
+    "only_qualified_selected_cases_returned": true,
+    "negative_outcomes_generic_blockers_only": true,
+    "case_name_not_returned": true,
+    "producer_job_id_not_returned": true,
+    "producer_head_tree_not_returned": true,
+    "member_name_not_returned": true,
+    "producer_identity_current_fields": [
+      "repository",
+      "workflow",
+      "job name",
+      "runId",
+      "runAttempt",
+      "artifactId",
+      "artifactSha256",
+      "junitSha256"
+    ],
+    "raw_case_fail_error_skip_missing_unqualified_not_structurally_distinguished": true
+  },
+  "scope_gaps": {
+    "other_existing_native_workflows_supported": false,
+    "existing_BASE_plus_forward_intake_supported": false,
+    "qualificationRefs_input_supported": false,
+    "scanner_composition_guard": "Any scanner blob change beyond the pinned main baseline is outside four exceptions and fails existing whole-tree comparison; cannot arbitrarily relax it."
+  },
+  "existing_BASE_plus_forward_example": {
+    "workflow": ".github/workflows/ediel-sc071-native.yml",
+    "declaration_lines": [
+      29,
+      32
+    ],
+    "base_overlay_and_actual_input_checks_lines": [
+      64,
+      144
+    ],
+    "native_post_input_checks_lines": [
+      191,
+      207
+    ],
+    "existing_selector": "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json",
+    "actual_scope": "bounded BASE-then-forward native feedback; not candidate canonical replay",
+    "reader_currently_accepts_it": false,
+    "candidate_clean_upgrade_capture_parity": false,
+    "reader_review_does_not_approve_SC010_SC071": true
+  },
+  "minimal_reader_owner_adaptation": [
+    "Export a read-only seam from the same runner and guard existing CLI with require.main; preserve direct CLI/certificate behavior.",
+    "Reuse existing Git/GitHub/ZIP/XML parsing once; add no runner, manifest, emitter or producer.",
+    "Return selected normalized file/case identities plus actual passed/failed/error/skipped/missing/unqualified states, exact executed test hash, run/attempt/job/artifact/head/tree/member/digest provenance and blockers.",
+    "Existing immutable native-owner packet references select reviewed source/workflow/cases; arbitrary caller JSON, classes or qualification booleans do not establish authority.",
+    "For existing BASE-plus-forward receipts independently verify pinned base/tree, effective forward/test/config/runtime/source inputs and before/after witnesses under the existing owner-qualified scope; preserve BASE-plus-forward label and do not promote candidate parity.",
+    "Review source carry for scanner composition through existing qualified input boundary; no blanket source-content exception."
+  ],
+  "root_scanner_scope": [
+    "Discover native files separately; never pass them to default unit Vitest.",
+    "Call existing reader once and join authenticated outcomes to tags.",
+    "Missing/unqualified/failed/skipped/unselected evidence stays non-green.",
+    "Tag names, ledger status, caller JSON, sibling/global GREEN and orchestrator-step JUnit never establish individual native outcomes or whole-rule approval."
+  ],
+  "tests_read_not_run": {
+    "file": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+    "fixture_ports": "Finite Git/GitHub identity and VM child ports; real ZIP/hash/XML; synthetic JUnit does not execute native business cases.",
+    "existing_negative_controls": [
+      "repository/commit/tree/workflow/run/attempt/job/artifact/digest/window",
+      "latest cancelled producer without fallback",
+      "source/helper/setup/mode/symlink/untracked/ignored inputs",
+      "duplicate/failure/error/skip/missing/wrong case or file",
+      "XML entities",
+      "caller/JSON classes and ports ignored",
+      "exact owned ledger rows only"
+    ],
+    "not_existing_export_or_BASE_workflow_tests": true
+  },
+  "skill_routing": {
+    "activated": [
+      "differential-review: bounded authenticated reader/caller/source comparison",
+      "verification-before-completion: fresh exact Git/hash/absence checks and honest execution limits",
+      "spec-to-code-compliance: dispatched bounded OPS03 interface requirement against frozen literals and retained public design"
+    ],
+    "conditional": [
+      "fp-check only if a suspected production security defect is reported; no such defect is asserted here"
+    ],
+    "skipped": "No source/database/UI/performance/deployment modification or broad audit; no new agents/native/full/test execution."
+  },
+  "mutations": "Only independent checkpoint files outside source checkout and authorized public metadata handoff; no owner source edit/push/manifest/emitter/native/CI run.",
+  "whole_card_approval_changed": false,
+  "genuine_current_head_native_outcomes_observed_by_reviewer": false,
+  "automatic_review_rejection": false
+}

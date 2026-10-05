@@ -1,3 +1,4 @@
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -39,7 +40,7 @@ export default async function CommunicationRoutesPage({
  listCommunicationRoutes({
  routeScope: scope,
  query,
- companyId: isPlatformAdmin ? null : companyScope.companyId,
+ companyId: tenantReadCompanyId(isPlatformAdmin, companyScope.companyId),
  }),
  listGridOwners(supabase),
  ])

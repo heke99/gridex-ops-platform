@@ -1,0 +1,167 @@
+{
+  "atUTC": "2026-10-05T14:28:29.478442+00:00",
+  "actualMerge": "93d6defed00e6873b58559e0a9fffe9e67d72855",
+  "publishedHead": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+  "publishedTree": "6aed10be3004362471444db2590d36784b852c23",
+  "actualMergedTree": "f49ae22d0deb1d41ab0f6695a370067f6ed663cd",
+  "preservedForeign": 7689,
+  "addedOwned": 34,
+  "all9CIGreen": true,
+  "ordinaryCleanCompletedUTC": "2026-10-05T14:13:58Z",
+  "authenticatedCI24FilesVerified": [
+    {
+      "file": "final-qualification.json",
+      "sha256": "75717a6ceee7a93884b3dcf7614d35e75f4db35f4d92724379fcd4ca350d08be",
+      "bytes": 13214
+    },
+    {
+      "file": "final-qualification.md",
+      "sha256": "b7b824af76dee8d9f36f120fc0fd5644bb9bb5d9831ea08428bb2eabf8be22b5",
+      "bytes": 6019
+    },
+    {
+      "file": "final-pr.raw.json",
+      "sha256": "2965f5b88f3c01cfbe09571cd59ff67be744d3e2e08a94432dddf45af820a8f4",
+      "bytes": 17613
+    },
+    {
+      "file": "final-checks.raw.json",
+      "sha256": "596fb6ceddfe322119d87f80cd7f14c0d0c2c5e9f373869c01b271688646a827",
+      "bytes": 65001
+    },
+    {
+      "file": "final-runs.raw.json",
+      "sha256": "c07f36c6aa701326329bdb0cde4d15f63df1cca46c075a34d65794c1656ffd12",
+      "bytes": 52483
+    },
+    {
+      "file": "final-ops-jobs.raw.json",
+      "sha256": "4c2c3d88402a9e76eae33c0568fac507ff0e8a097754fbda26b15f3f18350fdd",
+      "bytes": 18575
+    },
+    {
+      "file": "final-fetch-attempt.json",
+      "sha256": "c9946afe9d2b98ae839d5d3fd81d20a14a193229db45e12f87995693f5a3d85c",
+      "bytes": 382
+    },
+    {
+      "file": "job-111782546601.log",
+      "sha256": "831ee157a3cce6c3b6080e9158366f661a93ba43b457432bc7dca68c2a593520",
+      "bytes": 2987368
+    },
+    {
+      "file": "job-111782546601-logs.raw.json",
+      "sha256": "88fcbf24ee30917848210485b49c626003d24c4db89862aea17ee2558ba42f59",
+      "bytes": 3106478
+    },
+    {
+      "file": "job-111782546601-selected-excerpts.log",
+      "sha256": "07fb0bbb3cba627292d97e2612faa9b6ff55a29c74f0722674996b99b81d3f03",
+      "bytes": 75700
+    },
+    {
+      "file": "job-111782539683.log",
+      "sha256": "92040cfcaf6edcbfb13a4333545313a59cdc02786b72526e08eb59b751e60ca3",
+      "bytes": 478805
+    },
+    {
+      "file": "job-111782539806.log",
+      "sha256": "fbf0baa573821918d33aa24616110b0b11e6a840fa82ea8f9f2544c9eb32f2c6",
+      "bytes": 189308
+    },
+    {
+      "file": "job-111782546558.log",
+      "sha256": "d42341a8547fb5536f6e9a5251a4f83dfe670ace211c68c5cfc669ed98fff979",
+      "bytes": 340125
+    },
+    {
+      "file": "qualified-small-artifacts.json",
+      "sha256": "70e6f6cf66da6a4c3f3f29f37db14f79e709edd5eacc9c97e75e4d3a48575cb2",
+      "bytes": 10301
+    },
+    {
+      "file": "artifact-11347334548-pr-release-certificate.json",
+      "sha256": "5d13a350cac9a946c08086f075dba1465be7f4afa35a474376edbb20e8a48ea8",
+      "bytes": 8060
+    },
+    {
+      "file": "artifact-11347304308-coverage-summary.json",
+      "sha256": "a4a36b38e7c869753453fe579dc194cbcbdd8d13ef6960f87eeeb4dabe69ec57",
+      "bytes": 374271
+    },
+    {
+      "file": "vh589-11347334548.zip",
+      "sha256": "65520a93657be2f3bc3f0c88001c33fdbd249f078f6422267f1fa31c9e97a784",
+      "bytes": 2297
+    },
+    {
+      "file": "vh589-11347304308.zip",
+      "sha256": "4fff6d67166740e3a4c99a02b42e29f3be632a898f20f5baddcb2050507e2ec1",
+      "bytes": 753908
+    },
+    {
+      "file": "committed-full-e2e.yml",
+      "sha256": "50409111bf3440b2e74df6e06f1bea48e9c8cb7039732b192a23303cb5c82054",
+      "bytes": 11075
+    },
+    {
+      "file": "committed-ediel-masterplan-v2.yml",
+      "sha256": "a77f92d018038e4b863801ddda345f08b2b917f106929798bc175a58b5a568bb",
+      "bytes": 7508
+    },
+    {
+      "file": "committed-ops-hardening.yml",
+      "sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261",
+      "bytes": 44438
+    },
+    {
+      "file": "committed-tenant-integrity-regression.yml",
+      "sha256": "46d45b2364ad8b7bf2d80e7399b40a5835565bd34003c274d06f4e6dd6ebb890",
+      "bytes": 2648
+    },
+    {
+      "file": "attempt-000-sandbox-network.log",
+      "sha256": "34b7684854262afae960b06e6c3a2bb1b73e4b739e6e35decedc51a1d9c7a7a4",
+      "bytes": 225
+    },
+    {
+      "file": "attempt-000-sandbox-network.json",
+      "sha256": "1b420b56d9190974af017c57ccada911a98f9a784abe5fca47cc1801c73fccdd",
+      "bytes": 198
+    }
+  ],
+  "selectedCopies": [
+    "final-qualification.json",
+    "final-qualification.md",
+    "final-pr.raw.json",
+    "final-checks.raw.json",
+    "final-runs.raw.json",
+    "final-ops-jobs.raw.json",
+    "final-fetch-attempt.json",
+    "job-111782546601-selected-excerpts.log",
+    "qualified-small-artifacts.json",
+    "artifact-11347334548-pr-release-certificate.json",
+    "artifact-11347304308-coverage-summary.json",
+    "attempt-000-sandbox-network.log",
+    "attempt-000-sandbox-network.json"
+  ],
+  "rawLargeLogZipPreservation": "Original24-file hashes verified in /tmp/gridex-vh-589-current-head-ci; copied final metadata/excerpts only. No duplicated multiMB logs/schema/native/source archives. Every CI/raw file remains original exact bytes.",
+  "currentMainSnapshotAt14_25_55": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd after independent590 merge;217stored from actualcurrentledger",
+  "whole4VandVH": "NOT_EXECUTED/evidence[]; no promotion",
+  "commonMemory": "Only retained coordinator unique actual589line, no second572/583entry",
+  "closed589Push": "NOT_PERFORMED",
+  "ownRuntimeRerunsAfterCI": "NONE",
+  "ownPostmergeDocWhitespace": {
+    "rawExit": 2,
+    "onlyFinding": "Actual clean-log selected-excerpts line94 SQL-header trailing whitespace",
+    "preservedRawBytes": true,
+    "rawCheck": "raw-postmerge-doc-whitespace-check.log",
+    "initialFilteredExit": 2,
+    "initialFilteredFinding": "Raw diagnostic-log copy also contains the identical original SQL-header trailing whitespace",
+    "explicitExcludedFiles": [
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/job-111782546601-selected-excerpts.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/raw-postmerge-doc-whitespace-check.log"
+    ]
+  },
+  "actuallyPostedMERGED530": 5996560557
+}

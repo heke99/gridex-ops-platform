@@ -3,7 +3,7 @@ import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
 import { customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from "@/lib/website/applicationReview";
 import { publicOfferReference, type PublicContractOffer } from "@/lib/website/publicContracts";
-import { normalizeFacilityId } from "@/lib/energy/facilityDataErrors";
+import { normalizeFacilityId, normalizeMeteringPointId } from "@/lib/energy/facilityDataErrors";
 import { assertCanonicalSnapshot, buildCanonicalContractSnapshot } from "@/lib/pricing/contractSnapshot";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 import { createTenantContext } from "@/lib/tenant/context";
@@ -154,12 +154,14 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
   const poaLegal = input.legalVersions.find((version) => version.type === "power_of_attorney") ?? null;
   const siteInput = input.body.site;
   const meterInput = input.body.metering_point;
-  const normalizedFacilityId = normalizeFacilityId(siteInput?.facility_id);
+  const normalizedFacilityId = normalizeFacilityId(siteInput?.facility_id) ??
+    normalizeFacilityId(meterInput?.site_facility_id) ??
+    normalizeFacilityId(meterInput?.anlage_id);
   const canonicalMeteringPointId =
-    clean(meterInput?.metering_point_id) ??
-    clean(meterInput?.meter_point_id) ??
-    clean(meterInput?.ediel_metering_point_id) ??
-    clean(meterInput?.anlage_id) ??
+    normalizeMeteringPointId(meterInput?.metering_point_id) ??
+    normalizeMeteringPointId(meterInput?.meter_point_id) ??
+    normalizeMeteringPointId(meterInput?.ediel_metering_point_id) ??
+    normalizeMeteringPointId(meterInput?.anlage_id) ??
     null;
   const requestedStartDate =
     input.readiness.requestedStartDate ??
@@ -254,12 +256,14 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
           meter_point_id: canonicalMeteringPointId,
           metering_point_id: canonicalMeteringPointId,
           ediel_metering_point_id: canonicalMeteringPointId,
-          anlage_id: clean(meterInput?.anlage_id) ?? normalizedFacilityId,
-          site_facility_id: clean(meterInput?.site_facility_id) ?? normalizedFacilityId,
+          anlage_id: normalizeFacilityId(meterInput?.anlage_id) ?? normalizedFacilityId,
+          site_facility_id: normalizeFacilityId(meterInput?.site_facility_id) ?? normalizedFacilityId,
           status: "active",
           metering_type: selected.energyDirection,
           measurement_type: clean(meterInput?.measurement_type) ?? selected.energyDirection,
-          reading_frequency: clean(meterInput?.reading_frequency) ?? "monthly",
+          // Meter capability is the grid owner's fact (Z02/PRODAT corrects it). Until then use the
+          // schema default (interval meter) so contract-driven metering requests are not capped to monthly.
+          reading_frequency: clean(meterInput?.reading_frequency) ?? "hourly",
           grid_area_code: explicitMeteringGridAreaCode(input.body),
           price_area_code: explicitMeteringPriceAreaCode(input.body),
           bidding_zone_code: explicitMeteringPriceAreaCode(input.body),

@@ -71,6 +71,7 @@ export type CustomerRow = {
   source: string | null;
   apartment_number: string | null;
   created_at: string;
+  updated_at?: string | null;
   moved_out_at: string | null;
   lifecycle_closed_at: string | null;
   lifecycle_status_reason: string | null;
@@ -605,7 +606,7 @@ export async function getCustomer(
   const { data, error } = await supabase
     .from("customers")
     .select(
-      "id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, source, apartment_number, created_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings, is_test_data, archived_at, archive_reason, data_retention_note",
+      "id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, personal_number, org_number, customer_number, source, apartment_number, created_at, updated_at, moved_out_at, lifecycle_closed_at, lifecycle_status_reason, intake_status, intake_missing_fields, intake_quality_score, intake_warnings, is_test_data, archived_at, archive_reason, data_retention_note",
     )
     .eq("id", id)
     .maybeSingle();

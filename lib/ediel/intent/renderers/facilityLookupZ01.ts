@@ -1,15 +1,17 @@
+import type {Z01WireReferences} from '@/lib/ediel/prodat/z01WireReferences'
+import {requireZ01LegalSender,requireZ01LegalReceiver} from '@/lib/ediel/prodat/z01LegalParties'
+import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 // lib/ediel/intent/renderers/facilityLookupZ01.ts
 //
 // Sanctioned PRODAT Z01 renderer for facility lookup. This is the ONLY place that
 // turns a facility-lookup intent into EDIFACT; customer-operation modules must not
 // call renderProdat26A/buildEdifactEnvelope directly.
 //
-// No-placeholder rule (Batch 2): when the facility/metering point identifier is
-// genuinely unknown (the whole point of a facility lookup), the object identifier
-// is OMITTED and the absence is modelled explicitly in payload/validation_result.
-// A Z01 customer-identity request is address-keyed and its rulebook profile does
-// not require LIN, so this is a documented allowed-missing case — never 'UNKNOWN'.
+// P26.A requires a real object identity and a mandatory LIN for Z01.
+// An unresolved facility stays held; no synthetic identity is constructed.
 
+import { resolveSwedishProdatEndUserExport, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
 import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
@@ -18,6 +20,7 @@ import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/ref
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { resolveApplicationReferenceForProcess } from '@/lib/ediel/intent/applicationReferencePolicy'
+import { canonicalProdatProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
@@ -27,10 +30,8 @@ type JsonRecord = Record<string, unknown>
 export const FACILITY_LOOKUP_APPLICATION_REFERENCE =
   resolveApplicationReferenceForProcess('facility_lookup')
 
-// Z01 customer-identity request may be address-keyed; LIN/object-id is not a
-// required signal for Z01, so a missing facility/metering identifier is a
-// documented allowed-missing case (modelled, never a placeholder string).
-export const Z01_FACILITY_LOOKUP_ALLOWS_MISSING_IDENTIFIER = true
+// This code cannot authorize an address-only national Z01 profile.
+export const Z01_FACILITY_LOOKUP_ALLOWS_MISSING_IDENTIFIER = false
 
 export type FacilityLookupZ01RenderRequest = {
   id: string
@@ -45,43 +46,9 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function sanitize(value: unknown): string {
-  return String(value ?? '')
-    .replace(/[\r\n'+]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 function date102(value?: string | null): string | null {
   const digits = String(value ?? '').replace(/\D/g, '')
   return digits.length >= 8 ? digits.slice(0, 8) : null
-}
-
-function compactReference(value: string | null | undefined, fallbackPrefix: string, maxLength: number): string {
-  const cleaned = sanitize(value).toUpperCase().replace(/[^A-Z0-9_.\/-]/g, '')
-  if (cleaned) return cleaned.slice(0, maxLength)
-  const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 12)
-  return `${fallbackPrefix}${stamp}`.slice(0, maxLength)
-}
-
-function customerName(customer: JsonRecord | null | undefined): string {
-  const name = sanitize(
-    customer?.company_name ??
-      customer?.full_name ??
-      [customer?.first_name, customer?.last_name].filter(Boolean).join(' ') ??
-      customer?.customer_number ??
-      'Kund',
-  )
-  return name || 'Kund'
-}
-
-function customerIdentifier(customer: JsonRecord | null | undefined): { id: string | null; qualifier: string | null } {
-  const id = sanitize(customer?.personal_number ?? customer?.org_number ?? customer?.customer_number ?? '')
-  if (!id) return { id: null, qualifier: null }
-  return {
-    id,
-    qualifier: customer?.org_number ? '1' : id.length === 10 ? 'SE1' : 'SE2',
-  }
 }
 
 export type FacilityLookupZ01Draft = {
@@ -92,6 +59,8 @@ export type FacilityLookupZ01Draft = {
 }
 
 export async function buildFacilityLookupZ01Draft(input: {
+  companyId: string
+  wireReferences: Z01WireReferences
   actorUserId: string
   request: FacilityLookupZ01RenderRequest
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
@@ -100,80 +69,105 @@ export async function buildFacilityLookupZ01Draft(input: {
   intentId: string
   gridOwner: JsonRecord | null
 }): Promise<FacilityLookupZ01Draft> {
+  if (!clean(input.companyId)) throw new Error('facility_lookup_company_required')
   if (!input.request.customer_id || !input.request.customer_site_id) {
     throw new Error('facility_lookup_missing_customer_or_site')
   }
 
   const context = await getCustomerExportContext({
+    companyId: input.companyId,
+    actorUserId: input.actorUserId,
+    environment: input.routeContext.environment,
+    requireCustomerMasterdata: true,
     customerId: input.request.customer_id,
     siteId: input.request.customer_site_id,
     meteringPointId: null,
   })
   const companyId = requireContextCompanyId(context, 'Bygg facility lookup PRODAT Z01')
+  const legalSenderId=requireZ01LegalSender(input.routeContext,companyId)
+  const legalReceiver=await requireZ01LegalReceiver(input.routeContext,companyId,FACILITY_LOOKUP_APPLICATION_REFERENCE)
+  if (companyId !== input.companyId) throw new Error('facility_lookup_tenant_mismatch')
   const customer = (context.customer ?? null) as unknown as JsonRecord | null
   const site = (context.site ?? null) as unknown as JsonRecord | null
-  const identity = customerIdentifier(customer)
-  const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
-  const transactionReference = compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25)
-  const messageVersion = (await resolveCanonicalOutboundVersion({
+  const endUser = resolveSwedishProdatEndUserExport({customer, customerLifeEvent: context.customerLifeEvent, customerMasterdata: context.customerMasterdata})
+  const identity = endUser.identity
+  if (!identity.id || !identity.qualifier || !identity.name) throw new Error('facility_lookup_verified_customer_identity_required')
+  const externalReference = input.wireReferences.documentReference
+  const transactionReference = input.wireReferences.transactionReference
+  const canonicalProfile = canonicalProdatProfileForMessage('Z01')
+  if (!canonicalProfile) throw new Error('facility_lookup_z01_canonical_profile_missing')
+  const messageVersion = await resolveCanonicalOutboundVersion({
     family: 'PRODAT',
     code: 'Z01',
     standard: 'edifact',
-    fallback: '26A',
     routeDefaultMessageVersion: input.routeContext.defaultMessageVersion ?? null,
     environment: input.routeContext.environment,
-  })) ?? '26A'
-  const messageVersionToken = messageVersion === '26A' ? 'E2SE6A' : messageVersion
+  })
+  if (!messageVersion) throw new Error('facility_lookup_z01_canonical_version_missing')
 
-  // Use a real identifier when the site already has one; otherwise this is the
-  // documented allowed-missing facility lookup (no fabricated id).
+  // The source-owned site identifier must satisfy the national GSNR profile.
   const resolvedFacilityIdentifier =
     clean(site?.normalized_facility_id) ?? clean(site?.facility_id) ?? null
-  const allowedMissing = resolvedFacilityIdentifier ? [] : ['facility_id', 'metering_point_id']
+  if(!resolvedFacilityIdentifier || !/^\d{18}$/.test(resolvedFacilityIdentifier))throw new Error('facility_lookup_verified_object_identity_required')
+  const allowedMissing: string[] = []
+  const addressLines=endUser.addressLines
+  const addressObjects=context.customerMasterdata?createCustomerMasterdataAddressFacts({projection:context.customerMasterdata,meteringPointId:resolvedFacilityIdentifier,identityAgency:'9'}):prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.request.customer_id}/${input.request.customer_site_id}`,
+    meterPointId:resolvedFacilityIdentifier,identityAgency:'9',customer:identity,addressLines})
 
   const rendered = renderProdat26A({
     context: {
       code: 'Z01',
+      legalSenderId,
+      legalReceiverId:legalReceiver.legalEdielId,
+      legalReceiverCountry:legalReceiver.countryCode,
       bgmReference: externalReference,
       transactionReference,
       senderEdielId: input.routeContext.senderEdielId,
       receiverEdielId: input.routeContext.receiverEdielId,
-      customerName: customerName(customer),
+      customerName: identity.name,
+      customerNameLines: endUser.nameLines,
       customerId: identity.id,
       customerIdCodeListQualifier: identity.qualifier,
-      // Empty id => generic builder omits LIN object identifier (no 'UNKNOWN').
-      meterPointId: resolvedFacilityIdentifier ?? '',
+      meterPointId: resolvedFacilityIdentifier,
       gridAreaId: clean(input.request.grid_area_code) ?? clean(site?.grid_area_code) ?? clean(input.gridOwner?.owner_code),
       startDate: date102(clean(site?.move_in_date)) ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      customerAddress: clean(site?.street),
-      customerPostalCode: clean(site?.postal_code),
-      customerCity: clean(site?.city),
-      customerCountry: clean(site?.country) ?? 'SE',
+      customerAddressLines: addressLines,
+      customerPostalCode: endUser.postalCode,
+      customerCity: endUser.city,
+      customerCountry: endUser.country,
       siteAddress: clean(site?.street),
       sitePostalCode: clean(site?.postal_code),
       siteCity: clean(site?.city),
       siteCountry: clean(site?.country) ?? 'SE',
       reasonForTransaction: 'Z22',
       powerOfAttorneyReference: externalReference,
+      dependentConditionFacts:{endUserAddressAvailable:addressObjects[0].availability==='available',endUserAddressObjects:addressObjects,byCell:{'Z01:233':true,'Z01:234':Boolean(clean(site?.street))}},
     },
   })
 
+  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
+
   const envelope = buildEdifactEnvelope({
+    interchangeReference: input.wireReferences.interchangeReference,
+    messageReference: input.wireReferences.messageReference,
+    acknowledgementRequest: ack.requiresContrl,
     senderEdielId: input.routeContext.senderEdielId,
     senderSubAddress: input.routeContext.senderSubAddress,
     receiverEdielId: input.routeContext.receiverEdielId,
     receiverSubAddress: input.routeContext.receiverMessageSubAddress ?? input.routeContext.receiverSubAddress,
     applicationReference: FACILITY_LOOKUP_APPLICATION_REFERENCE,
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
-    messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
+    messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
     segments: rendered.segments,
+    companyId,customerMasterdataProjection:context.customerMasterdata??undefined,
+    parsedPayload:{prodatEngine:rendered.diagnostics},
   })
-  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
 
   const draft: CreateEdielMessageInput = {
     actorUserId: input.actorUserId,
     companyId,
     intentId: input.intentId,
+    sourceOperationId: input.operationId,
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
@@ -207,14 +201,13 @@ export async function buildFacilityLookupZ01Draft(input: {
     gridOwnerId: input.request.grid_owner_id,
     rawPayload: envelope.raw,
     parsedPayload: {
+      customerMasterdataSourceContextId: endUser.sourceContextId,
       draftType: 'facility_lookup_prodat_z01_outbound',
       processLabel: 'facility_lookup_request',
       grid_owner_information_request_id: input.request.id,
       intent_id: input.intentId,
       operation_id: input.operationId,
-      lookupMode: resolvedFacilityIdentifier
-        ? 'customer_site_with_facility_identifier'
-        : 'customer_site_address_without_facility_identifier',
+      lookupMode: 'customer_site_with_facility_identifier',
       resolvedFacilityIdentifier,
       allowedMissing,
       requestedFields: ['facility_id', 'metering_point_id', 'grid_area_code', 'price_area'],
@@ -226,14 +219,12 @@ export async function buildFacilityLookupZ01Draft(input: {
       prodatAckExpectation: rendered.ackExpectation ?? null,
     },
     validationReport: {
-      status: 'warning',
+      status: rendered.issues.some(issue => issue.severity === 'error') ? 'blocked' : 'warning',
       checkedAt: new Date().toISOString(),
       facilityLookupDispatch: true,
-      objectIdentifierMissing: !resolvedFacilityIdentifier,
+      objectIdentifierMissing: false,
       allowedMissing,
-      reason: resolvedFacilityIdentifier
-        ? 'Facility lookup med känd anläggningsidentifierare.'
-        : 'Facility/metering identifier saknas och begärs från nätägaren (dokumenterad allowed-missing för Z01).',
+      reason: 'Facility lookup med känd anläggningsidentifierare.',
       prodatEngine: rendered.diagnostics,
       prodatAckExpectation: rendered.ackExpectation ?? null,
       engineIssues: rendered.issues,
@@ -255,5 +246,6 @@ export async function buildFacilityLookupZ01Draft(input: {
     functionalCheckStatus: 'not_checked',
   }
 
+  rememberCustomerMasterdataDraft(draft,context.customerMasterdata)
   return { draft, externalReference, resolvedFacilityIdentifier, allowedMissing }
 }

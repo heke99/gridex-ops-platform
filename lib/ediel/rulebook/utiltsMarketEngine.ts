@@ -1,55 +1,31 @@
-// Central Swedish UTILTS market semantics for Gridex.
+// Swedish UTILTS market/runtime projection for Gridex.
 //
-// This module is deliberately pure: it owns market-role direction, bilateral
-// requirements and Application Reference selection. Transport/routes may prove
-// capabilities, but they may not redefine these semantics.
+// Normative actor/capability semantics live in utiltsMarketSemantics. This
+// compatibility module delegates those semantics and keeps only runtime input
+// normalization / outbound assertions.
+
+import { resolveVerifiedUtiltsApplicationReference } from '@/lib/ediel/rulebook/utiltsApplicationReference'
+import {
+  getCanonicalSupplierUtiltsSupport,
+  getCanonicalUtiltsMarketProfile,
+  UTILTS_CANONICAL_MARKET_PROFILES,
+  type SupplierUtiltsSupport,
+  type UtiltsMarketProfile,
+} from '@/lib/ediel/rulebook/utiltsMarketSemantics'
 
 export type UtiltsRequestedMessageCode = 'S02' | 'E66'
 export type UtiltsResolutionClass = 'monthly' | 'daily' | 'hourly' | 'quarter_hour'
-export type SupplierUtiltsSupport = 'inbound_only' | 'outbound_only' | 'manual_review' | 'not_supplier_flow' | 'ack_only'
+export type { SupplierUtiltsSupport, UtiltsMarketProfile }
 
-export type UtiltsMarketProfile = {
-  code: 'S01' | 'S02' | 'S03' | 'S04' | 'S05' | 'S06' | 'S07' | 'E30' | 'E31' | 'E66' | 'E72' | 'E73' | 'E74' | 'ERR'
-  senderRoles: readonly string[]
-  receiverRoles: readonly string[]
-  bilateralRequired: boolean
-  supplierSupport: SupplierUtiltsSupport
-  businessMeaning: string
-}
-
-const TSO = 'transmission_system_operator'
-const GRID = 'grid_owner'
-const SUPPLIER = 'supplier'
-const BRP = 'balance_responsible'
-const COLLECTOR = 'metering_collector'
-const ESCO = 'energy_service_company'
-const PRODUCER = 'producer'
-const CUSTOMER = 'customer'
-
-export const UTILTS_MARKET_PROFILES: readonly UtiltsMarketProfile[] = [
-  { code: 'S01', senderRoles: [TSO], receiverRoles: [GRID, BRP], bilateralRequired: false, supplierSupport: 'not_supplier_flow', businessMeaning: 'Aggregerade avräkningsvärden.' },
-  { code: 'S02', senderRoles: [GRID], receiverRoles: [SUPPLIER], bilateralRequired: false, supplierSupport: 'inbound_only', businessMeaning: 'Förbrukningsprognos per objekt.' },
-  { code: 'S03', senderRoles: [GRID], receiverRoles: [SUPPLIER, BRP, TSO], bilateralRequired: false, supplierSupport: 'inbound_only', businessMeaning: 'Preliminära andelar/aggregerade planvärden.' },
-  { code: 'S04', senderRoles: [TSO], receiverRoles: [BRP], bilateralRequired: false, supplierSupport: 'not_supplier_flow', businessMeaning: 'Summerade planvärden.' },
-  { code: 'S05', senderRoles: [BRP], receiverRoles: [SUPPLIER], bilateralRequired: false, supplierSupport: 'inbound_only', businessMeaning: 'Aggregerade avräkningsvärden från balansansvarig.' },
-  { code: 'S06', senderRoles: [SUPPLIER, GRID, BRP], receiverRoles: [TSO], bilateralRequired: true, supplierSupport: 'manual_review', businessMeaning: 'Bilateral begäran om saknade S01/S04.' },
-  { code: 'S07', senderRoles: [SUPPLIER], receiverRoles: [SUPPLIER, PRODUCER, CUSTOMER, BRP], bilateralRequired: true, supplierSupport: 'manual_review', businessMeaning: 'Bilateral objekttidsserie mellan marknadsaktörer.' },
-  { code: 'E30', senderRoles: [COLLECTOR], receiverRoles: [GRID], bilateralRequired: false, supplierSupport: 'not_supplier_flow', businessMeaning: 'Insamlade mätvärden per objekt.' },
-  { code: 'E31', senderRoles: [GRID], receiverRoles: [TSO, BRP, SUPPLIER], bilateralRequired: false, supplierSupport: 'inbound_only', businessMeaning: 'Aggregerade mätvärden.' },
-  { code: 'E66', senderRoles: [GRID], receiverRoles: [SUPPLIER, GRID, PRODUCER, CUSTOMER, TSO, ESCO], bilateralRequired: false, supplierSupport: 'inbound_only', businessMeaning: 'Validerade mätvärden per objekt.' },
-  { code: 'E72', senderRoles: [GRID], receiverRoles: [COLLECTOR], bilateralRequired: true, supplierSupport: 'not_supplier_flow', businessMeaning: 'Bilateral begäran om saknad E30.' },
-  { code: 'E73', senderRoles: [SUPPLIER, BRP, ESCO, PRODUCER, CUSTOMER], receiverRoles: [GRID], bilateralRequired: true, supplierSupport: 'outbound_only', businessMeaning: 'Bilateral begäran om saknad S02 eller E66.' },
-  { code: 'E74', senderRoles: [SUPPLIER, BRP, TSO], receiverRoles: [GRID], bilateralRequired: true, supplierSupport: 'manual_review', businessMeaning: 'Bilateral begäran om saknad S03 eller E31.' },
-  { code: 'ERR', senderRoles: [SUPPLIER, GRID, BRP, TSO, ESCO, PRODUCER, CUSTOMER, COLLECTOR], receiverRoles: [SUPPLIER, GRID, BRP, TSO, ESCO, PRODUCER, CUSTOMER, COLLECTOR], bilateralRequired: false, supplierSupport: 'ack_only', businessMeaning: 'UTILTS funktions-/processbarhetsfel.' },
-] as const
+/** Compatibility alias; values are owned by utiltsMarketSemantics. */
+export const UTILTS_MARKET_PROFILES = UTILTS_CANONICAL_MARKET_PROFILES
 
 export function getUtiltsMarketProfile(code: string | null | undefined): UtiltsMarketProfile | null {
-  const normalized = String(code ?? '').trim().toUpperCase()
-  return UTILTS_MARKET_PROFILES.find((profile) => profile.code === normalized) ?? null
+  return getCanonicalUtiltsMarketProfile(code)
 }
 
 export function getSupplierUtiltsSupport(code: string | null | undefined): SupplierUtiltsSupport {
-  return getUtiltsMarketProfile(code)?.supplierSupport ?? 'manual_review'
+  return getCanonicalSupplierUtiltsSupport(code)
 }
 
 export function normalizeUtiltsResolutionClass(value: unknown): UtiltsResolutionClass {
@@ -60,42 +36,25 @@ export function normalizeUtiltsResolutionClass(value: unknown): UtiltsResolution
   return 'monthly'
 }
 
-function roleToken(actorRole: string | null | undefined): 'DDQ' | 'DGI' {
-  const role = String(actorRole ?? '').trim().toLowerCase()
-  return role === 'esco' || role === 'energy_service_company' || role === 'entitled_party' ? 'DGI' : 'DDQ'
-}
-
-function utiltsApplicationToken(input: {
-  code: string
-  resolution?: unknown
-}): string {
-  const code = String(input.code ?? '').trim().toUpperCase()
-  const resolution = normalizeUtiltsResolutionClass(input.resolution)
-  if (code === 'S02') return 'S02-S'
-  if (code === 'E66') return resolution === 'quarter_hour' ? 'E66-T' : 'E66-S'
-  if (code === 'S03') return 'S03-S'
-  if (code === 'E31') return 'E31-S'
-  throw new Error(`utilts_application_reference_unsupported:${code || 'missing'}`)
-}
-
+/**
+ * Backwards-compatible entry point with corrected semantics.
+ *
+ * Field 311 is an explicit allowlist and S/T is not licensed to be inferred
+ * merely from a local reading-frequency value. Callers must either provide an
+ * exact candidate or target a single-valued profile such as S02.
+ */
 export function resolveCanonicalUtiltsApplicationReference(input: {
   code: string
   actorRole?: string | null
   requestedMessageCode?: string | null
   resolution?: unknown
+  applicationReference?: string | null
 }): string {
-  const code = String(input.code ?? '').trim().toUpperCase()
-  const role = roleToken(input.actorRole)
-
-  if (code === 'E73') {
-    const requested = String(input.requestedMessageCode ?? '').trim().toUpperCase()
-    if (requested !== 'S02' && requested !== 'E66') {
-      throw new Error('utilts_e73_requested_message_required')
-    }
-    return `23-${role}-${utiltsApplicationToken({ code: requested, resolution: input.resolution })}`
-  }
-
-  return `23-${role}-${utiltsApplicationToken({ code, resolution: input.resolution })}`
+  return resolveVerifiedUtiltsApplicationReference({
+    messageCode: input.code,
+    requestedMessageCode: input.requestedMessageCode,
+    applicationReference: input.applicationReference,
+  })
 }
 
 export function assertSupplierUtiltsOutboundAllowed(input: {
@@ -104,7 +63,7 @@ export function assertSupplierUtiltsOutboundAllowed(input: {
   requestedMessageCode?: string | null
 }): { requestedMessageCode: UtiltsRequestedMessageCode | null } {
   const code = String(input.code ?? '').trim().toUpperCase()
-  const profile = getUtiltsMarketProfile(code)
+  const profile = getCanonicalUtiltsMarketProfile(code)
   if (!profile || profile.supplierSupport !== 'outbound_only') {
     throw new Error(`utilts_supplier_outbound_not_allowed:${code || 'missing'}`)
   }

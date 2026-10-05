@@ -6,28 +6,14 @@ import type {
   ProdatEngineRenderResult,
 } from '@/lib/ediel/prodat/types'
 import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
-
-function normalize(value?: string | null): string {
-  return String(value ?? '').trim().toUpperCase()
-}
-
-function isZ09DLike(input: {
-  context: ProdatEngineProductionContext
-  portalSnapshot?: ProdatEnginePortalSnapshot
-  variant?: string | null
-}): boolean {
-  const portalData = input.portalSnapshot && typeof input.portalSnapshot === 'object'
-    ? input.portalSnapshot as Record<string, unknown>
-    : null
-  const explicit = normalize(
-    input.variant ??
-    input.context.reasonForTransaction ??
-    (typeof portalData?.reasonForTransaction === 'string' ? portalData.reasonForTransaction : null) ??
-    (typeof portalData?.prodatTransactionType === 'string' ? portalData.prodatTransactionType : null)
-  )
-
-  return explicit === 'D' || explicit === 'Z09D' || explicit === 'Z70'
-}
+import {
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {
+  resolveCanonicalProdatRenderSemantics,
+  type CanonicalProdatRenderSemantics,
+} from '@/lib/ediel/prodat/canonicalRenderSemantics'
 
 function findCavAfter(segments: string[], cciSegment: string): { index: number; value: string | null } {
   const cciIndex = segments.findIndex((segment) => segment === cciSegment)
@@ -42,36 +28,22 @@ function findCavAfter(segments: string[], cciSegment: string): { index: number; 
   return { index: -1, value: null }
 }
 
-function resolveZ09ProductionMeteringMethod(segments: string[]): {
+function applyMeteringMethodPolicy(segments: string[], renderPolicy: CanonicalProdatRenderSemantics): {
   segments: string[]
   reasonForTransaction: string | null
   meteringMethod: string | null
-  appliedRule: string | null
   warning: string | null
 } {
   const nextSegments = [...segments]
   const reason = findCavAfter(nextSegments, 'CCI++Z13').value
   const metering = findCavAfter(nextSegments, 'CCI++Z04')
-
-  let requiredMeteringMethod: string | null = null
-  let appliedRule: string | null = null
-
-  if (reason === 'E64') {
-    requiredMeteringMethod = 'Z04'
-    appliedRule = 'Z09F/E64 => mätmetod Z04'
-  }
-
-  if (reason === 'E32') {
-    requiredMeteringMethod = 'Z03'
-    appliedRule = 'Z09G/E32 => mätmetod Z03'
-  }
+  const requiredMeteringMethod = renderPolicy.requiredMeteringMethod
 
   if (!requiredMeteringMethod || metering.index < 0) {
     return {
       segments: nextSegments,
       reasonForTransaction: reason,
       meteringMethod: metering.value,
-      appliedRule,
       warning: null,
     }
   }
@@ -83,33 +55,48 @@ function resolveZ09ProductionMeteringMethod(segments: string[]): {
     segments: nextSegments,
     reasonForTransaction: reason,
     meteringMethod: requiredMeteringMethod,
-    appliedRule,
     warning:
       previous && previous !== requiredMeteringMethod
-        ? `Mätmetod korrigerad av Z09-regel från ${previous} till ${requiredMeteringMethod}.`
+        ? `Mätmetod korrigerad av canonical render policy från ${previous} till ${requiredMeteringMethod}.`
         : null,
   }
 }
 
-function z09FOrGSegments(segments: string[]): string[] {
+function applyStructuralPolicy(segments: string[], renderPolicy: CanonicalProdatRenderSemantics): string[] {
   let convertedLineDate = false
-
   return segments.flatMap((segment) => {
-    // Z09F/Z09G uses SG8/DTM[157] as validity date. Some legacy paths still
-    // render DTM+92; keep this adapter until every old entry point uses the
-    // new engine contract directly.
-    if (!convertedLineDate && segment.startsWith('DTM+92:')) {
+    if (!convertedLineDate && renderPolicy.validityDateQualifier && segment.startsWith('DTM+92:')) {
       convertedLineDate = true
-      return [segment.replace(/^DTM\+92:/, 'DTM+157:')]
+      return [segment.replace(/^DTM\+92:/, `DTM+${renderPolicy.validityDateQualifier}:`)]
     }
-
-    // For Z09F/Z09G the portal report marks ANJ, UD and IT groups as not in use.
-    // Keep LI/Z05 and Z02 because they are valid/supporting references for AGT.
-    if (segment.startsWith('RFF+ANJ:')) return []
-    if (segment.startsWith('NAD+UD+')) return []
-    if (segment.startsWith('NAD+IT+')) return []
-
+    if (renderPolicy.suppressAgreementReference && segment.startsWith('RFF+ANJ:')) return []
+    if (renderPolicy.suppressEndUserParty && segment.startsWith('NAD+UD+')) return []
+    if (renderPolicy.suppressInstallationParty && segment.startsWith('NAD+IT+')) return []
     return [segment]
+  })
+}
+
+function resolveBuilderPolicy(input: {
+  context: ProdatEngineProductionContext
+  generatedAt?: Date
+  mode?: 'test' | 'production'
+  variant?: string | null
+  policy?: CanonicalEdielPolicy
+}): CanonicalEdielPolicy {
+  if (input.policy) return input.policy
+  return resolveCanonicalEdielPolicy({
+    family: 'PRODAT',
+    messageCode: input.context.code,
+    subtypeOrReasonCode: input.variant ?? input.context.reasonForTransaction ?? input.context.contractClosureReason ?? null,
+    direction: 'outbound',
+    referenceDate: (input.generatedAt ?? new Date()).toISOString().slice(0, 10),
+    businessContext: input.context.businessContext ?? null,
+    bilateralCapabilityVerified: input.context.bilateralCapabilityVerified ?? undefined,
+    prodatDependentFacts: {
+      market: 'electricity',
+      ...(input.context.dependentConditionFacts ?? {}),
+    },
+    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
   })
 }
 
@@ -122,25 +109,35 @@ export function buildZ09Segments(input: {
   routeDecisionReason?: string | null
   selectedVersion?: string | null
   acceptedVersions?: string[]
+  policy?: CanonicalEdielPolicy
 }): ProdatEngineRenderResult {
+  const policy = resolveBuilderPolicy(input)
   const result = buildProfiledProdatSegments({
     ...input,
+    policy,
     renderer: 'prodat.builders.z09.buildZ09Segments',
   })
+  const renderPolicy = resolveCanonicalProdatRenderSemantics(policy)
 
-  if (isZ09DLike(input)) {
+  if (
+    !renderPolicy.validityDateQualifier &&
+    !renderPolicy.requiredMeteringMethod &&
+    !renderPolicy.suppressAgreementReference &&
+    !renderPolicy.suppressEndUserParty &&
+    !renderPolicy.suppressInstallationParty
+  ) {
     return result
   }
 
-  const filteredSegments = z09FOrGSegments(result.segments)
-  const normalized = resolveZ09ProductionMeteringMethod(filteredSegments)
+  const structurallyNormalized = applyStructuralPolicy(result.segments, renderPolicy)
+  const normalized = applyMeteringMethodPolicy(structurallyNormalized, renderPolicy)
   const warnings = normalized.warning
     ? [
         ...result.issues,
         {
           severity: 'warning' as const,
           code: 'z09_metering_method_normalized',
-          title: 'Mätmetod styrdes av Z09-regeln',
+          title: 'Mätmetod styrdes av canonical policy',
           description: normalized.warning,
         },
       ]
@@ -152,11 +149,11 @@ export function buildZ09Segments(input: {
     issues: warnings,
     diagnostics: {
       ...result.diagnostics,
-      renderer: 'prodat.builders.z09.buildZ09Segments.z09FOrGEngine',
+      renderer: 'prodat.builders.z09.buildZ09Segments.canonicalPolicy',
       reasonForTransaction: normalized.reasonForTransaction ?? result.diagnostics.reasonForTransaction,
       meteringMethod: normalized.meteringMethod ?? result.diagnostics.meteringMethod,
       segmentCountBeforeEnvelope: normalized.segments.length,
-      routeDecisionReason: normalized.appliedRule ?? input.routeDecisionReason ?? result.diagnostics.routeDecisionReason,
+      routeDecisionReason: renderPolicy.source.section,
     },
   }
 }

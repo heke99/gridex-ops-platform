@@ -1,7 +1,8 @@
+// masterplan: P-06, AT-P-06
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { resolveSwedishProdatCustomerIdentity } from '@/lib/ediel/prodat/customerIdentity'
+import { resolveSwedishProdatCustomerIdentity, resolveSwedishProdatEndUserExport } from '@/lib/ediel/prodat/customerIdentity'
 import { validateProdatProfile } from '@/lib/ediel/prodat/profiles'
 import {
   normalizeProdatEndUserIdQualifier,
@@ -43,6 +44,26 @@ describe('PRODAT Swedish end-user identity compliance', () => {
     })
   })
 
+  it('does not use future-only source masterdata or manufacture end-user address values', () => {
+    const value=resolveSwedishProdatEndUserExport({customer:{personal_number:'199001011234',full_name:'Current Name'},
+      customerLifeEvent:{effectiveVersionCount:0,endUserMasterdata:{name:['Future Name'],street:['Future Street'],country:'FI'}} as never})
+    expect(value.identity.name).toBe('Current Name')
+    expect(value.nameLines).toBeUndefined()
+    expect(value.addressLines).toEqual([])
+    expect(value.postalCode).toBeNull()
+    expect(value.city).toBeNull()
+    expect(value.country).toBe('')
+  })
+
+  it('keeps a missing verified name empty and blocks required identity construction', () => {
+    const identity = resolveSwedishProdatCustomerIdentity({personal_number:'199001011234', customer_number:'INTERNAL'})
+    expect(identity).toEqual({id:'199001011234', qualifier:'SE2', name:''})
+    const result = validateProdatProfile({code:'Z03',subtype:'L',version:'26A',context:{code:'Z03',
+      customerId:identity.id,customerIdCodeListQualifier:identity.qualifier,customerName:identity.name,
+      meterPointId:'735123456789012345',startDate:'20261001',reasonForTransaction:'Z22'} as never})
+    expect(result.issues.map(issue=>issue.code)).toContain('prodat_customer_identity_missing')
+  })
+
   it('accepts only explicit PRODAT end-user qualifiers and never infers them from identifier length', () => {
     expect(normalizeProdatEndUserIdQualifier('SE1')).toBe('SE1')
     expect(normalizeProdatEndUserIdQualifier('se2')).toBe('SE2')
@@ -51,7 +72,7 @@ describe('PRODAT Swedish end-user identity compliance', () => {
     expect(normalizeProdatEndUserIdQualifier('260')).toBeNull()
   })
 
-  it('renders Swedish organisation and personal identities with Ediel Nordic Forum as code-list responsible', () => {
+  it('renders Swedish organisation and personal identities with ebIX260 as specified in P26.A r3 pp79/82', () => {
     const organisation = prodatCustomerNadSegment({
       customerId: '5566778899',
       customerIdCodeListQualifier: 'SE1',
@@ -65,10 +86,10 @@ describe('PRODAT Swedish end-user identity compliance', () => {
       country: 'SE',
     })
 
-    expect(organisation).toContain('NAD+UD+5566778899:SE1:ZZZ')
-    expect(person).toContain('NAD+UD+199001011234:SE2:ZZZ')
-    expect(organisation).not.toContain(':260')
-    expect(person).not.toContain(':260')
+    expect(organisation).toContain('NAD+UD+5566778899:SE1:260')
+    expect(person).toContain('NAD+UD+199001011234:SE2:260')
+    expect(organisation).not.toContain(':ZZZ')
+    expect(person).not.toContain(':ZZZ')
   })
 
   it('omits the legal party id instead of guessing a qualifier when it is missing', () => {

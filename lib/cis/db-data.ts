@@ -1,4 +1,6 @@
+import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import { supabaseService } from '@/lib/supabase/service'
+import type { UtiltsConsumptionContract } from '@/lib/ediel/utilts/consumptionContract'
 import type {
   BillingUnderlayRow,
   GridOwnerDataRequestRow,
@@ -18,10 +20,8 @@ import {
   buildCustomerIdentityPayload,
   buildMeteringPointPayload,
   buildSitePayload,
-  findPostgresErrorCode,
   getCustomerExportContext,
   requireContextCompanyId,
-  getGridOwnerDataRequestByAutomationKey,
   matchesQuery,
   mergeJsonObjects,
   normalizeQuery,
@@ -223,6 +223,7 @@ export async function createGridOwnerDataRequest(input: {
   requestPayload?: Record<string, unknown> | null
 }): Promise<GridOwnerDataRequestRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -231,7 +232,28 @@ export async function createGridOwnerDataRequest(input: {
   const companyId = requireContextCompanyId(context, 'Skapa nätägarbegäran')
   await requireCompanyOperationalForWrites(companyId)
 
-  const requestPayload = mergeJsonObjects(input.requestPayload ?? {}, {
+  // Metering values are requested at the resolution the customer's contract
+  // needs (month / hour / quarter-hour), capped by what the meter delivers.
+  let resolutionPayload: Record<string, unknown> = {}
+  if (input.requestScope === 'meter_values' && input.meteringPointId && !input.requestPayload?.requested_resolution) {
+    const requirement = (
+      await loadMeteringResolutionRequirements({
+        companyId,
+        meteringPointIds: [input.meteringPointId],
+        onDate: input.requestedPeriodStart?.slice(0, 10) ?? null,
+      })
+    ).get(input.meteringPointId)
+    if (requirement) {
+      resolutionPayload = {
+        requested_resolution: requirement.requestResolution,
+        requested_resolution_source: requirement.source,
+        contract_resolution: requirement.contractResolution,
+        meter_cannot_deliver_contract_resolution: requirement.meterCannotDeliver,
+      }
+    }
+  }
+
+  const requestPayload = mergeJsonObjects({ ...resolutionPayload, ...(input.requestPayload ?? {}) }, {
     company_id: companyId,
     request_scope: input.requestScope,
     requested_period_start: input.requestedPeriodStart ?? null,
@@ -245,44 +267,13 @@ export async function createGridOwnerDataRequest(input: {
     ...buildContractPayload(context.contract),
   })
 
-  if (input.operationId) {
-    let existingByOperationQuery = supabaseService
-      .from('grid_owner_data_requests')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('operation_id', input.operationId)
-      .eq('customer_id', input.customerId)
-      .eq('request_scope', input.requestScope)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    if (input.siteId) existingByOperationQuery = existingByOperationQuery.eq('site_id', input.siteId)
-    else existingByOperationQuery = existingByOperationQuery.is('site_id', null)
-
-    if (input.meteringPointId) existingByOperationQuery = existingByOperationQuery.eq('metering_point_id', input.meteringPointId)
-    else existingByOperationQuery = existingByOperationQuery.is('metering_point_id', null)
-
-    if (input.gridOwnerId) existingByOperationQuery = existingByOperationQuery.eq('grid_owner_id', input.gridOwnerId)
-    else existingByOperationQuery = existingByOperationQuery.is('grid_owner_id', null)
-
-    const { data: existingByOperation, error: existingByOperationError } = await existingByOperationQuery.maybeSingle()
-
-    const existingByOperationCode = findPostgresErrorCode(existingByOperationError)
-    if (existingByOperationError && !['42703', 'PGRST204', 'PGRST205'].includes(existingByOperationCode ?? '')) {
-      throw existingByOperationError
-    }
-    if (existingByOperation) return existingByOperation as GridOwnerDataRequestRow
-  }
-
   const insertPayload = {
-    company_id: companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: input.gridOwnerId ?? null,
     authorization_document_id: input.authorizationDocumentId ?? null,
     request_scope: input.requestScope,
-    status: 'pending' as const,
     requested_period_start: input.requestedPeriodStart ?? null,
     requested_period_end: input.requestedPeriodEnd ?? null,
     external_reference: input.externalReference ?? null,
@@ -296,25 +287,15 @@ export async function createGridOwnerDataRequest(input: {
     updated_by: input.actorUserId,
   }
 
-  const { data, error } = await supabaseService
-    .from('grid_owner_data_requests')
-    .insert(insertPayload)
-    .select('*')
-    .single()
-
-  if (error) {
-    if (
-      findPostgresErrorCode(error) === '23505' &&
-      input.automationKey
-    ) {
-      const existing = await getGridOwnerDataRequestByAutomationKey(input.automationKey)
-      if (existing) return existing
-    }
-
-    throw error
-  }
-
-  return data as GridOwnerDataRequestRow
+  // Tenant, ownership and dedupe (automation key / operation scope) are enforced in one transaction.
+  const { data, error } = await supabaseService.rpc('gridex_create_grid_owner_data_request_v1', {
+    p_company_id: companyId,
+    p_request: insertPayload,
+  })
+  if (error) throw error
+  const request = (data as { request?: GridOwnerDataRequestRow } | null)?.request
+  if (!request) throw new Error('grid_owner_data_request_not_created')
+  return request
 }
 
 export async function createPartnerExport(input: {
@@ -334,6 +315,7 @@ export async function createPartnerExport(input: {
   notes?: string | null
 }): Promise<PartnerExportRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -758,6 +740,7 @@ export async function ingestMeteringValue(input: {
   rawPayload?: Record<string, unknown>
 }): Promise<MeteringValueRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId,
@@ -892,21 +875,57 @@ export async function ingestBillingUnderlay(input: {
   underlayMonth?: number | null
   underlayYear?: number | null
   status: 'pending' | 'received' | 'validated' | 'exported' | 'failed'
-  totalKwh?: number | null
+  totalKwh?: number | string | null
   totalSekExVat?: number | null
   currency?: string
   sourceSystem?: string
   payload?: Record<string, unknown>
   failureReason?: string | null
+  expectedCompanyId?: string
+  immutableAttribution?: boolean
+  boundSourceMessageId?: string
+  boundContracts?: readonly UtiltsConsumptionContract[]
 }): Promise<BillingUnderlayRow> {
+  if (typeof input.totalKwh === 'string' && !input.immutableAttribution) throw new Error('utilts_consumption_binding_conflict:unbound_decimal')
   const now = new Date().toISOString()
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
   })
   const companyId = requireContextCompanyId(context, 'Registrera faktureringsunderlag')
+  if (input.immutableAttribution) {
+    if (!input.expectedCompanyId || companyId !== input.expectedCompanyId || context.customer?.id !== input.customerId ||
+      (input.siteId && (!context.site || context.site.customer_id !== input.customerId || (context.site.grid_owner_id ?? null) !== (input.gridOwnerId ?? null))) ||
+      (input.meteringPointId && (!context.meteringPoint || context.meteringPoint.customer_id !== input.customerId ||
+        (context.meteringPoint.site_id ?? context.meteringPoint.customer_site_id ?? null) !== (input.siteId ?? null) || (context.meteringPoint.customer_site_id ?? context.meteringPoint.site_id ?? null) !== (input.siteId ?? null) ||
+        (context.meteringPoint.grid_owner_id ?? null) !== (input.gridOwnerId ?? null)))) {
+      throw new Error('utilts_consumption_binding_conflict:billing_ownership_changed')
+    }
+    if (!input.sourceRequestId) throw new Error('utilts_consumption_binding_conflict:billing_request_missing')
+    const { data: request, error: requestError } = await supabaseService.from('grid_owner_data_requests')
+      .select('company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope').eq('id', input.sourceRequestId).eq('company_id', companyId).maybeSingle()
+    if (requestError) throw requestError
+    if (!request || request.customer_id !== input.customerId || request.site_id !== (input.siteId ?? null) ||
+      request.metering_point_id !== (input.meteringPointId ?? null) || request.grid_owner_id !== (input.gridOwnerId ?? null) || request.request_scope !== 'billing_underlay') {
+      throw new Error('utilts_consumption_binding_conflict:billing_request_changed')
+    }
+  }
   await requireCompanyOperationalForWrites(companyId)
+
+  if (input.immutableAttribution) {
+    if (!input.boundSourceMessageId || !input.boundContracts?.length) throw new Error('utilts_consumption_binding_conflict:billing_binding_missing')
+    // Stored contracts, complete contributor membership and ownership locks are
+    // resolved again in the same database transaction as the authoritative insert.
+    const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_consume_utilts_billing_v1', args: {
+      p_company_id: string; p_source_message_id: string; p_actor_id: string | null; p_expected_contracts: readonly UtiltsConsumptionContract[]
+    }) => PromiseLike<{ data: unknown; error: unknown }>
+    const { data, error } = await rpc('gridex_consume_utilts_billing_v1', { p_company_id: companyId, p_source_message_id: input.boundSourceMessageId, p_actor_id: input.actorUserId, p_expected_contracts: input.boundContracts })
+    if (error) throw error
+    if (!data || typeof data !== 'object' || !('id' in data)) throw new Error('utilts_consumption_binding_conflict:billing_result_missing')
+    return data as BillingUnderlayRow
+  }
 
   const insertPayload: Record<string, unknown> = {
     company_id: companyId,

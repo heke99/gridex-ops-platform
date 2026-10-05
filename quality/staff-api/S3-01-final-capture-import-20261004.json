@@ -1,0 +1,68 @@
+{
+  "purpose": "S3-01-final-own-prefix-generated-artifact-import",
+  "imported_at": "2026-10-04T10:32:38.147489+00:00",
+  "workflow_run": 37195219584,
+  "artifact_id": 11301195978,
+  "artifact_zip_sha256": "fc47a04ed2c663332b3310a1ea6d876640de97613df5afaa52888edaec7d7573",
+  "original_capture_receipt": "quality/staff-api/S3-01-final-capture-receipt-20261004.json",
+  "original_capture_receipt_sha256": "2c41a546c69f0058c7b669f93ac1242117154f16735e2140fed9566ba0d4bebf",
+  "preserved_prior_receipts": [
+    "quality/staff-api/S1-02-final-acl-capture-import-20261004.json",
+    "quality/staff-api/S1-02-final-acl-capture-receipt-20261004.json",
+    "quality/staff-api/S1-capture-import-20261004.json",
+    "quality/staff-api/S1-capture-receipt-20261004.json"
+  ],
+  "captured_checkout_commit": "c7907d3d84b2d233e09326dac059a6649216f99c",
+  "captured_checkout_tree": "4b0bcdf72e4eab14c2b44e7a0084b9294a30abd8",
+  "import_source_commit": "a1ea19583d252d88e98ba112f4a5205051ce9a2c",
+  "import_source_tree": "4b0bcdf72e4eab14c2b44e7a0084b9294a30abd8",
+  "validation": {
+    "zip_digest_and_all_four_member_bytes": "PASS",
+    "all_eight_captured_input_hashes_against_clean_stage_s3": "PASS",
+    "complete_checkout_tree_equality": "PASS",
+    "all_three_generated_artifact_hashes": "PASS",
+    "latest_replay_migration_and_hash": "PASS",
+    "schema_names_and_canonical_section_fingerprint": "PASS",
+    "destination_generated_files_byte_identical": "PASS",
+    "s3_customer_search_reference_and_staff_guard_functions": "PASS",
+    "inherited_s1_replay_acl_rls_and_no_public_policy": "PASS",
+    "prior_s1_receipts_byte_identical": "PASS",
+    "db_migrations_check": "PASS",
+    "independent_artifact_provenance_schema_review": "PASS",
+    "captured_final_s3_function_bodies_and_s4_absence": "PASS"
+  },
+  "artifact_sha256": {
+    "database.types.ts": "1cfe23e0b398daab041b54069c9a0e3a404f233d5f1b8028bd11d85e975e1a53",
+    "schema.sql": "1a735d917f4b5e1a190961a15f78edb7939187982bd67d139b9bc76cac2360ea",
+    "schema.fingerprint.json": "ebf597daf4ece4045c679e27b0452e60dea678e930869f5bee125c11a62270a2"
+  },
+  "latest_replay_migration": {
+    "name": "20261004100918_staff_user_lock_order.sql",
+    "sha256": "e90524bec4766b4eab68c0dc04836e95dc7e7bd8938ce7b602044c441b261e68"
+  },
+  "schema_fingerprint": "579e03ee36f32ce75a36d6d12fbc112c34f576eb5af81d29ae6118433eb2dee3",
+  "replay_table_direct_acl": [
+    "GRANT SELECT,INSERT,DELETE ON TABLE public.tenant_staff_assertion_replays TO service_role;"
+  ],
+  "qualification": "Authentic final S3 own-prefix clean replay capture only. ZIP/member hashes, all eight replay-input hashes, latest migration and full checkout tree match the frozen import source. Generated artifacts are byte-copied and the section fingerprint is independently recomputed. This prefix includes S1 identity, S2 account commands and S3 customer work with their final write/client/actor/lock-order guards; S4-specific case migrations are absent. The inherited S1 staff replay table direct ACL remains exactly SELECT/INSERT/DELETE for service_role with RLS. Native/browser tests, type-schema comparison and upgrade parity were NOT_RUN in this capture. Mandatory fresh final exact-head full CI and authentic OPS native clean/upgrade replay/parity must pass; this import is not full CI acceptance.",
+  "db_migrations_check": {
+    "exit_code": 0,
+    "migration_files": 1051,
+    "version_groups": 954,
+    "checks": [
+      "migration integrity/checksums",
+      "public-contract legal migration",
+      "database contract hardening",
+      "generated types hash/nullability/latest migration"
+    ],
+    "log_sha256": "ec0da7a3659277e88e63f33f9efa5a00844570c93b1ff6ba00d2bc7f59f91ead"
+  },
+  "independent_review_scope": {
+    "final_s3_function_bodies_matched": 9,
+    "callable_rpcs_in_generated_types": 7,
+    "s4_only_new_functions_absent": 6,
+    "s4_specific_migrations_absent": 4,
+    "s4_support_reference_index_absent": true,
+    "native_browser_type_schema_upgrade_qualification": "NOT_RUN in source capture; no native execution claim"
+  }
+}

@@ -9,7 +9,7 @@ import { loadSupplierSwitchPolicy } from "@/lib/operations/supplierSwitchSchedul
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from "@/lib/legal/authorizationChain"
 import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from "@/lib/operations/switchLifecycleBlocks"
 import type { CustomerOperationTaskRow, CustomerOperationTaskStatus, SupplierSwitchEventRow, SupplierSwitchRequestRow, SupplierSwitchRequestStatus, SupplierSwitchRequestType, SwitchReadinessResult } from "@/lib/operations/types"
-import { findPostgresErrorCode, getActorId, getSupplierSwitchRequestByAutomationKey, getSupplierSwitchRequestById, listPowersOfAttorneyByCustomerId } from './db.part-1'
+import { getActorId, getSupplierSwitchRequestById, listPowersOfAttorneyByCustomerId } from './db.part-1'
 
 export async function listAllSupplierSwitchRequests(
   supabase: SupabaseClient,
@@ -381,22 +381,42 @@ export async function createSupplierSwitchRequest(
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase);
 
+  const switchCompanyId =
+    params.companyId ??
+    params.site.company_id ??
+    params.meteringPoint.company_id ??
+    null;
+
   await assertNoActiveSwitchLifecycleBlock(supabase, {
-    companyId:
-      params.companyId ??
-      params.site.company_id ??
-      params.meteringPoint.company_id ??
-      null,
+    companyId: switchCompanyId,
     customerId: params.readiness.customerId,
     siteId: params.site.id,
     meteringPointId: params.meteringPoint.id,
   });
 
-  const ownSupplierLookup = await resolveOwnElectricitySupplier(supabase);
+  // F-9: the incoming supplier on a switch to us is the operating tenant, never a
+  // platform-wide default. The previous "Gridex" literal attributed every tenant's
+  // switch to one company.
+  if (!switchCompanyId) {
+    throw new Error(
+      "Bolag saknas för leverantörsbytet och den egna leverantören kan därför inte avgöras.",
+    );
+  }
+
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(
+    supabase,
+    switchCompanyId,
+  );
   const ownSupplier = ownSupplierLookup.supplier;
 
-  const incomingSupplierName = ownSupplier?.name ?? "Gridex";
-  const incomingSupplierOrgNumber = ownSupplier?.org_number ?? null;
+  if (!ownSupplier?.name) {
+    throw new Error(
+      "Bolaget saknar en registrerad egen elhandlare. Markera bolagets leverantör som den egna innan ett byte till oss skapas.",
+    );
+  }
+
+  const incomingSupplierName = ownSupplier.name;
+  const incomingSupplierOrgNumber = ownSupplier.org_number ?? null;
 
   // Compute the earliest legally/market-valid start date from notice period,
   // contract end and move-in date. We honor a provided requested date but fill
@@ -505,37 +525,18 @@ export async function createSupplierSwitchRequest(
     company_id: params.companyId ?? null,
   };
 
-  const { data, error } = await supabase
-    .from("supplier_switch_requests")
-    .insert(insertPayload)
-    .select("*")
-    .single();
-
-  if (error) {
-    if (findPostgresErrorCode(error) === "23505" && params.automationKey) {
-      const existing = await getSupplierSwitchRequestByAutomationKey(
-        supabase,
-        params.automationKey,
-      );
-
-      if (existing) {
-        return existing;
-      }
-    }
-
-    throw error;
-  }
-
-  const request = data as SupplierSwitchRequestRow;
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: request.id,
-    eventType: "created",
-    eventStatus: "success",
-    message: primaryBusinessBlocker
+  // Request and its "created" event are written in one transaction.
+  const switchRpcCompanyId = params.companyId ?? switchCompanyId;
+  const { data: created, error } = await supabase.rpc("gridex_create_supplier_switch_v1", {
+    p_company_id: switchRpcCompanyId,
+    p_request: insertPayload,
+    p_event: {
+      event_type: "created",
+      event_status: "success",
+      message: primaryBusinessBlocker
       ? `Switchärende skapat men väntar på komplettering: ${primaryBusinessBlocker.message}.`
       : "Switchärende skapat och köat för vidare handläggning.",
-    payload: {
+      payload: {
       requestType: params.requestType,
       requestedStartDate: params.requestedStartDate,
       incomingSupplierName,
@@ -543,8 +544,13 @@ export async function createSupplierSwitchRequest(
       ownSupplierResolution: ownSupplierLookup.resolution,
       businessBlockers,
     },
-    companyId: params.companyId ?? null,
+      created_by: actorId,
+    },
   });
+
+  if (error) throw error;
+
+  const request = (created as { request: SupplierSwitchRequestRow }).request;
 
   return request;
 }
@@ -573,6 +579,13 @@ export async function updateSupplierSwitchValidationSnapshot(
   return data as SupplierSwitchRequestRow;
 }
 
+export type SupplierSwitchEventInput = {
+  eventType: string;
+  eventStatus: string;
+  message?: string | null;
+  payload?: Record<string, unknown>;
+};
+
 export async function updateSupplierSwitchRequestStatus(
   supabase: SupabaseClient,
   params: {
@@ -580,65 +593,57 @@ export async function updateSupplierSwitchRequestStatus(
     status: SupplierSwitchRequestStatus;
     failureReason?: string | null;
     externalReference?: string | null;
+    // Replaces the default "status_updated" event; written in the same transaction.
+    event?: SupplierSwitchEventInput;
   },
 ): Promise<SupplierSwitchRequestRow> {
   const actorId = await getActorId(supabase);
   const nowIso = new Date().toISOString();
 
-  const updatePayload: {
-    status: SupplierSwitchRequestStatus;
-    updated_by: string | null;
-    submitted_at?: string | null;
-    completed_at?: string | null;
-    failed_at?: string | null;
-    failure_reason?: string | null;
-    external_reference?: string | null;
-  } = {
+  const current = await getSupplierSwitchRequestById(supabase, params.requestId);
+  if (!current?.company_id) {
+    throw new Error("Switchärendet hittades inte för bolaget.");
+  }
+
+  const patch: Record<string, unknown> = {
     status: params.status,
     updated_by: actorId,
     failure_reason: params.failureReason ?? null,
     external_reference: params.externalReference ?? null,
   };
+  if (params.status === "submitted") patch.submitted_at = nowIso;
+  if (params.status === "completed") patch.completed_at = nowIso;
+  if (params.status === "failed" || params.status === "rejected") patch.failed_at = nowIso;
 
-  if (params.status === "submitted") {
-    updatePayload.submitted_at = nowIso;
-  }
-
-  if (params.status === "completed") {
-    updatePayload.completed_at = nowIso;
-  }
-
-  if (params.status === "failed" || params.status === "rejected") {
-    updatePayload.failed_at = nowIso;
-  }
-
-  const { data, error } = await supabase
-    .from("supplier_switch_requests")
-    .update(updatePayload)
-    .eq("id", params.requestId)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
-  const saved = data as SupplierSwitchRequestRow;
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: saved.id,
+  const event = params.event ?? {
     eventType: "status_updated",
-    eventStatus: saved.status,
+    eventStatus: params.status,
     message:
-      saved.status === "failed" || saved.status === "rejected"
+      params.status === "failed" || params.status === "rejected"
         ? (params.failureReason ?? "Status uppdaterad med felorsak.")
-        : `Switchärende uppdaterat till status ${saved.status}.`,
+        : `Switchärende uppdaterat till status ${params.status}.`,
     payload: {
-      status: saved.status,
-      externalReference: saved.external_reference,
-      failureReason: saved.failure_reason,
+      status: params.status,
+      externalReference: params.externalReference ?? null,
+      failureReason: params.failureReason ?? null,
+    },
+  };
+
+  const { data, error } = await supabase.rpc("gridex_transition_supplier_switch_v1", {
+    p_company_id: current.company_id,
+    p_request_id: params.requestId,
+    p_patch: patch,
+    p_event: {
+      event_type: event.eventType,
+      event_status: event.eventStatus,
+      message: event.message ?? null,
+      payload: event.payload ?? {},
+      created_by: actorId,
     },
   });
 
-  return saved;
+  if (error) throw error;
+  return (data as { request: SupplierSwitchRequestRow }).request;
 }
 
 export async function archiveSupplierSwitchEvent(
@@ -770,79 +775,41 @@ export async function finalizeSupplierSwitchExecution(
     throw new Error(`supplier_switch_activation_blocked:${activationReadiness.code}:${activationReadiness.reason}`);
   }
 
-  const siteUpdatePayload = {
-    current_supplier_name: requestBefore.incoming_supplier_name,
-    current_supplier_org_number: requestBefore.incoming_supplier_org_number,
-    status: siteBefore.status === "closed" ? "closed" : "active",
-    grid_owner_id:
-      siteBefore.grid_owner_id ?? requestBefore.grid_owner_id ?? null,
-    price_area_code:
-      siteBefore.price_area_code ?? requestBefore.price_area_code ?? null,
-    updated_by: params.actorUserId,
-  };
-
-  const siteUpdate = await supabase
-    .from("customer_sites")
-    .update(siteUpdatePayload)
-    .eq("id", siteBefore.id)
-    .select("*")
-    .single();
-
-  if (siteUpdate.error) throw siteUpdate.error;
-  const siteAfter = siteUpdate.data as CustomerSiteRow;
-
-  let meteringPointAfter: MeteringPointRow | null = meteringPointBefore;
-
-  if (meteringPointBefore) {
-    const pointUpdate = await supabase
-      .from("metering_points")
-      .update({
-        status: meteringPointBefore.status === "closed" ? "closed" : "active",
-        grid_owner_id:
-          meteringPointBefore.grid_owner_id ??
-          requestBefore.grid_owner_id ??
-          null,
-        price_area_code:
-          meteringPointBefore.price_area_code ??
-          requestBefore.price_area_code ??
-          null,
-        updated_by: params.actorUserId,
-      })
-      .eq("id", meteringPointBefore.id)
-      .select("*")
-      .single();
-
-    if (pointUpdate.error) throw pointUpdate.error;
-    meteringPointAfter = pointUpdate.data as MeteringPointRow;
-  }
-
-  const request = await updateSupplierSwitchRequestStatus(supabase, {
-    requestId: requestBefore.id,
-    status: "completed",
-    externalReference: requestBefore.external_reference,
-  });
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: request.id,
-    eventType: "execution_completed",
-    eventStatus: "completed",
-    message:
-      params.executionSource === "automation_sweep"
-        ? "Leveransen aktiverades automatiskt efter inbound PRODAT Z04 och uppnått startdatum."
-        : params.executionSource === "bulk_admin_ready_queue"
-          ? "Switchen slutfördes från bulk-kön för ready-to-execute."
-          : "Switchen slutfördes manuellt från operations.",
-    payload: {
-      executionSource: params.executionSource,
-      executionNotes: params.executionNotes ?? null,
-      previousSupplierName: requestBefore.current_supplier_name,
-      newSupplierName: request.incoming_supplier_name,
-      siteStatusBefore: siteBefore.status,
-      siteStatusAfter: siteAfter.status,
-      meteringPointStatusBefore: meteringPointBefore?.status ?? null,
-      meteringPointStatusAfter: meteringPointAfter?.status ?? null,
+  // Site, metering point, completed request and event in one transaction.
+  const { data: finalized, error: finalizeError } = await supabase.rpc(
+    "gridex_finalize_supplier_switch_v1",
+    {
+      p_company_id: requestBefore.company_id,
+      p_request_id: requestBefore.id,
+      p_actor_user_id: params.actorUserId,
+      p_event: {
+        event_type: "execution_completed",
+        event_status: "completed",
+        message:
+          params.executionSource === "automation_sweep"
+            ? "Leveransen aktiverades automatiskt efter inbound PRODAT Z04 och uppnått startdatum."
+            : params.executionSource === "bulk_admin_ready_queue"
+              ? "Switchen slutfördes från bulk-kön för ready-to-execute."
+              : "Switchen slutfördes manuellt från operations.",
+        payload: {
+          executionSource: params.executionSource,
+          executionNotes: params.executionNotes ?? null,
+          previousSupplierName: requestBefore.current_supplier_name,
+          newSupplierName: requestBefore.incoming_supplier_name,
+        },
+      },
     },
-  });
+  );
+  if (finalizeError) throw finalizeError;
+
+  const result = finalized as {
+    request: SupplierSwitchRequestRow;
+    site_after?: CustomerSiteRow;
+    metering_point_after?: MeteringPointRow | null;
+  };
+  const request = result.request;
+  const siteAfter = result.site_after ?? siteBefore;
+  const meteringPointAfter = result.metering_point_after ?? meteringPointBefore;
 
   return {
     requestBefore,

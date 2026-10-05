@@ -1,3 +1,4 @@
+import { getActiveCustomerCounts } from '@/lib/analytics/customerPortfolio'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type CompanyDashboardMetrics = {
@@ -46,7 +47,8 @@ export async function buildCompanyDashboardMetrics(companyId: string, billingMon
     edielPendingMessages,
   ] = await Promise.all([
     safeCount('customers', companyId),
-    safeCount('customers', companyId, [{ column: 'status', operator: 'eq', value: 'active' }]),
+    // Supplied customers today: the shared Kundportfölj definition.
+    getActiveCustomerCounts([companyId]).then((counts) => counts.get(companyId)?.activeCustomers ?? 0),
     safeCount('customer_sites', companyId),
     safeCount('metering_points', companyId),
     safeCount('customer_contracts', companyId, [{ column: 'status', operator: 'in', value: ['active', 'signed'] }]),

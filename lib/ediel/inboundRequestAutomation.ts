@@ -1,21 +1,24 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import { canonicalUtiltsProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import {canonicalUtiltsTransactions} from '@/lib/ediel/utilts/canonicalObservationScope'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 
 export type InboundRequestDecisionStatus = 'ready_to_answer' | 'pending_review' | 'not_applicable'
 
 export function resolveInboundIdentityRequirements(input: {
   family: string | null | undefined
   code: string | null | undefined
+  regulatingObject?: boolean
 }): { requiresMeteringPoint: boolean; requiresGridArea: boolean } {
   if (String(input.family ?? '').trim().toUpperCase() !== 'UTILTS') {
     return { requiresMeteringPoint: true, requiresGridArea: false }
   }
-  const profile = getCanonicalUtiltsProfile(input.code)
+  const profile = canonicalUtiltsProfileForMessage(input.code)
   return profile
     ? {
-        requiresMeteringPoint: profile.requiresMeteringPoint,
+        requiresMeteringPoint: profile.requiresMeteringPoint && !(input.regulatingObject && profile.identityRequirement==='metering_point_or_regulating_object'),
         requiresGridArea: profile.requiresGridArea,
       }
     : { requiresMeteringPoint: true, requiresGridArea: false }
@@ -169,9 +172,17 @@ export async function evaluateInboundEdielRequest(input: {
   const facilityId = text(canonical.facilityId) ?? text(object(message.parsed_payload).facilityId)
   const meteringPointId = text(canonical.meteringPointId) ?? text(message.metering_point_id) ?? text(object(message.parsed_payload).meteringPointId)
   const gridAreaId = text(canonical.gridArea) ?? text(object(message.parsed_payload).gridAreaId)
-  const identityRequirements = resolveInboundIdentityRequirements({ family: messageFamily, code: messageCode })
+  const utiltsWire=String(messageFamily ?? '').toUpperCase()==='UTILTS' ? tokenizeEdifact(message.raw_payload ?? '') : null
+  const utiltsTransactions=utiltsWire ? canonicalUtiltsTransactions(utiltsWire.segments.slice(utiltsWire.segments.findIndex(segment=>segment.tag==='UNH')),utiltsWire.una,0) : []
+  const ownHeader=utiltsTransactions[0]?.segments.filter(segment=>segment.index<(utiltsTransactions[0].observations[0]?.segmentIndex ?? Number.POSITIVE_INFINITY)) ?? []
+  const regulatingObject=Boolean(utiltsWire && ownHeader.some(segment=>segment.tag==='LOC' && segmentComposite(segment,1,utiltsWire.una)[0]==='175'))
+  const ownAreas=utiltsWire ? ownHeader.filter(segment=>segment.tag==='LOC' && ['239','232','233'].includes(segmentComposite(segment,1,utiltsWire.una)[0])) : []
+  const identityRequirements = resolveInboundIdentityRequirements({ family: messageFamily, code: messageCode,regulatingObject })
   const warnings: string[] = []
   const errors: string[] = []
+  if(utiltsWire && utiltsTransactions.length!==1) errors.push('Autosvar kräver ett eget fastställt transaktionsscope; flera eller saknade IDE ska behandlas i den kanoniska per-transaktionsvägen.')
+  if(utiltsWire && !identityRequirements.requiresMeteringPoint && !regulatingObject && ownAreas.length===0) errors.push('Objekt-/produktscope är inte fastställt från egen transaktion; invänta källbelagd områdes- eller produktauktoritet.')
+  if(regulatingObject) errors.push('Reglerobjekt kräver verifierad versionerad objekt-/mandatauktoritet före autosvar.')
 
   if (message.direction !== 'inbound') warnings.push('Meddelandet är inte inbound och ska normalt inte behandlas som inkommande begäran.')
   if (!companyId) errors.push('Tenant saknas. Tenant måste lösas innan kund eller mätpunkt matchas.')

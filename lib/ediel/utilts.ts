@@ -14,9 +14,13 @@ import {
 } from '@/lib/ediel/classify'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
+import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
+import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {utiltsDefaultAlphabetSegment} from '@/lib/ediel/utilts/errSourceCopy'
 import {
-  firstCompositeComponent,
-  splitComposite,
+  segmentComposite,
+  segmentUntrimmedRaw,
   tokenizeEdifact,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
@@ -39,6 +43,11 @@ export type ParsedUtiltsMessage = {
   senderEdielId: string | null
   receiverEdielId: string | null
   rawSegments: string[]
+  /** Transient release-aware default-alphabet projection for runtime consumers.
+   * Original rawSegments and observed token provenance remain unchanged. */
+  runtimeSegments?: string[]
+  /** Raw-owned observations only; not expected structure or validation authority. */
+  utiltsObservedTransactions?: CanonicalUtiltsTransaction[]
   parsedPayload: Record<string, unknown>
 }
 
@@ -131,12 +140,9 @@ function extractUnbEdielIds(
     return { senderEdielId: null, receiverEdielId: null }
   }
 
-  const senderRaw = unb.elements[2] ?? ''
-  const receiverRaw = unb.elements[3] ?? ''
-
   return {
-    senderEdielId: firstCompositeComponent(senderRaw, una),
-    receiverEdielId: firstCompositeComponent(receiverRaw, una),
+    senderEdielId: segmentComposite({...unb,raw:segmentUntrimmedRaw(unb)},2,una)[0] || null,
+    receiverEdielId: segmentComposite({...unb,raw:segmentUntrimmedRaw(unb)},3,una)[0] || null,
   }
 }
 
@@ -148,29 +154,37 @@ function extractReference(
   const normalized = qualifier.toUpperCase()
   for (const segment of segments) {
     if (segment.tag !== 'RFF') continue
-    const components = splitComposite(segment.elements[1], una)
+    const components = segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)
     if (String(components[0] ?? '').toUpperCase() !== normalized) continue
-    const value = components.slice(1).join(una.componentDataElementSeparator).trim()
+    const value = components[1]
     if (value) return value
   }
   return null
 }
 
-function extractDateFromDtm(segment: string | null): string | null {
-  if (!segment) return null
-  const match = segment.match(/:(\d{8,12})/)
-  if (!match) return null
-  const raw = match[1]
-  if (raw.length >= 8) {
-    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
-  }
-  return null
+function extractDateFromDtm(
+  segment: EdifactTokenizedSegment | null,
+  una: ReturnType<typeof tokenizeEdifact>['una'],
+): string | null {
+  if (!segment || segment.tag !== 'DTM') return null
+  const components = segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)
+  const raw = String(components[1] ?? '').trim()
+  if (!/^\d{8,12}$/.test(raw)) return null
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
 }
 
-function extractQty(segment: string | null): number | null {
-  if (!segment) return null
-  const parts = segment.split(':')
-  const value = Number(parts[1] ?? '')
+function extractQty(
+  segment: EdifactTokenizedSegment | null,
+  una: ReturnType<typeof tokenizeEdifact>['una'],
+): number | null {
+  if (!segment || segment.tag !== 'QTY') return null
+  const components = segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)
+  const raw = String(components[1] ?? '').trim()
+  if (!raw) return null
+  const normalized = una.decimalMark && una.decimalMark !== '.'
+    ? raw.replace(una.decimalMark, '.')
+    : raw
+  const value = Number(normalized)
   return Number.isFinite(value) ? value : null
 }
 
@@ -202,23 +216,10 @@ function sanitize(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
-function normalizeDate(value?: string | null): string | null {
-  if (!value) return null
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}T00:00`
-  }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
-    return trimmed
-  }
-  return trimmed
-}
-
 function formatDateTime203(value?: string | null): string | null {
-  const normalized = normalizeDate(value)
-  if (!normalized) return null
-  return normalized.replace(/[-:T]/g, '').replace(/Z$/, '').slice(0, 12)
+  // U §3.6.1 uses the same fixed UTC+1 wall clock as PRODAT. Explicit
+  // instants must be converted; offset-free market dates stay literal.
+  return prodatDate203(value)
 }
 
 function formatPeriod719(start?: string | null, end?: string | null): string | null {
@@ -251,39 +252,43 @@ function inferUtiltsReadingType(payload: Record<string, unknown>): string {
 export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
   const tokenized = tokenizeEdifact(rawPayload)
   const rawSegments = tokenized.segments.map((segment) => segment.raw)
+  const runtimeSegments = tokenized.segments.map(segment=>utiltsDefaultAlphabetSegment(segment,tokenized.una))
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const byTag = (tag: string) => tokenized.segments.find((segment) => segment.tag === tag) ?? null
   const unbSegment = byTag('UNB')
   const unhSegment = byTag('UNH')
   const bgmSegment = byTag('BGM')
   const loc172Segment = tokenized.segments.find(
-    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '172',
+    (segment) => segment.tag === 'LOC' && segmentComposite(segment,1, tokenized.una)[0] === '172',
   ) ?? null
   const loc239Segment = tokenized.segments.find(
-    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '239',
+    (segment) => segment.tag === 'LOC' && segmentComposite(segment,1, tokenized.una)[0] === '239',
   ) ?? null
   const dtmSegment = (qualifier: string) => tokenized.segments.find(
-    (segment) => segment.tag === 'DTM' && firstCompositeComponent(segment.elements[1], tokenized.una) === qualifier,
+    (segment) => segment.tag === 'DTM' && segmentComposite(segment,1, tokenized.una)[0] === qualifier,
   ) ?? null
   const qtySegment = byTag('QTY')
   const cciSegment = byTag('CCI')
   const ids = extractUnbEdielIds(unbSegment, tokenized.una)
 
-  const bgmCode = (firstCompositeComponent(bgmSegment?.elements[1], tokenized.una) || inferred.messageCode || null) as
+  const bgmCode = (segmentComposite(bgmSegment,1, tokenized.una)[0] || inferred.messageCode || null) as
     | UtiltsMessageCode
     | EdielKnownMessageCode
     | null
 
-  const meterPointId = firstCompositeComponent(loc172Segment?.elements[2], tokenized.una)
-  const gridAreaId = firstCompositeComponent(loc239Segment?.elements[2], tokenized.una)
-  const quantity = extractQty(qtySegment?.raw ?? null)
+  const meterPointId = segmentComposite(loc172Segment,2,tokenized.una)[0] || null
+  const gridAreaId = segmentComposite(loc239Segment,2,tokenized.una)[0] || null
+  const quantity = extractQty(qtySegment, tokenized.una)
   const unb = unbSegment?.raw ?? null
   const unh = unhSegment?.raw ?? null
   const bgm = bgmSegment?.raw ?? null
-  const dtm137 = dtmSegment('137')?.raw ?? null
-  const dtm324 = dtmSegment('324')?.raw ?? null
-  const dtm597 = dtmSegment('597')?.raw ?? null
+  const dtm137Segment = dtmSegment('137')
+  const dtm324Segment = dtmSegment('324')
+  const dtm597Segment = dtmSegment('597')
+  const dtm324 = dtm324Segment?.raw ?? null
   const cci = cciSegment?.raw ?? null
+  const utiltsObservedTransactions = parseCanonicalEdifactAst(rawPayload).messages
+    .flatMap(message => message.family === 'UTILTS' ? message.utiltsTransactions ?? [] : [])
 
   return {
     messageFamily: 'UTILTS',
@@ -293,32 +298,33 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
       extractReference(tokenized.segments, 'CR', tokenized.una) ||
       extractReference(tokenized.segments, 'E66', tokenized.una),
     externalReference:
-      String(bgmSegment?.elements[2] ?? '').trim() ||
+      segmentComposite(bgmSegment,2,tokenized.una)[0] ||
       extractReference(tokenized.segments, 'ON', tokenized.una) ||
       extractReference(tokenized.segments, 'AAS', tokenized.una) ||
       extractReference(tokenized.segments, 'ACE', tokenized.una),
-    applicationReference: String(unbSegment?.elements[7] ?? '').trim() || null,
+    applicationReference: segmentComposite(unbSegment,7,tokenized.una)[0] || null,
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,
     rawSegments,
+    runtimeSegments,
+    utiltsObservedTransactions,
     parsedPayload: {
+      utiltsObservedTransactions,
       unb,
       unh,
       bgm,
       meterPointId,
       meteringPointId: meterPointId,
       gridAreaId,
-      periodStart: extractDateFromDtm(dtm137),
+      periodStart: extractDateFromDtm(dtm137Segment, tokenized.una),
       deliveryPeriod: dtm324 ?? null,
-      registrationTime: extractDateFromDtm(dtm597),
+      registrationTime: extractDateFromDtm(dtm597Segment, tokenized.una),
       quantity,
       readingType: cci ?? null,
       segmentCount: rawSegments.length,
       inferredFamily: inferred.messageFamily,
       inferredCode: inferred.messageCode,
-      hasUtiltsErrPattern:
-        rawPayload.toUpperCase().includes('UTILTS-ERR') ||
-        rawPayload.toUpperCase().includes('UTILTS_ERR'),
+      hasUtiltsErrPattern: inferred.messageFamily === 'UTILTS_ERR',
     },
   }
 }
@@ -388,11 +394,16 @@ export function buildInboundUtiltsMessageInput(
 
 function renderUtiltsSegments(input: {
   code: 'E66' | 'E73'
+  applicationReference: string
   bgmReference: string
   transactionReference: string
   payload: Record<string, unknown>
 }): string[] {
   const payload = input.payload
+  // This is a canonical wire candidate. The real outbound admission/witness
+  // independently qualifies current legal sender/receiver and business scope.
+  // Payload flags never assert an E88 bilateral exception.
+  const periodicDgi = input.code === 'E66' && /^23-DGI-E66-(S|T)$/.test(input.applicationReference)
   const meterPointId = sanitize(getPayloadString(payload, 'meterPointId', 'meteringPointId'))
   const gridAreaId = sanitize(getPayloadString(payload, 'gridAreaId', 'gridOwnerEdielId'))
   const periodStart = getPayloadString(payload, 'periodStart', 'requestedPeriodStart')
@@ -400,6 +411,14 @@ function renderUtiltsSegments(input: {
   const registrationTime =
     getPayloadString(payload, 'registrationTime') || new Date().toISOString()
   const quantity = getPayloadNumber(payload, 'quantity', 'valueKwh', 'requestedQuantity')
+  // U §3.7.3 pp62–65 defines request fields, without observation QTY.
+  // An invented SEQ would hide the unsupported national request semantics.
+  if (input.code === 'E73' && quantity !== null) throw new Error('utilts_request_quantity_not_source_supported')
+  const legalSender = getPayloadString(payload, 'legalSenderEdielId')
+  const legalReceiver = getPayloadString(payload, 'legalReceiverEdielId')
+  // UNB identifies transport endpoints. A separate source-owned legal party
+  // is mandatory in SG2 and must never be inferred from that endpoint.
+  if (!/^\d{5}$/.test(legalSender) || !/^\d{5}$/.test(legalReceiver)) throw new Error('utilts_legal_parties_source_required')
   const unit = sanitize(getPayloadString(payload, 'unit') || 'KWH')
   const transactionReason = sanitize(
     getPayloadString(payload, 'transactionReason') ||
@@ -410,7 +429,6 @@ function renderUtiltsSegments(input: {
   const siteType = sanitize(getPayloadString(payload, 'siteType') || 'Consumption')
   const resolution = inferUtiltsResolution(payload)
   const readingType = inferUtiltsReadingType(payload)
-
   const segments: string[] = []
 
   segments.push(`BGM+${input.code}::260+${sanitize(input.bgmReference)}+9+AB`)
@@ -418,6 +436,9 @@ function renderUtiltsSegments(input: {
   segments.push(`DTM+735:?+0100:406`)
   segments.push(`MKS+23+E02::260`)
   segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
+  segments.push(`NAD+MS+${legalSender}:SVK:260`)
+  segments.push(`NAD+MR+${legalReceiver}:SVK:260`)
+  if (periodicDgi) segments.push(`NAD+DGI`)
 
   if (meterPointId) {
     segments.push(`IDE+24+${sanitize(input.transactionReference)}`)
@@ -440,8 +461,10 @@ function renderUtiltsSegments(input: {
 
   if (input.code === 'E66') {
     segments.push(`DTM+354:${resolution}:802`)
-    segments.push(`STS+7++E88::260`)
+    segments.push(`STS+7++${periodicDgi ? 'E23' : 'E88'}::260`)
     segments.push(`MEA+AAZ++${unit}`)
+    // D02B SG5 FTX precedes SG6/SG7 and all SG8 observations.
+    if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
     segments.push(`CCI+++${readingType}`)
     segments.push(`CAV+E17::260`)
 
@@ -454,13 +477,7 @@ function renderUtiltsSegments(input: {
   if (input.code === 'E73') {
     segments.push(`STS+7++E73::260`)
     segments.push(`FTX+AAO+++${transactionReason}`)
-    if (quantity !== null) {
-      segments.push(`QTY+47:${String(quantity)}`)
-    }
-  }
-
-  if (siteType) {
-    segments.push(`FTX+ZZZ+++${siteType}`)
+    if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
   }
 
   return segments
@@ -497,8 +514,10 @@ export async function buildUtiltsOutboundDraft(
 
   const senderEdielId = requireOutboundEdielId(input.senderEdielId, 'sender')
   const receiverEdielId = requireOutboundEdielId(input.receiverEdielId, 'receiver')
-  const senderSubAddress = input.senderSubAddress ?? 'UTILTS'
-  const receiverSubAddress = input.receiverSubAddress ?? 'UTILTS'
+  // IMP-04: UTILTS uses no sub-address. An empty registered value stays empty;
+  // an exactly registered value is preserved, and none is ever invented.
+  const senderSubAddress = input.senderSubAddress ?? null
+  const receiverSubAddress = input.receiverSubAddress ?? null
 
   const applicationReference =
     input.applicationReference ??
@@ -515,7 +534,13 @@ export async function buildUtiltsOutboundDraft(
     readingType: inferUtiltsReadingType(input.payload ?? {}),
   }
 
+  const ack = deriveEdielAckDefaults({
+    family: 'UTILTS',
+    code: input.code,
+  })
+
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ack.requiresContrl,
     senderEdielId,
     senderSubAddress,
     receiverEdielId,
@@ -525,16 +550,13 @@ export async function buildUtiltsOutboundDraft(
     messageTypeToken: `UTILTS:D:02B:UN:${messageVersion}`,
     segments: renderUtiltsSegments({
       code: input.code,
+      applicationReference,
       bgmReference: externalReference,
       transactionReference,
       payload: parsedPayload,
     }),
   })
 
-  const ack = deriveEdielAckDefaults({
-    family: 'UTILTS',
-    code: input.code,
-  })
 
   return {
     actorUserId: input.actorUserId ?? 'system',

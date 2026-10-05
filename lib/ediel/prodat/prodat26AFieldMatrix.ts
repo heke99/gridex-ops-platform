@@ -1,0 +1,165 @@
+import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+
+export const PRODAT_26A_MESSAGE_CODES = ['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10','Z13','Z14','Z15','Z18'] as const
+export type Prodat26AMessageCode = (typeof PRODAT_26A_MESSAGE_CODES)[number]
+export type Prodat26ARequirement = 'R' | 'D' | 'O' | '-'
+
+type MatrixRow = {
+  fieldNumber: string
+  fieldKey: string
+  segmentPath: string
+  // P §2.2 / annex2: unspecified line fields belong to the first register.
+  registerScope?: 'header' | 'local'
+  linElement?: 1 | 3 | 4
+  linComponent?: 0 | 1
+  // Zero-based CAV/C889 component: 7111, first7110 or second7110.
+  cavComponent?: 0 | 3 | 4
+  referenceScope?: 'sender' | 'line'
+  documentElement?: 1 | 2 | 3 | 4
+  dateQualifier?: string
+  dateScope?: 'header' | 'line'
+  dateKind?: 'minute' | 'date' | 'offset' | 'period'
+  partyQualifier?: 'FR' | 'DO' | 'UD' | 'IT' | 'IV' | 'Z02'
+  partyElement?: 2 | 4 | 5 | 6 | 8 | 9
+  partyComponents?: 1 | 2 | 3
+  partyMaxLength?: number
+  allowedValues?: readonly string[]
+  requirements: readonly Prodat26ARequirement[]
+}
+
+/**
+ * Immutable PRODAT 26.A field matrix.
+ *
+ * Source: Svenska kraftnät, 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B,
+ * revision 3, effective 2026-04-01. The ordering of requirements is exactly
+ * PRODAT_26A_MESSAGE_CODES. Database field-rule rows are projections/evidence;
+ * they are not allowed to redefine these normative requirements at runtime.
+ */
+export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
+  {fieldNumber:'311',registerScope:'header',fieldKey:'application_reference',segmentPath:'UNB/S005/0026',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'312',registerScope:'header',fieldKey:'association_assigned_code',segmentPath:'UNH/S009/0057',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'202',registerScope:'header',fieldKey:'message_code',segmentPath:'BGM/C002/1001',documentElement:1,allowedValues:PRODAT_26A_MESSAGE_CODES,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'203',registerScope:'header',fieldKey:'message_id',segmentPath:'BGM/1004',documentElement:2,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'204',registerScope:'header',fieldKey:'message_function',segmentPath:'BGM/1225',documentElement:3,allowedValues:['9','5'],requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
+  {fieldNumber:'313',registerScope:'header',fieldKey:'request_for_acknowledgement',segmentPath:'BGM/4343',documentElement:4,allowedValues:['AB','NA'],requirements:['O','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'205',registerScope:'header',fieldKey:'document_date',segmentPath:'DTM+137',dateQualifier:'137',dateScope:'header',dateKind:'minute',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'206',registerScope:'header',fieldKey:'timezone',segmentPath:'DTM+ZZZ',dateQualifier:'ZZZ',dateScope:'header',dateKind:'offset',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'301',registerScope:'header',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
+  {fieldNumber:'207',registerScope:'header',fieldKey:'sender_ediel_id',segmentPath:'NAD+FR/C082/3039 + NAD+FR/3207',partyQualifier:'FR',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'315',registerScope:'header',fieldKey:'sender_organisation_no',segmentPath:'RFF+XA',referenceScope:'sender',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'208',registerScope:'header',fieldKey:'receiver_ediel_id',segmentPath:'NAD+DO/C082/3039 + NAD+DO/3207',partyQualifier:'DO',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'314',linElement:1,linComponent:0,registerScope:'local',fieldKey:'sequence_number',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'209',linElement:3,linComponent:0,registerScope:'local',fieldKey:'line_item',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
+  {fieldNumber:'258',linElement:4,linComponent:1,registerScope:'local',fieldKey:'sub_line_number',segmentPath:'LIN',requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'210',fieldKey:'contract_start_date',segmentPath:'DTM+92',dateQualifier:'92',dateScope:'line',dateKind:'minute',requirements:['R','-','R','R','-','D','-','D','D','-','-','-','-']},
+  {fieldNumber:'211',fieldKey:'contract_stop_date',segmentPath:'DTM+93',dateQualifier:'93',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','R','O','R','D','-','-','-','-','-']},
+  {fieldNumber:'302',fieldKey:'report_start_date',segmentPath:'DTM+90',dateQualifier:'90',dateScope:'line',dateKind:'minute',requirements:['-','-','-','O','-','-','-','-','-','R','D','-','-']},
+  {fieldNumber:'321',fieldKey:'report_end_date',segmentPath:'DTM+91',dateQualifier:'91',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','D','D','-','-']},
+  {fieldNumber:'216',fieldKey:'validity_start_date',segmentPath:'DTM+157',dateQualifier:'157',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','R','-','D','R','-','-','-','-']},
+  {fieldNumber:'212',fieldKey:'first_meter_reading_date',segmentPath:'DTM+51',dateQualifier:'51',dateScope:'line',dateKind:'minute',requirements:['-','-','-','O','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'249',fieldKey:'date_of_birth',segmentPath:'DTM+329',dateQualifier:'329',dateScope:'line',dateKind:'date',requirements:['O','O','O','O','O','O','O','-','-','-','-','-','-']},
+  {fieldNumber:'508',fieldKey:'observation_length',segmentPath:'DTM+354',dateQualifier:'354',dateScope:'line',dateKind:'period',requirements:['-','-','-','R','-','D','-','-','R','-','D','-','-']},
+  {fieldNumber:'326',fieldKey:'permission_creation_timestamp',segmentPath:'DTM+693',dateQualifier:'693',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','-','D','O','O']},
+  {fieldNumber:'327',fieldKey:'processing_end_timestamp',segmentPath:'DTM+164',dateQualifier:'164',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','-','-','R','R']},
+  {fieldNumber:'303',fieldKey:'free_text_item_level',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','-','O','-','-','-','-']},
+  {fieldNumber:'213',registerScope:'local',fieldKey:'estimated_annual_volume',segmentPath:'QTY+31',requirements:['-','-','O','R','-','O','-','-','O','-','-','-','-']},
+  {fieldNumber:'214',registerScope:'local',fieldKey:'constant',segmentPath:'CCI++Z02/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'215',fieldKey:'old_constant',segmentPath:'CCI++Z03/CAV',cavComponent:3,requirements:['-','-','-','-','-','-','-','-','O','-','-','-','-']},
+  {fieldNumber:'217',fieldKey:'measure_method',segmentPath:'CCI++Z04/CAV',cavComponent:0,requirements:['-','R','R','R','-','D','-','D','R','R','D','-','-']},
+  {fieldNumber:'218',registerScope:'local',fieldKey:'number_of_digits',segmentPath:'CCI++Z05/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'219',fieldKey:'old_number_of_digits',segmentPath:'CCI++Z06/CAV',cavComponent:3,requirements:['-','-','-','-','-','-','-','-','O','-','-','-','-']},
+  {fieldNumber:'306',fieldKey:'installation_status',segmentPath:'CCI++Z07/CAV',cavComponent:0,requirements:['-','-','-','R','-','D','-','-','-','-','-','-','-']},
+  {fieldNumber:'307',fieldKey:'tariff_code',segmentPath:'CCI++Z08/CAV',cavComponent:0,requirements:['-','-','-','O','-','O','-','-','-','-','-','-','-']},
+  {fieldNumber:'220',fieldKey:'priority',segmentPath:'CCI++Z09/CAV',cavComponent:0,requirements:['-','-','-','O','-','O','-','-','-','-','-','-','-']},
+  {fieldNumber:'222',fieldKey:'reporting_frequency',segmentPath:'CCI++Z12/CAV',cavComponent:3,requirements:['-','-','-','R','-','R','-','-','R','R','D','-','-']},
+  {fieldNumber:'223',fieldKey:'reason_for_transaction',segmentPath:'CCI++Z13/CAV',cavComponent:0,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'259',registerScope:'local',fieldKey:'meter_time_frame',segmentPath:'CCI++Z16/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'254',fieldKey:'balance_settlement_method',segmentPath:'CCI++Z15/CAV',cavComponent:0,requirements:['-','-','-','R','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'242',fieldKey:'product_code',segmentPath:'CCI++Z14/CAV',cavComponent:3,requirements:['-','-','-','R','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'506',fieldKey:'energy_product',segmentPath:'CCI++Z14/CAV',cavComponent:4,requirements:['-','-','-','-','-','-','-','-','-','R','D','-','-']},
+  {fieldNumber:'310',fieldKey:'party_connected_to_grid_status',segmentPath:'CCI++Z17/CAV',cavComponent:0,requirements:['-','-','-','-','D','D','-','D','-','-','-','-','-']},
+  {fieldNumber:'513',fieldKey:'installation_direction',segmentPath:'CCI++Z22/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','R','D','-','-']},
+  {fieldNumber:'322',fieldKey:'permission_status',segmentPath:'CCI++Z23/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','-','R','R','-']},
+  {fieldNumber:'323',fieldKey:'permission_purpose',segmentPath:'CCI++Z24/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','D','D','-','-']},
+  {fieldNumber:'324',fieldKey:'permission_end_reason',segmentPath:'CCI++Z25/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','-','-','R','R']},
+  {fieldNumber:'224',fieldKey:'meter_number',segmentPath:'RFF+MG',referenceScope:'line',requirements:['-','-','-','R','O','O','O','-','R','-','-','-','-']},
+  {fieldNumber:'225',fieldKey:'old_meter_number',segmentPath:'RFF+Z02',referenceScope:'line',requirements:['-','-','-','-','-','-','-','-','R','-','-','-','-']},
+  {fieldNumber:'308',fieldKey:'supplier_contract_no',segmentPath:'RFF+VC',referenceScope:'line',requirements:['-','-','O','-','O','O','O','-','-','-','-','-','-']},
+  {fieldNumber:'260',fieldKey:'net_area',segmentPath:'RFF+Z05',referenceScope:'line',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
+  {fieldNumber:'320',fieldKey:'calorific_value_area',segmentPath:'RFF+Z08',referenceScope:'line',requirements:['-','-','-','D','-','D','-','-','-','-','-','-','-']},
+  {fieldNumber:'240',fieldKey:'serial_id',segmentPath:'RFF+Z06',referenceScope:'line',requirements:['-','-','-','D','O','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'319',fieldKey:'reference_to_metering_point',segmentPath:'RFF+Z07',referenceScope:'line',requirements:['-','-','-','D','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'261',fieldKey:'agreement_reference',segmentPath:'RFF+ANJ',referenceScope:'line',requirements:['R','-','R','-','-','-','-','-','-','R','-','-','-']},
+  {fieldNumber:'226',fieldKey:'line_reference',segmentPath:'RFF+LI',referenceScope:'line',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'325',fieldKey:'permission_id',segmentPath:'RFF+Z09',referenceScope:'line',requirements:['-','-','-','-','-','-','-','-','-','-','D','R','R']},
+  {fieldNumber:'END_USER_GROUP',fieldKey:'end_user_group',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
+  {fieldNumber:'227',fieldKey:'end_user_id',segmentPath:'NAD+UD/C082/3039',partyQualifier:'UD',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
+  {fieldNumber:'228',fieldKey:'end_user_name',segmentPath:'NAD+UD/C080/3036[1..2]',partyQualifier:'UD',partyElement:4,partyComponents:2,partyMaxLength:35,requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
+  {fieldNumber:'229',fieldKey:'end_user_address',segmentPath:'NAD+UD/C059/3042[1..3]',partyQualifier:'UD',partyElement:5,partyComponents:3,partyMaxLength:35,requirements:['D','D','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'231',fieldKey:'end_user_postcode',segmentPath:'NAD+UD/3251',partyQualifier:'UD',partyElement:8,partyComponents:1,partyMaxLength:9,requirements:['R','R','R','R','R','D','R','D','-','-','-','-','-']},
+  {fieldNumber:'232',fieldKey:'end_user_city',segmentPath:'NAD+UD/3164',partyQualifier:'UD',partyElement:6,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','D','R','D','-','-','-','-','-']},
+  {fieldNumber:'316',fieldKey:'end_user_country',segmentPath:'NAD+UD/3207',partyQualifier:'UD',partyElement:9,partyComponents:1,partyMaxLength:3,requirements:['R','R','R','R','R','D','R','D','-','R','R','R','R']},
+  {fieldNumber:'INSTALLATION_GROUP',fieldKey:'installation_group',segmentPath:'NAD+IT',requirements:['O','R','O','R','R','R','O','-','-','-','D','-','-']},
+  {fieldNumber:'233',fieldKey:'installation_id',segmentPath:'NAD+IT/C082/3039',partyQualifier:'IT',partyElement:2,partyComponents:1,partyMaxLength:25,requirements:['D','R','D','R','R','R','D','-','-','-','R','-','-']},
+  {fieldNumber:'234',fieldKey:'installation_address',segmentPath:'NAD+IT/C059/3042[1..3]',partyQualifier:'IT',partyElement:5,partyComponents:3,partyMaxLength:35,requirements:['D','R','D','R','R','R','D','-','-','-','R','-','-']},
+  {fieldNumber:'235',fieldKey:'installation_postcode',segmentPath:'NAD+IT/3251',partyQualifier:'IT',partyElement:8,partyComponents:1,partyMaxLength:9,requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
+  {fieldNumber:'236',fieldKey:'installation_city',segmentPath:'NAD+IT/3164',partyQualifier:'IT',partyElement:6,partyComponents:1,partyMaxLength:35,requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
+  {fieldNumber:'237',fieldKey:'installation_country',segmentPath:'NAD+IT/3207',partyQualifier:'IT',partyElement:9,partyComponents:1,partyMaxLength:3,requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
+  {fieldNumber:'INVOICEE_GROUP',fieldKey:'invoicee_group',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'250',fieldKey:'invoicee_id',segmentPath:'NAD+IV/C082/3039',partyQualifier:'IV',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'251',fieldKey:'invoicee_name',segmentPath:'NAD+IV/C080/3036[1..2]',partyQualifier:'IV',partyElement:4,partyComponents:2,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'252',fieldKey:'invoicee_address',segmentPath:'NAD+IV/C059/3042[1..3]',partyQualifier:'IV',partyElement:5,partyComponents:3,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'253',fieldKey:'invoicee_postcode',segmentPath:'NAD+IV/3251',partyQualifier:'IV',partyElement:8,partyComponents:1,partyMaxLength:9,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'317',fieldKey:'invoicee_city',segmentPath:'NAD+IV/3164',partyQualifier:'IV',partyElement:6,partyComponents:1,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'318',fieldKey:'invoicee_country',segmentPath:'NAD+IV/3207',partyQualifier:'IV',partyElement:9,partyComponents:1,partyMaxLength:3,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'262',fieldKey:'balance_responsible',segmentPath:'NAD+Z02/C082/3039',partyQualifier:'Z02',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['-','-','R','R','R','R','R','R','R','-','-','-','-']},
+] as const
+
+Object.freeze(PRODAT_26A_MESSAGE_CODES)
+for (const row of PRODAT_26A_FIELD_MATRIX) {
+  Object.freeze(row.requirements)
+  if (row.allowedValues) Object.freeze(row.allowedValues)
+  Object.freeze(row)
+}
+Object.freeze(PRODAT_26A_FIELD_MATRIX)
+
+const REQUIREMENT_MAP: Record<Prodat26ARequirement, RulebookFieldRule['requirement']> = {
+  R: 'required',
+  D: 'dependent',
+  O: 'optional',
+  '-': 'forbidden',
+}
+
+export function canonicalProdat26AFieldRules(code: string | null | undefined): RulebookFieldRule[] {
+  const normalized = String(code ?? '').trim().toUpperCase() as Prodat26AMessageCode
+  const index = PRODAT_26A_MESSAGE_CODES.indexOf(normalized)
+  if (index < 0) return []
+  return PRODAT_26A_FIELD_MATRIX.map((row) => ({
+    family: 'PRODAT',
+    code: normalized,
+    fieldNumber: row.fieldNumber,
+    fieldKey: row.fieldKey,
+    label: row.fieldKey,
+    segmentPath: row.segmentPath,
+    requirement: REQUIREMENT_MAP[row.requirements[index]],
+    ...(row.allowedValues ? { allowedValues: [...row.allowedValues] } : {}),
+    source: 'static',
+  }))
+}
+
+export function assertCanonicalProdat26AMatrixComplete(): void {
+  if (PRODAT_26A_FIELD_MATRIX.length !== 77) throw new Error(`prodat_26a_field_matrix_row_count:${PRODAT_26A_FIELD_MATRIX.length}`)
+  for (const row of PRODAT_26A_FIELD_MATRIX) {
+    if (row.requirements.length !== PRODAT_26A_MESSAGE_CODES.length) {
+      throw new Error(`prodat_26a_field_matrix_width:${row.fieldNumber}:${row.requirements.length}`)
+    }
+  }
+}
+
+/** P26.A §2.2 p15 / annex2 pp114–116. The base usage columns remain immutable. */
+export function prodatRegisterFieldScope(fieldNumberOrKey: string): 'header' | 'local' | 'first' | null {
+  const row = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === fieldNumberOrKey || row.fieldKey === fieldNumberOrKey)
+  if (row) return row.registerScope ?? 'first'
+  if (['party_fr', 'party_do'].includes(fieldNumberOrKey)) return 'header'
+  return null
+}

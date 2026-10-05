@@ -1,0 +1,212 @@
+{
+  "title": "Ediel F3 PRODAT header bounded delivery evidence",
+  "as_of": "2026-09-28",
+  "verified_main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "current_branch": "codex/ediel-v2-identity-e035-owner-20260928",
+  "rule_cards": {
+    "ACK-02": "partial",
+    "ACK-10": "partial"
+  },
+  "acceptance_contracts": {
+    "AT-ACK-02": "partial",
+    "AT-ACK-10": "partial"
+  },
+  "bounded_deliveries": [
+    {
+      "field": "205",
+      "scope": "required DTM+137 date",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–103",
+      "pr": 415,
+      "pr_head": "eee4a3feb1ab8a55f153b2a085a360f09ba4a628",
+      "main_merge_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "371/371",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36351069975,
+        36351069952,
+        36351069968,
+        36351069983
+      ],
+      "deployment": "Vercel READY on same bd3e131e SHA per accepted PR/main checkpoint; deployment ID not retained in this ledger",
+      "limits": "Bounded field and actual consumer/ACK path only; ACK-02, ACK-10, AT-ACK-02, AT-ACK-10 remain partial."
+    },
+    {
+      "field": "206",
+      "scope": "required DTM+ZZZ:1:805 offset",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–103",
+      "pr": 416,
+      "pr_head": "7414fd9c03396234b9de292a47406e66bbfdfa74",
+      "main_merge_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "376/376",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36356832279,
+        36356832349,
+        36356832361,
+        36356832324
+      ],
+      "deployment": "dpl_DHxSRfKFzgf2dvHX2voGycGVW3qF",
+      "limits": "Bounded field and actual consumer/ACK path only; ACK-02, ACK-10, AT-ACK-02, AT-ACK-10 remain partial."
+    },
+    {
+      "field": "313",
+      "scope": "required AB/NA for Z02–Z18, optional Z01",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–103",
+      "pr": 416,
+      "pr_head": "7414fd9c03396234b9de292a47406e66bbfdfa74",
+      "main_merge_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "376/376",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36356832279,
+        36356832349,
+        36356832361,
+        36356832324
+      ],
+      "deployment": "dpl_DHxSRfKFzgf2dvHX2voGycGVW3qF",
+      "limits": "Bounded field and actual consumer/ACK path only; ACK-02, ACK-10, AT-ACK-02, AT-ACK-10 remain partial."
+    },
+    {
+      "field": "204",
+      "scope": "supplied invalid BGM/1225; omitted or 9/5 allowed",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–103",
+      "pr": 417,
+      "pr_head": "32559fb9397242f1dcb9585a352a718847471673",
+      "main_merge_sha": "a5f73de81366d735631ba317821f104ed3a9b15f",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "377/377",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36396504085,
+        36396504294,
+        36396504055,
+        36396504321
+      ],
+      "deployment": "dpl_BGHZokHyPkvi2EigqiSuFbGu2YBa",
+      "limits": "Bounded field and actual consumer/ACK path only; ACK-02, ACK-10, AT-ACK-02, AT-ACK-10 remain partial."
+    },
+    {
+      "field": "202/C002",
+      "scope": "forbidden supplied C002 metadata on known Z04",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–103",
+      "pr": 419,
+      "pr_head": "4d26c9a15a249dfe8ee4ff720fc3b9ac43979cbd",
+      "main_merge_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "378/378",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36401020624,
+        36401020617,
+        36401020654,
+        36401020685
+      ],
+      "deployment": "dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk",
+      "limits": "Bounded field and actual consumer/ACK path only; ACK-02, ACK-10, AT-ACK-02, AT-ACK-10 remain partial."
+    },
+    {
+      "field": "202 missing/unlisted physical code safe hold",
+      "scope": "internal ERC41/42/202 BGM27/ACW draft; mismatched persisted Z04 ACK and business hold; no genuine outbound APERAK",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–93",
+      "pr": 420,
+      "pr_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
+      "main_merge_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "382/382",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36414870954,
+        36414870963,
+        36414871149,
+        36414871075
+      ],
+      "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+      "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
+      "deployment": "dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu READY on exact merge SHA",
+      "limits": "Actual PRODAT_UNKNOWN/Z99 insertion fails code-specific profile trigger; no durable diagnostic owner/legal actor/mandate/route/retry and no outgoing 41/42 ACK. Earlier E035 Storage failure root unproved. ACK-02/ACK-10 and AT-ACK-02/10 remain partial."
+    }
+  ],
+  "register_reconciliation": {
+    "rule_cards": 121,
+    "acceptance_contracts": 231,
+    "formal_status": "unchanged; #420 bounded proof does not close ACK-02/ACK-10 or AT-ACK-02/AT-ACK-10; no whole-phase percentage",
+    "source": "masterplan-v2-traceability-20260927.json"
+  },
+  "other_open": [
+    "historical PRODAT 203 and IDE505 scope/owner",
+    "positive LOC+175 owner/mandate/sink/retry",
+    "E035 history/retention/deletion",
+    "full grammar and F0–F2/F4–F7",
+    "external market activation per named capability"
+  ],
+  "closed_candidate_history": {
+    "field": "202",
+    "scope": "missing or unlisted physical BGM/C002/1001; typed 41/42 draft with safe hold at ACK persistence",
+    "specified": true,
+    "implemented_locally": true,
+    "locally_tested": true,
+    "pr_verified": false,
+    "merged": false,
+    "production_code_deployed": false,
+    "market_activated": false,
+    "published_commits": [
+      "a820ff0e0b942668d228d4f8b6eecf66ab4d251c",
+      "31221ee99de0722903d9a85f58bc1351605fd8db",
+      "470625da871eeba4b53a6356215f286a32f77ec6"
+    ],
+    "first_ci": "a820ff0e Ediel/browser success; Full E2E failed six unrelated guide-resolution tests; scoped physical-202 fix on 31221ee9 passed Ediel/browser/Full E2E; OPS clean replay 378/380; two stale Z04 fixtures expected no blocked APERAK despite one being recorded",
+    "local_evidence": "125/125 in three files, all six guide regressions; current ACK gateway stale-profile hold also 125/125; app/tests/scripts TypeScript, scoped lint, diff pass",
+    "native_pending": "14 existing Z04 variants: two stale Z04 profile versus missing/Z99 raw physical code must hold both ACKs, zero business effects and stable retry. Two new real-ingress source owner inserts must fail code-specific profile trigger; exact-head OPS pending",
+    "ack_limit": "Source-bound physical 41/42/202 and BGM27/ACW draft only. Genuine PRODAT_UNKNOWN/Z99 fails inbound code-specific profile trigger. No persisted ACK/outbox or market response qualified; positive CONTRL and APERAK blocked for stale profile; ERC40/100 not inferred.",
+    "first_remaining_gate": "Durable tenant/legal-actor-bound diagnostic source owner and rule-pack authority for genuine missing/unlisted 202, then route, ACK/outbox and retry proof without borrowed Z04 profile.",
+    "third_ci": "Ediel 36408877709 and browser 36408877599 success; Full E2E 36408877711 failed smoke+coverage on one forbidden operational import of raw normative matrix in kernel; local shared canonical projection fix passes guard, route, affected 126/126. OPS 36408877538 native pending. OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.",
+    "final_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
+    "final_result": "merged bounded safe hold in #420; earlier pending gate notes are historical only"
+  },
+  "active_candidate": null
+}

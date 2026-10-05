@@ -32,6 +32,7 @@ const opsDb = 'lib/operations/db.ts'
 const prodatSwitch = 'lib/ediel/flows/prodatSwitch.ts'
 const prodatZ01 = 'lib/ediel/flows/prodatCustomerMasterdata.ts'
 const website = 'lib/website/customerApplications.ts'
+const poaRepair = 'supabase/migrations/20260902100045_fix_website_poa_scope_and_grid_owner_aliases.sql'
 
 // Shared idempotent helpers exist.
 mustInclude(chain, 'export async function ensureCustomerAuthorizationDocument', 'idempotent authorization document helper')
@@ -49,6 +50,14 @@ mustInclude('supabase/migrations/20260720110000_canonical_customer_onboarding_tr
 // Website chain remains intact (canonical implementation).
 mustInclude(website, 'ensureWebsiteAuthorizationChainFromPowerOfAttorney', 'website chain implementation')
 mustIncludeEither(website, ["from('authorization_scopes')", 'from("authorization_scopes")'], 'website chain writes authorization_scopes')
+
+// Website POAs must also materialize the exact captured scopes into the legacy
+// relational scope projection. The admin compatibility projection must not make
+// a signed POA disappear because an old expires_at select is still deployed.
+mustInclude(poaRepair, 'gridex_materialize_poa_scopes', 'signed website POA scopes are materialized by the database')
+mustInclude(poaRepair, 'signed_scope_snapshot', 'scope materialization is derived only from immutable signed scope evidence')
+mustInclude(poaRepair, 'power_of_attorney_scopes_poa_scope_uidx', 'scope materialization is idempotent')
+mustInclude(poaRepair, 'add column if not exists expires_at', 'legacy admin POA select remains compatible with canonical validity fields')
 
 // The supplier switch readiness gate must verify (and be able to heal) the
 // canonical scope coverage before any switch dispatch.

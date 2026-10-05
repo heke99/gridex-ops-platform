@@ -1,10 +1,17 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { isMissingRelationError } from '@/lib/tenant/scope'
 
-export async function safeListRows(table: string, companyId: string | null, select = '*', limit = 50): Promise<Record<string, unknown>[]> {
+export async function safeListRows(
+  table: string,
+  companyId: string | null,
+  select = '*',
+  limit = 50,
+  equals: Record<string, string> = {},
+): Promise<Record<string, unknown>[]> {
   try {
     let query = supabaseService.from(table).select(select).limit(limit)
     if (companyId) query = query.eq('company_id', companyId)
+    for (const [column, value] of Object.entries(equals)) query = query.eq(column, value)
     const { data, error } = await query
     if (error) {
       if (isMissingRelationError(error)) return []

@@ -2,8 +2,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import sourceFamily from "./lib/read-source-family.cjs";
+import staffUserAudit from "./lib/staff-user-rbac-audit.cjs";
 
 const { readSourceFamily } = sourceFamily;
+const { auditStaffUserCommandBoundary } = staffUserAudit;
 
 const root = process.cwd();
 const failures = [];
@@ -69,7 +71,14 @@ mustNotContain(
   "href={`/admin/companies/${companyId}`}",
   "company settings link to platform company detail",
 );
-mustContain("app/admin/companies/actions.ts", "parseCompanyAssignableRoleKey");
+// OPS actions now adapt the shared commands. Keep the known-role parser at
+// its canonical owner and require every adapter/command/native guard edge.
+failures.push(...auditStaffUserCommandBoundary({
+  actions: read("app/admin/companies/actions.ts"),
+  commands: read("lib/tenant/staffCommands.ts"),
+  roles: read("lib/tenant/companyUserRoles.ts"),
+  sql: read("supabase/migrations/20261004083640_staff_user_commands.sql"),
+}));
 mustContain("proxy.ts", "isPlatformAdminPath");
 mustContain("proxy.ts", "pathname === '/admin/companies'");
 mustContain("proxy.ts", "pathname === '/admin/users'");
@@ -106,7 +115,9 @@ mustContain(
   "requirePlatformAdminActionAccess",
 );
 mustContain("app/admin/roles/page.tsx", "requirePlatformAdminAccess");
-mustContain("components/admin/AdminSidebar.tsx", "platformOnly?: boolean");
+mustContain("lib/admin/navigation.ts", "platformOnly?: boolean");
+mustContain("lib/admin/navigation.ts", "if (item.platformOnly && !context.isPlatformAdmin) return false");
+mustContain("components/admin/AdminSidebar.tsx", "getAdminNavigationGroups");
 mustContain("components/admin/AdminSidebar.tsx", "isPlatformAdmin");
 mustContain("app/admin/page.tsx", "isPlatformAdminContext");
 mustContain("app/admin/page.tsx", 'href="/admin/company-settings"');
@@ -180,6 +191,7 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/customers/[id]/business-actions.ts",
   "app/admin/ediel/auto-readiness/actions.ts",
   "app/admin/ediel/auto-readiness/page.tsx",
+  "app/admin/ediel/bilateral-prodat-sources/page.tsx",
   "app/admin/facility-requests/actions.ts",
   "app/admin/manual-mailboxes/actions.ts",
   "app/admin/manual-mailboxes/page.tsx",
@@ -199,6 +211,11 @@ const reviewedServiceClientFiles = new Set([
   // certification writes are current-engine scoped, evidence-validated and
   // audit logged. No ordinary tenant-admin path can invoke these mutations.
   "app/admin/platform/go-live/actions.ts",
+  // Reviewed 2026-09-02: one-click production approval calls
+  // requirePlatformAdminActionAccess before every service-role read/RPC. It
+  // operates on the submitted company only after canonical readiness + dry-run
+  // evidence has passed and uses canonical audited transition RPCs.
+  "app/admin/platform/go-live/approval-actions.ts",
   // Reviewed 2026-07-27: contracts/page obtains contracts.read and resolves an
   // operational company scope before its tenant-scoped readiness RPC.
   "app/admin/contracts/page.tsx",
@@ -286,6 +303,13 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/users/actions.ts",
   "app/admin/webhooks/actions.ts",
   "app/admin/website-applications/actions.ts",
+  // Reviewed 2026-10-03: Ediel source workspaces read service-only tenant
+  // tables after requireAdminPageAccess, filtered on access.companyId.
+  "app/admin/ediel/ai-purpose-sources/page.tsx",
+  "app/admin/ediel/customer-source-agreements/page.tsx",
+  "app/admin/ediel/network-registry-sources/page.tsx",
+  "app/admin/ediel/regulated-supply/page.tsx",
+  "app/admin/ediel/requested-customer-changes/page.tsx",
 ]);
 
 const serviceClientFiles = [];

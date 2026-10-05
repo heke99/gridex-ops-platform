@@ -1,0 +1,68 @@
+{
+  "scope": "local DTM implementation qualification only; ordinary PR CI and substantive review required",
+  "base_sha": "31b4dbeb764874e252e8b6b510bf1fa78832f148",
+  "base_tree": "d69e471e597ddf4817a402ce165fbad214184c7c",
+  "new_cases": 267,
+  "original_baseline_subset": {
+    "total": 237,
+    "passed": 66,
+    "failed": 171
+  },
+  "full_vitest": {
+    "total": 1701,
+    "passed": 1701,
+    "files": 213
+  },
+  "retained_source": {
+    "total": 848,
+    "passed": 848
+  },
+  "typecheck": [
+    "app",
+    "scripts",
+    "tests"
+  ],
+  "lint": {
+    "errors": 0,
+    "warnings": 98
+  },
+  "timezones": {
+    "UTC": {
+      "passed": 267,
+      "same_cases_repeated": true
+    },
+    "Europe-Stockholm": {
+      "passed": 267,
+      "same_cases_repeated": true
+    },
+    "Pacific-Apia": {
+      "passed": 267,
+      "same_cases_repeated": true
+    }
+  },
+  "local_results": {
+    "typecheck": "0",
+    "typecheck:scripts": "0",
+    "typecheck:tests": "0",
+    "lint": "0",
+    "ediel:masterplan-v2:integrity": "0",
+    "quality:large-file-budget": "0",
+    "UTC": "0",
+    "Europe/Stockholm": "0",
+    "Pacific/Apia": "0"
+  },
+  "ordinary_ci": "REQUIRED_ON_NEW_EXACT_HEAD",
+  "source_review": "REQUIRED",
+  "live_database": "NOT_USED",
+  "source_package_changed": false,
+  "pr310": "PAUSED_UNCHANGED",
+  "raw_local_log_sha256": {
+    "final-original-baseline.json": "3a666a8b56bbe663accb944aede54dc260c43e2f6691bc40851a484f638a33d1",
+    "final-all.json": "d1435f8742e27aa0ccd7124aafa68956ab60b9d363a20d2c861304b55fe46164",
+    "retained-source-final.log": "18c99135b888de50c432319b44ac86c1c0997068ae0c31c31cb0f49709c0c012",
+    "qualification-lint.log": "cb73d6cbaf2e99b8c6f09a23e534c89f6a68c9a1182a387a47e305b1007b2b64",
+    "qualification-typecheck.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "qualification-typecheck-scripts.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "qualification-typecheck-tests.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656"
+  }
+}

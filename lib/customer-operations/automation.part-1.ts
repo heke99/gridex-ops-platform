@@ -499,11 +499,19 @@ export async function enqueue(input: {
   const { data, error } = await supabaseService
     .from('customer_operation_jobs')
     .insert(row)
-    .select('id')
+    .select('id, operation_id, trace_id, status, result, last_error')
     .single()
 
   if (!error && data?.id) {
-    return { id: String(data.id), duplicate: false, operationId, traceId, status: 'queued', result: null, lastError: null }
+    return {
+      id: String(data.id),
+      duplicate: false,
+      operationId: normalizeUuidOrNull(data.operation_id, 'operation_id') ?? operationId,
+      traceId: normalizeUuidOrNull(data.trace_id, 'trace_id') ?? traceId,
+      status: (clean(data.status) as CustomerOperationJobStatus | null) ?? 'queued',
+      result: record(data.result),
+      lastError: clean(data.last_error),
+    }
   }
   if (!duplicate(error)) {
     if (missingSchema(error)) throw new Error('Automationstabellen saknas. Kör migrationen för kundautomation först.')

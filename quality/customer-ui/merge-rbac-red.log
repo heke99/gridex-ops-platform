@@ -1,0 +1,2 @@
+RBAC audit failed:
+- components/admin/AdminSidebar.tsx saknar: platformOnly?: boolean

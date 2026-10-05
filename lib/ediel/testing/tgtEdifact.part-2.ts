@@ -1,3 +1,11 @@
+import {reportingPortalObject,applyReportingPortalObject} from './tgtReportingPermissionDraft'
+import {tgtInvoiceeChoice} from './tgtInvoiceeSource'
+import {tgtEndUserAddressSourceLines} from './tgtEndUserAddressSource'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import { readTgtProdatSourceColumns, groupTgtProdatSourceObjects, sourceExpectationIndex, tgtProdatSourceValue } from './tgtProdatSource'
+import { prodatDate203, prodatDate102 } from '@/lib/ediel/prodat/render/dates'
+import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
+import { serializeTgtUnb } from './tgtEnvelope'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielMessageFamily } from "@/lib/ediel/types"
 
@@ -12,7 +20,13 @@ export function getPortalData(
   step: EdielTgtExpectedStep,
   columnName?: string | null,
 ): TgtPortalCustomerData {
-  const data = getTgtTestData(params);
+  let data = getTgtTestData(params);
+  if (columnName && data && step.family === 'PRODAT') {
+    const matches = data.groups.filter(group => group.columns.some(column => column.name === columnName));
+    if (matches.length !== 1) throw new Error('prodat_register_source_column_ambiguous');
+    data = {...data,groups:matches};
+    params = {...params,importedTestData:data};
+  }
   const valueFor = (selectors: readonly string[]) =>
     columnName
       ? findFieldValueForColumn(params, columnName, selectors)
@@ -29,7 +43,7 @@ export function getPortalData(
           `${field.fieldCode} ${field.fieldName}`,
         );
         if (
-          normalizedSelectors.some((selector) => haystack.includes(selector))
+          normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector))
         ) {
           return {
             fieldCode: field.fieldCode,
@@ -43,29 +57,30 @@ export function getPortalData(
     return { fieldCode: "", fieldName: "", value };
   };
 
-  const startDateRaw = valueFor([
-    "302 rapportstartdatum",
-    "302 report start date",
-    "rapportstartdatum",
-    "report start date",
-    "210 avtal",
-    "startdatum",
-    "leveransstart",
-  ]);
-  const validityDateRaw = valueFor([
-    "216 giltighetsdatum",
-    "216 validity",
-    "216 valid",
-  ]);
-  const endDateRaw = valueFor([
-    "211 avtal, slutdatum",
-    "211 slutdatum",
-    "211 end date",
-    "321 rapportslutdatum",
-    "327 tjänsten/rapporteringen upphör",
-    "327 tjansten/rapporteringen upphor",
-    "slutdatum",
-  ]);
+  // DTM identities are exact field numbers, not overlapping words such as
+  // "startdatum"/"slutdatum". Imported object/column selection stays intact.
+  const dateField = (fieldNumber: string): string | null => {
+    for (const group of data?.groups ?? []) {
+      const field = group.fields.find(row => row.fieldCode.trim() === fieldNumber);
+      if (!field) continue;
+      const columns = columnName ? [columnName] : getPreferredColumnsForStep(params, step, group.columns).map(row => row.name);
+      for (const column of columns) {
+        const value = field.values[column]?.trim();
+        if (value) return value;
+      }
+    }
+    return null;
+  };
+  const optionalDate = (fieldNumber: string) => {
+    const raw = dateField(fieldNumber);
+    return raw == null ? null : resolvePortalDateTime(raw);
+  };
+  const startDateRaw = dateField('210');
+  const validityDateRaw = dateField('216');
+  const endDateRaw = dateField('211');
+  const lengthRaw = dateField('508');
+  const lengthParts = lengthRaw?.match(/^(\d+)\s*(?::(801|802|804|806)|\(2379=(801|802|804|806)\))$/);
+  if (lengthRaw != null && !lengthParts) throw new Error('prodat_tgt_period_format_missing');
   const registers = columnName ? [] : buildRegistersFromTestData(params, step);
   const importedMeteringMethod = cleanOptionalCode(
     valueFor(["217 mätmetod", "217 matmetod"]),
@@ -81,7 +96,11 @@ export function getPortalData(
   const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? "";
 
   const sourceColumn = columnName ? findSourceColumn(params, columnName) : null;
-  const rawMeteringPointId = cleanOptionalCode(
+  const rawMeteringPointId = step.family === 'PRODAT'
+    ? step.code === 'Z05'
+      ? (tgtProdatSourceValue('233', valueFor(['233 anläggningsid'])) ?? tgtProdatSourceValue('209', valueFor(['209 anläggningsid'])))
+      : (tgtProdatSourceValue('209', valueFor(['209 anläggningsid'])) ?? tgtProdatSourceValue('233', valueFor(['233 anläggningsid'])))
+    : cleanOptionalCode(
     valueFor([
       "209 anläggningsid",
       "209 anlaggningsid",
@@ -108,7 +127,13 @@ export function getPortalData(
     sourceColumnName: sourceColumn?.name ?? columnName ?? null,
     sourceOrder: sourceColumn?.sourceOrder ?? sourceColumn?.index ?? null,
     meteringPointId,
-    agreementStartDateTime: resolvePortalDateTime(startDateRaw),
+    agreementStartDateTime: startDateRaw == null ? '' : resolvePortalDateTime(startDateRaw),
+    reportStartDate: optionalDate('302'),
+    reportEndDate: optionalDate('321'),
+    permissionEndDate: optionalDate('327'),
+    firstMeterReadingDate: optionalDate('212'),
+    observationLength: lengthParts?.[1] ?? null,
+    observationLengthFormat: lengthParts?.[2] ?? lengthParts?.[3] ?? null,
     validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
     agreementEndDateTime: endDateRaw ? resolvePortalDateTime(endDateRaw) : null,
     annualEnergyUnit:
@@ -157,13 +182,7 @@ export function getPortalData(
       defaultPermissionId(params),
       35,
     ),
-    permissionTimestamp: resolvePortalDateTime(
-      valueFor([
-        "326 tillståndets tidstämpel",
-        "326 tillstandets timestampel",
-        "permission timestamp",
-      ]),
-    ),
+    permissionTimestamp: optionalDate('326'),
     energyProductId: cleanOptionalCode(
       valueFor([
         "506 produkt id",
@@ -183,11 +202,9 @@ export function getPortalData(
       ]),
       12,
     ),
-    meterNumber: cleanOptionalCode(
-      valueFor(["224 mätarnummer", "224 matarnummer"]),
-      35,
-    ),
-    customerId,
+    meterNumber: tgtProdatSourceValue('224',valueFor(['224 mätarnummer'])),
+    oldMeterNumber: tgtProdatSourceValue('225',valueFor(['225 gammalt mätarnummer'])),
+    customerId: tgtProdatSourceValue('227', customerIdField?.value) ?? '',
     customerIdCodeListQualifier: inferCustomerIdCodeListQualifier(
       customerIdField?.fieldName,
       customerId,
@@ -263,16 +280,13 @@ export function getPortalData(
       valueFor(["318 land-fakturamottagare"]),
       3,
     ),
-    birthDate: cleanOptionalCode(
-      valueFor([
-        "249 födelsesdatum",
-        "249 födelsedatum",
-        "249 fodelsesdatum",
-        "249 fodelsedatum",
-      ]),
-      8,
-    ),
-    productCode: cleanOptionalCode(valueFor(["242 produktkod"]), 35),
+    birthDate: (() => {
+      const raw = dateField('249');
+      if (raw == null) return null;
+      const value = prodatDate102(raw.replace(/ \(optional\)$/i, ''));
+      if (!value) throw new Error('prodat_tgt_birth_date_invalid');
+      return value;
+    })(),    productCode: cleanOptionalCode(valueFor(["242 produktkod"]), 35),
     settlementMethod: cleanOptionalCode(
       valueFor([
         "254 avräkningsmetod",
@@ -281,11 +295,7 @@ export function getPortalData(
       ]),
       12,
     ),
-    gridAreaId:
-      cleanOptionalCode(
-        valueFor(["260 nätområdesid", "260 natomradesid"]),
-        12,
-      ) ?? "",
+    gridAreaId: tgtProdatSourceValue('260',valueFor(['260 nätområdesid'])) ?? '',
     powerOfAttorneyReference: resolveSenderControlledCode(
       poaRaw,
       defaultPowerOfAttorneyReference(params),
@@ -392,7 +402,7 @@ export function findFirstTgtFieldValueAcrossColumns(
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
 
       for (const column of candidateColumns) {
@@ -475,28 +485,19 @@ export function withEscoPermissionAgtFallbacks(
 
   const meteringPointId =
     sanitizeCode(portalData.meteringPointId, "", 35) || fallbackMeteringPointId;
-  const agreementStartDateTime = isAgtZ13Vh
-    ? historicalReportStartDateTime()
-    : sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
-      defaultAgreementStartDateTime();
-  const agreementEndDateTime = isAgtZ13Vh
-    ? historicalReportEndDateTime()
-    : isAgtZ18
-      ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
-        agreementStartDateTime
-      : portalData.agreementEndDateTime;
+  const reportStartDate = portalData.reportStartDate ?? (isAgtZ13Vh ? historicalReportStartDateTime() : defaultAgreementStartDateTime());
+  const reportEndDate = portalData.reportEndDate ?? (isAgtZ13Vh ? historicalReportEndDateTime() : null);
+  const permissionEndDate = portalData.permissionEndDate ?? (isAgtZ18 ? defaultAgreementStartDateTime() : null);
 
   return {
     ...portalData,
     meteringPointId,
     gridAreaId:
       sanitizeCode(portalData.gridAreaId, "", 12) || fallbackGridAreaId,
-    agreementStartDateTime,
-    agreementEndDateTime,
-    permissionTimestamp: isAgtZ18
-      ? sanitizeCode(portalData.permissionTimestamp, "", 12) ||
-        agreementStartDateTime
-      : portalData.permissionTimestamp,
+    reportStartDate,
+    reportEndDate,
+    permissionEndDate,
+    permissionTimestamp: portalData.permissionTimestamp,
     permissionId: isAgtZ18
       ? sanitizeCode(portalData.permissionId, "", 35) ||
         defaultPermissionId(params)
@@ -531,7 +532,7 @@ export function resolveEscoZ13MeteringPointId(
   currentMeteringPointId: string | null | undefined,
   sourceColumnName?: string | null,
 ): string {
-  const cleanCurrent = cleanOptionalCode(currentMeteringPointId, 35);
+  const cleanCurrent = tgtProdatSourceValue('209',currentMeteringPointId);
   if (cleanCurrent) return cleanCurrent;
   if (
     params.testSuite !== "PRODAT" ||
@@ -626,30 +627,39 @@ export function getPortalDataRows(
   params: TestDataLookupParams,
   step: EdielTgtExpectedStep,
 ): TgtPortalCustomerData[] {
-  const columnNames = getPortalDataColumnNames(params, step);
-  if (columnNames.length === 0) return [getPortalData(params, step)];
-  return columnNames.map((columnName) =>
-    getPortalData(params, step, columnName),
-  );
+  const data = getTgtTestData(params);
+  if (step.family !== 'PRODAT' || !data) {
+    const names = getPortalDataColumnNames(params,step);
+    return names.length ? names.map(name => getPortalData(params,step,name)) : [getPortalData(params,step)];
+  }
+  const columns = readTgtProdatSourceColumns(data,step.code);
+  if (['Z04','Z06','Z10'].includes(step.code) && columns.some(row => !row.fields['209'])) throw new Error('prodat_register_source_object_required');
+  return groupTgtProdatSourceObjects(columns).map(siblings => {
+    const first = siblings[0];
+    const scoped = {...params,importedTestData:{...data,groups:[{...first.group,columns:[first.column]}]}};
+    const portal = getPortalData(scoped,step,first.column.name);
+    const invoicee=tgtInvoiceeChoice(first,params.registerFacts?.invoiceeObjects?.find(f=>f.meteringPointId===first.fields['209']&&f.identityAgency===(first.identityAgency??'9')));
+    return applyReportingPortalObject({...portal,invoicee,...(END_USER_ADDRESS_CODES.includes(step.code)?{customerAddressLines:tgtEndUserAddressSourceLines(first)}:{}),meteringPointId:first.fields['209'] ?? portal.meteringPointId,identityAgency:first.identityAgency ?? '9',sourceGroupIndex:first.groupIndex,
+      registers:siblings.map(row => ({
+        label:row.column.name, registerIndex:sourceExpectationIndex(row,siblings),
+        sourceGroupIndex:row.groupIndex, sourceColumnName:row.column.name, rawFields:row.rawFields,
+        annualEnergyKwh:row.fields['213'] ?? '', annualEnergyUnit:portal.annualEnergyUnit,
+        meterConstant:row.fields['214'] ?? '', meterDigits:row.fields['218'] ?? '', meterTimeInterval:row.fields['259'] ?? '',
+      }))},step.code==='Z13'?reportingPortalObject(params,first):null);
+  });
 }
 
-export function date102FromPortalDate(
-  value: string | null | undefined,
-  fallback: string,
-): string {
-  const token = firstToken(value);
-  if (token && /^\d{8,12}$/.test(token)) return token.slice(0, 8);
-  return fallback;
+/** Explicit date-only compatibility projection; invalid supplied input cannot
+ * become the fallback date. The actual line renderer retains minute precision. */
+export function date102FromPortalDate(value: string | null | undefined, fallback: string): string {
+  return date203FromPortalDate(value, fallback).slice(0, 8);
 }
 
-export function date203FromPortalDate(
-  value: string | null | undefined,
-  fallback: string,
-): string {
-  const token = firstToken(value);
-  if (token && /^\d{8,12}$/.test(token))
-    return token.length === 8 ? `${token}0000` : token.slice(0, 12);
-  return `${fallback}0000`;
+/** Null may opt into an explicitly supplied legacy default; malformed input may not. */
+export function date203FromPortalDate(value: string | null | undefined, fallback: string): string {
+  const minute = prodatDate203(value ?? fallback);
+  if (!minute) throw new Error('prodat_tgt_date_invalid');
+  return minute;
 }
 
 export function isZ09DTransaction(
@@ -672,21 +682,11 @@ export function buildZ09DLineDateSegments(
   portalData: TgtPortalCustomerData,
   refs: DraftReferences,
 ): string[] {
-  const startDate = date203FromPortalDate(
-    portalData.agreementStartDateTime,
-    refs.createdLongDate,
-  );
-  const endDate = portalData.agreementEndDateTime
-    ? date203FromPortalDate(
-        portalData.agreementEndDateTime,
-        refs.createdLongDate,
-      )
-    : null;
-
-  return [
-    `DTM+92:${startDate}:203`,
-    ...(endDate ? [`DTM+93:${endDate}:203`] : []),
-  ];
+  void refs;
+  return buildProdatDateSegments('Z09', 'D', {
+    contractStartDate: portalData.agreementStartDateTime || undefined,
+    contractEndDate: portalData.agreementEndDateTime,
+  }).line;
 }
 
 export function expectedZ09LineDateSegments(
@@ -705,6 +705,7 @@ export function serializeEdifactSegments(segments: string[]): string {
 }
 
 export function buildUnb(params: {
+  family: EdielMessageFamily;
   refs: DraftReferences;
   senderEdielId: string;
   senderSubAddress?: string | null;
@@ -712,14 +713,14 @@ export function buildUnb(params: {
   receiverSubAddress?: string | null;
   applicationReference: string;
 }): string {
-  const sender = params.senderSubAddress
-    ? `${params.senderEdielId}:ZZ:${params.senderSubAddress}`
-    : `${params.senderEdielId}:ZZ`;
-  const receiver = params.receiverSubAddress
-    ? `${params.receiverEdielId}:ZZ:${params.receiverSubAddress}`
-    : `${params.receiverEdielId}:ZZ`;
-
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.refs.createdDate}:${params.refs.createdTime}+${params.refs.interchangeRef}++${params.applicationReference}++1`;
+  const day = params.refs.createdLongDate, time = params.refs.createdTime;
+  const createdAt = new Date(`${day.slice(0,4)}-${day.slice(4,6)}-${day.slice(6,8)}T${time.slice(0,2)}:${time.slice(2,4)}:00.000Z`);
+  if (!/^\d{8}$/.test(day) || !/^\d{4}$/.test(time) || !Number.isFinite(createdAt.getTime())
+      || params.refs.createdDate !== day.slice(2)
+      || `${day.slice(2)}${time}` !== createdAt.toISOString().slice(2,16).replace(/[-T:]/g,'')) throw new Error('tgt_unb_source_clock_required');
+  return serializeTgtUnb({ family: params.family, sender: params.senderEdielId, receiver: params.receiverEdielId,
+    senderSubAddress: params.senderSubAddress, receiverSubAddress: params.receiverSubAddress,
+    applicationReference: params.applicationReference, interchangeReference: params.refs.interchangeRef, createdAt });
 }
 
 export function buildUnh(
@@ -739,6 +740,7 @@ export function buildUnh(
 
 export function buildInterchange(params: EdifactEnvelopeParams): string {
   const unb = buildUnb({
+    family: params.family,
     refs: params.refs,
     senderEdielId: params.senderEdielId,
     senderSubAddress: params.senderSubAddress,

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "recreatedFromPublishedHead": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "priorUnpublishedPacket": "not_restored; prior hashes/results are not evidence for this packet",
+  "scope": "PRODAT object-batch current native original/actor gate, native first effect/private review and graph metadata, batch-only atomic CAS/final audit+event; canonical request timing facade",
+  "files": [
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "sha256": "e5460b5184d8b4744a5d7d7a647e1ca4ed70b380af7534b2f07c3954228e2475"
+    },
+    {
+      "path": "lib/ediel/services/requestTiming.ts",
+      "sha256": "de31ae0973f8ae5385eff4fe557d621a3d96f4203d92a831b2e43ac78ab51f2a"
+    },
+    {
+      "path": "__tests__/ediel-prodat-register-batch-application.test.ts",
+      "sha256": "7e907dace252f42f884b920924651ce62d7af0b7fd8084200e1cb67b36ffcd01"
+    },
+    {
+      "path": "__tests__/ediel-prodat-register-validation-evidence.test.ts",
+      "sha256": "5fbecf2b5f45ab752924788c259f39f9ff3fe0f04c2494b1ec212b17d0ccb59c"
+    },
+    {
+      "path": "supabase/migrations/20261001083359_ediel_prodat_object_batch_current_source_first_effect.sql",
+      "sha256": "eeef25e3abd95945048f6b8ec5f7686d216f709c801c0083dcb5cc3f0c840228"
+    },
+    {
+      "path": "scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs",
+      "sha256": "2859608117d91076a6d577910a1cf3153a59e6a2a292a3efdb2cb6ba2f546ad4"
+    },
+    {
+      "path": "scripts/ediel-prodat-object-batch-current-source-native.test.ts",
+      "sha256": "39ac79d1590260f60a792882e48e875a506c094d74d9bdd554704814c41febb5"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "Node22 vitest: batch-application + register-validation-evidence + normative-authority-boundary",
+      "receipt": "restored-ack-batch-red.json",
+      "candidate": "published0373 before changes",
+      "passed": 17,
+      "failed": 35,
+      "status": "RED_FIRST_CAUSES"
+    },
+    {
+      "command": "Node22 vitest: updated actual canonical fixture, only old0373 inboundCases restored transiently then own file restored in finally",
+      "receipt": "restored-ack-batch-guard-red.json",
+      "passed": 0,
+      "failed": 2,
+      "status": "RED_REAL_RUNTIME_GUARD",
+      "assertions": [
+        "revoked current actor cannot write customer graphs",
+        "missing native immutable original cannot borrow public approved flags"
+      ]
+    },
+    {
+      "command": "Node22 vitest: same targeted three suites",
+      "receipt": "restored-ack-batch-current-unit.json",
+      "passed": 69,
+      "failed": 0,
+      "status": "PASS_LOCAL_UNIT",
+      "limit": "finite declared external native IO; no native authority claim"
+    },
+    {
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js Node22 scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs",
+      "passed": 38,
+      "failed": 0,
+      "status": "PASS_BOUNDED_ACTUAL_SQL",
+      "limit": "actual new SQL/current deny resolver/captured role/wrapper; explicitly finite synthetic facet/graph/endpoint dependencies; no native concurrency claim"
+    },
+    {
+      "command": "Node22 tsc -p tsconfig.tests.json --noEmit; Node22 tsc -p tsconfig.scripts.json --noEmit",
+      "status": "PASS"
+    },
+    {
+      "command": "Node22 eslint all six changed TS/JS files; git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "ordinary native config must include scripts/ediel-prodat-object-batch-current-source-native.test.ts",
+      "cases": 10,
+      "status": "CONSTRUCTED_NOT_RUN",
+      "limit": "no disposable local Supabase/PostgreSQL available in this workspace; authenticated full stack execution and same-head CI remain mandatory"
+    }
+  ],
+  "securityBoundaries": [
+    "auth graph including direct/global/company current DENY and override phantom fence before source/case/business locks",
+    "native immutable original/INSERT clock/context and complete physical own application/full object/response/source-function facets before authority",
+    "only service-role RPCs; no caller JSON approval, no public self-consistent saved plan capability",
+    "minimal immutable private review and graph hash metadata with RESTRICT FKs; no new raw bytes/command/result copies",
+    "actual first review creates private seal in conditional transaction; every graph first effect rechecks current source/actor and exact sealed command",
+    "read established native operation before calling any business writer or inserting receipt",
+    "per-object durable graph receipts preserved; exact final batch case/audit/event commit atomically",
+    "unchanged canonical wrapper other intake OID/owner/ACL and no new statement trigger"
+  ],
+  "wholeCriterionVerdict": "PARTIAL_INTERNAL",
+  "remaining": [
+    "authentic native10 execution on exact frozen candidate",
+    "same-head full replay/generated artifacts/native HTTP/browser/build/CI",
+    "current 75 owned literal clauses and all352 reviews must bind final candidate evidence independently"
+  ]
+}

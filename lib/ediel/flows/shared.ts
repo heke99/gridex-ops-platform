@@ -1,6 +1,7 @@
+import {bindCustomerMasterdataDraftContext} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
 // lib/ediel/flows/shared.ts
 
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
 import {
   ACTIVE_EDIEL_MESSAGE_FAMILIES,
@@ -21,6 +22,7 @@ import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
+import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionTypes'
 
 type ActiveReleaseFamily =
   | 'PRODAT'
@@ -118,7 +120,15 @@ export async function findOrCreateSwitchOutbound(params: {
       requestType: 'supplier_switch',
     })
 
-    if (existing) return existing
+    if (existing) {
+      const existingPayload: Record<string, unknown> = existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload) ? existing.payload : {}
+      if (!normalizeEdielEnvironment(params.environment) || existingPayload.environment !== params.environment
+        || existing.operation_id !== params.switchRequestId || existing.customer_id !== params.customerId
+        || existing.site_id !== params.siteId || existing.metering_point_id !== params.meteringPointId) {
+        throw new Error('switch_outbound_owned_operation_required')
+      }
+      return existing
+    }
   } else {
     await cancelSupplierSwitchOutboundAttemptsForReplacement({
       actorUserId: params.actorUserId,
@@ -137,6 +147,7 @@ export async function findOrCreateSwitchOutbound(params: {
     requestType: 'supplier_switch',
     sourceType: 'supplier_switch_request',
     sourceId: params.switchRequestId,
+    operationId: params.switchRequestId,
     externalReference: params.externalReference,
     replaceOpenSupplierSwitchAttempt: Boolean(params.forceCreateNewAttempt),
     authorizationDocumentId: (params.payload?.authorization_document_id as string | null | undefined) ?? null,
@@ -223,6 +234,9 @@ export async function finalizeOutboundDraft(params: {
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  reportingContext?: ExpectedContext
+  dateEventContext?: import('@/lib/ediel/prodat/prodatDateEventAuthority').ProdatDateEventValidationContext
   duplicateCheck: {
     sourceType?: string | null
     sourceId?: string | null
@@ -238,14 +252,18 @@ export async function finalizeOutboundDraft(params: {
 
   assertActiveFamily(messageFamily, 'finalizeOutboundDraft')
 
-  return finalizeCanonicalOutboundDraft({
+  const canonical = {
     actorUserId: params.actorUserId,
     requestType: params.requestType,
     routeContext: params.routeContext,
     draft: params.draft,
     outboundRequestId: params.outboundRequestId ?? null,
     duplicateCheck: params.duplicateCheck,
-  })
+    reportingContext: params.reportingContext,
+    dateEventContext: params.dateEventContext,
+    customerMasterdataContext:params.customerMasterdataContext??bindCustomerMasterdataDraftContext({draft:params.draft,companyId:params.routeContext.companyId??'',environment:params.routeContext.environment,routeId:params.routeContext.route.id}),
+  }
+  return finalizeCanonicalOutboundDraft(canonical)
 }
 
 export async function queuePreparedEdielMessage(params: {
@@ -300,6 +318,16 @@ export async function queuePreparedEdielMessage(params: {
   }
 }
 
+/**
+ * EDIEL domain flows are server-only and are authorized by their caller before
+ * entering the domain layer. They must not inherit a request-cookie/anon client:
+ * scheduled workers have no user session and would otherwise fail masterdata
+ * reads (for example grid_owners) even though the operation itself is valid.
+ *
+ * Use the service client here while retaining explicit company/actor scoping in
+ * every flow and actorUserId for audit provenance. This keeps cron, replay and
+ * interactive admin execution on the same deterministic database contract.
+ */
 export async function makeServerClient() {
-  return createSupabaseServerClient()
+  return supabaseService
 }

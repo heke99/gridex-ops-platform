@@ -2,9 +2,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
-import { listEdielMessages } from '@/lib/ediel/db'
+import { requireAdminPageAccess } from '@/lib/admin/guards'
 import {
  prepareAiListAction,
  sendEdielMessageAction,
@@ -71,50 +69,49 @@ function customerLabel(row: CustomerRow) {
 }
 
 export default async function AdminEdielAiListPage() {
- const context = await requirePlatformAdminAccess()
- const isPlatformAdmin = isPlatformAdminContext(context)
- const companyScope = await getOperationalCompanyScope(context.userId)
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const context = await requireAdminPageAccess({allOf:['communication.read','customers.read']})
+ if(!context.companyId||!['communication.read','customers.read'].every(p=>context.permissions.includes(p)))return <main className="p-6"><h1 className="text-xl font-semibold">AI-/BI-listor</h1><p>Välj ett bolag där du får läsa kommunikation och kunder.</p></main>
+ const companyId=context.companyId
+ const canPrepare=context.permissions.includes('communication.write')
+ const canSend=['ediel.send','communication.send'].some(p=>context.permissions.includes(p))
 
  const supabase = await createSupabaseServerClient()
 
- let customersQuery = supabase
+ const customersQuery = supabase
  .from('customers')
  .select('id, full_name, company_name, customer_number')
+ .eq('company_id',companyId)
  .order('created_at', { ascending: false })
  .limit(100)
 
- let sitesQuery = supabase
+ const sitesQuery = supabase
  .from('customer_sites')
  .select('id, customer_id, site_name')
+ .eq('company_id',companyId)
  .order('created_at', { ascending: false })
  .limit(200)
 
- let meteringPointsQuery = supabase
+ const meteringPointsQuery = supabase
  .from('metering_points')
  .select('id, site_id, meter_point_id')
+ .eq('company_id',companyId)
  .order('created_at', { ascending: false })
  .limit(200)
 
- if (companyId) {
- customersQuery = customersQuery.eq('company_id', companyId)
- sitesQuery = sitesQuery.eq('company_id', companyId)
- meteringPointsQuery = meteringPointsQuery.eq('company_id', companyId)
- }
-
- const [messages, customersResult, sitesResult, meteringPointsResult] =
+ const [messagesResult, customersResult, sitesResult, meteringPointsResult] =
  await Promise.all([
- listEdielMessages({ family: 'AI_LIST', companyId, limit: 100 }),
+ supabase.from('ediel_messages').select('*').eq('company_id',companyId).eq('message_family','AI_LIST').order('created_at',{ascending:false}).limit(100),
  customersQuery,
  sitesQuery,
  meteringPointsQuery,
  ])
 
+ if (messagesResult.error) throw messagesResult.error
  if (customersResult.error) throw customersResult.error
  if (sitesResult.error) throw sitesResult.error
  if (meteringPointsResult.error) throw meteringPointsResult.error
 
- const aiMessages = (messages as EdielMessageRow[]).filter(
+ const aiMessages = ((messagesResult.data??[]) as EdielMessageRow[]).filter(
  (row) => row.message_family === 'AI_LIST'
  )
  const customers = (customersResult.data ?? []) as CustomerRow[]
@@ -125,43 +122,35 @@ export default async function AdminEdielAiListPage() {
  <div className="min-h-screen bg-slate-50">
  <AdminHeader
  title="AI-/BI-listor"
- subtitle="Operativ vy för export av AI-/BI-listor och historik över skickade listmeddelanden."
+ subtitle="Export av AI-listor och historik för listmeddelanden. BI används endast för mottagen avstämning."
  userEmail={context.email}
- workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
- workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+ workspaceMode="tenant"
  />
 
  <div className="space-y-8 p-8">
  <section className="rounded-3xl border border-slate-200 bg-white p-6">
  <div className="mb-5">
- <h2 className="text-lg font-semibold text-slate-900">Skapa ny AI-/BI-lista</h2>
+ <h2 className="text-lg font-semibold text-slate-900">Skapa ny AI-lista</h2>
  <p className="mt-1 text-sm text-slate-700">
  AI-listan ska användas för kontroll och avvikelsehantering, inte för
  automatisk databassynk.
  </p>
  </div>
 
- <form action={prepareAiListAction} className="grid gap-4 md:grid-cols-3">
+ {canPrepare ? <form action={prepareAiListAction} className="grid gap-4 md:grid-cols-3">
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Listtyp
- </label>
- <select
- name="listType"
+ <label htmlFor="ai-listType" className="mb-2 block text-sm font-medium text-slate-700">Listtyp</label>
+ <select id="ai-listType" name="listType"
  defaultValue="AI"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  >
  <option value="AI">AI</option>
- <option value="BI">BI</option>
  </select>
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Kund
- </label>
- <select
- name="customerId"
+ <label htmlFor="ai-customerId" className="mb-2 block text-sm font-medium text-slate-700">Kund</label>
+ <select id="ai-customerId" name="customerId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  required
  >
@@ -175,11 +164,8 @@ export default async function AdminEdielAiListPage() {
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Anläggning
- </label>
- <select
- name="siteId"
+ <label htmlFor="ai-siteId" className="mb-2 block text-sm font-medium text-slate-700">Anläggning</label>
+ <select id="ai-siteId" name="siteId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  required
  >
@@ -193,11 +179,8 @@ export default async function AdminEdielAiListPage() {
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Mätpunkt
- </label>
- <select
- name="meteringPointId"
+ <label htmlFor="ai-meteringPointId" className="mb-2 block text-sm font-medium text-slate-700">Mätpunkt</label>
+ <select id="ai-meteringPointId" name="meteringPointId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  >
  <option value="">Valfri</option>
@@ -210,11 +193,8 @@ export default async function AdminEdielAiListPage() {
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Receiver Ediel ID
- </label>
- <input
- name="receiverEdielId"
+ <label htmlFor="ai-receiverEdielId" className="mb-2 block text-sm font-medium text-slate-700">Receiver Ediel ID</label>
+ <input id="ai-receiverEdielId" name="receiverEdielId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  placeholder="Mottagande Ediel-ID"
  required
@@ -222,55 +202,40 @@ export default async function AdminEdielAiListPage() {
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Receiver email
- </label>
- <input
- name="receiverEmail"
+ <label htmlFor="ai-receiverEmail" className="mb-2 block text-sm font-medium text-slate-700">Receiver email</label>
+ <input id="ai-receiverEmail" name="receiverEmail"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  placeholder="Mottagande e-post"
  />
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Supplier Ediel ID
- </label>
- <input
- name="supplierEdielId"
+ <label htmlFor="ai-supplierEdielId" className="mb-2 block text-sm font-medium text-slate-700">Supplier Ediel ID</label>
+ <input id="ai-supplierEdielId" name="supplierEdielId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  placeholder="Valfri override"
  />
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- BRP Ediel ID
- </label>
- <input
- name="balanceResponsibleEdielId"
+ <label htmlFor="ai-balanceResponsibleEdielId" className="mb-2 block text-sm font-medium text-slate-700">BRP Ediel ID</label>
+ <input id="ai-balanceResponsibleEdielId" name="balanceResponsibleEdielId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  placeholder="Valfri override"
  />
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- Communication route ID
- </label>
- <input
- name="communicationRouteId"
+ <label htmlFor="ai-communicationRouteId" className="mb-2 block text-sm font-medium text-slate-700">Communication route ID</label>
+ <input id="ai-communicationRouteId" name="communicationRouteId"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  placeholder="Valfri route override"
  />
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- From date
- </label>
- <input
- name="fromDate"
+ <label htmlFor="ai-fromDate" className="mb-2 block text-sm font-medium text-slate-700">From date</label>
+ <input id="ai-fromDate" name="fromDate"
  type="date"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  required
@@ -278,11 +243,8 @@ export default async function AdminEdielAiListPage() {
  </div>
 
  <div>
- <label className="mb-2 block text-sm font-medium text-slate-700">
- To date
- </label>
- <input
- name="toDate"
+ <label htmlFor="ai-toDate" className="mb-2 block text-sm font-medium text-slate-700">To date</label>
+ <input id="ai-toDate" name="toDate"
  type="date"
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  required
@@ -294,10 +256,11 @@ export default async function AdminEdielAiListPage() {
  type="submit"
  className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900"
  >
- Generera och köa AI-/BI-lista
+ Generera och köa AI-lista
  </button>
  </div>
- </form>
+ </form> : <p role="status">Din aktuella behörighet medger läsning. Export kräver egen skrivbehörighet och ett granskat ändamålsunderlag.</p>}
+ <p className="mt-4"><Link href="/admin/ediel/ai-purpose-sources" className="underline">Ändamålsunderlag för AI-/BI-listor</Link></p>
  </section>
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6">
@@ -362,7 +325,7 @@ export default async function AdminEdielAiListPage() {
  Öppna
  </Link>
 
- {(row.status === 'queued' || row.status === 'prepared') ? (
+ {canSend && (row.status === 'queued' || row.status === 'prepared') ? (
  <form action={sendEdielMessageAction}>
  <input type="hidden" name="edielMessageId" value={row.id} />
  <button

@@ -1,15 +1,55 @@
+import {isRequestedChangeBasisQualified,requestedChangeRegisterFacts,requestedChangeWireDeathSelection,type RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
+import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
+import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
+import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {isValidUtiltsTransactionReference} from '@/lib/ediel/utilts/physicalReference'
+import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
+import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
+import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
+import {deathStatusSendIssue,assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
+import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
+import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
+import {prodatDateEventAuthorityIssue} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
+import type {ProdatDateEventValidationContext,ProdatDateEventRow} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
+import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
+import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
+import { prodatInterchangeBatchIssues } from '@/lib/ediel/prodat/prodatInterchangeBatch'
+import { validateUnsmGrammar } from '@/lib/ediel/core/edifactValidation'
+import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
+import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
+import { prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
+import { readProdatParty, prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { misplacedProdatEnergyProducts, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/core/messageBuilder/payloadPreflight.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import type {CustomerMasterdataRenderingSource,CustomerMasterdataSourceRow} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import {
   profileForMessage,
-  segmentCount as countProfileSegment,
-  tagOf,
   type EdielMessageProfile,
 } from '@/lib/ediel/core/messageBuilder/segmentSchema'
-import { compositeComponent, effectiveEdifactLength, segmentElement } from '@/lib/ediel/core/messageBuilder/fieldFormatter'
 
 export type EdielPayloadPreflightIssue = {
   severity: 'info' | 'warning' | 'error'
@@ -34,38 +74,32 @@ export type EdielPayloadPreflightResult = {
 }
 
 const RECOMMENDED_MAX_BYTES = 10 * 1024 * 1024
+const CONSERVATIVE_UTILTS_MAX_BYTES = 1_000_000
+const CONSERVATIVE_UTILTS_MAX_TRANSACTIONS = 999
+export function edielPayloadSizeRecommendation(payloadSizeBytes: number): EdielPayloadPreflightIssue | null {
+  return payloadSizeBytes > RECOMMENDED_MAX_BYTES ? issue({ severity: 'warning', code: 'PAYLOAD_TOO_LARGE',
+    title: 'Payload är för stor', description: 'Rekommenderad maxstorlek är 10 MB. Dela på applikationsnivå före EDI-konvertering.' }) : null
+}
+
 const IDENTIFIER_QUALIFIERS = new Set(['UNB', 'UNH', 'BGM', 'RFF', 'LIN', 'LOC', 'NAD', 'IDE'])
 const IDENTIFIER_FORBIDDEN_CHARS = /[ÅÄÖåäö\s]/
 
-function issue(input: EdielPayloadPreflightIssue): EdielPayloadPreflightIssue {
-  return input
+type SourceSegment = EdifactTokenizedSegment
+
+/** Keep diagnostics tied to original wire bytes while validating decoded data. */
+function issue(input: Omit<EdielPayloadPreflightIssue, 'segment'> & { segment?: string | SourceSegment | null }): EdielPayloadPreflightIssue {
+  const { segment, ...details } = input
+  return { ...details, ...(segment !== undefined ? { segment: typeof segment === 'object' && segment !== null ? segment.raw : segment } : {}) }
 }
 
-function segments(rawPayload: string): string[] {
-  // UNA is exactly 9 characters including the segment terminator, e.g. "UNA:+.? '".
-  // Do not use trim/split before removing it, because the reserved blank before
-  // the terminator is significant in Ediel's default UNA.
-  const normalized = rawPayload.toUpperCase().startsWith('UNA')
-    ? rawPayload.slice(9)
-    : rawPayload
-  return normalized.split("'").map((segment) => segment.trim()).filter(Boolean)
+/** Read one flat element; a composite must not masquerade as a reference. */
+function element(segment: SourceSegment | null | undefined, index: number, una: EdifactServiceStringAdvice): string | null {
+  const parts = segmentComposite(segment, index, una)
+  return parts.length === 1 ? parts[0]?.trim() || null : null
 }
 
-function element(segment: string | null | undefined, index: number): string | null {
-  const value = segment?.split('+')[index]?.trim() ?? ''
-  return value.length > 0 ? value : null
-}
-
-function first(rawSegments: readonly string[], prefix: string): string | null {
-  return rawSegments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
-}
-
-function all(rawSegments: readonly string[], prefix: string): string[] {
-  return rawSegments.filter((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase()))
-}
-
-function splitComposite(value: string | null | undefined): string[] {
-  return String(value ?? '').split(':').map((part) => part.trim())
+function first(segments: readonly SourceSegment[], tag: string): SourceSegment | null {
+  return segments.find(segment => segment.tag === tag) ?? null
 }
 
 function numberOrNull(value: string | null): number | null {
@@ -80,10 +114,10 @@ function checkMaxLength(params: {
   max: number
   code: string
   title: string
-  segment?: string | null
+  segment?: string | SourceSegment | null
 }) {
   if (!params.value) return
-  const effectiveLength = params.value.replace(/\?.?/g, (match) => match.startsWith('?') ? match.slice(1) : match).length
+  const effectiveLength = params.value.length
   if (effectiveLength > params.max) {
     params.issues.push(issue({
       severity: 'error',
@@ -98,7 +132,7 @@ function checkMaxLength(params: {
 function checkIdentifierCharacters(params: {
   issues: EdielPayloadPreflightIssue[]
   value: string | null
-  segment?: string | null
+  segment?: string | SourceSegment | null
   label: string
 }) {
   if (!params.value) return
@@ -113,44 +147,36 @@ function checkIdentifierCharacters(params: {
   }
 }
 
-function markers(rawPayload: string): Record<string, boolean> {
-  return {
-    UNA: /^UNA/.test(rawPayload),
-    UNB: rawPayload.includes('UNB+'),
-    UNH: rawPayload.includes('UNH+'),
-    BGM: rawPayload.includes('BGM+'),
-    ERC: rawPayload.includes('ERC+'),
-    FTX: rawPayload.includes('FTX+'),
-    STS: rawPayload.includes('STS+'),
-    RFF: rawPayload.includes('RFF+'),
-    DOC: rawPayload.includes('DOC+'),
-    UNT: rawPayload.includes('UNT+'),
-    UNZ: rawPayload.includes('UNZ+'),
-  }
+function markers(rawPayload: string, segments: readonly SourceSegment[]): Record<string, boolean> {
+  const tags = new Set(segments.map(segment => segment.tag))
+  return { UNA: /^UNA/i.test(rawPayload), ...Object.fromEntries(
+    ['UNB', 'UNH', 'BGM', 'ERC', 'FTX', 'STS', 'RFF', 'DOC', 'UNT', 'UNZ'].map(tag => [tag, tags.has(tag)]),
+  ) }
 }
 
-
-function firstTagIndex(rawSegments: readonly string[], tag: string): number | null {
-  const index = rawSegments.findIndex((segment) => tagOf(segment) === tag.toUpperCase())
+function firstTagIndex(segments: readonly SourceSegment[], tag: string): number | null {
+  const index = segments.findIndex(segment => segment.tag === tag.toUpperCase())
   return index >= 0 ? index : null
 }
 
-function textForSegment(segment: string | null | undefined, elementIndex: number, componentIndex?: number | null): string | null {
-  const value = segmentElement(segment, elementIndex)
-  if (componentIndex === null || componentIndex === undefined) return value
-  return compositeComponent(value, componentIndex)
+function textForSegment(segment: SourceSegment | null | undefined, elementIndex: number, componentIndex: number | null | undefined, una: EdifactServiceStringAdvice): string | null {
+  if (componentIndex === null || componentIndex === undefined) return element(segment, elementIndex, una)
+  return segmentComposite(segment, elementIndex, una)[componentIndex]?.trim() || null
 }
 
 function validateFieldLimits(params: {
   profile: EdielMessageProfile
-  rawSegments: readonly string[]
+  segments: readonly SourceSegment[]
+  una: EdifactServiceStringAdvice
   issues: EdielPayloadPreflightIssue[]
 }) {
   for (const limit of params.profile.fieldLimits) {
-    for (const segment of params.rawSegments.filter((item) => tagOf(item) === limit.segment.toUpperCase())) {
-      const value = textForSegment(segment, limit.elementIndex, limit.componentIndex)
+    for (const segment of params.segments.filter(item => item.tag === limit.segment.toUpperCase())) {
+      const prodatDocument = params.profile.family === 'PRODAT' && limit.segment === 'BGM' && limit.elementIndex === 2
+      const value = prodatDocument ? prodatDocumentValue('203', params.segments, params.una)
+        : textForSegment(segment, limit.elementIndex, limit.componentIndex, params.una)
       if (!value) continue
-      const actual = effectiveEdifactLength(value)
+      const actual = value.length
       if (actual > limit.max) {
         params.issues.push(issue({
           severity: limit.severity ?? 'error',
@@ -166,7 +192,8 @@ function validateFieldLimits(params: {
 
 function validateSegmentProfile(params: {
   profile: EdielMessageProfile | null
-  rawSegments: readonly string[]
+  segments: readonly SourceSegment[]
+  una: EdifactServiceStringAdvice
   canonicalFamily: string | null
   canonicalCode: string | null
   messageTypeToken: string | null
@@ -184,7 +211,7 @@ function validateSegmentProfile(params: {
   }
 
   for (const requirement of params.profile.requiredSegments) {
-    const count = countProfileSegment(params.rawSegments, requirement.tag)
+    const count = params.segments.filter(segment => segment.tag === requirement.tag).length
     if (typeof requirement.min === 'number' && count < requirement.min) {
       params.issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -204,7 +231,7 @@ function validateSegmentProfile(params: {
   }
 
   for (const forbidden of params.profile.forbiddenSegments ?? []) {
-    const count = countProfileSegment(params.rawSegments, forbidden.tag)
+    const count = params.segments.filter(segment => segment.tag === forbidden.tag).length
     if (count > 0) {
       params.issues.push(issue({
         severity: 'error',
@@ -228,10 +255,12 @@ function validateSegmentProfile(params: {
     }
   }
 
-  const bgm = params.rawSegments.find((segment) => tagOf(segment) === 'BGM') ?? null
-  const bgmCode = textForSegment(bgm, 1, 0)?.toUpperCase() ?? null
-  const unb = params.rawSegments.find((segment) => tagOf(segment) === 'UNB') ?? null
-  const applicationReference = textForSegment(unb, 7)
+  const bgm = params.segments.find(segment => segment.tag === 'BGM') ?? null
+  const bgmCode = params.profile.family === 'PRODAT'
+    ? prodatDocumentValue('202', params.segments, params.una)?.toUpperCase() ?? null
+    : textForSegment(bgm, 1, 0, params.una)?.toUpperCase() ?? null
+  const unb = params.segments.find(segment => segment.tag === 'UNB') ?? null
+  const applicationReference = textForSegment(unb, 7, null, params.una)
   if (params.profile.family !== 'CONTRL' && !applicationReference && params.mode === 'send') {
     params.issues.push(issue({
       severity: 'error',
@@ -262,7 +291,7 @@ function validateSegmentProfile(params: {
 
   let previousIndex = -1
   for (const tag of params.profile.orderedTags) {
-    const index = firstTagIndex(params.rawSegments, tag)
+    const index = firstTagIndex(params.segments, tag)
     if (index === null) continue
     if (index < previousIndex) {
       params.issues.push(issue({
@@ -277,8 +306,8 @@ function validateSegmentProfile(params: {
   }
 
   if (params.profile.family === 'APERAK') {
-    const ercSegments = params.rawSegments.filter((segment) => tagOf(segment) === 'ERC')
-    const ftxSegments = params.rawSegments.filter((segment) => tagOf(segment) === 'FTX')
+    const ercSegments = params.segments.filter(segment => segment.tag === 'ERC')
+    const ftxSegments = params.segments.filter(segment => segment.tag === 'FTX')
     if (ercSegments.length > ftxSegments.length) {
       params.issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -287,8 +316,8 @@ function validateSegmentProfile(params: {
         description: 'Varje APERAK-status/felkod ska ha kort FTX-text. Interna långa feltexter ska inte skickas i payload.',
       }))
     }
-    const positiveErc = ercSegments.some((segment) => textForSegment(segment, 1, 0) === '100')
-    const ftxText = ftxSegments.map((segment) => segment.toUpperCase()).join(' ')
+    const positiveErc = ercSegments.some((segment) => textForSegment(segment, 1, 0, params.una) === '100')
+    const ftxText = ftxSegments.map(segment => segmentComposite(segment, 4, params.una).join(' ').toUpperCase()).join(' ')
     if (positiveErc && !ftxText.includes('OK')) {
       params.issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -298,8 +327,8 @@ function validateSegmentProfile(params: {
       }))
     }
 
-    const ercCodes = ercSegments.map((segment) => textForSegment(segment, 1, 0)).filter(Boolean)
-    const ftxCodes = ftxSegments.map((segment) => textForSegment(segment, 3, 0)).filter(Boolean)
+    const ercCodes = ercSegments.map((segment) => textForSegment(segment, 1, 0, params.una)).filter(Boolean)
+    const ftxCodes = ftxSegments.map((segment) => textForSegment(segment, 3, 0, params.una)).filter(Boolean)
     const isUtiltsE66IntervalAck =
       params.profile.key === 'APERAK_UTILTS_E5SE5A' &&
       String(applicationReference ?? '').toUpperCase().includes('E66-T') &&
@@ -311,7 +340,7 @@ function validateSegmentProfile(params: {
         code: 'APERAK_UTILTS_E66_GENERIC_ERC40_BLOCKED',
         title: 'Generisk APERAK-felkod blockerad för UTILTS E66-T',
         description: 'UTILTS E66-T med anvisningsfel får inte skickas med generisk ERC 40. Saknad/ogiltig DTM+597 ska skickas som ERC 41 och FTX 512 enligt runtime-beslut.',
-        segment: ercSegments.find((segment) => textForSegment(segment, 1, 0) === '40') ?? null,
+        segment: ercSegments.find((segment) => textForSegment(segment, 1, 0, params.una) === '40') ?? null,
       }))
     }
 
@@ -321,7 +350,7 @@ function validateSegmentProfile(params: {
         code: 'APERAK_UTILTS_E66_GENERIC_FTX40_BLOCKED',
         title: 'Generisk APERAK-FTX blockerad för UTILTS E66-T',
         description: 'UTILTS E66-T med anvisningsfel får inte skicka FTX-kod 40. Saknad/ogiltig DTM+597 ska skickas som FTX 512 MANDATORY FIELD MISSING.',
-        segment: ftxSegments.find((segment) => textForSegment(segment, 3, 0) === '40') ?? null,
+        segment: ftxSegments.find((segment) => textForSegment(segment, 3, 0, params.una) === '40') ?? null,
       }))
     }
   }
@@ -339,24 +368,70 @@ function validateSegmentProfile(params: {
     }
   }
 
-  validateFieldLimits({ profile: params.profile, rawSegments: params.rawSegments, issues: params.issues })
+  validateFieldLimits({ profile: params.profile, segments: params.segments, una: params.una, issues: params.issues })
 }
 
 function validateEdifactPayload(params: {
   rawPayload: string
   mimeType?: string | null
   mode: 'send' | 'parse'
+  parsedPayload?: unknown
+  dateEventRow?:ProdatDateEventRow
+  dateEventContext?:ProdatDateEventValidationContext
+  gasSerialChange?:GasSerialChangeSelection
+  deathStatus?:DeathSelection
+  deathStatusContext?:DeathStatusValidationContext
+  requestedChangeBasis?:RequestedChangeBasis
+  requestedChangeRow?:EdielMessageRow
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
+
+  deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
+  meterChange?:MeterChangeSelection
+  reportingContext?:ExpectedContext
+  companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
-  const rawSegments = segments(rawPayload)
-  const issues: EdielPayloadPreflightIssue[] = []
-  const unb = first(rawSegments, 'UNB+')
-  const unh = first(rawSegments, 'UNH+')
-  const bgm = first(rawSegments, 'BGM+')
-  const unt = first(rawSegments, 'UNT+')
-  const unz = first(rawSegments, 'UNZ+')
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
-  const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
+  // Source document identities also occur in APERAK ACW. Preserve released
+  // terminators for every EDIFACT family instead of splitting literal quotes.
+  const tokens = tokenizeEdifact(rawPayload)
+  const { segments, una } = tokens
+  const rawSegments = segments.map(segment => segment.raw)
+  const issues: EdielPayloadPreflightIssue[] = []
+  const grammar = validateUnsmGrammar(tokens)
+  for (const failure of grammar.issues) issues.push(issue({
+    severity: failure.code === 'UNSM_DIRECTORY_SOURCE_UNAVAILABLE' && params.mode === 'send' ? 'error' : failure.severity,
+    code: failure.code, title: 'Full versionsbunden UNSM-grammatik', description: failure.description,
+    segment: segments.find(segment => segment.index === failure.segmentIndex),
+  }))
+  if (params.mode === 'send') for (const failure of prodatInterchangeBatchIssues(tokens)) issues.push(issue({
+    severity: 'error', code: failure.code, title: 'PRODAT-batchen måste delas', description: failure.description, segment: failure.segment,
+  }))
+  if (params.mode === 'send') for (const failure of prodatFreeTextSendIssues({ raw_payload: rawPayload })) issues.push(issue({ severity: failure.severity, code: failure.code, title: failure.title, description: failure.description, segment: failure.fieldPath }))
+  const gasBoundary=params.mode==='send'?gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
+  if(gasBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}))
+  const deathBoundary=params.mode==='send'?deathStatusSendIssue(params.deathStatusRow??{...params.dateEventRow,message_family:canonical.family,message_code:canonical.messageCode,raw_payload:rawPayload,parsed_payload:params.parsedPayload},params.deathStatusContext,params.requestedChangeBasis):null
+  if(deathBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}))
+  const meterBoundary=params.mode==='send'?meterChangeSendIssue({message_family:'PRODAT',raw_payload:rawPayload}):null
+  if(meterBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}))
+  const unb = first(segments, 'UNB')
+  const unh = first(segments, 'UNH')
+  const bgm = first(segments, 'BGM')
+  const unt = first(segments, 'UNT')
+  const unz = first(segments, 'UNZ')
+  let payloadSizeBytes = 0
+  try {
+    assertEdifactLatin1Representable(rawPayload)
+    payloadSizeBytes = rawPayload.length
+  } catch (error) {
+    issues.push(issue({ severity: 'error', code: 'EDIFACT_LATIN1_ENCODING_HELD', title: 'EDIFACT kan inte kodas utan dataförlust',
+      description: error instanceof Error ? error.message : 'ISO8859-1-kodning misslyckades.' }))
+  }
 
   if (!rawPayload.startsWith('UNA:+.? ')) {
     issues.push(issue({ severity: 'warning', code: 'UNA_NOT_STANDARD', title: 'UNA saknas eller avviker', description: "EDIFACT bör byggas med UNA:+.? '." }))
@@ -375,28 +450,41 @@ function validateEdifactPayload(params: {
   if (/^\uFEFF/.test(rawPayload)) {
     issues.push(issue({ severity: 'error', code: 'BOM_NOT_ALLOWED', title: 'BOM/styrtecken', description: 'Payload får inte börja med BOM eller styrtecken.' }))
   }
-  if (payloadSizeBytes > RECOMMENDED_MAX_BYTES) {
-    issues.push(issue({ severity: 'error', code: 'PAYLOAD_TOO_LARGE', title: 'Payload är för stor', description: 'Rekommenderad maxstorlek är 10 MB. Dela på applikationsnivå före EDI-konvertering.' }))
+  const sizeRecommendation = edielPayloadSizeRecommendation(payloadSizeBytes)
+  if (sizeRecommendation) issues.push(sizeRecommendation)
+
+  if (canonical.family === 'UTILTS' || canonical.family === 'UTILTS_ERR') {
+    for (const failure of utiltsPackagingGuideViolations(rawPayload)) issues.push(issue({
+      severity: 'error', code: failure.code, title: 'UTILTS-paketering följer inte anvisningen', description: failure.description, segment: failure.field,
+    }))
+    const transactionCount = canonicalUtiltsTransactions(tokens.segments.slice(firstTagIndex(tokens.segments, 'UNH') ?? 0), tokens.una, 0).length
+    if (payloadSizeBytes > CONSERVATIVE_UTILTS_MAX_BYTES || transactionCount > CONSERVATIVE_UTILTS_MAX_TRANSACTIONS) {
+      issues.push(issue({ severity: params.mode === 'send' ? 'error' : 'warning', code: 'UTILTS_CONSERVATIVE_PACKING_LIMIT',
+        title: params.mode === 'send' ? 'Utgående UTILTS måste delas före sändning' : 'Kontrollera UTILTS-mottagarkapacitet',
+        description: `Intern paketeringsgräns enligt U-16: högst 1 MB och 999 transaktioner (${payloadSizeBytes} byte, ${transactionCount} transaktioner). Detta är ingen EDIFACT-syntaxfelkod.` }))
+    }
   }
 
-  const declaredUntCount = numberOrNull(element(unt, 1))
-  const declaredUnzCount = numberOrNull(element(unz, 1))
-  const messageRef = element(unh, 1)
-  const untRef = element(unt, 2)
-  const unbRef = element(unb, 5)
-  const unzRef = element(unz, 2)
-  const unbSyntax = element(unb, 1)
-  const messageTypeToken = element(unh, 2)
+  const declaredUntCount = numberOrNull(element(unt, 1, una))
+  const declaredUnzCount = numberOrNull(element(unz, 1, una))
+  const messageRef = element(unh, 1, una)
+  const untRef = element(unt, 2, una)
+  const unbRef = element(unb, 5, una)
+  const unzRef = element(unz, 2, una)
+  const unbSyntax = segmentComposite(unb, 1, una).join(':')
+  const messageTypeToken = segmentComposite(unh, 2, una).join(':')
   const profile = profileForMessage({
     family: String(canonical.family),
     code: canonical.messageCode,
     messageTypeToken,
     rawSegments,
+    una,
   })
 
   validateSegmentProfile({
     profile,
-    rawSegments,
+    segments,
+    una,
     canonicalFamily: String(canonical.family),
     canonicalCode: canonical.messageCode,
     messageTypeToken,
@@ -405,41 +493,42 @@ function validateEdifactPayload(params: {
   })
 
   if (String(canonical.family).toUpperCase() === 'PRODAT') {
-    for (let index = 0; index < rawSegments.length; index += 1) {
-      const segment = rawSegments[index]?.toUpperCase() ?? ''
-      if (!segment.startsWith('CCI++Z14')) continue
-      const cav = rawSegments[index + 1] ?? null
-      const normalizedCav = cav?.toUpperCase() ?? ''
-      if (normalizedCav.startsWith('CAV+:::') && !normalizedCav.startsWith('CAV+::::')) {
-        issues.push(issue({
-          severity: params.mode === 'send' ? 'error' : 'warning',
-          code: 'PRODAT_ENERGY_PRODUCT_CAV_COMPONENT_MISMATCH',
-          title: 'Energiprodukt ligger i fel CAV-komponent',
-          description: 'PRODAT fält 506 Energiprodukt i CCI++Z14 ska renderas som CAV+::::<produkt-id>. CAV+:::<värde> placerar värdet som produktkod/fält 242 och valideras fel av Edielportalen.',
-          segment: cav,
-        }))
-      }
+    for (const failure of validateProdatDateFields(String(canonical.messageCode), tokens.segments, tokens.una, params.mode === 'parse' ? 'inbound' : 'outbound')) {
+      const qualifier = failure.fieldPath?.split('+')[1]
+      const source = tokens.segments.find(row => row.tag === 'DTM' && segmentComposite(row, 1, tokens.una)[0] === qualifier)
+      issues.push(issue({ severity: 'error', code: failure.code, title: failure.title,
+        description: failure.description, segment: source?.raw }))
+    }
+    for (const failure of prodatPartySyntaxIssues(tokens.segments, tokens.una)) {
+      issues.push(issue({
+        severity: 'error',
+        code: failure.kind === 'length' ? 'PROFILE_FIELD_LENGTH_EXCEEDED' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        title: 'PRODAT NAD-fält följer inte källspecifikationen',
+        description: `Fält ${failure.fieldNumber ?? 'NAD'} har fel komponent, part, kodlista, längd eller placering (26.A s.45–46,79–83).`,
+        segment: failure.raw,
+      }))
+    }
+
+    for (const cav of params.mode === 'send' ? misplacedProdatEnergyProducts(String(canonical.messageCode), tokens.segments, tokens.una) : []) {
+      issues.push(issue({
+        severity: params.mode === 'send' ? 'error' : 'warning',
+        code: 'PRODAT_ENERGY_PRODUCT_CAV_COMPONENT_MISMATCH',
+        title: 'Energiprodukt ligger i fel CAV-komponent',
+        description: 'PRODAT fält 506 Energiprodukt i CCI++Z14 ska renderas som CAV+::::<produkt-id>. CAV+:::<värde> placerar värdet som produktkod/fält 242 och valideras fel av Edielportalen.',
+        segment: cav,
+      }))
     }
   }
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
-    const hasHistoricalSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S18')
-    const hasZ13vSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S17')
-    const endUserSegment = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+UD+')) ?? null
-    const hasEndUser = Boolean(endUserSegment)
-    const hasEndUserId = Boolean(element(endUserSegment, 2))
-    const hasReportStart = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+90:'))
-    const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+91:'))
-    const contractStart = rawSegments.find((segment) => segment.toUpperCase().startsWith('DTM+92:')) ?? null
-
-    if (hasReportEnd && hasZ13vSubtype) {
-      issues.push(issue({
-        severity: params.mode === 'send' ? 'error' : 'warning',
-        code: 'PRODAT_Z13VH_REASON_FOR_TRANSACTION_MISMATCH',
-        title: 'Z13VH skickas som Z13V',
-        description: 'PRODAT Z13 med DTM+91/rapportslut ska använda fält 223/CAV+S18. CAV+S17 hör till Z13V och får inte skickas för historiska mätvärden.',
-      }))
-    }
+    const hasHistoricalSubtype = prodatCharacteristicValue('223', segments, una) === 'S18'
+    const endUser = readProdatParty('UD', rawSegments, una)
+    const endUserSegment = endUser.raw
+    const hasEndUser = Boolean(endUser.raw)
+    const hasEndUserId = Boolean(endUser.id)
+    const hasReportStart = Boolean(prodatDateValue('302', segments, una))
+    const hasReportEnd = Boolean(prodatDateValue('321', segments, una))
+    const contractStart = segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '92') ?? null
 
     if (hasHistoricalSubtype) {
       if (!hasReportStart) {
@@ -488,11 +577,10 @@ function validateEdifactPayload(params: {
   }
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z18') {
-    const hasEndUser = rawSegments.some((segment) => segment.toUpperCase().startsWith('NAD+UD+'))
-    const installationParty = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+IT+')) ?? null
-    const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+164:'))
-    const hasPermissionCreatedAt = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+693:'))
-    const hasPermissionId = rawSegments.some((segment) => segment.toUpperCase().startsWith('RFF+Z09:'))
+    const hasEndUser = Boolean(readProdatParty('UD', rawSegments, una).id)
+    const installationParty = segments.find(segment => segment.tag === 'NAD' && element(segment, 1, una) === 'IT') ?? null
+    const hasReportEnd = Boolean(prodatDateValue('327', segments, una))
+    const hasPermissionId = Boolean(prodatReferenceValue('325', rawSegments, una))
 
     if (!hasEndUser) {
       issues.push(issue({
@@ -519,14 +607,6 @@ function validateEdifactPayload(params: {
         description: 'PRODAT Z18 ska ange när tjänsten/rapporteringen upphör i DTM+164.',
       }))
     }
-    if (!hasPermissionCreatedAt) {
-      issues.push(issue({
-        severity: params.mode === 'send' ? 'error' : 'warning',
-        code: 'PRODAT_Z18_DTM_693_MISSING',
-        title: 'Z18 saknar DTM+693',
-        description: 'PRODAT Z18 ska ange tillståndets skapandetid i DTM+693.',
-      }))
-    }
     if (!hasPermissionId) {
       issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -537,13 +617,31 @@ function validateEdifactPayload(params: {
     }
   }
 
+  if(canonical.family==='PRODAT')for(const failure of validateProdatGasApplicability({code:canonical.messageCode??'',rawSegments,una,direction:params.mode==='send'?'outbound':'inbound',facts:{gasSerialChange:params.mode==='send'?undefined:params.gasSerialChange}}))issues.push(issue({severity:failure.severity,code:params.mode==='send'?`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`:failure.code,title:failure.title,description:failure.description}))
+  if(params.mode==='parse'&&canonical.family==='PRODAT'){
+    if(params.deathStatusContext)assertDeathStatusContextMatches(params.deathStatusRow??{...params.dateEventRow,message_code:canonical.messageCode,raw_payload:rawPayload},params.deathStatusContext)
+    for(const failure of validateProdatDeathStatus({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{deathStatus:params.deathStatusContext?.selection??params.deathStatus}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
+  }
+  if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatMeterChange({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{meterChange:params.meterChange}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
+  if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDateEvents({code:canonical.messageCode??'',rawSegments,una,direction:'inbound'}))issues.push(issue({severity:'error',code:failure.code,title:failure.title,description:failure.description}))
+
   const rulebookValidation = validateRulebookMessage({
     family: String(canonical.family),
     code: canonical.messageCode,
     processGroup: canonical.processGroup,
     applicationReference: canonical.applicationReference,
     rawPayload,
+    companyId: params.companyId,
+    ackSourceQualification: params.ackSourceQualification,
+    prodatCommonHeaderRejectionEvidence:params.prodatCommonHeaderRejectionEvidence,
+    deathStatusContext:params.deathStatusContext,deathStatusRow:params.deathStatusRow,customerMasterdataContext:params.customerMasterdataContext,customerMasterdataRow:params.customerMasterdataRow,validationPurpose:params.validationPurpose,customerMasterdataRenderingSource:params.customerMasterdataRenderingSource,
+    requestedChangeBasis:params.requestedChangeBasis,messageRow:params.requestedChangeRow,
+
+    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange,
+    ...(params.mode==='send'?{environment:params.ackSourceQualification||params.customerMasterdataRenderingSource?EdifactEnvelopeCodec.decode(rawPayload).environment:params.dateEventRow?.environment,direction:params.ackSourceQualification||params.customerMasterdataRenderingSource?'outbound':params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
+    parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
+      ? params.parsedPayload as Record<string, unknown> : null,
   })
 
   for (const rulebookIssue of rulebookValidation.issues) {
@@ -570,36 +668,58 @@ function validateEdifactPayload(params: {
   }
 
   if (declaredUntCount !== null && unh && unt) {
-    const unhIndex = rawSegments.indexOf(unh)
-    const untIndex = rawSegments.indexOf(unt)
+    const unhIndex = segments.indexOf(unh)
+    const untIndex = segments.indexOf(unt)
     const actual = unhIndex >= 0 && untIndex >= unhIndex ? untIndex - unhIndex + 1 : null
     if (actual !== null && actual !== declaredUntCount) {
       issues.push(issue({ severity: 'error', code: 'UNT_COUNT_MISMATCH', title: 'UNT-räknare stämmer inte', description: `UNT anger ${declaredUntCount}, faktiskt antal UNH→UNT är ${actual}.`, segment: unt }))
     }
   }
   if (declaredUnzCount !== null) {
-    const actualMessages = all(rawSegments, 'UNH+').length
+    const actualMessages = segments.filter(segment => segment.tag === 'UNH').length
     if (declaredUnzCount !== actualMessages) {
       issues.push(issue({ severity: 'error', code: 'UNZ_COUNT_MISMATCH', title: 'UNZ-räknare stämmer inte', description: `UNZ anger ${declaredUnzCount}, faktiskt antal UNH är ${actualMessages}.`, segment: unz }))
     }
   }
 
-  checkMaxLength({ issues, value: splitComposite(element(unb, 2))[0] ?? null, max: 35, code: 'UNB_SENDER_TOO_LONG', title: 'UNB avsändare för lång', segment: unb })
-  checkMaxLength({ issues, value: splitComposite(element(unb, 2))[2] ?? null, max: 14, code: 'UNB_SENDER_SUBADDRESS_TOO_LONG', title: 'UNB avsändar-subadress för lång', segment: unb })
-  checkMaxLength({ issues, value: splitComposite(element(unb, 3))[0] ?? null, max: 35, code: 'UNB_RECEIVER_TOO_LONG', title: 'UNB mottagare för lång', segment: unb })
-  checkMaxLength({ issues, value: splitComposite(element(unb, 3))[2] ?? null, max: 14, code: 'UNB_RECEIVER_SUBADDRESS_TOO_LONG', title: 'UNB mottagar-subadress för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 2, una)[0] ?? null, max: 35, code: 'UNB_SENDER_TOO_LONG', title: 'UNB avsändare för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 2, una)[2] ?? null, max: 14, code: 'UNB_SENDER_SUBADDRESS_TOO_LONG', title: 'UNB avsändar-subadress för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 3, una)[0] ?? null, max: 35, code: 'UNB_RECEIVER_TOO_LONG', title: 'UNB mottagare för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 3, una)[2] ?? null, max: 14, code: 'UNB_RECEIVER_SUBADDRESS_TOO_LONG', title: 'UNB mottagar-subadress för lång', segment: unb })
   checkMaxLength({ issues, value: unbRef, max: 14, code: 'UNB_REFERENCE_TOO_LONG', title: 'UNB interchange reference för lång', segment: unb })
-  checkMaxLength({ issues, value: element(unb, 7), max: 14, code: 'UNB_APPLICATION_REFERENCE_TOO_LONG', title: 'Application Reference för lång', segment: unb })
+  checkMaxLength({ issues, value: element(unb, 7, una), max: 14, code: 'UNB_APPLICATION_REFERENCE_TOO_LONG', title: 'Application Reference för lång', segment: unb })
   checkMaxLength({ issues, value: messageRef, max: 14, code: 'UNH_REFERENCE_TOO_LONG', title: 'UNH message reference för lång', segment: unh })
 
   checkIdentifierCharacters({ issues, value: unbRef, segment: unb, label: 'UNB interchange reference' })
   checkIdentifierCharacters({ issues, value: messageRef, segment: unh, label: 'UNH message reference' })
-  for (const segment of rawSegments) {
-    const tag = segment.split('+')[0]?.toUpperCase() ?? ''
+  for (const segment of segments) {
+    const tag = segment.tag
     if (!IDENTIFIER_QUALIFIERS.has(tag)) continue
-    const values = tag === 'NAD' ? segment.split('+').slice(2, 3) : segment.split('+').slice(1)
-    for (const value of values) {
-      const candidate = splitComposite(value)[0] ?? null
+    // PRODAT NAD identifiers are checked against their source C082 definition
+    // above, not against a generic normalization/character heuristic.
+    if (tag === 'NAD' && canonical.family === 'PRODAT') continue
+    const indices = tag === 'NAD' ? [2] : segment.elements.slice(1).map((_, index) => index + 1)
+    for (const index of indices) {
+      const parts=segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},index,una)
+      // Own IDE505 has an..35 admission. TN529/ACW525 copy the observed
+      // original (an..70), including an original invalid trailing space.
+      // A negative reply must not normalize or truncate that observation.
+      const physicalUtiltsId=tag==='IDE' && index===2 && ['UTILTS','UTILTS_ERR'].includes(canonical.family)
+      const copiedUtiltsId=tag==='RFF' && index===1 && ((canonical.family==='UTILTS_ERR' && parts[0]==='TN') ||
+        (canonical.family==='APERAK' && canonical.version==='E5SE5A' && parts[0]==='ACW'))
+      if(physicalUtiltsId) {
+        const reference=parts[0]
+        if(!isValidUtiltsTransactionReference(reference)) issues.push(issue({severity:'error',code:'UTILTS_PHYSICAL_TRANSACTION_REFERENCE_INVALID',
+          title:'Ogiltig fysisk UTILTS-transaktionsreferens',description:'Det egna fält505 ska behålla an..35 utan avslutande blanksteg eller styrtecken.',segment}))
+        continue
+      }
+      if(copiedUtiltsId){
+        const reference=parts[1]
+        if(typeof reference!=='string'||reference.length<1||reference.length>70||/[\x00-\x1f\x7f-\x9f\u0100-\uffff]/.test(reference))issues.push(issue({severity:'error',code:'UTILTS_COPIED_TRANSACTION_REFERENCE_INVALID',
+          title:'Ogiltig kopierad UTILTS-transaktionsreferens',description:'Fält529/525 återger originalet oförändrat som an..70 utan styrtecken eller tecken utanför UNOC.',segment}))
+        continue
+      }
+      const candidate = parts[0] ?? null
       if (candidate && /^[A-Za-z0-9ÅÄÖåäö _.-]{4,}$/.test(candidate)) {
         checkIdentifierCharacters({ issues, value: candidate, segment, label: `${tag} identifierare` })
       }
@@ -623,7 +743,7 @@ function validateEdifactPayload(params: {
     payloadSizeBytes,
     mimeType: mime,
     issues,
-    markers: markers(rawPayload),
+    markers: markers(rawPayload, segments),
   }
 }
 
@@ -683,10 +803,31 @@ export function preflightEdielPayload(params: {
   mimeType?: string | null
   messageStandard?: EdielMessageRow['message_standard'] | null
   mode?: 'send' | 'parse'
+  /** Optional persisted renderer metadata. PRODAT register facts are accepted
+   * only through their body-bound evidence envelope in the rulebook validator. */
+  parsedPayload?: unknown
+  dateEventRow?:ProdatDateEventRow
+  dateEventContext?:ProdatDateEventValidationContext
+  gasSerialChange?:GasSerialChangeSelection
+  deathStatus?:DeathSelection
+  deathStatusContext?:DeathStatusValidationContext
+  requestedChangeBasis?:RequestedChangeBasis
+  requestedChangeRow?:EdielMessageRow
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
+
+  deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
+  meterChange?:MeterChangeSelection
+  reportingContext?:ExpectedContext
+  companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): EdielPayloadPreflightResult {
-  const rawPayload = String(params.rawPayload ?? '').trim()
+  const rawPayload = String(params.rawPayload ?? '')
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
-  if (!rawPayload) {
+  if (!rawPayload.trim()) {
     return {
       ok: false,
       blocking: true,
@@ -702,16 +843,82 @@ export function preflightEdielPayload(params: {
     }
   }
 
+  const formatIdentity = wireFormatIdentityIssue({ rawPayload, messageStandard: params.messageStandard, mimeType: params.mimeType })
+  if (formatIdentity) {
+    const result = validateEdifactPayload({ ...params, rawPayload, mode: params.mode ?? 'parse' })
+    result.issues.push(issue({ ...formatIdentity, severity: 'error' }))
+    return { ...result, ok: false, blocking: true }
+  }
+
+  // Actual Z10 must reach its EDIFACT send boundary before caller format hints
+  // can select XML/list early returns. Preserve ordinary syntax validation there.
+  if (params.mode === 'send' && (prodatFreeTextSendIssues({ raw_payload: rawPayload }).length > 0 || gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || deathStatusSendIssue(params.deathStatusRow??{...params.dateEventRow,raw_payload:rawPayload,parsed_payload:params.parsedPayload},params.deathStatusContext,params.requestedChangeBasis) || meterChangeSendIssue({raw_payload:rawPayload}))) {
+    return validateEdifactPayload({...params,rawPayload,mode:'send'})
+  }
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
-  if (params.messageStandard === 'ai_list' || (!rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse' })
+  const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
+  if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
+  return validateEdifactPayload({ ...params,rawPayload,mode:params.mode??'parse' })
 }
 
-export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send'): EdielPayloadPreflightResult {
-  return preflightEdielPayload({
+export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,ackSourceQualification?:SourceQualifiedOutboundAck,deathStatusContext?:DeathStatusValidationContext,prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence,customerMasterdataContext?:CustomerMasterdataValidationContext,requestedChangeBasis?:RequestedChangeBasis): EdielPayloadPreflightResult {
+
+  const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
+    parsedPayload:message.parsed_payload,
+    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,deathStatusRow:message,prodatCommonHeaderRejectionEvidence,customerMasterdataContext,customerMasterdataRow:message,validationPurpose:'send',requestedChangeBasis,requestedChangeRow:message,
+
   })
+  const gasBoundary=mode==='send'?gasApplicabilitySendIssue(message):null
+  if(gasBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}));result.ok=false;result.blocking=true}
+  const deathBoundary=mode==='send'?deathStatusSendIssue(message,deathStatusContext,requestedChangeBasis):null
+  if(deathBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}));result.ok=false;result.blocking=true}
+  const meterBoundary=mode==='send'?meterChangeSendIssue(message):null
+  if(meterBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}));result.ok=false;result.blocking=true}
+  if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
+  try {
+    const tokens = tokenizeEdifact(message.raw_payload)
+    const scopeFailure = mode === 'send' ? prodatSendMessageScopeIssue(tokens) : null
+    if (scopeFailure) {
+      result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${scopeFailure.code}`,title:scopeFailure.title,description:scopeFailure.description}))
+      return {...result, ok:false, blocking:true}
+    }
+    if (result.family !== 'PRODAT' && message.message_family !== 'PRODAT') return result
+    // A row label cannot hide a real PRODAT header or turn another family into
+    // PRODAT. Detached fragments retain their explicit row-family fallback.
+    const header = tokens.segments.find(segment => segment.tag === 'UNH')
+    if (header && segmentComposite(header, 2, tokens.una)[0]?.trim().toUpperCase() !== 'PRODAT') return result
+    const rawSegments = tokens.segments.map(segment => segment.raw)
+    const code = result.code ?? String(message.message_code ?? '')
+    if (mode === 'send') {
+      for (const failure of validateProdatSubtypePayload({family:'PRODAT', code, rawSegments, una:tokens.una})) {
+        result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+      }
+    }
+    let sourceFacts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,reportingContext,customerMasterdataContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    if(requestedChangeBasis){
+      if(!isRequestedChangeBasisQualified(requestedChangeBasis,message))throw Error('requested_change_protected_basis_scope_invalid')
+      sourceFacts={...sourceFacts,...requestedChangeRegisterFacts(requestedChangeBasis),deathStatus:requestedChangeWireDeathSelection(requestedChangeBasis,message.raw_payload)}
+    }
+
+    if(deathStatusContext)assertDeathStatusContextMatches(message,deathStatusContext)
+    const facts=deathStatusContext?{...sourceFacts,deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:sourceFacts
+    if(mode==='send')for(const failure of validateProdatReportingPermission({code,rawSegments,una:tokens.una,facts,requireAuthority:true,reportingContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+    if(mode==='send')for(const failure of validateProdatDateEvents({code,rawSegments,una:tokens.una,facts,requireAuthority:true,dateEventContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+    if(mode==='send')for(const failure of validateProdatInvoicee({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+    if(mode==='send')for(const failure of validateProdatEndUserAddress({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+    for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send',applicationReference:message.application_reference})) {
+      result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+    }
+  } catch (error) {
+    const authorityIssue=reportingAuthorityIssue(error)??prodatDateEventAuthorityIssue(error)
+    if(authorityIssue)result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${authorityIssue.code}`,title:authorityIssue.title,description:authorityIssue.description}))
+    result.issues.push(issue({severity:'error',code:'PRODAT_REGISTER_EVIDENCE_INVALID',title:'Ogiltigt registerunderlag',description:'Registerunderlaget är ogiltigt eller hör till en annan meddelandeversion. Bygg om med verifierade objektfakta.'}))
+  }
+  result.blocking = result.issues.some(issue => issue.severity === 'error')
+  result.ok = !result.blocking
+  return result
 }

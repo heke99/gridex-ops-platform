@@ -33,10 +33,12 @@ describe('platform go-live admin flow', () => {
   })
 
   it('presents the dependency-safe repeatable operator path before advanced controls', () => {
-    expect(page).toContain('1. Bolaget är säkert')
-    expect(page).toContain('2. Bevis + dry run')
-    expect(page).toContain('3. Sätt bolaget live')
-    expect(page).toContain('4. Webb & kundflöde')
+    // Step labels were renamed in "Fix tenant sales gating and simplify
+    // production approval"; the four-step path and both panels are unchanged.
+    expect(page).toContain('1. Kontrollera bolaget')
+    expect(page).toContain('2. Kör dry run')
+    expect(page).toContain('3. Godkänn production')
+    expect(page).toContain('4. Kundintag är separat')
     expect(page).toContain('<CertificationEvidencePanel')
     expect(page).toContain('<TenantWebsiteGoLivePanel')
     expect(page).toContain('Avancerat: testprofil, äldre actor-data och evidence package')

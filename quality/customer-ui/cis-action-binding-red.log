@@ -1,0 +1,96 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/admin-cis-action-customer-binding.test.ts (8 tests | 3 failed) 67ms
+     × metering request ignores a forged customer_id in follow-up work 53ms
+     × partner export ignores a forged customer_id in follow-up work 2ms
+     × outbound request ignores a forged customer_id in follow-up work 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/admin-cis-action-customer-binding.test.ts > admin CIS actions use the saved record customer for follow-up work > metering request ignores a forged customer_id in follow-up work
+ FAIL  __tests__/admin-cis-action-customer-binding.test.ts > admin CIS actions use the saved record customer for follow-up work > partner export ignores a forged customer_id in follow-up work
+AssertionError: expected "vi.fn()" to be called with arguments: [ Anything, 'customer-a' ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   Anything,
+-   "customer-a",
++   {
++     "auth": {
++       "getUser": [Function getUser],
++     },
++     "from": [Function from],
++   },
++   "customer-b",
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-cis-action-customer-binding.test.ts:62:24
+     60|     await action(form({ [key]: id, customer_id: 'customer-b', status }…
+     61|     expect(state.companyAccess).toHaveBeenCalledWith('actor', 'company…
+     62|     expect(state.sync).toHaveBeenCalledWith(expect.anything(), 'custom…
+       |                        ^
+     63|     expect(state.sync).not.toHaveBeenCalledWith(expect.anything(), 'cu…
+     64|     expect(state.audit).toHaveBeenCalledWith(expect.objectContaining({…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  __tests__/admin-cis-action-customer-binding.test.ts > admin CIS actions use the saved record customer for follow-up work > outbound request ignores a forged customer_id in follow-up work
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "company_id": "company-a",
+-     "metadata": ObjectContaining {
++   {
++     "action": "outbound_request_status_updated",
++     "actor_user_id": "actor",
++     "company_id": null,
++     "entity_id": "outbound-a",
++     "entity_type": "outbound_request",
++     "metadata": {
+        "customerId": "customer-a",
++       "status": "prepared",
++       "syncedGridOwnerDataRequestId": null,
++       "syncedGridOwnerDataRequestStatus": null,
++       "syncedSwitchRequestId": null,
++       "syncedSwitchStatus": null,
++     },
++     "new_values": {
++       "company_id": "company-a",
++       "customer_id": "customer-a",
++       "id": "outbound-a",
++       "request_type": "other",
++       "status": "prepared",
+      },
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-cis-action-customer-binding.test.ts:64:25
+     62|     expect(state.sync).toHaveBeenCalledWith(expect.anything(), 'custom…
+     63|     expect(state.sync).not.toHaveBeenCalledWith(expect.anything(), 'cu…
+     64|     expect(state.audit).toHaveBeenCalledWith(expect.objectContaining({…
+       |                         ^
+     65|     expect(state.revalidate).toHaveBeenCalledWith('/admin/customers/cu…
+     66|     expect(state.revalidate).not.toHaveBeenCalledWith('/admin/customer…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 5 passed (8)
+   Start at  14:58:24
+   Duration  454ms (transform 103ms, setup 30ms, import 116ms, tests 67ms, environment 0ms)

@@ -1,3 +1,5 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
+import CustomerName from '@/components/admin/CustomerName'
 //app/admin/operations/switches/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -7,7 +9,7 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
 import {
  listAllSupplierSwitchRequests,
-listPowersOfAttorneyByCustomerIds,
+ listPowersOfAttorneyByCustomerIds,
  listSupplierSwitchEventsByRequestIds,
 } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
@@ -23,6 +25,7 @@ import {
 } from '@/app/admin/operations/actions'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 type SwitchesPageProps = {
  searchParams: Promise<{
@@ -126,7 +129,7 @@ function KpiCard({
  <Link
  href={href}
  className={[
- 'rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
+ 'rounded-2xl border p-3 transition hover:border-emerald-500',
  active
  ? 'border-emerald-300 bg-emerald-50/70 '
  : 'border-slate-200 bg-white ',
@@ -135,12 +138,10 @@ function KpiCard({
  <div className="text-sm font-medium text-slate-700 ">
  {label}
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {value}
  </div>
- <div className="mt-2 text-xs font-medium text-slate-700 ">
- Öppna filtrerad vy
- </div>
+
  </Link>
  )
 }
@@ -149,14 +150,12 @@ export default async function AdminOperationsSwitchesPage({
  searchParams,
 }: SwitchesPageProps) {
  const context = await requireAdminPageKeyAccess('operations.switches')
- const tenantScope = await resolveAdminTenantReadScope(context)
+ const [tenantScope, resolvedSearchParams] = await Promise.all([
+ resolveAdminTenantReadScope(context),
+ searchParams,
+ ])
  const companyId = tenantScope.companyId
-
- const resolvedSearchParams = await searchParams
  const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
 
  const status = (resolvedSearchParams.status ?? 'all').trim()
  const requestType = (resolvedSearchParams.requestType ?? 'all').trim()
@@ -170,10 +169,11 @@ export default async function AdminOperationsSwitchesPage({
  companyId,
  })
 
+ const requestIds = requests.map((request) => request.id)
  const siteIds = Array.from(new Set(requests.map((request) => request.site_id)))
 
- let sites: CustomerSiteRow[] = []
- if (siteIds.length > 0) {
+ const sitesPromise: Promise<CustomerSiteRow[]> = siteIds.length > 0
+ ? (async () => {
  let sitesQueryBuilder = supabase
  .from('customer_sites')
  .select('*')
@@ -184,16 +184,14 @@ export default async function AdminOperationsSwitchesPage({
  }
 
  const sitesQuery = await sitesQueryBuilder
-
  if (sitesQuery.error) throw sitesQuery.error
- sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
- }
+ return (sitesQuery.data ?? []) as CustomerSiteRow[]
+ })()
+ : Promise.resolve([] as CustomerSiteRow[])
 
- const [events, outboundRequests, meteringPoints] = await Promise.all([
- listSupplierSwitchEventsByRequestIds(
- supabase,
- requests.map((request) => request.id)
- ),
+ const [sites, events, outboundRequests, meteringPoints] = await Promise.all([
+ sitesPromise,
+ listSupplierSwitchEventsByRequestIds(supabase, requestIds),
  listOutboundRequests({
  status: 'all',
  requestType: 'supplier_switch',
@@ -208,24 +206,24 @@ export default async function AdminOperationsSwitchesPage({
  string,
  ReturnType<typeof evaluateSiteSwitchReadiness>
  >()
-const customerIds = Array.from(new Set(sites.map((site) => site.customer_id).filter(Boolean)))
-const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(supabase, customerIds, {
+ const customerIds = Array.from(new Set(sites.map((site) => site.customer_id).filter(Boolean)))
+ const powersOfAttorney = await listPowersOfAttorneyByCustomerIds(supabase, customerIds, {
  companyId,
  limit: Math.max(customerIds.length * 5, 100),
-})
-const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
+ })
+ const powersOfAttorneyByCustomerId = new Map<string, typeof powersOfAttorney>()
 
-for (const powerOfAttorney of powersOfAttorney) {
+ for (const powerOfAttorney of powersOfAttorney) {
  const current = powersOfAttorneyByCustomerId.get(powerOfAttorney.customer_id) ?? []
  current.push(powerOfAttorney)
  powersOfAttorneyByCustomerId.set(powerOfAttorney.customer_id, current)
-}
+ }
 
  for (const site of sites) {
  const readiness = evaluateSiteSwitchReadiness({
  site,
  meteringPoints: meteringPoints.filter((point) => point.site_id === site.id),
-powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
+ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  })
 
  readinessMap.set(site.id, readiness)
@@ -283,11 +281,11 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  <AdminHeader
  title="Switchar"
  subtitle="Hantera leverantörsbyten, validering, outboundkoppling och intern slutföring av switchar."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
- <div className="space-y-6 p-8">
- <section className="grid gap-4 lg:grid-cols-3 xl:grid-cols-7">
+ <div className="space-y-4 p-4 lg:p-6">
+ <section className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-7">
  <KpiCard
  label="Blockerade"
  value={blockedCount}
@@ -390,9 +388,10 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  </div>
  </div>
 
- <form className="mt-6 grid gap-4 xl:grid-cols-[1.2fr_190px_190px_220px_auto]">
+ <form className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto] [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
  <input
  name="q"
+ aria-label="Sök leverantörsbyten"
  defaultValue={query}
  placeholder="Sök på kund, site, mätpunkt, leverantör eller referens"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-700 "
@@ -400,6 +399,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
 
  <select
  name="status"
+ aria-label="Status"
  defaultValue={status}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -415,6 +415,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
 
  <select
  name="requestType"
+ aria-label="Ärendetyp"
  defaultValue={requestType}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -426,6 +427,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
 
  <select
  name="stage"
+ aria-label="Handläggningsläge"
  defaultValue={stage}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -453,7 +455,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  </form>
  </section>
 
- <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <section className="rounded-2xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
@@ -486,226 +488,68 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  const { request, readiness, outbound, lifecycle } = row
 
  return (
- <article
- key={request.id}
- className="rounded-3xl border border-slate-200 p-5 "
- >
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
- <div className="min-w-0 flex-1">
- <div className="flex flex-wrap items-center gap-2">
- <span
- className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
- request.status
- )}`}
- >
- {request.status}
- </span>
- <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
- {request.request_type}
- </span>
- <span
- className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
- lifecycle.stage
- )}`}
- >
- {lifecycle.label}
- </span>
- {outbound ? (
- <span
- className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
- outbound.status
- )}`}
- >
- outbound: {outbound.status}
- </span>
- ) : null}
- </div>
-
- <h3 className="mt-3 text-base font-semibold text-slate-950 ">
- Switchärende {request.id}
- </h3>
-
- <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Kund</div>
- <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Site</div>
- <div className="mt-1 font-medium text-slate-900 ">
- {request.site_id}
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Mätpunkt</div>
- <div className="mt-1 font-medium text-slate-900 ">
- {request.metering_point_id}
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Startdatum</div>
- <div className="mt-1 font-medium text-slate-900 ">
- {request.requested_start_date ?? '—'}
- </div>
- </div>
- </div>
-
- <div className="mt-4 space-y-1 text-sm text-slate-700 ">
- <div>
- Nuvarande leverantör:{' '}
- <span className="font-medium">
- {request.current_supplier_name ?? '—'}
- </span>
- </div>
- <div>
- Inkommande leverantör:{' '}
- <span className="font-medium">
- {request.incoming_supplier_name}
- </span>
- </div>
- <div>
- Extern referens:{' '}
- <span className="font-medium">
- {request.external_reference ?? '—'}
- </span>
- </div>
- <div>
- Senaste händelse:{' '}
- <span className="font-medium">
- {latestEventText(request.id, events)}
- </span>
- </div>
- <div>
- Handläggningsläge:{' '}
- <span className="font-medium">{lifecycle.reason}</span>
- </div>
- <div>
- Utskicksstatus:{' '}
- <span className="font-medium">
- {outbound?.status ?? 'Inget utskick ännu'}
- </span>
- </div>
-
- {readiness && !readiness.isReady ? (
- <div className="text-red-700 ">
- Blockeringar:{' '}
- <span className="font-medium">
- {summarizeReadinessIssues(readiness)}
- </span>
- </div>
- ) : null}
- </div>
-
- <div className="mt-4 flex flex-wrap items-center gap-3">
- <Link
- href={`/admin/operations/switches/${request.id}`}
- className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline "
- >
- Öppna ärende
- </Link>
-
- <Link
- href={`/admin/customers/${request.customer_id}`}
- className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline "
- >
- Öppna kundkort
- </Link>
-
- <form action={validateSupplierSwitchBeforeProcessingAction}>
- <input type="hidden" name="request_id" value={request.id} />
- <button className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 ">
- {request.status === 'draft'
- ? 'Validera & markera redo'
- : 'Kör validering'}
- </button>
- </form>
-
- {['queued', 'submitted', 'accepted'].includes(request.status) ? (
- outbound ? (
- <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 ">
- Utskick finns redan
- </span>
- ) : (
- <form action={queueSupplierSwitchOutboundAction}>
- <input type="hidden" name="request_id" value={request.id} />
- <button className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 ">
- Köa utskick manuellt
- </button>
- </form>
- )
- ) : null}
-
- {lifecycle.stage === 'ready_to_execute' ? (
- <>
- <form action={finalizeSupplierSwitchExecutionAction}>
- <input type="hidden" name="request_id" value={request.id} />
- <button className="rounded-2xl border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 ">
- Slutför switch
- </button>
- </form>
-
- <Link
- href="/admin/operations/ready-to-execute"
- className="rounded-2xl border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 "
- >
- Öppna slutföringskö
- </Link>
- </>
- ) : null}
- </div>
- </div>
-
- <div className="w-full rounded-3xl border border-slate-200 p-4 xl:max-w-sm ">
- <h4 className="text-sm font-semibold text-slate-900 ">
- Uppdatera switchstatus
- </h4>
-
- <form
- action={updateSupplierSwitchStatusFromAdminAction}
- className="mt-4 space-y-3"
- >
- <input type="hidden" name="request_id" value={request.id} />
-
- <select
- name="status"
- defaultValue={request.status}
- className="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm "
- >
- <option value="draft">Utkast</option>
- <option value="queued">Köad</option>
- <option value="submitted">Skickad</option>
- <option value="accepted">Accepterad</option>
- <option value="rejected">Avvisad</option>
- <option value="completed">Slutförd</option>
- <option value="failed">Kräver åtgärd</option>
- </select>
-
- <input
- name="external_reference"
- defaultValue={request.external_reference ?? ''}
- placeholder="Extern referens"
- className="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm "
- />
-
- <textarea
- name="failure_reason"
- defaultValue={request.failure_reason ?? ''}
- placeholder="Felorsak"
- rows={4}
- className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm "
- />
-
- <button className="w-full rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
- Spara status
- </button>
- </form>
- </div>
- </div>
+ <article key={request.id} className="min-w-0 rounded-2xl border border-slate-200 p-4">
+   <div className="flex flex-wrap items-start justify-between gap-3">
+     <div className="min-w-0 flex-1 break-words">
+       <h3 className="font-semibold text-slate-950"><Link href={`/admin/operations/switches/${request.id}`} className="hover:underline"><CustomerName id={request.customer_id} /></Link></h3>
+       <p className="mt-1 text-sm text-slate-700">{request.request_type} · Startdatum {request.requested_start_date ?? '—'} · {request.incoming_supplier_name}</p>
+     </div>
+     <div className="flex flex-wrap items-center gap-2">
+       <Link href={`/admin/operations/switches/${request.id}`} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Öppna ärende</Link>
+       <AdminActionsMenu ariaLabel={`Fler åtgärder för switchärende ${request.id}`}>
+         <Link href={`/admin/customers/${request.customer_id}`}>Öppna kundkort</Link>
+         <form action={validateSupplierSwitchBeforeProcessingAction}>
+           <input type="hidden" name="request_id" value={request.id} />
+           <button>{request.status === 'draft' ? 'Validera & markera redo' : 'Kör validering'}</button>
+         </form>
+         {['queued', 'submitted', 'accepted'].includes(request.status) && !outbound ? (
+           <form action={queueSupplierSwitchOutboundAction}><input type="hidden" name="request_id" value={request.id} /><button>Köa utskick manuellt</button></form>
+         ) : null}
+         {lifecycle.stage === 'ready_to_execute' ? <Link href="/admin/operations/ready-to-execute">Öppna slutföringskö</Link> : null}
+       </AdminActionsMenu>
+     </div>
+   </div>
+   <div className="mt-3 flex flex-wrap items-center gap-2">
+     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(request.status)}`}>{formatStatusLabel(request.status)}</span>
+     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(lifecycle.stage)}`}>{lifecycle.label}</span>
+     {outbound ? <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(outbound.status)}`}>Utskick: {formatStatusLabel(outbound.status)}</span> : <span className="text-xs font-medium text-slate-600">Inget utskick ännu</span>}
+     {['queued', 'submitted', 'accepted'].includes(request.status) && outbound ? <span className="text-xs font-medium text-emerald-700">Utskick finns redan</span> : null}
+   </div>
+   <div className="mt-2 space-y-1 break-words text-sm text-slate-700">
+     <p>{lifecycle.reason}</p>
+     {request.failure_reason ? <p className="font-medium text-red-700">Felorsak: {request.failure_reason}</p> : null}
+     {readiness && !readiness.isReady ? <p className="font-medium text-red-700">Blockeringar: {summarizeReadinessIssues(readiness)}</p> : null}
+   </div>
+   {lifecycle.stage === 'ready_to_execute' ? (
+     <form action={finalizeSupplierSwitchExecutionAction} className="mt-3"><input type="hidden" name="request_id" value={request.id} /><button className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Slutför switch</button></form>
+   ) : null}
+   <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2">
+     <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+       <summary className="cursor-pointer font-semibold">Ärendedetaljer</summary>
+       <dl className="mt-3 space-y-2 break-words [&_dt]:text-xs [&_dt]:font-medium [&_dt]:text-slate-600">
+         <div><dt>Switchärende</dt><dd>{request.id}</dd></div>
+         <div><dt>Anläggning</dt><dd>{request.site_id}</dd></div>
+         <div><dt>Mätpunkt</dt><dd>{request.metering_point_id}</dd></div>
+         <div><dt>Nuvarande leverantör</dt><dd>{request.current_supplier_name ?? '—'}</dd></div>
+         <div><dt>Extern referens</dt><dd>{request.external_reference ?? '—'}</dd></div>
+         <div><dt>Senaste händelse</dt><dd>{latestEventText(request.id, events)}</dd></div>
+       </dl>
+     </details>
+     <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+       <summary className="cursor-pointer font-semibold">Uppdatera switchstatus</summary>
+       <form action={updateSupplierSwitchStatusFromAdminAction} className="mt-3 grid min-w-0 grid-cols-1 gap-3">
+         <input type="hidden" name="request_id" value={request.id} />
+         <label className="grid min-w-0 grid-cols-1 gap-1 font-medium">Status
+           <select name="status" aria-label={`Status för switchärende ${request.id}`} defaultValue={request.status} className="min-h-10 min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal">
+             <option value="draft">Utkast</option><option value="queued">Köad</option><option value="submitted">Skickad</option><option value="accepted">Accepterad</option><option value="rejected">Avvisad</option><option value="completed">Slutförd</option><option value="failed">Kräver åtgärd</option>
+           </select>
+         </label>
+         <label className="grid min-w-0 grid-cols-1 gap-1 font-medium">Extern referens<input name="external_reference" defaultValue={request.external_reference ?? ''} className="min-h-10 min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal" /></label>
+         <label className="grid min-w-0 grid-cols-1 gap-1 font-medium">Felorsak<textarea name="failure_reason" defaultValue={request.failure_reason ?? ''} rows={3} className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal" /></label>
+         <button className="justify-self-start rounded-xl bg-emerald-700 px-4 py-2.5 font-semibold text-white hover:bg-emerald-800">Spara status</button>
+       </form>
+     </details>
+   </div>
  </article>
  )
  })

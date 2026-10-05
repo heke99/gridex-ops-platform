@@ -1,0 +1,36 @@
+import concurrent.futures,hashlib,json,os,pathlib,subprocess,time
+root=pathlib.Path('/workspace/scratch/2a201d6d5897/gridex-next');os.chdir(root)
+out=root/'quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920'
+commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert commit=='153b7d5aafc42231526029cfd3cb55e6c51e8c95'
+node=subprocess.check_output(['node','--version'],text=True).strip()
+source_files=subprocess.check_output(['git','ls-files','lib','app','__tests__'],text=True).splitlines()
+source_hashes={p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in source_files}
+prior_files=subprocess.check_output(['git','ls-tree','-r','--name-only','485a19e6','quality/audits/ediel-masterplan-v2'],text=True).splitlines()
+prior_hashes={p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in prior_files}
+(out/'gate-source-manifest-01.json').write_text(json.dumps({'runtimeCommit':commit,'node':node,'sourceFiles':source_hashes,'priorAuditFiles':prior_hashes},indent=2)+'\n')
+base=json.load(open(root/'quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-gates-02.json'))['gates']
+gates=[]
+for g in base:
+ cmd=g['command'][:]
+ for i,a in enumerate(cmd):
+  if a.startswith('--outputFile='):
+   cmd[i]='--outputFile='+str(out/('full-01.json' if g['gate']=='full' else 'quality-01.json'))
+  elif a=='263790d2':cmd[i]='485a19e6'
+ gates.append((g['gate'],cmd))
+env={**os.environ,'NODE_OPTIONS':'--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs'}
+def run(entry):
+ name,cmd=entry;start=time.monotonic();log=out/('final-'+name+'-01.log')
+ with log.open('wb') as f:p=subprocess.run(cmd,stdout=f,stderr=subprocess.STDOUT,env=env)
+ row={'gate':name,'command':cmd,'exit':p.returncode,'seconds':round(time.monotonic()-start,2),'log':str(log.relative_to(root)),'sha256':hashlib.sha256(log.read_bytes()).hexdigest(),'runtimeCommit':commit}
+ print(name,p.returncode,flush=True);return row
+results=[]
+with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+ for future in concurrent.futures.as_completed([pool.submit(run,g) for g in gates]):
+  results.append(future.result())
+  (out/'final-gates-01.json').write_text(json.dumps({'node':node,'runtimeCommit':commit,'gates':sorted(results,key=lambda x:x['gate'])},indent=2)+'\n')
+changed=[p for p,h in source_hashes.items() if hashlib.sha256((root/p).read_bytes()).hexdigest()!=h]
+prior_changed=[p for p,h in prior_hashes.items() if hashlib.sha256((root/p).read_bytes()).hexdigest()!=h]
+(out/'gate-integrity-01.json').write_text(json.dumps({'runtimeCommit':commit,'sourceFileCount':len(source_hashes),'changedSourceFiles':changed,'priorAuditCount':len(prior_hashes),'changedPriorAuditFiles':prior_changed},indent=2)+'\n')
+assert not changed and not prior_changed
+print('COMPLETE',len(results),'gates; failures',sum(r['exit']!=0 for r in results),flush=True)

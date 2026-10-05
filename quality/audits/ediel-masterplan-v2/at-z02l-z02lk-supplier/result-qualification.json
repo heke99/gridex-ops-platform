@@ -1,0 +1,32 @@
+{
+  "test_sha256": "b2278560af93c1779c3630daa2b47e2a89886d7688f08906b0b9647e1ef8149e",
+  "actual_tests": 54,
+  "passed": 50,
+  "failed": 4,
+  "errors": 0,
+  "skipped": 0,
+  "exit_code": 1,
+  "failed_cases": [
+    {
+      "class": "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+      "name": "AT-Z02 'L' supplier ('Z22') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint",
+      "failure": "expected { \u2026(2) } to deeply equal { \u2026(4) }"
+    },
+    {
+      "class": "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+      "name": "AT-Z02 'L' supplier ('Z22') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result",
+      "failure": "expected { \u2026(2) } to deeply equal { \u2026(3) }"
+    },
+    {
+      "class": "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+      "name": "AT-Z02 'LK' supplier ('Z23') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint",
+      "failure": "expected { \u2026(2) } to deeply equal { \u2026(4) }"
+    },
+    {
+      "class": "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+      "name": "AT-Z02 'LK' supplier ('Z23') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result",
+      "failure": "expected { \u2026(2) } to deeply equal { \u2026(3) }"
+    }
+  ],
+  "qualification": "bounded_app_consumers_only; not accepted outer pipeline/native SQL/ACK/source-original proof"
+}

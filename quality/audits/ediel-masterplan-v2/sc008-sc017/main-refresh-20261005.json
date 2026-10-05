@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-05T18:04:31.572243+00:00",
+  "technical_head_before_receipt": "3aac290b5e1a85e4f1022f82114c8f668ac3ef8d",
+  "technical_tree": "a56c99a4b4d6fc055fb67fa22ffd8ca7dbeec252",
+  "genuine_main_parent": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "main_foreign_entries_exact_except_authorized_fixture": 8229,
+  "only_own_coverage_changed": [
+    "SC-008",
+    "SC-017"
+  ],
+  "foreign_rows_metadata_order_preserved": true,
+  "shared_fixture_author_commit": "a7eb3a1acbb226ec2715da0a39b23ec6427be3c8",
+  "shared_fixture_byte_exact": true,
+  "shared_fixture_patch_sha256": "76ed84560c6f73740bc790ee6d62cca5025bab6c100f2d11352dfe2b1b38c338",
+  "main_calendar_triple_and_tagged_wrapper_exact": true,
+  "raw_projection_actual_suites": {
+    "passed": 24,
+    "log_sha256": "8305bb39de471e21270cee66114d95b8e7f2a7a9a7aa1e4f79566bc538a29918"
+  },
+  "reached_runtime_selected_controls": {
+    "passed": 2,
+    "deselected_by_name_filter": 11,
+    "log_sha256": "076ef2b1fe54b1fda1e85f52cbc87b1a9de863fc7aefbac4e8580449fd41da96"
+  },
+  "whole_or_native_tests_repeated": false,
+  "old_native_evidence": "Historical exact-source only; current reached preparation/time/AST inputs changed and final-head native CI remains required"
+}

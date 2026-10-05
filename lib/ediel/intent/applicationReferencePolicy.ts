@@ -1,12 +1,13 @@
 // lib/ediel/intent/applicationReferencePolicy.ts
 //
-// PART 3 / Batch 3: Application Reference is controlled by policy, not by the
-// route profile. Route profiles may declare an expected Application Reference
-// that is validated against policy; a mismatch blocks sending. APERAK/CONTRL
-// must echo/correlate the original Application Reference.
+// Application Reference is controlled by canonical policy, not by the route
+// profile. Route profiles may declare an exact expected value that is validated
+// against policy; a mismatch blocks sending. APERAK/CONTRL echo/correlate the
+// original Application Reference.
 
 import {
   resolveApplicationReference,
+  resolveProdatApplicationReferenceForProcess,
   type ApplicationReferenceResolverInput,
 } from '@/lib/ediel/core/applicationReferenceResolver'
 import { evaluateApplicationReferenceGuard } from '@/lib/ediel/rulebook/canonicalRules'
@@ -31,36 +32,26 @@ function upper(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-// Single rule source (PART 6). The business process — not the route profile or a
-// scattered constant — deterministically decides the PRODAT Application Reference.
-// DDQ is the supplier/masterdata channel; DGI is the energy-service/metering-access
-// channel. Facility lookup and customer masterdata are always DDQ. A DGI process
-// (metering access/permission/values) is modelled as a separate business process,
-// never mixed into the facility-lookup flow.
+function canonicalProcessName(value: string | null | undefined): string {
+  const process = String(value ?? '').trim().toLowerCase()
+  if (process === 'facility_lookup') return 'customer_masterdata'
+  if (process === 'metering_permission') return 'metering_access'
+  return process
+}
+
+// Compatibility helper for process-only PRODAT callers. It delegates to the
+// canonical PRODAT profile catalog and never manufactures DDQ/DGI locally.
 export function resolveApplicationReferenceForProcess(
   businessProcess: string | null | undefined,
   family: string = 'PRODAT',
 ): string {
   const fam = upper(family) || 'PRODAT'
   if (fam !== 'PRODAT') {
-    // Non-PRODAT families fall back to the generic policy resolver elsewhere.
-    return `23-DDQ-${fam}`
+    throw new Error(`application_reference_process_only_unsupported_family:${fam}`)
   }
-  const process = String(businessProcess ?? '').trim().toLowerCase()
-  const dgiProcesses = new Set([
-    'metering_access',
-    'metering_permission',
-    'metering_values',
-    'timeseries_request',
-  ])
-  if (dgiProcesses.has(process)) return '23-DGI-PRODAT'
-  // facility_lookup, customer_masterdata, supplier_switch and everything else on
-  // the supplier channel.
-  return '23-DDQ-PRODAT'
+  return resolveProdatApplicationReferenceForProcess(canonicalProcessName(businessProcess))
 }
 
-// The authoritative Application Reference for an outbound message, derived from
-// policy only (never from a route profile override).
 export function resolvePolicyApplicationReference(input: ApplicationReferenceResolverInput): string {
   return resolveApplicationReference(input)
 }
@@ -72,18 +63,38 @@ export function validateApplicationReferencePolicy(
   const ruleKeys: string[] = []
 
   const family = upper(input.messageFamily)
+  if(family==='AI_LIST'){
+    const provided=input.applicationReference?.trim()||null
+    return {ok:provided===null,expectedApplicationReference:'',providedApplicationReference:provided,
+      ruleKeys:provided?['AI_TECHNICAL_LIST_NO_APPLICATION_REFERENCE']:[],blockingReasons:provided?[{
+        code:'ai_list_application_reference_forbidden',message:'En teknisk AI-lista har ingen EDIFACT Application Reference.',severity:'block',field:'applicationReference',
+      }]:[]}
+  }
   const isAck = family === 'APERAK' || family === 'CONTRL'
 
-  // 1) PRODAT DDQ/DGI + unsupported-market guard. The guard returns the canonical
-  // expected value for PRODAT permission/supplier codes regardless of role input.
+  if (isAck && !input.correlatedApplicationReference) {
+    return {
+      ok: false,
+      expectedApplicationReference: '',
+      providedApplicationReference: input.applicationReference ? String(input.applicationReference).trim() : null,
+      ruleKeys: ['ACK_APPLICATION_REFERENCE_ORIGINAL_REQUIRED'],
+      blockingReasons: [{
+        code: 'ack_application_reference_original_required',
+        message: `${family} måste använda Application Reference från det korrelerade originalmeddelandet.`,
+        field: 'correlatedApplicationReference',
+        severity: 'block',
+      }],
+    }
+  }
+
   const guard = evaluateApplicationReferenceGuard({
     family: input.messageFamily,
     messageCode: input.businessCode ?? input.messageType,
+    requestedMessageCode: input.requestedMessageCode,
     applicationReference: input.applicationReference,
   })
 
-  // For ACK families the correlated original Application Reference is authoritative.
-  const expected = isAck && input.correlatedApplicationReference
+  const expected = isAck
     ? String(input.correlatedApplicationReference).trim()
     : guard.expectedApplicationReference ?? resolvePolicyApplicationReference(input)
 
@@ -100,7 +111,6 @@ export function validateApplicationReferencePolicy(
     })
   }
 
-  // 2) Route profile may only declare an expected value; it must agree with policy.
   const routeDeclared = input.routeProfile?.applicationReference?.trim() || null
   if (routeDeclared && upper(routeDeclared) !== upper(expected)) {
     ruleKeys.push('ROUTE_APPLICATION_REFERENCE_OVERRIDE_BLOCKED')
@@ -113,7 +123,6 @@ export function validateApplicationReferencePolicy(
     })
   }
 
-  // 3) The provided value must equal the policy/correlated expected value.
   if (provided && upper(provided) !== upper(expected)) {
     ruleKeys.push('APPLICATION_REFERENCE_MISMATCH')
     blockingReasons.push({

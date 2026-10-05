@@ -1,3 +1,5 @@
+import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
+import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
@@ -16,11 +18,11 @@ import { updateGridOwnerDataRequestStatus } from '@/lib/cis/db'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
-  assertSupplierUtiltsOutboundAllowed,
-  normalizeUtiltsResolutionClass,
-  resolveCanonicalUtiltsApplicationReference,
+  assertCanonicalSupplierUtiltsOutboundAllowed,
+  canonicalSupplierUtiltsApplicationReference,
   type UtiltsRequestedMessageCode,
-} from '@/lib/ediel/rulebook/utiltsMarketEngine'
+} from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { normalizeMeteringResolution } from '@/lib/metering/contractMeteringResolution'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -109,7 +111,7 @@ export async function prepareAndQueueUtiltsE73(params: {
     requestPayload: record(dataRequest.request_payload),
   })
 
-  assertSupplierUtiltsOutboundAllowed({
+  assertCanonicalSupplierUtiltsOutboundAllowed({
     code: 'E73',
     bilateralCapabilityVerified: true,
     requestedMessageCode,
@@ -123,14 +125,18 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
-  const resolution = normalizeUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
-  const applicationReference = resolveCanonicalUtiltsApplicationReference({
-    code: 'E73',
-    actorRole: 'supplier',
-    requestedMessageCode,
-    resolution,
-  })
+  // The contract's requested resolution (set when the data request was created)
+  // travels with the request; the wire resolution stays bound to the qualified
+  // dated meter structure below.
+  const contractRequestedResolution = normalizeMeteringResolution(
+    record(dataRequest.request_payload).requested_resolution,
+  )
 
+  // Route/actor selection happens first. The selected route may carry an exact
+  // field-311 Application Reference, but it is NOT authoritative by itself: the
+  // canonical 25-A-3 registry below validates it against the requested message.
+  // This intentionally removes the old `quarter_hour => T, otherwise S`
+  // heuristic. For multi-valued E66 an exact configured candidate is required.
   const routeContext = await resolveDecisionBackedOutboundContext({
     requestType: 'meter_values',
     gridOwner,
@@ -152,10 +158,17 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityId,
       requestedPeriodStart: dataRequest.requested_period_start,
       requestedPeriodEnd: dataRequest.requested_period_end,
-      applicationReference,
     },
   })
 
+  const applicationReference = canonicalSupplierUtiltsApplicationReference({
+    code: 'E73',
+    requestedMessageCode,
+    applicationReference: routeContext.applicationReference,
+  })
+
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -197,6 +210,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     applicationReference,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -204,7 +219,7 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityVerified: true,
       bilateralCapabilityId,
       applicationReferencePolicyKey: applicationReference,
-      marketSemanticVersion: 'swedish-utilts-central-2026-08-22',
+      marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
       requestedPeriodStart: dataRequest.requested_period_start,
       requestedPeriodEnd: dataRequest.requested_period_end,
       periodStart: dataRequest.requested_period_start,
@@ -212,8 +227,12 @@ export async function prepareAndQueueUtiltsE73(params: {
       transactionReason: `Request missing ${requestedMessageCode}`,
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
-      readingFrequency: meteringPoint?.reading_frequency ?? null,
-      resolution,
+      readingFrequency: sourceStructure.fields.reportingFrequency,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
+      resolution:sourceStructure.resolution,
+      requestedResolution: contractRequestedResolution,
     },
   })
 
@@ -286,12 +305,12 @@ export async function prepareAndQueueUtiltsE73(params: {
     edielMessageId: message.id,
     eventType: 'validated',
     eventStatus: 'success',
-    message: 'UTILTS E73 skapades via central supplier-market engine med verifierad bilateral capability.',
+    message: 'UTILTS E73 skapades med verifierad bilateral capability och explicit canonical Application Reference för efterfrågat meddelande.',
     payload: {
       requestedMessageCode,
       bilateralCapabilityId,
       applicationReference,
-      marketSemanticVersion: 'swedish-utilts-central-2026-08-22',
+      marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
     },
   })
 

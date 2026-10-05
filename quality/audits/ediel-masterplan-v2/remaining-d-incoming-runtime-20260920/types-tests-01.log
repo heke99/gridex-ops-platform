@@ -1,0 +1,29 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+
+__tests__/ediel-prodat-remaining-d-consumers.test.ts(99,572): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+__tests__/ediel-prodat-remaining-d-consumers.test.ts(111,219): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+__tests__/ediel-prodat-remaining-d-inbound.test.ts(34,23): error TS2322: Type 'EdielMessageRow' is not assignable to type '{ company_id: string; application_reference: string; id: string; direction: EdielDirection; message_standard: EdielMessageStandard; ... 89 more ...; updated_by: string | null; }'.
+  Types of property 'company_id' are incompatible.
+    Type 'string | null | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+__tests__/ediel-prodat-remaining-d-inbound.test.ts(35,24): error TS2322: Type 'EdielMessageRow' is not assignable to type '{ company_id: string; application_reference: string; id: string; direction: EdielDirection; message_standard: EdielMessageStandard; ... 89 more ...; updated_by: string | null; }'.
+  Types of property 'company_id' are incompatible.
+    Type 'string | null | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+__tests__/ediel-prodat-remaining-d-inbound.test.ts(36,7): error TS2322: Type 'EdielMessageRow' is not assignable to type '{ company_id: string; application_reference: string; id: string; direction: EdielDirection; message_standard: EdielMessageStandard; ... 89 more ...; updated_by: string | null; }'.
+  Types of property 'company_id' are incompatible.
+    Type 'string | null | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+__tests__/ediel-prodat-remaining-d-incoming.test.ts(26,64): error TS2345: Argument of type 'readonly [":", "+", "?", "'"] | readonly ["*", ";", "!", "~"] | readonly ["^", "|", "!", "%"]' is not assignable to parameter of type 'readonly [":", "+", "?", "'"] | undefined'.
+  Type 'readonly ["*", ";", "!", "~"]' is not assignable to type 'readonly [":", "+", "?", "'"]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"*"' is not assignable to type '":"'.
+__tests__/ediel-prodat-remaining-d-incoming.test.ts(40,57): error TS2345: Argument of type 'readonly [":", "+", "?", "'"] | readonly ["*", ";", "!", "~"] | readonly ["^", "|", "!", "%"]' is not assignable to parameter of type 'readonly [":", "+", "?", "'"] | undefined'.
+  Type 'readonly ["*", ";", "!", "~"]' is not assignable to type 'readonly [":", "+", "?", "'"]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"*"' is not assignable to type '":"'.

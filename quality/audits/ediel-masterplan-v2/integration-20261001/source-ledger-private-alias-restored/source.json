@@ -1,0 +1,20 @@
+{
+  "head": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "artifact": "authentic-11144034780.zip",
+  "entry": "rem002-schema-snapshot/schema.sql",
+  "schemaSHA256": "8d4b077827e534b2015cf9c123bcfc605613e3ed4b4e53266be4101fa57c73a6",
+  "functions": [
+    {
+      "function": "activate_supply_before_source_guard_v1",
+      "bodySHA256": "b7fa3112e3dc01935574d40783b6bc0ea55c7919fad97aad46bb5dc71c46162b",
+      "definitionSHA256": "3183ce0004b0235751e39b7dea8b8e0ebbe1ebe515062badb61e080619b13fa3"
+    },
+    {
+      "function": "gridex_apply_exact_z02_core_before_current_source_v1",
+      "bodySHA256": "f4fcc0c6746d6f54629e00daced7a2551f934c8dc03de748d330d1cdefbe496a",
+      "definitionSHA256": "b3f79678f65c191a88c2d1f868a938117847975a92c79a17a805dca289bb6bd6"
+    }
+  ],
+  "oldLostCommitRestored": false,
+  "dumpOwnerMetadata": "not present; forward preserves entire actual pg_proc except search_path"
+}

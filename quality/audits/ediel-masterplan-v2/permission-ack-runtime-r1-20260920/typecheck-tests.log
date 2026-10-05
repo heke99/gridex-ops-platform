@@ -1,0 +1,17 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(11,99): error TS2339: Property 'fieldNumber' does not exist on type 'RulebookFieldRule | UtiltsFieldRule'.
+  Property 'fieldNumber' does not exist on type 'UtiltsFieldRule'.
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(21,39): error TS18047: 'm.raw_payload' is possibly 'null'.
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(22,17): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(23,17): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(26,56): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(29,34): error TS18047: 'm.raw_payload' is possibly 'null'.
+__tests__/ediel-prodat-permission-ack-policy-selection.test.ts(30,17): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.

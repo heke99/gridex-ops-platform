@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
-  "verifiedAt": "2026-08-17",
+  "verifiedAt": "2026-09-01",
   "purpose": "Verified forward migration tail introduced after the historical baseline manifest. Entries are additive only; baseline historical checksums remain immutable.",
   "evidence": {
-    "e2eRuns": [32043019481, 32043678808],
-    "provenanceReviewed": true
+    "e2eRuns": [32043019481, 32043678808, 33445766560, 33446168027],
+    "provenanceReviewed": true,
+    "note": "The added August 30-31 migrations were replayed successfully by OPS hardening clean-migration-replay run 33445766560; the September 1 search_path repair is forward-only, checksum-pinned here, and must pass the same clean-migration-replay gate before merge."
   },
   "files": {
     "20260815233411_tenant_website_installation_completion_trigger_v1.sql": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827",
@@ -14,6 +15,14 @@
     "20260816170000_partner_api_v1_canonical_surface_events.sql": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
     "20260817083859_partner_postal_grid_materialization.sql": "55bf5ef2f0d74c59dfbc4835e856a48b3b7292ca543e5b64da59bc000fd3ae09",
     "20260817094125_papilite_verified_postal_learning.sql": "4f3307eb05581388655dc961691cdfd38b8d17734eed60cb28dfff7e362f173d",
-    "20260817124500_site_resolution_materialization_guard.sql": "f709935b848dc6f4bd1cd6383def91e2d5411de05c5f491f9273878f2a568429"
+    "20260817124500_site_resolution_materialization_guard.sql": "f709935b848dc6f4bd1cd6383def91e2d5411de05c5f491f9273878f2a568429",
+    "20260830091937_manual_inbound_canonical_correlation_parity.sql": "d14c8058ac90d6137d0b95a1e3fe2824bb7f65b1ac4c3235b5d55523339af49d",
+    "20260830102119_manual_inbound_tenant_graph_hardening.sql": "78bc4d54f37df3e64bc0d0afa74cd0f8810629566da5d7ef2e47a16de218dcff",
+    "20260830103610_manual_inbound_tenant_graph_trigger_contract.sql": "9847181ae630d904393af7faa4429ef1a9e5bd1821da17b9884c65fc87679aaf",
+    "20260830144914_validate_ediel_active_binding_constraint.sql": "117145a1ba41859d99f8927ed9eaee370335bec96ba5a05ef7673f1a128ea006",
+    "20260831093531_fix_contract_snapshot_null_schema_guard.sql": "22d04463619156df167cb6ecfcc1e670fbf58c95796d52f4750e328b718ec2e1",
+    "20260831094500_customer_authorization_documents_contract_link_foundation.sql": "f196e714bb49310f354f795d2d86f52b8dc8679433e6adcdb268f3b3277a8a84",
+    "20260831095000_admin_signed_contract_import_canonicalization.sql": "abff0652591ee3d8cc9808ebd4ecdd20499d5aded7b3ce3318239a8c104eceef",
+    "20260901084000_harden_gridex_point_to_grid_area_search_path.sql": "05b0681cd089adf61b4a184b8db40fdba2545f815c1fd7ec47615ecb8cc0c34e"
   }
 }

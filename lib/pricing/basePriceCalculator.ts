@@ -14,6 +14,38 @@ function roundKwhPrice(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
 }
 
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function text(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function legalSpotPriceLabel(underlay: BillingUnderlayInput): "Spotpris" | "Medelspotpris" {
+  const snapshot = record(underlay.pricingSnapshot);
+  const nestedPricing = record(snapshot.pricing);
+  const intervalResolution =
+    text(snapshot.interval_resolution) ??
+    text(nestedPricing.interval_resolution);
+  const contractType =
+    text(snapshot.contract_type) ??
+    text(nestedPricing.contract_type) ??
+    text(snapshot.billing_model);
+  if (
+    intervalResolution === "hourly" ||
+    intervalResolution === "quarterly" ||
+    intervalResolution === "quarter_hour" ||
+    contractType === "variable_hourly" ||
+    contractType === "variable_quarterly"
+  ) {
+    return "Spotpris";
+  }
+  return "Medelspotpris";
+}
+
 function line(params: {
   description: string;
   quantity: number | null;
@@ -51,8 +83,11 @@ function sourcePrice(
   return null;
 }
 
-function labelForSource(sourceType: BasePriceComponent["sourceType"]): string {
-  if (sourceType === "spot") return "Spotpris";
+function labelForSource(
+  sourceType: BasePriceComponent["sourceType"],
+  underlay: BillingUnderlayInput,
+): string {
+  if (sourceType === "spot") return legalSpotPriceLabel(underlay);
   if (sourceType === "portfolio") return "Portföljpris";
   if (sourceType === "fixed") return "Fastpris";
   return "Manuell prisbas";
@@ -101,9 +136,10 @@ export function calculateBasePrice(input: {
       input.sourceValues,
       component,
     );
+    const canonicalLabel = labelForSource(component.sourceType, input.underlay);
     if (price === null || !Number.isFinite(price)) {
       errors.push(
-        `${labelForSource(component.sourceType)} saknas för perioden och elområdet.`,
+        `${canonicalLabel} saknas för perioden och elområdet.`,
       );
       continue;
     }
@@ -111,15 +147,19 @@ export function calculateBasePrice(input: {
     const weightedPrice = price * (component.weightPercent / 100);
     const amount = quantityKwh * weightedPrice;
     baseSekPerKwh += weightedPrice;
+    const displayLabel = component.sourceType === "spot"
+      ? canonicalLabel
+      : component.label || canonicalLabel;
     lines.push(
       line({
-        description: `${component.label || labelForSource(component.sourceType)} (${component.weightPercent} %)`,
+        description: `${displayLabel} (${component.weightPercent} %)`,
         quantity: quantityKwh,
         unitPriceExVat: roundKwhPrice(weightedPrice),
         amountExVat: amount,
         sortOrder: sort,
         metadata: {
           source_type: component.sourceType,
+          invoice_price_label: displayLabel,
           source_price_sek_per_kwh: price,
           weight_percent: component.weightPercent,
           ...(component.sourceType === "spot"

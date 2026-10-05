@@ -1,6 +1,8 @@
 # Gridex Website Integration API
 
-Current contract: **2026-08-22.2**
+Current contract: **2026-10-04.1**
+
+Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Website request requirements and business response fields remain unchanged from 2026-10-02.4; existing immutable specifications retain their original bytes.
 
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
 
@@ -40,6 +42,8 @@ A website integration must not treat a postcode result, coordinate, candidate ow
 
 This separation keeps checkout fast while preventing a provisional website lookup from becoming an external-send routing decision.
 
+Invoicing never re-resolves the price area. Billing uses the locked `price_area` from the quote/contract price snapshot, and the database also rejects direct writes of a billing underlay whose price area is missing or differs from that snapshot (`billing_contract_price_area_missing`, `billing_underlay_price_area_mismatch`).
+
 ## Idempotency and retries
 
 Use stable idempotency keys for logical write operations. Send a stable `Idempotency-Key` on every endpoint documented as idempotent, especially quote creation and customer-application submission. Reuse the same key only when retrying the same logical operation with the same intent.
@@ -60,6 +64,14 @@ The `settlement` object on a website quote is the canonical interpretation of wh
 - `mixed` — each published component is settled according to its configured pricing source and resolution.
 
 For every non-fixed model, checkout market data is **indicative preview/audit evidence only**. It does not become the future invoice market price. Agreed markups, fees, taxes and other immutable commercial components remain part of the accepted contract.
+
+### Pricing components and website visibility
+
+`calculation_components` is the authoritative calculation set. Every applicable calculated component must remain in that set even when the website chooses not to render the component as a separate row.
+
+`website_visibility=hidden` controls presentation only. It does not remove a fee, markup, tax or other applicable component from the Gridex calculation. Dolda komponenter filtreras inte bort från den auktoritativa beräkningen; an integration must never recalculate the contract by using only the visible/display subset.
+
+Use `display_components` and the component visibility metadata for presentation. Use the authoritative quote totals and complete calculation data for acceptance, reconciliation and later audit.
 
 `valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does not expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, integrity mismatch or a commercially unavailable or withdrawn offer can still block submission.
 
@@ -99,7 +111,7 @@ Before deploying an integration update, read:
 
 Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
 
-For contract **2026-08-22.2**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For contract **2026-10-04.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
 
 ## Production checklist
 

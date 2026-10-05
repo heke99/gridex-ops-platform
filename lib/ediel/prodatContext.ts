@@ -1,3 +1,5 @@
+import {readQualifiedCustomerStructure,type QualifiedCustomerStructure} from '@/lib/ediel/sources/qualifiedCustomerStructure'
+import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 type AnyRow = Record<string, unknown>
@@ -29,6 +31,7 @@ export type EdielProdatProductionCandidate = {
   annualConsumptionKwh: number | null
   meteringPointDbId: string | null
   meteringPointId: string | null
+  currentStructure:QualifiedCustomerStructure
   meteringMethod: string | null
   portalMeteringMethod: string | null
   portalReasonForTransaction: string | null
@@ -223,7 +226,9 @@ export async function listEdielProdatProductionCandidates(
   const poas = (poasRaw.data ?? []) as AnyRow[]
   const routes = (routesRaw.data ?? []) as AnyRow[]
 
-  return switchRows.map((switchRow) => {
+  const {data:auth}=await supabase.auth.getUser()
+  const actorUserId=auth.user?.id
+  return Promise.all(switchRows.map(async(switchRow) => {
     const customerId = asString(switchRow.customer_id)
     const siteId = asString(switchRow.site_id)
     const meteringPointDbId = asString(switchRow.metering_point_id)
@@ -241,6 +246,12 @@ export async function listEdielProdatProductionCandidates(
     const portalReasonForTransaction = asString(portalOverrides.reasonForTransaction) ?? asString(portalData.reasonForTransaction)
     const portalCustomerIdCodeListQualifier =
       asString(portalOverrides.customerIdCodeListQualifier) ?? asString(portalData.customerIdCodeListQualifier)
+    let currentStructure:QualifiedCustomerStructure={status:'unavailable',reason:'dated_structure_request_scope_missing'}
+    const companyId=asString(switchRow.company_id),at=asString(switchRow.requested_start_date),environment=asString(switchRow.environment)
+    if(isEvidenceUuid(actorUserId)&&isEvidenceUuid(companyId)&&isEvidenceUuid(customerId)&&isEvidenceUuid(siteId)&&isEvidenceUuid(meteringPointDbId)&&at&&(environment==='test'||environment==='production')){
+      try{currentStructure=await readQualifiedCustomerStructure({companyId,actorUserId,environment,customerId,siteId,meteringPointId:meteringPointDbId,periodStart:at,periodEnd:at})}
+      catch{currentStructure={status:'unavailable',reason:'dated_structure_read_unconfirmed'}}
+    }
     const issues = validateCandidate({ switchRow, customer, site, meteringPoint, gridOwner, route, poa })
     const hasBlockingError = issues.some((issue) => issue.severity === 'error')
     const status = asString(switchRow.status) ?? 'unknown'
@@ -264,11 +275,12 @@ export async function listEdielProdatProductionCandidates(
       annualConsumptionKwh: asNumber(site?.annual_consumption_kwh),
       meteringPointDbId,
       meteringPointId: asString(meteringPoint?.meter_point_id),
-      meteringMethod: asString(meteringPoint?.measurement_type),
+      currentStructure,
+      meteringMethod: currentStructure.status==='selected'?currentStructure.fields.measurementMethod:null,
       portalMeteringMethod,
       portalReasonForTransaction,
       portalCustomerIdCodeListQualifier,
-      readingFrequency: asString(meteringPoint?.reading_frequency),
+      readingFrequency: currentStructure.status==='selected'?currentStructure.fields.reportingFrequency:null,
       gridOwnerId,
       gridOwnerName: asString(gridOwner?.name),
       gridOwnerEdielId: asString(gridOwner?.ediel_id),
@@ -283,5 +295,5 @@ export async function listEdielProdatProductionCandidates(
       readyForPortalOrProduction: canCreate,
       issues,
     }
-  })
+  }))
 }

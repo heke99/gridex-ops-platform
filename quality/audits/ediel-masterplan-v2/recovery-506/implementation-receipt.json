@@ -1,0 +1,49 @@
+{
+  "stage": "fresh focused implementation checkpoint; broader verification pending",
+  "focused": {
+    "tests": 106,
+    "passed": 106,
+    "failed": 0
+  },
+  "commands": [
+    "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-energy-product*.test.ts __tests__/ediel-prodat-meter-change-inbound.test.ts __tests__/ediel-prodat-meter-change-review-regression.test.ts --reporter=json --outputFile=<evidence>/focused-final.json",
+    "npm run typecheck",
+    "npm run typecheck:tests",
+    "node node_modules/eslint/bin/eslint.js <changed task files>",
+    "git diff --check"
+  ],
+  "notes": [
+    "Fresh consumer RED7PASS/12FAIL before direct/manual/registry integration. First integration placed manual guard at earlier UTILTS TGT occurrence; actual resolver-body test caught4 failures, guard moved to exact PRODAT role boundary; fresh combined106/106 pass.",
+    "Expanded-scope initial run21PASS/5FAIL: three missing applicationReference and one repeated UNA were setup defects, last wrong incoming preflight506 warning was runtime RED; logs retained.",
+    "App typing passed; tests typing initial five annotations failed, corrected and passed. Scoped lint/diff passed.",
+    "Affected pre-adjudication run3209PASS/4FAIL only two preauthorized old lines (one has three alphabets); two lines changed,242 controls retained.",
+    "Initial red-receipt sha256 was accidentally empty due suffix filtering without leading dot. This receipt records actual retained file hashes; prior file unchanged."
+  ],
+  "sha256": {
+    "affected-initial.json": "56dbbf21450d5f5b3c56f6d91c5b129b7e93c1e3dad2fe4691c0e66abfd428f2",
+    "affected-initial.log": "1f162138479eafea581487c62bb3b68557d3fe8ca47ff89ba822168a0fdc9fc7",
+    "combined-green.json": "9e132c91dba9ecefe7b395e2185b66d972a41c782db80f2f5ba7205e9ecd238e",
+    "combined-green.log": "7d23ee5cc9b879cf2fd0faf65e8e2bf70140b778589b7600c0419a6bf581ff43",
+    "consumers-inbound-green.json": "2b15ab95b9aa058d4bbf2973a7fca05af6756a0e4af60305d09e18606fa7b946",
+    "consumers-inbound-green.log": "8817f5f1bcfad151d99b3ab8f2312f17804318873b8a43d8ef8d734504fc0cbb",
+    "consumers-red.json": "a1911b30e4fbc1d4a7d9fa18aad2937b4822d4a825c9e7a59e97807898e67dc1",
+    "consumers-red.log": "2d02f65a3a3fc0341a255fbc85c509eb590159e538229655e4e17b27b386cea3",
+    "core-green.json": "76cc54250f2c287ec212910264178203fc85d4d90371dbba96ace4f8197b835a",
+    "core-green.log": "93f36a396b9947063b8cb119cbc68d3fe532a2c22139a59119231076748e3a13",
+    "fixture-debug.log": "573e41135fdb9dbf7ab1067b232da3f80b2fb80ee2a247a93f8dac9e3a2dc9d2",
+    "focused-final.json": "971537347437c11f11fc1c01735c35132fd42bedaeef6ba4394c55042b328013",
+    "focused-final.log": "b9d1b3c98c6bf2fc7e628da80ea55911de48007fa8a3cc6f420dee71d618a257",
+    "initial-red.json": "9aad2cf36b869632ba0fdf5ad65c65daca66324bb2d899e894b35e394a70e40c",
+    "initial-red.log": "7be309a549b7a3376ff1d2707516a44abe4fa4b40934f1642f615848253cf9ca",
+    "qualified-r2-red.json": "ece3ed1f54e532591cf78441ba2f6ef10109c7d5e3a54b56077dde8567fbac04",
+    "qualified-r2-red.log": "bad27ba6b7ca7786abeb2f22c7afdb8a7a3ed8ddc19d11ab4d4c9d23a1ba771e",
+    "qualified-red.json": "31632ea69d44aa43de320ca6695a2cbb58a8ae1804f8ea42f27630d1c4f3fd0d",
+    "qualified-red.log": "662c4c8836de3576f493aa57755a7872d0961e0ed59ca51a91bd1ca45a5ec8e2",
+    "scope-red.json": "cb027c638b4b5bf8e5e12c53966aa230bec92c1594a12055262d3d4f24b20952",
+    "scope-red.log": "983de106e31038bf52bf179eb6c222ff711878c7aed731341a82774b3315a37e",
+    "scoped-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test-types-corrected.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "test-types-initial.log": "f0057ddf4fff3695c1cb2df3a69c598c29c51458560c94179c6b9d2c6c0c3f5c",
+    "types-initial.log": "f82d688ed1d9033cc631d13b34fe4e21deb3dc68ec5303aee3b51a1808a1863e"
+  }
+}

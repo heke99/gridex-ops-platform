@@ -30,8 +30,13 @@ export const CANONICAL_EDIEL_ERRORS: CanonicalEdielError[] = [
   { key: 'INCORRECT_GRID_AREA_ID', ercCode: '42', fieldCode: '260', text: 'INCORRECT DATA - grid area id', family: 'APERAK', source: 'PRODAT object validation' },
 ]
 
+for (const error of CANONICAL_EDIEL_ERRORS) Object.freeze(error)
+Object.freeze(CANONICAL_EDIEL_ERRORS)
+
 export function getCanonicalEdielError(key: CanonicalEdielErrorKey): CanonicalEdielError {
-  return CANONICAL_EDIEL_ERRORS.find((error) => error.key === key) ?? CANONICAL_EDIEL_ERRORS[0]!
+  const error = CANONICAL_EDIEL_ERRORS.find((candidate) => candidate.key === key)
+  if (!error) throw new Error('ediel_source_diagnostic_unmapped')
+  return error
 }
 
 export function canonicalShortFtxText(text: string | null | undefined, maxLength = 70): string {

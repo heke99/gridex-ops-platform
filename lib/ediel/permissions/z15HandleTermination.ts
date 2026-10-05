@@ -11,5 +11,7 @@ export function handleZ15PermissionTermination(params: {
   if (params.reasonCode === 'E37') {
     return applyPermissionEvent({ currentState: params.currentState, event: 'z15_e37' })
   }
-  return applyPermissionEvent({ currentState: params.currentState, event: 'z15_b80' })
+  if (params.reasonCode === 'B80') return applyPermissionEvent({ currentState: params.currentState, event: 'z15_b80' })
+  if (params.reasonCode === 'B77' || params.reasonCode === 'B78') return applyPermissionEvent({ currentState: params.currentState, event: 'z15_ended' })
+  throw new Error('z15_termination_reason_unqualified')
 }

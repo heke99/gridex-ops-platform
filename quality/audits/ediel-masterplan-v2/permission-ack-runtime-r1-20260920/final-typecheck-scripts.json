@@ -1,0 +1,12 @@
+{
+  "gate": "typecheck-scripts",
+  "command": [
+    "npm",
+    "run",
+    "typecheck:scripts"
+  ],
+  "exit": 0,
+  "seconds": 3.22,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-scripts.log",
+  "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae"
+}

@@ -1,0 +1,74 @@
+{
+  "kind":"post-merge-main-acceptance",
+  "pr":364,
+  "status":"VERIFIED_BOUNDED_DELIVERY",
+  "main_sha":"840720c7b875ff5761daf30347b74e6ff7fae55e",
+  "main_tree":"cae6f4fde50b183feaa2cf30810ffbacccd672cf",
+  "reviewed_head":"480abda63e5ce070fd40e63d4d7a9f8e663afe2a",
+  "parents":["34eb943046ab87761b071bc508ea48b7af70eea9","480abda63e5ce070fd40e63d4d7a9f8e663afe2a"],
+  "merged_at":"2026-09-21T11:18:21Z",
+  "expected_head_guard_used":true,
+  "reviewed_and_merged_trees_equal":true,
+  "independent_final_review":5759605603,
+  "independent_design_review":5759320966,
+  "root_main_acceptance_comment":5759741941,
+  "scope":"Unresolved PRODAT staging performs no masterdata matching; resolved matching requires company filters. Pending staging and existing parser/error/ownership/CAS contracts retained.",
+  "pre_merge":{
+    "workflows":{"ops":35592142216,"e2e":35592142212,"browser":35592142211,"ediel":35592142276,"conditional_crawler_skipped":35592142270},
+    "ops_jobs":{"quality":106308690141,"verify":106308689874,"replay":106308690149},
+    "all_required_conclusions":"success",
+    "unit_tests":5153,"test_files":323,"new_cases":51,"existing_assertions_changed":false,
+    "smoke_artifact_id":10635052943,
+    "smoke_evidence":{
+      "bytes":16700,"entries":21,
+      "zip_sha256":"5c90922fba63987cb8b0c9121593b953f3ab1a5cb0f281ede68beb71e6580d75",
+      "report_sha256":"aac13e3d77319838dde4c4099c4debc1651463af3ec877296c40f39b29211b87",
+      "handoff_sha256":"732c71f96b278685b44df09b27fe205848c2c13c3de6d49ea4a7d965c756c582",
+      "junit_sha256":"17b663c758ae1fe25dd7a7135186c0c8d9228a9621b8d664783d29d4a4019232",
+      "commit_sha":"ed09cb6a2ffa40b141ad371316ef0c2469618043",
+      "mode":"smoke","summary":{"total":15,"passed":15,"failed":0},
+      "finished_at":"2026-09-21T11:06:09.432Z","all_rows_and_junit_checked":true
+    }
+  },
+  "actual_main_full":{
+    "run":35593354428,"job":106312493815,"coverage_job":106312494108,
+    "conclusion":"success","coverage_conclusion":"success",
+    "artifact_id":10636087712,"artifact_name":"gridex-e2e-full-35593354428",
+    "evidence":{
+      "bytes":86051,"entries":79,
+      "zip_sha256":"b630060df8285c5a2b9babea159e5b5b30549e83897e425a75f428caf8799ab2",
+      "report_sha256":"55768fc46ad764e839882a8b5d11b597510dca2edfa424666e67e60350b5f73e",
+      "handoff_sha256":"4dbaf5299ecb57f15570397b8f2c1d16484064de1a40dcb5a4fb86323a153fb3",
+      "junit_sha256":"8afd2100b102c413b0a71060f4aff08c2134a3b84acdb6599c6b6f9c64dbc2d3",
+      "commit_sha":"840720c7b875ff5761daf30347b74e6ff7fae55e",
+      "mode":"full","summary":{"total":73,"passed":73,"failed":0},
+      "finished_at":"2026-09-21T11:27:41.066Z","all_rows_and_junit_checked":true,
+      "unit":{
+        "path":"logs/71-unit-integration-tests.log",
+        "sha256":"7e55db300fdf8bea1e00a560ca74b78962509576e02a4e4639877016b4bcb596",
+        "passed":5153,"total":5153,"files_passed":323,"files_total":323,
+        "new_suite_markers":[" ✓ __tests__/ediel-prodat-unresolved-tenant-matching.test.ts (51 tests) 318ms"]
+      }
+    }
+  },
+  "actual_main_ops":{
+    "run":35593354403,"jobs":{"quality":106312494197,"verify":106312494243,"replay":106312494029},
+    "all_conclusions":"success","all_steps_and_cleanup":"success"
+  },
+  "evidence_label_correction":{
+    "comment":5759586109,"independent_resolution":5759605603,
+    "details":"Browser/Ediel/crawler run labels were corrected from fresh GitHub metadata before merge. This receipt contains corrected run IDs only."
+  },
+  "limitations":[
+    "The normal inbound outer unresolved-tenant stop already existed; no live-mail bypass is asserted.",
+    "Masterdata no-read is not no-database-write: unresolved pending cases may still be staged.",
+    "The 51 new tests mock external I/O; they do not certify physical database isolation or complete received-structure authority.",
+    "CI lint warnings remain; successful required checks are not a warning-free claim.",
+    "Local tools inspect downloaded CI evidence; no local repository suite run is claimed.",
+    "PR smoke is separate from the fresh actual-main full73 evidence."
+  ],
+  "full_E035":"NOT_COMPLETE","full_F3":"NOT_COMPLETE","full_masterplan":"NOT_COMPLETE",
+  "D":{"accepted":110,"total":110,"parent_occurrences_accepted":10,"parent_occurrences_total":10},
+  "deferred_work":{"pr":310,"state":"OPEN_DRAFT_PAUSED","head":"e961135199f292b8210884f07de3b616a670161a","mutations":false},
+  "live_or_explicit_deployment_actions":false
+}

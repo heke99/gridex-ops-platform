@@ -1,12 +1,14 @@
 'use server'
 
+import { assertCompanyRoleChangeAllowed } from '@/lib/tenant/roleChangeGuard'
+
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
-import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { getCompanyById } from '@/lib/tenant/governance'
 import { getCompanyProductionStatus } from '@/lib/tenant/companyProductionStatus'
-import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
+import { changeStaffRole, validateStaffRoleAssignment, type StaffCommandContext } from '@/lib/tenant/staffCommands'
 import { resolveCanonicalCompanyAccessRole } from '@/lib/tenant/companyUserRoles'
 import {
   normalizeCountryCode,
@@ -181,10 +183,15 @@ export async function updateCompanySettingsAction(
         billing_city: optionalText(formData.get('billing_city')),
         billing_country_code: billingCountryCode,
         billing_terms_summary: optionalText(formData.get('billing_terms_summary')),
-        ediel_id: normalizeUpper(formData.get('ediel_id')),
-        actor_role: normalizeUpper(formData.get('actor_role')),
-        sender_sub_address: normalizeUpper(formData.get('sender_sub_address')),
-        ediel_mailbox: optionalText(formData.get('ediel_mailbox')),
+        // The Ediel market identity drives routing and go-live; only the platform changes it.
+        ...(isPlatformAdminContext(admin)
+          ? {
+              ediel_id: normalizeUpper(formData.get('ediel_id')),
+              actor_role: normalizeUpper(formData.get('actor_role')),
+              sender_sub_address: normalizeUpper(formData.get('sender_sub_address')),
+              ediel_mailbox: optionalText(formData.get('ediel_mailbox')),
+            }
+          : {}),
         operating_environment: operatingEnvironment,
         branding,
       },
@@ -243,7 +250,6 @@ export async function updateCompanyResponsibleUserAction(
     const userId = normalizeText(formData.get('user_id'))
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
-    const phone = normalizeText(formData.get('phone')) || null
     const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(
       normalizeText(formData.get('role_key')) || 'company_admin',
     )
@@ -251,7 +257,21 @@ export async function updateCompanyResponsibleUserAction(
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
     if (!email) return { ok: false, message: 'E-post krävs.' }
-    const admin = await assertCanManageCompany(companyId)
+    // Granting roles and changing a member's login e-mail needs users.write;
+    // tenants.invite alone only allows inviting.
+    const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['users.write'] })
+    const staffContext: StaffCommandContext = {
+      companyId, actorUserId: admin.userId, permissions: admin.permissions,
+      channel: 'ops', actorIsPlatformAdmin: isPlatformAdminContext(admin),
+    }
+    validateStaffRoleAssignment(staffContext, roleKey)
+    await assertCompanyRoleChangeAllowed({
+      companyId,
+      actorUserId: admin.userId,
+      actorIsPlatformAdmin: isPlatformAdminContext(admin),
+      targetUserId: userId,
+      nextMembershipRole: membershipRole,
+    })
 
     const { data: membership, error: membershipLookupError } = await supabaseService
       .from('company_memberships')
@@ -266,6 +286,11 @@ export async function updateCompanyResponsibleUserAction(
     const { data: authUser, error: authLookupError } = await supabaseService.auth.admin.getUserById(userId)
     if (authLookupError) throw authLookupError
 
+    // The form has no phone field; keep the stored value unless one is sent.
+    const phone = formData.has('phone')
+      ? normalizeText(formData.get('phone')) || null
+      : ((authUser.user?.user_metadata?.phone as string | undefined) ?? null)
+
     const updatePayload: Parameters<typeof supabaseService.auth.admin.updateUserById>[1] = {
       user_metadata: {
         ...(authUser.user?.user_metadata ?? {}),
@@ -275,9 +300,17 @@ export async function updateCompanyResponsibleUserAction(
     }
 
     if ((authUser.user?.email ?? '').toLowerCase() !== email) {
+      // Auth users are global across tenants: changing a login e-mail from a
+      // tenant would let one tenant take over an account shared with others.
+      if (!isPlatformAdminContext(admin)) {
+        return { ok: false, message: 'Inloggningsadressen kan bara ändras av användaren själv eller av Gridex support.' }
+      }
       updatePayload.email = email
       updatePayload.email_confirm = false
     }
+
+    // Commit the authorized role command before privileged Auth/profile side effects.
+    await changeStaffRole(staffContext, { userId, roleKey })
 
     const { error: authUpdateError } = await supabaseService.auth.admin.updateUserById(userId, updatePayload)
     if (authUpdateError) throw authUpdateError
@@ -294,17 +327,6 @@ export async function updateCompanyResponsibleUserAction(
     )
 
     if (profileError && !['42P01', '42703', 'PGRST205'].includes(profileError.code ?? '')) throw profileError
-
-    await grantCompanyUserAccess({
-      companyId,
-      userId,
-      email,
-      fullName,
-      membershipRole,
-      roleKey,
-      actorUserId: admin.userId,
-      source: 'company_settings_responsible_user_update',
-    })
 
     revalidatePath('/admin/company-settings')
     revalidatePath(`/admin/companies/${companyId}/users`)

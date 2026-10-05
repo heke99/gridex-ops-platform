@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "FOCUSED_INTERNAL_MECHANISM_NOT_WHOLE_CRITERION_ACCEPTANCE",
+  "red": {
+    "originalHead": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+    "consumer": "original safeApplyReview.ts",
+    "failed": 1,
+    "passed": 4,
+    "failures": [
+      "actual customer source review consumer routes physical Z06E to native source-only owner then separate committed availability witness"
+    ]
+  },
+  "green": {
+    "command": "npx vitest run __tests__/ediel-confirmed-customer-source.test.ts __tests__/ediel-structural-safe-apply-source.test.ts",
+    "failed": 0,
+    "passed": 8
+  },
+  "actualImplementation": [
+    {
+      "path": "lib/ediel/production/confirmedCustomerSource.ts",
+      "sha256": "29435c5f6ad46e3b5feb99a6debedabe98a1f7c686690e4cfdacb666b34cbf59"
+    },
+    {
+      "path": "lib/ediel/safeApplyReview.ts",
+      "sha256": "d684917b21ae8c44d431d93b22957baeea012a8bab53464a7fcd69e82d90efc0"
+    },
+    {
+      "path": "supabase/migrations/20261001002600_ediel_confirmed_customer_source_versions.sql",
+      "sha256": "e0134dfa00239bb30d1ff1619cb6a29192726dbb412f7e739ef46c3cc1590e87"
+    }
+  ],
+  "nativeReplay": "NOT_EXECUTED_LOCAL_RUNTIME_HAS_NO_POSTGRES_DOCKER",
+  "focusedSQL": "PASS_ACTUAL_NEW_SQL_WITH_EXPLICIT_SYNTHETIC_INBOUND_RULEPACK_CANONICAL_SUPPLY_ISSUER_BOUNDARIES",
+  "externalIssuerApproval": false,
+  "wholeCriterionApproved": false,
+  "remaining": [
+    "Non-death E34 needs separately qualified bilateral source owner; current hold is preserved.",
+    "Same final integrated head native HTTP/browser/CI evidence remains mandatory.",
+    "Dated AI customer facet consumer is a separate follow-up."
+  ],
+  "typecheck": "ONLY_3_INHERITED_852B_ERRORS_KERNEL_COMPANYID_AND_OUTBOUNDREQUEST_ENVIRONMENT"
+}

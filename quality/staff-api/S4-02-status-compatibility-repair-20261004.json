@@ -1,0 +1,76 @@
+{
+  "purpose": "S4-02-status-payload-and-staff-authority-forward-repair",
+  "recorded_at": "2026-10-04T14:12:00Z",
+  "author_base_commit": "449f68a24a474cfeec5c9f6a2cf1c26eff1bdfba",
+  "author_base_tree": "2e201acd8b27f089b9efddf4053912881000f7e7",
+  "confirmed_findings": [
+    {
+      "severity": "Important",
+      "finding": "The shared status core added actor/client/channel fields to every event and audit business payload, changing the existing OPS status-only event contract.",
+      "evidence": "OPS clean replay run37196449791/job111419237347 failed the unchanged scripts/ediel-case-view-native.test.ts:249 exact {status:resolved} event assertion.",
+      "effect": "Existing OPS event consumers and its mandatory browser fixture no longer satisfied the unchanged compatibility oracle."
+    },
+    {
+      "severity": "Important",
+      "finding": "The staff wrapper used the strict role-profile guard, but the generic status core then required the legacy user_roles/permission-catalogue resolver; direct core calls also lacked the fresh staff gate.",
+      "evidence": "The actual old function source rejects a valid company_admin profile with no legacy grant and permits low-role/revoked/foreign/wildcard clients when the controlled legacy dependency allows them.",
+      "effect": "Staff authorization could disagree with the required current profile/client/scope model."
+    }
+  ],
+  "forward_migration": {
+    "file": "supabase/migrations/20261004115007_staff_case_status_actor_compatibility.sql",
+    "created_with": "supabase-cli-2.89.0 migration new staff_case_status_actor_compatibility",
+    "sha256": "1a60f96140f8c8bc151d26b4cd6058b36f48b693ebc0ffbae75e72f1d57df492",
+    "registered_checksum": true,
+    "changed_object": "public.gridex_update_customer_case_status_with_actor_v1(uuid,uuid,text,uuid,text,text,text,uuid)",
+    "behavior": "Nonstaff event and audit business JSON restore the original shape. Staff calls independently use gridex_staff_assert_write_actor_v1 before the case row lock, retain attribution, and require the exact support graph. The existing nonstaff permission/platform/Ediel branch is preserved.",
+    "preserved": "Eight-argument signature, return type, SECURITY INVOKER, empty search_path, service-only ACL, existing wrappers, atomic status/event/audit writes, historical migration bytes and the original OPS native oracle."
+  },
+  "verification": {
+    "old_actual_source": {
+      "command": "GRIDEX_STAFF_STATUS_TEST_SOURCE=old npx vitest run __tests__/staff-case-status-compatibility.test.ts",
+      "exit_code": 1,
+      "expected_red": {"failed": 12, "passed": 3, "total": 15},
+      "log_sha256": "f170c70629834b4c7499e604e470819fe9049330c54dc608b1b14bd0ae2119ad"
+    },
+    "fixed_actual_source": {
+      "command": "npx vitest run __tests__/staff-case-status-compatibility.test.ts",
+      "exit_code": 0,
+      "passed": 15,
+      "log_sha256": "dc7dacb88ecd7a0f69b9eb97a26a3509e0271cd13aa7a122f7d74d0562afc9f1",
+      "scope": "Real shared core/wrappers, strict staff guard, S2 role-profile helper and canonical audit-normalizer source in PGlite; legacy OPS resolver/platform authority are explicitly controlled dependencies. Two cases also execute the exact newly added native SQL assertion templates."
+    },
+    "related_regressions": {
+      "command": "npx vitest run --no-file-parallelism --testTimeout=15000 __tests__/staff-case-status-compatibility.test.ts __tests__/staff-write-actor-guard.test.ts __tests__/staff-case-assignee-eligibility.test.ts __tests__/customer-case-status-transaction.test.ts",
+      "exit_code": 0,
+      "files_passed": 4,
+      "tests_passed": 58,
+      "log_sha256": "fe92b28e7dd09b3761954eb0161ab357e7dc621b01acdb5bd115c00cc129b8cd",
+      "initial_attempt": "A parallel run hit two existing five-second cold-import adapter timeouts. The serial focused run passed without changing those assertions; after strengthening the native FALSE prerequisite the affected source suite passed15/15 again."
+    },
+    "lint": {"command": "npx eslint __tests__/staff-case-status-compatibility.test.ts scripts/staff-case-write-native.test.ts", "exit_code": 0, "log_sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"},
+    "db_migrations_check": {"command": "npm run db:migrations:check", "exit_code": 0, "migration_files": 1056, "version_groups": 959, "log_sha256": "543ac0a84e8948f0ce033702894896e045e14aab9cf8c742653b3d06e6665db6"},
+    "diff_check": "PASS",
+    "independent_review": "PASS: s2_staff_commands reviewed the complete shared core and wrappers, preserved nonstaff authorization source/ACL/oracle, canonical audit normalization, native templates and honest pending-capture manifest. Independently executed final old-source RED12/15 and forward GREEN15/15; no remaining source/test-design blocker.",
+    "native_postgresql17": "NOT_RUN locally: psql/local Supabase stack unavailable. The existing mandatory scripts/staff-case-write-native.test.ts now includes two additional native cases; parent must execute them in fresh exact-head CI.",
+    "full_ci_browser_upgrade_parity": "PENDING; the failed frozen run is retained as failure evidence and is not promoted to acceptance."
+  },
+  "test_source_sha256": {
+    "__tests__/staff-case-status-compatibility.test.ts": "db4e1e3ee3561ae28121d69489a7d88415b626edecda84450f202f327fe6a104",
+    "scripts/staff-case-write-native.test.ts": "cfca146f60a2e0b4cbe5fd3290ed013e46dca072a2c676412e19d334f024df59",
+    "unchanged_scripts/ediel-case-view-native.test.ts": "9cb8c3b374df8a2b96bdf9a16ff8fd4756489070bcca0456b8ac696b5333c05f"
+  },
+  "capture_implications": {
+    "capture_pending": true,
+    "generated_types": "Verified prior bytes/signatures retained; the repair changes only the existing function body.",
+    "schema_and_fingerprint": "Verified prior bytes retained and explicitly marked stale relative to this forward. Fresh exact-prefix capture/import is required; no generated artifact was hand edited.",
+    "retained_artifact_sha256": {
+      "supabase/database.types.ts": "e738c10a566b5ecaa14ac30f797d38f74382b6fc6b59fc2b6495591275d2c4ce",
+      "supabase/schema.sql": "c90f82239ad7bf260802eb97495a1472c3a05ca2e23b07adab5f0f52b42ab3d4",
+      "supabase/schema.fingerprint.json": "03c928c281b706e4f02481260306903a0f754aba3bb1ebd654826aa41dc41abb"
+    }
+  },
+  "skill_routing": "Repository Supabase, systematic-debugging/TDD, variant-analysis, code-review and verification-before-completion apply to this evidenced narrow SQL repair. Existing architecture is specified; broad repository/security/UI/performance audits, unrelated Ediel rule delivery and deployment skills are outside the authorized isolated scope.",
+  "next_action": "Parent integrates the reviewed forward, preserves earlier numbered receipts, captures the fresh final S4 database prefix and qualifies exact-head native/browser/clean-upgrade parity before merge or production work.",
+  "remote_or_production_mutation": false
+}

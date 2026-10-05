@@ -172,25 +172,35 @@ export async function resolveCustomerInfoOperationEnvironment(params: {
   const candidates = environments.map((environment) => {
     const envSettings = settings.filter((row) => lower(row.environment) === environment);
     const envProfiles = profiles.filter((row) => lower(row.environment) === environment);
-    const linkedPairs = envProfiles.flatMap((profile) => {
-      if (profile.actor_setting_id) {
-        const setting = envSettings.find((candidate) => candidate.id === profile.actor_setting_id);
-        return setting ? [{ profile, setting }] : [];
-      }
-      return envSettings.length === 1 ? [{ profile, setting: envSettings[0] }] : [];
-    });
-    const uniquePairs = linkedPairs.filter((pair, index, all) =>
-      all.findIndex((candidate) => candidate.profile.id === pair.profile.id && candidate.setting.id === pair.setting.id) === index,
+    const explicitlyLinkedSettingIds = new Set(
+      envProfiles
+        .map((profile) => clean(profile.actor_setting_id))
+        .filter((id): id is string => Boolean(id) && envSettings.some((setting) => setting.id === id)),
     );
+    const hasUnlinkedProfiles = envProfiles.some((profile) => !clean(profile.actor_setting_id));
+
+    // Environment selection and counterparty route selection are separate concerns.
+    // Several Z01 profiles in the same environment normally represent several
+    // grid owners, not an ambiguous Ediel environment. We only require a unique
+    // sender setting for the environment here; downstream routing selects the
+    // exact grid-owner profile after the verified grid owner is known.
+    let setting: ActorSettingRow | null = null;
+    if (envSettings.length === 1) {
+      setting = envSettings[0] ?? null;
+    } else if (!hasUnlinkedProfiles && explicitlyLinkedSettingIds.size === 1) {
+      const [settingId] = [...explicitlyLinkedSettingIds];
+      setting = envSettings.find((candidate) => candidate.id === settingId) ?? null;
+    }
+
     return {
       environment,
       settings: envSettings,
       profiles: envProfiles,
-      setting: uniquePairs.length === 1 ? uniquePairs[0].setting : null,
-      profile: uniquePairs.length === 1 ? uniquePairs[0].profile : null,
-      ambiguous: uniquePairs.length > 1,
+      setting,
+      profile: envProfiles.length === 1 ? envProfiles[0] : null,
+      ambiguous: envSettings.length > 0 && envProfiles.length > 0 && !setting,
     };
-  }).filter((candidate) => candidate.settings.length > 0 && candidate.profiles.length > 0 && !candidate.ambiguous && candidate.setting && candidate.profile);
+  }).filter((candidate) => candidate.settings.length > 0 && candidate.profiles.length > 0 && !candidate.ambiguous && candidate.setting);
 
   const narrowed = explicit
     ? candidates.filter((candidate) => candidate.environment === explicit)
@@ -227,6 +237,7 @@ export async function resolveCustomerInfoOperationEnvironment(params: {
         explicitEnvironment: explicit || null,
         candidateEnvironments: candidates.map((candidate) => candidate.environment),
         routeProfileId: resolved.profile?.id ?? null,
+        routeProfileCount: resolved.profiles.length,
         actorSettingId: resolved.setting?.id ?? null,
         productionMode: resolved.profile?.production_mode ?? null,
       },

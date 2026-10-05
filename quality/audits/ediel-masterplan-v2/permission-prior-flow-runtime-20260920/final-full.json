@@ -1,0 +1,15 @@
+{
+  "gate": "full",
+  "command": [
+    "npm",
+    "test",
+    "--",
+    "--reporter=json",
+    "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/full.json"
+  ],
+  "exit": 0,
+  "seconds": 46.35,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-full.log",
+  "sha256": "23d1a50e918909c4ce25c3e64da522b58f5c4543f42eeec06b3bfdea44e7098e",
+  "runtimeCommit": "d9d0a93e"
+}

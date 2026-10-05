@@ -20,6 +20,16 @@ function contains(relativePath, needles, label = relativePath) {
   }
 }
 
+function containsCombined(relativePaths, needles, label) {
+  const body = relativePaths.map((relativePath) => read(relativePath)).join("\n");
+  for (const needle of needles) {
+    checks += 1;
+    if (!body.includes(needle)) {
+      failures.push(`${label}: saknar ${JSON.stringify(needle)}`);
+    }
+  }
+}
+
 function excludes(relativePath, needles, label = relativePath) {
   const body = read(relativePath);
   for (const needle of needles) {
@@ -198,8 +208,15 @@ excludes(
   "Runtime source of truth",
 );
 
-contains(
-  "lib/website/customerApplications.ts",
+// Website application signing is intentionally split into process, legal and
+// communication authorities. The release gate verifies the complete logical
+// chain instead of requiring every invariant to live in the public facade.
+containsCombined(
+  [
+    "lib/website/customerApplicationProcess.ts",
+    "lib/website/customerApplicationLegal.ts",
+    "lib/website/customerApplicationCommunication.ts",
+  ],
   [
     "legal_bundle_version_document_id",
     "legal_document_sha256",
@@ -328,8 +345,8 @@ contains(
     '"website_contracts.read"',
     "offer_reference_required",
     "historical_final_prices",
-    'market_price_responsibility: "ops_quote"',
-    "calculator_market_price_supplied_by_ops: true",
+    'market_price_responsibility: "gridex_quote"',
+    "calculator_market_price_supplied_by_gridex: true",
     'final_billing_rule: "locked_settlement_only"',
   ],
   "Publikt portfölj-API",

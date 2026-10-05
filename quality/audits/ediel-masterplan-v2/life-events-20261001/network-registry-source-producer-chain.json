@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "NATIVE_AND_BROWSER_EXECUTION_PENDING",
+  "original_statuses_changed": false,
+  "baseline": "e0aaafe30f1d33be2212c2a92573c16db816a065",
+  "depends_on": "187b770c50d7319adaa96c3bc36356299672f9c1",
+  "ordinary_native_suite": "scripts/ediel-network-registry-source-native.test.ts",
+  "browser_initial_and_post_suite": "scripts/ediel-ai-purpose-source-native.test.ts",
+  "browser_config": "scripts/ediel-ai-purpose-browser-native.config.ts",
+  "browser_fixture_env": "GRIDEX_AI_PURPOSE_FIXTURE_PATH",
+  "browser_specs": [
+    "e2e/browser/ediel-ai-purpose-local.spec.mjs",
+    "e2e/browser/ediel-network-registry-local.spec.mjs"
+  ],
+  "actual_production_chain": [
+    "strict bounded dated original network PDF custody",
+    "actual selected company supplier and actual verified platform network identity/current grid_owner role bound to exact claims",
+    "private current issuer competence/representation authenticated original hash/claims/clause receipt",
+    "separate company-scoped ediel.network_registry.review with no default grant",
+    "atomic immutable original/review/current registry version with owncompany+environment chain",
+    "existing full native header_company_basis owner consumes new company bound registry source",
+    "exact incoming personal-storage/reconciliation environment purpose port",
+    "current review/role/DENY and actual source withdrawal holds fresh consumers",
+    "scoped private source APIs and actual upload/review/read/withdraw UI"
+  ],
+  "local_executed": [
+    {
+      "command": "npx vitest run __tests__/ediel-ai-bi-processing-decision.test.ts __tests__/ediel-ai-personal-storage.test.ts __tests__/ediel-network-registry-http.test.ts __tests__/ediel-network-registry-source.test.ts __tests__/ediel-ai-purpose-http.test.ts __tests__/ediel-ai-purpose-source.test.ts --reporter=dot",
+      "result": "59 PASS six suites"
+    },
+    {
+      "command": "EDIEL_PGLITE_MODULE=<toolchain> node scripts/ediel-network-registry-sql-regression.mjs",
+      "result": "PASS actual source/crypto/review/scope/header/currentrole/DENY/withdrawal/ACL SQL; explicitly synthetic tenant/issuer/no-op central locks and compile-only personal-source predecessor/reconciliation schema"
+    },
+    {
+      "command": "app and scripts TypeScript, targeted all changed/new TS and browser ESLint",
+      "result": "PASS"
+    }
+  ],
+  "native_assertions_pending": [
+    "actual signedcontract/PDFStorage/Z03/current legal-company and network roles, stage before received Z04",
+    "physical multi-register sameobject Z06E actual canonical+source+customer version",
+    "actual authenticated legal-purpose and network-original archive/review producers",
+    "actual dated same-snapshot full CSV and frozen intent/original/row sources/processing decision",
+    "actual public AI message storage/source bindings/queue/native consumer before bounded external SMTP",
+    "fresh network withdrawal blocks origination, BI outbound remains forbidden, immutable accepted transport replay does not send twice",
+    "actual browser PDF upload/bytes/independent review/keyboard/reload for both namespaces",
+    "read-only mobile 200 percent layout and foreign original denial; actual qualified AI history requires the separate fullchain witness",
+    "same frozen full native clean/ancestor replay/build/exact-head CI"
+  ],
+  "upstream_normative_boundary": "P103 positive ERC100 and P105 ownZ07/LI constraints must remain source-faithful. Genuine fixture is allowed to fail at that boundary; no canonical/ACK/source cardinality bypass or private approval/receipt seeds.",
+  "not_seeded": [
+    "private approved original/review/registry versions",
+    "private AI purpose decisions",
+    "approved AI intents/originals/row sources",
+    "native received canonical approved facts or ACK source receipts"
+  ],
+  "synthetic_boundaries": [
+    "external SMTP and notifications",
+    "external issuer key/competence/representation fixture bootstrap for three separate protocols"
+  ],
+  "external_facts_still_required": [
+    "actual network registry original/current identity and regulatory issuer competence/representation authenticated receipts",
+    "actual legal-purpose basis/retention and legal issuer competence/representation receipts for real deployment"
+  ],
+  "prohibited_claims": [
+    "current platform identifier row alone proves network registry authority",
+    "company role/globaladmin/manual review creates an issuer truth",
+    "PGlite replay is authentic native",
+    "purpose and network protocols/grants can be substituted",
+    "locally green partial controls approve any original352 row"
+  ],
+  "separate_fullchain_native_suite": "scripts/ediel-ai-network-original-native.test.ts",
+  "producer_fixture_scope": {
+    "factory": "scripts/helpers/ediel-legal-source-stage-native-fixture.ts#createLegalSourceStageFixture",
+    "stage": "legal_contract_before_received_z04",
+    "independent_native_mechanism": "Actual archive/current issuer HMAC/separate review/header-company basis/DENY/network role/withdrawal, with zero inbound/supply/AI records.",
+    "fullchain": "Remains separate and unexecuted. Unexpected native errors must fail; no generic throw is counted as a normative diagnostic."
+  }
+}

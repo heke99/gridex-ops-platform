@@ -21,4 +21,15 @@ describe('PRODAT exact profiles and state machines', () => {
     expect(result.profile?.key).toBe('prodat_26a_z08_h')
     expect(result.issues.map((issue) => issue.code)).toEqual(expect.arrayContaining(['prodat_z08_contractClosureReason_missing', 'prodat_end_date_missing']))
   })
+
+  it('classifies the dated inbound Z06G review without supply mutation', () => {
+    const decision = decideProdatLifecycle({
+      message_code: 'Z06', parsed_payload: { subtype: 'G' }, direction: 'inbound',
+      message_version: 'E2SE6A', application_reference: '23-DDQ-PRODAT', message_received_at: '2026-09-23T12:00:00Z',
+      raw_payload: null,
+    })
+    expect(decision).toMatchObject({
+      outcome: 'masterdata_update_received', createSupplyPeriod: false, endSupplyPeriod: false,
+    })
+  })
 })

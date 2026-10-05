@@ -1,0 +1,442 @@
+{
+  "project": {
+    "link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
+    "project_id": "piidsfebjqjmnepdpnas",
+    "name": "gridex-ops-dev",
+    "production_confirmation": "Tenantservice checkpoint records this exact project as user-confirmed production."
+  },
+  "migration": {
+    "file": "supabase/migrations/20261002230000_customer_merge_portal_lifecycle.sql",
+    "sha256": "836c083fad0f231a145cf4117527057a20bdc2f73d094c3fbaa53fbab525a4c9"
+  },
+  "catalog_only": true,
+  "catalog_query": "select current_setting('server_version') as server_version,\n  (select count(*) from supabase_migrations.schema_migrations) as ledger_count,\n  (select jsonb_agg(jsonb_build_object(\n    'schema',n.nspname,'name',p.proname,'identity_arguments',pg_get_function_identity_arguments(p.oid),\n    'source_md5',md5(p.prosrc),'definition_md5',md5(pg_get_functiondef(p.oid)),\n    'returns',pg_get_function_result(p.oid),'security_definer',p.prosecdef,\n    'search_path',p.proconfig,'volatility',p.provolatile,\n    'acl',(select jsonb_agg(jsonb_build_object('grantee',case when a.grantee=0 then 'PUBLIC' else r.rolname end,'grantor',o.rolname,'privilege',a.privilege_type,'grantable',a.is_grantable) order by a.grantee,a.grantor,a.privilege_type)\n      from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a left join pg_roles r on r.oid=a.grantee left join pg_roles o on o.oid=a.grantor))\n    order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid in(\n      to_regprocedure('public.gridex_merge_customers_v1(uuid,uuid,uuid[],uuid,text)'),\n      to_regprocedure('public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)'),\n      to_regprocedure('public.gridex_guard_merged_portal_customer_write()'),\n      to_regprocedure('public.gridex_lock_signed_customer_contract()'))) as procedures,\n  (select jsonb_agg(jsonb_build_object(\n    'table',c.conrelid::regclass::text,'name',c.conname,'type',c.contype,\n    'references',c.confrelid::regclass::text,\n    'columns',(select jsonb_agg(a.attname order by u.position) from unnest(c.conkey) with ordinality u(attnum,position) join pg_attribute a on a.attrelid=c.conrelid and a.attnum=u.attnum),\n    'referenced_columns',(select jsonb_agg(a.attname order by u.position) from unnest(c.confkey) with ordinality u(attnum,position) join pg_attribute a on a.attrelid=c.confrelid and a.attnum=u.attnum),\n    'update_action',c.confupdtype,'delete_action',c.confdeltype,'match_type',c.confmatchtype,\n    'validated',c.convalidated,'deferrable',c.condeferrable,'initially_deferred',c.condeferred)\n    order by c.conname) from pg_constraint c where c.conname in(\n      'customer_case_attachments_case_owner_fk','customer_case_events_case_owner_fk',\n      'customer_contracts_company_customer_customer_site_rel_fkey','customer_contracts_company_customer_site_rel_fkey',\n      'customer_info_requests_company_customer_site_rel_fkey','grid_owner_data_requests_company_customer_site_rel_fkey',\n      'grid_owner_information_requests_company_customer_site_rel_fkey','metering_points_company_customer_site_rel_fkey',\n      'outbound_requests_company_customer_customer_site_rel_fkey','outbound_requests_company_customer_site_rel_fkey',\n      'powers_of_attorney_company_customer_customer_site_rel_fkey','powers_of_attorney_company_customer_site_rel_fkey',\n      'supplier_switch_requests_company_customer_customer_site_rel_fke','supplier_switch_requests_company_customer_site_rel_fkey')) as ownership_fks,\n  (select jsonb_agg(jsonb_build_object('table',t.tgrelid::regclass::text,'name',t.tgname,\n    'function',t.tgfoid::regprocedure::text,'type',t.tgtype,'enabled',t.tgenabled,'internal',t.tgisinternal,\n    'columns',(select jsonb_agg(a.attname order by u.position) from unnest(t.tgattr::smallint[]) with ordinality u(attnum,position) join pg_attribute a on a.attrelid=t.tgrelid and a.attnum=u.attnum),\n    'definition',pg_get_triggerdef(t.oid))\n    order by t.tgrelid::regclass::text,t.tgname) from pg_trigger t where not t.tgisinternal and (\n      t.tgname='guard_merged_portal_customer_write' or t.tgfoid=to_regprocedure('public.gridex_lock_signed_customer_contract()'))) as relevant_triggers,\n  (select jsonb_agg(jsonb_build_object('version',version,'name',name,'statements_null',statements is null) order by version)\n    from supabase_migrations.schema_migrations where version='20261002230000' or name='customer_merge_portal_lifecycle') as target_ledger;",
+  "before": {
+    "server_version": "17.6",
+    "ledger_count": 366,
+    "procedures": [
+      {
+        "acl": [
+          {
+            "grantee": "postgres",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "service_role",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "name": "gridex_customer_contact_change_v1",
+        "schema": "public",
+        "returns": "jsonb",
+        "source_md5": "787f634401d593b7819a01d06aeef67a",
+        "volatility": "v",
+        "search_path": [
+          "search_path=\"\""
+        ],
+        "definition_md5": "c857d2ed8945fbcab0d4b4e6d13ee35d",
+        "security_definer": false,
+        "identity_arguments": "p_company_id uuid, p_customer_id uuid, p_actor_kind text, p_actor_user_id uuid, p_api_client_id uuid, p_portal_identity_id text, p_channel text, p_expected_updated_at timestamp with time zone, p_customer_patch jsonb, p_contact_patch jsonb, p_idempotency_key text"
+      },
+      {
+        "acl": [
+          {
+            "grantee": "PUBLIC",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "postgres",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "anon",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "authenticated",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "service_role",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "name": "gridex_lock_signed_customer_contract",
+        "schema": "public",
+        "returns": "trigger",
+        "source_md5": "e37e13a157f91f401e526b53d5eefdc1",
+        "volatility": "v",
+        "search_path": [
+          "search_path=public, pg_catalog, pg_temp"
+        ],
+        "definition_md5": "b6d6f9c15bc62d1752bf6a78ed9d74b4",
+        "security_definer": false,
+        "identity_arguments": ""
+      },
+      {
+        "acl": [
+          {
+            "grantee": "postgres",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "service_role",
+            "grantor": "postgres",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "name": "gridex_merge_customers_v1",
+        "schema": "public",
+        "returns": "jsonb",
+        "source_md5": "c1f14c592d7b231e6763eb99e88c8130",
+        "volatility": "v",
+        "search_path": [
+          "search_path=public, extensions, pg_catalog, pg_temp"
+        ],
+        "definition_md5": "1e234e3cf8dd639c3a519e6b8c1ddf93",
+        "security_definer": true,
+        "identity_arguments": "p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text"
+      }
+    ],
+    "ownership_fks": [
+      {
+        "name": "customer_case_attachments_case_owner_fk",
+        "type": "f",
+        "table": "customer_case_attachments",
+        "columns": [
+          "customer_case_id",
+          "company_id",
+          "customer_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_cases",
+        "delete_action": "c",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "id",
+          "company_id",
+          "customer_id"
+        ]
+      },
+      {
+        "name": "customer_case_events_case_owner_fk",
+        "type": "f",
+        "table": "customer_case_events",
+        "columns": [
+          "customer_case_id",
+          "company_id",
+          "customer_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_cases",
+        "delete_action": "c",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "id",
+          "company_id",
+          "customer_id"
+        ]
+      },
+      {
+        "name": "customer_contracts_company_customer_customer_site_rel_fkey",
+        "type": "f",
+        "table": "customer_contracts",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "customer_site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "customer_contracts_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "customer_contracts",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "customer_info_requests_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "customer_info_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "grid_owner_data_requests_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "grid_owner_data_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "grid_owner_information_requests_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "grid_owner_information_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "customer_site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "metering_points_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "metering_points",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "outbound_requests_company_customer_customer_site_rel_fkey",
+        "type": "f",
+        "table": "outbound_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "customer_site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "outbound_requests_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "outbound_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "powers_of_attorney_company_customer_customer_site_rel_fkey",
+        "type": "f",
+        "table": "powers_of_attorney",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "customer_site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "powers_of_attorney_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "powers_of_attorney",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "supplier_switch_requests_company_customer_customer_site_rel_fke",
+        "type": "f",
+        "table": "supplier_switch_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "customer_site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      },
+      {
+        "name": "supplier_switch_requests_company_customer_site_rel_fkey",
+        "type": "f",
+        "table": "supplier_switch_requests",
+        "columns": [
+          "company_id",
+          "customer_id",
+          "site_id"
+        ],
+        "validated": true,
+        "deferrable": false,
+        "match_type": "s",
+        "references": "customer_sites",
+        "delete_action": "a",
+        "update_action": "a",
+        "initially_deferred": false,
+        "referenced_columns": [
+          "company_id",
+          "customer_id",
+          "id"
+        ]
+      }
+    ],
+    "relevant_triggers": [
+      {
+        "name": "customer_contracts_lock_signed",
+        "type": 27,
+        "table": "customer_contracts",
+        "columns": null,
+        "enabled": "O",
+        "function": "gridex_lock_signed_customer_contract()",
+        "internal": false,
+        "definition": "CREATE TRIGGER customer_contracts_lock_signed BEFORE DELETE OR UPDATE ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_lock_signed_customer_contract()"
+      }
+    ],
+    "target_ledger": null
+  }
+}

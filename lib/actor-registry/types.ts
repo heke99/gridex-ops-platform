@@ -9,6 +9,12 @@ export type ActorRegistryRole =
 
 export type ActorRegistryRoute = {
   messageFamily: 'PRODAT' | 'UTILTS' | string
+  market?: 'EL' | 'GAS' | null
+  partyIdQualifier?: string | null
+  partyIdResponsible?: string | null
+  interchangeIdQualifier?: string | null
+  ediCharset?: string | null
+  ediSyntax?: string | null
   applicationReference?: string | null
   environment: 'test' | 'production'
   subaddress?: string | null
@@ -36,6 +42,8 @@ export type ActorRegistryCertificate = {
 
 export type ParsedActorRegistryActor = {
   name: string
+  market?: 'EL' | 'GAS' | null
+  svkId?: string | null
   legalName?: string | null
   edielId?: string | null
   orgNumber?: string | null

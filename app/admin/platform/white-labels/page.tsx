@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { assignCompanyToWhiteLabelAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,27 @@ export default async function PlatformWhiteLabelsPage() {
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
                   <Info label="Kontaktmail" value={row.support_email} />
                   <Info label="Bolag" value={String(tenantCount)} />
+                </div>
+                <div className="mt-5 space-y-2">
+                  {companyRows.filter((company) => company.white_label_platform_id === row.id).map((company) => (
+                    <form key={company.id} action={assignCompanyToWhiteLabelAction} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-2 text-sm">
+                      <span className="font-semibold text-slate-900">{company.name}</span>
+                      <input type="hidden" name="company_id" value={company.id} />
+                      <input type="hidden" name="white_label_platform_id" value="" />
+                      <button className="text-xs font-black text-red-700 hover:underline">Koppla bort</button>
+                    </form>
+                  ))}
+                  <form action={assignCompanyToWhiteLabelAction} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="white_label_platform_id" value={row.id} />
+                    <select name="company_id" required defaultValue="" className="min-w-0 flex-1 rounded-2xl border border-slate-300 px-3 py-2 text-sm">
+                      <option value="" disabled>Välj bolag att koppla…</option>
+                      {companyRows.filter((company) => !company.white_label_platform_id).map((company) => (
+                        <option key={company.id} value={company.id}>{company.name}</option>
+                      ))}
+                    </select>
+                    <button className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white hover:bg-slate-800">Koppla bolag</button>
+                  </form>
+                  <p className="text-xs font-semibold text-slate-500">Endast superadmin kan koppla bolag. White-label-medlemmar har enbart läsbehörighet.</p>
                 </div>
               </article>
             )

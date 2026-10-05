@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from 'next/navigation'
 import { randomUUID } from "node:crypto";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -130,6 +131,7 @@ export async function saveContractOfferAction(
   try {
     result = await saveContractOfferActionImpl(formData);
   } catch (error) {
+    unstable_rethrow(error)
     return {
       status: "error",
       message: await errorMessage(error, {
@@ -464,6 +466,7 @@ export async function archiveContractOfferAction(formData: FormData) {
   try {
     success = (await archiveContractOfferActionImpl(formData)).success;
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {
@@ -517,6 +520,7 @@ export async function copyContractOfferAction(formData: FormData) {
     }
     revalidateContractSurfaces(scopedCompanyId);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {
@@ -573,6 +577,7 @@ export async function deleteContractOfferAction(formData: FormData) {
   try {
     success = (await deleteContractOfferActionImpl(formData)).success;
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {
@@ -650,6 +655,7 @@ export async function closeContractOfferAction(formData: FormData) {
     success =
       "Avtalet stängdes för ny försäljning och kan nu arkiveras. Historiska kundavtal och snapshots bevarades.";
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {
@@ -667,6 +673,7 @@ export async function updateTenantContractChannelAction(formData: FormData) {
   try {
     success = await updateTenantContractChannelActionImpl(formData);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId: getString(formData, "company_id") || null,
       error: await errorMessage(error, {
@@ -794,6 +801,7 @@ export async function pauseContractOfferAction(formData: FormData) {
     if (!result?.ok) throw contractLifecycleFailure(result, "Avtalet kunde inte pausas.");
     revalidateContractSurfaces(companyId);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {
@@ -835,6 +843,7 @@ export async function publishContractVersionAction(formData: FormData) {
     }
     revalidateContractSurfaces(companyId);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {
@@ -876,6 +885,7 @@ export async function publishContractChannelAction(formData: FormData) {
     });
     revalidateContractSurfaces(companyId);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       surface,
@@ -916,6 +926,7 @@ export async function unpublishContractChannelAction(formData: FormData) {
     });
     revalidateContractSurfaces(companyId);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       surface,
@@ -964,6 +975,7 @@ export async function setContractChannelPermissionAction(formData: FormData) {
     });
     revalidateContractSurfaces(scopedCompanyId);
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       surface,
@@ -1031,6 +1043,7 @@ export async function cleanupUnusedContractDraftsAction(formData: FormData) {
       ? `${result.deleted_count ?? 0} av ${result.deletable_count ?? 0} raderbara utkast raderades. ${result.blocked_count ?? 0} blockerades och ${result.error_count ?? 0} fick tekniska fel.${blockedExamples ? ` Exempel: ${blockedExamples}` : ""}`
       : `Dry-run klar: ${result.scanned_count ?? 0} utkast analyserades, ${result.deletable_count ?? 0} kan raderas och ${result.blocked_count ?? 0} är blockerade.${blockedExamples ? ` Exempel: ${blockedExamples}` : ""}`;
   } catch (error) {
+    unstable_rethrow(error)
     redirectBack({
       companyId,
       error: await errorMessage(error, {

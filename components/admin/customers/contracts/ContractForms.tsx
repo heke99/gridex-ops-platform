@@ -55,7 +55,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="grid gap-1 text-sm">
+    <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
       <span className="text-slate-700 ">{label}</span>
       {children}
     </label>
@@ -63,7 +63,7 @@ function Field({
 }
 
 function inputClassName() {
-  return "rounded-2xl border border-slate-300 px-4 py-3 ";
+  return "min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700";
 }
 
 function quickActionToneClass(

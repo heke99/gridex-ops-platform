@@ -1,0 +1,11 @@
+# Transport/register v4 composition verification
+
+158/158 tests in 14 suites passed against the uncommitted shared-v4 composition over c652d383. Exact full test names and source-file hashes are retained in the adjacent JSON. This proves the finite fixture association, source consumers, private-journal callback ordering and negative control flow; it does not certify a whole masterplan criterion.
+
+Reporting originals are independently prepared before the subject call and selected by exact company/actor/run/environment/revision/profile/raw bytes. The newer owner's one-use outbound/positive token consumption and two extra original/hash negatives are retained. Customer masterdata and requested-change opaque source ports both survive the merge; the last requestedChangeBasis positional slot remains distinct.
+
+The new 20261001040446 forward preserves the latest declared-route native owner and adds TXT source-kind parity and restores the previously installed declared-country actor update. Its 24 bounded PostgreSQL checks include the pre-fix TXT denial, post-fix exact byte/result replay, XML/CSV parity, OID/owner/ACL/search_path preservation and rejected missing transport fields, false readiness metadata, bad actor/hash/source kind and zero routes. Declared FI with the same legal route updates the country once; null/unknown source country and postal metadata without a declared country remain held and cannot overwrite it. These use declared synthetic source/admin fixtures. The authentic private TXT original separately passed its exact SHA256 grammar replay: 97,717 bytes, 697 actors, 1,126 routes, 134 metadata-only actors; this grants no certificate or routing readiness.
+
+Physical 71-character FTX now fails full UNSM before national admission. Both diagnostics remain separately asserted against the same wire and SMTP retains zero external effects. Blob retention scope and Auth adaptation also pass their bounded synthetic PostgreSQL checks.
+
+Native clean/upgrade replay, actual protected native authority, interactive browser upload/review/purge/current read-only/foreign scope, build and exact-head CI remain NOT RUN by this reviewer. Root must bind fresh receipts to one final frozen head. Genuine legal retention decisions and external certificate/market acceptance are not supplied by synthetic HMAC or green mechanical tests.

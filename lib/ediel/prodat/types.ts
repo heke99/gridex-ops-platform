@@ -1,6 +1,12 @@
+import type {ExpectedContext} from './prodatReportingPermissionContext'
+import type { ProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import type { ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
+import type { ProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 // lib/ediel/prodat/types.ts
 
 import type { EdielAckStatus } from '@/lib/ediel/types'
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type { ProdatBusinessContext } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export type ProdatEngineCode =
   | 'Z01'
@@ -45,13 +51,40 @@ export type ProdatEngineVersionContext = {
   selectedRuleId?: string | null
 }
 
-export type ProdatEngineProductionContext = {
+/** Explicit invoice recipient; never derived from the ultimate customer. */
+export type ProdatEngineInvoiceeContext = {
+  id?: string | null
+  idCodeListQualifier?: string | null
+  idAgency?: '89' | '260'
+  name: string
+  nameLines?: readonly string[]
+  address?: string | null
+  addressLines?: readonly string[]
+  city?: string | null
+  postalCode?: string | null
+  country?: string | null
+}
+
+export type ProdatEngineProductionContext = ProdatDateInputs & Omit<ProdatMeterRegisterInput, 'registerIndex'> & {
+  registers?: readonly ProdatMeterRegisterInput[]
+  meterPointIdAgency?: '9' | '89'
   code: ProdatEngineCode
   bgmReference: string
   transactionReference: string
   senderEdielId: string
   receiverEdielId: string
+  /** Legal counterparties may differ from the technical UNB routing actors. */
+  legalSenderId?: string | null
+  legalReceiverId?: string | null
+  legalSenderCountry?: string | null
+  legalReceiverCountry?: string | null
   customerName: string
+  customerNameLines?: readonly string[]
+  customerIdAgency?: '89' | '260'
+  customerAddressLines?: readonly string[]
+  siteAddressLines?: readonly string[]
+  siteIdAgency?: '9' | '89'
+  invoicee?: ProdatEngineInvoiceeContext | null
   customerId?: string | null
   customerIdCodeListQualifier?: string | null
   meterPointId: string
@@ -80,6 +113,16 @@ export type ProdatEngineProductionContext = {
   energyProductId?: string | null
   powerOfAttorneyReference?: string | null
   balanceResponsibleId?: string | null
+  /** Explicit business context; never inferred from free text. */
+  businessContext?: ProdatBusinessContext | null
+  /** Tenant/counterparty capability evidence for bilateral-only PRODAT variants. */
+  bilateralCapabilityVerified?: boolean | null
+  /**
+   * Factual inputs for every official PRODAT D cell. Production rendering fails
+   * closed when the central condition engine cannot determine a D condition.
+   */
+  reportingContext?:ExpectedContext
+  dependentConditionFacts?: ProdatDependentConditionFacts | null
 }
 
 export type ProdatEngineInput = {
@@ -111,7 +154,12 @@ export type ProdatEngineAckExpectation = {
 }
 
 export type ProdatEngineDiagnostics = {
+  reportingReadiness?:'unqualified'|'not_applicable'
+  dateEventReadiness?:'unqualified'|'not_applicable'
+
   engine: 'prodat'
+  registerCount?: number
+  registerEvidence?: ProdatRegisterEvidence
   renderer: string
   code: ProdatEngineCode
   variant?: string | null
@@ -130,6 +178,8 @@ export type ProdatEngineDiagnostics = {
   rulebookProcessGroup?: string | null
   rulebookApplicationReference?: string | null
   rulebookIssues?: Array<Record<string, unknown>>
+  canonicalPolicySourceTrace?: Array<Record<string, unknown>>
+  dependentConditionStatuses?: Array<Record<string, unknown>>
 }
 
 export type ProdatEngineRenderResult = {

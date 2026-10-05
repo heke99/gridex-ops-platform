@@ -64,7 +64,7 @@ function TemplateStats({ templates }: { templates: PlatformLegalTemplate[] }) {
         <p className="mt-2 text-3xl font-black text-slate-950">{templates.length}</p>
       </div>
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Published types</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Publicerade mallar</p>
         <p className="mt-2 text-3xl font-black text-emerald-950">{publishedByType.size}/{CANONICAL_LEGAL_MODULES.length}</p>
       </div>
       <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
@@ -232,7 +232,7 @@ function TemplateCard({ template, previewCompany }: { template: PlatformLegalTem
           {template.status !== 'published' ? (
             <form action={publishPlatformLegalTemplateAction}>
               <input type="hidden" name="id" value={template.id} />
-              <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100">Publish</button>
+              <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100">Publicera</button>
             </form>
           ) : null}
           {template.status === 'draft' ? (
@@ -256,7 +256,7 @@ function TemplateCard({ template, previewCompany }: { template: PlatformLegalTem
             <textarea name="body" defaultValue={template.body} rows={8} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" required />
           </label>
           <div>
-            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Save draft</button>
+            <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Spara utkast</button>
           </div>
         </form>
       ) : (
@@ -303,7 +303,7 @@ export default async function PlatformLegalTemplatesPage({ searchParams }: { sea
         <section className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Published</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Publicerad</p>
               <h2 className="mt-2 text-xl font-black text-slate-950">Active master templates</h2>
             </div>
             <p className="text-sm font-bold text-slate-600">At least one published immutable version per canonical module must exist.</p>

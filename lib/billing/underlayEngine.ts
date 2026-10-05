@@ -1,12 +1,22 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { isPriceArea } from "@/lib/pricing/types";
-import { assertBillingPeriodOpen } from "@/lib/billing/invoiceReadiness";
+import { assertBillingPeriodOpen, getBillingPeriodLock } from "@/lib/billing/invoiceReadiness";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
 import {
   stockholmLocalToUtc,
   stockholmMonthBounds,
 } from "@/lib/time/stockholm";
 import { evaluateBillingGate } from "@/lib/billing/billingGate";
+import { loadQualifiedBillingValues } from './sourceBasis';
+import { isCanonicalUtiltsDecimal, sumUtiltsDecimals } from '@/lib/ediel/utilts/exactDecimal';
+import {
+  companyEstimatesMissingConsumption,
+  estimateMissingConsumption,
+  missingWindows,
+  type ConsumptionEstimate,
+} from "@/lib/billing/consumptionEstimate";
+import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
+import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -44,10 +54,17 @@ export function resolveBillingUnderlayPriceArea(input: {
   const contractArea = normalizedPriceArea(input.contract?.price_area_used);
   const meteringAreas = new Set(
     (input.rows ?? [])
-      .map((row) => normalizedPriceArea(row.price_area ?? row.price_area_code ?? row.bidding_zone_code))
+      .map((row) =>
+        normalizedPriceArea(
+          row.price_area ?? row.price_area_code ?? row.bidding_zone_code,
+        ),
+      )
       .filter((area): area is string => Boolean(area)),
   );
-  const priceArea = snapshotArea ?? contractArea ?? (meteringAreas.size === 1 ? [...meteringAreas][0] : null);
+  const priceArea =
+    snapshotArea ??
+    contractArea ??
+    (meteringAreas.size === 1 ? [...meteringAreas][0] : null);
   const conflicts: string[] = [];
   if (snapshotArea && contractArea && snapshotArea !== contractArea) {
     conflicts.push(`contract:${contractArea}`);
@@ -57,7 +74,8 @@ export function resolveBillingUnderlayPriceArea(input: {
       if (area !== priceArea) conflicts.push(`metering_value:${area}`);
     }
   }
-  if (meteringAreas.size > 1) conflicts.push("metering_values_multiple_price_areas");
+  if (meteringAreas.size > 1)
+    conflicts.push("metering_values_multiple_price_areas");
   return { priceArea, conflicts: [...new Set(conflicts)] };
 }
 
@@ -71,28 +89,16 @@ function strictNumberOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function strictNumber(value: unknown, field: string): number {
-  const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && value.trim()
-        ? Number(value.replace(",", "."))
-        : Number.NaN;
-  if (!Number.isFinite(parsed))
-    throw new Error(`${field} är inte ett giltigt tal.`);
-  return parsed;
+function quantityKwh(row: JsonRecord): string {
+  if (!isCanonicalUtiltsDecimal(row.quantity_kwh) || row.unit !== 'kWh') throw new Error('billing_exact_kwh_source_required');
+  return row.quantity_kwh;
 }
+function absoluteQuantity(row: JsonRecord): string { const quantity = quantityKwh(row); return quantity.startsWith('-') ? quantity.slice(1) : quantity; }
 
-function quantityKwh(row: JsonRecord): number {
-  const quantity = strictNumber(row.quantity_kwh, "quantity_kwh");
-  const unit = text(row.unit) ?? "kWh";
-  if (unit === "kWh") return quantity;
-  if (unit === "Wh") return quantity / 1_000;
-  if (unit === "MWh") return quantity * 1_000;
-  throw new Error(`Mätenheten ${unit} stöds inte för fakturering.`);
-}
-
-type EnergyDirection = "consumption" | "production" | "consumption_correction";
+type EnergyDirection =
+  | "consumption"
+  | "production"
+  | "consumption_correction";
 
 function normalizeEnergyDirection(row: JsonRecord): EnergyDirection {
   const explicit = text(row.direction)?.toLowerCase() ?? null;
@@ -104,13 +110,15 @@ function normalizeEnergyDirection(row: JsonRecord): EnergyDirection {
   }
   if (
     explicit &&
-    ["consumption_correction", "negative_consumption", "correction"].includes(
-      explicit,
-    )
+    [
+      "consumption_correction",
+      "negative_consumption",
+      "correction",
+    ].includes(explicit)
   ) {
     return "consumption_correction";
   }
-  if (quantityKwh(row) < 0) return "consumption_correction";
+  if (quantityKwh(row).startsWith('-')) return "consumption_correction";
   return "consumption";
 }
 
@@ -120,7 +128,7 @@ function normalizedBillingRow(row: JsonRecord): JsonRecord {
   return {
     ...row,
     direction: energyDirection,
-    quantity_kwh: Math.abs(quantityKwh(row)),
+    quantity_kwh: quantityKwh(row),
     unit: "kWh",
     energy_direction_inference:
       energyDirection === "consumption_correction" &&
@@ -142,7 +150,11 @@ function addDays(date: string, days: number): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
   const cursor = new Date(
-    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days),
+    Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]) + days,
+    ),
   );
   return cursor.toISOString().slice(0, 10);
 }
@@ -155,6 +167,23 @@ function localDateBoundary(date: string): string {
     month: Number(match[2]),
     day: Number(match[3]),
   }).toISOString();
+}
+
+export function stockholmCivilDate(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime())) {
+    throw new Error(`Ogiltig tidpunkt för svensk kalenderdag: ${value}`);
+  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function readinessIssues(warnings: string[]) {
@@ -185,7 +214,7 @@ async function loadNormalizedValues(
   start: string,
   end: string,
 ): Promise<JsonRecord[]> {
-  return paginatedRows<JsonRecord>(async (from, to) => {
+  const rows = await paginatedRows<JsonRecord>(async (from, to) => {
     const response = await supabaseService
       .from("normalized_metering_values")
       .select("*")
@@ -204,6 +233,8 @@ async function loadNormalizedValues(
       error: response.error,
     };
   });
+  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)));
+  return rows.map(row => qualified.get(String(row.id))!);
 }
 
 async function loadSupplyPeriods(
@@ -216,7 +247,7 @@ async function loadSupplyPeriods(
       .from("customer_supply_periods")
       .select("*")
       .eq("company_id", companyId)
-      .in("status", ["active", "confirmed_by_grid_owner"])
+      .in("status", ["active", "confirmed_by_grid_owner", "ended"])
       .lte("start_date", endDateInclusive)
       .or(`end_date.is.null,end_date.gte.${startDate}`)
       .order("start_date", { ascending: true })
@@ -239,7 +270,9 @@ async function loadContract(
     .select("*")
     .eq("company_id", companyId)
     .eq("id", contractId)
-    .in("status", ["active", "signed"])
+    // A terminated contract still covers supply up to its end date (move-out
+    // or switch away), so the final period is billed instead of reviewed.
+    .in("status", ["active", "signed", "terminated"])
     .maybeSingle();
   if (response.error) throw response.error;
   return (response.data as JsonRecord | null) ?? null;
@@ -251,7 +284,7 @@ async function loadSnapshot(
   segmentStart: string,
 ): Promise<JsonRecord | null> {
   if (!contractId) return null;
-  const date = segmentStart.slice(0, 10);
+  const date = stockholmCivilDate(segmentStart);
   const response = await supabaseService
     .from("contract_price_snapshots")
     .select("*")
@@ -281,13 +314,25 @@ function contractCoversSegment(
 ): boolean {
   if (!contract) return false;
   const startsAt = text(contract.starts_at) ?? text(contract.start_date);
-  const endsAt = text(contract.ends_at) ?? text(contract.end_date);
-  if (startsAt && Date.parse(startsAt) > Date.parse(segmentStart)) return false;
+  const plannedEnd = text(contract.ends_at) ?? text(contract.end_date);
+  const actualEnd = text(contract.ended_at);
+  // The earliest of the planned and the actual end bounds the contract.
+  const endsAt =
+    plannedEnd && actualEnd
+      ? stockholmCivilDate(plannedEnd) <= stockholmCivilDate(actualEnd)
+        ? plannedEnd
+        : actualEnd
+      : (plannedEnd ?? actualEnd);
+  const segmentStartDate = stockholmCivilDate(segmentStart);
+  const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
+  const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
+  const contractEndExclusiveDate = endsAt
+    ? addDays(stockholmCivilDate(endsAt), 1)
+    : null;
+  if (contractStartDate && contractStartDate > segmentStartDate) return false;
   if (
-    endsAt &&
-    Date.parse(
-      endsAt.length === 10 ? localDateBoundary(addDays(endsAt, 1)) : endsAt,
-    ) < Date.parse(segmentEnd)
+    contractEndExclusiveDate &&
+    contractEndExclusiveDate < segmentEndExclusiveDate
   )
     return false;
   return true;
@@ -328,18 +373,17 @@ function clipMeteringRowToSegment(
     clipEnd <= clipStart
   )
     return null;
-  const ratio = (clipEnd - clipStart) / (originalEnd - originalStart);
+  // No source grants a uniform distribution across a partial interval. Keep
+  // the authentic quantity/period and hold this segment for finer source data.
   return {
     ...row,
-    period_start: new Date(clipStart).toISOString(),
-    period_end: new Date(clipEnd).toISOString(),
-    quantity_kwh: quantityKwh(row) * ratio,
+    quantity_kwh: quantityKwh(row),
     unit: "kWh",
     metadata: {
       ...object(row.metadata),
       original_period_start: row.period_start,
       original_period_end: row.period_end,
-      overlap_ratio: ratio,
+      partial_source_interval: clipStart !== originalStart || clipEnd !== originalEnd,
     },
   };
 }
@@ -386,7 +430,8 @@ function validateIntervalCoverage(
     gapCount += 1;
     warnings.push(`Mätvärdeslucka finns fram till ${segmentEnd}.`);
   }
-  if (rows.length === 0) warnings.push("Mätvärden saknas i fakturasegmentet.");
+  if (rows.length === 0)
+    warnings.push("Mätvärden saknas i fakturasegmentet.");
   return { missing: gapCount, warnings: [...new Set(warnings)] };
 }
 
@@ -400,10 +445,10 @@ function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
   if (schemaVersion === "gridex_contract_pricing_v6_selection") {
     const contractType = text(snapshotJson.contract_type);
     if (
-      !text(snapshot.price_option_reference) &&
-        !text(snapshotJson.price_option_reference) ||
-      !text(snapshot.invoice_delivery_method) &&
-        !text(snapshotJson.invoice_delivery_method) ||
+      (!text(snapshot.price_option_reference) &&
+        !text(snapshotJson.price_option_reference)) ||
+      (!text(snapshot.invoice_delivery_method) &&
+        !text(snapshotJson.invoice_delivery_method)) ||
       (contractType === "fixed" &&
         !text(snapshot.area_price_reference) &&
         !text(snapshotJson.area_price_reference)) ||
@@ -433,32 +478,321 @@ function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
   };
 }
 
+/** Interval step for estimates: the contract's resolution (quarter-hour or hour). */
+function estimateStepMs(contract: JsonRecord | null, snapshotJson: JsonRecord): number {
+  const resolution = meteringResolutionForContract({
+    contractType: text(contract?.contract_type),
+    priceSnapshot: snapshotJson,
+  });
+  return resolution === "quarter_hour" ? 15 * 60_000 : 60 * 60_000;
+}
+
+export function estimatedItems(
+  estimate: ConsumptionEstimate,
+  base: JsonRecord,
+): JsonRecord[] {
+  return estimate.intervals
+    .filter((interval) => interval.quantity_kwh > 0)
+    .map((interval) => ({
+      ...base,
+      source_normalized_metering_value_id: null,
+      source_table: "consumption_estimate",
+      period_start: interval.period_start,
+      period_end: interval.period_end,
+      quantity: interval.quantity_kwh,
+      quantity_kwh: interval.quantity_kwh,
+      quality_code: "estimated",
+      resolution: null,
+      status: "ready_for_pricing",
+      warnings: [],
+      metadata: {
+        estimated: true,
+        estimate_method: estimate.method,
+        reference_start: estimate.referenceStart,
+        reference_end: estimate.referenceEnd,
+      },
+    }));
+}
+
+export function estimatePayload(estimate: ConsumptionEstimate, actualKwh: number | string) {
+  return {
+    method: estimate.method,
+    reference_start: estimate.referenceStart,
+    reference_end: estimate.referenceEnd,
+    estimated_kwh: estimate.estimatedKwh,
+    actual_kwh: actualKwh,
+    estimated_interval_count: estimate.intervals.length,
+    preliminary: true,
+  };
+}
+
+const ESTIMATE_SOURCE_SYSTEMS = ["consumption_estimate", "normalized_metering_values+consumption_estimate"];
+
+function isFinalPeriodLock(status: unknown): boolean {
+  return ["locked", "exported", "closed"].includes(String(status ?? "").toLowerCase());
+}
+
+/**
+ * Preliminary periods that were invoiced (their month is locked) and now have
+ * complete final values are settled in this run: the preliminary quantity is
+ * credited and the final quantity charged, both priced over the original
+ * period, so the next invoice carries exactly the difference.
+ */
+async function buildReconciliations(input: {
+  companyId: string;
+  billingMonth: string;
+  year: number;
+  month: number;
+  customerScope: string | null;
+  meteringPointScope: string | null;
+}): Promise<Array<{ underlay: JsonRecord; items: JsonRecord[]; result: Omit<UnderlayResult, "underlayId"> }>> {
+  let query = supabaseService
+    .from("billing_underlays")
+    .select("*")
+    .eq("company_id", input.companyId)
+    .eq("energy_direction", "consumption")
+    .in("source_system", ESTIMATE_SOURCE_SYSTEMS)
+    .or(`underlay_year.lt.${input.year},and(underlay_year.eq.${input.year},underlay_month.lt.${input.month})`)
+    .limit(500);
+  if (input.customerScope) query = query.eq("customer_id", input.customerScope);
+  if (input.meteringPointScope) query = query.eq("metering_point_id", input.meteringPointScope);
+  const { data: originals, error } = await query;
+  if (error) throw error;
+  const candidates = (originals ?? []) as JsonRecord[];
+  if (candidates.length === 0) return [];
+
+  const done = await supabaseService
+    .from("billing_underlays")
+    .select("payload")
+    .eq("company_id", input.companyId)
+    .in("payload->>reconciliation_of", candidates.map((row) => String(row.id)));
+  if (done.error) throw done.error;
+  const reconciled = new Set(
+    ((done.data ?? []) as JsonRecord[]).map((row) => text(object(row.payload).reconciliation_of)),
+  );
+
+  const lockByMonth = new Map<string, boolean>();
+  const stores: Array<{ underlay: JsonRecord; items: JsonRecord[]; result: Omit<UnderlayResult, "underlayId"> }> = [];
+  for (const original of candidates) {
+    const originalId = String(original.id);
+    if (reconciled.has(originalId)) continue;
+    const originalMonth = `${original.underlay_year}-${String(original.underlay_month).padStart(2, "0")}`;
+    if (!lockByMonth.has(originalMonth)) {
+      const lock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth: originalMonth });
+      lockByMonth.set(originalMonth, isFinalPeriodLock(lock?.status));
+    }
+    // An open month is simply regenerated with the final values instead.
+    if (!lockByMonth.get(originalMonth)) continue;
+
+    const payload = object(original.payload);
+    const periodStart = text(payload.billing_period_start_instant);
+    const periodEnd = text(payload.billing_period_end_instant);
+    const meteringPointId = text(original.metering_point_id);
+    if (!periodStart || !periodEnd || !meteringPointId) continue;
+
+    const finalRows = (await loadNormalizedValues(input.companyId, periodStart, periodEnd))
+      .filter((row) => text(row.metering_point_id) === meteringPointId)
+      .map((row) => clipMeteringRowToSegment(row, periodStart, periodEnd))
+      .filter((row): row is JsonRecord => Boolean(row))
+      .map(normalizedBillingRow)
+      .filter((row) => normalizeEnergyDirection(row) === "consumption");
+    const coverage = validateIntervalCoverage(finalRows, periodStart, periodEnd);
+    const hasEstimatedQuality = finalRows.some((row) =>
+      ["estimated", "preliminary", "temp", "temporary", "calculated"].includes(String(row.quality_status ?? "").toLowerCase()),
+    );
+    if (finalRows.length === 0 || coverage.missing > 0 || hasEstimatedQuality) continue;
+
+    const itemsResult = await supabaseService
+      .from("billing_underlay_items")
+      .select("*")
+      .eq("company_id", input.companyId)
+      .eq("billing_underlay_id", originalId);
+    if (itemsResult.error) throw itemsResult.error;
+    const originalItems = (itemsResult.data ?? []) as JsonRecord[];
+    const preliminaryKwh = Number(original.total_kwh ?? 0);
+    const finalKwh = finalRows.reduce((sum, row) => sum + Number(absoluteQuantity(row)), 0);
+
+    const shared = {
+      customer_id: text(original.customer_id),
+      site_id: text(original.site_id),
+      customer_site_id: text(original.customer_site_id),
+      metering_point_id: meteringPointId,
+      supply_period_id: text(original.supply_period_id),
+      contract_id: text(original.contract_id),
+      customer_contract_id: text(original.contract_id),
+      pricing_snapshot_id: text(original.pricing_snapshot_id),
+      contract_price_snapshot_id: text(original.contract_price_snapshot_id),
+      price_plan_id: text(original.price_plan_id),
+      price_plan_version_id: text(original.price_plan_version_id),
+      price_book_id: text(original.price_book_id),
+      campaign_id: text(original.campaign_id),
+      price_area: text(original.price_area),
+      underlay_month: input.month,
+      underlay_year: input.year,
+      billing_period_start: periodStart,
+      billing_period_end: periodEnd,
+      status: "validated",
+      readiness_status: "ready",
+      readiness_issues: [],
+      billing_block_reason: null,
+      currency: "SEK",
+      pricing_snapshot: object(original.pricing_snapshot),
+      received_at: new Date().toISOString(),
+      validated_at: new Date().toISOString(),
+    };
+    const reconciliation = {
+      reconciliation_of: originalId,
+      reconciled_month: originalMonth,
+      preliminary_kwh: preliminaryKwh,
+      final_kwh: finalKwh,
+      difference_kwh: finalKwh - preliminaryKwh,
+    };
+    const copyItem = (item: JsonRecord, direction: string, settlement: string) => {
+      const { id: _id, billing_underlay_id: _underlay, company_id: _company, created_at: _created, updated_at: _updated, ...rest } = item;
+      return { ...rest, energy_direction: direction, settlement_type: settlement, status: "ready_for_pricing" };
+    };
+
+    stores.push({
+      underlay: {
+        ...shared,
+        energy_direction: "consumption_correction",
+        settlement_type: "credit_invoice",
+        total_kwh: preliminaryKwh,
+        source_system: "consumption_estimate_reconciliation",
+        source_meter_value_count: 0,
+        missing_values_count: 0,
+        payload: {
+          billing_month: input.billingMonth,
+          generated_from: "consumption_estimate_reconciliation",
+          reconciliation_role: "credit_preliminary",
+          energy_direction: "consumption_correction",
+          settlement_type: "credit_invoice",
+          ...reconciliation,
+          timezone: "Europe/Stockholm",
+        },
+      },
+      items: originalItems.map((item) => copyItem(item, "consumption_correction", "credit_invoice")),
+      result: { status: "ready_for_pricing", sourceTable: "normalized_metering_values", sourceRows: originalItems.length, warnings: [`reconciliation_credit: Kreditering av preliminär förbrukning ${originalMonth}.`] },
+    });
+    stores.push({
+      underlay: {
+        ...shared,
+        energy_direction: "consumption",
+        settlement_type: "invoice",
+        total_kwh: finalKwh,
+        source_system: "consumption_estimate_reconciliation",
+        source_meter_value_count: finalRows.length,
+        missing_values_count: 0,
+        payload: {
+          billing_month: input.billingMonth,
+          generated_from: "consumption_estimate_reconciliation",
+          reconciliation_role: "charge_final",
+          energy_direction: "consumption",
+          settlement_type: "invoice",
+          source_row_ids: finalRows.map((row) => text(row.id)),
+          ...reconciliation,
+          timezone: "Europe/Stockholm",
+        },
+      },
+      items: finalRows.map((row) => ({
+        source_normalized_metering_value_id: text(row.id),
+        customer_id: shared.customer_id,
+        customer_site_id: shared.customer_site_id,
+        site_id: shared.site_id,
+        metering_point_id: meteringPointId,
+        contract_id: shared.contract_id,
+        price_plan_id: shared.price_plan_id,
+        price_plan_version_id: shared.price_plan_version_id,
+        price_book_id: shared.price_book_id,
+        price_area: shared.price_area,
+        source_table: "normalized_metering_values",
+        period_start: row.period_start,
+        period_end: row.period_end,
+        quantity: absoluteQuantity(row),
+        quantity_kwh: absoluteQuantity(row),
+        energy_direction: "consumption",
+        settlement_type: "invoice",
+        unit: "kWh",
+        quality_code: text(row.quality_status),
+        resolution: text(row.resolution),
+        status: "ready_for_pricing",
+        warnings: [],
+        metadata: { source_row_id: text(row.id), reconciliation_of: originalId },
+      })),
+      result: { status: "ready_for_pricing", sourceTable: "normalized_metering_values", sourceRows: finalRows.length, warnings: [`reconciliation_charge: Slutlig förbrukning ${originalMonth}.`] },
+    });
+  }
+  return stores;
+}
+
 export async function generateBillingUnderlaysForMonth(input: {
   companyId: string;
   billingMonth: string;
   createdBy?: string | null;
+  customerId?: string | null;
+  meteringPointId?: string | null;
 }) {
   await assertPlatformSchemaReady();
   await assertBillingPeriodOpen({
     companyId: input.companyId,
     billingMonth: input.billingMonth,
   });
+  const customerScope =
+    input.customerId === undefined || input.customerId === null
+      ? null
+      : text(input.customerId);
+  const meteringPointScope =
+    input.meteringPointId === undefined || input.meteringPointId === null
+      ? null
+      : text(input.meteringPointId);
+  if (
+    input.customerId !== undefined &&
+    input.customerId !== null &&
+    !customerScope
+  ) {
+    throw new Error("Billing-underlag fick ett tomt customerId-scope.");
+  }
+  if (
+    input.meteringPointId !== undefined &&
+    input.meteringPointId !== null &&
+    !meteringPointScope
+  ) {
+    throw new Error("Billing-underlag fick ett tomt meteringPointId-scope.");
+  }
+
   const bounds = stockholmMonthBounds(input.billingMonth);
-  const values = await loadNormalizedValues(
+  const estimationEnabled = await companyEstimatesMissingConsumption(input.companyId);
+  const allValues = await loadNormalizedValues(
     input.companyId,
     bounds.start,
     bounds.end,
   );
-  const periods = await loadSupplyPeriods(
+  const allPeriods = await loadSupplyPeriods(
     input.companyId,
     bounds.start.slice(0, 10),
     addDays(bounds.endDateExclusive, -1),
   );
+  const values = allValues.filter(
+    (row) =>
+      (!customerScope || text(row.customer_id) === customerScope) &&
+      (!meteringPointScope ||
+        text(row.metering_point_id) === meteringPointScope),
+  );
+  const periods = allPeriods.filter(
+    (row) =>
+      (!customerScope || text(row.customer_id) === customerScope) &&
+      (!meteringPointScope ||
+        text(row.metering_point_id) === meteringPointScope),
+  );
+
   const periodsByMeter = new Map<string, JsonRecord[]>();
   for (const period of periods) {
     const meter = text(period.metering_point_id);
     if (!meter) continue;
-    periodsByMeter.set(meter, [...(periodsByMeter.get(meter) ?? []), period]);
+    periodsByMeter.set(meter, [
+      ...(periodsByMeter.get(meter) ?? []),
+      period,
+    ]);
   }
 
   const valuesByMeter = new Map<string, JsonRecord[]>();
@@ -492,7 +826,8 @@ export async function generateBillingUnderlaysForMonth(input: {
     const hasSupplyConflict = overlappingPeriods.some(
       (entry, index) =>
         index > 0 &&
-        Date.parse(entry.start) < Date.parse(overlappingPeriods[index - 1].end),
+        Date.parse(entry.start) <
+          Date.parse(overlappingPeriods[index - 1].end),
     );
     if (hasSupplyConflict) {
       results.push({
@@ -550,14 +885,132 @@ export async function generateBillingUnderlaysForMonth(input: {
           });
           continue;
         }
-        const issues = readinessIssues([
+        // No values yet: bill a preliminary period from the customer's own
+        // history; it is reconciled on a later invoice when final values arrive.
+        const estimate =
+          estimationEnabled &&
+          canonicalContractDirection === "consumption" &&
+          contract &&
+          snapshot &&
+          contractAreaContext.priceArea &&
+          contractCoversSegment(contract, entry.start, entry.end)
+            ? await estimateMissingConsumption({
+                companyId: input.companyId,
+                meteringPointId,
+                windows: [{ start: Date.parse(entry.start), end: Date.parse(entry.end) }],
+                stepMs: estimateStepMs(contract, snapshotJson),
+              })
+            : null;
+        if (estimate && estimate.estimatedKwh > 0) {
+          const now = new Date().toISOString();
+          const siteId = text(period.customer_site_id) ?? text(period.site_id);
+          const pricePlanId = text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id);
+          const items = estimatedItems(estimate, {
+            customer_id: customerId,
+            customer_site_id: siteId,
+            site_id: siteId,
+            metering_point_id: meteringPointId,
+            contract_id: contractId,
+            price_plan_id: pricePlanId,
+            price_plan_version_id: text(snapshot?.price_plan_version_id),
+            price_book_id: text(snapshot?.price_book_id),
+            campaign_id: text(snapshot?.campaign_version_id),
+            price_area: contractAreaContext.priceArea,
+            energy_direction: "consumption",
+            settlement_type: "invoice",
+            unit: "kWh",
+          });
+          pendingStores.push({
+            underlay: {
+              customer_id: customerId,
+              site_id: siteId,
+              customer_site_id: siteId,
+              metering_point_id: meteringPointId,
+              supply_period_id: text(period.id),
+              contract_id: contractId,
+              customer_contract_id: contractId,
+              pricing_snapshot_id: text(snapshot?.id),
+              contract_price_snapshot_id: text(snapshot?.id),
+              price_plan_id: pricePlanId,
+              price_plan_version_id: text(snapshot?.price_plan_version_id),
+              price_book_id: text(snapshot?.price_book_id),
+              campaign_id: text(snapshot?.campaign_version_id),
+              price_area: contractAreaContext.priceArea,
+              energy_direction: "consumption",
+              settlement_type: "invoice",
+              underlay_month: bounds.month,
+              underlay_year: bounds.year,
+              billing_period_start: entry.start,
+              billing_period_end: entry.end,
+              status: "validated",
+              readiness_status: "ready",
+              readiness_issues: [],
+              billing_block_reason: null,
+              total_kwh: estimate.estimatedKwh,
+              currency: "SEK",
+              source_system: "consumption_estimate",
+              source_meter_value_count: 0,
+              missing_values_count: 0,
+              payload: {
+                billing_month: input.billingMonth,
+                source_row_ids: [],
+                supply_period_id: text(period.id),
+                generated_from: "consumption_estimate",
+                energy_direction: "consumption",
+                settlement_type: "invoice",
+                estimate: estimatePayload(estimate, 0),
+                timezone: "Europe/Stockholm",
+              },
+              pricing_snapshot: snapshotJson,
+              received_at: now,
+              validated_at: now,
+            },
+            items,
+            result: {
+              status: "ready_for_pricing",
+              sourceTable: "normalized_metering_values",
+              sourceRows: 0,
+              warnings: [`preliminary_estimate: Preliminär förbrukning (${estimate.method}).`],
+            },
+          });
+          continue;
+        }
+        const blockerMessages = [
           "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
-        ]);
+        ];
+        // Nothing to estimate from (no history, no intake annual consumption):
+        // ask the grid owner for the customer's history so the next run can.
+        if (
+          estimationEnabled &&
+          !estimate &&
+          canonicalContractDirection === "consumption" &&
+          contract &&
+          customerId
+        ) {
+          try {
+            const outcome = await ensureHistoricalMeteringRequest({
+              companyId: input.companyId,
+              customerId,
+              siteId: text(period.customer_site_id) ?? text(period.site_id),
+              meteringPointId,
+              actorUserId: input.createdBy ?? null,
+            });
+            blockerMessages.push(
+              outcome === "draft_for_operator"
+                ? "history_request_pending: Historik saknas; historikbegäran till nätägaren väntar på att skickas."
+                : "history_requested: Historik saknas; historik har begärts från nätägaren.",
+            );
+          } catch (error) {
+            blockerMessages.push(
+              `history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`,
+            );
+          }
+        }
+        const issues = readinessIssues(blockerMessages);
         pendingStores.push({
           underlay: {
             customer_id: customerId,
-            site_id:
-              text(period.customer_site_id) ?? text(period.site_id),
+            site_id: text(period.customer_site_id) ?? text(period.site_id),
             customer_site_id:
               text(period.customer_site_id) ?? text(period.site_id),
             metering_point_id: meteringPointId,
@@ -566,16 +1019,17 @@ export async function generateBillingUnderlaysForMonth(input: {
             customer_contract_id: contractId,
             pricing_snapshot_id: text(snapshot?.id),
             contract_price_snapshot_id: text(snapshot?.id),
-            price_plan_id: text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id),
+            price_plan_id:
+              text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id),
             price_plan_version_id: text(snapshot?.price_plan_version_id),
             price_book_id: text(snapshot?.price_book_id),
             price_area: contractAreaContext.priceArea,
             energy_direction: canonicalContractDirection,
             settlement_type:
               canonicalContractDirection === "production"
-                ? (text(production.settlement_mode) === "self_billing"
-                    ? "self_billing"
-                    : "credit_invoice")
+                ? text(production.settlement_mode) === "self_billing"
+                  ? "self_billing"
+                  : "credit_invoice"
                 : "invoice",
             underlay_month: bounds.month,
             underlay_year: bounds.year,
@@ -599,9 +1053,9 @@ export async function generateBillingUnderlaysForMonth(input: {
               energy_direction: canonicalContractDirection,
               settlement_type:
                 canonicalContractDirection === "production"
-                  ? (text(production.settlement_mode) === "self_billing"
-                      ? "self_billing"
-                      : "credit_invoice")
+                  ? text(production.settlement_mode) === "self_billing"
+                    ? "self_billing"
+                    : "credit_invoice"
                   : "invoice",
               timezone: "Europe/Stockholm",
             },
@@ -695,8 +1149,10 @@ export async function generateBillingUnderlaysForMonth(input: {
             supplyPeriodCandidateCount: 1,
             contract,
             contractCandidateCount: contract ? 1 : 0,
+            sourceMessage: row.billing_source_message as JsonRecord | null,
             allowEstimatedValues: false,
           });
+          if (object(row.metadata).partial_source_interval) warnings.push('source_interval_requires_finer_data: Källkvantiteten får inte fördelas proportionellt över ett delintervall.');
           if (!gate.eligible) {
             for (const gateReason of gate.reasons) {
               warnings.push(`${gateReason.code}: ${gateReason.message}`);
@@ -721,11 +1177,8 @@ export async function generateBillingUnderlaysForMonth(input: {
           );
         }
 
-        const totalKwh = segmentRows.reduce(
-          (sum, row) => sum + Math.abs(quantityKwh(row)),
-          0,
-        );
-        if (!Number.isFinite(totalKwh) || totalKwh <= 0) {
+        const totalKwh = sumUtiltsDecimals(segmentRows.map(absoluteQuantity));
+        if (totalKwh === '0') {
           warnings.push("Total energimängd är ogiltig eller noll.");
         }
 
@@ -734,7 +1187,53 @@ export async function generateBillingUnderlaysForMonth(input: {
           entry.start,
           entry.end,
         );
-        warnings.push(...coverage.warnings);
+        // Gaps in consumption are filled from the customer's history and
+        // billed as preliminary; overlaps and other blockers stay blocking.
+        let gapEstimate: ConsumptionEstimate | null = null;
+        if (
+          coverage.missing > 0 &&
+          estimationEnabled &&
+          energyDirection === "consumption" &&
+          contract &&
+          snapshot
+        ) {
+          gapEstimate = await estimateMissingConsumption({
+            companyId: input.companyId,
+            meteringPointId,
+            windows: missingWindows(segmentRows, entry.start, entry.end),
+            stepMs: estimateStepMs(contract, snapshotJson),
+          });
+        }
+        if (
+          coverage.missing > 0 &&
+          !gapEstimate &&
+          estimationEnabled &&
+          energyDirection === "consumption" &&
+          contract &&
+          customerId
+        ) {
+          try {
+            await ensureHistoricalMeteringRequest({
+              companyId: input.companyId,
+              customerId,
+              siteId: text(period.customer_site_id) ?? text(period.site_id),
+              meteringPointId,
+              actorUserId: input.createdBy ?? null,
+            });
+            warnings.push("history_requested: Historik saknas för att uppskatta luckorna; historik har begärts från nätägaren.");
+          } catch (error) {
+            warnings.push(`history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`);
+          }
+        }
+        warnings.push(
+          ...(gapEstimate
+            ? coverage.warnings.filter(
+                (warning) =>
+                  !warning.startsWith("Mätvärdeslucka") &&
+                  !warning.startsWith("Mätvärden saknas"),
+              )
+            : coverage.warnings),
+        );
 
         const first = segmentRows[0];
         const siteId = text(first.site_id) ?? text(first.customer_site_id);
@@ -780,7 +1279,7 @@ export async function generateBillingUnderlaysForMonth(input: {
               ? "credit_invoice"
               : "invoice";
 
-        const items = segmentRows.map((row) => ({
+        const items: JsonRecord[] = segmentRows.map((row) => ({
           source_normalized_metering_value_id: text(row.id),
           customer_id: customerId,
           customer_site_id: customerSiteId,
@@ -799,8 +1298,8 @@ export async function generateBillingUnderlaysForMonth(input: {
           source_line_reference: text(row.source_line_reference),
           period_start: row.period_start,
           period_end: row.period_end,
-          quantity: Math.abs(quantityKwh(row)),
-          quantity_kwh: Math.abs(quantityKwh(row)),
+          quantity: absoluteQuantity(row),
+          quantity_kwh: absoluteQuantity(row),
           energy_direction: energyDirection,
           settlement_type: settlementType,
           unit: "kWh",
@@ -817,12 +1316,37 @@ export async function generateBillingUnderlaysForMonth(input: {
             revision_number: row.revision_number ?? null,
             previous_value_id: text(row.previous_value_id),
             billing_gate_snapshot: object(row.billing_gate_snapshot),
+            source_basis: row.billing_source_basis,
             raw_payload: object(row.raw_payload),
             energy_direction: energyDirection,
             original_quantity_kwh: quantityKwh(row),
-            source_price_area: normalizedPriceArea(row.price_area ?? row.price_area_code ?? row.bidding_zone_code),
+            source_price_area: normalizedPriceArea(
+              row.price_area ?? row.price_area_code ?? row.bidding_zone_code,
+            ),
           },
         }));
+
+        if (gapEstimate) {
+          items.push(
+            ...estimatedItems(gapEstimate, {
+              customer_id: customerId,
+              customer_site_id: customerSiteId,
+              site_id: siteId,
+              metering_point_id: meteringPointId,
+              contract_id: contractId,
+              price_plan_id: pricePlanId,
+              price_plan_version_id: pricePlanVersionId,
+              price_book_id: text(snapshot?.price_book_id),
+              campaign_id: text(snapshot?.campaign_version_id),
+              price_area: priceArea,
+              energy_direction: energyDirection,
+              settlement_type: settlementType,
+              unit: "kWh",
+            }).map((item) => ({ ...item, status: ready ? "ready_for_pricing" : "needs_review" })),
+          );
+        }
+        const actualKwh = totalKwh;
+        const billedKwh = gapEstimate ? totalKwh + gapEstimate.estimatedKwh : totalKwh;
 
         const underlay = {
           customer_id: customerId,
@@ -849,11 +1373,11 @@ export async function generateBillingUnderlaysForMonth(input: {
           status: ready ? "validated" : "pending",
           readiness_status: ready ? "ready" : "blocked",
           readiness_issues: readinessIssues(uniqueWarnings),
-          total_kwh: totalKwh,
+          total_kwh: billedKwh,
           currency: "SEK",
-          source_system: "normalized_metering_values",
+          source_system: gapEstimate ? "normalized_metering_values+consumption_estimate" : "normalized_metering_values",
           source_meter_value_count: segmentRows.length,
-          missing_values_count: coverage.missing,
+          missing_values_count: gapEstimate ? 0 : coverage.missing,
           payload: {
             billing_month: input.billingMonth,
             source_row_ids: segmentRows.map((row) => text(row.id)),
@@ -869,6 +1393,7 @@ export async function generateBillingUnderlaysForMonth(input: {
               revision_number: row.revision_number ?? null,
               energy_direction: energyDirection,
             })),
+            ...(gapEstimate ? { estimate: estimatePayload(gapEstimate, actualKwh) } : {}),
             timezone: "Europe/Stockholm",
           },
           pricing_snapshot: snapshotJson,
@@ -889,6 +1414,19 @@ export async function generateBillingUnderlaysForMonth(input: {
     }
   }
 
+  if (estimationEnabled) {
+    pendingStores.push(
+      ...(await buildReconciliations({
+        companyId: input.companyId,
+        billingMonth: input.billingMonth,
+        year: bounds.year,
+        month: bounds.month,
+        customerScope,
+        meteringPointScope,
+      })),
+    );
+  }
+
   if (pendingStores.length > 0) {
     const { data, error } = await supabaseService.rpc(
       "gridex_store_billing_underlay_batch",
@@ -906,11 +1444,16 @@ export async function generateBillingUnderlaysForMonth(input: {
     if (storedIds.length !== pendingStores.length)
       throw new Error("billing_underlay_batch_result_count_mismatch");
     pendingStores.forEach((entry, index) => {
-      results.push({ underlayId: storedIds[index] ?? null, ...entry.result });
+      results.push({
+        underlayId: storedIds[index] ?? null,
+        ...entry.result,
+      });
     });
   }
 
-  const orphaned = values.filter((row) => !coveredValueIds.has(String(row.id)));
+  const orphaned = values.filter(
+    (row) => !coveredValueIds.has(String(row.id)),
+  );
   if (orphaned.length > 0) {
     results.push({
       underlayId: null,
@@ -925,11 +1468,16 @@ export async function generateBillingUnderlaysForMonth(input: {
 
   return {
     billingMonth: input.billingMonth,
+    scope: {
+      customerId: customerScope,
+      meteringPointId: meteringPointScope,
+    },
     sourceTable: "normalized_metering_values" as const,
     sourceRows: values.length,
     underlays: results.length,
-    readyForPricing: results.filter((row) => row.status === "ready_for_pricing")
-      .length,
+    readyForPricing: results.filter(
+      (row) => row.status === "ready_for_pricing",
+    ).length,
     needsReview: results.filter((row) => row.status === "needs_review").length,
     results,
   };

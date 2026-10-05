@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "repository": "heke99/gridex-ops-platform",
+  "workspace": "/workspace/scratch/145123787247/gridex-h-session",
+  "branch": "codex/ediel-h-intake-session-20261001",
+  "base": "a8db3a1178b1cc73013133a751f94a2a57dd8198",
+  "commit": "37723569c4ff16dae5d50b1aa2ae63adf57601f9",
+  "tree": "87bcd2f2ae8a2f7e68bbbe65046298538fe59d01",
+  "clean": true,
+  "files": [
+    {
+      "path": "lib/ediel/production/supplyRescissionIntake.ts",
+      "sha256": "9b0def3eb81fd191967434a87fd7149dc084b74e94e88ad0dca760e74e498693"
+    },
+    {
+      "path": "__tests__/ediel-national-supply-rescission-intake-http.test.ts",
+      "sha256": "56097ba35a693b7fc0aeae53dcb4b76fa973a359450df2eb25af956531e351c0"
+    },
+    {
+      "path": "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+      "sha256": "6f562a32b5de57104cccbcf312ff8823d0b5ab8c07dfef63226f17eb65ad0e8f"
+    },
+    {
+      "path": "scripts/ediel-supply-rescission-intake-session-sql-regression.mjs",
+      "sha256": "cc30481473b7ed0b07d4d1a48c23452531b41ad46859769c17cbf9c189c64258"
+    },
+    {
+      "path": "supabase/migrations/20261001142000_ediel_supply_rescission_authenticated_intake.sql",
+      "sha256": "9eefc3a02750596ea3a1c7de4b87e9b781bf4bb632860afcfe07644d61d9c3ab"
+    }
+  ],
+  "scope": {
+    "original_criterion": "AT-Z08H-SUPPLIER national legal rescission intake; original source and criteria unchanged",
+    "authenticated_rpc_phases": {
+      "ediel_supply_rescission_scope_v1(uuid,uuid,jsonb)": "read",
+      "ediel_archive_supply_rescission_v1(uuid,uuid,jsonb)": "archive",
+      "ediel_review_supply_rescission_v1(uuid,uuid,uuid,jsonb)": "review",
+      "ediel_read_supply_rescission_artifact_v1(uuid,uuid,uuid,boolean)": "read"
+    },
+    "actual_actor_binding": "Same verified SSR getUser session makes RPC; native auth.uid = supplied actor AND actual role authenticated, canonical current phase before any effect/read and after complete original result-expression evaluation on every return",
+    "preservation": "Original093425 immutable; public OIDs/defaults/owner/path/security/volatility/arguments/result retained; entire original source/issuer/representation/independent review/mandate/custody body retained. Native prepare/send/replay/domain and mandate service execution unchanged."
+  },
+  "actual_callers": [
+    "app/api/ediel/supply-rescission-sources/route.ts POST archive",
+    "app/api/ediel/supply-rescission-sources/scope/route.ts POST scope",
+    "app/api/ediel/supply-rescission-sources/[artifactId]/route.ts GET artifact",
+    "app/api/ediel/supply-rescission-sources/[artifactId]/source/route.ts GET protected bytes",
+    "app/api/ediel/supply-rescission-sources/[artifactId]/review/route.ts POST independent review",
+    "app/api/ediel/supply-rescission-sources/[artifactId]/queue/route.ts actual user artifact read before separate protected native prepare",
+    "app/admin/ediel/supply-rescission-sources/page.tsx and workspace.tsx API actions; no scheduled intake producer found"
+  ],
+  "verification": {
+    "api": {
+      "red": "4 expected failures /10 preserved passes on prior service adapter",
+      "green": "14 PASS/1file; finite server/native result boundaries, not real browser",
+      "command": "/tmp/ediel-toolchain/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-national-supply-rescission-intake-http.test.ts --reporter=verbose"
+    },
+    "sql": {
+      "red": "Old four installed producer ACLs: service=true authenticated=false, expected authenticated=true/service=false",
+      "green": "117 cumulative actual-body mechanical checks (108 at new session assertion point; remaining existing checks preserved)",
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js /tmp/ediel-toolchain/node_modules/node/bin/node scripts/ediel-supply-rescission-intake-session-sql-regression.mjs",
+      "boundaries": "Finite synthetic source/issuer/canonical/provider and declared SQL session transport. NOT real GoTrue/JWT/PostgreSQL integration acceptance",
+      "proof": "All four service/anon/missing/forgedUID deny42501 with no effect; correct scope/archive/read/review/replay bind exact hashes; current membership deny; foreign/null actor/clientverified fail closed; inherited authenticated service role cannot forge actor; source catalogs/table metadata/OIDs retained; service native mandate unchanged; ordinary timed DENY at real last archive/review writes rolls all mutations back; session-binding change at last archive write rolls original back",
+      "final_read_regression": "a8db4d29 guard-before-RETURN-expression missed current reviewer DENY activated inside final native replay read; final commit evaluates unchanged complete result expression, then terminal session/currentphase guard. Exact same probe GREEN42501/full rollback."
+    },
+    "types": {
+      "status": "PASS exit0",
+      "command": "/tmp/ediel-toolchain/node_modules/node/bin/node node_modules/typescript/bin/tsc --project /tmp/ediel-h-session-targeted-tsconfig.json --pretty false",
+      "scope": "Owned adapter/API test/existing native script and their actual imported dependencies, not full app/test/script suite"
+    },
+    "lint": "PASS exit0 for four TS/MJS owned source/tests",
+    "script_syntax": "PASS node --check",
+    "diff": "PASS git diff --check",
+    "native_GoTrue": "NOT_RUN; existing native source stage now requires actual admin-update/signInWithPassword/getUser clients, only SSR cookie factory transport selected",
+    "fresh_replay_upgrade_browser_CI": "NOT_RUN pending root freeze; no authentic legal issuer or formal acceptance claim",
+    "independent_review": {
+      "status": "CLEAR",
+      "owner": "/root/script_contracts/h_intake_review",
+      "commit": "37723569c4ff16dae5d50b1aa2ae63adf57601f9",
+      "tree": "87bcd2f2ae8a2f7e68bbbe65046298538fe59d01",
+      "scope": "Read-only bounded five-file source/session/TX review, verified final source/script hashes and final full-expression materialization before terminalguard; no material findings. Independently reran API14 PASS; independently ran prior116 SQL mechanics, read owner final117 log and hashes. No write/native/sharedDB/full qualification."
+    }
+  },
+  "logs": {
+    "ts-red": {
+      "path": "/tmp/ediel-h-session-ts-red.log",
+      "sha256": "0fe358d524e6d2db2c72aab825c213b5e9738972cbec411b4268f749a76e3b0a"
+    },
+    "ts-green": {
+      "path": "/tmp/ediel-h-session-ts-green.log",
+      "sha256": "b5d017fb63445e5afb76ea078b291c9fa5a36ed3511749f0dffd5a9b208e1ab7"
+    },
+    "sql-red": {
+      "path": "/tmp/ediel-h-session-sql-red.log",
+      "sha256": "25c05c95fa1653c2f0d3573c519aa079b73bc5e23c26ffaed12409265a24c320"
+    },
+    "sql-green": {
+      "path": "/tmp/ediel-h-session-sql-green.log",
+      "sha256": "c1e14aab8483f6bf32cd60201afa8d0bfb8ff6d17b626da74d79b9724e1801f2"
+    },
+    "lint": {
+      "path": "/tmp/ediel-h-session-lint.log",
+      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8"
+    },
+    "types": {
+      "path": "/tmp/ediel-h-session-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "last-read-red": {
+      "path": "/tmp/ediel-h-session-last-read-red.log",
+      "sha256": "7d861be8fdffd0e95e2b06e151ed0ff0288adf2cc5b3942b01da7d566856fd8e"
+    },
+    "last-read-green": {
+      "path": "/tmp/ediel-h-session-last-read-green.log",
+      "sha256": "5b3a149c0c6142528bca4718a31d49edf003cbaea801c2c751aaf1189be1f7db"
+    },
+    "last-read-lint": {
+      "path": "/tmp/ediel-h-session-last-read-lint.log",
+      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8"
+    }
+  },
+  "skills": {
+    "supabase": "Read and applied official SSR/session and SECURITY DEFINER/auth.uid guidance; user/root explicit bounded paths and no-heavy checks take precedence over generic CLI timestamp/full-suite suggestions",
+    "tdd": "API tests red before implementation; SQL baseline RED confirms actual existing service ACL; critical atomic/auth mechanics green",
+    "isolation": "Isolated clone; no shared/root writes, reset, generated schema/types/manifests or publication"
+  },
+  "remaining": {
+    "internal_for_this_bounded_session_forward": [],
+    "qualification": [
+      "Actual GoTrue/authenticated HTTP native suite and existing full H producer chain on frozen same-version migrated database",
+      "Genuine fresh original replay and upgrade, interactive UI reload and exact-head mandatory CI owned root freeze"
+    ],
+    "external": [
+      "Authentic legal decision/issuer representation/prerequisites and authorized counterpart qualification remain exact original fail-closed source requirements; finite synthetic source fixtures do not establish them"
+    ]
+  },
+  "commits": [
+    "a8db4d298ff1145e01cd9eed794d7bbd74a372be",
+    "37723569c4ff16dae5d50b1aa2ae63adf57601f9"
+  ],
+  "checkpoint": "Root/user requested compose existing work for new chat. Only identified final native read timing fix and its regression were added; no new workstream. Final two commits ready for genuine merge, no publication/main/prod/customer traffic by this owner."
+}

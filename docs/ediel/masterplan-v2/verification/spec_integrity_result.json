@@ -1,0 +1,155 @@
+{
+  "checked_at": "2026-09-10T10:05:21.130546+00:00",
+  "scope": "Enbart integritet och korsreferenser i specifikationspaketet",
+  "application_tested": false,
+  "edifact_conformance_tested": false,
+  "production_readiness_asserted": false,
+  "passed": true,
+  "checks": [
+    {
+      "check": "unika nycklar: rules",
+      "pass": true,
+      "detail": "121 poster"
+    },
+    {
+      "check": "unika nycklar: prodat_message_cases",
+      "pass": true,
+      "detail": "38 poster"
+    },
+    {
+      "check": "unika nycklar: prodat_fields",
+      "pass": true,
+      "detail": "74 poster"
+    },
+    {
+      "check": "unika nycklar: prodat_conditional_cells",
+      "pass": true,
+      "detail": "110 poster"
+    },
+    {
+      "check": "unika nycklar: utilts_capabilities",
+      "pass": true,
+      "detail": "22 poster"
+    },
+    {
+      "check": "unika nycklar: utilts_application_fields",
+      "pass": true,
+      "detail": "152 poster"
+    },
+    {
+      "check": "unika nycklar: utilts_guide_checks",
+      "pass": true,
+      "detail": "115 poster"
+    },
+    {
+      "check": "unika nycklar: timers",
+      "pass": true,
+      "detail": "31 poster"
+    },
+    {
+      "check": "unika nycklar: state_transitions",
+      "pass": true,
+      "detail": "42 poster"
+    },
+    {
+      "check": "unika nycklar: callsite_contracts",
+      "pass": true,
+      "detail": "16 poster"
+    },
+    {
+      "check": "unika nycklar: open_evidence_gates",
+      "pass": true,
+      "detail": "7 poster"
+    },
+    {
+      "check": "unika nycklar: acceptance_tests",
+      "pass": true,
+      "detail": "231 poster"
+    },
+    {
+      "check": "alla PRODAT-fält har 13 funktionskolumner",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "74 numeriska fält och 3 separata föräldragrupper",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "varje numerisk D-cell har exakt ett villkor",
+      "pass": true,
+      "detail": "110 villkor; saknas []; extra []"
+    },
+    {
+      "check": "regelkort har villkor, båda utfall, källa och ansvar",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "alla regelkort har ett acceptanskontrakt",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "alla PRODAT-fall har ett acceptanskontrakt",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "alla interna regelreferenser kan lösas",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "inga systemtester felaktigt markerade genomförda",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "rätt roll/appref för PRODAT",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ESCO:s operativa utgående PRODAT är endast Z13/Z18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "inga felaktiga Z13C eller Z14C fall",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "PRODAT CCI-locator använder inte UTILTS-egenskapens 7037",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "S07:s båda supplier-riktningar specificerade",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "tidigare 62 fynd är bevarade",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "sju uttryckliga öppna bevisgrindar",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "källmanifest har dokumenthash och sidantal",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "alla huvudbilagor finns",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

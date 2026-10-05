@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calculateBasePrice } from '@/lib/pricing/basePriceCalculator'
-import type { BasePriceComponent, BasePriceSourceValues, BillingUnderlayInput, PriceArea } from '@/lib/pricing/types'
+import type { BasePriceComponent, BillingUnderlayInput, PriceArea } from '@/lib/pricing/types'
 
 function underlay(overrides: Partial<BillingUnderlayInput> = {}): BillingUnderlayInput {
   return {
@@ -96,7 +96,7 @@ describe('calculateBasePrice', () => {
     expect(total).toBeCloseTo(2000 * 0.75, 2)
   })
 
-  it('fails (blocks) when a required spot price is missing for the period/area', () => {
+  it('fails (blocks) when a required monthly spot price is missing for the period/area', () => {
     const result = calculateBasePrice({
       underlay: underlay(),
       components: [spotComponent()],
@@ -105,7 +105,7 @@ describe('calculateBasePrice', () => {
 
     expect(result.status).toBe('failed')
     expect(result.baseSekPerKwh).toBeNull()
-    expect(result.errors.some((error) => error.includes('Spotpris'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('Medelspotpris'))).toBe(true)
   })
 
   it('fails (blocks) when a required portfolio price is missing for the period/area', () => {

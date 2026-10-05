@@ -182,6 +182,7 @@ export type CustomerSiteRow = {
 };
 
 export type MeteringPointRow = {
+  customer_site_id?: string | null;
   id: string;
   company_id?: string | null;
   customer_id?: string | null;

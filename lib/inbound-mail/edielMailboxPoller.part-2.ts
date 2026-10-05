@@ -1,10 +1,12 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 import { ImapFlow } from "imapflow"
 import { createHash } from "crypto"
+import { isDeliveryStatusNotification } from './dsnClassifier'
 
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor"
 
 import { supabaseService } from "@/lib/supabase/service"
+import {requireAiBiPersonalDataStorage} from '@/lib/ediel/aiBiPersonalDataStorage'
 import { unpackInboundSmimeIfNeeded } from "@/lib/ediel/transport/smime"
 import type { EdielMailboxRow, InboundEngineRunResult, InboundProcessingJobRow, PollMailboxResult, StoreInboundEmailInput } from './edielMailboxPoller.part-1'
 import { bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistingInboundEmail, isPlatformSharedMailbox, isPostgresUniqueViolation, isUnsafeBatch7aTransactionConflict, markMailboxPollFinished, markMailboxPollStarted, metadataBool, normalizeEnvironment, normalizeImapMailboxFolder, nowIso, parseInboundDedupeFacts, postgresErrorMessage, resolveEffectiveMailboxForPolling, resolveMailboxPasswordFromSecretReference, sha256, splitMimeParts, stringOrNull } from './edielMailboxPoller.part-1'
@@ -12,6 +14,11 @@ import { bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistin
 export async function storeInboundEmail(
   input: StoreInboundEmailInput,
 ): Promise<{ id: string; deduped: boolean }> {
+  // Decode actual MIME before the very first raw container write, including
+  // direct callers that did not provide separate body/attachment projections.
+  const mime=input.rawEmail?splitMimeParts(input.rawEmail):null;
+  const aiStorage=await requireAiBiPersonalDataStorage({companyId:input.companyId,actorUserId:input.actorUserId,environment:normalizeEnvironment(input.environment),
+    candidates:[input.rawEdifactPayload,input.bodyText,input.bodyHtml,...(input.attachments??[]).map(attachment=>attachment.rawText),mime?.bodyText,mime?.bodyHtml,...(mime?.attachments??[]).map(attachment=>attachment.rawText),input.rawEmail]});
   const dedupeKey = input.internetMessageId
     ? `${input.mailboxId}:${input.internetMessageId}`
     : null;
@@ -41,6 +48,8 @@ export async function storeInboundEmail(
     .insert({
       mailbox_id: input.mailboxId,
       company_id: input.companyId ?? null,
+      ai_processing_actor_user_id:aiStorage?input.actorUserId:null,
+      ai_processing_decision_id:aiStorage?.processingDecision.id??null,
       environment,
       internet_message_id: input.internetMessageId ?? null,
       from_address: input.fromAddress ?? null,
@@ -48,7 +57,7 @@ export async function storeInboundEmail(
       subject: input.subject ?? null,
       received_at: input.receivedAt ?? nowIso(),
       raw_email: input.rawEmail ?? null,
-      raw_edifact_payload: input.rawEdifactPayload ?? null,
+      raw_edifact_payload: aiStorage?.canonicalPayload??input.rawEdifactPayload ?? null,
       body_text: input.bodyText ?? null,
       body_html: input.bodyHtml ?? null,
       has_attachments:
@@ -113,7 +122,7 @@ export async function storeInboundEmail(
         })),
       );
     if (attachmentError)
-      console.warn("[inbound-mail] Kunde inte spara bilagor", attachmentError);
+      console.warn("[inbound-mail] Kunde inte spara bilagor", {code:attachmentError.code});
   }
 
   const { error: jobError } = await supabaseService
@@ -138,6 +147,7 @@ export async function storeInboundEmail(
 export async function storeMailboxFetchMessage(input: {
   mailbox: EdielMailboxRow;
   message: Record<string, unknown>;
+  actorUserId?:string|null;
 }): Promise<{ id: string; deduped: boolean }> {
   const rawEmail = bufferToUtf8(input.message.source);
   const envelope = input.message.envelope as
@@ -185,6 +195,7 @@ export async function storeMailboxFetchMessage(input: {
 
   const stored = await storeInboundEmail({
     mailboxId: input.mailbox.id,
+    actorUserId:input.actorUserId??null,
     companyId:
       smime.matchedCompanyId ??
       (isPlatformSharedMailbox(input.mailbox)
@@ -234,8 +245,10 @@ export async function storeMailboxFetchMessage(input: {
     const { error: payloadError } = await supabaseService
       .from("ediel_message_payloads")
       .insert({
-        company_id: null,
+        company_id:smime.matchedCompanyId??(isPlatformSharedMailbox(input.mailbox)?null:input.mailbox.company_id),
+        created_by:input.actorUserId??null,
         ediel_message_id: null,
+        inbound_email_message_id:stored.id,
         payload_kind: "inbound_smime",
         raw_payload: smime.decryptedText ?? null,
         raw_payload_hash: smime.decryptedText
@@ -269,7 +282,7 @@ export async function storeMailboxFetchMessage(input: {
     if (payloadError) {
       console.warn(
         "[inbound-mail] Kunde inte spara S/MIME payload-spår",
-        payloadError,
+        {code:payloadError.code},
       );
     }
   }
@@ -279,6 +292,7 @@ export async function storeMailboxFetchMessage(input: {
 
 export async function pollEdielMailbox(input: {
   mailbox: EdielMailboxRow;
+  actorUserId?:string|null;
   workerId?: string;
   maxMessages?: number;
   markSeen?: boolean;
@@ -378,6 +392,7 @@ export async function pollEdielMailbox(input: {
         try {
           stored = await storeMailboxFetchMessage({
             mailbox: input.mailbox,
+            actorUserId:input.actorUserId??null,
             message: message as unknown as Record<string, unknown>,
           });
         } catch (error) {
@@ -666,20 +681,46 @@ export async function processQueuedInboundProcessingJobs(
   return { processed, failed };
 }
 
-export async function listEdielMessageIdsForInboundEmails(
-  inboundEmailMessageIds: string[],
-): Promise<string[]> {
-  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)));
+async function filterNonDsnInboundEmailIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabaseService.from('inbound_email_messages')
+    .select('id,match_status,raw_email,body_text').in('id', ids);
+  if (error) throw error;
+  const safe = new Set(((data ?? []) as Array<Record<string, unknown>>)
+    .filter((row) => row.match_status !== 'dsn_transport_review' &&
+      !isDeliveryStatusNotification(stringOrNull(row.raw_email)) &&
+      !isDeliveryStatusNotification(stringOrNull(row.body_text)))
+    .map((row) => row.id));
+  return ids.filter((id) => safe.has(id));
+}
+
+type ExistingInboundEdielMessage = {
+  id?: string | null;
+  inbound_email_message_id?: string | null;
+};
+
+// Internal callers must screen these IDs through filterNonDsnInboundEmailIds.
+async function listEdielMessagesForNonDsnInboundEmails(
+  ids: string[],
+): Promise<ExistingInboundEdielMessage[]> {
   if (ids.length === 0) return [];
 
   const { data, error } = await supabaseService
     .from("ediel_messages")
-    .select("id")
+    .select("id,inbound_email_message_id")
     .in("inbound_email_message_id", ids)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return ((data ?? []) as Array<{ id?: string | null }>)
+  return (data ?? []) as ExistingInboundEdielMessage[];
+}
+
+export async function listEdielMessageIdsForInboundEmails(
+  inboundEmailMessageIds: string[],
+): Promise<string[]> {
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
+  const messages = await listEdielMessagesForNonDsnInboundEmails(ids);
+  return messages
     .map((row) => row.id)
     .filter((id): id is string => Boolean(id));
 }
@@ -706,22 +747,15 @@ export async function listRecentParsedInboundEmailIds(limit = 50): Promise<strin
 export async function ensureDiagnosticEdielMessagesForInboundEmails(
   inboundEmailMessageIds: string[],
 ): Promise<string[]> {
-  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)));
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
   if (ids.length === 0) return [];
 
-  const existingIds = await listEdielMessageIdsForInboundEmails(ids);
-  const { data: existingMessages, error: existingError } = await supabaseService
-    .from("ediel_messages")
-    .select("inbound_email_message_id")
-    .in("inbound_email_message_id", ids);
-
-  if (existingError) throw existingError;
+  const existingMessages = await listEdielMessagesForNonDsnInboundEmails(ids);
+  const existingIds = existingMessages
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id));
   const existingInboundIds = new Set(
-    (
-      (existingMessages ?? []) as Array<{
-        inbound_email_message_id?: string | null;
-      }>
-    )
+    existingMessages
       .map((row) => row.inbound_email_message_id)
       .filter((value): value is string => Boolean(value)),
   );
@@ -792,7 +826,7 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
   if (missingPayloadIds.length > 0) {
     const { data: inboundRows, error: inboundError } = await supabaseService
       .from("inbound_email_messages")
-      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_edifact_payload,body_text,message_family,message_code,created_at")
+      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_email,raw_edifact_payload,body_text,message_family,message_code,created_at")
       .in("id", missingPayloadIds);
     if (inboundError) throw inboundError;
 
@@ -812,6 +846,9 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
     }
 
     for (const row of (inboundRows ?? []) as Array<Record<string, unknown>>) {
+      if (row.match_status === 'dsn_transport_review' ||
+          isDeliveryStatusNotification(stringOrNull(row.raw_email)) ||
+          isDeliveryStatusNotification(stringOrNull(row.body_text))) continue;
       const inboundId = typeof row.id === "string" ? row.id : null;
       if (!inboundId) continue;
       const attachments = attachmentsByEmail.get(inboundId) ?? [];

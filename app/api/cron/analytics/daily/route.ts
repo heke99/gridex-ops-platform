@@ -3,7 +3,7 @@ import { isAnalyticsCronAuthorized, listAnalyticsCompanyIds } from '@/lib/analyt
 import { buildCompanyMonthlyMetrics } from '@/lib/analytics/monthlyMetricsBuilder'
 import { scanCompanyDataQuality } from '@/lib/analytics/dataQuality'
 import { refreshDashboardAlerts } from '@/lib/analytics/alerts'
-import { monthStart } from '@/lib/analytics/utils'
+import { addMonths, monthStart } from '@/lib/analytics/utils'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
   const results = []
   for (const companyId of companies) {
     await buildCompanyMonthlyMetrics(companyId, month)
+    // Late values and back-dated supply changes still land in last month's figures.
+    // Its stored portfolio forecast is never overwritten.
+    await buildCompanyMonthlyMetrics(companyId, addMonths(month, -1))
     const quality = await scanCompanyDataQuality(companyId, month)
     await refreshDashboardAlerts(companyId)
     results.push({ companyId, issues: quality.issues })

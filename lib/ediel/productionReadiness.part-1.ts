@@ -489,12 +489,13 @@ export function deriveProductionReadinessStatus(input: {
 }): ProductionReadinessStatus {
   const productionStatus = String(input.productionStatus ?? "").toLowerCase();
   if (productionStatus === "paused") return "paused";
+  if (!isActiveCompanyStatus(input.companyStatus)) return "blocked";
   if (
-    !isActiveCompanyStatus(input.companyStatus) ||
-    productionStatus === "blocked"
+    productionStatus === "live" &&
+    input.productionEnabled &&
+    input.liveApprovedAt
   )
-    return "blocked";
-  if (input.productionEnabled && input.liveApprovedAt) return "live";
+    return "live";
   if (input.blockingIssues.length > 0) return "not_ready";
   return input.warnings.length > 0 ? "warning" : "ready";
 }

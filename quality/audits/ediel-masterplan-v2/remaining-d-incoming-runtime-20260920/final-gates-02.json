@@ -1,0 +1,217 @@
+{
+  "node": "v24.19.0",
+  "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346",
+  "gates": [
+    {
+      "gate": "ediel-eight",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-component-escaping.cjs"
+      ],
+      "exit": 0,
+      "seconds": 3.96,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-ediel-eight-02.log",
+      "sha256": "2368280f789a58297cde4e3b3afa8db6d2987ef2f2c2067944e37e12c46607ea",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "full",
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--reporter=json",
+        "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/full-02.json"
+      ],
+      "exit": 0,
+      "seconds": 73.63,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-full-02.log",
+      "sha256": "fac5fb16f171c7b7460f4f75e13f9ecd36c3fde78865e4412223cacdecb31295",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "implementation-diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "263790d2",
+        "--",
+        "lib",
+        "app",
+        "__tests__"
+      ],
+      "exit": 0,
+      "seconds": 0.02,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-implementation-diffcheck-02.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "integrity",
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.92,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-integrity-02.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "large-files",
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.89,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-large-files-02.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 140.45,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-lint-02.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "performance",
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 5.17,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-performance-02.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "quality",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts",
+        "--reporter=json",
+        "--outputFile=quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/quality-02.json"
+      ],
+      "exit": 0,
+      "seconds": 9.77,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-quality-02.log",
+      "sha256": "407e1b5f95f411d4c625c10cef9d6782134716ce0493fcad9de4e8bf22e13ba2",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "ratchet",
+      "command": [
+        "node",
+        "scripts/check-service-role-tenant-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.38,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-ratchet-02.log",
+      "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "route-readiness",
+      "command": [
+        "npm",
+        "run",
+        "gridex:route-readiness-regression"
+      ],
+      "exit": 0,
+      "seconds": 2.09,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-route-readiness-02.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "tenant-integrity",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-integrity-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.39,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-tenant-integrity-02.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "tenant-shutdown",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-shutdown-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.19,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-tenant-shutdown-02.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "typecheck-scripts",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 4.75,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-typecheck-scripts-02.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "typecheck-tests",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 45.96,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-typecheck-tests-02.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    },
+    {
+      "gate": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 7.87,
+      "log": "quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920/final-typecheck-02.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "runtimeCommit": "10342f714774bcf21ae9ff54283e573a070a4346"
+    }
+  ]
+}

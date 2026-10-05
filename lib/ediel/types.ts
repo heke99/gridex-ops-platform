@@ -212,11 +212,16 @@ export type EdielMessageRow = {
   related_message_id: string | null;
 
   communication_route_id: string | null;
+  route_profile_id?: string | null;
+  canonical_rule_pack_id?: string | null;
+  source_operation_id?: string | null;
   rule_profile_key?: string | null;
   rule_profile_version_id?: string | null;
   rule_profile_version?: string | null;
   rule_pack_checksum?: string | null;
   rule_pack_snapshot?: Record<string, unknown> | null;
+  // Raw DB-owned leaf: callers must validate it before treating it as evidence.
+  execution_context_snapshot?: unknown;
   outbound_request_id: string | null;
   intent_id?: string | null;
   inbound_email_message_id?: string | null;
@@ -255,6 +260,9 @@ export type EdielMessageRow = {
   acknowledged_at: string | null;
   failed_at: string | null;
   ack_due_at: string | null;
+  contrl_due_at?: string | null;
+  business_response_due_at?: string | null;
+  response_overdue_at?: string | null;
 
   created_at: string;
   updated_at: string;
@@ -567,11 +575,15 @@ export type CreateEdielMessageInput = {
   relatedMessageId?: string | null;
 
   communicationRouteId?: string | null;
+  routeProfileId?: string | null;
+  canonicalRulePackId?: string | null;
+  sourceOperationId?: string | null;
   ruleProfileKey?: string | null;
   ruleProfileVersionId?: string | null;
   ruleProfileVersion?: string | null;
   rulePackChecksum?: string | null;
   rulePackSnapshot?: Record<string, unknown> | null;
+  executionContextSnapshot?: Record<string, unknown> | null;
   intentId?: string | null;
   partyId?: string | null;
   partyAddressId?: string | null;

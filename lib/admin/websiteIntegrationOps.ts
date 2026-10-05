@@ -152,6 +152,7 @@ export type TenantReadiness = {
   domainVerification: boolean;
   templates: boolean;
   billingMapping: boolean;
+  invoiceProvider: boolean;
   notes: string[];
 };
 
@@ -393,7 +394,7 @@ async function listLegacyWebsiteApplications(
   let query = supabaseService
     .from("website_customer_applications")
     .select(
-      "*,companies(name),customers(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
+      "*,companies(name),customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
     )
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
@@ -496,7 +497,7 @@ export async function getWebsiteApplicationAdminRow(
     let query = supabaseService
       .from("website_customer_applications")
       .select(
-        "*,companies(name),customers(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
+        "*,companies(name),customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone),integration_api_clients(name,key_prefix)",
       )
       .eq("id", applicationId);
     if (options.companyId) query = query.eq("company_id", options.companyId);
@@ -616,6 +617,7 @@ export function computeTenantReadiness(input: {
   eventRules: EmailEventRule[];
   effectiveSender: EffectiveSender;
   billingPartnerCount?: number;
+  invoiceProvider?: { selected: string | null; dispatchEnabled: boolean | null } | null;
 }): TenantReadiness {
   const notes: string[] = [];
   const apiClient = input.apiClients.some(
@@ -647,6 +649,7 @@ export function computeTenantReadiness(input: {
         rule.event_key === "contract.application_received" && rule.enabled,
     );
   const billingMapping = Number(input.billingPartnerCount ?? 0) > 0;
+  const invoiceProvider = Boolean(input.invoiceProvider?.selected) && input.invoiceProvider?.dispatchEnabled === true;
 
   if (!apiClient)
     notes.push("Saknar aktiv API-client med website_applications.write.");
@@ -661,6 +664,12 @@ export function computeTenantReadiness(input: {
     );
   if (!billingMapping)
     notes.push("Capway/billing partner mapping saknas ännu.");
+  if (!invoiceProvider)
+    notes.push(
+      input.invoiceProvider?.selected
+        ? "Fakturaleverantör är vald men utskick är inte aktiverat."
+        : "Ingen fakturaleverantör är vald (Fakturering → Integrationer).",
+    );
   if (
     input.emailSettings?.verification_status === "disabled" ||
     input.emailSettings?.sender_mode === "disabled"
@@ -677,6 +686,7 @@ export function computeTenantReadiness(input: {
     domainVerification,
     templates,
     billingMapping,
+    invoiceProvider,
     notes,
   };
 }

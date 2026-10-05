@@ -1,0 +1,12 @@
+{
+  "gate": "performance",
+  "command": [
+    "npm",
+    "run",
+    "quality:performance"
+  ],
+  "exit": 0,
+  "seconds": 2.59,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-performance.log",
+  "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629"
+}

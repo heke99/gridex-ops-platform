@@ -1,0 +1,3351 @@
+[
+  {
+    "id": "SC-001",
+    "name": "Egen tenant med DDQ",
+    "given": "Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör.",
+    "when": "A beställer Z03L.",
+    "expected": "Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22.",
+    "prohibited": "Gridex-id ersätter inte A:s aktör; ingen data från B.",
+    "rule_ids": [
+      "TEN-02",
+      "TEN-05",
+      "ENV-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-002",
+    "name": "Egen tenant med DGI",
+    "given": "Tenant B har egen legal ESCO-identitet och DSO-/kundavtal.",
+    "when": "B beställer Z13V.",
+    "expected": "B:s juridisk aktör och 23-DGI-PRODAT; separat tillståndsärende.",
+    "prohibited": "Ingen Z03 och inget Gridex-ombud antas.",
+    "rule_ids": [
+      "TEN-02",
+      "ESCO-01"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-003",
+    "name": "Provider ESCO för kundtenant",
+    "given": "Provider P har legal ESCO; tenant K är avtalad beneficiary; uppdrag/kund/DSO-evidens finns.",
+    "when": "K beställer mätvärdestillgång inom mandatet.",
+    "expected": "P agerar juridiskt i DGI; uppdrag kopplat till K internt.",
+    "prohibited": "K:s UUID skickas inte som legal Ediel-id; K får ingen obegränsad provideråtkomst.",
+    "rule_ids": [
+      "TEN-03",
+      "TEN-14"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-004",
+    "name": "SaaS-tenant utan egen Edielregistrering",
+    "given": "K är kund till ESCO-tjänsten och inte själv marknadsaktör.",
+    "when": "K läser data efter giltigt grant.",
+    "expected": "Åtkomst genom explicit grant i P:s tjänst; inget krav på påhittad egen marknadsidentitet.",
+    "prohibited": "Skapa inte ett Ediel-id för att tillåta vanlig SaaS-användning.",
+    "rule_ids": [
+      "TEN-03",
+      "TEN-08"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-005",
+    "name": "Två beneficiaries samma rättighetskälla",
+    "given": "P har ett korrekt tillstånd och två självständigt giltiga uppdrag för samma objekt/period, K1 och K2.",
+    "when": "En E66-DGI tas emot.",
+    "expected": "En upstream mottagning/disposition/kvittens, två behöriga interna projektioner.",
+    "prohibited": "Ingen dubbelt fakturerad energi eller dubbla kvittenser per beneficiary.",
+    "rule_ids": [
+      "TEN-08",
+      "TEN-09"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-006",
+    "name": "En beneficiary avslutar",
+    "given": "SC-005 men bara K1 säger upp uppdraget.",
+    "when": "Avsluta K1:s interna grant.",
+    "expected": "K1:s framtida åtkomst spärras; K2:s rätt prövas separat och kan fortsätta.",
+    "prohibited": "Ingen automatisk Z18 som avslutar allas giltiga marknadstillstånd.",
+    "rule_ids": [
+      "TEN-09",
+      "TEN-10"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-007",
+    "name": "Samma GSRN i annan tenant",
+    "given": "K2 känner till anläggnings-id men saknar grant.",
+    "when": "K2 anropar API/export med id:t.",
+    "expected": "Behörighetsavslag utan kunddata.",
+    "prohibited": "Global GSRN-matchning får inte ge åtkomst.",
+    "rule_ids": [
+      "TEN-12"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-008",
+    "name": "Råfil med blandade behöriga objekt",
+    "given": "P mottar fil med objekt för flera uppdrag; K har rätt till endast ett.",
+    "when": "K begär råfil eller full export.",
+    "expected": "Filtrerad tillåten projektion; råfil bara för behörig operatör.",
+    "prohibited": "Övriga kunders innehåll lämnas inte ut.",
+    "rule_ids": [
+      "TEN-07"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-009",
+    "name": "Tekniskt ombud skiljer sig från juridisk part",
+    "given": "Registerpost har InterchangePartyId82150 och legalPartyId62110.",
+    "when": "Routa eller ta emot enligt posten.",
+    "expected": "Identiteterna bevaras och behörig delegation kontrolleras.",
+    "prohibited": "Systemet kräver inte att parterna alltid är lika.",
+    "rule_ids": [
+      "TEN-04",
+      "IMP-02"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-010",
+    "name": "Återkallelse under pågående exportjobb",
+    "given": "Grant var aktivt vid köläggning men återkallat före läsning/sändning.",
+    "when": "Jobbet tar lease och ska exportera.",
+    "expected": "Ompröva grantversion och stoppa otillåten export.",
+    "prohibited": "Ingen utdelning baserad bara på gamla cachevärden.",
+    "rule_ids": [
+      "TEN-10",
+      "TEN-12"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-011",
+    "name": "Z15C efter separat intern återkallelse",
+    "given": "Market permission återställs men beneficiary-grant har annan giltig återkallelse.",
+    "when": "Ta emot korrekt Z15C.",
+    "expected": "Återställ market permission; beneficiary-grant förblir spärrat tills ny grund finns.",
+    "prohibited": "Alla beneficiaries återaktiveras inte automatiskt.",
+    "rule_ids": [
+      "ESCO-09",
+      "TEN-10"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-012",
+    "name": "Samma aktör använder båda rollerna",
+    "given": "Samma tenant/juridisk aktör har DDQ och DGI.",
+    "when": "Behandla positiv Z14 och senare positiv Z04.",
+    "expected": "Z14 påverkar rättighet, Z04 leverans; separata state machines.",
+    "prohibited": "Inga korsvisa aktiveringar.",
+    "rule_ids": [
+      "TEN-05"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-013",
+    "name": "UCI/LI-kollision mellan tenants",
+    "given": "Två aktörer har liknande LI/BGM-referenser i olika namnrymder.",
+    "when": "En kvittens för aktör B anländer till delad brevlåda.",
+    "expected": "Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
+    "prohibited": "Tenant A:s ärende förblir oförändrat.",
+    "rule_ids": [
+      "TEN-13",
+      "ACK-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-014",
+    "name": "Oattribuerbar mottagning",
+    "given": "Teknisk mottagning lyckas men legal/tenantkontext är oklar.",
+    "when": "MIME/EDI behandlas.",
+    "expected": "Skyddad staging och källstödd teknisk fel-/kvittenshantering där säkert möjlig.",
+    "prohibited": "Gissa inte tenant från första kundträffen; fabricera inte objektsfel på egen konfigbrist.",
+    "rule_ids": [
+      "TEN-06",
+      "TEN-11"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-015",
+    "name": "Provider koordinerar pågående Z13",
+    "given": "Samma P/kund/DSO har en väntande begäran från annat uppdrag.",
+    "when": "K2 vill skicka ny Z13 för samma eller nya objekt.",
+    "expected": "Pröva Handbokens nya-objekt-/upprepningsfall och koordinerad begäran.",
+    "prohibited": "Beneficiary-id används inte för att kringgå21dagarsförloppet.",
+    "rule_ids": [
+      "TEN-09",
+      "ESCO-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-016",
+    "name": "Delvis godkända ESCO-anläggningar",
+    "given": "Z13 omfattar flera möjliga objekt; Z14 godkänner endast A.",
+    "when": "Behandla Z14.",
+    "expected": "Permission/grants omfattar endast uttryckligen godkänd information.",
+    "prohibited": "B/C läggs inte till från kundregistret.",
+    "rule_ids": [
+      "ESCO-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-017",
+    "name": "E66 saknar permission-id",
+    "given": "Giltig DGI-serie kan identifieras via juridisk aktör, GSRN, produkt, period och tillståndskoppling.",
+    "when": "Validera serie.",
+    "expected": "Korrelation utan påhittat wirefält; bara giltig kontext används.",
+    "prohibited": "Avvisa inte som saknat permission-id när det inte är föreskrivet fält.",
+    "rule_ids": [
+      "ESCO-10"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-018",
+    "name": "DDQ-kundrelation utan ESCO-mandat",
+    "given": "Elleverans finns men separat begärd ESCO-tjänst saknar tillstånd.",
+    "when": "Skapa DGI-rättighet från kundkort.",
+    "expected": "Begär rätt underlag och följ tillståndsprocessen.",
+    "prohibited": "Aktiv elleverans blir inte automatiskt DGI-tillstånd.",
+    "rule_ids": [
+      "TEN-05",
+      "ESCO-01"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-019",
+    "name": "DGI-värden till fakturering",
+    "given": "Data mottagen i P:s DGI-roll och önskas användas av retailer K.",
+    "when": "Bygg underlag.",
+    "expected": "Pröva datagrund/ändamål/leveransperiod/prismodell och bevara källproveniens.",
+    "prohibited": "Omskriv inte original som DDQ-E66 eller använd data utan rätt.",
+    "rule_ids": [
+      "ESCO-11",
+      "DB-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-020",
+    "name": "Z13 positiv AP men ingen Z14",
+    "given": "Begäran har positiv APERAK.",
+    "when": "Kontrollera behörighet.",
+    "expected": "Ärendet väntar fortfarande på affärsbeslut.",
+    "prohibited": "Ingen mätvärdesåtkomst eller leveransaktivering.",
+    "rule_ids": [
+      "ESCO-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-021",
+    "name": "Aktivt kontra passivt nekande",
+    "given": "Giltiga Z14N med A13 respektive A76.",
+    "when": "Behandla svaren var för sig.",
+    "expected": "Två särskilda nekandetillstånd med föreskrivna kvittenser.",
+    "prohibited": "Negativt affärssvar klassas inte som eget syntaxfel.",
+    "rule_ids": [
+      "ESCO-05"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-022",
+    "name": "21dagar utan svar",
+    "given": "Utgående Z13 har inget Z14/N i retur efter bevakningsfrist.",
+    "when": "Timer förfaller.",
+    "expected": "Overdue-uppgift och kontakt/spårning.",
+    "prohibited": "Inget lokalt fabricerat Z14N eller auto-godkännande.",
+    "rule_ids": [
+      "ESCO-06",
+      "OPS-02"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-023",
+    "name": "Historikslut påverkar inte löpande tillstånd",
+    "given": "Separata V- och VH-förlopp finns för samma objekt.",
+    "when": "Ta emot Z15VH.",
+    "expected": "Historikjobbet avslutas/täckningen granskas; V fortsätter om giltigt.",
+    "prohibited": "Pågående V och DDQ-leverans avslutas inte.",
+    "rule_ids": [
+      "ESCO-07"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-024",
+    "name": "Z14N utan positiv-Z14-fälten",
+    "given": "Z14N har korrekt status men saknar IT/UD/tillstånds-id/rapporteringsfält som ej ska skickas.",
+    "when": "Nationell validering.",
+    "expected": "Parentvillkor gör barnen ej tillämpliga.",
+    "prohibited": "Ingen falsk 41/316 eller 41/233 enbart från basmatrisens R.",
+    "rule_ids": [
+      "P-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-025",
+    "name": "Z13 utan anläggnings-id",
+    "given": "Korrekt tillståndsbegäran på kundnivå.",
+    "when": "Bygg meddelandet.",
+    "expected": "LIN+1 finns; inget påhittat anläggnings-id, kundfält och rätt övriga villkor finns.",
+    "prohibited": "UUID får inte placeras som GSRN.",
+    "rule_ids": [
+      "P-07",
+      "P-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-026",
+    "name": "Korrekt Z15 med DTM+164 och RFF+Z09",
+    "given": "Ett Z15-fall innehåller känt tillstånds-id och rätt upphörandetid.",
+    "when": "Validera den oförändrade meddelandestrukturen.",
+    "expected": "Fält 327 läses ur DTM+164 och fält 325 ur RFF+Z09.",
+    "prohibited": "Kräv inte DTM+273 eller RFF+ZPI och förväxla inte datumet med fält 321.",
+    "rule_ids": [
+      "P-01"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-027",
+    "name": "Tidsbegränsat V-tillstånd jämfört med VH",
+    "given": "Ett V-tillstånd har ett slutdatum, ett V gäller tills vidare och ett VH avser en historisk period.",
+    "when": "Bygg varje tillämplig rapportperiod.",
+    "expected": "DTM+91 finns för tidsbegränsat V och för VH; utelämnas för V utan slutdatum.",
+    "prohibited": "Rapportslut får inte kopplas enbart till historiktypen.",
+    "rule_ids": [
+      "ESCO-02",
+      "P-07"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-028",
+    "name": "Energiproduktens komponentposition",
+    "given": "Z13 eller Z14 innehåller generiskt energiprodukt-id, fält 506.",
+    "when": "Serialisera och parsa meddelandet.",
+    "expected": "Den andra förekomsten av 7110 bevaras som femte komponent i CAV.",
+    "prohibited": "Tomma komponenter får inte tas bort så att uppgiften flyttas till produktkod, fält 242.",
+    "rule_ids": [
+      "ENV-02",
+      "P-07"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-029",
+    "name": "Z09D: start eller slut på avtal",
+    "given": "Det finns separata korrekta avsikter för avtalsstart och avtalsslut.",
+    "when": "Bygg dessa, och prova ett inkommande meddelande med båda datumen.",
+    "expected": "Använd DTM+92 eller DTM+93. Ett inkommande meddelande med båda ger P-APERAK med ERC 40 och särskild kod 109.",
+    "prohibited": "DTM+157 får inte ersätta avtalsdatumen.",
+    "rule_ids": [
+      "P-08"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-030",
+    "name": "Z09E innehåller elanvändaren",
+    "given": "Z09E gäller en kundhändelse som är tillåten i den valda processen.",
+    "when": "Bygg Z09E enligt den specifika profilen.",
+    "expected": "NAD+UD och tillämpliga kunduppgifter finns med.",
+    "prohibited": "Ta inte bort UD för samtliga Z09-varianter.",
+    "rule_ids": [
+      "P-09"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-031",
+    "name": "Extra, icke tillämpliga PRODAT-uppgifter",
+    "given": "Syntaxen är giltig men meddelandet innehåller extra uppgifter som ska ignoreras enligt PRODAT-anvisningen.",
+    "when": "Gör mottagningskontrollen.",
+    "expected": "Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.",
+    "prohibited": "Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.",
+    "rule_ids": [
+      "P-02"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-032",
+    "name": "Ett falskt D-villkor kan ge frivillig uppgift",
+    "given": "Z06E eller Z06G innehåller ett fält vars specificerade villkor gör det obligatoriskt endast i Z06F och annars frivilligt.",
+    "when": "Prova både med och utan fältet.",
+    "expected": "Den föreskrivna O-grenen används; falskt D-villkor gör inte alltid fältet till X.",
+    "prohibited": "Inför ingen strängare mottagningsregel utan källstöd.",
+    "rule_ids": [
+      "P-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-033",
+    "name": "Flera register och flera objekt",
+    "given": "Z04 eller Z10 innehåller flera mätarregister och två separata objekt.",
+    "when": "Bygg och behandla meddelandet.",
+    "expected": "Globalt LIN-sekvensnummer, fält 314, och registerindex, fält 258, följer respektive regel. Register 2 och högre följer bilaga 2.",
+    "prohibited": "Ett fel i andra registret får inte döljas av första. Alla basmatrisens R-fält ska inte krävas upprepade gånger utan stöd.",
+    "rule_ids": [
+      "P-05",
+      "ENV-02"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-034",
+    "name": "Felaktig LIN-sekvens",
+    "given": "Första LIN-numret är 2, eller sekvensen har en lucka eller fel ordning. Syntaxen är i övrigt giltig.",
+    "when": "Gör den nationella kontrollen.",
+    "expected": "Hela PRODAT-meddelandet avvisas med rätt P-APERAK och BGM/1225 = 27.",
+    "prohibited": "Korrekt UNH/UNT räcker inte för att godkänna den nationella sekvensen.",
+    "rule_ids": [
+      "P-17"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-035",
+    "name": "Z02 verifierar uppgifter, inte leverans",
+    "given": "En behörig uppgiftsförfrågan kan entydigt korreleras.",
+    "when": "Ta emot ett giltigt Z02.",
+    "expected": "Lagra tillåten verifierad information och gör en separat prövning av nästa affärssteg.",
+    "prohibited": "Skapa inte aktiv leverans eller ett Z04-bekräftat tillstånd.",
+    "rule_ids": [
+      "P-10"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-036",
+    "name": "Z04 anländer före positiv APERAK",
+    "given": "Z03 har skickats. Ett korrekt korrelerat Z04 anländer före positiv APERAK.",
+    "when": "Behandla först Z04 och sedan APERAK.",
+    "expected": "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
+    "prohibited": "Avvisa inte Z04 enbart på grund av ankomstordningen.",
+    "rule_ids": [
+      "P-11",
+      "ACK-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-037",
+    "name": "Leveransstart ligger i framtiden",
+    "given": "Ett korrekt Z04 har mottagits med ett framtida startdatum.",
+    "when": "Kör aktiveringsjobbet före och vid starttidpunkten.",
+    "expected": "Ingen förtida aktivering. Endast rätt, fortsatt giltiga period aktiveras vid rätt start.",
+    "prohibited": "SMTP-acceptans eller en teknisk kvittens får inte tidigarelägga startdatumet.",
+    "rule_ids": [
+      "P-11"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-038",
+    "name": "Z04A och Z04D utan egen Z03",
+    "given": "Rätt särskild grund för anvisning respektive mottagningspliktig produktion finns.",
+    "when": "Ta emot respektive meddelande.",
+    "expected": "Använd särskild process och dess kontroller.",
+    "prohibited": "Ett generellt krav på en föregående egen Z03 får inte blockera dessa korrekta specialprocesser.",
+    "rule_ids": [
+      "P-12"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-039",
+    "name": "Kancellering anländer före originalet",
+    "given": "Original och kancellering kommer från rätt motpart men anländer i omvänd ordning.",
+    "when": "Bearbeta enligt tillämplig korrelations- och kancelleringsregel.",
+    "expected": "Bevara båda meddelandena och deras orsakskedja. Eventuell intern väntan måste hålla föreskrivna kvittensfrister; annars krävs rätt externt utfall eller kontakt.",
+    "prohibited": "Ingen dubbel aktivering, tyst bortkastning eller gissad kompensation mot ett annat original.",
+    "rule_ids": [
+      "P-14"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-040",
+    "name": "Rättelse efter negativ APERAK",
+    "given": "En identifierad del av ett eget PRODAT har avvisats.",
+    "when": "Rätta uppgiften och skapa en tillåten ny sändning.",
+    "expected": "Nytt BGM-id och spårbar relation till det oförändrat arkiverade originalet.",
+    "prohibited": "Återanvänd inte meddelandeidentiteten från den avvisade sändningen.",
+    "rule_ids": [
+      "TR-05"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-041",
+    "name": "CONTRL-begäran och skydd mot kvittensloop",
+    "given": "PRODAT, APERAK och CONTRL ska byggas.",
+    "when": "Serialisera respektive kuvert.",
+    "expected": "UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN.",
+    "prohibited": "BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas.",
+    "rule_ids": [
+      "ENV-04",
+      "ACK-01"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-042",
+    "name": "De två APERAK-familjerna",
+    "given": "Ett PRODAT-fel och ett UTILTS-fel ska besvaras.",
+    "when": "Bygg respektive svar från originalets profil och utfall.",
+    "expected": "P-APERAK använder D96A, BGM/1225 34 eller 27 och originalreferenser enligt P. U-APERAK använder D04A, BGM/1001 312 eller 313 samt DOC och transaktionsreferenser där de ska finnas.",
+    "prohibited": "Blanda inte familjernas BGM-positioner, referenser eller gruppstrukturer.",
+    "rule_ids": [
+      "ACK-02",
+      "ACK-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-043",
+    "name": "Rätt fältnummer i felmeddelandet",
+    "given": "Ett PRODAT saknar fält 327 och ett UTILTS saknar fält 512 i fall där de är obligatoriska.",
+    "when": "Skapa respektive negativa APERAK.",
+    "expected": "ERC 41 med fältreferens 327 respektive 512 i familjens rätta FTX-format.",
+    "prohibited": "Gissa inte 273 eller 597 genom att plocka siffror ur ett DTM-segmentnamn.",
+    "rule_ids": [
+      "P-01",
+      "ACK-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-044",
+    "name": "Blandade UTILTS-transaktioner",
+    "given": "IDE 1 är korrekt. IDE 2 har anvisningsfel. IDE 3 passerar anvisningskontrollen men har funktionsfel. Huvudet är korrekt.",
+    "when": "Kör hela kontrollkedjan.",
+    "expected": "IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
+    "prohibited": "En global klassificering får inte ersätta IDE 2:s anvisningsfel med ett senare funktionsfel.",
+    "rule_ids": [
+      "U-03",
+      "ACK-08"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-045",
+    "name": "UTILTS har fel i huvudet",
+    "given": "Ett obligatoriskt nationellt huvudfält är fel och det finns dessutom fel längre ned.",
+    "when": "Validera meddelandet.",
+    "expected": "Negativ U-APERAK på huvudnivå. Inga efterföljande funktionskontroller och inga påhittade originaltransaktionsreferenser.",
+    "prohibited": "Välj inte exempelvis E10 innan huvudfelet hanterats.",
+    "rule_ids": [
+      "U-03",
+      "ACK-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-046",
+    "name": "Äldre version av mätvärden anländer sist",
+    "given": "En nyare godkänd dataversion finns. Den senare ankomsten har äldre registrerings-/uppdateringstidpunkt, fält 512 eller 532.",
+    "when": "Behandla den äldre transaktionen som i övrigt är korrekt.",
+    "expected": "Positiv APERAK enligt regeln. Den nyare aktiva dataversionen skrivs inte över.",
+    "prohibited": "Ingen UTILTS-ERR eller tyst omfakturering enbart på grund av ankomstordningen.",
+    "rule_ids": [
+      "U-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-047",
+    "name": "Okänt objekt i rätt mottagarsammanhang",
+    "given": "Syntax och nationell anvisningskontroll har passerat. Rätt juridisk mottagare och roll är fastställda men objektet är okänt enligt den tillämpliga funktionskontrollen.",
+    "when": "Pröva objektkontrollen.",
+    "expected": "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
+    "prohibited": "Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
+    "rule_ids": [
+      "U-03",
+      "TEN-11"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-048",
+    "name": "Fel period men rätt objekt",
+    "given": "Avsändare och objekt är korrekta men perioden bryter ett tillämpligt funktionsvillkor.",
+    "when": "Pröva periodkontrollen efter föregående steg.",
+    "expected": "UTILTS-ERR E50 när denna kontroll är utlösande.",
+    "prohibited": "Använd inte E10 som generell kod för alla valideringsfel.",
+    "rule_ids": [
+      "U-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-049",
+    "name": "ESCO saknar struktur som inte föreskrivits i Z14",
+    "given": "Ett giltigt Z14 etablerar rätt objekt men innehåller inte mätar-/registeruppgifter som inte ska skickas i denna profil.",
+    "when": "Validera E66 enligt källans tillämpliga villkor.",
+    "expected": "Använd villkoren för kontroll mot erhållen struktur. Lokalt saknade, ej föreskrivna fält får inte bli ett påhittat PRODAT-krav.",
+    "prohibited": "Ett godtyckligt E61 eller E62 på grund av lokal kunskapsbrist är inte ett godkänt testfacit.",
+    "rule_ids": [
+      "U-08"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-050",
+    "name": "88 av 96 kvartar",
+    "given": "Ett helt 24-timmarsintervall i +0100 rapporteras med 15-minutersupplösning och 88 energivärden. Energisumman råkar stämma.",
+    "when": "Kontrollera antal observationer efter att tidigare kontroller passerat.",
+    "expected": "UTILTS-ERR E87 där antalskontrollen är tillämplig; luckan synliggörs.",
+    "prohibited": "Korrekt energisumma får inte maskera saknade observationer.",
+    "rule_ids": [
+      "U-10",
+      "U-11"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-051",
+    "name": "Versionsgränsen i oktober",
+    "given": "Båda revisionerna använder UNH-koden E5SE5A men olika nationella regler gäller före och från 2026-10-01.",
+    "when": "Prova mottagning, sändning, omsändning och historisk återspelning.",
+    "expected": "Ett sammanhållet, spårbart regelval per behandling. Nya 25-A-4-regler aktiveras inte före sin giltighet.",
+    "prohibited": "Oberoende datumval i olika lager får inte ge två motstridiga regelrevisioner.",
+    "rule_ids": [
+      "GOV-04",
+      "GOV-05",
+      "GOV-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-052",
+    "name": "E73 begär E66 i DGI-rollen",
+    "given": "ESCO har rätt omfattning, tillämpligt tillstånd och verifierad bilateral kapabilitet för begäran.",
+    "when": "Bygg en begäran om saknade E66-värden.",
+    "expected": "Application Reference motsvarar den begärda E66-DGI-profilen. Efterfrågad meddelandetyp är uttrycklig.",
+    "prohibited": "Härled inte en generell E73-referens och anta inte rätt till S02 bara för att E73 kan begära S02 i en annan roll.",
+    "rule_ids": [
+      "U-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-053",
+    "name": "NULL skiljs från noll",
+    "given": "En observation saknas och representeras enligt profilens NULL-regel. En annan innehåller ett verifierat nollvärde.",
+    "when": "Lagra data och bygg behörigt underlag.",
+    "expected": "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
+    "prohibited": "Mätarställning, energi och effekt får inte blandas ihop.",
+    "rule_ids": [
+      "U-09"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-054",
+    "name": "Lagringen misslyckas",
+    "given": "UTILTS-transaktionen är korrekt men databastransaktionen misslyckas.",
+    "when": "Pröva skapandet av kvittensjobbet.",
+    "expected": "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
+    "prohibited": "Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
+    "rule_ids": [
+      "U-14"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-055",
+    "name": "Kvittens hänvisar till en annan aktörs meddelande",
+    "given": "APERAK har en liknande referens men kommer från fel juridisk motpart.",
+    "when": "Försök korrelera kvittensen.",
+    "expected": "Ingen ändring i det felaktigt utpekade ärendet; loggad säker hantering.",
+    "prohibited": "Ingen tillståndsändring över tenantgränsen.",
+    "rule_ids": [
+      "ACK-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-056",
+    "name": "Senare fel efter positiv APERAK",
+    "given": "Ett internt fel upptäcks efter en giltig positiv APERAK för samma objekt/transaktion.",
+    "when": "Pröva ny affärsvalidering.",
+    "expected": "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
+    "prohibited": "Ett återförsök får inte skriva om kvittenshistoriken.",
+    "rule_ids": [
+      "ACK-07"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-057",
+    "name": "Registerimport är idempotent",
+    "given": "Samma fil importeras två gånger. En senare registerversion innehåller tre motstridiga adressändringar.",
+    "when": "Förhandsgranska och applicera kontrollerat.",
+    "expected": "Identiska data skapar inte dubbletter. Marknader, roller och rutter bevaras. Motstridiga ändringar får tydlig behandling och körningen får slutstatus.",
+    "prohibited": "En import med noll inlästa rutter får inte beskrivas som fullt sändningsklar. En avbruten körning får inte ligga obevakad som running.",
+    "rule_ids": [
+      "IMP-01",
+      "IMP-02",
+      "IMP-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-058",
+    "name": "Samma aktör har olika SMTP för EL och GAS",
+    "given": "Exporten har skilda PRODAT-adresser på de två marknaderna.",
+    "when": "Välj rutt för ett EL-meddelande.",
+    "expected": "Använd EL-adressen; GAS är inte reservrutt.",
+    "prohibited": "Använd inte en marknadslös sökning som väljer första träffen.",
+    "rule_ids": [
+      "IMP-02"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-059",
+    "name": "Tom registrerad subadress",
+    "given": "Registerversionen anger ingen subadress för den valda aktören och trafiken.",
+    "when": "Bygg rutt- och kuvertprofilen.",
+    "expected": "Tom subadress bevaras; ingen universell GRIDEX- eller SCH-standard införs.",
+    "prohibited": "Ändra inte Mjölbys registrerade PRODAT-subadress utan registerstöd.",
+    "rule_ids": [
+      "IMP-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-060",
+    "name": "Certifikatets exakta giltighet",
+    "given": "Ett certifikat gick ut för en timme sedan, ett börjar gälla i morgon och ett är spärrat.",
+    "when": "Pröva både direkt valt certifikat-id och automatisk kandidatsökning.",
+    "expected": "Samtliga dessa certifikat underkänns enligt exakt giltighet och status. Eventuellt reservförfarande prövas separat enligt T.",
+    "prohibited": "Runda inte upp giltighetstiden till noll dagar och kringgå inte kontrollen genom direkt id-val.",
+    "rule_ids": [
+      "TR-06"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-061",
+    "name": "Överlappande mottagarcertifikat",
+    "given": "Två giltiga certifikat finns för samma verifierade mottagaromfattning.",
+    "when": "Skapa S/MIME-kuvertet.",
+    "expected": "Ta med de mottagarcertifikat som föreskrivs vid överlapp.",
+    "prohibited": "Välj inte enbart senaste certifikat-id som generell regel.",
+    "rule_ids": [
+      "TR-07"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-062",
+    "name": "SMTP accepterar men leveransrapport visar fel",
+    "given": "Meddelandet accepteras för köläggning men slutleveransen misslyckas.",
+    "when": "Behandla den inkomna DSN-rapporten.",
+    "expected": "Registrera leveransfelet mot rätt sändningsförsök; ingen affärsaktivering.",
+    "prohibited": "Originalets EDIFACT-bilaga i returbrevet får inte importeras som ny marknadstrafik.",
+    "rule_ids": [
+      "TR-02",
+      "TR-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-063",
+    "name": "Okänt sändningsutfall efter DATA",
+    "given": "Förbindelsen bryts efter att meddelandet kan ha accepterats av SMTP-servern.",
+    "when": "Återstarta arbetaren.",
+    "expected": "Registrera submission_unknown och spåra utfallet innan ett affärsmässigt återförsök bedöms.",
+    "prohibited": "Ingen blind omsändning av Z03 och inget löfte om exakt en SMTP-leverans.",
+    "rule_ids": [
+      "TR-10"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-064",
+    "name": "Regel eller behörighet förändras i kön",
+    "given": "En avsikt byggs under version 1. Före sändning ändras en relevant policy, rutt eller rättighet.",
+    "when": "Kör kontrollen före sändning.",
+    "expected": "Ompröva och lagra ett nytt spårbart beslut, eller blockera den berörda åtgärden.",
+    "prohibited": "Skicka inte ett inaktuellt innehåll med ett gammalt behörighetsbeslut.",
+    "rule_ids": [
+      "GOV-04",
+      "OPS-01"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-065",
+    "name": "AI-lista från leverantör",
+    "given": "En DDQ-tenant exporterar en månads avstämningsuppgifter.",
+    "when": "Bygg AI-listans CSV.",
+    "expected": "Nätföretaget står först i huvudet. De sex leverantörstomma fälten lämnas tomma. Rätt kundidentitet, namn och avslutande semikolon används.",
+    "prohibited": "Inga interna UUID som GSRN och inget generiskt energiprodukt-id som tidsserieprodukt.",
+    "rule_ids": [
+      "AI-01",
+      "AI-02"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-066",
+    "name": "AI-listans historik och avvikelser",
+    "given": "En anläggning har ändrats under perioden och leveransen omfattar bara en del av perioden. En inkommande lista avviker från databasen.",
+    "when": "Exportera perioduppgifterna och läs in avstämningen.",
+    "expected": "Rätt detaljrader och giltighetsperioder. Avvikelser leder till utredning.",
+    "prohibited": "Ingen automatisk överskrivning av grunddata från AI-listan.",
+    "rule_ids": [
+      "AI-03",
+      "AI-04"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-067",
+    "name": "BI-export i DDQ- eller DGI-roll",
+    "given": "En användare vill skapa en BI-lista men agerar inte som elnätsföretag.",
+    "when": "Begär export.",
+    "expected": "Blockera rollen även om systemet kan läsa filformatet.",
+    "prohibited": "Plattformen får inte uppträda som nätägare utan rätt roll och underlag.",
+    "rule_ids": [
+      "AI-05"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-068",
+    "name": "Test och återspelning når inte produktion",
+    "given": "En referensfil använder testidentitet eller ett beslut har läget historical_replay.",
+    "when": "Försök skapa automatisk produktionssändning eller kundändring.",
+    "expected": "Ingen extern produktionssändning och ingen produktionsmutation.",
+    "prohibited": "catalog_evidence får inte användas som operativ sändningsauktoritet.",
+    "rule_ids": [
+      "ENV-05",
+      "GOV-08"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-069",
+    "name": "Ny beredskapsverifiering för berört scope",
+    "given": "En DGI-regel ändras för en viss omfattning medan DDQ är opåverkad.",
+    "when": "Skapa releasebevis.",
+    "expected": "Nytt bevis för berörd tenant, aktör, roll och kapabilitet. Fortsatt säker mottagning och föreskriven kvittensdrift hålls tillgänglig.",
+    "prohibited": "Ett gammalt globalt is_ready får inte godkänna alla roller och profiler.",
+    "rule_ids": [
+      "OPS-01"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-070",
+    "name": "Kundavslut med bevarandekrav",
+    "given": "En kund avslutar. Vissa journaluppgifter behöver bevaras enligt beslutad lagringsklass.",
+    "when": "Kör datalivscykeln.",
+    "expected": "Operativt avslut, återkallade rättigheter och tillåten radering eller pseudonymisering genomförs med spårbar lagringsgrund.",
+    "prohibited": "Ingen blind CASCADE-radering av mätdata, fakturor och kvittenshistorik.",
+    "rule_ids": [
+      "DB-05"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-071",
+    "name": "Samtidig återkallelse och distribution",
+    "given": "Ett åtkomstgrant återkallas samtidigt som ett E66-resultat ska delas internt.",
+    "when": "Kör exportjobb och rättighetsändring parallellt.",
+    "expected": "Kontroll av aktuell version och transaktionsgräns hindrar utlämning utan giltig rätt.",
+    "prohibited": "Ett tidigare behörighetsbeslut får inte användas efter relevant återkallelse.",
+    "rule_ids": [
+      "TEN-10",
+      "TEN-12"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "SC-072",
+    "name": "Oberoende test avslöjar gemensamt mappningsfel",
+    "given": "Byggare och validator använder samma felaktiga fältmappning.",
+    "when": "Kör referenstest med facit från en oberoende, versionsriktig källa.",
+    "expected": "Felet upptäcks även om egen serialisering och parsning ger en lyckad rundtur.",
+    "prohibited": "Enbart rundtur med egen parser bevisar inte överensstämmelse med Ediel.",
+    "rule_ids": [
+      "GOV-08",
+      "OPS-03"
+    ],
+    "layer": "Integration/E2E",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-01",
+    "name": "Regelkontrakt: GOV-01",
+    "given": "Alla profiler",
+    "when": "Publicering av regelpaket – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning. → Publicera immutabel regelversion med granskningsspår.",
+    "prohibited": "Ej styrkt regel ska inte generera nya externa meddelanden eller påhittade felkoder.",
+    "rule_ids": [
+      "GOV-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-02",
+    "name": "Regelkontrakt: GOV-02",
+    "given": "PRODAT",
+    "when": "Komposition av fältprofil – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "P §2.2 har företräde framför motstridiga bilaga4-villkor; första register och register2+ har skilda regler. → Tillämpa basprofil + subtype + parent + registeroverlay.",
+    "prohibited": "Ingen automatisk kopiering av gamla bilaga4-koder eller bas-R till alla register.",
+    "rule_ids": [
+      "GOV-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-03",
+    "name": "Regelkontrakt: GOV-03",
+    "given": "PRODAT/AP/UTILTS",
+    "when": "Val av guide – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Elprofil26.A och tillhörande APERAK skiljs från gasprofil16.B; generisk AP05.B.5 ersätter inte P-/U-specifika APERAK. → Välj APERAK enligt ursprungsfamilj och dess guide.",
+    "prohibited": "Stoppa sammanblandad wireversion; ingen generell APERAK16.B-profil för EL.",
+    "rule_ids": [
+      "GOV-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-04",
+    "name": "Regelkontrakt: GOV-04",
+    "given": "Utgående meddelande och omsändning",
+    "when": "Före varje extern sändning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. → Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik.",
+    "prohibited": "Skicka inte gammal köpayload med ny versionsetikett.",
+    "rule_ids": [
+      "GOV-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-05",
+    "name": "Regelkontrakt: GOV-05",
+    "given": "Mottagning",
+    "when": "Ny anvisning börjar gälla – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. → Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning.",
+    "prohibited": "Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis.",
+    "rule_ids": [
+      "GOV-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-06",
+    "name": "Regelkontrakt: GOV-06",
+    "given": "UTILTS",
+    "when": "Gemensam runtimevalidering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. → För explicit versionsbeslut till utiltsEngine; inget nytt implicit now().",
+    "prohibited": "Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod.",
+    "rule_ids": [
+      "GOV-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-07",
+    "name": "Regelkontrakt: GOV-07",
+    "given": "Energidelning/2027-förslag",
+    "when": "Kapabilitet aktiveras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "P §2.3 anger användning från 2027-01-01; S18 ej, endast15min och produktion; framtida nya koder är inte antagna. → Håll egen framtida profil avstängd före datum och före separata legala/processuella verifieringar.",
+    "prohibited": "Ingen aktivering bara för att PDF är publicerad.",
+    "rule_ids": [
+      "GOV-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-GOV-08",
+    "name": "Regelkontrakt: GOV-08",
+    "given": "Referenser och TGT",
+    "when": "Inför acceptanstest – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. → Bevara negativa referenser som negativa; dokumentera konflikt.",
+    "prohibited": "Ändra inte referensen för att passa egen renderer.",
+    "rule_ids": [
+      "GOV-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-01",
+    "name": "Regelkontrakt: TEN-01",
+    "given": "Alla affärsoperationer",
+    "when": "Command skapas eller meddelande attribueras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Tenant, juridisk aktör, operativ roll och teknisk identitet är olika typer. → Skapa verifierat execution context före kundmutation.",
+    "prohibited": "Tenantens namn/domän/mejl får inte ersätta marknadsidentitet.",
+    "rule_ids": [
+      "TEN-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-02",
+    "name": "Regelkontrakt: TEN-02",
+    "given": "Tenant med egen leverantör/ESCO",
+    "when": "Utgående/inkommande trafik – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Tenantens verifierade juridiska Ediel-id används; gemensam brevlåda är en transportegenskap. → Bevara befintligt beslut om egna Ediel-id; separata aktörsprofiler för DDQ/DGI.",
+    "prohibited": "Byt inte alla till Gridex-id eller registrera tekniskt ombud automatiskt.",
+    "rule_ids": [
+      "TEN-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-03",
+    "name": "Regelkontrakt: TEN-03",
+    "given": "Gridex är legal ESCO åt beneficiary tenant",
+    "when": "Z13 beställs av annan tenant – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Operating tenant/actor=ESCO-leverantören; beneficiary tenant uttrycklig; kund- och DSO-avtal ger marknadsgrund. → Z13 sänds i den verkliga ESCO-aktörens DGI-roll, utan interna tenant-id i EDIFACT.",
+    "prohibited": "SaaS-avtal/ägande av plattformen ger inte mätvärdestillstånd.",
+    "rule_ids": [
+      "TEN-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-04",
+    "name": "Regelkontrakt: TEN-04",
+    "given": "Verkligt registrerat ombudsförhållande",
+    "when": "Adressmatchning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "InterchangePartyId och juridisk PartyId bevaras var för sig; stöd endast uttryckligen dokumenterad relation. → Routa tekniskt via ombud utan att byta juridisk aktör.",
+    "prohibited": "Tvinga inte teknisk==juridisk; anta inte att delad SMTP betyder ombudsmandat.",
+    "rule_ids": [
+      "TEN-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-05",
+    "name": "Regelkontrakt: TEN-05",
+    "given": "Aktör både DDQ och DGI",
+    "when": "Varje affärshändelse – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Roll bestäms av affärsprocess, inte globalt standardfält. → 23-DDQ-PRODAT för leverantörsprocess;23-DGI-PRODAT för tillståndsprocess.",
+    "prohibited": "Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+    "rule_ids": [
+      "TEN-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-06",
+    "name": "Regelkontrakt: TEN-06",
+    "given": "Inkommande EDIFACT",
+    "when": "Efter säker MIME-/syntaxklassificering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns. → Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+    "prohibited": "Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+    "rule_ids": [
+      "TEN-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-07",
+    "name": "Regelkontrakt: TEN-07",
+    "given": "Flera objekt/meddelanden i fil",
+    "when": "Efter juridisk mottagarattribution – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Varje nyttig datadel matchas mot tillstånd och serviceuppdrag; transportkuvert och affärsgrants är inte samma omfattning. → Ägaraktören behåller råfil; beneficiaries ser bara tillåtna objekt/perioder/fält.",
+    "prohibited": "Ge inte hela EML/filen till en tenant som bara har rätt till en transaktion.",
+    "rule_ids": [
+      "TEN-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-08",
+    "name": "Regelkontrakt: TEN-08",
+    "given": "En ESCO-mätserie har flera giltiga mottagartenants",
+    "when": "Efter accepterad lagring – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Separata data_access_grants för varje beneficiary, ändamål, objekt, produkt och tidsintervall. → En marknadsmottagning och kvittens; därefter separat intern distribution per giltigt grant.",
+    "prohibited": "Ingen automatisk kopiering till alla tenants med samma GSRN.",
+    "rule_ids": [
+      "TEN-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-09",
+    "name": "Regelkontrakt: TEN-09",
+    "given": "Samma legal ESCO/kund/DSO",
+    "when": "Ny begäran eller uppsägning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Koordinera market_permission över serviceuppdrag; beneficiary-id är inte en ny marknadsaktör. → Återanvänd enbart rättsligt och semantiskt kompatibelt tillstånd; håll uppdragsgrants separata.",
+    "prohibited": "En tenant får inte starta dubblett-Z13 eller avsluta delat tillstånd för andra.",
+    "rule_ids": [
+      "TEN-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-10",
+    "name": "Regelkontrakt: TEN-10",
+    "given": "Market permission eller internt grant ändras",
+    "when": "API-läsning, export och jobbverkställighet – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Åtkomst prövas mot aktuella grantversioner; marknadsslut och intern tenantåterkallelse olika händelser. → Stoppa framtida otillåten användning; bevara tillåten historik/audit enligt lagringspolicy.",
+    "prohibited": "Ingen återaktivering av återkallat beneficiary-grant bara för att Z15C återställer marknadstillstånd.",
+    "rule_ids": [
+      "TEN-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-11",
+    "name": "Regelkontrakt: TEN-11",
+    "given": "Okänd lokal entitlement",
+    "when": "Inkommande giltig marknadstrafik – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel. → Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+    "prohibited": "Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+    "rule_ids": [
+      "TEN-11"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-12",
+    "name": "Regelkontrakt: TEN-12",
+    "given": "DB/API/job/cache",
+    "when": "Varje åtkomst – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Sammansatta tenant-referenser, explicit delegation och grantfilter; service credentials inte synonymt med global behörighet. → RLS/RPC verifierar actor/role/tenant även i bakgrundsjobb; isolera cache/sök/export.",
+    "prohibited": "Ingen OR-villkorsbaserad superadminläcka till beneficiaries.",
+    "rule_ids": [
+      "TEN-12"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-13",
+    "name": "Regelkontrakt: TEN-13",
+    "given": "BGM/UNB/IDE/tillstånd",
+    "when": "Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+    "prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+    "rule_ids": [
+      "TEN-13"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TEN-14",
+    "name": "Regelkontrakt: TEN-14",
+    "given": "Cross-tenant ESCO",
+    "when": "Uppdrag aktiveras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Fastställ vem som är ESCO, berättigad mottagare, avtalspart och tillåten intern mottagare; dokumentera dataskyddsroller. → Tillåt avgränsad aktivering efter evidens.",
+    "prohibited": "Lämna uppdrag spärrat tills konkreta rättigheter finns; rollnamn är inte juridiskt bevis.",
+    "rule_ids": [
+      "TEN-14"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-IMP-01",
+    "name": "Regelkontrakt: IMP-01",
+    "given": "XML/TXT",
+    "when": "Fil läses – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Officiell struktur: Market/Company/Identifiers/Key Type/EDIFACTDetails; TXT har egna familjeblock och kan innehålla radbrytningar. → En importerande kärna med separata formatadaptrar och gemensam typad utdata.",
+    "prohibited": "Avvisa oläsbar post med diagnos; acceptera inte0routes som framgång.",
+    "rule_ids": [
+      "IMP-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-IMP-02",
+    "name": "Regelkontrakt: IMP-02",
+    "given": "EL/GAS och roller",
+    "when": "Normalisering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+    "prohibited": "Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
+    "rule_ids": [
+      "IMP-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-IMP-03",
+    "name": "Regelkontrakt: IMP-03",
+    "given": "Ruttändring",
+    "when": "Preview/apply – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Diff mot giltig snapshot; separation av registeruppgift, granskning och autosändningsberedskap. → Atomär/idempotent import med kvarstående konflikter och ny ruttversion.",
+    "prohibited": "Importerad adress betyder inte giltigt certifikat eller klar produktion.",
+    "rule_ids": [
+      "IMP-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-IMP-04",
+    "name": "Regelkontrakt: IMP-04",
+    "given": "Subadresser",
+    "when": "Ruttbeslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Tom registrerad subadress är ett giltigt värde; UTILTS använder inte subadress. → Bevara exakt registrerat värde; återverifiera Gridex GRIDEX-avvikelsen.",
+    "prohibited": "Hitta inte på PRODAT/SCH/GRIDEX för alla.",
+    "rule_ids": [
+      "IMP-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-IMP-05",
+    "name": "Regelkontrakt: IMP-05",
+    "given": "Certifikat-/SMTP-byte",
+    "when": "Ny ruttversion – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Säkerhetsidentitet och registrerad adress verifieras tillsammans; bevara gammal version för historik. → Invalidate berörda aktörers/tenants readiness och verifiera returväg.",
+    "prohibited": "Skicka inte med nytt mejlmål och gammalt obestämt certifikatscope.",
+    "rule_ids": [
+      "IMP-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-01",
+    "name": "Regelkontrakt: ENV-01",
+    "given": "PRODAT/UTILTS/AP för dessa",
+    "when": "Serialisering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "UNOC:3 och faktiska ISO8859-1-byte; escaping enligt UNA före sammanfogning. → Detektera tecken som inte kan representeras; bevara original och dokumenterad tillåten konvertering.",
+    "prohibited": "Maskera inte UTF8-byte som UNOC; trunkera inte kund-id.",
+    "rule_ids": [
+      "ENV-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-02",
+    "name": "Regelkontrakt: ENV-02",
+    "given": "Alla EDIFACT",
+    "when": "Parse/render – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. → Positionsstabilt AST med span/segmentgrupp/objekt/register.",
+    "prohibited": "Ingen split/filter(Boolean) som flyttar CAV-komponenter.",
+    "rule_ids": [
+      "ENV-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-03",
+    "name": "Regelkontrakt: ENV-03",
+    "given": "UNB/UNH/UNT/UNZ",
+    "when": "Färdig payload – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Unika tekniska referenser; UNT inkluderar UNH/UNT; UNZ count och ref stämmer;0010/0017/0019 enligt profil. → Beräkna räknare från faktiskt serialiserad struktur.",
+    "prohibited": "Återanvänd inte filnamn som tekniskt id; inga handskrivna stale segmentantal.",
+    "rule_ids": [
+      "ENV-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-04",
+    "name": "Regelkontrakt: ENV-04",
+    "given": "UNB",
+    "when": "Utgående – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "UNB/0031=1 när CONTRL ska begäras; utelämna för CONTRL. → Samma kvittensbeslut används i kuvert och bevakning.",
+    "prohibited": "AB i BGM ersätter inte0031; skapa inte kvittensloop.",
+    "rule_ids": [
+      "ENV-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-05",
+    "name": "Regelkontrakt: ENV-05",
+    "given": "UNB testflagga",
+    "when": "Parse/render – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "0035=1 för test; produktion utelämnar flaggan. → Separata identiteter, routing, dedupe och transportspärrar för test/replay/produktion.",
+    "prohibited": "Sätt inte0 som ersättning; kör aldrig TGTreferens som produktionsaffär.",
+    "rule_ids": [
+      "ENV-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-06",
+    "name": "Regelkontrakt: ENV-06",
+    "given": "PRODAT",
+    "when": "BGM/CCI byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "BGM bär Z-funktion utan suffix; CCI Z13/CAV bär treteckenskod för undertyp. → Z03 + Z22 betyder Z03L, inte BGM+Z03L.",
+    "prohibited": "Avvisa fel kombination på rätt kontrollnivå.",
+    "rule_ids": [
+      "ENV-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-07",
+    "name": "Regelkontrakt: ENV-07",
+    "given": "PRODAT",
+    "when": "Batchning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Blanda inte olika PRODAT-funktioner i samma UNB–UNZ. → Batcha kompatibla objekt med gemensam aktör/profil/roll; tenantseparation som extra internt skydd.",
+    "prohibited": "Dela batchen; inte generisk multi-message-blandning.",
+    "rule_ids": [
+      "ENV-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-08",
+    "name": "Regelkontrakt: ENV-08",
+    "given": "PRODAT/UTILTS och UNB",
+    "when": "Datumkodning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Payload fast normaltid: P DTMZZZ=1:805, U DTM735=+0100:406; UNB lokal tid enligt regeln. → Lagra UTC plus originaloffset/format och affärsdatum; konvertera uttryckligt.",
+    "prohibited": "Använd inte sommartid för varje payloadperiod eller92/100 kvartar per fast-CET-dygn.",
+    "rule_ids": [
+      "ENV-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-09",
+    "name": "Regelkontrakt: ENV-09",
+    "given": "Alla familjer",
+    "when": "Syntaxkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Nationella segmenttabeller kan utelämna senare ej använda element; full UNSM-grammatik krävs för riktig syntax-M/kardinalitet. → Versionera parsergrammatik separat från nationell fältanvändning.",
+    "prohibited": "En kort svensk tabell får inte bli falskt strikt UNECE-syntax.",
+    "rule_ids": [
+      "ENV-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-01",
+    "name": "Regelkontrakt: P-01",
+    "given": "Alla P",
+    "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt. → Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+    "prohibited": "Inget fältnummer från regex över DTM/RFF-text.",
+    "rule_ids": [
+      "P-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-02",
+    "name": "Regelkontrakt: P-02",
+    "given": "Extra X/icke-tillämplig D",
+    "when": "Giltig syntax och extra data – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Nationell extra information som ska ignoreras får inte utlösa negativ APERAK. → Ignorera för affärsprojektion; bevara råpayload.",
+    "prohibited": "Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
+    "rule_ids": [
+      "P-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-03",
+    "name": "Regelkontrakt: P-03",
+    "given": "D-villkor",
+    "when": "Utgående profil – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering. → Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
+    "prohibited": "Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
+    "rule_ids": [
+      "P-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-04",
+    "name": "Regelkontrakt: P-04",
+    "given": "Z14N/NAD",
+    "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR. → Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+    "prohibited": "Kräv inte land316 ellerIT233/234 utan grupp.",
+    "rule_ids": [
+      "P-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-05",
+    "name": "Regelkontrakt: P-05",
+    "given": "Z04/Z06/Z10",
+    "when": "LIN-grupper behandlas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "314ärglobaltsekvensnr;258registerindex per objekt; alla register och villkor enligt bilaga2. → Kontrollera registerspecifika kärnfält, ärv tillåten första-registerinformation.",
+    "prohibited": "Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
+    "rule_ids": [
+      "P-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-06",
+    "name": "Regelkontrakt: P-06",
+    "given": "Kund och anläggning",
+    "when": "Render/validate – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "NADUD SE1/SE2 kodlisteansvarig260 i aktuellprofil; Z13 använder inte födelsedatum som kund-id. → Bevara verifierad kundidentitet och skyddade-identitetsregler.",
+    "prohibited": "Ingen UUID-fallback/namngissning; ändra inte allaZZZglobalt.",
+    "rule_ids": [
+      "P-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-07",
+    "name": "Regelkontrakt: P-07",
+    "given": "Z13/Z14",
+    "when": "Energi-id och rapportperiod – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93. → CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
+    "prohibited": "Saknad/feluppgift klassificeras perfält; referensexempel med positiv kvittens är inte automatisk norm.",
+    "rule_ids": [
+      "P-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-08",
+    "name": "Regelkontrakt: P-08",
+    "given": "Z09D",
+    "when": "Start eller slut produktionsavtal – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "210 XOR211; inte216 i stället. → Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+    "prohibited": "Båda: P-APERAK40/109; ingen generell157.",
+    "rule_ids": [
+      "P-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-09",
+    "name": "Regelkontrakt: P-09",
+    "given": "Z06E/Z09E",
+    "when": "Kundlivshändelse – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "prohibited": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+    "rule_ids": [
+      "P-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-10",
+    "name": "Regelkontrakt: P-10",
+    "given": "Z01/Z02 i leverantörsrollen",
+    "when": "Uppgiftskontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Korrelera Z02 till Z01 med LI, parter, objekt, nätområde och kundidentitet. Z02 är inte en startbekräftelse. → Verifiera uppgifterna; gör därefter en separat prövning av om en Z03 ska skapas.",
+    "prohibited": "Ingen aktiv leverans och ingen automatisk Z03 utan återstående avtals- och datumkontroller.",
+    "rule_ids": [
+      "P-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-11",
+    "name": "Regelkontrakt: P-11",
+    "given": "Z03/Z04 av typen L eller LK",
+    "when": "Bekräftelse av byte eller flytt – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK. → Registrera bekräftad framtida leverans; aktivera vid rätt tid om ärendet fortfarande är giltigt.",
+    "prohibited": "SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.",
+    "rule_ids": [
+      "P-11"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-12",
+    "name": "Regelkontrakt: P-12",
+    "given": "Z04A och Z04D",
+    "when": "Anvisning eller mottagningsplikt – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Verifiera respektive roll, avtal, nätområde och produktionskoppling. → Använd en särskild transitionsprofil som inte kräver en vanlig egen Z03.",
+    "prohibited": "Kräv inte samma förutsättningar som Z04L, men kringgå inte de särskilda behörighetskraven.",
+    "rule_ids": [
+      "P-12"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-13",
+    "name": "Regelkontrakt: P-13",
+    "given": "Z05 och Z08",
+    "when": "Leveransslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Matcha den leveransrelation och den tidshändelse som faktiskt avses. → Versionera slutet, bevara historiken och initiera relevant slutvärdes- och fakturauppföljning.",
+    "prohibited": "Radera inte kunden, andra anläggningar eller ESCO-grants.",
+    "rule_ids": [
+      "P-13"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-14",
+    "name": "Regelkontrakt: P-14",
+    "given": "Z03C, Z04C, Z05C och Z15C",
+    "when": "Återtag – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Bind till rätt original. Hantera ordningsfel utan dubbel affärseffekt. → Gör endast den kancellering eller kompensation som hör till processen.",
+    "prohibited": "Skapa inte Z13C/Z14C och använd inte en generell C-variant för alla Z-funktioner.",
+    "rule_ids": [
+      "P-14"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-15",
+    "name": "Regelkontrakt: P-15",
+    "given": "Z06 och Z10",
+    "when": "Giltig strukturändring – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+    "prohibited": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+    "rule_ids": [
+      "P-15"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-16",
+    "name": "Regelkontrakt: P-16",
+    "given": "Z08LK, Z03H, Z04H, Z05H, Z04A och andra E34-fall",
+    "when": "Kapabilitetsprövning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Kombinationen ska vara tillåten och omfattas av dokumenterad motpartsspecifik överenskommelse och implementation. → Aktivera bara avtalad omfattning och giltighet.",
+    "prohibited": "Ett globalt bilateral=true eller ett testgodkännande för annan aktör räcker inte.",
+    "rule_ids": [
+      "P-16"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-P-17",
+    "name": "Regelkontrakt: P-17",
+    "given": "PRODAT med LIN-grupper",
+    "when": "Sekvenskontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Första fält 314 ska vara 1 och följande nummer ska vara obrutet stigande. → Fortsätt genom samtliga relevanta objekt och register.",
+    "prohibited": "Avvisa hela meddelandet med P-APERAK BGM27 och relevant felinformation; tolka inte sekvensfelet som fel anläggnings-id.",
+    "rule_ids": [
+      "P-17"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-01",
+    "name": "Regelkontrakt: ESCO-01",
+    "given": "Z13",
+    "when": "Ny rättighetsbegäran – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Verifiera legal DGI-aktör, slutkundsavtal, DSO-avtal och avsedd omfattning av objekt, period, produkter och ändamål. → Skapa väntande begäran, knyt service_assignment och skicka rätt V/VH.",
+    "prohibited": "Ett avtal med beneficiary-tenant ger inte ensamt rätt till kundens mätvärden.",
+    "rule_ids": [
+      "ESCO-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-02",
+    "name": "Regelkontrakt: ESCO-02",
+    "given": "Z13V respektive Z13VH",
+    "when": "Rapportperiod väljs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum. → Behåll separata processer, timers och samordning av rättigheter.",
+    "prohibited": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+    "rule_ids": [
+      "ESCO-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-03",
+    "name": "Regelkontrakt: ESCO-03",
+    "given": "Positiv APERAK på Z13",
+    "when": "Kvittens tas emot – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Kvittensen godkänner att begäran behandlas, inte slutkundens medgivande. → Sätt awaiting_customer_decision och bevaka Z14/Z14N.",
+    "prohibited": "Skapa varken market_permission eller aktiv elleverans enbart från APERAK.",
+    "rule_ids": [
+      "ESCO-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-04",
+    "name": "Regelkontrakt: ESCO-04",
+    "given": "Z14V/Z14VH",
+    "when": "Positivt affärssvar – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "A74 och rätt LI, aktör och kund. Föreskrivna objekt-, adress-, tillstånds- och perioduppgifter ska stämma. Bara godkända objekt omfattas. → Skapa avgränsat market_permission; anslut därefter separat godkänd intern distribution.",
+    "prohibited": "Bredda inte till samtliga kundens anläggningar eller andra tenants från ett godkänt objekt.",
+    "rule_ids": [
+      "ESCO-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-05",
+    "name": "Regelkontrakt: ESCO-05",
+    "given": "Z14N",
+    "when": "Aktivt eller passivt nekande – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "A13 anger aktivt och A76 passivt nekande. Ett korrekt negativt affärssvar är inte ett protokollfel. → Neka berörd begäran och informera ansvarig utan att exponera andra tenants.",
+    "prohibited": "Skapa inte tillstånd eller negativ APERAK enbart för att nätägaren nekar begäran.",
+    "rule_ids": [
+      "ESCO-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-06",
+    "name": "Regelkontrakt: ESCO-06",
+    "given": "Nya objekt under pågående Z13-begäran",
+    "when": "Ny Z13 önskas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Koordinera samma aktör, kund och DSO. Tillkommande objekt kan kräva ny begäran; upprepning bedöms enligt Handboken, inte ett universellt negativt APERAK. → Tillåt en relevant ny begäran med spårbar koppling till tidigare förlopp.",
+    "prohibited": "Inför inte ett generellt förbud mot varje ny Z13 före 21 dagar och kringgå inte reglerna genom ett nytt internt tenant-id.",
+    "rule_ids": [
+      "ESCO-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-07",
+    "name": "Regelkontrakt: ESCO-07",
+    "given": "Z15V/Z15VH",
+    "when": "Upphörande eller historikslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Tillstånd, orsak, tidpunkt och process ska vara kända och överensstämmande. → Avsluta bara berört marknadstillstånd eller historikjobb; bevara andra separata rättigheter.",
+    "prohibited": "Historikslut får inte upphäva ett separat V-tillstånd. DDQ-leverans ska vara oförändrad.",
+    "rule_ids": [
+      "ESCO-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-08",
+    "name": "Regelkontrakt: ESCO-08",
+    "given": "Z18V",
+    "when": "Begäran om avslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Behörig aktör ska avse rätt market_permission. Samordna beroenden från flera beneficiary-uppdrag. → Skicka fält 327/324/325 och bevaka Z15. Begränsa intern åtkomst enligt aktuellt mandat.",
+    "prohibited": "Säg inte upp ett gemensamt tillstånd på ett enskilt UI-klick utan kontroll av andra giltiga uppdrag.",
+    "rule_ids": [
+      "ESCO-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-09",
+    "name": "Regelkontrakt: ESCO-09",
+    "given": "Z15C",
+    "when": "Tidigare upphörande återtas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Kontrollera rätt ursprung och källstödda återställningsvillkor. → Återställ marknadsrelationen; ompröva varje downstream-grant självständigt.",
+    "prohibited": "Återuppliva inte utgångna kundavtal eller uttryckligen återkallade tenantbehörigheter.",
+    "rule_ids": [
+      "ESCO-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-10",
+    "name": "Regelkontrakt: ESCO-10",
+    "given": "E66 i DGI-rollen",
+    "when": "Mätvärden tas emot – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "E66 kan sakna direkt tillstånds-id. Matcha juridisk relation, objekt, produkt, period och giltig tillstånds-/grantkoppling. → Lagra mottagningsbevis och distribuera endast till uttryckligen berättigade tenants.",
+    "prohibited": "Kräv inte ett påhittat permission-fält i E66. Matcha inte enbart på GSRN eller SMTP-adress.",
+    "rule_ids": [
+      "ESCO-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ESCO-11",
+    "name": "Regelkontrakt: ESCO-11",
+    "given": "Intern vidareanvändning av E66-DGI",
+    "when": "Data används i annan tjänst – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Tillåtet ändamål, rättslig/datamässig grund och processtillämplighet ska verifieras uttryckligen. → Bevara originalets DGI-roll, avsändare, kvalitet och syfte i varje härledd projektion.",
+    "prohibited": "Skriv inte om DGI till DDQ och skapa inte en falsk E66 från nätägaren för att passa faktureringen.",
+    "rule_ids": [
+      "ESCO-11"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-01",
+    "name": "Regelkontrakt: ACK-01",
+    "given": "Alla inkommande EDIFACT utom CONTRL",
+    "when": "Syntaxresultat finns – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
+    "prohibited": "Lägg inte nationell APERAK-kontroll i CONTRL.",
+    "rule_ids": [
+      "ACK-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-02",
+    "name": "Regelkontrakt: ACK-02",
+    "given": "APERAK på PRODAT",
+    "when": "Applikationsresultat finns – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+    "prohibited": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+    "rule_ids": [
+      "ACK-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-03",
+    "name": "Regelkontrakt: ACK-03",
+    "given": "APERAK på UTILTS",
+    "when": "Anvisnings-/funktionsutfall finns – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
+    "prohibited": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
+    "rule_ids": [
+      "ACK-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-04",
+    "name": "Regelkontrakt: ACK-04",
+    "given": "UTILTS-APERAK ERC/FTX",
+    "when": "Svar byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
+    "prohibited": "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
+    "rule_ids": [
+      "ACK-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-05",
+    "name": "Regelkontrakt: ACK-05",
+    "given": "UTILTS-ERR",
+    "when": "Godkänd anvisningskontroll men funktionsfel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
+    "prohibited": "Skapa inte ERR på ERR eller APERAK på APERAK.",
+    "rule_ids": [
+      "ACK-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-06",
+    "name": "Regelkontrakt: ACK-06",
+    "given": "Mottagna kvittenser",
+    "when": "CONTRL/APERAK tas emot – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
+    "prohibited": "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
+    "rule_ids": [
+      "ACK-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-07",
+    "name": "Regelkontrakt: ACK-07",
+    "given": "Redan kvitterat objekt/transaktion",
+    "when": "Senare kontroll upptäcker annat fel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+    "prohibited": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+    "rule_ids": [
+      "ACK-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-08",
+    "name": "Regelkontrakt: ACK-08",
+    "given": "Flera objekt/transaktioner",
+    "when": "En del är fel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "rule_ids": [
+      "ACK-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-09",
+    "name": "Regelkontrakt: ACK-09",
+    "given": "Återleverans och dubbletter",
+    "when": "Inkommande identitet finns redan – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
+    "prohibited": "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
+    "rule_ids": [
+      "ACK-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-01",
+    "name": "Regelkontrakt: U-01",
+    "given": "E66, S02, E31, S05 och requests",
+    "when": "Profil väljs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate. → Tillåt stödd roll, funktion, riktning och produkt med rätt bevis.",
+    "prohibited": "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
+    "rule_ids": [
+      "U-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-02",
+    "name": "Regelkontrakt: U-02",
+    "given": "Samtliga UTILTS",
+    "when": "Parsning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
+    "prohibited": "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
+    "rule_ids": [
+      "U-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-03",
+    "name": "Regelkontrakt: U-03",
+    "given": "Samtliga UTILTS",
+    "when": "Validering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion. → Lagra godkända transaktioner och kvittera varje utfall på rätt nivå.",
+    "prohibited": "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
+    "rule_ids": [
+      "U-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-04",
+    "name": "Regelkontrakt: U-04",
+    "given": "Äldre men i övrigt giltiga mätdata",
+    "when": "Sen leverans – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Ankomstordning ensam är inte avvisningsskäl. Använd registrerings-/uppdateringstid 512/532 för dataversionen. → Sänd positiv APERAK när andra kontroller passerar och bevara äldre historik utan att skriva över nyare data.",
+    "prohibited": "Skapa inte ERR eller retroaktiv fakturaändring enbart för att data anländer sent.",
+    "rule_ids": [
+      "U-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-05",
+    "name": "Regelkontrakt: U-05",
+    "given": "E66 i DGI-rollen",
+    "when": "Periodisk rapportering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet. → Kontrollera roll, Application Reference, underordnad roll och behörigheter.",
+    "prohibited": "Påför inte en global E88-fakturaprofil på DGI-trafik.",
+    "rule_ids": [
+      "U-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-06",
+    "name": "Regelkontrakt: U-06",
+    "given": "E73 och E74",
+    "when": "Saknade värden identifieras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Application Reference avser begärd S02/E66 respektive S03/E31. Objekt/områden, parter, produkt och period ska motsvara begäran. → Skicka bara behörig request med tillämplig överenskommelse och bevaka resultatet.",
+    "prohibited": "Bygg inte en generell 23-DGI-E73-referens och begär inte all data utan mandat.",
+    "rule_ids": [
+      "U-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-07",
+    "name": "Regelkontrakt: U-07",
+    "given": "S06, S08, E30, S01 och S04",
+    "when": "Kapabilitet prövas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "S06 är inte i bruk, S08 är avvecklat och andra profiler kräver andra roller än standard-DDQ/DGI. → Håll historiska/diagnostiska adaptrar åtskilda från produktionsfunktioner.",
+    "prohibited": "Giltig syntax innebär inte tillåten marknadsriktning.",
+    "rule_ids": [
+      "U-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-08",
+    "name": "Regelkontrakt: U-08",
+    "given": "E66 med mätare/register",
+    "when": "Funktionskontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen. → Hantera eget strukturbevisgap internt när kontrollen är villkorad enligt guiden.",
+    "prohibited": "Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
+    "rule_ids": [
+      "U-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-09",
+    "name": "Regelkontrakt: U-09",
+    "given": "Mätvärdesobservationer",
+    "when": "Lagring och fakturaunderlag – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer. → Lagra decimaler och källkvalitet exakt med korrektionsspår.",
+    "prohibited": "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
+    "rule_ids": [
+      "U-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-10",
+    "name": "Regelkontrakt: U-10",
+    "given": "Period 245 och upplösning508",
+    "when": "Periodvalidering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
+    "prohibited": "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
+    "rule_ids": [
+      "U-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-11",
+    "name": "Regelkontrakt: U-11",
+    "given": "UTILTS25-A-4",
+    "when": "Datumstyrd aktivering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "E19 och ställnings-/energijämförelsen utgår. Energivärdeskontroller E97/E98/E90 avgränsas enligt guiden till E30/aggregat. → Behåll obligatoriska fält, E87 och övriga tillämpliga kontroller oberoende av ändringen.",
+    "prohibited": "En ofullständig kvartserie blir inte korrekt bara för att E19 försvinner.",
+    "rule_ids": [
+      "U-11"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-12",
+    "name": "Regelkontrakt: U-12",
+    "given": "UTILTS-batch",
+    "when": "Paketering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Anledning till transaktionen är samma i meddelandet. Mätarbyte och olika skeden kan kräva separata underlag. → Dela endast kompatibla grupper och bevara referenser och periodtäckning.",
+    "prohibited": "Blanda inte E23/E88 bara för att anläggningen är densamma.",
+    "rule_ids": [
+      "U-12"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-13",
+    "name": "Regelkontrakt: U-13",
+    "given": "UTILTS-BGM",
+    "when": "Huvud byggs eller läses – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Skicka funktionskod9; ta emot5 utan avvisning enbart därför. Skicka AB; NA ensam är inte avvisningsgrund. → Håll mottagningstolerans skild från utgående profil.",
+    "prohibited": "Inför inte egna fel för värden guiden kräver att mottagaren kan hantera.",
+    "rule_ids": [
+      "U-13"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-14",
+    "name": "Regelkontrakt: U-14",
+    "given": "Positiv APERAK på UTILTS",
+    "when": "Svar planeras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
+    "prohibited": "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
+    "rule_ids": [
+      "U-14"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-01",
+    "name": "Regelkontrakt: TR-01",
+    "given": "Edieltrafik respektive applikationsmejl",
+    "when": "Sändning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "PRODAT använder SMTP/MIME/S-MIME enligt register och säkerhetsprofil. Resend-kundmejl är en separat kanal utan tyst fallback. → Använd konfigurerad Edieltransport och rätt motpart.",
+    "prohibited": "Skicka inte bytesfiler till Edielportalens testmottagare i produktion.",
+    "rule_ids": [
+      "TR-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-02",
+    "name": "Regelkontrakt: TR-02",
+    "given": "SMTP-försök",
+    "when": "250/4xx/5xx/timeout – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "SMTP-acceptans, slutlig transportleverans, CONTRL, APERAK och affärssvar är separata observationer. → Spara kö-id, SMTP-status, RFC Message-ID, payloadhash och exakt försök.",
+    "prohibited": "Låt inte sent betyda leveransaktiv. Okänt sändningsutfall ska förbli uttryckligen okänt.",
+    "rule_ids": [
+      "TR-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-03",
+    "name": "Regelkontrakt: TR-03",
+    "given": "MIME-arkiv",
+    "when": "Före första sändning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "En stabil RFC Message-ID ska finnas i innehållet. Bevara exakta rå-EML-byte i skyddat arkiv. → Lagra provider-id separat och sammanhåll identiteterna.",
+    "prohibited": "Spara inte enbart förhandsvisning eller en pseudoreferens utan hämtningsbart innehåll.",
+    "rule_ids": [
+      "TR-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-04",
+    "name": "Regelkontrakt: TR-04",
+    "given": "SMTP-returbrev",
+    "when": "Inkommande e-post – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Klassificera multipart/report och delivery-status före EDIFACT-utdrag. → Knyt Final-Recipient, Action, Status, Diagnostic-Code och originalidentiteter till rätt försök.",
+    "prohibited": "En inbäddad originalfil får inte skapa ett nytt inkommande affärsärende.",
+    "rule_ids": [
+      "TR-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-05",
+    "name": "Regelkontrakt: TR-05",
+    "given": "PRODAT-omsändning/rättelse",
+    "when": "Fel eller timeout – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Omsändning tillåts vid verifierad överföringsförlust. Negativ CONTRL medför rättelse av hela meddelandet; negativ APERAK följer särskild rättelse med nytt BGM-id. → Bevara lineage och pröva aktuell anvisning på nytt.",
+    "prohibited": "En utgången timer ensam är inget tillstånd till automatisk ny sändning.",
+    "rule_ids": [
+      "TR-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-06",
+    "name": "Regelkontrakt: TR-06",
+    "given": "Mottagarcertifikat",
+    "when": "Före sändning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Kontrollera exakta giltighetsgränser, status, ändamål och ägarscope mot verklig teknisk/juridisk rutt. → Verifiera kedja och spärrpolicy med samma guard för direkt id-val och kandidatsökning.",
+    "prohibited": "Utgånget, spärrat eller ännu inte giltigt certifikat får inte passera genom dagsavrundning.",
+    "rule_ids": [
+      "TR-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-07",
+    "name": "Regelkontrakt: TR-07",
+    "given": "Överlappande certifikat",
+    "when": "S/MIME byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Följ anvisningens fler-certifikatfall inom korrekt mottagarscope. → Kryptera för de giltiga mottagarcertifikat som regeln kräver.",
+    "prohibited": "Välj inte slumpmässigt bara det senast registrerade certifikatet.",
+    "rule_ids": [
+      "TR-07"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-08",
+    "name": "Regelkontrakt: TR-08",
+    "given": "SMTP-reläer",
+    "when": "Kommunikation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Verifiera relä-TLS och SPF. TLS till första servern bevisar inte nästa serverhopp. → Kontrollera providerpolicy och verkligt leveransspår.",
+    "prohibited": "Deklarera inte hela transporten verifierad bara för att port465 kan nås.",
+    "rule_ids": [
+      "TR-08"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-09",
+    "name": "Regelkontrakt: TR-09",
+    "given": "Tillfälligt krypterings-/CRLproblem",
+    "when": "Reservförfarande prövas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Endast uttryckligen specificerade undantagsfall i T får användas med respektive villkor/larm och fortsatt obligatorisk TLS. → Skapa separat avvikelsejournal och avgränsad driftåtgärd.",
+    "prohibited": "Ingen generell switch för oskyddad trafik och inga påhittade undantag.",
+    "rule_ids": [
+      "TR-09"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-10",
+    "name": "Regelkontrakt: TR-10",
+    "given": "Köjobb och krasch",
+    "when": "Jobbstart, timeout eller leasebyte – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "SMTP och DB är inte atomiska. Använd lease/fencing och särskilt unknown_after_submission. → Försök igen endast när det säkert inte skickats eller föreskrivet beslut finns; spåra okända utfall.",
+    "prohibited": "Lova inte exakt-en-gång över SMTP och gör inte rekursiva blind-retries.",
+    "rule_ids": [
+      "TR-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-TR-11",
+    "name": "Regelkontrakt: TR-11",
+    "given": "Skickat-mappen",
+    "when": "Administrativ inspektion – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "En Skickat-kopia är en separat IMAP-/arkivfunktion. → Använd transportjournalen som beviskälla; erbjud kopia som driftfunktion.",
+    "prohibited": "En tom mapp ska inte utlösa omsändning eller betraktas som bevis på förlust.",
+    "rule_ids": [
+      "TR-11"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-AI-01",
+    "name": "Regelkontrakt: AI-01",
+    "given": "AI-lista",
+    "when": "Fil skapas eller läses – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Använd separat semikolonformat Ver20140401, CSV från 2025-10-01 och huvud med nätföretag först/elhandelsföretag sedan. → Identifiera format och behörig avstämningsomfattning före bearbetning.",
+    "prohibited": "Skapa inte EDIFACT-kvittenser på en AI-fil.",
+    "rule_ids": [
+      "AI-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-AI-02",
+    "name": "Regelkontrakt: AI-02",
+    "given": "Utgående AI från elhandelsföretag",
+    "when": "Detaljrader byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Lämna mätarnummer, avräkningsmetod, årsenergi, rapporteringsfrekvens, mätmetod och produktkod tomma. → Fyll övriga tillämpliga verifierade marknads-/kunduppgifter och avslutande semikolon.",
+    "prohibited": "Interna UUID eller site_name får inte ersätta kund-id eller kundnamn.",
+    "rule_ids": [
+      "AI-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-AI-03",
+    "name": "Regelkontrakt: AI-03",
+    "given": "AI-listans periodurval",
+    "when": "Historik projiceras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Ta med alla relevanta anläggningar under [från,till). Delperioder och strukturändringar ger flera detaljrader. → Sortera objektrader i tid med tomt från först och tomt till sist. Skilj sökperiod från detaljens giltighet.",
+    "prohibited": "Endast dagens aktiva objekt eller ett enda värde per kund är inte tillräckligt.",
+    "rule_ids": [
+      "AI-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-AI-04",
+    "name": "Regelkontrakt: AI-04",
+    "given": "Inkommande AI",
+    "when": "Avvikelse upptäcks – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Listan är avstämningsunderlag, inte ett automatiskt masterdatafacit. → Skapa utredningspost med källbevis; en senare ändring får en egen behörig process.",
+    "prohibited": "Uppdatera inte kund, objekt eller BRP direkt från listan.",
+    "rule_ids": [
+      "AI-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-AI-05",
+    "name": "Regelkontrakt: AI-05",
+    "given": "BI i DDQ/DGI-plattform",
+    "when": "Export begärs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "BI används enbart av nätföretag för angivna strukturändringar. → Stöd behörig mottagning/utredning; spärra utgående BI i DDQ/DGI.",
+    "prohibited": "Känd CSV-struktur ger ingen marknadsbehörighet.",
+    "rule_ids": [
+      "AI-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-DB-01",
+    "name": "Regelkontrakt: DB-01",
+    "given": "Affärsdata och protokolljournal",
+    "when": "Schema ändras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Identifiera befintlig auktoritativ tabell för varje uppgift innan något nytt skapas. → Utöka med expand, backfill, validate och först därefter contract.",
+    "prohibited": "Skapa inte parallella kund-, regel- eller ruttauktoriteter.",
+    "rule_ids": [
+      "DB-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-DB-02",
+    "name": "Regelkontrakt: DB-02",
+    "given": "Tenantägda relationer",
+    "when": "Insert/update – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Verifiera tenant+id-referenser, unika idempotensnycklar och tillämpliga datum-/aktörsrelationer. → Förhindra korskoppling och motstridiga aktiva perioder med constraints/RPC.",
+    "prohibited": "Frontendvalidering och ett UUID utan kontroll av parent räcker inte.",
+    "rule_ids": [
+      "DB-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-DB-03",
+    "name": "Regelkontrakt: DB-03",
+    "given": "Mät- och strukturrättelser",
+    "when": "Godkänd ändring lagras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Bevara giltighetsperiod, registreringstid, mottagningstid och källmeddelande/IDE/regelbeslut. → Skapa ny version och daterad projektion.",
+    "prohibited": "Förlora inte historiken eller ändra fastställt fakturaunderlag osynligt.",
+    "rule_ids": [
+      "DB-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-DB-04",
+    "name": "Regelkontrakt: DB-04",
+    "given": "Index och frågor",
+    "when": "Migration/prestandaprov – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Utgå från faktiska urval för tenant/aktör, status/tidsfrist, referenser, objekt/period/version och foreign keys. → Verifiera planer och belastning med EXPLAIN och representativ data.",
+    "prohibited": "Index på alla kolumner ersätter inte en mätt prestandaplan.",
+    "rule_ids": [
+      "DB-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-DB-05",
+    "name": "Regelkontrakt: DB-05",
+    "given": "Kund, tenant eller uppdrag avslutas",
+    "when": "Raderingsbegäran – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Skilj operativ avveckling, åtkomstrevoke, persondatagallring och skyldighet att bevara journal/avräkningsunderlag. → Använd en beslutad workflow per retentionklass och behörigt underlag.",
+    "prohibited": "Radera inte all historik med CASCADE och spara inte allt för alltid utan rättslig grund.",
+    "rule_ids": [
+      "DB-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-DB-06",
+    "name": "Regelkontrakt: DB-06",
+    "given": "Fakturaunderlag i leverantörsrollen",
+    "when": "Underlag fastställs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Verifiera kvantitetstyp, produkt, period, leveransrelation, dataversion, prisversion och kvalitet. → Lås spårbart underlag och skapa särskild rättelsejournal vid nya data.",
+    "prohibited": "S02-prognos, E31-aggregat eller DGI-leverans blir inte automatiskt individuell faktura.",
+    "rule_ids": [
+      "DB-06"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-OPS-01",
+    "name": "Regelkontrakt: OPS-01",
+    "given": "Ny regel, rutt, schema eller release",
+    "when": "Publicering/konfigurationsändring – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Skapa nytt bevis per berörd tenant, aktörsroll och kapabilitet med versionslåst dependencyhash. → Ogiltigförklara berörda bevis och gör ny prövning; skydda samtidigt fortsatt mottagnings-/kvittenshantering.",
+    "prohibited": "Ett gammalt globalt is_ready godkänner inte nya funktioner eller tenants.",
+    "rule_ids": [
+      "OPS-01"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-OPS-02",
+    "name": "Regelkontrakt: OPS-02",
+    "given": "Öppna ärenden",
+    "when": "Varje händelse eller timer – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Beräkna nästa åtgärd från processbeslutet med orsak, tidsgrund, ansvar och blockerare. → Visa vad systemet väntar på och vilka åtgärder som faktiskt är tillåtna.",
+    "prohibited": "Ett statiskt waiting_for_contrl-fält får inte styra hela affärskedjan.",
+    "rule_ids": [
+      "OPS-02"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-OPS-03",
+    "name": "Regelkontrakt: OPS-03",
+    "given": "Releasegodkännande",
+    "when": "Tester sammanställs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Håll dokumenttäckning, enhetstest, integration, tenant-E2E, transport och TGT som separata bevis. → Lås release till exakt head och testa flera tenants, DDQ, DGI och cross-tenantuppdrag.",
+    "prohibited": "Specifikations-JSON som validerar är inte produktions-E2E eller formellt Edielgodkännande.",
+    "rule_ids": [
+      "OPS-03"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-OPS-04",
+    "name": "Regelkontrakt: OPS-04",
+    "given": "Kontrollerad produktionstest",
+    "when": "Efter rättelse – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Verifiera incidentspår, rutt, certifikat, profil och tenantkontext samt ett överenskommet motpartsprov. → Genomför ett kontrollerat verkligt förlopp i rätt miljö.",
+    "prohibited": "Massimport av referenser eller blinda omsändningar är inte en teststrategi.",
+    "rule_ids": [
+      "OPS-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-OPS-05",
+    "name": "Regelkontrakt: OPS-05",
+    "given": "Internt fel eller okänd kontext",
+    "when": "Runtimefel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Skilj protocol_rejection från internal_failure, security_quarantine och unsupported_capability. → Larma, bevara original och kvittensstatus och ge bara källstödda externa svar.",
+    "prohibited": "Hitta inte på APERAK-fält42/xxx därför att den egna applikationen kraschar.",
+    "rule_ids": [
+      "OPS-05"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ENV-10",
+    "name": "Regelkontrakt: ENV-10",
+    "given": "PRODAT CCI kontra UTILTS CCI",
+    "when": "Fältlokalisering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "PRODAT använder SG14/CCI/C502/6313 för Z-egenskapen. UTILTS använder normalt C240/7037. Samma segmentnamn betyder inte samma elementlayout. → Bind till familjens/releasens fulla segmentdefinition.",
+    "prohibited": "Använd inte en gemensam CCI-position som flyttar PRODAT-egenskaper.",
+    "rule_ids": [
+      "ENV-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-ACK-10",
+    "name": "Regelkontrakt: ACK-10",
+    "given": "APERAK på PRODAT",
+    "when": "Byggare/korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+    "prohibited": "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+    "rule_ids": [
+      "ACK-10"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-15",
+    "name": "Regelkontrakt: U-15",
+    "given": "Utgående och inkommande UTILTS",
+    "when": "Batch och validering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "En UTILTS-överföring UNB–UNZ innehåller endast ett meddelande UNH–UNT och en juridisk mottagare. Blanda inte skeden, anledning eller kvart-/månadsupplösning enligt Application Reference. → Paketera kompatibla transaktioner till rätt mottagare inom tillåtna gränser.",
+    "prohibited": "En generell multi-message-codec får inte kringgå UTILTS specifika paketeringsregel.",
+    "rule_ids": [
+      "U-15"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-16",
+    "name": "Regelkontrakt: U-16",
+    "given": "UTILTS och allmänna Ediel-filer",
+    "when": "Paketering/kapacitetsplan – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "T anger rekommenderad maxstorlek10MB; U anger fortfarande1MB och999transaktioner. Skilj rekommendation från syntax/nationell kardinalitet. → Utgående U kan hållas inom1MB och999 för att uppfylla båda; dokumentera mottagarkapacitet och fulla grammatikgränser.",
+    "prohibited": "Avvisa inte automatiskt meddelande över en rekommendation med påhittad syntaxfelkod.",
+    "rule_ids": [
+      "U-16"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-17",
+    "name": "Regelkontrakt: U-17",
+    "given": "UTILTS guidefel utan direkt numrerat fält",
+    "when": "Felreferens byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "När bilaga1 säger om möjligt används i första hand fältnummer; annars, om möjligt, angiven segment-/elementreferens med max17tecken. → Behåll källstyrd hänvisning såsom DTM/2005 i tillämpligt fall.",
+    "prohibited": "Påstå inte att alla fel måste ha ett numeriskt fältnummer eller gissa ett från kvalificeraren.",
+    "rule_ids": [
+      "U-17"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-18",
+    "name": "Regelkontrakt: U-18",
+    "given": "UTILTS med ställningar och energi",
+    "when": "Observationer parsas/byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Håll energier sammanhängande och tidsordnade; ställningar sammanhängande och tidsordnade. Blockens inbördes ordning är valfri. Samma ställning med tid får inte dupliceras inom transaktionen. → Bevara observationernas typ och ordning enligt gruppen.",
+    "prohibited": "Kräv inte alltid ställningar först och blanda inte ställningar mellan energivärden.",
+    "rule_ids": [
+      "U-18"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-U-19",
+    "name": "Regelkontrakt: U-19",
+    "given": "RFF med referensfält226",
+    "when": "Nationell kontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Referens till PRODAT-ärende används för korrelation där den går att knyta; bilaga1 anger inga kontroller av värdet och ingen avvisning om kvalificeraren inte är TN. → Använd referensen för möjlig korrelation utan att göra den till obligatorisk auktoriseringsnyckel för alla serier.",
+    "prohibited": "Avvisa inte giltig E66 enbart för avsaknad/fel korrelationsreferens där guiden inte föreskriver det.",
+    "rule_ids": [
+      "U-19"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z01L-SUPPLIER",
+    "name": "Meddelandefall Z01L",
+    "given": "SUPPLIER; Kund/fullmakt, anläggning, nätområde och avtalad tilltänkt start enligt fältprofil.",
+    "when": "Behörig kontroll av kundens nätavtalsuppgifter inför möjlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+    "expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z02L-SUPPLIER",
+    "name": "Meddelandefall Z02L",
+    "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+    "when": "Svar på egen korrelerad Z01.",
+    "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z22; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z03L-SUPPLIER",
+    "name": "Meddelandefall Z03L",
+    "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+    "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z04L-SUPPLIER",
+    "name": "Meddelandefall Z04L",
+    "given": "SUPPLIER; Z04 får komma före positiv APERAK. Samma LI ensamt räcker inte för korrelation.",
+    "when": "Nätägarens affärsbekräftelse på egen Z03.",
+    "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z05L-SUPPLIER",
+    "name": "Meddelandefall Z05L",
+    "given": "SUPPLIER; Z05L kan referera till Z08H; Z05LK kan vara följd av utflytt efter Z09E men är inte Z09E-svar.",
+    "when": "Nätägarens information till tidigare leverantör.",
+    "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z01LK-SUPPLIER",
+    "name": "Meddelandefall Z01LK",
+    "given": "SUPPLIER; Kund/fullmakt, anläggning, nätområde och avtalad tilltänkt start enligt fältprofil.",
+    "when": "Behörig kontroll av kundens nätavtalsuppgifter inför möjlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+    "expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z02LK-SUPPLIER",
+    "name": "Meddelandefall Z02LK",
+    "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+    "when": "Svar på egen korrelerad Z01.",
+    "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z23; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z03LK-SUPPLIER",
+    "name": "Meddelandefall Z03LK",
+    "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+    "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z04LK-SUPPLIER",
+    "name": "Meddelandefall Z04LK",
+    "given": "SUPPLIER; Z04 får komma före positiv APERAK. Samma LI ensamt räcker inte för korrelation.",
+    "when": "Nätägarens affärsbekräftelse på egen Z03.",
+    "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z05LK-SUPPLIER",
+    "name": "Meddelandefall Z05LK",
+    "given": "SUPPLIER; Z05L kan referera till Z08H; Z05LK kan vara följd av utflytt efter Z09E men är inte Z09E-svar.",
+    "when": "Nätägarens information till tidigare leverantör.",
+    "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z03C-SUPPLIER",
+    "name": "Meddelandefall Z03C",
+    "given": "SUPPLIER; Referera rätt originalärende/objekt/kund; L senast4dagar före, LK senast inflyttningsdagen.",
+    "when": "Återtag av eget bytes-/flyttärende inom kancelleringsfönstret.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z04C-SUPPLIER",
+    "name": "Meddelandefall Z04C",
+    "given": "SUPPLIER; Bevara original- och kancelleringsordning; kancellering före original lagras för begränsad korrelation, ingen godtycklig aktivering.",
+    "when": "Bekräftelse/korrigering som upphäver berört startförlopp.",
+    "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z24; CONTRL och tillämplig APERAK.; Upphäv endast rätt bekräftade/framtida period; vid redan verkställd effekt starta kontrollerad kompensation.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z05C-SUPPLIER",
+    "name": "Meddelandefall Z05C",
+    "given": "SUPPLIER; Skilj återtag av leveransslut från ESCO Z15C.",
+    "when": "Tidigare meddelat leveransslut återtas.",
+    "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z24; CONTRL och tillämplig APERAK.; Återställ rätt avslutsbeslut efter kontroll; skapa inte duplicerad leveransperiod.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z04A-SUPPLIER",
+    "name": "Meddelandefall Z04A",
+    "given": "SUPPLIER; Dokumenterad anvisningsöverenskommelse i rätt nätområde; kräver inte egen Z03.",
+    "when": "Nätägarens anvisning när aktören är behörig anvisad leverantör.",
+    "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z26; CONTRL och tillämplig APERAK.; Registrera anvisningsprocess och korrekt start.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z04D-SUPPLIER",
+    "name": "Meddelandefall Z04D",
+    "given": "SUPPLIER; Inte bara mikroproduktion; inte generell Z03-guard eller konsumentaktivering.",
+    "when": "Mottagningsplikt för produktion enligt tillämpligt produktionsförlopp.",
+    "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z70; CONTRL och tillämplig APERAK.; Skapa separat produktions-/mottagningsrelation, knyt till förbrukningsobjekt via319.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z03H-SUPPLIER",
+    "name": "Meddelandefall Z03H",
+    "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+    "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z04H-SUPPLIER",
+    "name": "Meddelandefall Z04H",
+    "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+    "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+    "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z05H-SUPPLIER",
+    "name": "Meddelandefall Z05H",
+    "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+    "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+    "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z08H-SUPPLIER",
+    "name": "Meddelandefall Z08H",
+    "given": "SUPPLIER; Juridiska förutsättningar för hävning måste vara dokumenterade; ingen automatisk hävning enbart vid betalningsflagga.",
+    "when": "Behörigt avslut/hävning av elhandelsavtal.",
+    "expected": "23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.; Bevakad avslutsbegäran och kontrollerat leveransslut.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z08LK-SUPPLIER",
+    "name": "Meddelandefall Z08LK",
+    "given": "SUPPLIER; Inte universell ersättning för Z03LK.",
+    "when": "Bilateral användning för kund-/leverantörsbyte.",
+    "expected": "23-DDQ-PRODAT; BGM=Z08; fält223=Z23; Svar enligt uttryckligt avtal.; Bara den överenskomna avsluts-/flyttprocessen.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z06E-SUPPLIER",
+    "name": "Meddelandefall Z06E",
+    "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+    "when": "Nätägarens kund-/anläggningsuppdatering.",
+    "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z09E-SUPPLIER",
+    "name": "Meddelandefall Z09E",
+    "given": "SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte.",
+    "when": "Anmäl rätt kundlivshändelse/överenskommen uppgiftsändring.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=E34; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z06F-SUPPLIER",
+    "name": "Meddelandefall Z06F",
+    "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+    "when": "Nätägarens kund-/anläggningsuppdatering.",
+    "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z09F-SUPPLIER",
+    "name": "Meddelandefall Z09F",
+    "given": "SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte.",
+    "when": "Begär kvartsmätning enligt kundavtal.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=E64; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z06G-SUPPLIER",
+    "name": "Meddelandefall Z06G",
+    "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+    "when": "Nätägarens kund-/anläggningsuppdatering.",
+    "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z09G-SUPPLIER",
+    "name": "Meddelandefall Z09G",
+    "given": "SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte.",
+    "when": "Informera att nätägaren ska avgöra mätmetoden enligt ändrat avtal.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=E32; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z09B-SUPPLIER",
+    "name": "Meddelandefall Z09B",
+    "given": "SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+    "when": "Byte av balansansvarig för berörda leveransrelationer.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z09D-SUPPLIER",
+    "name": "Meddelandefall Z09D",
+    "given": "SUPPLIER; 210 XOR 211, aldrig DTM157 som ersättning; inte NAD+UD på Z09D.",
+    "when": "Produktionsavtal tecknas eller upphör.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z70; CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.; Starta/avsluta rätt produktionsavtal.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z10M-SUPPLIER",
+    "name": "Meddelandefall Z10M",
+    "given": "SUPPLIER; Gamla/nya mätarnummer olika; flerregisteroverlay; tio vardagar som sändningsfrist för nätägaren.",
+    "when": "Nätägarens mätarbyte.",
+    "expected": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z13V-ESCO",
+    "name": "Meddelandefall Z13V",
+    "given": "ESCO; Kundidentitet ej födelsedatum; Z13 behöver inte anläggnings-id men LIN+1 finns; scope/roll/avtal/beneficiary separat.",
+    "when": "Avtal med slutkund och DSO finns; begär fortlöpande rapportering.",
+    "expected": "23-DGI-PRODAT; BGM=Z13; fält223=S17; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z14V-ESCO",
+    "name": "Meddelandefall Z14V",
+    "given": "ESCO; A74; tillstånds-id; rättLI; ej bredda kund-/tids-/produktomfattning från antaganden. Förvänta inte Z04.",
+    "when": "DSO godkänner tillgång för angivna godkända anläggningar.",
+    "expected": "23-DGI-PRODAT; BGM=Z14; fält223=S17; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z15V-ESCO",
+    "name": "Meddelandefall Z15V",
+    "given": "ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.",
+    "when": "Fortlöpande tillstånd upphör.",
+    "expected": "23-DGI-PRODAT; BGM=Z15; fält223=S17; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z13VH-ESCO",
+    "name": "Meddelandefall Z13VH",
+    "given": "ESCO; Kundidentitet ej födelsedatum; Z13 behöver inte anläggnings-id men LIN+1 finns; scope/roll/avtal/beneficiary separat.",
+    "when": "Avtal med slutkund och DSO finns; begär avgränsad historik.",
+    "expected": "23-DGI-PRODAT; BGM=Z13; fält223=S18; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z14VH-ESCO",
+    "name": "Meddelandefall Z14VH",
+    "given": "ESCO; A74; tillstånds-id; rättLI; ej bredda kund-/tids-/produktomfattning från antaganden. Förvänta inte Z04.",
+    "when": "DSO godkänner tillgång för angivna godkända anläggningar.",
+    "expected": "23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z15VH-ESCO",
+    "name": "Meddelandefall Z15VH",
+    "given": "ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.",
+    "when": "Historikleveransen har avslutats.",
+    "expected": "23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z14N-ESCO",
+    "name": "Meddelandefall Z14N",
+    "given": "ESCO; A13 aktivt nekat; A76 passivt nekat; många positiva-Z14-fält ska utelämnas. Förväxla inte negativt affärssvar med syntaktiskt fel.",
+    "when": "Aktivt eller passivt nekat tillstånd.",
+    "expected": "23-DGI-PRODAT; BGM=Z14; fält223=Z96; CONTRL och APERAK på själva Z14N om korrekt; ingen datarapportering.; Neka berörd begäran; lägg ingen market_permission för åtkomst.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z15C-ESCO",
+    "name": "Meddelandefall Z15C",
+    "given": "ESCO; Status och datum enligt fältspecifikation; kräver inte generell egen Z18.",
+    "when": "Återtag av felaktigt tillståndsupphörande, t.ex. rättad utflytt.",
+    "expected": "23-DGI-PRODAT; BGM=Z15; fält223=Z24; CONTRL och APERAK.; Återställ berört market_permission efter rätt korrelation. Återuppliva inte ett separat återkallat tenantåtkomstgrant.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z18V-ESCO",
+    "name": "Meddelandefall Z18V",
+    "given": "ESCO; 327/324/325 krävs; beneficiarys UI-avslut av ett deluppdrag ≠ avslut för samtliga tenants.",
+    "when": "Behörig begäran att avsluta rapportering.",
+    "expected": "23-DGI-PRODAT; BGM=Z18; fält223=S17; CONTRL, APERAK, tillämplig Z15.; Begär avslut av rätt marknadstillstånd; kontrollera andra giltiga serviceuppdrag innan gemensamt tillstånd sägs upp.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  }
+]

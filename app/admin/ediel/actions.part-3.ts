@@ -1,3 +1,5 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
+import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 
@@ -9,7 +11,7 @@ import { createAckDraftForMessage } from "@/lib/ediel/orchestrator"
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from "@/lib/ediel/ack"
 import { shouldUseTransactionScopedPositiveAperak, utiltsTransactionAckReferencesForSource } from "@/lib/ediel/ack"
 
-import { createEdielMessageEvent, listAckMessagesForSource } from "@/lib/ediel/db"
+import { createEdielMessageEvent } from "@/lib/ediel/db"
 
 
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine"
@@ -29,9 +31,10 @@ import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight"
 
 
 
-import { parseProdatMessage } from "@/lib/ediel/prodat/parser"
+import {assertPriorPermissionContext,type PriorPermissionContext as ProdatPermissionContext} from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
+import { loadPriorPermissionFlow } from "@/lib/ediel/prodat/loadPriorPermissionFlow"
 import { supabaseService } from "@/lib/supabase/service"
-import { validateProdatPermissionMessage, type ProdatPermissionContext } from "@/lib/ediel/testing/prodatPermissionEngine"
+import { validateProdatPermissionMessage } from "@/lib/ediel/testing/prodatPermissionEngine"
 import { attachAperakErrorDetailsToMessage, resolveAndStoreProdatAperakErrors } from "@/lib/ediel/testing/aperakErrorRuleRegistry"
 
 
@@ -70,9 +73,8 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     );
   }
 
-  const existingAckMessages = await listAckMessagesForSource({
-    sourceMessageId: edielMessageId,
-    companyId: sourceMessage.company_id ?? null,
+  const existingAckMessages = await listBusinessAckMessagesForSource({
+    sourceMessageId: edielMessageId, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
   });
   const activeAckMessages = existingAckMessages.filter(
     (message) =>
@@ -211,84 +213,7 @@ export function uniqueNonEmpty(values: Array<string | null | undefined>): string
 export async function resolveProdatPermissionContextForAck(
   message: EdielMessageRow,
 ): Promise<ProdatPermissionContext | null> {
-  if (String(message.message_family ?? "").toUpperCase() !== "PRODAT")
-    return null;
-
-  const code = String(message.message_code ?? "").toUpperCase();
-  if (code !== "Z14" && code !== "Z15") return null;
-
-  const parsed = parseProdatMessage(message);
-  const line = parsed.lineItems[0] ?? null;
-  const identifiers = uniqueNonEmpty([
-    line?.lineItemReference,
-    line?.permissionId,
-    line?.meteringPointId,
-    line?.customerId,
-    message.transaction_reference,
-    message.external_reference,
-    message.correlation_reference,
-    message.original_transaction_id,
-    message.original_message_id,
-  ]);
-
-  if (identifiers.length === 0) {
-    return {
-      hasMatchingPriorPermissionFlow: false,
-      matchReason:
-        "Z14/Z15 saknar användbar referens för att hitta tidigare permission-flöde.",
-    };
-  }
-
-  const priorCodes = code === "Z14" ? ["Z13"] : ["Z18", "Z14", "Z13"];
-  const currentCreatedAt = message.created_at ?? new Date().toISOString();
-
-  let query = supabaseService
-    .from("ediel_messages")
-    .select(
-      "id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at",
-    )
-    .eq("message_family", "PRODAT")
-    .in("message_code", priorCodes)
-    .not("status", "in", "(cancelled,failed)")
-    .lte("created_at", currentCreatedAt)
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (message.environment) query = query.eq("environment", message.environment);
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const candidates = (data ?? []) as Array<Record<string, unknown>>;
-  const matching = candidates.find((candidate) => {
-    if (candidate.id === message.id) return false;
-    const haystack = [
-      candidate.external_reference,
-      candidate.transaction_reference,
-      candidate.correlation_reference,
-      candidate.metering_point_id,
-      candidate.customer_id,
-      candidate.raw_payload,
-    ]
-      .map((value) => String(value ?? "").toUpperCase())
-      .join("\n");
-
-    return identifiers.some((identifier) =>
-      haystack.includes(identifier.toUpperCase()),
-    );
-  });
-
-  if (matching) {
-    return {
-      hasMatchingPriorPermissionFlow: true,
-      matchReason: `Matchade tidigare ${String(matching.message_code ?? "PRODAT")} ${String(matching.id ?? "")}`,
-    };
-  }
-
-  return {
-    hasMatchingPriorPermissionFlow: false,
-    matchReason: `Ingen tidigare ${priorCodes.join("/")} hittades för Z${code.slice(1)} via ${identifiers.join(", ")}.`,
-  };
+  return loadPriorPermissionFlow(message, supabaseService);
 }
 
 export async function resolveBackendAperakDecision(params: {
@@ -445,6 +370,12 @@ export async function resolveBackendAperakDecision(params: {
     throw new Error("Aktörsroll saknas för TGT/APERAK-beslutet.");
   }
 
+  // Assess selected wire fields before prior lookup, TGT selection or events.
+  const permissionFields = validateProdatPermissionMessage({ message: params.sourceMessage });
+  try { assertIncomingProdatEnergyProductReview(params.sourceMessage.raw_payload); } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedFieldAssessment:permissionFields.selectedFieldAssessment});
+  }
+
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: params.sourceMessage,
     testSuite: params.testSuite ?? "PRODAT",
@@ -454,14 +385,32 @@ export async function resolveBackendAperakDecision(params: {
 
   const permissionContext = await resolveProdatPermissionContextForAck(
     params.sourceMessage,
-  );
+  ).catch((error: unknown) => {
+    // Unavailable history remains internal; retain independently assessed fields.
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
+      permissionFieldAssessment: permissionFields.fieldAssessment,
+      selectedFieldAssessment: permissionFields.selectedFieldAssessment,
+    });
+  });
   const permissionDecision = validateProdatPermissionMessage({
     message: params.sourceMessage,
     testData: tgtResolution.testData,
-    context: permissionContext,
   });
 
+  try {
+    assertPriorPermissionContext(params.sourceMessage, permissionContext, permissionFields.fieldAssessment);
+  } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedFieldAssessment:permissionFields.selectedFieldAssessment});
+  }
+
   if (permissionDecision.handled) {
+    if (permissionFields.selectedFieldAssessment?.applicationErrors.length) {
+      const selectedResolution = await resolveAndStoreProdatAperakErrors({message:params.sourceMessage,testData:tgtResolution.testData});
+      if (selectedResolution.unmappedIssues.length) throw new Error("PRODAT_SELECTED_ACK_REVIEW_REQUIRED");
+      permissionDecision.applicationErrors=selectedResolution.errors;
+      permissionDecision.matchedRuleKeys=selectedResolution.matchedRuleKeys;
+      permissionDecision.outcome="negative";
+    }
     await createEdielMessageEvent({
       actorUserId: params.actorUserId,
       edielMessageId: params.sourceMessage.id,
@@ -479,6 +428,7 @@ export async function resolveBackendAperakDecision(params: {
           null,
         outcome: permissionDecision.outcome,
         issues: permissionDecision.issues,
+        permissionFieldAssessment: permissionDecision.fieldAssessment,
         backendRuleKeys: permissionDecision.matchedRuleKeys,
         permissionContext,
       },
@@ -700,9 +650,9 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     context,
   );
 
-  const relatedAcks = await listAckMessagesForSource({
-    sourceMessageId,
-    companyId: sourceMessage.company_id ?? null,
+  if (sourceMessage.message_family === "PRODAT") validateProdatPermissionMessage({message:sourceMessage});
+  const relatedAcks = await listBusinessAckMessagesForSource({
+    sourceMessageId, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
   });
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: sourceMessage,

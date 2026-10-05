@@ -1,0 +1,110 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "parent_sha": "acbab21f2b130b827d5e7ed258cf97aa730eeb33",
+  "tested_code_tree": "6fce86fd3a52c3945aa90b78dd2ff4d1155d70a5",
+  "note": "Final source differs from tested tree only in audit/memory. New-head ordinary CI and independent review required.",
+  "reports": {
+    "initial-targeted.json": {
+      "sha256": "0de291e5936643aacecd8bf8950a98684bac79e54fc998d4abdd6f74480c9f32",
+      "bytes": 57347
+    },
+    "fixed-targeted.json": {
+      "sha256": "9d7ec5b08b226961ee6abc9c5ac7a505a13416b82fa4f7f1743de3ab281832e3",
+      "bytes": 31609
+    },
+    "full-vitest.json": {
+      "sha256": "c95c779c3e89777e909788d7dff32a6d791b92558e0398752bf53e6bb3e33448",
+      "bytes": 14866779
+    },
+    "full-vitest-coverage.log": {
+      "sha256": "53fd30c2435940e6dab36a3b5d0f8a4e24522deb65a9e7386824ef0e096a9ec1",
+      "bytes": 438
+    },
+    "app-types.log": {
+      "sha256": "4be5a4aeb292509bc28828d74619de62170552a87c5f74b2976ede1b2da643ef",
+      "bytes": 142
+    },
+    "app-types-serial.log": {
+      "sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+      "bytes": 135
+    },
+    "other-types.log": {
+      "sha256": "a2bc1b39acfc027c968662cd09b8b1465a33a1da59b45ac2fef16b157f916120",
+      "bytes": 172
+    },
+    "lint.log": {
+      "sha256": "48908919ca13223081c433cedad50e1c2958240f1c073a5d4b974fa47d720c74",
+      "bytes": 13711
+    },
+    "source.log": {
+      "sha256": "01dc5faeb345331c716f4dbdb2e62c76488875f8842d6e41eb8f7e5ee48a2a09",
+      "bytes": 187130
+    },
+    "route-source.log": {
+      "sha256": "a364479cf7741f72cfc26327d325a7ed324db541352802433be0aa2d7afd1b9c",
+      "bytes": 633
+    },
+    "quality.log": {
+      "sha256": "f86f59dcb41940665bdcbe4123b5f8a40ea4974fcdab78a1deba2547deacf0d4",
+      "bytes": 2229
+    },
+    "coverage-ratchet.log": {
+      "sha256": "62c39fd96c6da1c57beca4e3be59f8e7fd61ea39f740efe9baf2ea9851488600",
+      "bytes": 411
+    }
+  },
+  "commands": {
+    "full-vitest-coverage": {
+      "command": "./node_modules/.bin/vitest run --coverage --reporter=json --outputFile=/mnt/data/pr331-qualification/full-vitest.json",
+      "exit": 0,
+      "seconds": 109.25,
+      "log_sha256": "53fd30c2435940e6dab36a3b5d0f8a4e24522deb65a9e7386824ef0e096a9ec1"
+    },
+    "app-types": {
+      "command": "npm run typecheck",
+      "exit": 137,
+      "seconds": 51.69,
+      "log_sha256": "4be5a4aeb292509bc28828d74619de62170552a87c5f74b2976ede1b2da643ef"
+    },
+    "other-types": {
+      "command": "npm run typecheck:scripts && npm run typecheck:tests",
+      "exit": 0,
+      "seconds": 67.19,
+      "log_sha256": "a2bc1b39acfc027c968662cd09b8b1465a33a1da59b45ac2fef16b157f916120"
+    },
+    "lint": {
+      "command": "npm run lint",
+      "exit": 0,
+      "seconds": 133.77,
+      "log_sha256": "48908919ca13223081c433cedad50e1c2958240f1c073a5d4b974fa47d720c74"
+    },
+    "source": {
+      "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-d-z04-reference.cjs scripts/test-ediel-guide-governance.cjs scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-prodat-party-fields.cjs scripts/test-ediel-component-escaping.cjs",
+      "exit": 0,
+      "seconds": 16.95,
+      "log_sha256": "01dc5faeb345331c716f4dbdb2e62c76488875f8842d6e41eb8f7e5ee48a2a09"
+    },
+    "quality": {
+      "command": "npm run ediel:masterplan-v2:integrity && npm run security:rbac && npm run quality:large-file-budget && npm run quality:performance && bash quality/mechanical/verify.sh && ./node_modules/.bin/vitest run --config quality/vitest.config.ts",
+      "exit": 0,
+      "seconds": 14.8,
+      "log_sha256": "f86f59dcb41940665bdcbe4123b5f8a40ea4974fcdab78a1deba2547deacf0d4"
+    }
+  },
+  "serial_retry": {
+    "command": "npm run typecheck",
+    "exit": 0,
+    "seconds": 99.16,
+    "log_sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc"
+  },
+  "route_source": {
+    "command": "node --experimental-vm-modules --test scripts/test-ediel-route-destination.cjs",
+    "exit": 0,
+    "seconds": 0.17,
+    "log_sha256": "a364479cf7741f72cfc26327d325a7ed324db541352802433be0aa2d7afd1b9c"
+  },
+  "modified_test_sha256": {
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts": "c6d94f22883c5cef6e02ebfff2435ddd75563ef6e345d59c879575db2f50ab6c",
+    "__tests__/ediel-prodat-dependent-subtype-z04-reference.test.ts": "826a9c30df37f3d2a3605cc0ce5e907910167636dade8bd71244e55d32bccf19"
+  }
+}

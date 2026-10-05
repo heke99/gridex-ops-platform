@@ -30,17 +30,26 @@ function assertAny(rel, needles, message) {
   if (!needles.some((needle) => text.includes(needle))) failures.push(message || `${rel} saknar något av ${needles.join(', ')}`)
 }
 
-// Punkt 1: RBAC-scriptet ska inte längre varna på gamla support/customer-cases och ska granska nya service-client ytor.
+// Punkt 1: RBAC-scriptet ska granska service-client ytor utan att använda den
+// gamla support-koden som service-client workaround.
 assertContains('scripts/security-audit-rbac.mjs', 'app/admin/ediel/actors/actions.ts', 'RBAC-listan ska omfatta aktörsactions med service-client')
 assertContains('scripts/security-audit-rbac.mjs', 'app/admin/website-applications/actions.ts', 'RBAC-listan ska omfatta website applications actions')
 assertContains('scripts/security-audit-rbac.mjs', 'app/admin/webhooks/actions.ts', 'RBAC-listan ska omfatta webhook actions')
-assertNotContains('scripts/security-audit-rbac.mjs', 'app/admin/customer-cases/actions.ts', 'Gamla support-actions ska inte ligga kvar i service-client review-listan')
-assertNotContains('scripts/security-audit-rbac.mjs', 'app/admin/customer-cases/page.tsx', 'Gammal support-sida ska inte ligga kvar i service-client review-listan')
+assertNotContains('scripts/security-audit-rbac.mjs', 'app/admin/customer-cases/actions.ts', 'Support-actions ska använda ordinarie tenant/RBAC-väg, inte service-client review-listan')
+assertNotContains('scripts/security-audit-rbac.mjs', 'app/admin/customer-cases/page.tsx', 'Support-sidan ska använda ordinarie tenant/RBAC-väg, inte service-client review-listan')
 
-// Punkt 2: support/customer-cases ska vara bortstyrt från OPS UI/API-flöde.
-assertContains('app/admin/customer-cases/actions.ts', 'OPS hanterar inte supportflöden', 'Support-actions ska blockeras i OPS')
-assertContains('app/admin/customer-cases/page.tsx', "redirect('/admin/operations/tasks')", 'Support-route ska redirecta till driftuppgifter')
-assertContains('scripts/gridex-batch-6-api-client-regression.cjs', 'support_out_of_scope', 'API-regression ska fortsätta blockera support/case-events')
+// Punkt 2, superseded by Operations Autopilot Phase 5: support is now part of
+// the canonical OPS architecture, but must reuse customer_cases, tenant scope
+// and the already-published customer-event API instead of parallel support truth.
+assertContains('app/admin/customer-cases/actions.ts', "requireAdminActionAccess(['cases.write'])", 'Support-actions ska vara RBAC-skyddade')
+assertContains('app/admin/customer-cases/actions.ts', 'createTenantSupportCase', 'Support-actions ska använda canonical support service')
+assertNotContains('app/admin/customer-cases/actions.ts', 'OPS hanterar inte supportflöden', 'Legacy support blocker ska vara borttagen')
+assertNotContains('app/admin/customer-cases/page.tsx', "redirect('/admin/operations/tasks')", 'Support ska ha egen tenant-isolerad vy i befintliga OPS')
+assertContains('app/api/v1/events/route.ts', 'createSupportCaseFromCustomerEvent', 'Publicerat event-API ska kunna projektera supportevent')
+assertContains('app/api/v1/website/customer-events/route.ts', 'createSupportCaseFromCustomerEvent', 'Website event-API ska kunna projektera supportevent')
+assertNotContains('app/api/v1/events/route.ts', 'support_out_of_scope', 'Supportevent ska inte längre blockeras av legacy policy')
+assertContains('lib/customer-cases/support.ts', "from('customer_cases')", 'Support ska återanvända customer_cases')
+assertNotContains('lib/customer-cases/support.ts', "from('support_cases')", 'Parallell supporttabell är förbjuden')
 
 // Punkt 3–4: audit och usage för kundintag/website applications.
 assertContains('app/admin/website-applications/actions.ts', 'logAdminActionAndUsage', 'Website applications actions ska logga audit/usage')
@@ -68,17 +77,15 @@ assertContains('app/admin/customers/[id]/profile-actions.ts', 'confirmText !== "
 assertContains('app/admin/customers/[id]/profile-actions.ts', 'confirmText !== "RADERA"', 'Testkundsradering ska kräva bekräftelsetext')
 assertContains('lib/customers/statusLabels.ts', 'Anläggningsuppgifter saknas', 'Råstatus needs_facility_data ska vara kundvänlig')
 assertContains('lib/customers/statusLabels.ts', 'Uppgifter begärda från nätägare', 'Råstatus facility_data_requested ska vara kundvänlig')
-// Intake next-step UI moved from the page into CustomerIntakeForm ("Nästa steg").
 assertContains('components/admin/customers/CustomerIntakeForm.tsx', 'Nästa steg', 'Kundintag ska visa nästa åtgärd')
 assertAny('app/admin/customers/intake/page.tsx', ['Föreslagen nätägare', 'Verifierad nätägare', 'Nätägare'], 'Kundintag ska visa nätägare på begripligt sätt')
 
-// DB-stöd för usage/statistik och import-review ska finnas migrationsmässigt.
 assertContains('supabase/migrations/20260612193000_ops_j_to_n_governance_audit_cleanup_docs_v2.sql', 'create table if not exists public.platform_usage_events', 'Usage-events tabellen ska finnas i migration')
 assertContains('supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql', 'public_contract_offers', 'Website/publicerade avtal ska finnas per tenant')
 assertContains('supabase/migrations/20260612183000_ops_e_f_facility_work_queue_customer_cards.sql', 'facility_data_requested', 'Facility/kundintag migration ska stödja begärda anläggningsuppgifter')
 assertContains('supabase/migrations/20260612160000_ops_points_1_to_8_hardening.sql', 'gridex_tenant_usage_monthly_v', 'Slutbatchen ska lägga till usage månads-vy')
 assertContains('supabase/migrations/20260612160000_ops_points_1_to_8_hardening.sql', 'gridex_actor_import_preview_v', 'Slutbatchen ska lägga till import-preview view')
-assertContains('supabase/migrations/20260612160000_ops_points_1_to_8_hardening.sql', 'support.case_message', 'Slutbatchen ska neutralisera support case event templates')
+assertContains('supabase/migrations/20260612160000_ops_points_1_to_8_hardening.sql', 'support.case_message', 'Historisk neutralisering av legacy support-template ska finnas migrationsmässigt')
 
 if (failures.length) {
   console.error('OPS points 1–8 regression failed:')

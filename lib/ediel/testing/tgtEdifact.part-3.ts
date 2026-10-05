@@ -1,3 +1,17 @@
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
+import {projectDeathStatus} from '@/lib/ediel/prodat/prodatDeathStatus'
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
+import {prodatInvoiceeNadSegment} from '@/lib/ediel/prodat/render/segments'
+import {prodatCustomerNadSegment} from '@/lib/ediel/prodat/render/segments'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import {resolveProdatEndUserGroupRequirement} from '@/lib/ediel/prodat/prodatParentApplicability'
+import {findProdatSubtypeRule} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielTestRoleCode, EdielTestSuite } from "@/lib/ediel/types"
 import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE } from "@/lib/ediel/fileEngine"
@@ -5,8 +19,8 @@ import { getEdielTgtTestCaseByCode, type EdielTgtExpectedStep } from "@/lib/edie
 
 import type { EdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings"
 import type { DraftReferences, EdielTgtDraftBuildParams, EdielTgtDraftOption, EdielTgtDraftValidationIssue, ParsedEdifactSegments, TgtPortalCustomerData, TgtProdatMutation } from './tgtEdifact.part-1'
-import { edifactEscape, fifteenthDayNextMonthDateTime, findTestValue, firstToken, historicalReportEndDateTime, historicalReportStartDateTime, isHistoricalPermissionTransaction, sanitize, sanitizeCode, testActorId, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
-import { applyProdatMutationToPortalData, buildInterchange, buildTgtProdatTransactionType, date102FromPortalDate, date203FromPortalDate, expectedZ09LineDateSegments, fallbackEscoPermissionGridAreaId, fallbackEscoPermissionMeteringPointId, getPortalData, getPortalDataRows, getTgtProdatMutation, isPermissionProdatCode, isZ09DTransaction, negativeAperakSegments, permissionPurposeForTransaction, positiveAperakSegments, reasonForProdatSubtype, resolvePermissionInstallationDirection, withEscoPermissionAgtFallbacks } from './tgtEdifact.part-2'
+import { edifactEscape, fifteenthDayNextMonthDateTime, findTestValue, firstToken, isHistoricalPermissionTransaction, sanitize, sanitizeCode, testActorId, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
+import { applyProdatMutationToPortalData, buildInterchange, buildTgtProdatTransactionType, date203FromPortalDate, expectedZ09LineDateSegments, fallbackEscoPermissionGridAreaId, fallbackEscoPermissionMeteringPointId, getPortalData, getPortalDataRows, getTgtProdatMutation, isPermissionProdatCode, isZ09DTransaction, negativeAperakSegments, permissionPurposeForTransaction, positiveAperakSegments, reasonForProdatSubtype, resolvePermissionInstallationDirection, withEscoPermissionAgtFallbacks } from './tgtEdifact.part-2'
 
 export function buildProdatPermissionLineSegments(params: {
   portalData: TgtPortalCustomerData;
@@ -33,7 +47,7 @@ export function buildProdatPermissionLineSegments(params: {
     systemTestContext,
   } = params;
   const meteringPointId = sanitizeCode(
-    portalData.meteringPointId ||
+    portalData.reportingRequest?'':portalData.meteringPointId ||
       fallbackEscoPermissionMeteringPointId(
         { testSuite, roleCode, testCaseCode, systemTestContext },
         step,
@@ -50,20 +64,10 @@ export function buildProdatPermissionLineSegments(params: {
     "",
     12,
   );
-  const lineReference =
+  const lineReference = portalData.lineReference ?? (
     lineNo === 1
       ? refs.externalRef
-      : `${refs.externalRef}-${lineNo}`.slice(0, 35);
-  const startDate = date203FromPortalDate(
-    portalData.agreementStartDateTime,
-    refs.createdLongDate,
-  );
-  const endDate = portalData.agreementEndDateTime
-    ? date203FromPortalDate(
-        portalData.agreementEndDateTime,
-        refs.createdLongDate,
-      )
-    : null;
+      : `${refs.externalRef}-${lineNo}`.slice(0, 35));
   const reasonForTransaction = isHistoricalPermissionTransaction(transactionType)
     ? "S18"
     : sanitizeCode(
@@ -94,7 +98,7 @@ export function buildProdatPermissionLineSegments(params: {
           transactionType,
         })
       : sanitizeCode(portalData.installationDirection, "", 12);
-  const permissionPurpose =
+  const permissionPurpose = portalData.reportingRequest ? portalData.permissionPurpose :
     step.code === "Z13" || step.code === "Z14"
       ? permissionPurposeForTransaction(
           transactionType,
@@ -112,46 +116,20 @@ export function buildProdatPermissionLineSegments(params: {
     12,
   );
   const permissionId = sanitizeCode(portalData.permissionId, "", 35);
-  const permissionTimestamp = date203FromPortalDate(
-    portalData.permissionTimestamp,
-    refs.createdLongDate,
-  );
-  const powerOfAttorneyReference = sanitizeCode(
+  const powerOfAttorneyReference = portalData.reportingRequest ? portalData.powerOfAttorneyReference : sanitizeCode(
     portalData.powerOfAttorneyReference,
     "",
     35,
   );
 
-  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
+  const segments: string[] = [portalData.reportingRequest?`LIN+${lineNo}`:`LIN+${lineNo}++${meteringPointId}:::9`];
 
-  if (step.code === "Z18") {
-    const permissionCreatedAt = date203FromPortalDate(
-      portalData.permissionTimestamp ?? portalData.agreementStartDateTime,
-      refs.createdLongDate,
-    );
-    const reportingEndDate = date203FromPortalDate(
-      portalData.agreementEndDateTime ?? portalData.agreementStartDateTime,
-      refs.createdLongDate,
-    );
-    segments.push(`DTM+693:${permissionCreatedAt}:203`);
-    segments.push(`DTM+164:${reportingEndDate}:203`);
-  } else if (step.code === "Z15") {
-    segments.push(`DTM+93:${endDate ?? startDate}:203`);
-  } else if (step.code === "Z13" || step.code === "Z14") {
-    // Fält 302/321 i PRODAT 26.A: permission-flöden använder
-    // rapportstart/rapportslut. De får inte renderas som avtalets DTM+92.
-    const reportStartDate = isHistoricalPermissionTransaction(transactionType)
-      ? historicalReportStartDateTime()
-      : startDate;
-    const reportEndDate = isHistoricalPermissionTransaction(transactionType)
-      ? historicalReportEndDateTime()
-      : endDate;
-
-    segments.push(`DTM+90:${reportStartDate}:203`);
-    if (reportEndDate) segments.push(`DTM+91:${reportEndDate}:203`);
-  } else {
-    segments.push(`DTM+92:${startDate}:203`);
-  }
+  const variant = transactionType.startsWith(step.code) ? transactionType.slice(step.code.length) : transactionType;
+  segments.push(...buildProdatDateSegments(step.code, variant, {
+    reportStartDate: portalData.reportStartDate, reportEndDate: portalData.reportEndDate,
+    permissionTimestamp: portalData.permissionTimestamp, permissionEndDate: portalData.permissionEndDate,
+    observationLength: portalData.observationLength, observationLengthFormat: portalData.observationLengthFormat,
+  }).line);
 
   segments.push("CCI++Z13", `CAV+${reasonForTransaction}`);
 
@@ -166,16 +144,14 @@ export function buildProdatPermissionLineSegments(params: {
   if (permissionEndReason)
     segments.push("CCI++Z25", `CAV+${permissionEndReason}`);
 
-  if (!mutation.omitLineItem) segments.push(`RFF+LI:${lineReference}`);
+  if (!mutation.omitLineItem) segments.push(`RFF+LI:${portalData.reportingRequest ? escapeEdifactValue(lineReference) : lineReference}`);
   if (powerOfAttorneyReference && step.code === "Z13")
-    segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
+    segments.push(`RFF+ANJ:${portalData.reportingRequest ? escapeEdifactValue(powerOfAttorneyReference) : powerOfAttorneyReference}`);
   if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`);
   if (permissionId && step.code === "Z18")
     segments.push(`RFF+Z09:${permissionId}`);
   else if (permissionId && step.code !== "Z13")
     segments.push(`RFF+Z07:${permissionId}`);
-  if (permissionTimestamp && (step.code === "Z14" || step.code === "Z15"))
-    segments.push(`DTM+265:${permissionTimestamp}:203`);
 
   const siteAddressPlain = sanitize(portalData.siteAddress, "", 70);
   const siteCityPlain = sanitize(portalData.siteCity, "", 35);
@@ -217,6 +193,7 @@ export function buildProdatPermissionLineSegments(params: {
 }
 
 export function buildProdatLineSegments(params: {
+  registerFacts?: ProdatDependentConditionFacts;
   portalData: TgtPortalCustomerData;
   step: EdielTgtExpectedStep;
   refs: DraftReferences;
@@ -234,13 +211,9 @@ export function buildProdatLineSegments(params: {
   }
   const isZ09 = step.code === "Z09";
   const isZ09D = isZ09DTransaction(transactionType);
-  const startDate = date102FromPortalDate(
-    portalData.agreementStartDateTime,
-    refs.createdLongDate,
-  );
 
-  const meteringPointId = sanitizeCode(portalData.meteringPointId, "", 35);
-  const customerId = sanitizeCode(portalData.customerId, "", 35);
+  const meteringPointId = edifactEscape(portalData.meteringPointId.trim());
+  const customerId = edifactEscape(portalData.customerId.trim());
   const customerNamePlain = sanitize(portalData.customerName, "", 70);
   const customerName = edifactEscape(customerNamePlain);
   const customerAddressPlain = sanitize(portalData.customerAddress, "", 70);
@@ -269,38 +242,47 @@ export function buildProdatLineSegments(params: {
     12,
   );
   const meteringMethod = sanitizeCode(portalData.meteringMethod, "", 12);
-  const gridAreaId = sanitizeCode(portalData.gridAreaId, "", 12);
+  const gridAreaId = edifactEscape(portalData.gridAreaId.trim());
   const powerOfAttorneyReference = sanitizeCode(
     portalData.powerOfAttorneyReference,
     "",
     35,
   );
 
-  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
+  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::${portalData.identityAgency ?? '9'}`];
 
-  if (isZ09) {
-    segments.push(
-      ...expectedZ09LineDateSegments(
-        { ...portalData, prodatTransactionType: transactionType },
-        refs,
-      ),
-    );
-  } else if (step.code === "Z05") {
-    const endDate = date203FromPortalDate(
-      portalData.agreementEndDateTime ?? fifteenthDayNextMonthDateTime(),
-      refs.createdLongDate,
-    );
-    segments.push(`DTM+93:${endDate}:203`);
-  } else {
-    segments.push(`DTM+92:${startDate}0000:203`);
-  }
+  const variant = transactionType.startsWith(step.code) ? transactionType.slice(step.code.length) : transactionType;
+  segments.push(...buildProdatDateSegments(step.code, variant, {
+    contractStartDate: portalData.agreementStartDateTime || undefined, contractEndDate: portalData.agreementEndDateTime,
+    validityStartDate: portalData.validityDateTime, firstMeterReadingDate: portalData.firstMeterReadingDate,
+    birthDate: portalData.birthDate, reportStartDate: portalData.reportStartDate, reportEndDate: portalData.reportEndDate,
+    observationLength: portalData.observationLength, observationLengthFormat: portalData.observationLengthFormat,
+  }).line);
 
   segments.push("CCI++Z13");
   segments.push(`CAV+${reasonForTransaction}`);
+  segments.push(...projectDeathStatus({code:step.code,reason:reasonForTransaction,installation:{id:portalData.meteringPointId.trim(),agency:portalData.identityAgency??'9'},selection:params.registerFacts?.deathStatus}));
 
   if (meteringMethod && !(isZ09 && isZ09D)) {
     segments.push("CCI++Z04");
     segments.push(`CAV+${meteringMethod}`);
+  }
+
+  const messageIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === step.code);
+  for (const [number,value] of [
+    ['222',portalData.reportingFrequency],['306',portalData.installationStatus],
+    ['307',portalData.tariffCode],['220',portalData.priority],
+    ['254',portalData.settlementMethod],['242',portalData.productCode],
+  ] as const) {
+    if (!value) continue;
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(field => field.fieldNumber === number)!;
+    if (messageIndex < 0 || descriptor.requirements[messageIndex] === '-') continue;
+    segments.push(descriptor.segmentPath.slice(0,-4),`CAV+${':'.repeat(descriptor.cavComponent!)}${edifactEscape(value)}`);
+  }
+  for (const [number,value] of [['224',portalData.meterNumber],['225',portalData.oldMeterNumber]] as const) {
+    if (!value) continue;
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(field => field.fieldNumber === number)!;
+    if (messageIndex >= 0 && descriptor.requirements[messageIndex] !== '-') segments.push(`${descriptor.segmentPath}:${edifactEscape(value)}`);
   }
 
   if (!mutation.omitLineItem) {
@@ -311,13 +293,17 @@ export function buildProdatLineSegments(params: {
     segments.push(`RFF+Z05:${gridAreaId}`);
   }
 
-  if (!isZ09 && powerOfAttorneyReference) {
+  if (!isZ09 && powerOfAttorneyReference && PRODAT_26A_FIELD_MATRIX.find(field => field.fieldNumber === '261')?.requirements[messageIndex] !== '-') {
     segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
   }
 
-  if (customerId && customerNamePlain && !isZ09D) {
+  const ownSubtype=findProdatSubtypeRule(reasonForTransaction,step.code)?.subtype
+  if (customerId && customerNamePlain && !isZ09D && resolveProdatEndUserGroupRequirement(step.code,ownSubtype)!=='forbidden') {
     segments.push(
-      `NAD+UD+${customerId}:${sanitizeCode(portalData.customerIdCodeListQualifier, "SE2", 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`,
+      END_USER_ADDRESS_CODES.includes(step.code) ? prodatCustomerNadSegment({customerId:portalData.customerId,customerIdCodeListQualifier:portalData.customerIdCodeListQualifier,
+        customerName:portalData.customerName,addressLines:portalData.customerAddressLines,
+        address:portalData.customerAddress,city:portalData.customerCity,postalCode:portalData.customerPostalCode,country:portalData.customerCountry})
+        : `NAD+UD+${customerId}:${sanitizeCode(portalData.customerIdCodeListQualifier, "SE2", 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`,
     );
   }
 
@@ -334,6 +320,7 @@ export function buildProdatLineSegments(params: {
     }
   }
 
+  if(portalData.invoicee){const iv=portalData.invoicee;segments.push(prodatInvoiceeNadSegment({customerId:iv.id,customerIdCodeListQualifier:iv.idCodeListQualifier,idAgency:iv.idAgency,customerName:iv.name,nameLines:iv.nameLines,address:iv.address,addressLines:iv.addressLines,city:iv.city,postalCode:iv.postalCode,country:iv.country}));}
   const balanceResponsibleId = portalData.balanceResponsibleId;
   if (balanceResponsibleId) {
     segments.push(
@@ -351,18 +338,18 @@ export function buildPortalProdatSegments(
 ): {
   bodySegments: string[];
   portalData: TgtPortalCustomerData;
+  portalRows: TgtPortalCustomerData[];
 } {
   const transactionType = buildTgtProdatTransactionType(params, step);
   const mutation = getTgtProdatMutation(params, step);
   const sourceRows =
-    step.code === "Z03" ||
-    (params.roleCode === "esco" &&
-      step.code === "Z13" &&
-      params.testCaseCode === "8.1.1")
+    [...END_USER_ADDRESS_CODES,"Z10"].includes(step.code) ||
+    (params.roleCode === "esco" && step.code === "Z13")
       ? getPortalDataRows(params, step)
       : [getPortalData(params, step)];
+  if (sourceRows.length === 0) throw new Error("prodat_register_source_objects_missing");
   const portalRows = sourceRows.map((row) =>
-    withEscoPermissionAgtFallbacks(params, step, {
+    row.reportingRequest ? {...row,prodatTransactionType: transactionType} : withEscoPermissionAgtFallbacks(params, step, {
       ...applyProdatMutationToPortalData(row, mutation),
       prodatTransactionType: transactionType,
     }),
@@ -376,59 +363,38 @@ export function buildPortalProdatSegments(
 
   const bodySegments: string[] = [
     `BGM+${step.code}+${refs.externalRef}+9+AB`,
-    `DTM+137:${refs.createdLongDate}${refs.createdTime}:203`,
-    "DTM+ZZZ:1:805",
+    ...buildProdatDateSegments(step.code, null, {messageDate:`${refs.createdLongDate}${refs.createdTime}`,timezoneOffset:'1'}).header,
     `NAD+FR+${testActorId(params)}:160:SVK+++++++SE`,
     `NAD+DO+${testPortalId(params)}:160:SVK+++++++SE`,
   ];
 
-  portalRows.forEach((portalData, index) => {
-    bodySegments.push(
-      ...buildProdatLineSegments({
-        portalData,
-        step,
-        refs,
-        transactionType,
-        mutation,
-        lineNo: index + 1,
-        testSuite: params.testSuite,
-        roleCode: params.roleCode,
-        testCaseCode: params.testCaseCode,
-        systemTestContext: params.systemTestContext,
-      }),
-    );
-  });
-
-  if (step.code === "Z06") {
-    if (params.testCaseCode === "2.1.1") {
-      bodySegments.push("CCI++Z10");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.settlementMethod ?? "Z32", "Z32", 12)}`,
-      );
-      bodySegments.push("CCI++Z04");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.meteringMethod ?? "Z04", "Z04", 12)}`,
-      );
-      bodySegments.push("CCI++Z12");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.reportingFrequency ?? "D", "D", 12)}`,
-      );
-    }
-
-    if (params.testCaseCode === "2.1.2") {
-      const register = primaryPortalData.registers[0];
-      bodySegments.push("CCI++Z04");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.meteringMethod ?? "Z04", "Z04", 12)}`,
-      );
-      bodySegments.push("CCI++Z08");
-      bodySegments.push(
-        `CAV+${sanitizeCode(register?.meterTimeInterval ?? "901", "901", 12)}`,
-      );
-    }
+  let nextLineSequence = 1;
+  for (const portalData of portalRows) {
+    const segments = buildProdatLineSegments({
+      portalData,step,refs,transactionType,mutation,lineNo:nextLineSequence,
+      testSuite:params.testSuite,roleCode:params.roleCode,testCaseCode:params.testCaseCode,
+      systemTestContext:params.systemTestContext,registerFacts:params.registerFacts,
+    });
+    const expanded = renderProdatRegisterObject({code:step.code,segments,firstLineSequence:nextLineSequence,
+      registers:portalData.registers.length ? portalData.registers.map(row => ({
+        registerIndex:row.registerIndex ?? undefined,annualConsumption:row.annualEnergyKwh,
+        annualConsumptionUnit:row.annualEnergyUnit ?? portalData.annualEnergyUnit,
+        meterConstant:row.meterConstant,meterDigitCount:row.meterDigits,meterTimeFrame:row.meterTimeInterval,
+      })) : undefined,
+    });
+    bodySegments.push(...expanded.segments);
+    nextLineSequence = expanded.nextLineSequence;
   }
 
-  return { bodySegments, portalData: primaryPortalData };
+  if(step.actor==='gridex'){
+    const failures=[...validateProdatGasApplicability({code:step.code,rawSegments:bodySegments,facts:params.registerFacts,applicationReference:EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}),...validateProdatDeathStatus({code:step.code,rawSegments:bodySegments,facts:params.registerFacts})];
+    if(failures.some(i=>i.blocking||i.severity==='error'))throw new Error(failures.map(i=>i.code).join(','));
+  }
+  if(step.code==='Z10'&&step.actor==='gridex'){
+    const failures=validateProdatMeterChange({code:step.code,rawSegments:bodySegments,facts:params.registerFacts,applicationReference:EDIEL_TGT_PRODAT_APPLICATION_REFERENCE});
+    if(failures.some(i=>i.blocking||i.severity==='error'))throw new Error(failures.map(i=>i.code).join(','));
+  }
+  return { bodySegments, portalData: primaryPortalData, portalRows };
 }
 
 export function buildProdatDraft(
@@ -944,6 +910,10 @@ export function validatePortalDataCoverage(
         "Z05 ska använda DTM+93 från fält 211 Avtal/slutdatum. I TGT används 15:e nästkommande månad när testdata anger att datum sätts av avsändaren.",
       );
     }
+  } else if (step.code === "Z13" && portalData.reportingRequest) {
+    // Original ESCO requests use 302 report start, never 210 contract start.
+    const start=date203FromPortalDate(portalData.reportStartDate,"");
+    if(!rawPayload.includes(`DTM+90:${start}:203`))pushIssue(issues,"error","missing_z13_report_start","Rapportstart saknas","Z13 kräver rapportstart från fält 302 i det valda testunderlaget.");
   } else if (!portalData.agreementStartDateTime) {
     pushIssue(
       issues,
@@ -954,58 +924,7 @@ export function validatePortalDataCoverage(
     );
   }
 
-  if (prodatStepRequiresRegisterCoverage(step)) {
-    portalData.registers.forEach((register, index) => {
-      const registerNo = index + 1;
-      if (!register.annualEnergyKwh) {
-        pushIssue(
-          issues,
-          "error",
-          `missing_register_${registerNo}_annual_energy`,
-          "Registerdata saknas",
-          `Register ${registerNo} saknar uppskattad årsenergi. Uppdatera testdata/underlag innan filen skickas.`,
-        );
-      }
-      if (!register.meterConstant) {
-        pushIssue(
-          issues,
-          "error",
-          `missing_register_${registerNo}_meter_constant`,
-          "Registerdata saknas",
-          `Register ${registerNo} saknar mätarkonstant.`,
-        );
-      }
-      if (!register.meterDigits) {
-        pushIssue(
-          issues,
-          "error",
-          `missing_register_${registerNo}_meter_digits`,
-          "Registerdata saknas",
-          `Register ${registerNo} saknar antal siffror för mätare.`,
-        );
-      }
-      if (!register.meterTimeInterval) {
-        pushIssue(
-          issues,
-          "error",
-          `missing_register_${registerNo}_time_interval`,
-          "Registerdata saknas",
-          `Register ${registerNo} saknar räkneverkskod/tidsintervall.`,
-        );
-      }
-    });
-
-    if (
-      portalData.registers.length > 1 &&
-      !rawPayload.includes(portalData.registers[1]?.meterTimeInterval ?? "")
-    ) {
-      pushIssue(
-        issues,
-        "error",
-        "missing_second_register",
-        "Saknar andra registret",
-        "Z04D-testet kräver två register från testdataregistret.",
-      );
-    }
-  }
+  // Register requirements are evaluated by the canonical matrix and dependent
+  // engine in validateEdielTgtDraft. A second unconditional rule set here would
+  // incorrectly require constants/digits and forbid valid no-readings messages.
 }

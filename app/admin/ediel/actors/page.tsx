@@ -1,3 +1,4 @@
+import { readRegistryRouteSource } from '@/lib/actor-registry/registryMarketSource'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -6,7 +7,7 @@ import { importPlatformActorsAction, refreshExpisoftReceiverCertificateAction, r
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams?: Promise<{ role?: string; status?: string; q?: string }>
+  searchParams?: Promise<{ role?: string; status?: string; q?: string; market?: string }>
 }
 
 function actorStatusLabel(value: string | null | undefined) {
@@ -152,6 +153,9 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const marketActors = marketActorsResult.error ? [] : marketActorsResult.data ?? []
   const actorRoles = actorRolesResult.error ? [] : actorRolesResult.data ?? []
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
+  const sourceEntries = await Promise.all(actorRoutes.map(async route => [route.id, await readRegistryRouteSource(route.id)] as const))
+  const routeSources = new Map(sourceEntries)
+  const sourceMarket = (routeId: string) => { const source = routeSources.get(routeId); return source?.status === 'source_qualified' ? source.market : null }
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []
   const importRuns = importRunsResult.error ? [] : importRunsResult.data ?? []
@@ -174,6 +178,9 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
     const actorId = String(route.actor_id ?? '')
     if (!actorId) continue
     const existing = routesByActor.get(actorId) ?? []
+    const source = routeSources.get(route.id)
+    const sourceMarket = source?.status === 'source_qualified' ? source.market : 'unknown'
+    if (params.market && params.market !== 'all' && params.market !== sourceMarket) continue
     existing.push(route)
     routesByActor.set(actorId, existing)
   }
@@ -186,7 +193,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
     const matchesQuery = !queryFilter || [actor.name, actor.org_number, actor.source, String(routeCount)]
       .filter(Boolean)
       .some((item) => String(item).toLowerCase().includes(queryFilter))
-    return matchesRole && matchesStatus && matchesQuery
+    return matchesRole && matchesStatus && matchesQuery && (!params.market || params.market === 'all' || routeCount > 0)
   })
 
   const verifiedGridOwners = parties.filter((party) => Array.isArray(party.roles) && party.roles.includes('grid_owner') && party.status === 'verified').length
@@ -195,7 +202,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const hiddenOrTestParties = parties.filter((party) => !party.visible_to_customer_flow || (Array.isArray(party.roles) && (party.roles.includes('ediel_portal') || party.roles.includes('test_counterparty')))).length
   const registryGridOwners = new Set(actorRoles.filter((role) => ['netowner', 'grid_owner', 'network_owner'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
   const registrySuppliers = new Set(actorRoles.filter((role) => ['powersupplier', 'electricity_supplier', 'supplier'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
-  const verifiedRegistryRoutes = actorRoutes.filter((route) => route.is_verified || route.status === 'verified' || route.status === 'active').length
+  const verifiedRegistryRoutes = actorRoutes.filter(route => sourceMarket(route.id) === 'EL' && (route.is_verified || route.status === 'verified' || route.status === 'active')).length
   const openImportIssues = importIssues.filter((issue) => issue.status !== 'resolved').length
 
   return (
@@ -313,7 +320,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
           </div>
           <form className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-4" action="/admin/ediel/actors">
             <label className="text-xs font-bold text-slate-700">Roll
-              <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Roll" name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla roller</option>
                 <option value="grid_owner">Nätägare</option>
                 <option value="electricity_supplier">Elleverantörer</option>
@@ -323,7 +330,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-bold text-slate-700">Status
-              <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Status" name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla statusar</option>
                 <option value="active">Aktiv</option>
                 <option value="needs_review">Kräver granskning</option>
@@ -332,12 +339,17 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-bold text-slate-700 md:col-span-1">Sök
-              <input name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
+              <input aria-label="Sök" name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
             </label>
             <div className="flex items-end gap-2">
               <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>
               <a href="/admin/ediel/actors" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
             </div>
+            <label className="text-xs font-semibold text-slate-700">Källmarknad
+              <select aria-label="Källmarknad" name="market" defaultValue={params.market ?? 'all'} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+                <option value="all">Alla</option><option value="EL">EL</option><option value="GAS">GAS (spärrad)</option><option value="unknown">Källmarknad saknas</option>
+              </select>
+            </label>
             <div className="md:col-span-4 text-xs text-slate-600">Visar {filteredMarketActors.length} aktörer · filter: {roleFilterLabel(roleFilter)}</div>
           </form>
 
@@ -361,7 +373,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                   <div className="mt-3 space-y-1 text-xs text-slate-700">
                     {routes.slice(0, 3).map((route) => (
                       <div key={route.id} className="rounded-xl border border-slate-200 bg-white px-2 py-1">
-                        {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {routeStatusLabel(route.status, route.is_verified)}
+                        {sourceMarket(route.id) ?? 'Källmarknad saknas'} · {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {routeStatusLabel(route.status, route.is_verified)}
                       </div>
                     ))}
                     {routes.length === 0 ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">Route saknas</div> : null}
@@ -402,14 +414,10 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               <input type="hidden" name="status" value="verified" />
               <input type="hidden" name="source" value="manual_verified" />
               <input type="hidden" name="messageFamily" value="PRODAT" />
-              <input type="hidden" name="environment" value="production" />
-              <input type="hidden" name="transportSecurityMode" value="required_encrypted" />
-              <input type="hidden" name="certificateRequired" value="true" />
               <input type="hidden" name="lookupCertificateOnSave" value="true" />
               <input type="hidden" name="visibleToCustomerFlow" value="true" />
-              <input type="hidden" name="requiresSubaddress" value="true" />
               <div className="text-sm font-black text-emerald-950">Lägg till nätägare</div>
-              <p className="mt-2 text-xs leading-5 text-emerald-900">För riktiga nätägare: fyll Ediel-ID, PRODAT-subadress och SMTP. Vid sparning hämtas Expisoft-certifikat automatiskt om inget certifikat redan är valt.</p>
+              <p className="mt-2 text-xs leading-5 text-emerald-900">För riktiga nätägare: fyll Ediel-ID, PRODAT-subadress och SMTP. SMTP och subadress används för att hämta Expisoft-certifikatet. Rutten registreras under <a href="/admin/ediel/routes" className="font-bold underline">Ediel-rutter</a>.</p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <input name="name" placeholder="Namn, t.ex. TVLAB" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" required />
                 <input name="organizationNumber" placeholder="Org.nr, valfritt" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
@@ -420,7 +428,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                 <textarea name="notes" rows={3} placeholder="Verifieringskälla, kontaktperson eller Ediel-registeranteckning" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm md:col-span-2" />
               </div>
               <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-3 text-xs leading-5 text-emerald-900">
-                Efter sparning: status verified, synlig i kundflöde, PRODAT kräver kryptering och Expisoft-certifikatet kopplas globalt om lookup lyckas.
+                Efter sparning: status verified och synlig i kundflöde. Expisoft-certifikatet kopplas globalt om sökningen lyckas. Rutter sparas inte här.
               </div>
               <button className="mt-4 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">Spara nätägare och sök certifikat</button>
             </form>
@@ -432,12 +440,8 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               <input type="hidden" name="status" value="verified" />
               <input type="hidden" name="source" value="manual_verified" />
               <input type="hidden" name="messageFamily" value="PRODAT" />
-              <input type="hidden" name="environment" value="production" />
-              <input type="hidden" name="transportSecurityMode" value="required_encrypted" />
-              <input type="hidden" name="certificateRequired" value="true" />
               <input type="hidden" name="lookupCertificateOnSave" value="true" />
               <input type="hidden" name="visibleToCustomerFlow" value="true" />
-              <input type="hidden" name="requiresSubaddress" value="true" />
               <div className="text-sm font-black text-blue-950">Lägg till elleverantör</div>
               <p className="mt-2 text-xs leading-5 text-blue-900">För externa elleverantörer eller marknadsmotparter. Elhandelsbolag ska dessutom ha eget bolagskort med Ediel-ID, route-profiler och privat PFX för inkommande krypterad trafik.</p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -450,7 +454,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                 <textarea name="notes" rows={3} placeholder="Roll: extern leverantör, tidigare leverantör, ny leverantör, testpart etc." className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm md:col-span-2" />
               </div>
               <div className="mt-4 rounded-2xl border border-blue-200 bg-white p-3 text-xs leading-5 text-blue-900">
-                Sparas som global motpart. Publikt certifikat återanvänds av alla bolag, men varje bolag skickar fortsatt med sin egen Ediel-identitet.
+                Sparas som global motpart. Publikt certifikat återanvänds av alla bolag, men varje bolag skickar fortsatt med sin egen Ediel-identitet. Rutten registreras under Ediel-rutter.
               </div>
               <button className="mt-4 rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white">Spara elleverantör och sök certifikat</button>
             </form>
@@ -459,7 +463,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-xl font-black text-slate-950">Skapa eller uppdatera Ediel-aktör</h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-            Riktiga nätägare kan markeras synliga i kundflödet. Edielportalen och kontrollmotparter ska inte vara synliga vid normal kundskapning. PRODAT-rader med tom affärskod gäller hela familjen och kan ersättas av en exakt Z13-/Z14-rad.
+            Riktiga nätägare kan markeras synliga i kundflödet. Edielportalen och kontrollmotparter ska inte vara synliga vid normal kundskapning. Rutter (familj, affärskod, miljö, SMTP och kryptering) registreras under <a href="/admin/ediel/routes" className="font-bold underline">Ediel-rutter</a>, som är den enda ruttauktoriteten.
           </p>
           <form action={saveEdielPartyRegistryEntryAction} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input name="name" placeholder="Namn" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -492,38 +496,12 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                 </label>
               ))}
             </div>
-            <input name="messageFamily" defaultValue="PRODAT" placeholder="Meddelandefamilj" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input name="businessCode" placeholder="Affärskod, tomt/* = familjeroute" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <select name="environment" defaultValue="test" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="test">test</option>
-              <option value="production">production</option>
-              <option value="agt">agt</option>
-            </select>
-            <input name="qualifier" defaultValue="ZZ" placeholder="Kvalificerare" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input name="subaddress" placeholder="PRODAT subadress, t.ex. PRODAT-SE" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input name="smtpAddress" placeholder="SMTP, t.ex. 11900@tvlab.se" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <select name="transportSecurityMode" defaultValue="required_encrypted" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="required_encrypted">Kryptering krävs</option>
-              <option value="encrypted">Krypterad</option>
-              <option value="unencrypted">Okrypterad</option>
-              <option value="needs_verification">Kräver verifiering</option>
-            </select>
+            <input name="subaddress" placeholder="PRODAT subadress för certifikatsökning" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input name="smtpAddress" placeholder="SMTP för certifikatsökning" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
-              <input type="checkbox" name="requiresSubaddress" value="true" />
-              Subadress krävs
+              <input type="checkbox" name="lookupCertificateOnSave" value="true" />
+              Sök Expisoft-certifikat vid sparning
             </label>
-            <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
-              <input type="checkbox" name="certificateRequired" value="true" defaultChecked />
-              Mottagarcertifikat krävs
-            </label>
-            <input name="receiverCertificateId" placeholder="Mottagarcertifikatets ID" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <select name="addressStatus" defaultValue="needs_verification" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
-              <option value="active">Aktiv</option>
-              <option value="needs_verification">Kräver verifiering</option>
-              <option value="inactive">Inaktiv</option>
-              <option value="expired">Utgången</option>
-            </select>
-            <input name="lastVerifiedAt" type="datetime-local" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <textarea name="notes" rows={3} placeholder="Anteckningar / verifieringskälla" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4" />
             <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">Spara Ediel-part</button>
           </form>
@@ -541,6 +519,9 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               <div><dt className="font-bold text-slate-500">Källa</dt><dd>{party.source === 'manual_verified' ? 'Manuellt verifierad' : party.source ?? '—'}</dd></div>
             </dl>
             <div className="mt-4 space-y-2">
+              {(addressesByParty.get(party.id) ?? []).length ? (
+                <p className="text-xs font-bold text-amber-800">Avvecklade adresser (läses inte av routing, registrera rutter under Ediel-rutter)</p>
+              ) : null}
               {(addressesByParty.get(party.id) ?? []).map((address) => (
                 <div key={address.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
                   <div className="font-mono font-bold text-slate-950">

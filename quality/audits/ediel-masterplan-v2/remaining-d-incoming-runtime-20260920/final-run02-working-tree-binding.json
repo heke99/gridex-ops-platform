@@ -1,0 +1,14 @@
+{
+  "note": "Final gate run02 started after all runtime edits and focused GREEN, while checkpoint typecheck/commit command was still running. Its captured runtimeCommit is the pre-fix HEAD; these exact source hashes identify the tested final working tree. No source edits occurred during gates. Final commit binding is added in companion final evidence, never by changing raw gate receipts.",
+  "capturedHead": "2f8ac76cf5b0c72bff9fa08ee80d9af6bf8a63c5",
+  "testedRuntimeFiles": [
+    {
+      "path": "lib/ediel/prodat/prodatIncomingSelectedAck.ts",
+      "sha256": "2ade78fdf527b2f7109a3262f68b1ad5b9918fa78c5bc67df10dedc98624ad6d"
+    },
+    {
+      "path": "lib/ediel/testing/prodatPermissionEngine.ts",
+      "sha256": "8e11eb44c4d1d87e18f2674a7e943d2cfbb0ee3451351fbd59891dfe46d1ead5"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow, EdielRouteProfileRow, EdielTestRunMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 import {
   isAgtPortalProdatAddress,
-  normalizeTransportSecurityMode,
+  resolveRouteTransportSecurityMode,
   transportSecurityModeToEncryptionMode,
 } from '@/lib/ediel/partyRegistry'
 
@@ -93,7 +93,6 @@ async function getRouteProfileForMessage(message: EdielMessageRow, run: EdielTes
   return (data as EdielRouteProfileRow | null) ?? null
 }
 
-
 function isAckMessageFamily(value: unknown): boolean {
   const family = String(value ?? '').trim().toUpperCase()
   return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
@@ -160,10 +159,10 @@ export async function validateEdielSendContext(params: {
   const linkedRuns = await listLinkedTestRuns(params.message.id)
   const linkedTestRun = linkedRuns[0] ?? null
   const routeProfile = await getRouteProfileForMessage(params.message, linkedTestRun)
-  const rawRouteTransportSecurityMode = routeProfile?.transport_security_mode ?? routeProfile?.transport_mode ?? null
-  const routeTransportSecurityMode = rawRouteTransportSecurityMode
-    ? normalizeTransportSecurityMode(rawRouteTransportSecurityMode)
-    : null
+  const routeTransportSecurityMode = resolveRouteTransportSecurityMode({
+    transportSecurityMode: routeProfile?.transport_security_mode,
+    encryptionMode: routeProfile?.encryption_mode,
+  })
   const routeEncryption = normalizeEncryptionMode(routeProfile?.encryption_mode)
   const selectedEncryptionMode = normalizeEncryptionMode(linkedTestRun?.encryption_mode)
   const routeTransportEncryption = transportSecurityModeToEncryptionMode(routeTransportSecurityMode)

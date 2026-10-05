@@ -1,0 +1,154 @@
+[
+  {
+    "path": "app/admin/ediel/actions.part-1.ts",
+    "sha256": "3f7f1ac7115f6ab07105e862dd9e9f8d7089223af3163ac6064cfe5487e02492"
+  },
+  {
+    "path": "app/admin/ediel/actions.part-3.ts",
+    "sha256": "9becffaee29646791e47a2ee6d060b8c3b6f0d24038fd9f912d39be081d4d046"
+  },
+  {
+    "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+    "sha256": "6fa5316e6428508f6b3d0a70b7a1428cc673ac084d2d28b928c513854c19f96f"
+  },
+  {
+    "path": "lib/ediel/actionAccess.ts",
+    "sha256": "f5fe2e4919e573205efe50857753b8edd7c8b6cbf7d3cd98d7400edf2588128f"
+  },
+  {
+    "path": "lib/ediel/types.ts",
+    "sha256": "c7722e9545e62cb51f8d66cffe7f4b10c140bfaff87bda4e881b28883fc6ef5a"
+  },
+  {
+    "path": "lib/supabase/service.ts",
+    "sha256": "0dcb62b49c731a2bb51cf088a922e8d731b6a21137222993da544faa3ee3cf1c"
+  },
+  {
+    "path": "lib/ediel/testing/prodatPermissionEngine.ts",
+    "sha256": "b8d2efd6873beb64bd84c62dc19bcb01731117ce0678f7d30ab73f98412816d0"
+  },
+  {
+    "path": "lib/ediel/prodat/prodatPermissionAckFields.ts",
+    "sha256": "3eaa3a51792a0a62227721efa01e3992da1c8aedd318827de084ed20341727a5"
+  },
+  {
+    "path": "lib/ediel/prodat/parser.ts",
+    "sha256": "2deb1745cf6054b8ea7741b63d5acbcc9f62ea81e10f2001556bb8ee4c25354e"
+  },
+  {
+    "path": "lib/ediel/prodat/prodatReferenceFields.ts",
+    "sha256": "ae15bcfff1c68caf6fd3227575cc3a15ba4e8d678e107d08f59a660a464e5192"
+  },
+  {
+    "path": "lib/ediel/prodat/prodatPartyFields.ts",
+    "sha256": "16cde25db70dd3d0b3a34dafba4104f5bd2906dc99aaeacab433d5f16405c7f1"
+  },
+  {
+    "path": "lib/ediel/core/edifactSegments.ts",
+    "sha256": "ddaa82263d0cb314bc4b7c8d263b41df3e0a9336e881c830f6df463747b98812"
+  },
+  {
+    "path": "lib/ediel/core/edifactTokenizer.ts",
+    "sha256": "3f1adfb97b63b59dfb838b603dcae6d1a0b98774ae51c82629786e5ab118332d"
+  },
+  {
+    "path": "lib/ediel/core/tenantResolver.ts",
+    "sha256": "421e5ecfa8b0ac5ed8b055ade6cfc9294acac444b1e85e3e600e1ece6535dcb9"
+  },
+  {
+    "path": "lib/ediel/core/executionContext.ts",
+    "sha256": "62da5b2ecd793e2d1a85887f37ebd58761cdb8e4786f28dec2d0e2e3732ab900"
+  },
+  {
+    "path": "lib/ediel/tenant/tenantEdielIdentity.ts",
+    "sha256": "42d64dd9a4ae492f147cb4c0d7b1d06a5d480cd54912dc34fa433ff85ca53753"
+  },
+  {
+    "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+    "sha256": "08ba3e3e56a7eb3c1291ff63f75f04c1e8cc81598624b2df1079ca4c4a716bb8"
+  },
+  {
+    "path": "lib/ediel/orchestrator.ts",
+    "sha256": "6ea4636a68f80386a16cd4582f074a1466f6ef234e021873d7e5e56ca24fa934"
+  },
+  {
+    "path": "lib/ediel/core/kernel.ts",
+    "sha256": "f459406d061eefebc42fc2ba5748052f65ee8a77003db3f93bb42e5ed75fae89"
+  },
+  {
+    "path": "lib/ediel/db.ts",
+    "sha256": "a3520d033d717bd3c13d3c2503791439875c0169a61e8c41e8200934bfb539d1"
+  },
+  {
+    "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
+    "sha256": "95ed69da67f22deb135fedba988375804f21540fff17eb68cb03beb4a35b68f6"
+  },
+  {
+    "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+    "sha256": "b7dbb77e6132a0aa48a79ac377f2db3aa28177e47b8b321b882912ac5154aad8"
+  },
+  {
+    "path": "lib/ediel/flows/inboundProcessing.ts",
+    "sha256": "0b2e6c0b99c663bf8101b2f4629b24443d917f1a91ce0c17716de9f588e4c574"
+  },
+  {
+    "path": "supabase/database.types.ts",
+    "sha256": "b839bc610ff376fe78469cd7266de7a1d205022afa96c9924e2a9b1f0b4da6e8"
+  },
+  {
+    "path": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+    "sha256": "0413f4dca84aca387297954b900a163aa63d0f84552570c372c12e8f8abdd693"
+  },
+  {
+    "path": "supabase/migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+    "sha256": "ac4d51086e0d6865de6012cc5e84ca524a59c094daccf987261afa2580a9f450"
+  },
+  {
+    "path": "supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql",
+    "sha256": "a30b8f1566d1368daad2b04e03bce094d32494104db0bf700c31aa0bb0185f9d"
+  },
+  {
+    "path": "__tests__/fixtures/prodat-energy-product.ts",
+    "sha256": "cea6d2038dd33cdce19312d0227761229c7af3855964a63a389e2119a526adb0"
+  },
+  {
+    "path": "__tests__/fixtures/prodat-identity.ts",
+    "sha256": "45fcb525bcf028815fede6223ffb9529788f731bf0d02486ee233d936064e4a1"
+  },
+  {
+    "path": "__tests__/fixtures/prodat-register.ts",
+    "sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2"
+  },
+  {
+    "path": "__tests__/ediel-prodat-energy-product-consumers.test.ts",
+    "sha256": "b717c5b377b09266cfd7002d7c1faa57f2a60333b73ebf5b1fae2f6309dbe651"
+  },
+  {
+    "path": "__tests__/ediel-prodat-permission-ack-consumers.test.ts",
+    "sha256": "ddc2eeb0c5d2f8df8e8c5c3c1cd99b87e1e6f231732eaf56a238fd77cf2248fc"
+  },
+  {
+    "path": "__tests__/ediel-prodat-document-consumers.test.ts",
+    "sha256": "83845f4867ff2f0fe8a82676f7f6f8fef432c224c72f6750fe0142bf1fa17590"
+  },
+  {
+    "path": "__tests__/ediel-prodat-party-consumers.test.ts",
+    "sha256": "f3f1109c175e972f1b2441f10af7571e02a935c7467b07a9a4c65ad409f5dd75"
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+    "sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191"
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+    "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.md",
+    "sha256": "13f15354e4c0e1f541a7bd96b57ea9fa96ca2bfde19b1257e212f0e2681858d2"
+  },
+  {
+    "path": ".agent-memory/permission-ack-source-review.md",
+    "sha256": "d99d95cfa62991ce463d5cd67342fc5ef1dbfd091e363f378f1fa2868285e514"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "35009150"
+  ],
+  "exit": 2,
+  "output": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/lint-initial.log:7: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-initial.log:5: new blank line at EOF.\n",
+  "note": "Raw logs retained byte-for-byte; implementation diff checked separately."
+}

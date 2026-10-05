@@ -19,27 +19,21 @@ function authorized(request: NextRequest) {
   })
 }
 
-function booleanParam(value: string | null) {
-  return ['1', 'true', 'yes', 'ja'].includes(String(value ?? '').trim().toLowerCase())
-}
-
 async function run(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
   }
-
   try {
     const result = await runMonthlyBillingAutomation({
       companyId: clean(request.nextUrl.searchParams.get('company_id')),
       billingMonth: clean(request.nextUrl.searchParams.get('billing_month')) ?? clean(request.nextUrl.searchParams.get('month')),
-      sendToPartner: booleanParam(request.nextUrl.searchParams.get('send_to_partner')),
     })
-    return NextResponse.json(result)
+    return NextResponse.json({ ...result, mode: 'prepare_only', approval_required: true })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[billing-monthly-cron] failed', { traceId, error })
     return NextResponse.json(
-      { ok: false, error: 'Månatlig faktureringsautomation kunde inte köras just nu.', code: 'billing_monthly_automation_failed', trace_id: traceId },
+      { ok: false, error: 'Månatlig fakturaförberedelse kunde inte köras just nu.', code: 'billing_monthly_automation_failed', trace_id: traceId },
       { status: 500 },
     )
   }

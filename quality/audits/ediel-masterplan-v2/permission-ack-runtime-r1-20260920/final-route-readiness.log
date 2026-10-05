@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 gridex:route-readiness-regression
+> node scripts/gridex-launch-regression.cjs route-readiness-regression
+
+Gridex launch regression passed: route-readiness-regression

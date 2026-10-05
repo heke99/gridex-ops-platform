@@ -1,0 +1,127 @@
+{
+  "scope": "source/evidence only; runtime unauthorized",
+  "base": "7ea935cf",
+  "branch": "codex/ediel-permission-prior-flow-20260920",
+  "originalPdf": {
+    "path": "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "pages": 140
+  },
+  "qualifiedRun": {
+    "tests": 69,
+    "pass": 54,
+    "deliberateRed": 15,
+    "observations": 55,
+    "observationControls": 53,
+    "literalOracles": 16,
+    "passedOracles": 1
+  },
+  "artifacts": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-source-20260920.md",
+      "sha256": "7b7f82f54c4f8d24102f171b8b7b007bc7bcac2192de40e0d8c9ef882b2348f2",
+      "bytes": 32887
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/frozen-integrity.log",
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+      "bytes": 197
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/input-hashes.json",
+      "sha256": "5c60a2d6cec7ef8562f8c0d2270ff6d2efc3792a8392a9a8c46ea68f36f714f7",
+      "bytes": 5597
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observation-qualified-summary.json",
+      "sha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+      "bytes": 19286
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observation-summary.json",
+      "sha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+      "bytes": 19286
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observations-final.json",
+      "sha256": "2e254b08cd4dc5a21c1d4bc154797bc7eec99194babe60a49f9288e20992c4c3",
+      "bytes": 502326
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observations-qualified-final.json",
+      "sha256": "337e0b39ff3bd6258c1e9cc523b590cb07b4ed7edf633ff75663f61453d7ee13",
+      "bytes": 506406
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/original-pdf-relevant-pages.txt",
+      "sha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+      "bytes": 99929
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/prior-receipt-hashes.json",
+      "sha256": "6d8cf8ff3f59d3ae008013cfd2c7e362f8cc9e0d4cd34baba3b580dd64a4ed4a",
+      "bytes": 6335
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/probe-final.test.ts.txt",
+      "sha256": "152402c4b3767baebfa963372633d894f367296e9215a770c862e3822ada2bd0",
+      "bytes": 19407
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/probe-qualified-final.test.ts.txt",
+      "sha256": "c68527da253ce5d43ce77dafd766f767551b4905966e2d9436ba9f76f5cad9a4",
+      "bytes": 19565
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/result-final.json",
+      "sha256": "a584ef9756bd65a2d41287afae6ee8dc2035b31631bb60b2567b6ad389620d03",
+      "bytes": 30938
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/result-qualified-final.json",
+      "sha256": "d844d8e7da2a14eda3fb81533e1b358d7e2f7c572bbf40bdd52c838803141694",
+      "bytes": 31108
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/run-final.log",
+      "sha256": "d36d0112a32f433078291c5f7c640f46d1c17da17b766ce3b4ac3b8ffa0038c5",
+      "bytes": 101
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/run-qualified-final.log",
+      "sha256": "be6b1afb1789ff7f3660e7a71b9fbbcbfbdd70652d2f03238483feb13d9234db",
+      "bytes": 111
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/task-1-report.md",
+      "sha256": "aedd0ccc4af351ffad9938e1c3e6d7b14a946dae3ee7df6f3cb6e3aebf603d46",
+      "bytes": 5978
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/verification.json",
+      "sha256": "29952d8ddf1a078fb9e24b0055d4f6dd3311ce309c4991dd05230d0c7da5c657",
+      "bytes": 10595
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/vitest-final.config.mjs.txt",
+      "sha256": "4920dc18c4757f14213c37a82541276bf0140051a635b5ceb14c5cee46903fc1",
+      "bytes": 282
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/vitest-qualified-final.config.mjs.txt",
+      "sha256": "5e16e672427199213b8cdec332a814058edd94492c82687f90dffcf1009223da",
+      "bytes": 292
+    }
+  ],
+  "preservation": {
+    "inputs": "permission-prior-flow-source-20260920/input-hashes.json",
+    "priorReceipts": "permission-prior-flow-source-20260920/prior-receipt-hashes.json",
+    "verification": "permission-prior-flow-source-20260920/verification.json"
+  },
+  "limits": [
+    "all DB/event/kernel/provider external effects mocked",
+    "no live exposure or grant mutation proven",
+    "no runtime/schema/existing-test/frozen-source edits",
+    "source review and runtime authorization pending"
+  ]
+}

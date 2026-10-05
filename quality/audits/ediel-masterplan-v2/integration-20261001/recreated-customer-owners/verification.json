@@ -1,0 +1,24 @@
+{
+  "baseline": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "provenance": "NEW_RECREATED_UNPUBLISHED_BYTES",
+  "oldCommitReceiptsRestored": false,
+  "criterionApproval": false,
+  "native": "NOT_RUN",
+  "concurrency": "NOT_RUN",
+  "publicHTTP": "NOT_RUN",
+  "interactiveBrowser": "NOT_RUN",
+  "build": "NOT_RUN",
+  "exactHeadCI": "NOT_RUN",
+  "boundedActualOwnerChecks": 21,
+  "unsupportedSubmitControl": "EXPECTED_FAIL",
+  "correctedArchive": "PASS",
+  "staticInvariants": "PASS",
+  "files": {
+    "supabase/migrations/20261001054122_ediel_bilateral_customer_classification_owner_bridge.sql": "f9eb6e466de24a6c3973249c192933d87c23f3a84718a5a9e0c3e8b2cb60da1a",
+    "supabase/migrations/20261001063426_ediel_customer_owner_entry_lock_prefix.sql": "05e6b88000bf8e3c6b837de243b8e5b623ce82d2c1c8cd5eb507593feafb813f",
+    "supabase/migrations/20261001070121_ediel_classified_customer_execution_scope.sql": "7691a63697d6136b5725433c5c2e7d7629c7798ee605588e8dcca8f80b5d7abc",
+    "scripts/ediel-recreated-customer-owners-regression.mjs": "062053c0ad82cecec77e6ff8e0dba78c439fa2aad28d55fcfdaaa453d81650d7",
+    "scripts/ediel-recreated-customer-owners-sql-regression.mjs": "f40e98df9c5fda847917be0ce13cb0fb0916050917cc3f7c63cf90fe959fe9c8",
+    "scripts/helpers/ediel-recreated-customer-owners-sql-fixture.mjs": "3e914fc4568cec0b234e02e735946d7f4d7ad5eaf3b5124cb2d3f8ec612474cc"
+  }
+}

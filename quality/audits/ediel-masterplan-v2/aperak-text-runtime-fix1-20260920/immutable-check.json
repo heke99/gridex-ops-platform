@@ -1,0 +1,582 @@
+[
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/codec-boundary-v1-source.txt",
+    "sha256": "f3f006c50fd801aee75422e667aceef7573acdd66709cdf3e2c1afc9e1f6ae5d",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/ediel-eight-attempt-1.log",
+    "sha256": "350959797c8ed02da97a93e6fa5356e5d6b822b0bbbd49d5e86e605db50cf1ca",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-diffcheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-ediel-eight.log",
+    "sha256": "1bf32de105011cc5bc6f71e30f5270d3d66856d9a9656fe52d6615ba2f52c6e5",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-gates.json",
+    "sha256": "37283c648a9219e253948ac3a5f60e958c8f0fd5680cc7233772a69ecc7027ea",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-integrity.log",
+    "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-large-files.log",
+    "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-lint.log",
+    "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-performance.log",
+    "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-ratchet.log",
+    "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-route-readiness.log",
+    "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-tenant-integrity.log",
+    "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-tenant-shutdown.log",
+    "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-typecheck-scripts.log",
+    "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-typecheck-tests.log",
+    "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-typecheck.log",
+    "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/full-final.json",
+    "sha256": "5604eaa910802c74de23b740d76b5d33042c95489f63714ac44c84eeceabfa4b",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/full-final.log",
+    "sha256": "1e4492a83814c67a9e602b491cd2d654a79f2205d43ed107cd922c091b07df12",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-amendment-1.json",
+    "sha256": "1fd16295ba606056c18541c7a5ac1f679d5a11de87bd0b72745b0762723a2e17",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-amendment-1.log",
+    "sha256": "f1a40a8d4b45a849451f134cbe285817af18addce8fa2972c9b99e0f1419559a",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-1.json",
+    "sha256": "c19fa19420bfe83fd0ab3df9d610a0afb9e7947e55b1f64da38706f22ad2b101",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-1.log",
+    "sha256": "d6b38d8abffdd9a114ef5dac747c008a4854a42c360fb833a873b3da7de9f34b",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-2.json",
+    "sha256": "ed30a55b93cbe0ab5a3bd7dd7bf69aa16222fd9d5ca54b8988fed815df4bcc6c",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-2.log",
+    "sha256": "4858f2f54f2b7199f28fb6ee3234d7b633348aeaf60c794398d3bc9ec6c8350b",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-completed-focused.json",
+    "sha256": "3a1a6624a494d4cb64d10c1ba19bc38c22d9f3bc071dfd99148953eb4fcce6c5",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-completed-focused.log",
+    "sha256": "806ae709565dba9fda36b24445aca74fda1fec14f655d66cba335b9dbe879418",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-final-focused.json",
+    "sha256": "f726a366daa10704439bb72a91ff818f727ca9a2e0cf36672b7e73b2e5e30cf3",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-final-focused.log",
+    "sha256": "cf6758196057e316373f903968525575aa832e1e0b5c3cafc8b524497ae90290",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-audit.json",
+    "sha256": "487933695ff607b5044d1679302edcf4a02cea77d5261f1e0a1f2e315fac487e",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-audit.log",
+    "sha256": "2d7155677691dc87502c01aa7715d52b5ba3c2da74738439347ec01540b14807",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-components.json",
+    "sha256": "ab0e45e1fe5095f6f96afac4b3c6a76bc66bcd48ae5ad3959695e0210612d69b",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-components.log",
+    "sha256": "8ad3062790f534d14a067d0f359f93f7cd1862e79819e03543a8f19f77e28951",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/immutable-source-check.json",
+    "sha256": "6cd2f5fa0bd69a2e01956c1ea18015b6a007f6c14603c74ed9d5481bcd8df5c1",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/lint-attempt-1.log",
+    "sha256": "910ab1142e31422b2952c2e2dcd316056a4d281768edf96f2427d59906a195c4",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint-2.json",
+    "sha256": "86fda4973eaddc3d9d35e889e505a858614aa077c39174d84c3b73aa96373a8b",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint-2.log",
+    "sha256": "f11258fb3c51b2bee621f7b621b7734b3b6e03cf3e76274b11a3d7899a8249fa",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint.json",
+    "sha256": "7313afd4ebef3cb6fc6c33c9e3447ae21d2842214605285352f4ad77531cd403",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint.log",
+    "sha256": "ea0025573d66986f85b35d8651e36a2bf3dd3d9ba9eb4e610d6ef4c7ef29ab06",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-amendment.json",
+    "sha256": "6f41217335e4fa991a86ee380131577aa49573bec03a884a5a390b78e5e0ff07",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-amendment.log",
+    "sha256": "5ae374839def16358ddbc343407f1cba5662790fc0f22726d12c30bf8df8a65c",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-boundary.json",
+    "sha256": "1402af684d6d2e5912f7ccaba794bc8627a1a6c71bd6624fee0e37fb8d52f851",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-boundary.log",
+    "sha256": "7dcb499e7aa36d84e6efb56771189ebe0f6f1d7280b0ef624147fcbb2599865a",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-evidence-1.json",
+    "sha256": "5fc6865848993281f24597457e8a4e38477a9ec17b7ab82df5b92055385bb583",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-evidence-1.log",
+    "sha256": "07e57d1054ba3173f5bb121a9d55c69a921ade35496dc58547408bf772cbaab2",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-initial.json",
+    "sha256": "c65073c6229d8a9141fd60e637d280c8bc1cb7ac0f9a016835d2ff3acc6adcc5",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-initial.log",
+    "sha256": "187e14fc04b0975c5691747c6785f22e632f017d3ae8b4dc2abd657033e7187f",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-meter-component.json",
+    "sha256": "24a1b499d524165858d49b2dfee18c8deff19756983682326abea27c41ada4e6",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-meter-component.log",
+    "sha256": "1412a175c83b2d4bac43b0b6500782e2cdbf73dfacf28aef0ebb961378d62e4e",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-audit.json",
+    "sha256": "64a60bd8676493b76363865ece2633e68123d1c3f9171b531397549bfa1aa349",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-audit.log",
+    "sha256": "7f9457ec3b79f0cf877d4fb0e32b069f3e5096b8a9a4b7f5d491026fde458062",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-components.json",
+    "sha256": "909850c8ed1bbd352735971984a32d92c960c852cecc3c11d91acc1cdab1956d",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-components.log",
+    "sha256": "7c170cc439ba71cd43eb6afaaf0a8ea5aeb32403a647bc60c872704d61cc94cb",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/runtime-task-report.md",
+    "sha256": "449899276903ebb7dfabe15816d3efa359869bb374c9ccd3fa6f69344b0365e0",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-app-attempt-1.log",
+    "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-attempt-1.log",
+    "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-tests-attempt-1.log",
+    "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "matches": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-tests-attempt-2.log",
+    "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/full-original.txt",
+    "sha256": "901992f0524cc7f226198aca39274bfdb3fcea279bc97661f1aa17e0c679bce6",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/integrity-v1.log",
+    "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts",
+    "sha256": "2b9bc70636ee6c1f0cf6e174042fd0687539cac6bc17fb6d3f0a397ea145f84c",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observations-v2.json",
+    "sha256": "43be7536208c2b3979ed3f662eec7f935dd3acb7fdf08640774f66702efb8ba7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observe-v1.test.ts",
+    "sha256": "bc43d8a2da40fad2c7716adf44bd99672b1f5a3281d20b27ec70eb131fb592c2",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observe-v2.test.ts",
+    "sha256": "b6a466705ccfbe7db321286359952fef359ac31dc75bfc70cf0131f4b550383c",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p104-104.png",
+    "sha256": "ee7ba7090a4e6dd45e85e0824c02d4d7097bdadd3232574bb2e386b051972727",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p105-105.png",
+    "sha256": "f4944481c1df5b121c18e27b24c1dab54c29c0cda2c91dd1911a38441b7bc86b",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p106-106.png",
+    "sha256": "7628564ef18fcb89ec3425a0678ed7677bc048aec348eb4c49042348d245f1a8",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p119-119.png",
+    "sha256": "106cc69ffd0f1ca9aad3946711546855b5b6df10c8b95cfea8fc958890a804f6",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p22-022.png",
+    "sha256": "c0478436420a5537f3f553cb987d89b32401864927d55f06c639a31b5e680413",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p79-079.png",
+    "sha256": "1906326e518d04b05f44033979eeccc6981abbd24fac82e062bc741fa2b41830",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p90-090.png",
+    "sha256": "0447847c325f3e665b7ca94bf7dd6f08f065c8a8918dc7d30c8526e77e33e53b",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p93-093.png",
+    "sha256": "6e442ebd9abfdf1e7998615fee0d7c81ae7c1df3259ef415f7e1c5505c990b72",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p94-094.png",
+    "sha256": "4ef8f08367a2025ec290809227f32d4f8cc642dc7e4aaf383bb6b505d14f7575",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-observation-v2.json",
+    "sha256": "14637dfcf7d1a6ace787b68c5054264f83d883058c44be92ddb30611bf84c5cf",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-observation.json",
+    "sha256": "630b5f39ca6a1103169ca93e616ea49d267663e98b6099a9608556da1a4fe2f7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-v2.test.ts",
+    "sha256": "9f8a678730fc7dc0c92ce1a33f987515a8df2e1cc305e7b5ea0d0af98f45517d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted.test.ts",
+    "sha256": "722ee2d53311df6759d26b6f0c3427aced8cf1b9c9215488f02985a169a79dd0",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v1.json",
+    "sha256": "b1ab1a5540b66cda69373e99059731111ec8a33f031ec674883bb3b20233f5ff",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v1.log",
+    "sha256": "2418b85f4347250d79a39bd70e7ed116fc50761fdff3879ddb410f78eab3ac10",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v2.json",
+    "sha256": "afa8bd91e36afb1562c28503ea2573244adf09b5edd5f2321f6ab5241263480e",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v2.log",
+    "sha256": "589b121afdd0d14bb7b3abcf90063fb35a33c71f52f18f6ff179709d9e1462d5",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-normative-v1.json",
+    "sha256": "8c29fe2292126461e93d18f7ac2dbd783769d2c5331bec7e6ead183641657452",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-normative-v1.log",
+    "sha256": "2ef787ab72a9f50a343d0935da5f54f887a213ee7f105c8570594891250273a7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v1.json",
+    "sha256": "f6376164a07fb1a72f262e23e6d13bd482015c30a1177176c0614a8e66cfdbbd",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v1.log",
+    "sha256": "0b8ba77e6d1dcac8fc1d374f4ea41689ede1b98244d4ce19772852346a0718d5",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v2.json",
+    "sha256": "ab6faab2c588791fff4019ce9a0e0695017b6d5429aae185167859faa3d32f7e",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v2.log",
+    "sha256": "0722bba07e35c73be9f019c44e517872df1b043b2a6832e7aab7156804028b8d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-observation-v2.json",
+    "sha256": "b71e364d01cedc22e3ed3f72a9d7c6400999a391a91dc1155077eb3490873a35",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-v1.test.ts",
+    "sha256": "b7ebf5bd2a1eac92a3f8e346c8c111b2b308a2843a1fe9b10f896d12b94b9cf7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-v2.test.ts",
+    "sha256": "f37a0acce00791d74447e609169aaad575345d07619620469e2b3c440fd180f5",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/vitest.config.mjs",
+    "sha256": "374c3eb5251772ebf7a6ab92a81c267ebe3b2593d5c4dfa554d12382fdf69f58",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-review-20260920/run-review.json",
+    "sha256": "8f3026b6905269c83e861fc7767b06acb2cd497e7ebf64e0542803dc93e14b1d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-review-20260920/run-capacity-review.json",
+    "sha256": "28004a5dd17337a0c000ea47170d92718692b67301cd04aa85421c33a5ac5c63",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-review-20260920/capacity-review.test.ts",
+    "sha256": "8c6f1d60ece91ddc0524327800b473c0e25cea1c4d2c12c21415a0a9f533acad",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/codec-baseline.test.ts",
+    "sha256": "006c00042ae5bc0c1f1d7cab0ee1763297aa83ff09484de0c3dd2437d7f84425",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/codec-observations.json",
+    "sha256": "0496ec8ddfb01f8186dc00f1a4ac9c04f6bfb3ae3c69d2fe54bd187bb1aee122",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/run-codec-baseline.json",
+    "sha256": "81926790b75d8e7a586582f8d86ce3444a45b8221c2a2880ead2048a0f81081c",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/vitest.config.mjs",
+    "sha256": "38d5c464395594c8aa0b7ab79ae76c422fa4ff08dd0945805b2fdc4afb472bf6",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-controls.test.ts",
+    "sha256": "c80a5fda77aa7986dd061f78053f4b21f52b0191519fcfbe1350148be5d0b48d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-observations.json",
+    "sha256": "cb0aa8d8dcd6c8c66dbda5926dff11a3eeacae5b800e939ed1bd0a6d642381ea",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-results.json",
+    "sha256": "04bbb91e681f16d6ae617627bab903de08e9738807f4c72e6debbca4a1449804",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-run.log",
+    "sha256": "3b95b51be5490131625a430f74abd18da48264570af80f12a43adf9bc2cf28dc",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner-observations.json",
+    "sha256": "9cc1fec096e08bd1e20f5a4a6bc9ac1335ae3c4cdc86632800995ff786315eae",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner-results.json",
+    "sha256": "b0b35c5eee1c0c84cac0cecdb12e952be30c0787a6f42ab74169b29efd9d66b0",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner-run.log",
+    "sha256": "2382a25c27b7eaaa2c947820a8bb329865b3455e1e5229a051ad0d8d4c508bb3",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner.test.ts",
+    "sha256": "d8e7f981cf80994ed8b64d4594af1d3fe3714f1af0cd4244c5408428441c5fc4",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/review-receipt-hashes.json",
+    "sha256": "4c24c03db90e92bd565d41d1427057dc7edb26bb472495c225953458d4cfcbd8",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-evidence.test.ts",
+    "sha256": "dfd3148ba7a6b0ecdd1a142e31ea6a482890faf68d0aed19a3cb7d2380db744b",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-observations.json",
+    "sha256": "a0a82d75971f0232ad83e1dcc902fccfc34cb100cb67aea9d729ca08cf5c435a",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-results-with-setup.json",
+    "sha256": "a653c954cea14c6c8b55bb370bd844fc62b1ea4b3809e921c2eccb45ff4ec5b8",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-results.json",
+    "sha256": "869b523b8e278a571766b83533a0898e46184abb3be9af4c6b8511414b207321",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-run-with-setup.log",
+    "sha256": "841fbf4a0c87774927d660782a59d4c5563f9689f876dea24d3cd9f184616d82",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-run.log",
+    "sha256": "3a49c845933a87d8f1ba39484dc669a7bba67007c41dad579ec80956fcf15c2f",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/verification.json",
+    "sha256": "d58ca8f50c2bd0f6cc188d010452dd539cb0477168e815eff54e6f85157a1b51",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/vitest-with-setup.config.mjs",
+    "sha256": "3af8ba7aef42d69625fdcdc4a452a93f27bf43ae0cf0e902e397b5240d2fc928",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/vitest.config.mjs",
+    "sha256": "30397706a6eac9bdce82d7f7120bdf3b77f514494361cd313aeb5bd276c55499",
+    "matches": true
+  }
+]

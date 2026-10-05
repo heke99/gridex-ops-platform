@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       external_customer_id: context.identity.external_customer_id,
       customer_number: context.identity.customer_number,
       email: context.identity.email,
-    })
+    }, context.client.company_id)
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1 })
     return customerPortalJson({

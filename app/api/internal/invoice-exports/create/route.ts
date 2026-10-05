@@ -1,8 +1,10 @@
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
-import { createInvoiceExportRun } from '@/lib/integrations/billing/invoiceExportCore'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,23 +12,44 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   const access = await requireAdminApiAccess(['billing.write', 'billing.export'])
   if (access.response) return access.response
-
   try {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : typeof body.company_id === 'string' ? body.company_id : null
-    const companyId = requestedCompanyId ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId) : await requireOperationalCompanyId(access.guard.userId)
+    const companyId = requestedCompanyId
+      ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId)
+      : await requireOperationalCompanyId(access.guard.userId)
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     if (!billingMonth) return NextResponse.json({ error: 'billing_month krävs.' }, { status: 400 })
 
-    const result = await createInvoiceExportRun({
+    const supabase = await createSupabaseServerClient()
+    const company = await supabase
+      .from('companies')
+      .select('billing_provider_environment,invoice_export_target_system')
+      .eq('id', companyId)
+      .maybeSingle()
+    if (company.error) throw company.error
+    if (!company.data) throw new Error('Tenant saknas.')
+    const { environment, provider } = requireTenantInvoiceProvider(company.data)
+
+    const result = await prepareInvoiceDraftsForReview({
       companyId,
       billingMonth,
-      environment: body.environment === 'production' ? 'production' : 'test',
-      financingMode: typeof body.financing_mode === 'string' ? body.financing_mode as never : typeof body.financingMode === 'string' ? body.financingMode as never : 'invoice_service',
+      environment,
+      provider,
       actorUserId: access.guard.userId,
     })
-    return NextResponse.json({ data: result })
+    return NextResponse.json({
+      data: result,
+      mode: 'prepare_only',
+      approval_required: true,
+      blocked_customers_are_not_reserved_or_sent: true,
+    })
   } catch (error) {
-    return internalApiError({ context: 'invoice_export_create_failed', error, code: 'invoice_export_create_failed', message: 'Fakturaexporten kunde inte skapas.' })
+    return internalApiError({
+      context: 'invoice_review_prepare_failed',
+      error,
+      code: 'invoice_review_prepare_failed',
+      message: 'Fakturorna kunde inte förberedas för granskning.',
+    })
   }
 }

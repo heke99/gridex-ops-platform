@@ -1,0 +1,31 @@
+{
+  "basis": "591131280604a569d26a88fca5dc29792c082c8f",
+  "reason": "Archived replay source must not be discovered by quality/**/*.test.ts or executed in CI; actual durable tests remain in __tests__.",
+  "relocations": [
+    {
+      "old_path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts",
+      "current_path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts.txt",
+      "sha256": "9cdfe24df4f511eb80459d3f881dd2a31a42d60493d8227c43846bb16df7daae",
+      "bytes": 2157,
+      "byte_identical": true
+    },
+    {
+      "old_path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts",
+      "current_path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts.txt",
+      "sha256": "d2fe661c9dcd5cde73241f2065b642644d0dbe42d201bbf56540e430bd66087c",
+      "bytes": 1429,
+      "byte_identical": true
+    },
+    {
+      "old_path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/vitest-with-setup.config.mjs",
+      "current_path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/vitest-with-setup.config.mjs.txt",
+      "sha256": "e4aa500a013d8a82d6308caca2f20d9591ab30af127536275f18ff69e89045d7",
+      "bytes": 277,
+      "byte_identical": true
+    }
+  ],
+  "historical_manifests": [
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/fix-evidence.json"
+  ],
+  "historical_manifest_policy": "Preserved byte-for-byte as the pre-relocation snapshot; current paths are recorded here, not fabricated as unchanged."
+}

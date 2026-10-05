@@ -1,0 +1,626 @@
+{
+  "systemRows": [
+    {
+      "id": "z14-valid-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z14. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z14"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z14-invalid-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z14. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z14"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z14-missing-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z14. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z14"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z14n-a76-a0",
+      "decision": {
+        "outcome": "negative",
+        "messageText": "40/105: The object could not be identified",
+        "applicationErrors": [
+          {
+            "ercCode": "40",
+            "fieldCode": "105",
+            "text": "The object could not be identified",
+            "referenceQualifier": null,
+            "referenceNumber": null,
+            "lineItemReference": "CASE:A+B?C"
+          }
+        ],
+        "ackScope": "transaction",
+        "relatedTransactionReference": "CASE:A+B?C",
+        "reason": "PRODAT backend validation selected prodat_permission_z14. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "facility_not_identified"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "40"
+        ],
+        "ftx": [
+          {
+            "code": "105",
+            "text": [
+              "The object could not be identified"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "LI",
+            "CASE:A+B?C"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z15-valid-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z15. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z15"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z15c-valid-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z15. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z15"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z15-invalid324-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z15. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z15"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "z18-invalid324-a0",
+      "decision": {
+        "outcome": "positive",
+        "messageText": null,
+        "applicationErrors": null,
+        "ackScope": null,
+        "relatedTransactionReference": null,
+        "reason": "PRODAT backend engine selected prodat_permission_z18. Engine decision matchar testförväntningen.",
+        "ruleKeys": [
+          "prodat_permission_z18"
+        ]
+      },
+      "wire": {
+        "erc": [
+          "100"
+        ],
+        "ftx": [
+          {
+            "code": "",
+            "text": [
+              "OK"
+            ]
+          }
+        ],
+        "refs": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    }
+  ],
+  "contextRows": [
+    {
+      "mode": "empty",
+      "decision": {
+        "outcome": "negative",
+        "applicationErrors": [
+          {
+            "ercCode": "40",
+            "fieldCode": "105",
+            "text": "The object could not be identified",
+            "referenceQualifier": "Z07",
+            "referenceNumber": "735123456789012345",
+            "lineItemReference": "CASE:A+B?C"
+          }
+        ],
+        "backendRuleKeys": [
+          "permission_flow_not_found"
+        ],
+        "backendIssueCount": 1,
+        "backendUnmappedRuleKeys": [],
+        "selectedTgtCaseCode": null
+      },
+      "error": null,
+      "events": [
+        {
+          "actorUserId": "synthetic",
+          "edielMessageId": "00000000-0000-4000-8000-000000000001",
+          "eventType": "manual_note",
+          "eventStatus": "warning",
+          "message": "PRODAT permission-engine valde negativ APERAK för Z14/Z15.",
+          "payload": {
+            "selectedTgtCaseCode": null,
+            "outcome": "negative",
+            "issues": [
+              {
+                "ruleKey": "permission_flow_not_found",
+                "ercCode": "40",
+                "fieldCode": "105",
+                "text": "The object could not be identified",
+                "lineItemReference": "CASE:A+B?C",
+                "meteringPointId": "735123456789012345",
+                "actualValue": "735123456789012345",
+                "expectedValue": "matching Z13 permission request"
+              }
+            ],
+            "backendRuleKeys": [
+              "permission_flow_not_found"
+            ],
+            "permissionContext": {
+              "hasMatchingPriorPermissionFlow": false,
+              "matchReason": "Ingen tidigare Z13 hittades för Z14 via CASE:A+B?C, PERMISSION, 735123456789012345, 001, CACHED-UNRELATED."
+            }
+          }
+        }
+      ],
+      "queries": [
+        [
+          "ediel_messages",
+          "select",
+          "id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at"
+        ],
+        [
+          "ediel_messages",
+          "eq",
+          "message_family",
+          "PRODAT"
+        ],
+        [
+          "ediel_messages",
+          "in",
+          "message_code",
+          [
+            "Z13"
+          ]
+        ],
+        [
+          "ediel_messages",
+          "not",
+          "status",
+          "in",
+          "(cancelled,failed)"
+        ],
+        [
+          "ediel_messages",
+          "lte",
+          "created_at",
+          "2026-09-20T11:01:51.548Z"
+        ],
+        [
+          "ediel_messages",
+          "order",
+          "created_at",
+          {
+            "ascending": false
+          }
+        ],
+        [
+          "ediel_messages",
+          "limit",
+          50
+        ],
+        [
+          "ediel_messages",
+          "eq",
+          "environment",
+          "test"
+        ]
+      ],
+      "persistCount": 1
+    },
+    {
+      "mode": "candidate",
+      "decision": {
+        "outcome": "positive",
+        "applicationErrors": null,
+        "backendRuleKeys": [],
+        "backendIssueCount": 0,
+        "backendUnmappedRuleKeys": [],
+        "selectedTgtCaseCode": null
+      },
+      "error": null,
+      "events": [
+        {
+          "actorUserId": "synthetic",
+          "edielMessageId": "00000000-0000-4000-8000-000000000001",
+          "eventType": "manual_note",
+          "eventStatus": "success",
+          "message": "PRODAT permission-engine valde positiv APERAK för tillståndsflödet.",
+          "payload": {
+            "selectedTgtCaseCode": null,
+            "outcome": "positive",
+            "issues": [],
+            "backendRuleKeys": [],
+            "permissionContext": {
+              "hasMatchingPriorPermissionFlow": true,
+              "matchReason": "Matchade tidigare Z13 unrelated"
+            }
+          }
+        }
+      ],
+      "queries": [
+        [
+          "ediel_messages",
+          "select",
+          "id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at"
+        ],
+        [
+          "ediel_messages",
+          "eq",
+          "message_family",
+          "PRODAT"
+        ],
+        [
+          "ediel_messages",
+          "in",
+          "message_code",
+          [
+            "Z13"
+          ]
+        ],
+        [
+          "ediel_messages",
+          "not",
+          "status",
+          "in",
+          "(cancelled,failed)"
+        ],
+        [
+          "ediel_messages",
+          "lte",
+          "created_at",
+          "2026-09-20T11:01:51.554Z"
+        ],
+        [
+          "ediel_messages",
+          "order",
+          "created_at",
+          {
+            "ascending": false
+          }
+        ],
+        [
+          "ediel_messages",
+          "limit",
+          50
+        ],
+        [
+          "ediel_messages",
+          "eq",
+          "environment",
+          "test"
+        ]
+      ],
+      "persistCount": 1
+    },
+    {
+      "mode": "unavailable",
+      "error": "[object Object]",
+      "events": [],
+      "queries": [
+        [
+          "ediel_messages",
+          "select",
+          "id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at"
+        ],
+        [
+          "ediel_messages",
+          "eq",
+          "message_family",
+          "PRODAT"
+        ],
+        [
+          "ediel_messages",
+          "in",
+          "message_code",
+          [
+            "Z13"
+          ]
+        ],
+        [
+          "ediel_messages",
+          "not",
+          "status",
+          "in",
+          "(cancelled,failed)"
+        ],
+        [
+          "ediel_messages",
+          "lte",
+          "created_at",
+          "2026-09-20T11:01:51.559Z"
+        ],
+        [
+          "ediel_messages",
+          "order",
+          "created_at",
+          {
+            "ascending": false
+          }
+        ],
+        [
+          "ediel_messages",
+          "limit",
+          50
+        ],
+        [
+          "ediel_messages",
+          "eq",
+          "environment",
+          "test"
+        ]
+      ],
+      "persistCount": 0
+    },
+    {
+      "mode": "cached-nonpermission",
+      "decision": {
+        "outcome": "positive",
+        "applicationErrors": null,
+        "backendRuleKeys": [],
+        "backendIssueCount": 0,
+        "backendUnmappedRuleKeys": [],
+        "selectedTgtCaseCode": null
+      },
+      "error": null,
+      "events": [
+        {
+          "actorUserId": "synthetic",
+          "edielMessageId": "00000000-0000-4000-8000-000000000001",
+          "eventType": "manual_note",
+          "eventStatus": "success",
+          "message": "PRODAT permission-engine valde positiv APERAK för tillståndsflödet.",
+          "payload": {
+            "selectedTgtCaseCode": null,
+            "outcome": "positive",
+            "issues": [],
+            "backendRuleKeys": [],
+            "permissionContext": null
+          }
+        }
+      ],
+      "queries": [],
+      "persistCount": 1
+    }
+  ]
+}

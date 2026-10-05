@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "title": "Concrete retention runtime gaps; code/schema inventory, not live data counts",
+  "source_snapshot": {
+    "public_commit": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+    "local_unpublished_review_commit": "2e380bd29b84cd728c83e9a2557ee96f53419de7",
+    "public_binding_limits": "New local proposals are identified explicitly; no local commit is asserted published"
+  },
+  "native_execution": "NOT_RUN_FOR_WHOLE_INVENTORY",
+  "whole_db05_accepted": false,
+  "families": [
+    {
+      "family": 1,
+      "scope": "gridex_ediel_retention.issuers",
+      "fields": [
+        "legal_evidence BYTEA",
+        "legal_hash",
+        "signing_key BYTEA"
+      ],
+      "actual_gap": "No qualified legal-original/key retirement consumer; valid_to is competence validity, not a retention decision. Current issuer authority must be revoked before physical erasure, with each bound witness purpose qualified separately."
+    },
+    {
+      "family": 2,
+      "scope": "decisions/blob_decisions/record_decisions/process_decisions/decision_evidence_policies/finance_decisions/invoice_file_decisions/customer_decisions",
+      "fields": [
+        "issuer_receipt",
+        "actor/customer/contract/target metadata"
+      ],
+      "actual_gap": "Remaining signed personal metadata has no separate closed-metadata retirement workflow after original-byte purge."
+    },
+    {
+      "family": 3,
+      "scope": "Those decision families' reviews/revocations",
+      "fields": [
+        "actor_user_id",
+        "reason"
+      ],
+      "actual_gap": "Separate journal narrative retirement absent; active reviewer/revocation authority must not be deleted or cascaded."
+    },
+    {
+      "family": 4,
+      "scope": "Those families' purges/tombstones/events and invoice/customer/storage captures",
+      "fields": [
+        "actor/target/source/customer/contract/storage_path/purpose references"
+      ],
+      "actual_gap": "Separate qualified minimal-witness purpose lifecycle absent; retain anti-rehydration and accepted replay until independently qualified retirement.",
+      "exact_original_artifact_history_table": "gridex_ediel_retention.purges"
+    },
+    {
+      "family": 5,
+      "scope": "record/process/finance/invoice/decision tombstones + process_retention_origins",
+      "fields": [
+        "journal_retain_until",
+        "journal_purpose_reference"
+      ],
+      "actual_gap": "Recorded journal periods have no deadline enforcement consumer. Earlier artifact/customer/blob families lack such periods; guessed backfill is prohibited."
+    },
+    {
+      "family": 6,
+      "scope": "gridex_ediel_retention.process_retention_origins",
+      "fields": [
+        "original_hash",
+        "redacted_hash",
+        "source_table",
+        "target_id",
+        "decision_id",
+        "journal purpose"
+      ],
+      "actual_gap": "Residual identity/purpose lifecycle absent. These rows contain no OLD/NEW body bytes and are not raw-byte copies."
+    },
+    {
+      "family": 7,
+      "scope": "public.audit_logs",
+      "fields": [
+        "actor_user_id",
+        "old_values",
+        "new_values",
+        "metadata",
+        "entity/resource identifiers"
+      ],
+      "actual_gap": "Qualified audit-field retirement with revision continuity absent; actual personal copies cannot be declared retained forever without qualified purpose."
+    },
+    {
+      "family": 8,
+      "scope": "gridex_customer_life_events.inbound_classifications + classification_revocations",
+      "fields": [
+        "source_original",
+        "classification_original"
+      ],
+      "actual_gap": "Three actual byte originals need separate policies/consumers. Local081500 is not coherent until actual STABLE owner-proof locking defect is corrected and verified; genuine native positive pending."
+    },
+    {
+      "family": 9,
+      "scope": "gridex_customer_masterdata.signed_declarations + preparations",
+      "fields": [
+        "agreement_original",
+        "source_original",
+        "basis.sourceProof.rowProof(.base) copies"
+      ],
+      "actual_gap": "Exact direct/prepared JSON byte copies require separate workflow. New083000 is isolated uncommitted WIP. Actual legacy publication ingress absent; prepared hashes are continuity witnesses, not authority to delete unrelated JSON."
+    },
+    {
+      "family": 10,
+      "scope": "gridex_metering_method_changes.events + contract_request_declarations",
+      "fields": [
+        "agreement_original",
+        "source_original"
+      ],
+      "actual_gap": "Four actual legal/source byte copies are assigned to083000; whole native producer/current source/retirement proof pending.",
+      "public_migration_blob": "3cc837a422d2a425806df05ffd025c99901486c3"
+    },
+    {
+      "family": 11,
+      "scope": "gridex_brp_sources.contract_declarations",
+      "fields": [
+        "agreement_original",
+        "source_original"
+      ],
+      "actual_gap": "Separate qualified BRP copy-retention consumer absent.",
+      "public_migration_blob": "9da8949827b79bee8ff5063c9127c37d16ce8b6d"
+    },
+    {
+      "family": 12,
+      "scope": "gridex_customer_life_events.certification_classifications + certification_classification_revocations",
+      "fields": [
+        "workbook_original",
+        "classification_original",
+        "source_original"
+      ],
+      "actual_gap": "Three actual certification originals lack a qualified retirement consumer and fresh consumer hold."
+    },
+    {
+      "family": 13,
+      "scope": "gridex_received_sources.prodat_object_graph_receipts (local55436)",
+      "fields": [
+        "source/command/result hashes",
+        "case/source/company/environment/actor/assessment/object identifiers",
+        "recorded_at"
+      ],
+      "actual_gap": "Contains hashes and identifiers, no command/result snapshots or raw body. Residual linkable witness retention-purpose lifecycle absent; not a byte-copy class.",
+      "public_in_snapshot": false
+    },
+    {
+      "family": 14,
+      "scope": "New unpublished national H gridex_supply_rescission.artifacts",
+      "fields": [
+        "source_bytes",
+        "source_hash",
+        "scope_hash"
+      ],
+      "actual_gap": "Future source family requires its own national_supply_rescission_ground_original purpose; cannot borrow customer/bilateral policy.",
+      "public_in_snapshot": false
+    },
+    {
+      "family": 15,
+      "scope": "gridex_ediel_retention.permission_v1 dated public.user_permission_overrides",
+      "fields": [
+        "valid_from",
+        "valid_to"
+      ],
+      "actual_gap": "Override date checks use transaction-start now(); actual current clock after relevant waits is missing. Recovery081731 alone owns the narrow forward; no written/tested claim."
+    }
+  ],
+  "qualified_external_facts": "Actual issuer/representation/legal purpose/deadline/witness period remain separate fact prerequisites. The missing internal producers, reviews, current consumers and physical enforcement above are not blanket external blockers.",
+  "known_public_source_blobs": {
+    "artifact_issuer_review_purge_00500": "d1e073b7a1a46707b22b97c63d32020014b850ed",
+    "current_retention_authority_00710": "56a953e3f58d1e168c0df61f0c6f47860c8cb5e3",
+    "life_event_classified_source_23512": "e900d8dd887243b27f9d6bb2c2eecd0b2d9b8e39"
+  }
+}
+

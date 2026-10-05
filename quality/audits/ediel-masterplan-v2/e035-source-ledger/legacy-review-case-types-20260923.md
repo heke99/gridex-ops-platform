@@ -1,0 +1,9 @@
+# E035 bounded adjacent review case-type audit — 2026-09-23
+
+Implementer report: `.superpowers/sdd/market-structure-plan-20260922/legacy-review-case-types-report.md`.
+
+Confirmed defect: shared legacy `createReviewCase` emitted four `case_type` values excluded by the actual `customer_cases_type_check`; the writer propagated constraint failures on Z05C ambiguous continuation, Z06 masterdata, Z10 meter change, and inbound unexpected-direction review. Test-only RED: 4 CHECK failures / 7 pass. Explicit repair: existing CHECK-valid `other` plus branch-specific typed intent in `reason_category` and `metadata.review_intent`; supported rejection categories and qualified closure remain unchanged. GREEN: 11/11 focused; app/tests/scripts typechecks and focused lint exit 0; full local Vitest 5913/360 pass; native PostgreSQL **pending**.
+
+The real admin control-tower tenant-scoped case count/recent-row query includes Ediel cases, but its row/count navigation leads to `/admin/customer-cases`, which filters to `metadata.support_case` or `tenant_support_` sources and has no case detail route. Thus the persisted internal Ediel review case is visible only as a recent control-tower signal, not actionable in that support queue. Tenant support API has the same intentional support-only boundary. Do not infer operator completion or widen customer-channel visibility from persistence; route/permission design requires separate scope and review.
+
+Native test change asserts real Z06/E64, Z06/E32 and Z10/E58 persisted rows before separate original-review approval, retaining unavailable source pre-review and existing accepted-source/supply assertions. No locally available PostgreSQL; independent scoped review, exact-head native and ordinary publication still required. No schema/authority/hosted mutation; full E035 remains open.

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { getVerifiedAuthUser } from '@/lib/auth/currentUser'
 import { logoutAction } from '@/lib/auth/logoutAction'
 
 export const dynamic = 'force-dynamic'
@@ -10,11 +11,8 @@ export default async function DashboardLayout({
 }: {
   children: ReactNode
 }) {
-  const supabase = await createSupabaseServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getVerifiedAuthUser()
+  if (!user) redirect('/login')
 
   return (
     <div className="min-h-screen bg-[#f6faf7] text-slate-900">
@@ -55,7 +53,7 @@ export default async function DashboardLayout({
                 Inloggad
               </p>
               <p className="mt-1 max-w-[220px] truncate text-sm font-semibold text-slate-800">
-                {user?.email ?? 'Användare'}
+                {user.email ?? 'Användare'}
               </p>
             </div>
 

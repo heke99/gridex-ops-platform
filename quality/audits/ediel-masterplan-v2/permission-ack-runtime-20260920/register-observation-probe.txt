@@ -1,0 +1,10 @@
+import {it} from 'vitest'
+import {writeFileSync} from 'node:fs'
+import {permissionAckMessage as message,permissionAckObject as object,alphabets} from './fixtures/prodat-permission-ack'
+import {validateProdatRegisterPayload} from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+it('capture existing duplicate-ref register boundary',()=>{
+ const first=object('Z15','S17','A75','X99'),second=object('Z15','S17','A75','X99','2');second[0]=[...first[0]];second[0][1]='2'
+ const m=message('Z15','S17','A75','B79',alphabets[0],[...first,...second]),wire=tokenizeEdifact(m.raw_payload)
+ writeFileSync('/workspace/scratch/2a201d6d5897/permission-ack-register-boundary.json',JSON.stringify({message:m,issues:validateProdatRegisterPayload({code:'Z15',rawSegments:wire.segments.map(t=>t.raw),una:wire.una,requireConditions:false})},null,2))
+})

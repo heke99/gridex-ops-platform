@@ -1,0 +1,60 @@
+{
+  "criterion": "DB05 / E035 eight actual contract/masterdata original and prepared copies",
+  "wholeLiteralApproved": false,
+  "classes": [
+    "masterdata_declaration_agreement_original_bytes",
+    "masterdata_declaration_source_original_bytes",
+    "masterdata_preparation_agreement_original_bytes",
+    "masterdata_preparation_source_original_bytes",
+    "metering_contract_request_agreement_original_bytes",
+    "metering_contract_request_source_original_bytes",
+    "metering_method_event_agreement_original_bytes",
+    "metering_method_event_source_original_bytes"
+  ],
+  "dependency": "NEW restored Transport 45e7b278 / 081500 concrete sourceadapter six legal-policy APIs; existing record_decision_evidence current explicit grant only",
+  "files": {
+    "supabase/migrations/20261001083000_ediel_contract_original_copy_retention.sql": "c66741c5cef68cad1df353be549e5eaaf61fd49b19d821e44bbf85f4c1546354",
+    "lib/ediel/retention/decisionEvidenceClasses.ts": "f110dab1407076a784ea93ab990bc2547cad0741b67a5789acf63599e1109430",
+    "app/retention/decision-evidence/workspace.tsx": "3573428214c224b2081185c5071fe61b63066d33b4330995c5c635bcad58a348",
+    "__tests__/ediel-decision-evidence-retention-port.test.ts": "4c6f452aa9ce03b073336cd509ca78fc14c78a4f961ef53dc86355a6a6da911d",
+    "scripts/ediel-contract-original-copy-sql-regression.mjs": "503fbe3669a6325ef0b54db5a905630ecd521609c281ecf2882238379a484e32",
+    "scripts/helpers/ediel-contract-original-copy-sql-fixture.mjs": "9644aa6118236a06d7b1e402d2382559636120c1c214896bc2130968beb2bde2",
+    "scripts/ediel-contract-original-copy-native.test.ts": "5b19b9f0f662c232407b2729223030f919d66ba85daa79716f5095cc3529a51d"
+  },
+  "observedMechanics": {
+    "sql": "PASS actual eight adapters and preserved predecessor functions; total chained native-SQL mechanism259\u2192265 checks after exact late-audit and post-tombstone DENY oracles",
+    "boundaries": "FINITE SYNTHETIC schema/Auth/issuer/current-contract graph and seeded UNQUALIFIED source originals; NOT Supabase replay, real legal/source approval or physical Storage proof",
+    "oracles": [
+      "separate exact class/HMAC policy/current separate reviewer",
+      "current deny and same-TX late deny have zero new source-copy revocations/tombstones/body changes",
+      "final audit failure rolls back exact original body and both ledgers",
+      "each physical field NULL independently; source hash, original preparation basis_hash, E history and all other metadata unchanged",
+      "private role/read/execute denied; no original restoration",
+      "registered-address preparation remains available despite older customer declaration copies purged",
+      "OID/owner/ACL/security config/volatility of selected actual source consumers preserved"
+    ],
+    "ports": {
+      "passed": 27,
+      "failed": 0,
+      "scope": "finite Auth/RPC session port only"
+    },
+    "scopedTypes": "PASS actual new class map/workspace/native-file roots0diagnostics, not whole app",
+    "lint": "PASS scoped files0errors; removed unused import after last fixture run"
+  },
+  "native": {
+    "suite": "scripts/ediel-contract-original-copy-native.test.ts",
+    "cases": 2,
+    "result": "NOT_RUN",
+    "scope": "actual installed ACL/volatility and genuine native signed-contract/PDF archive/GoTrue negative legacy-source reads; no private approved source inserted"
+  },
+  "remainingInternal": [
+    "083100 actual original archive/separate qualification producer for three legacy namespaces",
+    "actual native positive producer/class-specific purge/revocation/expiry/two-session proof",
+    "interactive existing standalone decision-evidence class workspace same frozen candidate",
+    "authentic exact-head clean+upgrade/generated parity/build/CI"
+  ],
+  "externalConditions": [
+    "source-specific real issuer/legal representation and source original competence; no private signer authority supplied by this implementation",
+    "class-specific real signed retention policy/purpose/deadline/current independent review; no periods inferred"
+  ]
+}

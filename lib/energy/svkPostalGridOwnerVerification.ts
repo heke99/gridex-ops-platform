@@ -323,7 +323,40 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
   }
 
   const now = new Date()
-  const resolvedPriceArea = verification.priceArea ?? normalizePriceArea(input.currentPriceArea)
+  let resolvedPriceArea = verification.priceArea ?? normalizePriceArea(input.currentPriceArea)
+  let retainedPriceAssurance: JsonRecord | null = null
+  if (!verification.priceArea) {
+    const current = await supabaseService
+      .from('customer_sites')
+      .select('grid_owner_id,price_area_code,resolution_id')
+      .eq('id', input.siteId)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .maybeSingle()
+    if (current.error) throw current.error
+    const existingPriceArea = normalizePriceArea(current.data?.price_area_code)
+    if (clean(current.data?.grid_owner_id) === verification.gridOwnerId && existingPriceArea) {
+      const previousResolutionId = clean(current.data?.resolution_id)
+      if (!previousResolutionId) return unresolved('ambiguous', { ...verification, status: 'ambiguous', evidence: { ...verification.evidence, existing_price_assurance_unverified: true } })
+      const previous = await supabaseService
+        .from('customer_site_resolution')
+        .select('price_area,price_area_assurance_status,price_area_assurance_source,price_area_assurance_confidence,price_area_assurance_source_version,price_area_candidate_count,price_area_unique_count,price_area_evidence')
+        .eq('id', previousResolutionId)
+        .eq('company_id', input.companyId)
+        .eq('customer_id', input.customerId)
+        .eq('customer_site_id', input.siteId)
+        .maybeSingle()
+      if (previous.error) throw previous.error
+      const prior = previous.data
+      const safe = prior && normalizePriceArea(prior.price_area) === existingPriceArea && (
+        prior.price_area_assurance_status === 'verified' ||
+        (prior.price_area_assurance_status === 'estimated' && confidenceValue(prior.price_area_assurance_confidence) >= 0.8 && prior.price_area_unique_count === 1)
+      )
+      if (!safe) return unresolved('ambiguous', { ...verification, status: 'ambiguous', evidence: { ...verification.evidence, existing_price_assurance_unverified: true } })
+      resolvedPriceArea = existingPriceArea
+      retainedPriceAssurance = Object.fromEntries(Object.entries(prior).filter(([field]) => field !== 'price_area'))
+    }
+  }
   const hasPriceArea = Boolean(resolvedPriceArea)
   const evidence = {
     ...verification.evidence,
@@ -374,6 +407,9 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
       price_area_candidate_count: hasPriceArea ? 1 : 0,
       price_area_unique_count: hasPriceArea ? 1 : 0,
       price_area_evidence: evidence,
+      // Preserve the previous binding's price proof; postcode geography alone
+      // must not upgrade its source, status or confidence to master verification.
+      ...retainedPriceAssurance,
       updated_at: now.toISOString(),
     })
     .select('id')
@@ -407,7 +443,7 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
   if (!update.data?.length) {
     const existing = await supabaseService
       .from('customer_sites')
-      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id,metadata')
+      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id,resolution_status,updated_at,metadata')
       .eq('id', input.siteId)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
@@ -416,6 +452,10 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
 
     const existingOwner = clean(existing.data?.grid_owner_id)
     const existingArea = normalizeGridAreaCode(existing.data?.grid_area_code)
+    const existingPriceArea = normalizePriceArea(existing.data?.price_area_code)
+    if (existingPriceArea && existingPriceArea !== resolvedPriceArea) {
+      return unresolved('ambiguous', { ...verification, status: 'ambiguous', evidence: { ...verification.evidence, concurrent_price_area_conflict: true } })
+    }
     if (existingOwner === verification.gridOwnerId && existingArea === verification.gridAreaCode) {
       return verification
     }
@@ -423,15 +463,15 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
     // Matching owner with missing/stale area cannot use the null-owner filter.
     // Rebind resolution_id under the matching owner so the materialization guard
     // projects grid_area_code. Never write selected_grid_owner_id as authority.
-    if (existingOwner === verification.gridOwnerId) {
-      const reconcile = await supabaseService
+    if (existingOwner === verification.gridOwnerId && !['manual_verified', 'facility_verified'].includes(clean(existing.data?.resolution_status)?.toLowerCase() ?? '')) {
+      let reconcileQuery = supabaseService
         .from('customer_sites')
         .update({
           resolution_id: resolutionId,
           resolution_status: 'grid_area_master_validated',
           resolution_confidence: verification.confidence,
           metadata: {
-            ...(input.metadata ?? metadataOf((existing.data ?? {}) as JsonRecord)),
+            ...metadataOf((existing.data ?? {}) as JsonRecord),
             svk_postal_grid_owner_verification: {
               ...evidence,
               resolution_id: resolutionId,
@@ -444,7 +484,11 @@ export async function applyUniqueSvkPostalGridOwnerToSite(input: {
         .eq('company_id', input.companyId)
         .eq('customer_id', input.customerId)
         .eq('grid_owner_id', verification.gridOwnerId)
-        .select('id,grid_owner_id,grid_area_code,resolution_id')
+      for (const field of ['resolution_id', 'grid_area_code', 'price_area_code', 'resolution_status', 'updated_at'] as const) {
+        const value = existing.data?.[field]
+        reconcileQuery = value == null ? reconcileQuery.is(field, null) : reconcileQuery.eq(field, value)
+      }
+      const reconcile = await reconcileQuery.select('id,grid_owner_id,grid_area_code,resolution_id')
       if (reconcile.error) throw reconcile.error
       if (reconcile.data?.length) return verification
     }

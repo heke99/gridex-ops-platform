@@ -1,0 +1,18 @@
+{
+  "created_utc": "2026-10-05T16:34:27.352648+00:00",
+  "pr": 561,
+  "head": "16e7c71d8f307cf193a5ef14be6b5aad9db8d74c",
+  "actual_main_before": "de6d22bea64cf2b8810969cb87924128176ebab1",
+  "expected_merge_tree": "99633083b4aa204d1c205af1e47e2ac198f006a6",
+  "selected_non_ledger_source_hashes_verified": 50,
+  "owned_paths": 50,
+  "coverage_changed_only": [
+    "SC-051",
+    "SC-068"
+  ],
+  "all_other_rows_metadata_order_preserved": true,
+  "whole_approval_comment": 5996441993,
+  "carry_comment": 5997484502,
+  "tests_repeated": false,
+  "verdict": "MERGE_QUALIFIED_EXACT_HEAD"
+}

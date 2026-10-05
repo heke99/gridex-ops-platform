@@ -1,3 +1,4 @@
+import { getPortfolioMonthForCompany } from '@/lib/analytics/customerPortfolio'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -10,6 +11,7 @@ import {
   type GovernanceCompany,
 } from '@/lib/tenant/governance'
 import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
+import { loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 import { getCompanyActorConfiguration, type CompanyActorConfiguration, type EdielConfigRow } from '@/lib/ediel/companyActorConfiguration'
 import { CopyButton, CopyDnsRecordsButton } from '@/components/admin/email/CopyButtons'
 import { getCompanyEmailSettings, getEffectiveSender, type CompanyEmailSettings } from '@/lib/email/companyEmailSettings'
@@ -40,6 +42,7 @@ import {
 import { archiveLegalTextVersionAction, createLegalTextVersionAction, publishLegalTextVersionAction, seedDefaultLegalPackageAction } from './legal-actions'
 import CopyPublicLegalLink from '@/components/admin/legal/CopyPublicLegalLink'
 import { buildPublicLegalUrl } from '@/lib/legal/publicLegalDocuments'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -268,12 +271,11 @@ function countDisplay(
 
 async function getCompanyOperationalStats(companyId: string): Promise<CompanyOperationalStats> {
   const from = monthStartIso()
-  const [newCustomersThisMonth, closedCustomersThisMonth, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth] = await Promise.all([
-    safeCompanyCount('customers', companyId, [{ column: 'created_at', op: 'gte', value: from }]),
-    safeCompanyCount('customers', companyId, [
-      { column: 'updated_at', op: 'gte', value: from },
-      { column: 'status', op: 'in', value: ['terminated', 'moved', 'closed', 'inactive'] },
-    ]),
+  // New/closed customers use the shared supply-period definition (Kundportfölj).
+  const [portfolio, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth] = await Promise.all([
+    getPortfolioMonthForCompany(companyId, from)
+      .then((row) => ({ ok: true as const, row }))
+      .catch((error: { code?: string }) => ({ ok: false as const, errorCode: error?.code ?? 'portfolio' })),
     safeCompanyCount('customer_operation_tasks', companyId, [
       { column: 'task_type', value: 'customer_withdrawal_followup' },
       { column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] },
@@ -287,8 +289,8 @@ async function getCompanyOperationalStats(companyId: string): Promise<CompanyOpe
   ])
 
   return {
-    newCustomersThisMonth: countDisplay(newCustomersThisMonth),
-    closedCustomersThisMonth: countDisplay(closedCustomersThisMonth),
+    newCustomersThisMonth: portfolio.ok ? portfolio.row?.newCustomers ?? 0 : `Kunde inte hämtas (${portfolio.errorCode})`,
+    closedCustomersThisMonth: portfolio.ok ? portfolio.row?.churnedCustomers ?? 0 : `Kunde inte hämtas (${portfolio.errorCode})`,
     openWithdrawals: countDisplay(openWithdrawals),
     queuedEmails: countDisplay(queuedEmails),
     failedEmails: countDisplay(failedEmails),
@@ -623,7 +625,7 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
         <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <legend className="mb-3 w-full text-base font-black text-slate-950">Status</legend>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 md:col-span-3">
-            Bolagsstatus: {company.status}. Status ändras endast genom de auditerade styrningsåtgärderna på bolagsöversikten; profilformuläret kan inte kringgå readiness eller stängningskontroller.
+            Bolagsstatus: {formatStatusLabel(company.status)}. Status ändras endast genom de auditerade styrningsåtgärderna på bolagsöversikten; profilformuläret kan inte kringgå readiness eller stängningskontroller.
           </div>
         </fieldset>
 
@@ -1275,7 +1277,7 @@ function CompanyEmailSection({
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Kund</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Mottagare</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Felorsak</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {logs.length === 0 ? <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-600">Inga utskick loggade ännu.</td></tr> : null}
-              {logs.map((log) => <tr key={log.id}><td className="px-4 py-3">{formatDate(log.created_at)}</td><td className="px-4 py-3">{log.customer_number ?? log.customer_id ?? '–'}</td><td className="px-4 py-3">{log.event_key ?? log.template_key ?? '–'}</td><td className="px-4 py-3">{log.recipient_email}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${statusTone(log.status)}`}>{log.status}</span></td><td className="max-w-sm px-4 py-3 text-xs text-red-700">{log.error_message ?? '–'}</td></tr>)}
+              {logs.map((log) => <tr key={log.id}><td className="px-4 py-3">{formatDate(log.created_at)}</td><td className="px-4 py-3">{log.customer_number ?? log.customer_id ?? '–'}</td><td className="px-4 py-3">{log.event_key ?? log.template_key ?? '–'}</td><td className="px-4 py-3">{log.recipient_email}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${statusTone(log.status)}`}>{formatStatusLabel(log.status)}</span></td><td className="max-w-sm px-4 py-3 text-xs text-red-700">{log.error_message ?? '–'}</td></tr>)}
             </tbody>
           </table>
         </div>
@@ -1308,6 +1310,7 @@ export default async function CompanyDetailPage({
     )
   }
 
+  const invoiceProviderSelection = await loadTenantInvoiceProviderSelection(id).catch(() => null)
   const [
     company,
     actorSummary,
@@ -1382,6 +1385,9 @@ export default async function CompanyDetailPage({
     eventRules: companyEmailEventRules,
     effectiveSender,
     billingPartnerCount,
+    invoiceProvider: invoiceProviderSelection
+      ? { selected: invoiceProviderSelection.invoice_export_target_system, dispatchEnabled: invoiceProviderSelection.invoice_export_enabled }
+      : null,
   })
 
   return (
@@ -1533,7 +1539,7 @@ export default async function CompanyDetailPage({
               <h2 className="mt-2 text-xl font-black text-slate-950">Ansökningar, automatisk pipeline och tenant-spårning</h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Kedjan ska vara spårbar per tenant: ansökan → kund → avtal/prisversion → juridik/fullmakt → nätägare → Ediel-readiness → mail. Mismatch ska bli åtgärd, inte krasch eller felaktigt EDIFACT.</p>
             </div>
-            <Link href={`/admin/external-contract-intakes?company_id=${company.id}`} className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Öppna ansökningar</Link>
+            <Link href={`/admin/website-applications?company_id=${company.id}`} className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Öppna ansökningar</Link>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <StatCard label="Totalt" value={tenantIntakeTracking?.total_applications ?? 0} />
@@ -1579,6 +1585,7 @@ export default async function CompanyDetailPage({
             <ReadinessPill ok={tenantReadiness.domainVerification} label="Domänverifiering" />
             <ReadinessPill ok={tenantReadiness.templates} label="Mallar" />
             <ReadinessPill ok={tenantReadiness.billingMapping} label="Capway/billing" />
+            <ReadinessPill ok={tenantReadiness.invoiceProvider} label="Fakturaleverantör" />
           </div>
           {tenantReadiness.notes.length > 0 ? (
             <ul className="mt-4 grid gap-2 text-sm font-semibold text-emerald-950 md:grid-cols-2">

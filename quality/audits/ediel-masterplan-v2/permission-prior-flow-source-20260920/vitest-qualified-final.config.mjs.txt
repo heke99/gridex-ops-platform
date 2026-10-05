@@ -1,0 +1,1 @@
+export default {resolve:{alias:{'@':'/workspace/scratch/2a201d6d5897/gridex-next'}},test:{environment:'node',include:['/workspace/scratch/2a201d6d5897/permission-prior-flow-probe/source-qualified-final.test.ts'],setupFiles:['/workspace/scratch/2a201d6d5897/gridex-next/__tests__/setup.ts']}}

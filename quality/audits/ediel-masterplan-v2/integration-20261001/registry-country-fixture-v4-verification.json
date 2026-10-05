@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-01T04:41:42.218414+00:00",
+  "scope": "Only the assigned companies TXT source fixture; current XML source-country conflict oracle, not broader criterion approval",
+  "codeReadWorktree": "gridex-owner-reconcile-v4",
+  "observedBaseHead": "2fc42bcdcce9de83d1ec74b5bb350bfc04bff999",
+  "candidateCompositionUncommitted": true,
+  "evidence": [
+    {
+      "path": "__tests__/ediel-actor-registry-txt-source.test.ts",
+      "sha256": "4233af16aa486ef650b1f53f7acdeee543f9353b7aa094579cdf97dd8c138f8b"
+    },
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "sha256": "dff3e127ba777d3d5d36daa8ea64f225ac703c6b227e302f3f776828534a3a09"
+    },
+    {
+      "path": "lib/actor-registry/normalizeActor.ts",
+      "sha256": "05003fa8f3c892922be96d130fd77a450b7e912c9bd9e78f264645867617464c"
+    }
+  ],
+  "finding": {
+    "classification": "OBSOLETE_POSITIVE_TEST_ORACLE",
+    "trigger": "Market CountryCode=SE conflicts with source Postal CountryCode=DK",
+    "currentBehavior": "countryCode NULL, exact original parent and postal values retained, unambiguous-country diagnostics present",
+    "productionCodeChanged": false,
+    "prohibited": "No postal-address to transport route inference, no arbitrary country priority, no native guard relaxation"
+  },
+  "verification": {
+    "red": {
+      "passed": 11,
+      "failed": 1,
+      "receipt": "registry-country-fixture-v4-red-receipt.json"
+    },
+    "green": {
+      "passed": 14,
+      "failed": 0,
+      "receipt": "registry-country-fixture-v4-green-receipt.json",
+      "testFullNames": [
+        "authentic companies TXT grammar with synthetic values uses consistently declared country and source roles without converting postal addresses into transport routes",
+        "authentic companies TXT grammar with synthetic values holds conflicting market and postal countries while retaining both exact source values",
+        "authentic companies TXT grammar with synthetic values retains a sole declared postal country as metadata without deriving transport from the postal address",
+        "authentic companies TXT grammar with synthetic values separates repeated family columns and preserves legal versus technical identity",
+        "authentic companies TXT grammar with synthetic values joins an unquoted embedded address newline without inventing another actor",
+        "authentic companies TXT grammar with synthetic values keeps metadata-only companies with missing-route diagnostics and retains GAS reference routes",
+        "authentic companies TXT grammar with synthetic values retains missing legal IDs as held metadata, without name-based joins",
+        "authentic companies TXT grammar with synthetic values preserves registered case/empty subaddresses and forbids unsupported UTILTS subaddress",
+        "authentic companies TXT grammar with synthetic values preserves unknown family blocks as non-executable reference routes",
+        "authentic companies TXT grammar with synthetic values rejects header with a bounded source diagnostic",
+        "authentic companies TXT grammar with synthetic values rejects family_mismatch with a bounded source diagnostic",
+        "authentic companies TXT grammar with synthetic values rejects field_count with a bounded source diagnostic",
+        "authentic companies TXT grammar with synthetic values rejects incomplete with a bounded source diagnostic",
+        "authentic companies TXT grammar with synthetic values rejects zero_routes with a bounded source diagnostic"
+      ]
+    },
+    "eslint": "PASS exact assigned fixture",
+    "diffCheck": "PASS exact assigned fixture",
+    "native": "NOT_RUN_LOCALLY",
+    "interactiveBrowser": "NOT_RUN_LOCALLY",
+    "sameFrozenHeadCI": "PENDING_ROOT",
+    "wholeCriterionAccepted": false
+  },
+  "reviewLimits": "The author of this test repair is not an independent approver. Rule/AT/SC acceptance requires each complete literal and independent actual same-frozen-candidate native/CI receipts."
+}

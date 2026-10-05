@@ -1,0 +1,116 @@
+{
+  "source": {
+    "publicHead": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+    "cleanJob": 11144034780,
+    "schemaEntry": "rem002-schema-snapshot/schema.sql",
+    "schemaSha256": "8d4b077827e534b2015cf9c123bcfc605613e3ed4b4e53266be4101fa57c73a6",
+    "installedSignature": "gridex_ediel_retention.permission_v1(uuid,uuid,text)",
+    "actualInstalledBodySha256": "24128f720357eb64a0d3b6ba306925716453cbbd7f241696b54ec8de4d53910f",
+    "actualInstalledBodyCharacters": 3804,
+    "authorityChain": [
+      "20261001000710_ediel_archived_tenant_retention_class_authority.sql",
+      "20261001025642_ediel_retention_current_auth_owner_bridge.sql",
+      "20261001064500_ediel_retention_decision_original_class_workflows.sql",
+      "20261001070700_ediel_finance_retention_decision_original_class.sql"
+    ],
+    "classes": {
+      "base": 7,
+      "evidence": 9,
+      "total": 16
+    },
+    "transportSnapshots": [
+      {
+        "file": "20261001071500_ediel_customer_invoice_retention_decision_original_classes.sql",
+        "sha256": "cf45280b11f42b2cba001312b7eba9e8f1b112fea6a2f0ebad0bc2ad00064dde",
+        "state": "OTHER_OWNER_WIP_READ_SNAPSHOT",
+        "permissionFunctionHunk": false
+      },
+      {
+        "file": "20261001081500_ediel_customer_classification_copy_retention.sql",
+        "sha256": "906f32535939479b6e3fc28797167c55696cb1e32264b1a61973b49ccae71134",
+        "state": "OTHER_OWNER_WIP_READ_SNAPSHOT",
+        "permissionFunctionHunk": false
+      }
+    ],
+    "cliScaffold": "20261001085032_ediel_retention_grant_native_clock.sql",
+    "reservedForwardName": "supabase/migrations/20261001081731_ediel_retention_grant_native_clock.sql",
+    "protectedReferencesChanged": false
+  },
+  "files": [
+    {
+      "path": "supabase/migrations/20261001081731_ediel_retention_grant_native_clock.sql",
+      "sha256": "3e5c52b040119c121886ea2a489fba21b0c66850e5f9b18abfb5168459701828"
+    },
+    {
+      "path": "scripts/ediel-retention-grant-native-clock-sql-regression.mjs",
+      "sha256": "9f5cc7456b6ddcba191dda2a83979949e1609e4180622ee36f9beab69f732659"
+    },
+    {
+      "path": "scripts/ediel-retention-grant-native-clock-native.test.ts",
+      "sha256": "38b9fe5eacfd9536892e2b081a5c3ed4786a85ee49533489de9b9591f4e275cc"
+    }
+  ],
+  "implementation": {
+    "status": "IMPLEMENTED_NEW_FORWARD",
+    "delta": [
+      "exact authentic installed body hash gate",
+      "new local observation variable",
+      "native clock sampled after existing Auth/current actor/company/membership locks and checks",
+      "only four own override-window comparisons use one sampled native clock"
+    ],
+    "preserved": [
+      "all sixteen keys",
+      "inclusive valid_from / exclusive valid_to",
+      "DENY precedence",
+      "native Auth bridge",
+      "archived tenant current scope",
+      "non-retention delegated body bytes",
+      "complete pg_proc authority except exact prosrc delta including OID/owner/ACL/search_path/volatility/other config"
+    ],
+    "physicalFirstEffectOwner": "transport_runtime owns classification_copy_transition_v1 in separate081500; its snapshot rechecks actor/reviewer class permission after source/q/policy/issuer locks and before final receipt expiry/physical transition"
+  },
+  "bounded": {
+    "status": "PASS",
+    "checks": 184,
+    "receipt": "bounded.log",
+    "evidenceKind": "BOUNDED_SYNTHETIC_POSTGRES_MECHANICS",
+    "oldRed": "same actual transaction now predates valid_to while clock_timestamp follows it; old permission incorrectly ALLOW",
+    "newGreen": "identical native elapsed-time proof refuses expired ALLOW",
+    "scope": "explicit synthetic Auth/RBAC schema with actual published function/auth/whitelist DDL; no source acceptance, issuer, legal policy or deletion approval seeds"
+  },
+  "scriptsTypecheck": {
+    "status": "PASS",
+    "receipt": "scripts-tsc.log"
+  },
+  "eslint": {
+    "status": "PASS",
+    "receipt": "eslint.log"
+  },
+  "native": {
+    "status": "PREPARED_NOT_EXECUTED",
+    "file": "scripts/ediel-retention-grant-native-clock-native.test.ts",
+    "mandatoryCases": 5,
+    "scope": [
+      "actual installed16keys/privateOIDACL/clockposition",
+      "native current/future/expired/DENY/foreigncompany grants for16keys",
+      "same actual transaction expiry straddle",
+      "distinct current reviewer class scope and expiry",
+      "two actual psql sessions: wait on Auth row lock across actual grant expiry"
+    ],
+    "registrationOwner": "root"
+  },
+  "browser": {
+    "status": "NOT_EXECUTED_FOR_THIS_FORWARD"
+  },
+  "exactHeadCI": {
+    "status": "NOT_EXECUTED_FOR_THIS_FORWARD"
+  },
+  "wholeCriterion": {
+    "status": "NOT_APPROVED",
+    "missing": [
+      "actual final composite candidate clean+upgrade replay and native two-session execution",
+      "actual final physical copy transition proves zero byte loss when actor or reviewer class grant expires during waits",
+      "whole literal retention requirement source/policy qualification and external authority evidence"
+    ]
+  }
+}

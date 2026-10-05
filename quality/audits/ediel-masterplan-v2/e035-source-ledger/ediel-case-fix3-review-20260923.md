@@ -1,0 +1,9 @@
+# Case fixture exact registry binding — scoped fix round 3
+
+Local f03b5f98ee19bc0b704b6ca92bd43687e8e2352d published identical tree42be539fec2aece2587519940b04b3a494a4508a as 5c482346e3c51aab3bc43e3a087ea34c261713b4. OPS35895138404 pending.
+
+Independent scoped review traced actual `gridex_bind_inbound_ediel_rule_pack_evidence`: fallback ignores subtype and returns early for six fully populated binding fields. Fixture now requires exactly one enabled, date-valid inbound Z06/G registry row, supplies that real row's pack/profile IDs, key, version, source hash and nonempty snapshot via SQL SELECT, then fetches the stored message and invokes the actual writer. This matches existing source-owner native fixtures. Count3 finding addressed in design; no new Critical/Important breakage found. Local focused16, scripts types and affected lint PASS.
+
+Precisely: the fixture uses the trigger's supported explicit-binding early-return path. It does not modify/disable a trigger or alter production validation; it does not prove unbound fallback supports subtype selection. Protected native/browser and post-browser effects require actual same-head execution, still pending. Whole E035 and masterplan remain incomplete.
+
+Actual native107297082469: existing124 PASS; fixture passed genuine GoTrue permissions, explicit profile binding and actual Z06/G writer. The subsequent real listCustomerCases read failed: PostgREST could not embed customer_cases→customers because multiple relationships exist. This is a production read-helper ambiguity exposed by the real Data API. Browser/post-browser assertions were not reached. Artifact10767121659 ZIP SHA256 `ef1d946ae54f5b5212a4f69cb57c42e8072f6ffe7188d5ebf54a31f2840861af`. SDD round4 assigned to fresh stronger sole author ediel_case_fix4, gpt-6-astra high; prior author stopped edits. Required fix: actual unambiguous same-company relationship, preserved shape/scope/Support contract, focused checks and native rerun.

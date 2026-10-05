@@ -1,0 +1,87 @@
+{
+  "source_file": "companies.xml",
+  "sha256": "e94c3fac98913a113573376d6e0134ce3c5b5778cf6c8c8905dd9174db30d9ab",
+  "header": {
+    "GeneratedAt": "2026-09-10T06:35:24Z",
+    "SenderApplication": "www.ediel.se"
+  },
+  "markets": [
+    {
+      "market": {
+        "Code": "EL",
+        "CountryCode": "SE"
+      },
+      "company_count": 651,
+      "edifact_routes": 1080
+    },
+    {
+      "market": {
+        "Code": "GAS",
+        "CountryCode": "SE"
+      },
+      "company_count": 46,
+      "edifact_routes": 116
+    }
+  ],
+  "selected": [
+    {
+      "market": "EL",
+      "name": "Div3rsa AB Systemleverantör",
+      "ediel_id": "92825",
+      "roles": [
+        "SystemSupplier"
+      ],
+      "routes": []
+    },
+    {
+      "market": "EL",
+      "name": "Gridex EL AB",
+      "ediel_id": "21660",
+      "roles": [
+        "PowerSupplier",
+        "ESCO"
+      ],
+      "routes": [
+        {
+          "family": "PRODAT",
+          "smtp": "ediel@gridex.se",
+          "subaddress": null,
+          "technical_id": "21660",
+          "legal_id": "21660"
+        },
+        {
+          "family": "UTILTS",
+          "smtp": "ediel@gridex.se",
+          "subaddress": null,
+          "technical_id": "21660",
+          "legal_id": "21660"
+        }
+      ]
+    },
+    {
+      "market": "EL",
+      "name": "Mjölby Kraftnät AB",
+      "ediel_id": "27700",
+      "roles": [
+        "Netowner"
+      ],
+      "routes": [
+        {
+          "family": "PRODAT",
+          "smtp": "27700@tvlab.se",
+          "subaddress": "PRODAT",
+          "technical_id": "27700",
+          "legal_id": "27700"
+        },
+        {
+          "family": "UTILTS",
+          "smtp": "27700@tvlab.se",
+          "subaddress": null,
+          "technical_id": "27700",
+          "legal_id": "27700"
+        }
+      ]
+    }
+  ],
+  "not_imported_live": true
+}

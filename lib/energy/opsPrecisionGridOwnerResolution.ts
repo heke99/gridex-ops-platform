@@ -349,7 +349,7 @@ async function bindResolution(input: {
   if (!updated?.length) {
     const { data: existing, error } = await supabaseService
       .from('customer_sites')
-      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id,metadata')
+      .select('grid_owner_id,grid_area_code,price_area_code,resolution_id,resolution_status,updated_at,metadata')
       .eq('id', input.siteId)
       .eq('company_id', input.companyId)
       .eq('customer_id', input.customerId)
@@ -357,6 +357,8 @@ async function bindResolution(input: {
     if (error) throw error
     const existingOwner = clean(existing?.grid_owner_id)
     const existingArea = clean(existing?.grid_area_code)
+    const existingPriceArea = priceArea(existing?.price_area_code)
+    if (existingPriceArea && existingPriceArea !== input.priceArea) return null
     if (existingOwner === input.gridOwnerId && existingArea === input.gridAreaCode) {
       return clean(existing?.resolution_id) ?? resolutionId
     }
@@ -364,15 +366,15 @@ async function bindResolution(input: {
     // Matching owner with missing/stale grid_area_code cannot use the null-owner
     // filter. Rebind a fresh resolution under that owner so the materialization
     // guard can project canonical geography without writing selected_grid_owner_id.
-    if (existingOwner === input.gridOwnerId) {
-      const { data: reconciled, error: reconcileError } = await supabaseService
+    if (existingOwner === input.gridOwnerId && !['manual_verified', 'facility_verified'].includes(clean(existing?.resolution_status)?.toLowerCase() ?? '')) {
+      let reconcileQuery = supabaseService
         .from('customer_sites')
         .update({
           resolution_id: resolutionId,
           resolution_status: 'grid_area_master_validated',
           resolution_confidence: input.confidence,
           metadata: {
-            ...(input.metadata ?? record(existing?.metadata)),
+            ...record(existing?.metadata),
             ops_precision_resolution: {
               ...evidence,
               resolution_id: resolutionId,
@@ -386,6 +388,13 @@ async function bindResolution(input: {
         .eq('company_id', input.companyId)
         .eq('customer_id', input.customerId)
         .eq('grid_owner_id', input.gridOwnerId)
+      // Match the snapshot checked above. A facility/manual response or another
+      // resolver completing between read and write must win over this repair.
+      for (const field of ['resolution_id', 'grid_area_code', 'price_area_code', 'resolution_status', 'updated_at'] as const) {
+        const value = existing?.[field]
+        reconcileQuery = value == null ? reconcileQuery.is(field, null) : reconcileQuery.eq(field, value)
+      }
+      const { data: reconciled, error: reconcileError } = await reconcileQuery
         .select('id,grid_owner_id,grid_area_code,resolution_id')
       if (reconcileError) throw reconcileError
       if (reconciled?.length) return resolutionId

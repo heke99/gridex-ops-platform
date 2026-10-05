@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 // Extracted from actions.ts; keep public imports on the facade module.
 
 import { revalidatePath } from "next/cache"
@@ -163,6 +164,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
   const explicitCertificateId = formString(params.certificateId ?? null);
   if (explicitCertificateId) {
     await resolveOutboundRecipientCertificate({
+      companyId: params.companyId,
       certificateId: explicitCertificateId,
       receiverEdielId: params.portalEdielId,
       receiverSubaddress: params.receiverSubaddress,
@@ -177,6 +179,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
   let existingLookupError: string | null = null;
   try {
     const existingCertificate = await resolveOutboundRecipientCertificate({
+      companyId: params.companyId,
       receiverEdielId: params.portalEdielId,
       receiverSubaddress: params.receiverSubaddress,
       messageFamily: "PRODAT",
@@ -186,6 +189,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
     });
     if (existingCertificate.id) return existingCertificate.id;
   } catch (error) {
+    unstable_rethrow(error)
     existingLookupError = errorMessage(error);
   }
 
@@ -201,6 +205,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
       forceRefresh: false,
     });
   } catch (error) {
+    unstable_rethrow(error)
     throw new Error(
       `Krypterat PRODAT-test kräver mottagarens publika certifikat. Systemet hittade inget användbart lokalt certifikat${existingLookupError ? ` (${existingLookupError})` : ""} och försökte hämta från Expisoft med mail=${params.portalEmail}, men lookup misslyckades: ${errorMessage(error)}`,
     );
@@ -220,6 +225,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
   }
 
   await resolveOutboundRecipientCertificate({
+    companyId: params.companyId,
     certificateId: effectiveCertificateId,
     receiverEdielId: params.portalEdielId,
     receiverSubaddress: params.receiverSubaddress,
@@ -1064,6 +1070,7 @@ export async function saveSimpleSystemTestCompanySetupAction(
     revalidatePath("/admin/ediel/control-tower");
     redirectUrl = `${baseRedirect}&setupStatus=success&setupMessage=${encodeURIComponent("Sparat. Tester är redo att köras från denna sida.")}`;
   } catch (error) {
+    unstable_rethrow(error)
     redirectUrl = `${baseRedirect}&setupStatus=error&setupMessage=${encodeURIComponent(errorMessage(error))}`;
   }
   redirect(redirectUrl);

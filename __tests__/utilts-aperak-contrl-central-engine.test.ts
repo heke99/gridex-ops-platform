@@ -1,3 +1,4 @@
+// masterplan: U-01, AT-U-01, U-06
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -60,18 +61,31 @@ describe('central Swedish UTILTS market engine', () => {
     })).toEqual({ requestedMessageCode: 'E66' })
   })
 
-  it('derives E73 Application Reference from the requested application, never generic UTILTS', () => {
+  it('uses the exact requested-message Application Reference and never generates one heuristically', () => {
     expect(resolveCanonicalUtiltsApplicationReference({
       code: 'E73', actorRole: 'supplier', requestedMessageCode: 'S02', resolution: 'monthly',
     })).toBe('23-DDQ-S02-S')
+
     expect(resolveCanonicalUtiltsApplicationReference({
-      code: 'E73', actorRole: 'supplier', requestedMessageCode: 'E66', resolution: '15',
+      code: 'E73',
+      actorRole: 'supplier',
+      requestedMessageCode: 'E66',
+      resolution: '15',
+      applicationReference: '23-DDQ-E66-T',
     })).toBe('23-DDQ-E66-T')
     expect(resolveCanonicalUtiltsApplicationReference({
-      code: 'E73', actorRole: 'supplier', requestedMessageCode: 'E66', resolution: 'hourly',
+      code: 'E73',
+      actorRole: 'supplier',
+      requestedMessageCode: 'E66',
+      resolution: 'hourly',
+      applicationReference: '23-DDQ-E66-S',
     })).toBe('23-DDQ-E66-S')
+
+    expect(() => resolveCanonicalUtiltsApplicationReference({
+      code: 'E73', actorRole: 'supplier', requestedMessageCode: 'E66', resolution: '15',
+    })).toThrow('utilts_application_reference_explicit_value_required:E66')
     expect(() => resolveCanonicalUtiltsApplicationReference({ code: 'E73', actorRole: 'supplier' }))
-      .toThrow('utilts_e73_requested_message_required')
+      .toThrow('utilts_request_application_reference_target_invalid:E73:missing')
 
     const registry = verifyUtiltsRegistryConsistency()
     expect(registry).toEqual({ ok: true, issues: [] })
@@ -101,6 +115,17 @@ describe('UTILTS validation class -> acknowledgement family', () => {
     expect(utilts.technicalAck).toBe('CONTRL')
     expect(utilts.applicationAck).toBe('transactional')
     expect(utilts.negativeApplicationResponse).toBe('APERAK_OR_UTILTS_ERR')
+  })
+
+  it('keeps the Z01 positive ACK path distinct and fails closed for unknown families', () => {
+    const z01 = resolveCanonicalAckMatrixRule({ family: 'PRODAT', code: 'Z01' })
+    expect(z01.technicalAck).toBe('CONTRL')
+    expect(z01.applicationAck).toBe('none')
+    expect(z01.businessResponses).toEqual(['Z02'])
+    expect(z01.negativeApplicationResponse).toBe('APERAK')
+
+    expect(() => resolveCanonicalAckMatrixRule({ family: 'UNKNOWN_FAMILY', code: 'X01' }))
+      .toThrow('ediel_ack_family_unsupported:UNKNOWN_FAMILY:X01')
   })
 })
 

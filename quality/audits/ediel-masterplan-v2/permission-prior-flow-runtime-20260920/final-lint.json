@@ -1,0 +1,13 @@
+{
+  "gate": "lint",
+  "command": [
+    "npm",
+    "run",
+    "lint"
+  ],
+  "exit": 0,
+  "seconds": 103.12,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-lint.log",
+  "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+  "runtimeCommit": "d9d0a93e"
+}

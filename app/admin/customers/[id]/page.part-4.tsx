@@ -1,4 +1,7 @@
 // Extracted from page.tsx; keep public imports on the facade module.
+import { platformWorkspaceGroups, tenantWorkspaceGroups } from "./workspaceGroups";
+import CustomerWorkspaceNav from "@/components/admin/customers/CustomerWorkspaceNav";
+import { hasPermissionRequirement } from "@/lib/admin/accessModel";
 import Link from "next/link"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards"
@@ -21,6 +24,10 @@ import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerS
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard"
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard"
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard"
+import CustomerIdentityChangePanel from "@/components/admin/customers/CustomerIdentityChangePanel"
+import CustomerBillingProfileHistory from "@/components/admin/customers/CustomerBillingProfileHistory"
+import { listBillingProfileRevisions } from "@/lib/customer-service/billingProfileRevisions"
+import { listCustomerIdentityChanges } from "@/lib/customer-service/identityChange"
 import { buildCustomerCardWorkflow } from "@/lib/customer-operations/customerCardWorkflow"
 import { buildTenantCustomerCardView } from "@/lib/customer-operations/customerCardTenantView"
 import CustomerGridOwnerFileImportCard from "@/components/admin/customers/CustomerGridOwnerFileImportCard"
@@ -35,6 +42,7 @@ import CustomerDataRequestsCard from "@/components/admin/customers/CustomerDataR
 import { listBillingUnderlaysByCustomerId, listGridOwnerDataRequestsByCustomerId, listMeteringValuesByCustomerId, listOutboundRequestsByCustomerId, listPartnerExportsByCustomerId } from "@/lib/cis/db"
 import { listCustomerInfoRequestsByCustomerId, listZ01RepairEventsByCustomerId } from "@/lib/onboarding/infoRequests"
 import { resolveEdielDispatchState } from "@/lib/ediel/intent/dispatchState"
+import { readEdielProcessNextActions, type EdielProcessNextAction } from "@/lib/ediel/operations/processNextAction"
 import { listManualGridOwnerRequestSummaries } from "@/lib/customer-operations/manualRequestSummary"
 import { listCustomerAuthorizationDocumentsByCustomerId, listCustomerBlockersByCustomerId, listPowersOfAttorneyByCustomerId, listSupplierSwitchEventsByRequestIds, listSupplierSwitchRequestsByCustomerId } from "@/lib/operations/db"
 
@@ -533,6 +541,24 @@ export async function CustomerAdminDetailPage({
       }).catch(() => [])
     : [];
 
+  // OPS-02: the card's waiting/next step comes from the native process decision
+  // of each request's Ediel source message. A failed or unauthorized read leaves
+  // the map empty, so the card holds instead of trusting a static status.
+  const processDecisions = new Map<string, EdielProcessNextAction>();
+  const canReadProcess = Boolean(customerCompanyId && access.permissions.includes("communication.read"));
+  const processSourceIds = customerInfoRequests.slice(0, 12).flatMap((request) => request.ediel_message_id ? [request.ediel_message_id] : []);
+  if (customerCompanyId && canReadProcess && processSourceIds.length) {
+    try {
+      for (const environment of ["test", "production"] as const) {
+        const decisions = await readEdielProcessNextActions({ companyId: customerCompanyId, actorUserId: access.userId, environment, messageIds: processSourceIds,
+          evaluatedAt: new Date().toISOString(), access: { canRead: canReadProcess, canReview: access.permissions.includes("cases.write"), canPrepare: false } });
+        for (const [sourceId, decision] of decisions) processDecisions.set(sourceId, decision);
+      }
+    } catch {
+      processDecisions.clear();
+    }
+  }
+
   const customerWorkflow = buildCustomerCardWorkflow({
     customerId: id,
     snapshot: customerCardSnapshot,
@@ -545,6 +571,7 @@ export async function CustomerAdminDetailPage({
     manualRequests: manualRequestSummaries,
     isPlatformAdmin,
     dispatchState: customerDispatchState,
+    processDecisions,
   });
   const switchCompleted = switchRequests.some((request) => request.status === "completed");
   const switchInProgress = switchRequests.some((request) =>
@@ -688,14 +715,25 @@ export async function CustomerAdminDetailPage({
     ].includes(String(request.status ?? "").toLowerCase()),
   );
   const showFoldedTechnicalPanels = isPlatformAdmin && activeTab === "ediel-operations";
+  const workspaceGroups = (isPlatformAdmin ? platformWorkspaceGroups : tenantWorkspaceGroups)((tab) => canShowCustomerWorkspaceTab(tab, isPlatformAdmin, canReadContracts));
+  const canRegisterContact = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["cases.write"] });
+  const canEditCustomer = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["masterdata.write"] });
+  // F12: masked identity-change history; null while the migration is not applied yet.
+  const [identityChanges, billingRevisions] = activeTab === "profile" && customerCompanyId
+    ? await Promise.all([
+        listCustomerIdentityChanges(customerCompanyId, id).catch(() => null),
+        listBillingProfileRevisions(customerCompanyId, id).catch(() => null),
+      ])
+    : [null, null];
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="sticky top-0 z-20 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700">Kundkort</p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <h1 className="break-words text-xl font-semibold tracking-tight text-slate-950">
               {customerName}
             </h1>
             <span
@@ -706,22 +744,43 @@ export async function CustomerAdminDetailPage({
               {customerStatusLabel(customer.status)}
             </span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-700">
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 break-words text-xs text-slate-600">
+            <span className="break-all">
               Kundnummer: {customer.customer_number ?? "—"}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+            <span className="break-all">
               {displayEmail ?? "Ingen e-post"}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+            <span className="break-all">
               {displayPhone ?? "Ingen telefon"}
             </span>
             {activeCustomerContract ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1">
+              <span className="break-all">
                 {activeCustomerContract.contract_name}
               </span>
             ) : null}
           </div>
+        </div>
+        {customer.status !== "archived" ? (
+          <div className="flex flex-wrap items-center gap-2" aria-label="Åtgärder för kunden">
+            {canRegisterContact ? (
+              <Link
+                href={`/admin/customer-cases?customer=${encodeURIComponent(id)}&channel=phone#new-case`}
+                className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+              >
+                Registrera kontakt
+              </Link>
+            ) : null}
+            {canEditCustomer ? (
+              <Link
+                href={customerTabHref(id, "profile")}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600"
+              >
+                Ändra uppgifter
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
         </div>
       </section>
 
@@ -749,27 +808,18 @@ export async function CustomerAdminDetailPage({
         </section>
       ) : null}
 
-      <nav
-        aria-label="Kundkortets delar"
-        className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
-      >
-        {CUSTOMER_WORKSPACE_TABS
-          .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin, canReadContracts))
-          .map((tab) => (
-            <Link
-              key={tab.id}
-              href={customerTabHref(id, tab.id)}
-              aria-current={activeTab === tab.id ? "page" : undefined}
-              className={`rounded-full border px-3 py-1.5 font-semibold transition ${
-                activeTab === tab.id
-                  ? "border-emerald-700 bg-emerald-700 text-white"
-                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          ))}
-      </nav>
+      <CustomerWorkspaceNav
+        activeTab={activeTab}
+        groups={workspaceGroups.map((group) => ({
+          id: group.id,
+          label: group.label,
+          tabs: group.tabs.map((tabId) => ({
+            id: tabId,
+            label: CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === tabId)?.label ?? tabId,
+            href: customerTabHref(id, tabId),
+          })),
+        }))}
+      />
 
       {activeTab === "overview" ? (
         <SectionAnchor
@@ -777,6 +827,39 @@ export async function CustomerAdminDetailPage({
           title="Översikt"
           description="Enkel översikt med process, status och ett tydligt nästa steg."
         >
+          <section
+            data-testid="customer-overview-contact-summary"
+            className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">Kunduppgifter</p>
+                <p className="mt-1 text-sm text-slate-600">Kontakt och aktiv adress för kunden.</p>
+              </div>
+              <Link
+                href={customerTabHref(id, "profile")}
+                className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                Visa alla kunduppgifter
+              </Link>
+            </div>
+
+            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+              <div className="min-w-0"><dt className="text-xs text-slate-500">E-post</dt><dd className="mt-1 break-words font-medium text-slate-950">{displayEmail ?? "Saknas"}</dd></div>
+              <div><dt className="text-xs text-slate-500">Telefon</dt><dd className="mt-1 font-medium text-slate-950">{displayPhone ?? "Saknas"}</dd></div>
+              <div className="min-w-0"><dt className="text-xs text-slate-500">Adress</dt><dd className="mt-1 break-words font-medium text-slate-950">{activeAddressDisplay ? <>{activeAddressDisplay.street}, {[activeAddressDisplay.postalCode, activeAddressDisplay.city].filter(Boolean).join(" ") || "Postort saknas"}</> : "Adress saknas"}</dd></div>
+            </dl>
+            <details className="mt-3 border-t border-slate-100 pt-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Identitet och kundnummer</summary>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-4">
+                <div><dt className="text-xs text-slate-500">Namn</dt><dd className="mt-1 break-words font-medium text-slate-950">{customerName}</dd><dd className="text-xs text-slate-600">{customerTypeUiLabel}</dd></div>
+                <div><dt className="text-xs text-slate-500">Kundnummer</dt><dd className="mt-1 font-medium text-slate-950">{customer.customer_number ?? "Saknas"}</dd></div>
+                <div><dt className="text-xs text-slate-500">{primaryIdentityLabel}</dt><dd className="mt-1 font-medium text-slate-950">{primaryIdentityValue}</dd></div>
+                <div><dt className="text-xs text-slate-500">{secondaryIdentityLabel}</dt><dd className="mt-1 font-medium text-slate-950">{secondaryIdentityValue}</dd></div>
+              </dl>
+            </details>
+          </section>
+
           <CustomerBusinessActionsCard
             customerId={id}
             companyId={customerCompanyId ?? undefined}
@@ -791,6 +874,7 @@ export async function CustomerAdminDetailPage({
             isPlatformAdmin={isPlatformAdmin}
             z01RepairEvents={z01RepairEvents}
             dispatchState={customerDispatchState}
+            processDecisions={processDecisions}
             manualRequests={manualRequestSummaries}
             billingUnderlays={billingUnderlays as Array<Record<string, unknown>>}
             isTestData={customer.is_test_data === true}
@@ -828,6 +912,19 @@ export async function CustomerAdminDetailPage({
           <section className="grid gap-6">
             <div className={isPlatformAdmin ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
               <CustomerProfileCard customer={customer} showLifecycleTools={isPlatformAdmin} />
+              {identityChanges && customerCompanyId ? (
+                <CustomerIdentityChangePanel
+                  customerId={id}
+                  companyId={customerCompanyId}
+                  customerType={normalizedCustomerType}
+                  history={identityChanges.events}
+                  pending={identityChanges.pending}
+                  canWrite={canEditCustomer}
+                />
+              ) : (
+                <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Ändring av personnummer/organisationsnummer är inte aktiverad i den här miljön än.</p>
+              )}
+              {billingRevisions ? <CustomerBillingProfileHistory revisions={billingRevisions} /> : null}
               {isPlatformAdmin ? (
                 <CustomerContractOfferEligibilityCard
                   customerId={id}
@@ -1269,6 +1366,7 @@ export async function CustomerAdminDetailPage({
                 isPlatformAdmin
                 z01RepairEvents={z01RepairEvents}
                 dispatchState={customerDispatchState}
+            processDecisions={processDecisions}
                 manualRequests={manualRequestSummaries}
                 billingUnderlays={billingUnderlays as Array<Record<string, unknown>>}
                 isTestData={customer.is_test_data === true}

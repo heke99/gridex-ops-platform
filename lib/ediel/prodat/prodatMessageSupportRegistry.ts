@@ -1,9 +1,7 @@
 // lib/ediel/prodat/prodatMessageSupportRegistry.ts
 //
-// Compile-time support contract derived from the PRODAT 26.A rulebook. The
-// dated DB rule pack remains the runtime source of truth. This registry must
-// fail closed and must never make an inbound-only message sendable merely
-// because a renderer exists.
+// Compile-time support contract projected from the PRODAT 26.A rulebook.
+// Source-controlled canonical rules decide semantics; DB rows are activation/evidence.
 
 import {
   PRODAT_CANONICAL_PROFILES,
@@ -14,6 +12,7 @@ import {
 import { ACTIVE_PRODAT_ENGINE_CODES } from '@/lib/ediel/prodat/registry'
 import {
   SUPPORTED_PRODAT_BUSINESS_CODES,
+  canonicalProdat26AFieldRules,
   requiredProdatSegmentsForCode,
 } from '@/lib/ediel/prodat/prodatFieldRules'
 
@@ -46,49 +45,27 @@ export type ProdatMessageSupport = {
 }
 
 function businessProcessesFor(profile: ProdatCanonicalProfile): string[] {
-  switch (profile.messageCode) {
-    case 'Z01':
-    case 'Z02':
-      return ['customer_masterdata', 'facility_lookup']
-    case 'Z03':
-    case 'Z04':
-    case 'Z05':
-      return ['supplier_switch']
-    case 'Z06':
-      return ['masterdata', 'customer_masterdata']
-    case 'Z08':
-      return ['delivery_contract']
-    case 'Z09':
-      return ['masterdata']
-    case 'Z10':
-      return ['metering', 'masterdata']
-    case 'Z13':
-    case 'Z14':
-    case 'Z15':
-    case 'Z18':
-      return ['metering_permission']
-    default:
-      return [profile.processGroup]
-  }
+  // Gridex application aliases are UI/orchestration vocabulary, not Ediel norm.
+  if (profile.messageCode === 'Z01' || profile.messageCode === 'Z02') return [profile.processGroup, 'facility_lookup']
+  return [profile.processGroup]
+}
+
+function requiresAny(code: string, fieldKeys: readonly string[]): boolean {
+  return canonicalProdat26AFieldRules(code).some(
+    (rule) => fieldKeys.includes(rule.fieldKey) && (rule.requirement === 'required' || rule.requirement === 'dependent'),
+  )
 }
 
 function requiredFieldsFor(profile: ProdatCanonicalProfile): ProdatRequiredFields {
-  const code = profile.messageCode
-  // A renderable Z01/Z02 must address an identified facility. If the facility
-  // is unknown Gridex uses the separate manual information-request workflow.
-  if (code === 'Z01' || code === 'Z02') {
-    return { facility: true, meteringPoint: false, customer: true, gridArea: false }
+  return {
+    facility: requiresAny(profile.messageCode, ['installation_id']),
+    meteringPoint: requiresAny(profile.messageCode, ['line_item', 'installation_id']),
+    customer: requiresAny(profile.messageCode, ['end_user_id', 'end_user_name']),
+    gridArea: requiresAny(profile.messageCode, ['net_area']),
   }
-  if (code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18') {
-    return { facility: false, meteringPoint: true, customer: true, gridArea: true }
-  }
-  return { facility: false, meteringPoint: true, customer: true, gridArea: true }
 }
 
 function supportStatusFor(profile: ProdatCanonicalProfile, hasBuilder: boolean): ProdatSupportStatus {
-  // Builder readiness only matters for messages Gridex may originate. An
-  // inbound message remains inbound_only even if a legacy outbound builder is
-  // still present for test/backwards compatibility.
   if (profile.direction === 'portal_to_actor') return 'inbound_only'
   return hasBuilder ? 'outbound_only' : 'manual_review'
 }
@@ -170,9 +147,6 @@ export function verifyProdatRegistryConsistency(): {
     }
   }
 
-  // A field-rule renderer may exist for inbound-only messages for parsing/test
-  // fixtures. That must not imply outbound support, so only require a registry
-  // entry here, not sendability.
   for (const code of SUPPORTED_PRODAT_BUSINESS_CODES) {
     if (!getProdatMessageSupport(code)) {
       issues.push({ code, issue: 'field-rule supported code missing from support registry' })

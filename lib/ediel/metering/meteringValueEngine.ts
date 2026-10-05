@@ -16,13 +16,14 @@ export async function ingestUtiltsE66MeteringValues(input: {
   if (parsed.messageCode !== 'E66') throw new Error('Endast UTILTS E66 kan ingestas som mätvärden.')
 
   const observations = parseMeteringObservations(parsed)
+  const normalizedResolution = observations[0]?.measurementResolution ?? parsed.resolution
   const normalized = normalizeMeteringIngest({
     companyId: input.companyId,
     sourceMessageId: input.utiltsMessageId,
     meteringPointId: input.meteringPointId,
     periodStart: parsed.deliveryPeriodStart,
     periodEnd: parsed.deliveryPeriodEnd,
-    resolution: parsed.resolution,
+    resolution: normalizedResolution,
     values: observations.map((observation) => ({
       timestamp: observation.timestamp,
       quantity: observation.quantity,

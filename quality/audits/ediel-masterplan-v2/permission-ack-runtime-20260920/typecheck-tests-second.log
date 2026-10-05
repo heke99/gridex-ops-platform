@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+
+__tests__/ediel-prodat-permission-ack-consumers.test.ts(87,55): error TS2741: Property 'testCase' is missing in type '{ index: number; name: string; sourceOrder: number; }' but required in type 'EdielTgtExcelColumn'.

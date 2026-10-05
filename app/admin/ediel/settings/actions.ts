@@ -7,6 +7,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { formatErrorMessage } from "@/lib/errors";
+import { getEdielInstructionSpec } from "@/lib/ediel/specRegistry";
 
 function stringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -290,24 +291,6 @@ export type EdielTemplateActionState = {
   error?: string;
 };
 
-async function getExistingActiveVersionForFamily(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  family: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("ediel_message_rules")
-    .select("version_code,valid_from")
-    .eq("message_family", family)
-    .eq("is_active", true)
-    .order("valid_from", { ascending: false, nullsFirst: false })
-    .limit(1);
-
-  if (error) throw error;
-
-  const first = data?.[0] as { version_code?: string | null } | undefined;
-  return first?.version_code?.trim() || null;
-}
-
 function ruleIdentity(
   rule: Pick<
     TemplateRuleInput,
@@ -356,247 +339,83 @@ async function ensureRuleExists(params: {
   return "created";
 }
 
+function canonicalTemplateRule(params: {
+  family: string;
+  code: string;
+  standard: "edifact" | "xml" | "ai_list";
+  validFrom: string | null;
+  validTo: string | null;
+  notes: string;
+}): TemplateRuleInput {
+  const spec = getEdielInstructionSpec({
+    family: params.family,
+    code: params.code,
+    standard: params.standard,
+  });
+  if (!spec) {
+    throw new Error(`canonical_ediel_instruction_spec_missing:${params.family}:${params.code}`);
+  }
+
+  return {
+    message_family: params.family,
+    message_code: params.code,
+    message_standard: params.standard,
+    version_code: spec.currentVersion,
+    direction: spec.direction,
+    requires_contrl: spec.requiresContrl,
+    requires_aperak: spec.requiresAperak,
+    supports_negative_response: spec.supportsNegativeResponse,
+    valid_from: params.validFrom ?? spec.validFrom,
+    valid_to: params.validTo,
+    is_active: true,
+    notes: params.notes,
+  };
+}
+
 async function buildTemplateRules(params: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   template: string;
   validFrom: string | null;
   validTo: string | null;
 }): Promise<TemplateRuleInput[]> {
-  const { supabase, template, validFrom, validTo } = params;
-
-  const utiltsVersion = "E5SE5A";
-  const aiListVersion = "Ver20140401";
-  const contrlVersion =
-    (await getExistingActiveVersionForFamily(supabase, "CONTRL")) ?? "E5SE5A";
-  const aperakVersion =
-    (await getExistingActiveVersionForFamily(supabase, "APERAK")) ?? "E5SE5A";
-  const prodatVersion = await getExistingActiveVersionForFamily(
-    supabase,
-    "PRODAT",
-  );
-
+  const { template, validFrom, validTo } = params;
   const templateRules: TemplateRuleInput[] = [];
 
-  if (template === "ack_core") {
+  const add = (
+    family: string,
+    code: string,
+    standard: "edifact" | "xml" | "ai_list",
+    notes: string,
+  ) => {
     templateRules.push(
-      {
-        message_family: "CONTRL",
-        message_code: "CONTRL",
-        message_standard: "edifact",
-        version_code: contrlVersion,
-        direction: "both",
-        requires_contrl: false,
-        requires_aperak: false,
-        supports_negative_response: false,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from ACK core template",
-      },
-      {
-        message_family: "APERAK",
-        message_code: "APERAK",
-        message_standard: "edifact",
-        version_code: aperakVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: false,
-        supports_negative_response: true,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from ACK core template",
-      },
+      canonicalTemplateRule({ family, code, standard, validFrom, validTo, notes }),
     );
+  };
+
+  if (template === "ack_core") {
+    add("CONTRL", "CONTRL", "edifact", "Auto-created from ACK core template");
+    add("APERAK", "APERAK", "edifact", "Auto-created from ACK core template");
   }
 
   if (template === "meter_values_request") {
-    templateRules.push(
-      {
-        message_family: "UTILTS",
-        message_code: "E66",
-        message_standard: "edifact",
-        version_code: utiltsVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: true,
-        supports_negative_response: true,
-        valid_from: validFrom ?? "2025-06-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from meter values request template",
-      },
-      {
-        message_family: "UTILTS",
-        message_code: "E73",
-        message_standard: "edifact",
-        version_code: utiltsVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: true,
-        supports_negative_response: true,
-        valid_from: validFrom ?? "2025-06-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from meter values request template",
-      },
-      {
-        message_family: "UTILTS",
-        message_code: "S02",
-        message_standard: "edifact",
-        version_code: utiltsVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: true,
-        supports_negative_response: true,
-        valid_from: validFrom ?? "2025-06-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from meter values request template",
-      },
-      {
-        message_family: "CONTRL",
-        message_code: "CONTRL",
-        message_standard: "edifact",
-        version_code: contrlVersion,
-        direction: "both",
-        requires_contrl: false,
-        requires_aperak: false,
-        supports_negative_response: false,
-        valid_from: validFrom ?? "2025-06-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from meter values request template",
-      },
-      {
-        message_family: "APERAK",
-        message_code: "APERAK",
-        message_standard: "edifact",
-        version_code: aperakVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: false,
-        supports_negative_response: true,
-        valid_from: validFrom ?? "2025-06-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from meter values request template",
-      },
-    );
+    for (const code of ["E66", "E73", "S02"] as const) {
+      add("UTILTS", code, "edifact", "Auto-created from meter values request template");
+    }
+    add("CONTRL", "CONTRL", "edifact", "Auto-created from meter values request template");
+    add("APERAK", "APERAK", "edifact", "Auto-created from meter values request template");
   }
 
   if (template === "supplier_switch") {
-    if (!prodatVersion) {
-      throw new Error(
-        "Leverantörsbyte kräver att minst en PRODAT-version redan finns sparad i settings.",
-      );
+    for (const code of ["Z03", "Z05", "Z09"] as const) {
+      add("PRODAT", code, "edifact", "Auto-created from supplier switch template");
     }
-
-    templateRules.push(
-      {
-        message_family: "PRODAT",
-        message_code: "Z03",
-        message_standard: "edifact",
-        version_code: prodatVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: true,
-        supports_negative_response: true,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from supplier switch template",
-      },
-      {
-        message_family: "PRODAT",
-        message_code: "Z05",
-        message_standard: "edifact",
-        version_code: prodatVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: true,
-        supports_negative_response: true,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from supplier switch template",
-      },
-      {
-        message_family: "PRODAT",
-        message_code: "Z09",
-        message_standard: "edifact",
-        version_code: prodatVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: true,
-        supports_negative_response: true,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from supplier switch template",
-      },
-      {
-        message_family: "CONTRL",
-        message_code: "CONTRL",
-        message_standard: "edifact",
-        version_code: contrlVersion,
-        direction: "both",
-        requires_contrl: false,
-        requires_aperak: false,
-        supports_negative_response: false,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from supplier switch template",
-      },
-      {
-        message_family: "APERAK",
-        message_code: "APERAK",
-        message_standard: "edifact",
-        version_code: aperakVersion,
-        direction: "both",
-        requires_contrl: true,
-        requires_aperak: false,
-        supports_negative_response: true,
-        valid_from: validFrom,
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from supplier switch template",
-      },
-    );
+    add("CONTRL", "CONTRL", "edifact", "Auto-created from supplier switch template");
+    add("APERAK", "APERAK", "edifact", "Auto-created from supplier switch template");
   }
 
   if (template === "ai_list_control") {
-    templateRules.push(
-      {
-        message_family: "AI_LIST",
-        message_code: "AI",
-        message_standard: "ai_list",
-        version_code: aiListVersion,
-        direction: "both",
-        requires_contrl: false,
-        requires_aperak: false,
-        supports_negative_response: false,
-        valid_from: validFrom ?? "2025-10-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from AI list control template",
-      },
-      {
-        message_family: "AI_LIST",
-        message_code: "BI",
-        message_standard: "ai_list",
-        version_code: aiListVersion,
-        direction: "both",
-        requires_contrl: false,
-        requires_aperak: false,
-        supports_negative_response: false,
-        valid_from: validFrom ?? "2025-10-01",
-        valid_to: validTo,
-        is_active: true,
-        notes: "Auto-created from AI list control template",
-      },
-    );
+    add("AI_LIST", "AI", "ai_list", "Auto-created from AI list control template");
+    add("AI_LIST", "BI", "ai_list", "Auto-created from AI list control template");
   }
 
   if (templateRules.length === 0) {

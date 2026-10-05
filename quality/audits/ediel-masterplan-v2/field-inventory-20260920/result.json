@@ -1,0 +1,177 @@
+{
+  "scope": "IDENTITY_AND_BASE_USAGE_EQUALITY_ONLY_NOT_RUNTIME_ACCEPTANCE",
+  "inputs": [
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_fields.json",
+      "sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354"
+    }
+  ],
+  "numeric_fields": 74,
+  "frozen_numeric_fields": 74,
+  "parent_descriptors": [
+    "END_USER_GROUP",
+    "INSTALLATION_GROUP",
+    "INVOICEE_GROUP"
+  ],
+  "message_codes": [
+    "Z01",
+    "Z02",
+    "Z03",
+    "Z04",
+    "Z05",
+    "Z06",
+    "Z08",
+    "Z09",
+    "Z10",
+    "Z13",
+    "Z14",
+    "Z15",
+    "Z18"
+  ],
+  "compared_base_usage_cells": 962,
+  "missing_fields": [],
+  "extra_fields": [],
+  "usage_differences": [],
+  "families": [
+    {
+      "family": "BGM",
+      "numeric_fields": 4,
+      "fields": [
+        "202",
+        "203",
+        "204",
+        "313"
+      ]
+    },
+    {
+      "family": "CCI",
+      "numeric_fields": 19,
+      "fields": [
+        "214",
+        "215",
+        "217",
+        "218",
+        "219",
+        "306",
+        "307",
+        "220",
+        "222",
+        "223",
+        "259",
+        "254",
+        "242",
+        "506",
+        "310",
+        "513",
+        "322",
+        "323",
+        "324"
+      ]
+    },
+    {
+      "family": "DTM",
+      "numeric_fields": 12,
+      "fields": [
+        "205",
+        "206",
+        "210",
+        "211",
+        "302",
+        "321",
+        "216",
+        "212",
+        "249",
+        "508",
+        "326",
+        "327"
+      ]
+    },
+    {
+      "family": "FTX",
+      "numeric_fields": 2,
+      "fields": [
+        "301",
+        "303"
+      ]
+    },
+    {
+      "family": "LIN",
+      "numeric_fields": 3,
+      "fields": [
+        "314",
+        "209",
+        "258"
+      ]
+    },
+    {
+      "family": "NAD",
+      "numeric_fields": 20,
+      "fields": [
+        "207",
+        "208",
+        "227",
+        "228",
+        "229",
+        "231",
+        "232",
+        "316",
+        "233",
+        "234",
+        "235",
+        "236",
+        "237",
+        "250",
+        "251",
+        "252",
+        "253",
+        "317",
+        "318",
+        "262"
+      ]
+    },
+    {
+      "family": "QTY",
+      "numeric_fields": 1,
+      "fields": [
+        "213"
+      ]
+    },
+    {
+      "family": "RFF",
+      "numeric_fields": 11,
+      "fields": [
+        "315",
+        "224",
+        "225",
+        "308",
+        "260",
+        "320",
+        "240",
+        "319",
+        "261",
+        "226",
+        "325"
+      ]
+    },
+    {
+      "family": "UNB",
+      "numeric_fields": 1,
+      "fields": [
+        "311"
+      ]
+    },
+    {
+      "family": "UNH",
+      "numeric_fields": 1,
+      "fields": [
+        "312"
+      ]
+    }
+  ],
+  "full_F3": "NOT_COMPLETE",
+  "full_masterplan": "NOT_COMPLETE"
+}

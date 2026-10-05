@@ -1,0 +1,31 @@
+# PR368 — actual dated linked-source reader implementation
+
+Status: IMPLEMENTED_NOT_VERIFIED. Candidate child of e9fc37692caf9bd9dcc2a8709a7efadf2e37ba0e; resolve the published child before CI/review. Accepted main remains5dc072d3127f386fb8a0a81ad5fbb34af290b4cf/PR367, receipt5765219627. Do not repeat its source-seal delivery.
+
+## Qualified gate and actual test-first RED
+
+Retain the source plan and review-boundaries amendment. Independent reviews5765535492 and5765701921 required additional wire/query and outcome controls. Final actual comment5765735955, read back from GitHub, closes SOURCE/SPEC, DESIGN/TENANT and ORACLE conditions at e9. Root authorization5765937975 follows that gate and actual test-first execution. No final code approval is claimed by this source/oracle review.
+
+Initial643 ordinaryOPS35638818984/job106462840903:5271total,5222PASS/49FAIL through the real missing normalized diagnostic. Latest e9 ordinaryOPS35640633558/job106468802003:5299total,5222PASS/77FAIL,329files326PASS/3FAIL. The77 new cases comprise49 reader,25 boundary/outcome/date-owner,3 literal-cutoff/deferred-response cases. No import/type/setup failure. All5222 prior cases pass; paired actual accepted/rejected branch/equality controls pass before the missing new report assertion. Verify106468801995 and replay106468801937 pass. All three previously published test files remain unchanged in this implementation.
+
+## Three production paths
+
+1. lib/ediel/utilts/receivedStructuralSources.ts performs one real read through tenantDb(companyId). It requires trusted company/environment/original receipt time, actual single UTILTS envelope, unique header legal MS/MR identities and unambiguous IDE/LOC172 object+agency matches. Database predicates include company, environment, inbound/EDIFACT/PRODAT, a batched matched-point ID list and the original literal receipt cutoff. Exact count plus limit101 for a100row budget prevents selecting a truncated prefix. The entire returned row scope is checked before exposing any source IDs.
+2. The reader verifies exact lowercase SHA256 of stored source bytes, reparses the original single PRODAT message through existing canonical/parser/register owners, compares FR/DO and raw object+agency, and exposes source-order register identities/current+old meters. Z04 uses field210/DTM92; Z06/Z10 use field216/DTM157, with optional contract start kept separate. Missing or duplicate/invalid date fields are not replaced by receipt, creation or sibling-object dates. Only fixed standard-time offset1 is converted. No raw/customer/address/cached JSON copies.
+3. lib/ediel/prodat/render/dates.ts gains only opt-in prodatMarketMinuteToUtc, strict exact Gregorian minute, fixed UTC+1 and host-zone independent, including early years. Existing date APIs stay unchanged. lib/ediel/flows/utiltsDataRequest.part-2.ts adds the actual reader import and report to normalizedPayload before transaction persistence, then retains final dispositions/persistence results there. National runtime/ACK arguments and existing transaction-RPC payload construction are unchanged. Existing normalized status/event/ingestion surfaces carry the report; no detached utility or new database table.
+
+Receipt comparison retains microseconds independently from whole-second milliseconds, while the SELECT preserves the original literal including offset/fraction. Optional query processing has a2second deadline; late completion has no projection callback or later status/event/business write. The underlying read need not be physically cancelled for this deadline guarantee. Diagnostic byte/segment budgets are256KiB and512segments per wire,1MiB and4096segments total. Exceeding them means diagnostic incompleteness, not a national format rejection or a selected prefix.
+
+## Authority and isolation boundaries
+
+Every result has universe=linked_received_sources, authorityStatus=not_established and selection=not_performed. Each candidate acceptance=not_checked. Correct stored hashes do not establish immutable context, legal authentication, accepted disposition, completeness, deletion history or supersession. Mutable links/row metadata and missing unlinked or multi-object sources remain explicit limitations. Empty candidates are not a valid zero-register expected inventory. Equal/future effective dates remain candidates; stable source-ID presentation is not chronological selection. Partial change fields are retained without borrowing incoming registers.
+
+Read failure, hostile response, missing scope and timeout are redacted diagnostic outcomes only. They do not create E61/E62 or change existing business acceptance. This increment prepares actual independently received source evidence for the subsequent accepted-context/discovery/timeline unit. It does not complete E035B or F3.
+
+## Verification, routing and handover
+
+Local tools inspected exact source/diffs and immutable Git objects; no local repository full-suite execution is claimed. New ordinary exact-headCI, completed independent TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR review, expected-head guardedmerge and actual-mainfull73/73+allOPS with inspected artifacts remain required. No assertion, source manifest, dependency, schema, workflow or threshold change. Same-PR postmerge acceptance will supersede this pending snapshot; no receipt-only PR loop.
+
+Activated: existing execution plan, source/consumer acquisition, spec-to-code tracing, TDD, tenant query review, differential/false-positive inspection, independent review, verification-before-completion and branch finishing. Debugging/variant/property controls activate for concrete findings. No UI, Next rendering, schema migration, broad audit, infrastructure, deployment or performance-remediation campaign. Source-page provenance and lack of fresh full-PDF hashing remain as recorded in the plan.
+
+Next after bounded acceptance: independently accepted source-context/receipt qualification, complete relevant source discovery, dated timeline and supersession; E61/E62/guide/ACK/persistence integration and remaining F3 groups. D110/110+10/10 retained. FullE035/F3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a untouched/excluded. No live operations.

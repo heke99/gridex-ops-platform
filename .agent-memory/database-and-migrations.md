@@ -49,3 +49,37 @@
   without rewriting historical snapshots.
 - Current history validation is blocked by the pre-existing immutable
   `20260728170000...` mismatch. Do not change the manifest.
+
+## 2026-09-04 — canonical schema baseline (`supabase/schema.sql`)
+
+`supabase/schema.sql` and `supabase/schema.fingerprint.json` are the canonical
+Fas 3 artifacts. `npm run db:schema:check` compares a fresh dump against them
+byte for byte inside the `clean-migration-replay` job, so **any migration that
+changes the public schema turns that gate red until the baseline is refreshed.**
+
+Refresh procedure — read this before "fixing" a red schema check:
+
+1. Push the migration. The job still generates `rem002-schema-snapshot/` and
+   uploads it as evidence even when the comparison fails.
+2. Download that artifact from the run and copy its two files over
+   `supabase/schema.sql` and `supabase/schema.fingerprint.json`.
+3. Commit them with the migration. The next run compares against the new
+   baseline and goes green.
+
+Do NOT regenerate the baseline locally. `npm run db:schema:snapshot` works
+against any database, but only the Supabase stack in CI produces the canonical
+result: a plain PostgreSQL shadow reconstructs the same relations, columns,
+functions, indexes and triggers, and differs on extensions, policies and grants
+(2548 policies against 714, 13307 relation grants against 5546, 8 extensions
+against 5). A locally generated baseline would be wrong in exactly the places
+the gate exists to watch.
+
+`pg_dump` must match the server major. `supabase/config.toml` pins
+`major_version = 17`, the job installs `postgresql-client-<major>` read from
+that file and passes the explicit binary through `GRIDEX_PG_DUMP`, because
+Debian's pg_wrapper does not reliably resolve to the newest installed major and
+because the dump body itself is version-specific (`SET transaction_timeout` is
+emitted only by 17).
+
+First baseline: fingerprint `3b0dd50e7f5c6178b8d925c4469f1759b5a83d64e020bde1555ef5ae4c0e08f0`,
+captured from run 33874550022 and verified by the check in the same job.

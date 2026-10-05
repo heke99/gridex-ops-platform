@@ -1,0 +1,170 @@
+{
+  "repository": "heke99/gridex-ops-platform",
+  "fetched_at": "2026-10-05T14:09:00Z",
+  "run": {
+    "id": 37319901610,
+    "workflow_id": 374495306,
+    "path": ".github/workflows/staff-api-schema-capture.yml",
+    "head_sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "head_branch": "codex/ediel-tr05-recovery-20261004",
+    "run_attempt": 1,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "head_commit": {
+      "id": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "tree_id": "5c3e101cd3744b2479d9948c31183929755d83fb",
+      "message": "Publish independent current intake export source qualification",
+      "timestamp": "2026-10-05T13:50:10Z",
+      "author": {
+        "name": "Heke  Hourani",
+        "email": "heke99@live.se"
+      },
+      "committer": {
+        "name": "Heke  Hourani",
+        "email": "heke99@live.se"
+      }
+    },
+    "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37319901610"
+  },
+  "jobs": [
+    {
+      "id": 111796010070,
+      "run_id": 37319901610,
+      "workflow_name": "Staff API schema capture (capture only)",
+      "head_branch": "codex/ediel-tr05-recovery-20261004",
+      "run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/37319901610",
+      "run_attempt": 1,
+      "node_id": "CR_kwDORvYys88AAAAaB4-8Vg",
+      "head_sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/jobs/111796010070",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37319901610/job/111796010070",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-05T13:50:22Z",
+      "started_at": "2026-10-05T14:00:56Z",
+      "completed_at": "2026-10-05T14:04:11Z",
+      "name": "Capture disposable clean-replay types and schema",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-05T14:00:57Z",
+          "completed_at": "2026-10-05T14:00:59Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-05T14:00:59Z",
+          "completed_at": "2026-10-05T14:01:05Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-05T14:01:05Z",
+          "completed_at": "2026-10-05T14:01:09Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-05T14:01:09Z",
+          "completed_at": "2026-10-05T14:01:19Z"
+        },
+        {
+          "name": "Run supabase/setup-cli@v1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-05T14:01:19Z",
+          "completed_at": "2026-10-05T14:01:21Z"
+        },
+        {
+          "name": "Install the matching PostgreSQL 17 client",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-05T14:01:21Z",
+          "completed_at": "2026-10-05T14:01:35Z"
+        },
+        {
+          "name": "Capture authentic artifacts from the sourced clean replay",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-05T14:01:35Z",
+          "completed_at": "2026-10-05T14:04:08Z"
+        },
+        {
+          "name": "Upload capture-only artifacts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-05T14:04:08Z",
+          "completed_at": "2026-10-05T14:04:09Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-05T14:04:09Z",
+          "completed_at": "2026-10-05T14:04:09Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-05T14:04:09Z",
+          "completed_at": "2026-10-05T14:04:09Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-05T14:04:09Z",
+          "completed_at": "2026-10-05T14:04:09Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111796010070",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000042528,
+      "runner_name": "GitHub Actions 1000042528",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11351030885,
+      "node_id": "MDg6QXJ0aWZhY3QxMTM1MTAzMDg4NQ==",
+      "name": "staff-schema-capture-5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "size_in_bytes": 1631915,
+      "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11351030885",
+      "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11351030885/zip",
+      "expired": false,
+      "digest": "sha256:37a62b7ae4a3e061863226ec07e5030e5df2346fd5b458ce4821b3c726f799ee",
+      "created_at": "2026-10-05T14:04:09Z",
+      "updated_at": "2026-10-05T14:04:09Z",
+      "expires_at": "2026-10-19T14:04:08Z",
+      "workflow_run": {
+        "id": 37319901610,
+        "repository_id": 1190539955,
+        "head_repository_id": 1190539955,
+        "head_branch": "codex/ediel-tr05-recovery-20261004",
+        "head_sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd"
+      }
+    }
+  ]
+}

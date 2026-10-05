@@ -1,3 +1,4 @@
+import CompanySelect from '@/components/admin/CompanySelect'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -189,8 +190,8 @@ export default async function ManualMailboxesPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-sm font-semibold text-slate-800">
-              Bolags-ID (valfritt, för tenant-override)
-              <input name="company_id" placeholder="Lämna tomt för plattformsstandard" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+              Bolag (valfritt, för bolagsspecifik inställning)
+              <CompanySelect emptyLabel="Plattformsstandard (alla bolag)" />
             </label>
             <label className="text-sm font-semibold text-slate-800">
               Avsändaradress

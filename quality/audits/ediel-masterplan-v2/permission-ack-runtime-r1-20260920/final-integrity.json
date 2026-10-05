@@ -1,0 +1,12 @@
+{
+  "gate": "integrity",
+  "command": [
+    "npm",
+    "run",
+    "ediel:masterplan-v2:integrity"
+  ],
+  "exit": 0,
+  "seconds": 0.27,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-integrity.log",
+  "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18"
+}

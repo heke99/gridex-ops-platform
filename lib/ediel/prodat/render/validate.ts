@@ -1,3 +1,6 @@
+import {resolveCanonicalProdatRuntimeProfile} from '@/lib/ediel/rulebook/prodatRuntimeProfileRegistry'
+import { resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 // lib/ediel/prodat/render/validate.ts
 
 import type { ProdatEngineProductionContext, ProdatEngineValidationIssue } from '@/lib/ediel/prodat/types'
@@ -21,7 +24,8 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       description: 'PRODAT engine kräver receiverEdielId innan EDIFACT kan renderas.',
     })
   }
-  if (!sanitizeProdatText(context.meterPointId)) {
+  const profile = resolveCanonicalProdatRuntimeProfile({code:context.code,subtypeOrReasonCode:context.reasonForTransaction ?? context.contractClosureReason,version:'26A'})
+  if (profile?.requiresMeterPoint !== false && !sanitizeProdatText(context.meterPointId)) {
     issues.push({
       severity: 'error',
       code: 'prodat_engine_metering_point_missing',
@@ -29,7 +33,7 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       description: 'PRODAT engine kräver mätpunkt/anläggnings-id till LIN.',
     })
   }
-  if (!compactProdatReference(context.bgmReference, 35)) {
+  if (!context.bgmReference.trim()) {
     issues.push({
       severity: 'error',
       code: 'prodat_engine_bgm_reference_missing',
@@ -60,7 +64,8 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       })
     }
 
-    if (isHistoricalRequest && !sanitizeProdatText(context.startDate)) {
+    const dates = resolveProdatDateInputs(context.code, isHistoricalRequest ? 'VH' : 'V', context)
+    if (isHistoricalRequest && !prodatDate203(dates.reportStartDate)) {
       issues.push({
         severity: 'error',
         code: 'prodat_z13vh_report_start_missing',
@@ -69,7 +74,7 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       })
     }
 
-    if (isHistoricalRequest && !sanitizeProdatText(context.permissionEndDate)) {
+    if (isHistoricalRequest && !prodatDate203(dates.reportEndDate)) {
       issues.push({
         severity: 'error',
         code: 'prodat_z13vh_report_end_missing',
@@ -83,7 +88,7 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
     const hasEndUserIdentity = Boolean(sanitizeProdatText(context.customerId) || sanitizeProdatText(context.customerName))
     const hasPermissionId = Boolean(sanitizeProdatText(context.permissionId) || sanitizeProdatText(context.powerOfAttorneyReference))
     const hasEndReason = Boolean(sanitizeProdatText(context.permissionEndReason))
-    const hasEndDate = Boolean(sanitizeProdatText(context.permissionEndDate) || sanitizeProdatText(context.startDate))
+    const hasEndDate = Boolean(prodatDate203(context.permissionEndDate))
 
     if (!hasEndUserIdentity) {
       issues.push({

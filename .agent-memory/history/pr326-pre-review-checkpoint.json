@@ -1,0 +1,46 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-17",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "current_state": ".agent-memory/current-state.md",
+  "branch": "codex/ediel-v2-prodat-party-fields-20260917",
+  "base_head_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
+  "active_item": "F3-F all20 NAD fields and identified party consumers",
+  "next_action": "Publish qualification correction, run final ordinary exact-head CI/review, then guarded merge. DTM is next only after this item closes.",
+  "main_merged": false,
+  "source_state": {
+    "local_only": false,
+    "new_source_cases": 264,
+    "retained_source_cases": 584,
+    "baseline": {
+      "passed": 30,
+      "failed": 234
+    },
+    "consumer_cases_executed": true,
+    "normal_ci": "INITIAL_HEAD_FAILED; FINAL_HEAD_REQUIRED",
+    "published_head": "aadcd597ba59817d6396900f5e8409ed1efeaa09",
+    "published_tree": "e3b2a640bc65ce492109ebcba714149e9ff95aa5",
+    "consumer_cases": 50,
+    "local_full_tests": 1347,
+    "local_types": "app/scripts/tests PASS",
+    "local_changed_lint": "PASS"
+  },
+  "prior_completed": {
+    "pr": 325,
+    "merge_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
+    "tested_head": "d28eb25155bfa64938a0ab51264e15b991dee64b",
+    "normal_ci_success": [
+      35215628380,
+      35215628501,
+      35215628412,
+      35215628437
+    ]
+  },
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a",
+    "backup_branch": "backup/pr310-paused-20260916-e9611351"
+  },
+  "pull_request": 326
+}

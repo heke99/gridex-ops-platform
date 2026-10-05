@@ -1,18 +1,22 @@
+import {sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
+import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/ack.ts
 
 import type {
   CreateEdielMessageInput,
   EdielMessageRow,
 } from '@/lib/ediel/types'
-import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
-import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
-import { renderAperakEdiel } from '@/lib/ediel/aperakEngine'
+import { contrlSourceEnvelope, renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
+import { renderAperakEdiel, usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
-import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
+import { buildCanonicalAckReferences,buildEdielTransactionReference } from '@/lib/ediel/core/referenceRegistry'
+import { readPhysicalUtiltsDocumentIdentity } from '@/lib/ediel/core/physicalDocumentReference'
 import {
   defaultAckStatuses,
   deriveEdielAckDefaults,
+  computeOutboundAckDueAt,
   findExistingAckForSource,
   getAutomaticAckPolicy,
   getCanonicalAckState,
@@ -22,7 +26,13 @@ import {
   type EdielCanonicalAckState,
 } from '@/lib/ediel/core/ackPolicy'
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
-import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
+import {canonicalBusinessSemanticsProjection} from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, observeCompletedEdifactSegments } from '@/lib/ediel/core/edifactTokenizer'
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
+import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {utiltsDefaultAlphabetSegment,utiltsErrOriginalCopySegments} from '@/lib/ediel/utilts/errSourceCopy'
+import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/dates'
 
 export type {
   AckFamily,
@@ -69,47 +79,6 @@ function escapeEdifactText(value?: string | null, maxLength = 70): string {
   return text.replace(/\?/g, '??').replace(/:/g, '?:')
 }
 
-function swedishDateTime(date = new Date()): string {
-  const parts = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Europe/Stockholm',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-
-  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  return `${map.year}${map.month}${map.day}${map.hour}${map.minute}`
-}
-
-
-function compactUtcTimestampWithSeconds(date = new Date()): string {
-  const year = String(date.getUTCFullYear()).slice(2)
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  const hours = String(date.getUTCHours()).padStart(2, '0')
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
-  return `${year}${month}${day}${hours}${minutes}${seconds}`
-}
-
-function randomEdifactToken(length = 6): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let result = ''
-  for (let index = 0; index < length; index += 1) {
-    result += chars[Math.floor(Math.random() * chars.length)]
-  }
-  return result
-}
-
-function buildUtiltsErrDocumentReference(): string {
-  // Edielportalen de-duplicates UTILTS-ERR on BGM/1004, not only UNB/0020.
-  // Keep the varying timestamp/random part inside the first 35 chars; otherwise
-  // sanitize/truncation can turn every retry into the same message id.
-  return sanitizeEdifactToken(`UTILTSERR-${compactUtcTimestampWithSeconds()}-${randomEdifactToken(6)}`, 35) ?? 'UTILTSERR'
-}
 
 function swedishDateTimeFromEdifactUnb(rawPayload?: string | null): string | null {
   const segments = segmentsFromRawPayload(rawPayload)
@@ -138,6 +107,9 @@ type ParsedEdifactRefs = {
 }
 
 export type EdielAperakApplicationError = {
+  prodatOccurrence?: ProdatErrorOccurrence
+  prodatFieldDiagnostic?: ProdatDiagnostic
+  prodatAperakText?: ProdatAperakText
   ercCode: string
   fieldCode?: string | null
   text: string
@@ -151,7 +123,7 @@ export type EdielAperakApplicationError = {
   lineItemReference?: string | null
 }
 
-export type EdielAckScope = 'message' | 'transaction'
+export type EdielAckScope = 'interchange' | 'message' | 'transaction' | 'object'
 
 export type UtiltsAckTransactionTarget = {
   reference: string
@@ -167,8 +139,10 @@ function normalizeAperakErrors(errors?: readonly EdielAperakApplicationError[] |
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
       text: escapeEdifactText(error.text, 140),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
-      referenceNumber: sanitizeEdifactToken(error.referenceNumber ?? null, 35),
-      lineItemReference: sanitizeEdifactToken(error.lineItemReference ?? null, 35),
+      referenceNumber: error.referenceNumber ?? null,
+      lineItemReference: error.lineItemReference ?? null,
+      prodatOccurrence: error.prodatOccurrence,
+      prodatFieldDiagnostic: error.prodatFieldDiagnostic,
     }))
     .filter((error) => error.ercCode.length > 0 && error.text.length > 0)
 
@@ -364,10 +338,8 @@ function buildContrlSegments(params: {
   sourceMessage: EdielMessageRow
   outcome: AckOutcome
 }) {
-  const refs = parseEdifactRefs(params.sourceMessage)
   const rendered = renderContrl2Ediel2({
     outcome: params.outcome,
-    parsedInterchangeReference: refs.interchangeReference,
     source: {
       rawPayload: params.sourceMessage.raw_payload,
       interchangeReference: params.sourceMessage.interchange_reference,
@@ -392,8 +364,16 @@ function buildAperakSegments(params: {
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
 }) {
-  const refs = parseEdifactRefs(params.sourceMessage)
+  const sourceDocument = usesUtiltsAperakProfile(params.sourceMessage.message_family)
+    ? readPhysicalUtiltsDocumentIdentity(params.sourceMessage.raw_payload) : null
+  if (usesUtiltsAperakProfile(params.sourceMessage.message_family) && !sourceDocument) {
+    throw new Error('aperak_utilts_original_document_scope_unavailable')
+  }
+  const refs = sourceDocument ? { documentReference: sourceDocument.reference } : parseEdifactRefs(params.sourceMessage)
+  const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: params.sourceMessage.message_family })
   const rendered = renderAperakEdiel({
     source: {
       id: params.sourceMessage.id,
@@ -402,8 +382,11 @@ function buildAperakSegments(params: {
       messageCode: String(params.sourceMessage.message_code),
       senderEdielId: params.sourceMessage.sender_ediel_id,
       receiverEdielId: params.sourceMessage.receiver_ediel_id,
+      legalSenderEdielId: originalParties.legalSender.id,
+      legalReceiverEdielId: originalParties.legalReceiver.id,
       externalReference: params.sourceMessage.external_reference,
       messageReceivedAt: params.sourceMessage.message_received_at,
+      createdAt: params.sourceMessage.created_at,
     },
     refs,
     externalReference: params.externalReference,
@@ -412,6 +395,8 @@ function buildAperakSegments(params: {
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
     utiltsAcknowledgementReference: params.relatedTransactionReference ?? null,
+    utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
   })
 
   return rendered.segments.filter((segment) => !segment.toUpperCase().startsWith('UNH+'))
@@ -430,12 +415,8 @@ type UtiltsErrSourceGroup = {
 }
 
 function edifactSegmentsFromRaw(rawPayload?: string | null): string[] {
-  return String(rawPayload ?? '')
-    .replace(/\r?\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
+  const wire = tokenizeEdifact(rawPayload)
+  return wire.segments.map(segment => utiltsDefaultAlphabetSegment(segment, wire.una))
 }
 
 function segmentByPrefix(segments: readonly string[], prefix: string): string | null {
@@ -462,108 +443,52 @@ function edifactElement(segment: string | null | undefined, index: number): stri
   return value.length > 0 ? value : null
 }
 
-function firstCompositeComponent(value: string | null | undefined): string | null {
-  const trimmed = value?.trim()
-  if (!trimmed) return null
-  return trimmed.split(':')[0]?.trim() || null
-}
-
-function compositeComponent(value: string | null | undefined, index: number): string | null {
-  const trimmed = value?.trim()
-  if (!trimmed) return null
-  const part = trimmed.split(':')[index]?.trim() ?? ''
-  return part.length > 0 ? part : null
-}
-
-function referenceValueFromSegment(segment: string | null | undefined, qualifier: string): string | null {
-  const composite = edifactElement(segment, 1)
-  const normalizedQualifier = qualifier.toUpperCase()
-  const parts = composite?.split(':') ?? []
-  const actualQualifier = parts[0]?.trim().toUpperCase() ?? ''
-  if (actualQualifier !== normalizedQualifier) return null
-
-  const value = parts.slice(1).join(':').trim()
-  return value.length > 0 ? value : null
-}
-
-function sequencedAckReference(params: {
-  ackFamily: AckFamily
-  sequenceToken: string
-  fallbackReference?: string | null
-}): string {
-  const family = sanitizeEdifactToken(params.ackFamily, 10) ?? 'ACK'
-  const sequenceToken = sanitizeEdifactToken(params.sequenceToken, 18) ?? randomEdifactToken(6)
-  const timestamp = compactUtcTimestampWithSeconds()
-  const random = randomEdifactToken(3)
-  const candidate = `${family}-${sequenceToken}-${timestamp}-${random}`
-  return sanitizeEdifactToken(candidate, 35) ?? sanitizeEdifactToken(params.fallbackReference, 35) ?? `${family}-${timestamp}`
-}
 
 function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourceGroup[] {
-  const segments = edifactSegmentsFromRaw(sourceMessage.raw_payload)
-  const groups: string[][] = []
-  let current: string[] | null = null
-
-  for (const segment of segments) {
-    if (segment.toUpperCase().startsWith('IDE+24')) {
-      if (current) groups.push(current)
-      current = [segment]
-      continue
-    }
-
-    if (!current) continue
-    if (segment.toUpperCase().startsWith('UNT+') || segment.toUpperCase().startsWith('UNZ+')) continue
-    current.push(segment)
+  const wire = tokenizeEdifact(sourceMessage.raw_payload)
+  const headers = wire.segments.filter(segment => segment.tag === 'UNH')
+  if (headers.length !== 1 || segmentComposite(headers[0], 2, wire.una)[0] !== 'UTILTS') {
+    throw new Error('utilts_err_source_message_scope_unavailable')
   }
-
-  if (current) groups.push(current)
-
-  const sourceGroups = groups.length > 0 ? groups : [segments]
-
-  return sourceGroups.map((group) => {
-    const ide = segmentByPrefix(group, 'IDE+24')
-    const tn = segmentByPrefix(group, 'RFF+TN')
-    const loc172 = segmentByPrefix(group, 'LOC+172')
-    const loc239 = segmentByPrefix(group, 'LOC+239')
-
+  const groups = canonicalUtiltsTransactions(wire.segments.slice(headers[0].index), wire.una, 0)
+  const seen = new Set<string>()
+  return groups.map(transaction => {
+    const reference = transaction.transactionId
+    if (transaction.identityQualifier !== '24' || reference === null) throw new Error('utilts_err_source_transaction_reference_unavailable')
+    if (seen.has(reference)) throw new Error('utilts_err_source_transaction_reference_ambiguous')
+    seen.add(reference)
+    // Only this IDE's initial identity window can supply its fields. A SEQ's
+    // nested data and another IDE never repair missing group identity data.
+    const header = transaction.segments.slice(0, transaction.segments.findIndex(segment => segment.tag === 'SEQ') < 0
+      ? undefined : transaction.segments.findIndex(segment => segment.tag === 'SEQ'))
+    const group = header.map(segment => utiltsDefaultAlphabetSegment(segment, wire.una))
+    const location = (qualifier: string) => {
+      const own = header.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === qualifier)
+      if (own.length > 1) throw new Error('utilts_err_source_location_ambiguous')
+      const segment = own[0]
+      const value = segment ? segmentComposite({ ...segment, raw: segmentUntrimmedRaw(segment) }, 2, wire.una)[0] : ''
+      return value === '' ? null : value
+    }
     return {
       segments: group,
-      transactionId:
-        referenceValueFromSegment(tn, 'TN') ??
-        compositeComponent(edifactElement(ide, 2), 1) ??
-        firstCompositeComponent(edifactElement(ide, 2)),
-      meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
-      gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
+      transactionId: reference,
+      meterPointId: location('172'),
+      gridAreaId: location('239'),
       productIdSegment: segmentByPrefix(group, 'PIA+'),
       deliveryPeriodSegment: segmentByPrefix(group, 'DTM+324'),
       reasonSegment: segmentByPrefix(group, 'STS+7'),
-      settlementResponsibleSegment:
-        segmentByPrefixWithValue(group, 'NAD+DDK') ?? segmentByPrefix(group, 'NAD+DDK'),
-      supplierSegment:
-        segmentByPrefixWithValue(group, 'NAD+DDQ') ?? segmentByPrefix(group, 'NAD+DDQ'),
+      settlementResponsibleSegment: segmentByPrefixWithValue(group, 'NAD+DDK') ?? segmentByPrefix(group, 'NAD+DDK'),
+      supplierSegment: segmentByPrefixWithValue(group, 'NAD+DDQ') ?? segmentByPrefix(group, 'NAD+DDQ'),
     }
   })
 }
 
-
 export function getUtiltsAckTransactionTargets(sourceMessage: EdielMessageRow): UtiltsAckTransactionTarget[] {
-  if (String(sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return []
-
-  const seen = new Set<string>()
-  return parseUtiltsSourceGroups(sourceMessage)
-    .map((group, index) => {
-      const reference =
-        resolveUtiltsTransactionId(sanitizeEdifactToken(group.transactionId), index)
-      if (seen.has(reference)) return null
-      seen.add(reference)
-      return {
-        reference,
-        transactionId: group.transactionId,
-        meterPointId: group.meterPointId,
-        gridAreaId: group.gridAreaId,
-      }
-    })
-    .filter((target): target is UtiltsAckTransactionTarget => Boolean(target))
+  if (!['UTILTS','UTILTS_ERR'].includes(String(sourceMessage.message_family ?? '').toUpperCase())) return []
+  return parseUtiltsSourceGroups(sourceMessage).map(group => ({
+    reference: group.transactionId!, transactionId: group.transactionId,
+    meterPointId: group.meterPointId, gridAreaId: group.gridAreaId,
+  }))
 }
 
 
@@ -653,17 +578,6 @@ function segmentByPrefixWithValue(segments: readonly string[], prefix: string, e
   return segments.find((segment) =>
     segment.toUpperCase().startsWith(prefix.toUpperCase()) && utiltsSegmentHasValue(segment, elementIndex)
   ) ?? null
-}
-
-function utiltsErrTransactionId(params: {
-  transactionReference: string
-  index: number
-  sourceTransactionId?: string | null
-}): string {
-  const base = sanitizeEdifactToken(params.transactionReference, 28) ?? 'UTILTSERR'
-  const suffix = String(params.index + 1)
-  const sourceTail = sanitizeEdifactToken(params.sourceTransactionId, 8)
-  return sanitizeEdifactToken(`${base}${suffix}${sourceTail ? `-${sourceTail}` : ''}`, 35) ?? `${base}${suffix}`
 }
 
 function shouldUseS02FunctionalTgtFallback(sourceMessage: EdielMessageRow, codes: readonly string[]): boolean {
@@ -764,35 +678,39 @@ function buildUtiltsErrSegments(params: {
   messageText?: string | null
   relatedTransactionReference?: string | null
 }) {
-  const refs = parseEdifactRefs(params.sourceMessage)
+  const wire = tokenizeEdifact(params.sourceMessage.raw_payload)
+  const documents = wire.segments.filter(segment => segment.tag === 'BGM')
+  if (documents.length !== 1) throw new Error('utilts_err_source_document_scope_unavailable')
+  const document = { ...documents[0], raw: segmentUntrimmedRaw(documents[0]) }
+  const sourceCode = segmentComposite(document, 1, wire.una)[0]
+  const sourceDocumentReference = segmentComposite(document, 2, wire.una)[0]
+  if (!sourceCode || !sourceDocumentReference) throw new Error('utilts_err_source_document_reference_unavailable')
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
   const sourceSubordinateNad = sourceSg2SubordinateNadSegment(params.sourceMessage, sourceSegments)
-  const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
-  const codes = rawCodes
-    .split(/[|,;\s]+/)
-    .map((token) => token.split('@')[0])
-    .map((code) => sanitizeEdifactToken(code.toUpperCase(), 8))
-    .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
-
+  const rawCodes = params.messageText || 'E14'
+  const codes = rawCodes.split(/[|,;\s]+/).map(token => token.split('@')[0]).map(code => code.toUpperCase())
+    .filter(code => /^E[0-9A-Z]+$/.test(code))
   const uniqueCodes = codes.length > 0 ? codes : ['E14']
   const allSourceGroups = parseUtiltsSourceGroups(params.sourceMessage)
-  const requestedTransaction = sanitizeEdifactToken(params.relatedTransactionReference)
-  const sourceGroups = requestedTransaction
-    ? allSourceGroups.filter((group) => sanitizeEdifactToken(group.transactionId) === requestedTransaction)
-    : allSourceGroups
-  if (requestedTransaction && sourceGroups.length === 0) {
-    throw new Error(`Kan inte skapa UTILTS_ERR: transaktion ${requestedTransaction} saknas i källmeddelandet.`)
+  const requestedTransaction = params.relatedTransactionReference ?? null
+  const sourceGroups = requestedTransaction === null ? allSourceGroups
+    : allSourceGroups.filter(group => group.transactionId === requestedTransaction)
+  if (sourceGroups.length !== 1) {
+    throw new Error(requestedTransaction === null ? 'utilts_err_source_transaction_scope_required'
+      : `Kan inte skapa UTILTS_ERR: transaktion ${requestedTransaction} saknas eller är tvetydig i källmeddelandet.`)
   }
-  const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
+  const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: 'UTILTS' })
 
   const segments: Array<string | null> = [
-    `BGM+ERR:SVK:260+${buildUtiltsErrDocumentReference()}+9+AB`,
-    `DTM+137:${swedishDateTime()}:203`,
+    // U p72: the S01–S07 code-list condition does not apply to ERR.
+    `BGM+ERR::260+${params.externalReference}+9+AB`,
+    // U §3.6.1–2: message date uses Swedish standard time all year.
+    `DTM+137:${standardTimeMinute()}:203`,
     'DTM+735:?+0100:406',
     copiedUtiltsSegment(sourceMks, 'MKS+'),
-    `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
-    `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
+    originalAckLegalNadSegment('MS', originalParties.legalReceiver),
+    originalAckLegalNadSegment('MR', originalParties.legalSender),
     sourceSubordinateNad,
   ]
 
@@ -814,70 +732,22 @@ function buildUtiltsErrSegments(params: {
       allCodes: uniqueCodes,
     })
 
-    const outboundTransactionId = utiltsErrTransactionId({
-      transactionReference: params.transactionReference,
-      index,
-      sourceTransactionId: group?.transactionId ?? null,
-    })
+    const outboundTransactionId = buildEdielTransactionReference({family:'UTILTS_ERR',code:'ERR'})
 
     segments.push(`IDE+24+${outboundTransactionId}`)
 
-    if (sourceCode === 'S03' && group?.segments?.length) {
-      // S03 UTILTS-ERR must keep the S03 transaction identity data, but it
-      // must not copy the whole quantity/detail chain from the rejected S03.
-      // If LIN/MEA/CCI/CAV/SEQ/QTY is copied, the portal validator expects the
-      // complete profile-share detail model and can reject the message before
-      // it reaches the E49 rejection status. Build the minimal S03 rejection
-      // group instead: grid area + required S03 identity/role fields + period
-      // + original reason, then append STS+E01 and RFF below.
-      if (group?.gridAreaId) {
-        segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
-      }
-
-      segments.push(copiedUtiltsSegment(group?.settlementResponsibleSegment ?? null, 'NAD+DDK'))
-      segments.push(copiedUtiltsSegment(group?.supplierSegment ?? null, 'NAD+DDQ'))
-      segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
-
-      const s03DateSegments = group.segments.filter((sourceSegment) => {
-        const upper = sourceSegment.toUpperCase()
-        return upper.startsWith('DTM+368:') || upper.startsWith('DTM+354:') || upper.startsWith('DTM+324:')
-      })
-      segments.push(...s03DateSegments)
-      segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
-    } else {
-      if (group?.meterPointId) {
-        const meterPointId = sanitizeEdifactToken(group.meterPointId) ?? group.meterPointId
-        segments.push(`LOC+172+${meterPointId}::9`)
-        usedMeterPointIds.add(meterPointId)
-      }
-
-      if (group?.gridAreaId) {
-        segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
-      }
-
-      if (sourceCode === 'E31') {
-        // E31 UTILTS-ERR keeps the settlement responsible party and supplier
-        // inside the SG5 transaction group. The Ediel portal validates these
-        // as mandatory for E31-SCH error responses; keeping them scoped to E31
-        // avoids changing earlier passed E66/S02 UTILTS-ERR flows.
-        segments.push(copiedUtiltsSegment(group?.settlementResponsibleSegment ?? null, 'NAD+DDK'))
-        segments.push(copiedUtiltsSegment(group?.supplierSegment ?? null, 'NAD+DDQ'))
-      }
-
-      segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
-      segments.push(copiedUtiltsSegment(group?.deliveryPeriodSegment ?? null, 'DTM+324'))
-      segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
-    }
+    // U §3.7.4 pp66–68: copy only the rejected original's own SG5
+    // identity fields. Source-qualified groups never borrow another IDE,
+    // nested SEQ fields, parsed projections or synthetic TGT identities.
+    segments.push(...utiltsErrOriginalCopySegments(params.sourceMessage.raw_payload!,sourceGroups[0].transactionId!))
 
     segments.push(`STS+E01::260+41+${code}::260`)
 
     if (group?.transactionId) {
-      segments.push(`RFF+TN:${sanitizeEdifactToken(group.transactionId) ?? group.transactionId}`)
+      segments.push(`RFF+TN:${escapeEdifactValue(group.transactionId)}`)
     }
 
-    if (refs.documentReference) {
-      segments.push(`RFF+${sourceCode}:${refs.documentReference}`)
-    }
+    segments.push(`RFF+${escapeEdifactValue(sourceCode)}:${escapeEdifactValue(sourceDocumentReference)}`)
   })
 
   return segments.filter(Boolean) as string[]
@@ -892,8 +762,15 @@ function buildAckDraft(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
+  if(params.ackSourceQualification){
+    const qualified=sourceQualifiedOutboundAck({qualification:params.ackSourceQualification,companyId:params.sourceMessage.company_id,environment:params.sourceMessage.environment})
+    if(!qualified || qualified.sourceMessage.id!==params.sourceMessage.id || qualified.sourceMessage.raw_payload!==params.sourceMessage.raw_payload)throw new Error('ack_source_qualification_scope_mismatch')
+  }
 
   const outcome =
     params.ackFamily === 'UTILTS_ERR' ? 'negative' : params.outcome ?? 'positive'
@@ -919,29 +796,26 @@ function buildAckDraft(params: {
       ? sanitizeEdifactToken(params.relatedTransactionReference, 18)
       : null
 
-  const sequenceToken = utiltsErrSequenceToken ?? aperakSequenceToken
-
-  const sequencedReference = sequenceToken
-    ? sequencedAckReference({
-        ackFamily: params.ackFamily,
-        sequenceToken,
-        fallbackReference: refs.externalReference ?? params.sourceMessage.id,
-      })
-    : null
-
-  const ackExternalReference = sequencedReference ?? refs.externalReference
-  const ackTransactionReference = sequencedReference ?? refs.transactionReference
+  // Sequence metadata identifies the source response plan, not a namespace
+  // prefix. Keep independently allocated own BGM/transaction entropy intact.
+  const ackExternalReference = refs.externalReference
+  const ackTransactionReference = refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
+  // Every ACK reverses the original technical UNB route. Legal NAD parties are
+  // projected independently by the family renderer and never replace UNB.
+  const originalEnvelope = contrlSourceEnvelope(params.sourceMessage.raw_payload)
+  parties.senderEdielId = originalEnvelope.receiverComponents[0]
+  parties.senderSubAddress = originalEnvelope.receiverComponents[2] || null
+  parties.receiverEdielId = originalEnvelope.senderComponents[0]
+  parties.receiverSubAddress = originalEnvelope.senderComponents[2] || null
 
-  const applicationReference =
-    trimOrNull(params.sourceMessage.application_reference) ??
-    buildDefaultApplicationReference({
-      actorSubAddress: parties.senderSubAddress,
-      process: params.ackFamily,
-    })
+  const sourceWire = params.ackFamily==='CONTRL'?observeCompletedEdifactSegments(params.sourceMessage.raw_payload):tokenizeEdifact(params.sourceMessage.raw_payload)
+  const originalApplication = segmentComposite(sourceWire.segments.find(segment => segment.tag === 'UNB'), 7, sourceWire.una)
+  if (originalApplication.length !== 1) throw new Error('ack_original_application_reference_ambiguous')
+  const applicationReference = originalApplication[0] || null
 
-  const ackStatuses = defaultAckStatuses()
+  const ackStatuses = deriveEdielAckDefaults({ family: params.ackFamily, code: params.ackFamily })
 
   const segments =
     params.ackFamily === 'CONTRL'
@@ -958,6 +832,8 @@ function buildAckDraft(params: {
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
             relatedTransactionReference: params.relatedTransactionReference ?? null,
+            utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
@@ -967,6 +843,10 @@ function buildAckDraft(params: {
             relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
 
+  const processType=params.ackFamily==='UTILTS_ERR'
+    ? canonicalBusinessSemanticsProjection({family:'UTILTS_ERR',code:'ERR'})?.businessProcess : 'ack'
+  if(!processType)throw new Error('canonical_utilts_err_semantics_unavailable')
+
   if (!parties.senderEdielId || !parties.receiverEdielId) {
     throw new Error(
       `Kan inte skapa ${params.ackFamily}: inbound sender/receiver saknas för ${params.sourceMessage.id}.`
@@ -974,21 +854,38 @@ function buildAckDraft(params: {
   }
 
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ackStatuses.requiresContrl,
+    testFlag: originalEnvelope.testIndicator==='1'?1:0,
     senderEdielId: parties.senderEdielId,
+    senderQualifier: originalEnvelope.receiverComponents[1],
     receiverEdielId: parties.receiverEdielId,
+    receiverQualifier: originalEnvelope.senderComponents[1],
     messageTypeToken:
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:2:2:UN:EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? params.sourceMessage.message_family === 'UTILTS'
+          ? usesUtiltsAperakProfile(params.sourceMessage.message_family)
             ? 'APERAK:D:04A:UN:E5SE5A'
             : 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:02B:UN:E5SE5A',
     applicationReference,
     segments,
+    companyId:params.sourceMessage.company_id,
+    ackSourceQualification:params.ackSourceQualification,
     senderSubAddress: parties.senderSubAddress ?? undefined,
     receiverSubAddress: parties.receiverSubAddress ?? undefined,
   })
+
+  if (params.ackFamily === 'UTILTS_ERR') {
+    const references = (raw: string) => {
+      const wire = tokenizeEdifact(raw)
+      return wire.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, wire.una)[0] === 'TN')
+        .map(segment => segmentComposite({ ...segment, raw: segmentUntrimmedRaw(segment) }, 1, wire.una)[1])
+    }
+    if (JSON.stringify(references(segments.join("'") + "'")) !== JSON.stringify(references(envelope.raw))) {
+      throw new Error('utilts_err_source_reference_serialization_changed')
+    }
+  }
 
   const fileName = inferEdielFileName({
     family: params.ackFamily,
@@ -1017,13 +914,13 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? params.sourceMessage.message_family === 'UTILTS'
+          ? usesUtiltsAperakProfile(params.sourceMessage.message_family)
             ? 'E5SE5A'
             : 'E2SE6A'
           : 'E5SE5A',
-    processType: 'ack',
+    processType,
     environment: params.sourceMessage.environment,
-    testFlag: params.sourceMessage.test_flag,
+    testFlag: originalEnvelope.testIndicator==='1'?1:0,
     status: 'draft',
     transportType: 'smtp',
     mailbox: parties.mailbox,
@@ -1089,8 +986,8 @@ function buildAckDraft(params: {
     siteId: params.sourceMessage.site_id,
     meteringPointId: params.sourceMessage.metering_point_id,
     gridOwnerId: params.sourceMessage.grid_owner_id,
-    requiresContrl: false,
-    requiresAperak: false,
+    requiresContrl: ackStatuses.requiresContrl,
+    requiresAperak: ackStatuses.requiresAperak,
     contrlStatus: ackStatuses.contrlStatus,
     aperakStatus: ackStatuses.aperakStatus,
     utiltsErrStatus: ackStatuses.utiltsErrStatus,
@@ -1109,7 +1006,7 @@ function buildAckDraft(params: {
         : params.ackFamily === 'UTILTS_ERR'
           ? 'failed'
           : 'not_checked',
-    ackDueAt: ackStatuses.ackDueAt,
+    ackDueAt: computeOutboundAckDueAt(ackStatuses),
     messageCreatedAt: new Date().toISOString(),
   }
 }
@@ -1137,16 +1034,22 @@ export function buildAperakDraft(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: 'APERAK',
+    ackSourceQualification:params.ackSourceQualification,
     outcome: params.outcome ?? 'positive',
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
     ackScope: params.ackScope ?? null,
     relatedTransactionReference: params.relatedTransactionReference ?? null,
+    utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
   })
 }
 
@@ -1155,11 +1058,13 @@ export function buildUtiltsErrDraft(params: {
   sourceMessage: EdielMessageRow
   messageText?: string | null
   relatedTransactionReference?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: 'UTILTS_ERR',
+    ackSourceQualification:params.ackSourceQualification,
     messageText: params.messageText ?? null,
     ackScope: params.relatedTransactionReference ? 'transaction' : 'message',
     relatedTransactionReference: params.relatedTransactionReference ?? null,
@@ -1175,6 +1080,9 @@ export function buildAckDraftForSource(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
     return buildContrlDraft({
@@ -1194,10 +1102,14 @@ export function buildAckDraftForSource(params: {
       applicationErrors: params.applicationErrors ?? null,
       ackScope: params.ackScope ?? null,
       relatedTransactionReference: params.relatedTransactionReference ?? null,
+      utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
+      ackSourceQualification:params.ackSourceQualification,
     })
   }
 
   return buildUtiltsErrDraft({
+    ackSourceQualification:params.ackSourceQualification,
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     messageText: params.messageText,

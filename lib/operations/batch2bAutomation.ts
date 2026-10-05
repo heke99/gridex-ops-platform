@@ -1,3 +1,4 @@
+import { createCustomerInfoRequest } from '@/lib/onboarding/infoRequests'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
@@ -110,42 +111,29 @@ async function ensureCustomerInfoRequest(input: {
   targetPartyType?: string
   requestedDataCategories: string[]
 }): Promise<boolean> {
-  const { data: existing, error: existingError } = await supabaseService
+  // Same entry point as every other caller: tenant anchors are validated and
+  // the automation key makes repeated runs return the existing request.
+  const before = await supabaseService
     .from('customer_info_requests')
     .select('id')
     .eq('company_id', input.companyId)
     .eq('automation_key', input.automationKey)
     .limit(1)
-
-  if (existingError) {
-    if (isMissingRelationError(existingError)) return false
-    throw existingError
-  }
-
-  if ((existing ?? []).length > 0) return false
-
-  const { error } = await supabaseService.from('customer_info_requests').insert({
-    company_id: input.companyId,
-    customer_id: input.customerId,
-    site_id: input.siteId,
-    metering_point_id: input.meteringPointId ?? null,
-    request_type: input.requestType,
-    target_party_type: input.targetPartyType ?? 'grid_owner',
-    status: 'draft',
-    requested_data_categories: input.requestedDataCategories,
-    verified_payload: {},
+  if (before.error) throw before.error
+  if ((before.data ?? []).length > 0) return false
+  await createCustomerInfoRequest({
+    companyId: input.companyId,
+    actorUserId: input.actorUserId,
+    customerId: input.customerId,
+    siteId: input.siteId,
+    meteringPointId: input.meteringPointId ?? null,
+    requestType: input.requestType,
+    targetPartyType: input.targetPartyType ?? 'grid_owner',
+    requestedDataCategories: input.requestedDataCategories,
     notes: 'Skapad av Batch 2B automationsmotor. Granska och skicka när fullmakt/rutt är klar.',
-    automation_origin: 'batch_2b_operations',
-    automation_key: input.automationKey,
-    created_by: input.actorUserId,
-    updated_by: input.actorUserId,
+    automationKey: input.automationKey,
+    automationOrigin: 'batch_2b_operations',
   })
-
-  if (error) {
-    if (isMissingRelationError(error)) return false
-    throw error
-  }
-
   return true
 }
 

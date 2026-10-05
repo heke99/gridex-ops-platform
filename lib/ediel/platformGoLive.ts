@@ -168,6 +168,10 @@ async function listCompanies(companyId?: string | null): Promise<DbRow[]> {
     let query = supabaseService
       .from("companies")
       .select("id,name")
+      .eq("status", "active")
+      .eq("lifecycle_status", "active")
+      .eq("is_active", true)
+      .is("archived_at", null)
       .order("name", { ascending: true });
     if (companyId) query = query.eq("id", companyId);
     return query;

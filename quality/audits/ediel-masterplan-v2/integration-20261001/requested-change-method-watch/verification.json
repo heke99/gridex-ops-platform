@@ -1,0 +1,58 @@
+{
+  "baseline": "c652d38328915be0c97af2f1b73bea048630551a",
+  "generated_at": "2026-10-01T04:22:33.937982+00:00",
+  "status": "IMPLEMENTED_MECHANISM_NOT_NATIVE_QUALIFIED_NOT_CRITERION_ACCEPTED",
+  "scope": [
+    "AT-Z09F-SUPPLIER: actual requested_change original/current source \u2192 same-entry 40-day watch",
+    "AT-Z09G-SUPPLIER: same scope",
+    "AT-Z06F reading follow-up remains separate and is not fulfilled by this watch"
+  ],
+  "proofs": [
+    {
+      "kind": "unit_boundaries",
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-metering-method-journal-port.test.ts __tests__/ediel-outbound-transport-journal.test.ts __tests__/ediel-metering-method-expectation-plan.test.ts __tests__/ediel-method-watch-source-kind.test.ts --maxWorkers=1 --reporter=dot",
+      "result": "25/25 PASS; SMTP/RPC boundary fixtures, not authority qualification"
+    },
+    {
+      "kind": "sql_composition",
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-requested-change-method-watch-sql-regression.mjs",
+      "result": "PASS actual owner SQL composition; declared SYNTHETIC guide/actor/issuer/supply/current-source/provider boundaries; NOT native replay"
+    },
+    {
+      "kind": "scoped_eslint_diff",
+      "result": "PASS scoped ESLint 0 diagnostics; git diff --check 0 diagnostics"
+    }
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261001031906_ediel_requested_change_method_watch_consumers.sql",
+      "sha256": "1758247e55d5ba4e2a128ab165803d05c621a4468e08c1ad951823e6faf41bd9"
+    },
+    {
+      "path": "scripts/ediel-requested-change-method-watch-sql-regression.mjs",
+      "sha256": "ef2e7e705795a48f6546ad2013c300c09dd82289b9d086c00a988df3a5a3e994"
+    },
+    {
+      "path": "__tests__/ediel-metering-method-journal-port.test.ts",
+      "sha256": "030036c0b12648b61fe359bdf053539d6e044c7ad9f0d8d0f57f05ecda735d83"
+    }
+  ],
+  "unexecuted": [
+    "genuine whole-repo clean and ancestor-upgrade replay",
+    "genuine API/browser/GoTrue/source review \u2192 actual original F/G send and accepted journal \u2192 native watch",
+    "genuine F/G applied Z06 observed against historical entry receipt, race/revocation/ambiguity",
+    "generated schema/types/manifest integration by root",
+    "frozen final candidate build and exact-head CI",
+    "whole-ID expected and prohibited literal acceptance"
+  ],
+  "invariants": [
+    "only protected actual requested_changes.origin, exact native source revision and hash qualify new watches",
+    "private immutable receipt is minted by actual native generic journal enter, after current source qualification and same-admission seal, before provider closure",
+    "accepted private journal replay returns before current qualifier and no new receipt or provider effect",
+    "accepted historical watch requires immutable entry receipt and same accepted attempt/binding/clock; current immutable semantic row mismatch holds",
+    "fresh sends always requalify current source revocations even when historical observation remains legitimate",
+    "two compatible actual originals including unregistered ones remain ambiguous; source is never borrowed"
+  ],
+  "legal_external_approval": false,
+  "masterplan_approval": false
+}

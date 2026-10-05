@@ -1,0 +1,36 @@
+import {it,expect,vi} from 'vitest'
+import {evaluateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
+import {payload,input,selection} from '@/__tests__/fixtures/prodat-gas'
+import {deriveProdatAperakValidationIssues} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
+import {changeRaw,changeBody,changeFields} from '@/__tests__/fixtures/prodat-meter-change'
+import {deathRaw} from '@/__tests__/fixtures/prodat-death-status'
+import {assertRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
+import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
+import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
+import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
+const io=vi.hoisted(()=>({from:vi.fn(()=>{throw Error('UNEXPECTED_DB')})}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:io}))
+const row=(raw:string,code:string)=>({message_family:'PRODAT',message_code:code,raw_payload:raw,direction:'inbound',environment:'test',parsed_payload:{}} as never)
+for(const [code,reason] of [['Z04','Z22'],['Z06','E64'],['Z10','E58']])it(`characterization: ${code} accepts both installation and unrelated series because no regime/value authority exists`,()=>{
+ for(const value of ['A','ACTUAL-TIM-SERIES','UNRELATED-SERIES']){
+  const raw=payload(code,reason,[['RFF',['Z08','HEAT']],['RFF',['Z06',value]]],'gas')
+  const evaluated=evaluateProdatGasApplicability({...input(raw,code),direction:'outbound',facts:{gasSerialChange:code==='Z04'?undefined:selection(true,code as 'Z06'|'Z10')}})
+  expect(evaluated.requirements.get('240')).toBe('required')
+  expect(evaluated.issues.filter(x=>x.blocking)).toEqual([])
+  expect(gasApplicabilitySendIssue({raw_payload:raw,message_code:code,message_family:'PRODAT'}).code).toBe('PRODAT_GAS_SOURCE_UNQUALIFIED')
+ }
+})
+it('characterization: manual meter fault remains held, rather than typed mapped',()=>{
+ expect(()=>deriveProdatAperakValidationIssues({message:row(changeRaw(changeBody(changeFields('BAD','INVALID'))),'Z10')})).toThrow('PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED')
+ expect(io.from).not.toHaveBeenCalled()
+})
+it('characterization: manual death fault remains held while direct qualified310 error exists',()=>{
+ const raw=deathRaw('Z09');expect(()=>deriveProdatAperakValidationIssues({message:row(raw,'Z09')})).toThrow('PRODAT_DEATH_STATUS_ACK_REVIEW_REQUIRED')
+ expect(decideProdatAperak({rawPayload:raw,testKind:'production'}).applicationErrors).toContainEqual(expect.objectContaining({ercCode:'41',fieldCode:'310',referenceNumber:'A',lineItemReference:'LI-A'}))
+ expect(io.from).not.toHaveBeenCalled()
+})
+it('characterization: quote-bearing legacy list still throws in rulebook guard although meter classifier returns null',()=>{
+ const message={raw_payload:"Ver20140401;A;B\n1;?'UNH+literal;3?",message_standard:'ai_list',message_family:'AI_LIST',message_code:'AI',direction:'outbound',environment:'test',parsed_payload:{}} as never
+ expect(meterChangeSendIssue(message)).toBeNull()
+ expect(()=>assertRulebookAllowsSend(message)).toThrow()
+})

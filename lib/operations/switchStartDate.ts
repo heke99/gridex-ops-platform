@@ -1,12 +1,13 @@
 // Earliest valid supplier-switch / move-in start date calculation.
 //
 // Swedish electricity market rules in practice:
-//   * A normal supplier switch (leverantörsbyte) needs a market lead time
+//   * A normal supplier switch (Z03L) needs the canonical market lead time
 //     before it can take effect.
 //   * If the customer's current contract has a binding period / notice period
 //     (uppsägningstid / bindningstid), the switch cannot take effect before the
 //     contract can legally end.
-//   * A move-in (inflyttning) is anchored to the move-in date itself.
+//   * A move-in (Z03LK) is anchored to the move-in date itself and must not
+//     inherit the Z03L 14-day floor.
 //
 // This module is pure (no I/O) so it can be unit/regression tested. Callers
 // pass the raw stored fields and "today"; the function never guesses silently —
@@ -27,7 +28,7 @@ export type SwitchStartDateInput = {
   contractEndDate?: string | null;
   /** customer_sites.move_in_date (ISO date). */
   moveInDate?: string | null;
-  /** Minimum market lead time in days for a switch (default 14). */
+  /** Canonical Z03L minimum lead in calendar days. Ignored for move-in flows. */
   marketLeadDays?: number;
   /** Reference "today" (ISO date). Defaults to now. */
   today?: string | Date | null;
@@ -105,13 +106,18 @@ export function calculateEarliestSwitchStartDate(
     : 14;
 
   const floors: Array<{ source: string; date: Date }> = [];
-
-  // Market lead time floor: a switch cannot take effect immediately.
-  const marketFloor = addDays(today, marketLeadDays);
-  floors.push({ source: "market_lead_time", date: marketFloor });
-
   const isMove =
     input.requestType === "move_in" || input.requestType === "move_out_takeover";
+
+  // Z03L has a canonical lead-time floor. Z03LK does not: the handbook allows
+  // the move-in notification through the move-in day, so a generic 14-day
+  // supplier-switch floor would be wrong. For move flows, today is only a
+  // safety floor preventing creation of a new request in the past.
+  floors.push({
+    source: isMove ? "today" : "market_lead_time",
+    date: isMove ? today : addDays(today, marketLeadDays),
+  });
+
   const moveInDate = toDate(input.moveInDate);
   if (isMove && moveInDate) {
     // A move anchors the supply start to the move-in date.
@@ -156,7 +162,7 @@ export function calculateEarliestSwitchStartDate(
   } else {
     effective = earliest;
     reason = isMove
-      ? "Inget begärt datum – använder tidigaste giltiga datum baserat på inflyttning/marknadsledtid."
+      ? "Inget begärt datum – använder tidigaste giltiga datum baserat på inflyttning/dagens datum."
       : "Inget begärt datum – använder tidigaste giltiga datum baserat på uppsägningstid/marknadsledtid.";
   }
 

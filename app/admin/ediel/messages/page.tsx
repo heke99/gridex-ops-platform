@@ -3,7 +3,8 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
-import { listAckMessagesForSources, listEdielMessages } from '@/lib/ediel/db'
+import { listBusinessAckStatusForSources, listEdielMessages } from '@/lib/ediel/db'
+import { businessAckStatusPresentation } from '@/lib/ediel/inbound/businessAckReadModel'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
  deleteAllEdielMessagesAction,
@@ -20,6 +21,9 @@ type SearchParams = Record<string, string | string[] | undefined>
 type RowWithAcks = {
  message: EdielMessageRow
  ackMessages: EdielMessageRow[]
+ heldOriginalIds: string[]
+ statusUnavailable: boolean
+ displayStatus: string
 }
 
 function firstParam(value: string | string[] | undefined): string | null {
@@ -167,7 +171,7 @@ export default async function AdminEdielMessagesPage({
  )
  }
 
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const companyId = companyScope.companyId
  const resolvedSearchParams = searchParams ? await searchParams : {}
  const family = firstParam(resolvedSearchParams.family) ?? undefined
  const directionParam = firstParam(resolvedSearchParams.direction)
@@ -183,16 +187,21 @@ export default async function AdminEdielMessagesPage({
  })
 
  const topLevelMessages = messages.filter((message) => shouldShowAsOwnMessageCard(message, family))
- const ackMessagesBySource = await listAckMessagesForSources({
+ const ackMessagesBySource = await listBusinessAckStatusForSources({
+ actorUserId: context.userId,
  sourceMessageIds: topLevelMessages
- .filter((message) => message.direction === 'inbound')
  .map((message) => message.id),
  companyId,
  })
 
  const rows: RowWithAcks[] = topLevelMessages.map((message) => ({
  message,
- ackMessages: message.direction === 'inbound' ? ackMessagesBySource.get(message.id) ?? [] : [],
+ ackMessages: message.direction === 'inbound' ? ackMessagesBySource.get(message.id)?.messages ?? [] : [],
+ heldOriginalIds: ackMessagesBySource.get(message.id)?.heldOriginalIds ?? [],
+ statusUnavailable: Boolean(ackMessagesBySource.get(message.id) && 'holdReason' in ackMessagesBySource.get(message.id)!),
+ displayStatus: message.status === 'acknowledged'
+ ? businessAckStatusPresentation(ackMessagesBySource.get(message.id) ?? { messages: [], heldOriginalIds: [], holdReason: 'unavailable' }).state
+ : message.status,
  }))
 
  return (
@@ -249,7 +258,7 @@ export default async function AdminEdielMessagesPage({
  <input type="hidden" name="cleanupScope" value="test_only" />
  <label className="grid gap-1 text-sm font-semibold text-red-950">
  Bekräftelse
- <input name="confirmation" placeholder="RADERA TESTDATA" className="w-64 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm text-slate-900" />
+ <input aria-label="Bekräftelse" name="confirmation" placeholder="RADERA TESTDATA" className="w-64 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm text-slate-900" />
  </label>
  <label className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-950">
  <input type="checkbox" name="dryRun" defaultChecked />
@@ -268,7 +277,7 @@ export default async function AdminEdielMessagesPage({
  Inga Ediel-meddelanden hittades för filtret.
  </div>
  ) : (
- rows.map(({ message, ackMessages }) => {
+ rows.map(({ message, ackMessages, heldOriginalIds, statusUnavailable, displayStatus }) => {
  const isInboundUtilts = message.direction === 'inbound' && message.message_family === 'UTILTS'
  const hasContrl = hasAckFamily(ackMessages, 'CONTRL')
  const hasAperak = hasAckFamily(ackMessages, 'APERAK')
@@ -287,12 +296,12 @@ export default async function AdminEdielMessagesPage({
  <Pill text={messageVersion(message)} />
  <Pill text={message.application_reference} />
  <Pill text={message.direction} />
- <Pill text={message.status} />
+ <Pill text={displayStatus} />
  </div>
 
  {isInboundUtilts ? (
  <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
- Inbound UTILTS: {hasTgtResponse ? 'Svar finns redan. Skicka befintlig CONTRL/APERAK/UTILTS_ERR nedan.' : 'Öppna eller kör engine från kortet för att skapa svar.'}
+ Inbound UTILTS: {statusUnavailable || heldOriginalIds.length > 0 ? 'Kvittensstatus hålls för granskning.' : hasTgtResponse ? 'Svar finns redan. Skicka befintlig CONTRL/APERAK/UTILTS_ERR nedan.' : 'Öppna eller kör engine från kortet för att skapa svar.'}
  </div>
  ) : null}
 
@@ -302,6 +311,7 @@ export default async function AdminEdielMessagesPage({
  <div>Interchange: <span className="break-all font-medium text-slate-800">{interchangeReference(message)}</span></div>
  </div>
 
+ {statusUnavailable ? <p className="mt-3 text-sm text-amber-800">Kvittensunderlag kunde inte kvalificeras för aktuell läsbehörighet och tenant. Affärsstatus hålls för granskning.</p> : heldOriginalIds.length > 0 ? <p className="mt-3 text-sm text-amber-800">{heldOriginalIds.length} kvittensoriginal saknar kvalificerat källstöd. Affärsstatus hålls för granskning.</p> : null}
  {ackMessages.length > 0 ? (
  <div className="mt-4 flex flex-wrap gap-3">
  {ackMessages.map((ack) => (

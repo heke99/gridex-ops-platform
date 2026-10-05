@@ -1,0 +1,20 @@
+import {it,expect,vi} from 'vitest'
+import {permissionAckMessage as message} from '@/__tests__/fixtures/prodat-permission-ack'
+import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {deriveProdatAperakValidationIssues} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
+import {changeRaw,changeBody,changeFields} from '@/__tests__/fixtures/prodat-meter-change'
+import {deathRaw} from '@/__tests__/fixtures/prodat-death-status'
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
+// Proposed source oracles, pending independent adjudication; no new acceptance claimed.
+it('P119/P123 supplied positive own323 BAD must not gain canonical positive plan',()=>{
+ const m=message();m.raw_payload=m.raw_payload!.replace('CAV+B72','CAV+BAD')
+ expect(resolveCanonicalRuntimeDecision(m).responsePlan).toContainEqual(expect.objectContaining({family:'APERAK',outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:'323'})])}))
+})
+it('P119 all dates: registry must retain known malformed321',()=>{
+ const m=message('Z14','S18');m.raw_payload=m.raw_payload!.replace('202611010000','202602300000')
+ expect(deriveProdatAperakValidationIssues({message:m}).length).toBeGreaterThan(0)
+})
+for(const [code,raw,hold] of [['Z10',changeRaw(changeBody(changeFields('BAD','INVALID'))),'PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED'],['Z09',deathRaw('Z09'),'PRODAT_DEATH_STATUS_ACK_REVIEW_REQUIRED']])it(`ready selected ${code} national error needs typed resolution rather than blanket hold`,()=>{
+ const m={message_family:'PRODAT',message_code:code,raw_payload:raw,direction:'inbound',environment:'test',parsed_payload:{}} as never
+ expect(()=>deriveProdatAperakValidationIssues({message:m})).not.toThrow(hold)
+})

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="4" failures="1" errors="0" time="0.463050873">
+    <testsuite name="__tests__/ediel-sc-016-partial-permission-membership.test.ts" timestamp="2026-10-05T04:34:31.283Z" hostname="c8313f035683" tests="4" failures="1" errors="0" skipped="3" time="0.463050873">
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="SC-016 literal multi-object permission membership (finite SQL) &gt; commits only Z14-approved A from Z13 A/B/C without customer-registry expansion" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="SC-016 literal multi-object permission membership (finite SQL) &gt; publishes only A after separate approval and holds B, C and A/B/C grants" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="SC-016 literal multi-object permission membership (finite SQL) &gt; executes automatic, SDK and manual callers with source-only authority and real actor refusals" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="__tests__/ediel-sc-016-partial-permission-membership.test.ts" time="0.463050873">
+            <failure message="
+node:internal/modules/cjs/loader:1433
+  throw err;
+  ^
+
+Error: Cannot find module &apos;./scripts/lib/unit-loopback-network-boundary.cjs&apos;
+Require stack:
+- internal/preload
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at node:internal/modules/cjs/loader:2071:12
+    at loadPreloadModules (node:internal/process/pre_execution:756:5)
+    at setupUserModules (node:internal/process/pre_execution:231:5)
+    at prepareExecution (node:internal/process/pre_execution:159:5) {
+  code: &apos;MODULE_NOT_FOUND&apos;,
+  requireStack: [ &apos;internal/preload&apos; ]
+}
+
+Node.js v22.23.3
+: expected 1 to be +0 // Object.is equality" type="AssertionError">
+AssertionError: 
+node:internal/modules/cjs/loader:1433
+  throw err;
+  ^
+
+Error: Cannot find module &apos;./scripts/lib/unit-loopback-network-boundary.cjs&apos;
+Require stack:
+- internal/preload
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at node:internal/modules/cjs/loader:2071:12
+    at loadPreloadModules (node:internal/process/pre_execution:756:5)
+    at setupUserModules (node:internal/process/pre_execution:231:5)
+    at prepareExecution (node:internal/process/pre_execution:159:5) {
+  code: &apos;MODULE_NOT_FOUND&apos;,
+  requireStack: [ &apos;internal/preload&apos; ]
+}
+
+Node.js v22.23.3
+: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ __tests__/ediel-sc-016-partial-permission-membership.test.ts:13:48
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

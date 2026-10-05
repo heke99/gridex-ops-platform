@@ -1,0 +1,172 @@
+{
+  "version": "2.0",
+  "date": "2026-09-10",
+  "application_tested": false,
+  "files": [
+    {
+      "path": "Gridex_Ediel_Regel_och_acceptansregister_v2_2026-09-10.xlsx",
+      "bytes": 194583,
+      "sha256": "ab2e27c2df98604c559142ffaa7c0d5e7731589aee62aeb7b1f0bfa612a62fb9"
+    },
+    {
+      "path": "MASTERMASTERPLAN_v2.html",
+      "bytes": 615580,
+      "sha256": "e9bc56c259f9ada461c58940e97e5bd26732e33b43ff0a22a2281f21b53dff63"
+    },
+    {
+      "path": "MASTERMASTERPLAN_v2.md",
+      "bytes": 113217,
+      "sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3923,
+      "sha256": "499736d89f0f03dec983856358ed2682de7021902c7e1fd1746274b64e37c2b6"
+    },
+    {
+      "path": "annex/A_Regelkort.md",
+      "bytes": 84003,
+      "sha256": "8934ac1cc3f6467a8971b1ec40afca220de5c0496350aaef5df525799ae84533"
+    },
+    {
+      "path": "annex/B_PRODAT_falt_och_villkor.md",
+      "bytes": 56673,
+      "sha256": "f126a477440d852d9f15f6e725e391065a93685e5c38dba70542b0ab6526313e"
+    },
+    {
+      "path": "annex/C_UTILTS_applikationsfalt_och_kodkontroller.md",
+      "bytes": 48039,
+      "sha256": "47d1461a14e1421b443a60ba16df0eefbad0fd8bf4dbf4224384fd52d3524f17"
+    },
+    {
+      "path": "annex/D_Acceptanskontrakt.md",
+      "bytes": 129673,
+      "sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912"
+    },
+    {
+      "path": "annex/E_Tidigare_62_granskningspunkter.md",
+      "bytes": 40563,
+      "sha256": "fc29dccc856d1ba165d75893efbeb836bc06ecf41d92bf8d6b5f9653e47b71c3"
+    },
+    {
+      "path": "annex/prodat_field_matrix_source.json",
+      "bytes": 40992,
+      "sha256": "4909fb87a170bb19af4a61cda196facc1fe139e74f89fccdfb534fea73353b46"
+    },
+    {
+      "path": "annex/source_tables.json",
+      "bytes": 322316,
+      "sha256": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728"
+    },
+    {
+      "path": "contracts/ediel-execution.ts",
+      "bytes": 9783,
+      "sha256": "410cd7b56731d92c77134f5a9b857aa105a2d6ed47c035a161e5a6bbb9b4950d"
+    },
+    {
+      "path": "registers/acceptance_tests.json",
+      "bytes": 150753,
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+    },
+    {
+      "path": "registers/callsite_contracts.json",
+      "bytes": 6392,
+      "sha256": "7c34871032720f19d14ba06dac54f47838b1c829f19eff99d9464ff5ab9141a6"
+    },
+    {
+      "path": "registers/data_model_contracts.json",
+      "bytes": 6011,
+      "sha256": "b2b95ff1ee460b5c88f9e4cd2537a3fd8caab530c51c3fbce13552d1db7ba9ec"
+    },
+    {
+      "path": "registers/open_evidence_gates.json",
+      "bytes": 3635,
+      "sha256": "f98ce615db9a7c79004bfbf6b32ae77369c7793f94757db6eed763a261fe5933"
+    },
+    {
+      "path": "registers/prior_findings_62.json",
+      "bytes": 83309,
+      "sha256": "5f07ebee6f52fe9ef4c3c0e9941221b179bd2fe7dc60173322181824bbfe954c"
+    },
+    {
+      "path": "registers/prodat_conditional_cells.json",
+      "bytes": 63991,
+      "sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d"
+    },
+    {
+      "path": "registers/prodat_fields.json",
+      "bytes": 115273,
+      "sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354"
+    },
+    {
+      "path": "registers/prodat_group_conditions.json",
+      "bytes": 1018,
+      "sha256": "2a8e27f377f22adf475fea11a496b8105ce77802878361cbaaeb406cdc4fff93"
+    },
+    {
+      "path": "registers/prodat_message_cases.json",
+      "bytes": 32679,
+      "sha256": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee"
+    },
+    {
+      "path": "registers/prodat_parent_groups.json",
+      "bytes": 1878,
+      "sha256": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7"
+    },
+    {
+      "path": "registers/registry_snapshot_evidence.json",
+      "bytes": 1844,
+      "sha256": "2a60f51ca225a1dd21711fa0fc0a29c67528737dd1ea02ee5f25222dff64de2c"
+    },
+    {
+      "path": "registers/rules.json",
+      "bytes": 91487,
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8"
+    },
+    {
+      "path": "registers/source_manifest.json",
+      "bytes": 1434,
+      "sha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d"
+    },
+    {
+      "path": "registers/state_transitions.json",
+      "bytes": 25093,
+      "sha256": "c770025dddec7e34a89fdf0bcb2632726174dee1e2f298b51afd68430acc51ff"
+    },
+    {
+      "path": "registers/timers.json",
+      "bytes": 11915,
+      "sha256": "f00f75cf30363b127c9e0dbfeb21106973351bd0891404789b2afb96f0b48c38"
+    },
+    {
+      "path": "registers/utilts_application_fields.json",
+      "bytes": 84234,
+      "sha256": "c0a8a8d86e59c7127d2ddfbe80452763f70817b627c1e2d41b736c6a29aa6476"
+    },
+    {
+      "path": "registers/utilts_capabilities.json",
+      "bytes": 13572,
+      "sha256": "ce3c35a91fa2e2108ff566cc849ceff9d999cb970242e2c0cc49c1e3087e4b09"
+    },
+    {
+      "path": "registers/utilts_guide_checks.json",
+      "bytes": 41080,
+      "sha256": "fc742d93cfcef5dd923c5bff0fc1d48a75bc1dca0951cb8c9d5b0b809e7a5e5c"
+    },
+    {
+      "path": "registers/validation_and_error_rules.json",
+      "bytes": 9789,
+      "sha256": "027ef9e664978c46656a6e14ceb409651558044867830080b684d4593e85fee9"
+    },
+    {
+      "path": "verification/spec_integrity_result.json",
+      "bytes": 3569,
+      "sha256": "cce5a5f7271bc41dc58b46da19a2fcab8585417d7d3ffe6ed8cbdb0f5b6bdd38"
+    },
+    {
+      "path": "verification/verify_spec.py",
+      "bytes": 5194,
+      "sha256": "1f2ac55a605cd19a30bdc11eea776261e2ec77835fb162e02e9a707016423639"
+    }
+  ]
+}

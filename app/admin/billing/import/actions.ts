@@ -1,7 +1,8 @@
 'use server'
 
+import { createHash } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -52,85 +53,14 @@ export async function importBillingUnderlayFileAction(formData: FormData): Promi
       throw new Error(parsed.issues[0]?.description ?? 'Inga rader kunde läsas från importen.')
     }
 
-    const { data: batch, error: batchError } = await supabaseService
-      .from('billing_import_batches')
-      .insert({
-        company_id: scope.companyId,
-        file_name: fileName,
-        source_type: fileName ? 'file_upload' : 'manual_paste',
-        status: 'previewed',
-        rows_total: parsed.rows.length,
-        issues: summarizeIssues(parsed.issues),
-        metadata: { delimiter: parsed.delimiter },
-        created_by: admin.userId,
-      })
-      .select('id')
-      .single()
-
-    if (batchError) throw batchError
-
-    let imported = 0
-    let failed = 0
-
-    for (const row of parsed.rows) {
+    // Batch, underlays and row log are written in one transaction; the same content imports once.
+    const contentSha256 = createHash('sha256').update(content).digest('hex')
+    const rows = parsed.rows.map((row) => {
       const hasErrors = row.issues.some((issue) => issue.severity === 'error')
-      let billingUnderlayId: string | null = null
-      let status: 'imported' | 'failed' = hasErrors ? 'failed' : 'imported'
-
-      if (!hasErrors && row.customerId) {
-        const { data: underlay, error: underlayError } = await supabaseService
-          .from('billing_underlays')
-          .insert({
-            company_id: scope.companyId,
-            customer_id: row.customerId,
-            site_id: isUuid(row.siteId) ? row.siteId : null,
-            metering_point_id: isUuid(row.meteringPointId) ? row.meteringPointId : null,
-            source_request_id: isUuid(row.sourceRequestId) ? row.sourceRequestId : null,
-            grid_owner_id: isUuid(row.gridOwnerId) ? row.gridOwnerId : null,
-            underlay_year: row.underlayYear,
-            underlay_month: row.underlayMonth,
-            status: row.status === 'failed' ? 'failed' : row.status,
-            total_kwh: row.totalKwh,
-            total_sek_ex_vat: row.totalSekExVat,
-            currency: row.currency,
-            source_system: row.sourceSystem,
-            payload: {
-              raw: row.raw,
-              externalMeteringPointReference: isUuid(row.meteringPointId) ? null : row.meteringPointId,
-              importBatchId: batch.id,
-              importRowNumber: row.rowNumber,
-            },
-            failure_reason: row.status === 'failed' ? row.issues.map((issue) => issue.description).join(' · ') : null,
-            readiness_status: 'not_checked',
-            readiness_issues: summarizeIssues(row.issues),
-            created_by: admin.userId,
-            updated_by: admin.userId,
-          })
-          .select('id')
-          .single()
-
-        if (underlayError) {
-          status = 'failed'
-          row.issues.push({
-            code: 'db_insert_failed',
-            severity: 'error',
-            title: 'Raden kunde inte importeras',
-            description: underlayError.message,
-          })
-        } else {
-          billingUnderlayId = underlay.id
-        }
-      }
-
-      if (status === 'imported') imported += 1
-      else failed += 1
-
-      await supabaseService.from('billing_import_rows').insert({
-        import_batch_id: batch.id,
-        company_id: scope.companyId,
+      return {
         row_number: row.rowNumber,
-        status,
-        billing_underlay_id: billingUnderlayId,
+        has_errors: hasErrors,
+        issues: summarizeIssues(row.issues),
         normalized_payload: {
           customerId: row.customerId,
           siteId: row.siteId,
@@ -141,19 +71,50 @@ export async function importBillingUnderlayFileAction(formData: FormData): Promi
           totalSekExVat: row.totalSekExVat,
           sourceSystem: row.sourceSystem,
         },
-        issues: summarizeIssues(row.issues),
-      })
-    }
+        underlay: hasErrors || !row.customerId ? null : {
+          customer_id: row.customerId,
+          site_id: isUuid(row.siteId) ? row.siteId : null,
+          metering_point_id: isUuid(row.meteringPointId) ? row.meteringPointId : null,
+          source_request_id: isUuid(row.sourceRequestId) ? row.sourceRequestId : null,
+          grid_owner_id: isUuid(row.gridOwnerId) ? row.gridOwnerId : null,
+          underlay_year: row.underlayYear,
+          underlay_month: row.underlayMonth,
+          status: row.status === 'failed' ? 'failed' : row.status,
+          total_kwh: row.totalKwh,
+          total_sek_ex_vat: row.totalSekExVat,
+          currency: row.currency,
+          source_system: row.sourceSystem,
+          payload: {
+            raw: row.raw,
+            externalMeteringPointReference: isUuid(row.meteringPointId) ? null : row.meteringPointId,
+            importRowNumber: row.rowNumber,
+          },
+          failure_reason: row.status === 'failed' ? row.issues.map((issue) => issue.description).join(' · ') : null,
+          readiness_status: 'not_checked',
+          readiness_issues: summarizeIssues(row.issues),
+        },
+      }
+    })
 
-    await supabaseService
-      .from('billing_import_batches')
-      .update({
-        status: failed > 0 && imported > 0 ? 'partially_imported' : failed > 0 ? 'failed' : 'imported',
-        rows_imported: imported,
-        rows_failed: failed,
-        imported_at: new Date().toISOString(),
-      })
-      .eq('id', batch.id)
+    const { data, error } = await supabaseService.rpc('gridex_import_billing_underlays_v1', {
+      p_company_id: scope.companyId,
+      p_actor_user_id: admin.userId,
+      p_batch: {
+        file_name: fileName,
+        source_type: fileName ? 'file_upload' : 'manual_paste',
+        issues: summarizeIssues(parsed.issues),
+        metadata: { delimiter: parsed.delimiter },
+        content_sha256: contentSha256,
+      },
+      p_rows: rows,
+    })
+    if (error) throw error
+    const result = (data ?? {}) as { duplicate?: boolean; imported?: number; failed?: number }
+    if (result.duplicate) {
+      done('error', 'Den här filen är redan importerad. Inga nya underlag skapades.')
+    }
+    const imported = Number(result.imported ?? 0)
+    const failed = Number(result.failed ?? 0)
 
     revalidatePath('/admin/billing/import')
     revalidatePath('/admin/billing')
@@ -161,6 +122,7 @@ export async function importBillingUnderlayFileAction(formData: FormData): Promi
 
     done('success', `Import klar: ${imported} importerade, ${failed} blockerade/felaktiga rader.`)
   } catch (error) {
+    unstable_rethrow(error)
     done('error', error instanceof Error ? error.message : 'Importen kunde inte genomföras.')
   }
 }

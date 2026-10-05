@@ -1,10 +1,15 @@
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {ProdatEngineInvoiceeContext} from '@/lib/ediel/prodat/types'
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import { prodatDate203, prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { CreateEdielMessageInput, EdielAckOutcome, EdielDirection, EdielMessageFamily, EdielTestRoleCode, EdielTestSuite } from "@/lib/ediel/types"
 
 import { type EdielTgtExpectedStep } from "@/lib/ediel/testing/tgtRegistry"
 import { getEdielTgtTestDataForCase, type EdielTgtCaseTestData } from "@/lib/ediel/testing/tgtTestData"
 import type { EdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings"
-import { getPreferredColumnsForStep } from './tgtEdifact.part-2'
+import { getPreferredColumnsForStep, getPortalDataRows } from './tgtEdifact.part-2'
 
 export type EdielTgtDraftValidationIssue = {
   severity: "error" | "warning" | "info";
@@ -14,12 +19,17 @@ export type EdielTgtDraftValidationIssue = {
 };
 
 export type EdielTgtDraftBuildParams = {
+  dateEventContext?:TgtDateEventValidationContext;
+  reportingContext?:ExpectedContext;
   actorUserId: string;
+  testRunId?: string | null;
   testSuite: EdielTestSuite;
   roleCode: EdielTestRoleCode;
   testCaseCode: string;
   stepNo: number;
   importedTestData?: EdielTgtCaseTestData | null;
+  /** Explicit server-side business facts; never inferred from source field presence. */
+  registerFacts?: ProdatDependentConditionFacts;
   systemTestContext: EdielSystemTestRuntimeContext;
 };
 
@@ -130,6 +140,11 @@ export type ParsedEdifactSegments = {
 };
 
 export type TgtPortalRegister = {
+  registerIndex?: string | null;
+  sourceGroupIndex?: number;
+  sourceColumnName?: string;
+  rawFields?: Record<string,string>;
+  annualEnergyUnit?: string;
   label: string;
   annualEnergyKwh: string;
   meterConstant: string;
@@ -148,6 +163,12 @@ export type TgtProdatMutation = {
 };
 
 export type TgtPortalCustomerData = {
+  reportingRequest?: boolean;
+  lineReference?: string;
+  customerAddressLines?: readonly string[];
+  identityAgency?: string | null;
+  sourceGroupIndex?: number;
+  oldMeterNumber?: string | null;
   source: "tgt_test_data_registry" | "missing_test_data";
   testCustomerLabel: string;
   sourceColumnName?: string | null;
@@ -155,6 +176,12 @@ export type TgtPortalCustomerData = {
   prodatTransactionType?: string | null;
   meteringPointId: string;
   agreementStartDateTime: string;
+  reportStartDate?: string | null;
+  reportEndDate?: string | null;
+  permissionEndDate?: string | null;
+  firstMeterReadingDate?: string | null;
+  observationLength?: string | null;
+  observationLengthFormat?: string | null;
   validityDateTime?: string | null;
   agreementEndDateTime?: string | null;
   annualEnergyUnit: string;
@@ -178,6 +205,7 @@ export type TgtPortalCustomerData = {
   customerCity?: string | null;
   customerCountry?: string | null;
   birthDate?: string | null;
+  invoicee?: ProdatEngineInvoiceeContext | null;
   billingRecipientId?: string | null;
   billingRecipientName?: string | null;
   billingRecipientAddress?: string | null;
@@ -250,8 +278,10 @@ export function buildTgtInterchangeReference(params: {
   );
 }
 
-export function nowRefs(testCaseCode: string, stepNo: number): DraftReferences {
-  const now = new Date();
+/** PRODAT timestamps use fixed UTC+1, not the host timezone/DST. Other
+ * families retain their established reference-clock contract. */
+export function nowRefs(testCaseCode: string, stepNo: number, prodatStandardTime = false): DraftReferences {
+  const now = new Date(Date.now() + (prodatStandardTime ? 3600000 : 0));
   const y = now.getUTCFullYear();
   const m = pad(now.getUTCMonth() + 1);
   const d = pad(now.getUTCDate());
@@ -413,6 +443,8 @@ export type TestDataLookupParams = Pick<
   | "systemTestContext"
 > & {
   importedTestData?: EdielTgtCaseTestData | null;
+  /** Explicit server-side business facts; never inferred from source field presence. */
+  registerFacts?: ProdatDependentConditionFacts;
 };
 
 export function getTgtTestData(
@@ -462,7 +494,7 @@ export function findTestValue(
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
 
       for (const column of candidateColumns) {
@@ -520,7 +552,7 @@ export function findTestFieldForStep(
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
 
       for (const column of candidateColumns) {
@@ -583,7 +615,7 @@ export function findFieldValueForColumn(
   for (const group of data.groups) {
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
       const trimmed = field.values[columnName]?.trim();
       if (trimmed) return trimmed;
@@ -618,56 +650,11 @@ export function buildRegistersFromTestData(
   params: TestDataLookupParams,
   step: EdielTgtExpectedStep,
 ): TgtPortalRegister[] {
-  const columns = selectedRegisterColumns(params, step);
-  const registers = columns.map((columnName, index) => {
-    const annualEnergyRaw = firstToken(
-      findFieldValueForColumn(params, columnName, ["213 uppskattad årsenergi"]),
-    );
-    const meterConstantRaw = firstToken(
-      findFieldValueForColumn(params, columnName, ["214 konstant"]),
-    );
-    const meterDigitsRaw = firstToken(
-      findFieldValueForColumn(params, columnName, ["218 antal siffror"]),
-    );
-    const intervalRaw = firstToken(
-      findFieldValueForColumn(params, columnName, [
-        "259 mätare, tidsintervall",
-        "259 matare",
-      ]),
-    );
-    const resolutionRaw = firstToken(
-      findFieldValueForColumn(params, columnName, [
-        "508b upplösning",
-        "508 upplösning",
-        "508 tidslängd",
-      ]),
-    );
-
-    return {
-      label: `register_${index + 1}`,
-      annualEnergyKwh:
-        annualEnergyRaw && /^\d+$/.test(annualEnergyRaw) ? annualEnergyRaw : "",
-      meterConstant:
-        meterConstantRaw && /^\d+(?:[.,]\d+)?$/.test(meterConstantRaw)
-          ? meterConstantRaw.replace(",", ".")
-          : "",
-      meterDigits:
-        meterDigitsRaw && /^\d+$/.test(meterDigitsRaw) ? meterDigitsRaw : "",
-      meterTimeInterval:
-        intervalRaw && /^\d+$/.test(intervalRaw) ? intervalRaw : "",
-      resolution:
-        resolutionRaw && /^\d+$/.test(resolutionRaw) ? resolutionRaw : null,
-    };
-  });
-
-  return registers.filter(
-    (register) =>
-      register.annualEnergyKwh ||
-      register.meterConstant ||
-      register.meterDigits ||
-      register.meterTimeInterval ||
-      register.resolution,
-  );
+  const data = getTgtTestData(params);
+  if (!data || step.family !== 'PRODAT') return [];
+  const rows = getPortalDataRows(params,step);
+  if (rows.length > 1) throw new Error('prodat_register_source_requires_object_scope');
+  return rows[0]?.registers ?? [];
 }
 
 export function cleanOptional(
@@ -700,7 +687,7 @@ export function senderControlledText(value: string | null | undefined): boolean 
 }
 
 export function defaultAgreementStartDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
   const nextMonth = new Date(Date.UTC(year, month + 1, 10, 0, 0, 0));
@@ -708,7 +695,7 @@ export function defaultAgreementStartDateTime(): string {
 }
 
 export function firstDayNextMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   const firstDayNextMonth = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
   );
@@ -725,14 +712,14 @@ export function formatUtcDateTime(date: Date, includeTime = false): string {
 }
 
 export function firstDayPreviousMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0)),
   );
 }
 
 export function fifteenthDayPreviousMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15, 0, 0, 0),
@@ -741,7 +728,7 @@ export function fifteenthDayPreviousMonthDateTime(): string {
 }
 
 export function firstDaySameMonthPreviousYearDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), 1, 0, 0, 0)),
   );
@@ -763,7 +750,7 @@ export function isHistoricalPermissionTransaction(
 }
 
 export function currentDayDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(
       Date.UTC(
@@ -779,11 +766,11 @@ export function currentDayDateTime(): string {
 }
 
 export function currentUtcMinuteDateTime(): string {
-  return formatUtcDateTime(new Date(), true);
+  return prodatNowDate203(new Date());
 }
 
 export function fifteenthDayNextMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   const fifteenthDayNextMonth = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 15, 0, 0, 0),
   );
@@ -791,9 +778,9 @@ export function fifteenthDayNextMonthDateTime(): string {
 }
 
 export function resolvePortalDateTime(value: string | null | undefined): string {
-  const token = firstToken(value);
-  if (token && /^\d{8,12}$/.test(token))
-    return token.length === 8 ? `${token}0000` : token.slice(0, 12);
+  if (value == null) return defaultAgreementStartDateTime();
+  const compact = prodatDate203(value);
+  if (compact) return compact;
 
   const normalized = normalizeSearch(value);
   if (
@@ -829,7 +816,8 @@ export function resolvePortalDateTime(value: string | null | undefined): string 
   if (normalized.includes("10") && normalized.includes("nasta manad"))
     return defaultAgreementStartDateTime();
 
-  return defaultAgreementStartDateTime();
+  if (senderControlledText(value) && String(value).trim()) return defaultAgreementStartDateTime();
+  throw new Error('prodat_tgt_date_invalid');
 }
 
 export function defaultPowerOfAttorneyReference(

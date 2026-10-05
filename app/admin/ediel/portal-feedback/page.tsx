@@ -44,7 +44,7 @@ export default async function EdielPortalFeedbackPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: isPlatformAdmin ? null : companyScope.companyId, limit: 100 })
+  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 100 })
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -64,13 +64,13 @@ export default async function EdielPortalFeedbackPage() {
               Använd detta när portalen säger godkänt/misslyckat och vi vill jämföra expected/actual mot backendbeslut. Det här är hur E6-lärdomen ska sparas framåt.
             </p>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <label className="text-sm font-bold text-slate-700">Meddelande-ID, frivilligt<input name="edielMessageId" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-normal" /></label>
-              <label className="text-sm font-bold text-slate-700">Test run-ID, frivilligt<input name="testRunId" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-normal" /></label>
+              <label className="text-sm font-bold text-slate-700">Meddelande-ID, frivilligt<input aria-label="Meddelande-ID, frivilligt" name="edielMessageId" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-normal" /></label>
+              <label className="text-sm font-bold text-slate-700">Test run-ID, frivilligt<input aria-label="Test run-ID, frivilligt" name="testRunId" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-normal" /></label>
             </div>
-            {isPlatformAdmin ? <label className="mt-3 block text-sm font-bold text-slate-700">Company-ID, frivilligt<input name="companyId" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-normal" /></label> : <input type="hidden" name="companyId" value={companyScope.companyId ?? ''} />}
+            {isPlatformAdmin ? <label className="mt-3 block text-sm font-bold text-slate-700">Company-ID, frivilligt<input aria-label="Company-ID, frivilligt" name="companyId" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-normal" /></label> : <input type="hidden" name="companyId" value={companyScope.companyId ?? ''} />}
             <label className="mt-4 block text-sm font-bold text-slate-700">
               Portalrapport
-              <textarea name="rawReport" rows={14} className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-mono text-xs font-normal" placeholder="Klistra in tabellen/loggen från Edielportalen här..." />
+              <textarea aria-label="Portalrapport" name="rawReport" rows={14} className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 font-mono text-xs font-normal" placeholder="Klistra in tabellen/loggen från Edielportalen här..." />
             </label>
             <button type="submit" className="mt-4 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Importera feedback</button>
           </form>

@@ -1,0 +1,222 @@
+{
+  "schema": "gridex-masterplan-pair-current-main-minimum-carry/v1",
+  "verdict": "APPROVE_UNCHANGED_REACHED_SOURCE_SQL_AND_FOREIGN_UNION",
+  "created_at": "2026-10-05T15:08:17.718802+00:00",
+  "pr": 544,
+  "pair": [
+    "SC-009",
+    "SC-019"
+  ],
+  "head": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+  "head_tree": "866e87474527463cad630b7a7ead6a3477d5fa0f",
+  "main": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+  "main_tree": "b519b3271f5bdd41bc3aac794b607420b5b725f5",
+  "expected_conflict_free_union_tree": "bea17d9ab23d63a407a120569cd7821d2acaccda",
+  "prior_independent_receipt": "sc009-sc019-final-carry.json",
+  "prior_receipt_sha256": "8678f7c1d771a6db35d45b8264b61006c6aaa25511c51f972751449cd13b2d15",
+  "qualification_method": "New main app/lib/schema/migration/workflow and all selected inputs equal originally adopted3dff and published owner bytes; reuse exact prior complete source/SQL/literal review, no repeat review or execution.",
+  "selected_source_pins": [
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/actor-registry/normalizeActor.ts",
+      "sha256": "05003fa8f3c892922be96d130fd77a450b7e912c9bd9e78f264645867617464c",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/actor-registry/types.ts",
+      "sha256": "e68906f097a929812dd493753c8ecb896b3655b2779560c1f06b508c3360e6f9",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "sha256": "22f6ea98e4696de4c2a4dd8a1de52dc5b23e19e20a8e0d654d411f680f63bfba",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentityEvidence.ts",
+      "sha256": "4dc019e7f6a987162def2ea5ab95a6b800c5f1c037ba16bb7207e7ec51c0c0ee",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/tenant/inboundRouteSemantics.ts",
+      "sha256": "4c39eaf679c72235df125503112b79e162e02ca06e0114eefa7e9dcf1e562598",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "sha256": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/services/projection.ts",
+      "sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/services/types.ts",
+      "sha256": "7679a6e4dd94f5ace7f83464eb55e1d5359f4bb6995c27e2d7d22e79f597271b",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/core/failureDisposition.ts",
+      "sha256": "05af6463754ccd524c1cbfc3ee214e5d9f7911228f8aef2e9cf0c7b90a2e2e5c",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/billing/billingGate.ts",
+      "sha256": "08786cb6ace01cfc5518ce153e53500e31ab2c1058b9301bac6a4d1c56aaf42f",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/billing/sourceBasis.ts",
+      "sha256": "145287b8d0d9023672a8dddf5d8c7873d591504d4825f4607a722731a0461513",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/billing/consumptionEstimate.ts",
+      "sha256": "ef2ded1ff0933adc6b247dccce337a94463e5579c261c7cc63625abee5fd3c91",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/billing/historyRequest.ts",
+      "sha256": "6e088b0e4dc4509d4a8c09aad8b4083d81959e79afad1ae9d90b1c2aa991416f",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/pricing/types.ts",
+      "sha256": "774d38bb4c787bbb2d1d57bd689a2606d717aaddfabb24f1a82ff7887c344c71",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/time/stockholm.ts",
+      "sha256": "dc85350d43db406a772fbc3297a4bce13b316b0d6d0a6d48ac7e8b946edbe568",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/utilts/exactDecimal.ts",
+      "sha256": "47ceb14b50cc3d7136690479f203f1317a3983bb1f02c6a9569ff6a76e53889f",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "sha256": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "scripts/ediel-billing-source-sql-regression.mjs",
+      "sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/utilts/resolution.ts",
+      "sha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "lib/ediel/utilts/timezone.ts",
+      "sha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsObservationHandoff.ts",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsNativeSourceFixture.ts",
+      "sha256": "47003f06ec6a241de78ce6fa90a2e537f2a45aba161a94f4f293fdda9967e9a8",
+      "exact_published_head_main_and_union": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "sha256": "5da55a0ce60bd6714a56e36c811fbc1347fd8a07edd91b9e58248eb5c72b0d2d",
+      "exact_published_head_main_and_union": true
+    }
+  ],
+  "new_reached_production_deltas": [],
+  "selected_complete_SQL_definitions_carried": 23,
+  "transitive_complete_SQL_definitions_carried": 0,
+  "schema_raw_sha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+  "schema_identity_carries_prior_definition_attributes_and_bodies": true,
+  "raw_generated_outputs_exact_main_head_union": {
+    "supabase/schema.sql": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+    "supabase/database.types.ts": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+    "supabase/schema.fingerprint.json": "10a1a07a4678506462e037be4f23c8f2dab729dc560addb219892ef57830dac7"
+  },
+  "eight_capture_input_sha256": {
+    "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+    "scripts/migration-history-manifest.json": "b19e0e57bba7ae6e1bd5c52086e9eaebf2f7e0f986745a1d2d59403ee3d34ae6",
+    "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+    "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+    "scripts/supabase-types-manifest.json": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+    "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+  },
+  "new_foreign_verification_deltas": "SC004/SC006 administration/projection finite-test consumers; SC057/SC059 two new asserting files; SC034 adds complete LIN-refusal native variants; #588 adds unregistered Z06F/G supplier native proposal files with NOT_RUN/first-apply limits. No selected asserting file, producer, capture input or registered native config changes. All foreign current-main bytes are preserved.",
+  "registered_native_config_exact_adopted_main": true,
+  "asserting_input_hashes_retained": [
+    {
+      "path": "__tests__/tenant-ediel-identity-completeness.test.ts",
+      "sha256": "b18188a4bd7ee1bf1391413119654257c97991af4965d8469d278dfca1e32c3d"
+    },
+    {
+      "path": "__tests__/billing-canonical-gate.test.ts",
+      "sha256": "bdc6b9869186bf50d9cb0f938832bd6598f4d66b3f356e80b1e6e30da0cf5f67"
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "sha256": "ccf695eb99eec9eb4448de1cdf4aee691a21eac7bfbb18e2760472b88568184f"
+    }
+  ],
+  "retained_installed_migration_inputs": "Current whole migration tree exact adopted3dff",
+  "preservation": {
+    "all352_ids_ordered": true,
+    "foreign350_rows_and_ordered_evidence_exact": true,
+    "main_metadata_exact": true,
+    "only_pair_rows_differ": [
+      "SC-009",
+      "SC-019"
+    ],
+    "main_approved": 222,
+    "union_approved": 224,
+    "foreign_main_paths_exact": 7791,
+    "main_tags_union_preserved": true
+  },
+  "finite_limits_reused": "Original entire literal and source/SDK/finite SQL/native boundaries remain as prior receipts. No new current native/whole-schema/RLS/custody/legal/market/invoice or authentic capture producer claim; historical red chain and old clean failure stay historical.",
+  "github_snapshot": "sc009-sc019-mainaa-current-carry-github-snapshot.json",
+  "github_observed_at": "2026-10-05 15:08:15 UTC",
+  "required_checks": "Root watches exact owner heads; reported15:03 eight gates green and clean pending. No actual all-nine or candidate-tree runtime approval is inferred here.",
+  "no_tests_native_SQL_full_capture_or_tagger_rerun": true,
+  "no_owner_edit_push_or_merge": true,
+  "root_owns_guarded_merge_publication_and_current_gates": true
+}

@@ -1,5 +1,5 @@
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { escapeEdifactData, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type SerializeEdifactInput = {
   sender: string
@@ -8,6 +8,7 @@ export type SerializeEdifactInput = {
   messageReference: string
   messageTypeToken: string
   applicationReference?: string | null
+  acknowledgementRequest: boolean
   senderSubAddress?: string | null
   receiverSubAddress?: string | null
   testIndicator?: string | number | null
@@ -17,11 +18,7 @@ export type SerializeEdifactInput = {
 }
 
 export function escapeEdifactValue(value: string | number | null | undefined): string {
-  return String(value ?? '')
-    .replace(/\?/g, '??')
-    .replace(/:/g, '?:')
-    .replace(/\+/g, '?+')
-    .replace(/'/g, "?'")
+  return escapeEdifactData(value)
 }
 
 export function serializeEdifact(input: SerializeEdifactInput): string {
@@ -30,6 +27,7 @@ export function serializeEdifact(input: SerializeEdifactInput): string {
     receiver: input.receiver,
     interchangeReference: input.interchangeReference,
     applicationReference: input.applicationReference,
+    acknowledgementRequest: input.acknowledgementRequest,
     senderSubAddress: input.senderSubAddress,
     receiverSubAddress: input.receiverSubAddress,
     environment: EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testIndicator),

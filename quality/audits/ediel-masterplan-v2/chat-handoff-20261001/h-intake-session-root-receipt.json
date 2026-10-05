@@ -1,0 +1,17 @@
+{
+  "ownerHead": "37723569c4ff16dae5d50b1aa2ae63adf57601f9",
+  "ownerTree": "87bcd2f2ae8a2f7e68bbbe65046298538fe59d01",
+  "merge": "ca6b02ba698b834f799a55c329b88a86cb79c28f",
+  "rootChecks": {
+    "SQL": "117 cumulative actual-body finite boundary mechanics PASS; no authentic native",
+    "API": "14 unit tests PASS",
+    "review": "bounded read-only independent CLEAR on final owner SHA; full original return evaluated before final session/current guard",
+    "migrationChecksum": "9eefc3a02750596ea3a1c7de4b87e9b781bf4bb632860afcfe07644d61d9c3ab"
+  },
+  "qualifiedCodeSha": null,
+  "remaining": "Actual GoTrue/native/HTTP, genuine replay/upgrade, UI, build/full CI on frozen candidate; authentic issuer/legal source requirements unchanged",
+  "logHashes": {
+    "root-H-session-checkpoint-current.log": "256c1d7fc86001ffdcf47b383abf0c47133a3fdc440b6cd83d94a1a512741d6b",
+    "root-H-session-checkpoint-unit.log": "784b175079d3b0e0cc58b157a41754ae96f12acdeee5503b676460b45dec27e7"
+  }
+}

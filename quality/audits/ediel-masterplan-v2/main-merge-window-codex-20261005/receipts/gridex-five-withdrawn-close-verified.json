@@ -1,0 +1,95 @@
+{
+  "capturedAt": "2026-10-05T17:29:36.283560+00:00",
+  "packets": {
+    "529": {
+      "state": "closed",
+      "merged": false,
+      "head": "a272a04660b52701aae683a6d37e3702a1472ecf",
+      "closed_at": "2026-10-05T17:26:44Z",
+      "branch": "claude/imp-02-imp-03",
+      "branchSha": "a272a04660b52701aae683a6d37e3702a1472ecf",
+      "expected": "a272a04660b52701aae683a6d37e3702a1472ecf",
+      "sameHeadAndBranch": true,
+      "closeEvent": {
+        "id": 32531123586,
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/issues/events/32531123586",
+        "at": "2026-10-05T17:26:44Z",
+        "actor": "heke99"
+      },
+      "comment_id": 5999559825,
+      "comment_url": "https://github.com/heke99/gridex-ops-platform/pull/529#issuecomment-5999559825"
+    },
+    "537": {
+      "state": "closed",
+      "merged": false,
+      "head": "8cf8cc914beb07723e7efc6f747dc0f996364389",
+      "closed_at": "2026-10-05T17:27:04Z",
+      "branch": "claude/gov-05-gov-06",
+      "branchSha": "8cf8cc914beb07723e7efc6f747dc0f996364389",
+      "expected": "8cf8cc914beb07723e7efc6f747dc0f996364389",
+      "sameHeadAndBranch": true,
+      "closeEvent": {
+        "id": 32531146968,
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/issues/events/32531146968",
+        "at": "2026-10-05T17:27:04Z",
+        "actor": "heke99"
+      },
+      "comment_id": 5999585173,
+      "comment_url": "https://github.com/heke99/gridex-ops-platform/pull/537#issuecomment-5999585173"
+    },
+    "538": {
+      "state": "closed",
+      "merged": false,
+      "head": "1578d763b6cccc0af19abfa10d89bd1d0aa7524c",
+      "closed_at": "2026-10-05T17:27:46Z",
+      "branch": "claude/db-01-pr1-expand",
+      "branchSha": "1578d763b6cccc0af19abfa10d89bd1d0aa7524c",
+      "expected": "1578d763b6cccc0af19abfa10d89bd1d0aa7524c",
+      "sameHeadAndBranch": true,
+      "closeEvent": {
+        "id": 32531202545,
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/issues/events/32531202545",
+        "at": "2026-10-05T17:27:46Z",
+        "actor": "heke99"
+      },
+      "comment_id": 5999562870,
+      "comment_url": "https://github.com/heke99/gridex-ops-platform/pull/538#issuecomment-5999562870"
+    },
+    "540": {
+      "state": "closed",
+      "merged": false,
+      "head": "1eb4560b1038a3df23ba3032f080c77efb5a5e2c",
+      "closed_at": "2026-10-05T17:28:06Z",
+      "branch": "claude/gov-01-rule-metadata",
+      "branchSha": "1eb4560b1038a3df23ba3032f080c77efb5a5e2c",
+      "expected": "1eb4560b1038a3df23ba3032f080c77efb5a5e2c",
+      "sameHeadAndBranch": true,
+      "closeEvent": {
+        "id": 32531225510,
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/issues/events/32531225510",
+        "at": "2026-10-05T17:28:06Z",
+        "actor": "heke99"
+      },
+      "comment_id": 5999588310,
+      "comment_url": "https://github.com/heke99/gridex-ops-platform/pull/540#issuecomment-5999588310"
+    },
+    "542": {
+      "state": "closed",
+      "merged": false,
+      "head": "c250c94124c6af7fd39c7b716b617bee997d56b9",
+      "closed_at": "2026-10-05T17:28:43Z",
+      "branch": "claude/db-02-tenant-fk-inventory",
+      "branchSha": "c250c94124c6af7fd39c7b716b617bee997d56b9",
+      "expected": "c250c94124c6af7fd39c7b716b617bee997d56b9",
+      "sameHeadAndBranch": true,
+      "closeEvent": {
+        "id": 32531268298,
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/issues/events/32531268298",
+        "at": "2026-10-05T17:28:43Z",
+        "actor": "heke99"
+      },
+      "comment_id": 5999565659,
+      "comment_url": "https://github.com/heke99/gridex-ops-platform/pull/542#issuecomment-5999565659"
+    }
+  }
+}

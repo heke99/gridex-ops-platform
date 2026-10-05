@@ -1,6 +1,9 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
+import { portalIdentityEnforcement, reportPortalIdentityWouldReject } from '@/lib/customer-portal/identityEnforcement'
+import { canonicalPortalCustomer, portalCustomerCanLink } from '@/lib/customer-portal/customerLifecycle'
 
 export type CustomerPortalIdentifiers = {
   externalCustomerId: string | null
@@ -27,13 +30,27 @@ export type ResolvedPortalCustomer = {
   customer: Record<string, unknown>
 }
 
+/**
+ * How the resolved customer is bound to the caller.
+ * - `portal_account`: an already linked, active portal account/identity for the presented user id.
+ * - `identifier_match`: matched only on tenant-supplied identifiers (customer number, email, external id).
+ *   Identifier matches are never proof that an end customer is authenticated.
+ */
+export type PortalCustomerBinding = 'portal_account' | 'identifier_match'
+
+/**
+ * `read` (default) never writes: no account/identity upsert, no re-verification, no reactivation.
+ * `link` is the explicit, separately scoped link operation.
+ */
+export type PortalResolveMode = 'read' | 'link'
+
 export type PortalCustomerResolution =
-  | { ok: true; customer: ResolvedPortalCustomer }
+  | { ok: true; customer: ResolvedPortalCustomer; binding: PortalCustomerBinding }
   | { ok: false; status: number; error: string; code: string; identifiers: CustomerPortalIdentifiers }
 
-const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
-const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at'
-const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,email,phone,created_at'
+const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,merged_into_customer_id,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
+const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,merged_into_customer_id,first_name,last_name,full_name,company_name,name,email,phone,created_at'
+const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,merged_into_customer_id,email,phone,created_at'
 const IDENTITY_SELECT = 'id,company_id,customer_id,external_customer_id,external_account_id,customer_number,email,status,match_strength,match_method,provider,auth_user_id,customer_portal_user_id'
 const IDENTITY_FALLBACK_SELECT = 'id,company_id,customer_id,external_customer_id,email,status,match_strength,match_method,provider'
 const ACCOUNT_SELECT = 'id,company_id,customer_id,user_id,portal_user_id,external_account_id,customer_number,external_customer_id,email,user_email,status,is_active'
@@ -317,6 +334,7 @@ async function linkedByAccount(companyId: string, userId: string): Promise<Resol
       provider: 'customer_portal_accounts',
       matchMethod: str(row, 'portal_user_id') ? 'customer_portal_accounts.portal_user_id' : str(row, 'external_account_id') ? 'customer_portal_accounts.external_account_id' : 'customer_portal_accounts.user_id',
       matchStrength: 'strong',
+      verifiedBinding: true,
     })
   }
 
@@ -334,6 +352,7 @@ async function linkedByAccount(companyId: string, userId: string): Promise<Resol
     provider: str(row, 'provider') ?? 'customer_portal_identity',
     matchMethod: str(row, 'match_method') ?? 'customer_portal_identities.user_id',
     matchStrength: str(row, 'match_strength') ?? 'strong',
+    verifiedBinding: true,
   })
 }
 
@@ -387,18 +406,27 @@ async function finishResolved(companyId: string, customerId: string, source: {
   matchMethod?: string | null
   matchStrength?: string | null
   prefetchedCustomer?: Record<string, unknown> | null
+  verifiedBinding?: boolean
 }): Promise<ResolvedPortalCustomer | null> {
-  const customer = source.prefetchedCustomer ?? await fetchCustomer(companyId, customerId)
-  if (!customer || String(customer.company_id) !== companyId) return null
+  const originalCustomer = source.prefetchedCustomer ?? await fetchCustomer(companyId, customerId)
+  if (!originalCustomer) return null
+  const customer = await canonicalPortalCustomer({
+    companyId,
+    customer: originalCustomer,
+    allowMergedAlias: source.verifiedBinding === true,
+    load: (id) => fetchCustomer(companyId, id),
+  })
+  if (!customer) return null
+  const canonicalCustomerId = String(customer.id)
   const userId = source.authUserId ?? source.customerPortalUserId ?? null
-  const profile = await fetchProfile({ companyId, customerId, email: source.email ?? str(customer, 'email'), authUserId: userId })
+  const profile = await fetchProfile({ companyId, customerId: canonicalCustomerId, email: source.email ?? str(customer, 'email'), authUserId: userId })
   const merged = mergeCustomerProfile(customer, profile)
   return {
     id: source.id ?? null,
     company_id: companyId,
-    customer_id: customerId,
+    customer_id: canonicalCustomerId,
     external_customer_id: source.externalCustomerId ?? str(merged, 'external_customer_id'),
-    customer_number: source.customerNumber ?? str(merged, 'customer_number'),
+    customer_number: str(merged, 'customer_number') ?? source.customerNumber ?? null,
     email: normalizeEmail(source.email ?? merged.email),
     auth_user_id: source.authUserId ?? userId,
     customer_portal_user_id: source.customerPortalUserId ?? userId,
@@ -496,6 +524,41 @@ async function selectPortalIdentitiesByUser(companyId: string, userId: string): 
   return []
 }
 
+async function hasBlockedPortalLink(companyId: string, customerId: string, userId: string): Promise<boolean> {
+  const accountFields: Array<'portal_user_id' | 'user_id' | 'external_account_id'> = isUuid(userId)
+    ? ['portal_user_id', 'user_id', 'external_account_id']
+    : ['external_account_id']
+  // query-loop-budget: bounded-block-check max=3
+  for (const field of accountFields) {
+    const { data, error } = await tenantSelect(companyId, 'customer_portal_accounts', 'id,customer_id,status,is_active')
+      .eq(field, userId)
+      .limit(20) as { data: Record<string, unknown>[] | null; error: unknown | null }
+    if (error) {
+      if (isMissingPortalSchemaError(error)) continue
+      throw error
+    }
+    if (asRows(data).some((row) => !activeAccount(row))) return true
+  }
+
+  const identities = await selectPortalIdentitiesByUser(companyId, userId)
+  if (identities.some((row) => !activeIdentity(row))) return true
+
+  const { data, error } = await tenantSelect(companyId, 'customer_portal_identities', 'id,status,auth_user_id,customer_portal_user_id')
+    .eq('customer_id', customerId)
+    .eq('provider', WEBSITE_PORTAL_PROVIDER)
+    .limit(20) as { data: Record<string, unknown>[] | null; error: unknown | null }
+  if (error) {
+    if (isMissingPortalSchemaError(error)) return false
+    throw error
+  }
+  return asRows(data).some((row) => {
+    if (!activeIdentity(row)) return true
+    // An identity already bound to a different portal user is not silently taken over.
+    const boundUser = str(row, 'customer_portal_user_id') ?? str(row, 'auth_user_id')
+    return Boolean(boundUser && boundUser !== userId)
+  })
+}
+
 export async function ensureCustomerPortalUserLink(input: {
   client: IntegrationApiClient
   customerId: string
@@ -510,7 +573,7 @@ export async function ensureCustomerPortalUserLink(input: {
   if (!userId) return null
 
   const customer = await fetchCustomer(input.client.company_id, input.customerId)
-  if (!customer) return null
+  if (!customer || !portalCustomerCanLink(customer)) return null
 
   const now = new Date().toISOString()
   const email = normalizeEmail(input.email ?? customer.email)
@@ -527,6 +590,11 @@ export async function ensureCustomerPortalUserLink(input: {
   }
 
   const portalUserId = isUuid(userId) ? userId : null
+  // A link operation must never undo a block: any deactivated account/identity for this user or
+  // revoked identity for this customer stays deactivated and stops the link.
+  if (await hasBlockedPortalLink(input.client.company_id, input.customerId, userId)) {
+    throw new Error('customer_portal_link_blocked')
+  }
   let accountId: string | null = null
   const accountRows = await selectPortalAccountsByUser(input.client.company_id, userId)
   const existingAccount = accountRows.find((row) => str(row, 'customer_id') === input.customerId) ?? null
@@ -697,7 +765,11 @@ export async function resolvePortalCustomer(input: {
   client: IntegrationApiClient
   request?: NextRequest
   identifiers?: Partial<CustomerPortalIdentifiers>
+  mode?: PortalResolveMode
+  /** Enforce the identity rules regardless of the rollout flag (new endpoints). */
+  strict?: boolean
 }): Promise<PortalCustomerResolution> {
+  const mode: PortalResolveMode = input.mode ?? 'read'
   const identifiers: CustomerPortalIdentifiers = {
     externalCustomerId: input.identifiers?.externalCustomerId ?? (input.request ? portalIdentifiersFromRequest(input.request).externalCustomerId : null),
     customerNumber: input.identifiers?.customerNumber ?? (input.request ? portalIdentifiersFromRequest(input.request).customerNumber : null),
@@ -710,10 +782,40 @@ export async function resolvePortalCustomer(input: {
     return { ok: false, status: 422, code: 'missing_customer_identifier', error: 'Kundidentifierare saknas.', identifiers }
   }
 
+  const authUserId = clean(identifiers.authUserId)
+  const portalUserId = clean(identifiers.customerPortalUserId)
+  if (authUserId && portalUserId && authUserId !== portalUserId) {
+    return {
+      ok: false,
+      status: 422,
+      code: 'portal_identity_mismatch',
+      error: 'Portalanvändarens identifierare måste vara identiska.',
+      identifiers,
+    }
+  }
+
   try {
     const userId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
+    const linkedAccount = userId ? await linkedByAccount(input.client.company_id, userId) : null
+    if (linkedAccount) return { ok: true, customer: linkedAccount, binding: 'portal_account' }
+
+    const enforcement = input.strict ? 'enforce' : portalIdentityEnforcement()
+    if (userId && mode === 'read' && enforcement === 'report') {
+      reportPortalIdentityWouldReject({ code: 'customer_portal_link_required', companyId: input.client.company_id, apiClientId: input.client.id })
+    }
+    if (userId && mode === 'read' && enforcement === 'enforce') {
+      // A presented portal user that is not (or no longer) actively linked must not fall back to
+      // identifier matching, and reads must never create, re-verify or reactivate a link.
+      return {
+        ok: false,
+        status: 403,
+        code: 'customer_portal_link_required',
+        error: 'Portalanvändaren är inte aktivt kopplad till en kund. Koppling sker via separat kontrollerad länkning.',
+        identifiers,
+      }
+    }
+
     const resolved =
-      (userId ? await linkedByAccount(input.client.company_id, userId) : null) ??
       await canonicalIdentityCandidate(input.client.company_id, identifiers) ??
       (identifiers.externalCustomerId ? await linkedByExternal(input.client.company_id, identifiers.externalCustomerId) : null) ??
       (identifiers.customerNumber ? await customerByField(input.client.company_id, 'customer_number', identifiers.customerNumber, 'customers.customer_number') : null) ??
@@ -735,6 +837,21 @@ export async function resolvePortalCustomer(input: {
         error: 'Första kundportalkopplingen kräver redan länkad användare eller minst två matchande kunduppgifter.',
         identifiers,
       }
+    }
+
+    // Report mode retains the identifier read fallback, but never turns a read into a link.
+    // Preserve the existing blocked-link refusal without running the mutating link operation.
+    if (mode === 'read') {
+      if (userId && await hasBlockedPortalLink(input.client.company_id, resolved.customer_id, userId)) {
+        return {
+          ok: false,
+          status: 403,
+          code: 'customer_portal_link_blocked',
+          error: 'Kundportalkopplingen är spärrad och kan inte aktiveras via API.',
+          identifiers,
+        }
+      }
+      return { ok: true, customer: resolved, binding: 'identifier_match' }
     }
 
     const linked = userId
@@ -762,13 +879,25 @@ export async function resolvePortalCustomer(input: {
           match_method: linked.matchMethod,
           provider: resolved.provider ?? 'customer_portal_accounts',
         },
+        binding: 'portal_account',
       }
     }
 
-    return { ok: true, customer: resolved }
+    return { ok: true, customer: resolved, binding: 'identifier_match' }
   } catch (error) {
+    const databaseError = error as { code?: string; message?: string } | null
+    if (databaseError?.code === '23514' && databaseError.message === 'customer_merged_write_conflict') {
+      return { ok: false, status: 409, code: 'portal_identity_customer_conflict', error: 'Kundkopplingen har ändrats. Hämta aktuella kunduppgifter och försök igen.', identifiers }
+    }
     if (isMissingPortalSchemaError(error)) {
       return { ok: false, status: 503, code: 'customer_portal_schema_missing', error: 'Kundportalens datamodell är inte färdig i OPS.', identifiers }
+    }
+    const message = error instanceof Error ? error.message : ''
+    if (message === 'customer_portal_link_blocked') {
+      return { ok: false, status: 403, code: 'customer_portal_link_blocked', error: 'Portalkopplingen är spärrad eller tillhör en annan användare och kan inte återaktiveras via API.', identifiers }
+    }
+    if (message === 'customer_portal_identity_customer_conflict') {
+      return { ok: false, status: 409, code: 'customer_portal_identity_customer_conflict', error: 'Portalidentiteten är redan kopplad till en annan kund.', identifiers }
     }
     throw error
   }

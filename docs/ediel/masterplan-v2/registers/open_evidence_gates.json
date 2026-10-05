@@ -1,0 +1,65 @@
+[
+  {
+    "id": "G01",
+    "category": "Källa",
+    "needed": "Fullständiga UTILTS 25-A-3, inte endast ändringsloggen i 25-A-4",
+    "why": "Behövs för att stänga detaljkontroller före 2026-10-01 och versionsövergångens föregående profil.",
+    "blocks": "Beroende äldre UTILTS-regelprofil",
+    "closure": "Kontrollera publicerat original/hash och jämför samtliga ändrade celler/kontroller.",
+    "status": "Öppen"
+  },
+  {
+    "id": "G02",
+    "category": "Exempel/kodlista",
+    "needed": "Separat aggregerad UTILTS-exempelsamling bilaga5–6 och tillämplig komplett tidsserieproduktlista",
+    "why": "Objektexemplen täcker inte hela aggregat-/BRP-omfattningen eller alla framtida produktkomponenter.",
+    "blocks": "E31/S03/S05/valbarS07 och specifika nya produkter",
+    "closure": "Fullständig produkt/part/område/roll/period samt exakta exempelutfall.",
+    "status": "Öppen"
+  },
+  {
+    "id": "G03",
+    "category": "Formellt prov",
+    "needed": "TGT-testhandledning260827 version6-0-6 + PRODAT4-0-5 och UTILTS3-1-0-v2026 testdata + era faktiska godkännandeprotokoll",
+    "why": "Publicerad lista har kontrollerats; bilagornas fulltext och godkänd omfattning finns inte i denna verifiering.",
+    "blocks": "Formell releasecertifiering per aktör/roll/testscope",
+    "closure": "Knyt testid, källrevision, aktör, miljö, payloadhash och resultat; kräver inte generellt omprov av allt utan källstöd.",
+    "status": "Öppen"
+  },
+  {
+    "id": "G04",
+    "category": "Rättighet/affärsbeslut",
+    "needed": "Konkreta ESCO-uppdrags-/kund-/DSO-avtal, identifierad juridisk provider och beneficiary per upplägg, bilateral capabilities, dataanvändning och retention",
+    "why": "Tenantstruktur och plattformsägande är inte marknadstillstånd eller juridiskt beslut om vidareutlämning.",
+    "blocks": "Aktivering av specifikt cross-tenantuppdrag och bilaterala funktioner",
+    "closure": "Koppla evidens till rätt actor-profile/objekt/purpose/tidsperiod; inte generella kryssrutor.",
+    "status": "Öppen"
+  },
+  {
+    "id": "G05",
+    "category": "Driftbevis",
+    "needed": "Faktisk runtime↔DB-bindning, SMTP/providerinställning utan hemligheter, Stratos queue/Message-ID-spår, mottagarens logs, skyddad originalEML",
+    "why": "Den historiska Z01:ans slutliga transportutfall och produktionsbindning är inte bevisade av planen.",
+    "blocks": "Ny kontrollerad verklig sändning",
+    "closure": "Visa komplett transport och korrelation; inga nya kundstatusar eller omsändningar på chans.",
+    "status": "Öppen"
+  },
+  {
+    "id": "G06",
+    "category": "Implementationsbevis",
+    "needed": "Full UNSM-grammatik och exakt konsument-/schema-/RPCinventering på release-SHA",
+    "why": "Nationella tabeller är detaljerade men ingen körbar full parser; existerande schema ska återanvändas korrekt.",
+    "blocks": "Påstående om full syntax/E2E/paritet och produktionsklarhet",
+    "closure": "Grammatikversion, schemafiler, callgraph och tester kan verifieras genom anslutet repo/CI; användaren behöver normalt inte ladda upp dem manuellt.",
+    "status": "Öppen"
+  },
+  {
+    "id": "G07",
+    "category": "Källkonflikt",
+    "needed": "Register över explicit identifierade dokumentmotsägelser",
+    "why": "PöversiktZ34 motE34; Pbilaga4äldreassociation; svenskUfooter25-A-5; exempelA02 motB71–B76.",
+    "blocks": "Endast tolkningar som verkligen påverkas",
+    "closure": "Använd uttrycklig precedens där den finns. Oavgjord normkonflikt ska få källstödd tolkning, inte härledas från att referensfilen fåttpositivACK.",
+    "status": "Öppen"
+  }
+]

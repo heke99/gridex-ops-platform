@@ -12,6 +12,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 const root = process.cwd()
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
@@ -77,10 +78,10 @@ assert(
 )
 
 // ---- 8. UTILTS runtime facts include quantities array (handles multiple values per message) ----
-const utiltsEngineMain = read('lib/ediel/utiltsEngine.ts')
+const utiltsEngineMain = readSourceFamily(root, 'lib/ediel/utiltsEngine.ts')
 assert(
   /quantities.*Array|transactions.*\[\]|transactions: UtiltsRuntimeTransaction|quantities: Array/.test(utiltsEngineMain),
-  'lib/ediel/utiltsEngine.ts: runtime facts include quantities/transactions arrays (multiple meter values per message)'
+  'lib/ediel/utiltsEngine.ts source family: runtime facts include quantities/transactions arrays (multiple meter values per message)'
 )
 
 // ---- 9. Portal API uses company_id filter ----

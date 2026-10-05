@@ -1,0 +1,76 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "unit": "PC-242-Z06",
+  "review_comment": 5734941292,
+  "predecessor": "1766697092dbec29f812adba6d590f9d9411513f",
+  "code_tree": "9741ef3dec4d083b24695629781d5d724ffafb24",
+  "market_references": [
+    "23-DDQ-PRODAT",
+    "23-DGI-PRODAT"
+  ],
+  "retained_Z06_process_reference": "23-DDQ-PRODAT",
+  "review_red": {
+    "failed": 12,
+    "passed": 16
+  },
+  "targeted_pass": 205,
+  "application_pass": 2791,
+  "application_files": 240,
+  "retained_source_pass": 913,
+  "code_blobs": {
+    "lib/ediel/rulebook/prodatProductScope.ts": "ac7e72fdb9ddfd5cce14bca12ce4e0935296c2b0",
+    "__tests__/ediel-prodat-dependent-z06-product.test.ts": "5b2e813f404b383b14ea2bc46be0f289da6bf3a9",
+    "__tests__/ediel-prodat-dependent-subtype-z06-product-review.test.ts": "a6cd3c0bac70ac7f3064304c76c208695096a792"
+  },
+  "source_sha256": {
+    "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "docs/ediel/masterplan-v2/registers/prodat_message_cases.json": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+    "docs/ediel/masterplan-v2/annex/source_tables.json": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728"
+  },
+  "log_sha256": {
+    "review-coverage-ratchet.log": "3b16bb191008509fc0575d8aab34c037b8986da5dc04d6301b57ba8dac19c205",
+    "review-coverage.log": "16f86474baff441a0de6503fe5346a02039973ffc452f53e226dcc7f0d8bea81",
+    "review-full-vitest.log": "d23e5d8041984a64fa225d8380e19322f925b138a68a4ef8933f00eefee6a941",
+    "review-lint.log": "d799a9e0d37992cd4c3602be5c64ccc19b7973af704179112105de693b940bfe",
+    "review-quality.log": "4e693bb8c948e1c1892644acb29eb0cac418ed9d3790d997d1937ee39852e5fd",
+    "review-reference-green.log": "43c386bf67a8c198c56abcfc63f544784f5a46552faa34687558d071ae941ba7",
+    "review-reference-red.log": "87f51c7986758122663de50b14c720fa52edfba9adb7ecf971683bb7428feaba",
+    "review-source.log": "014d2c4623cfdc33b5c013f73e31dbe14a5a0c521c7da659444ccc6b27d10f29",
+    "review-types-app.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "review-types-scripts.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "review-types-tests.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656"
+  },
+  "verification_exits": {
+    "review-full-vitest": 0,
+    "review-source": 0,
+    "review-types-tests": 0,
+    "review-types-scripts": 0,
+    "review-types-app": 0,
+    "review-lint": 0,
+    "review-coverage": 0,
+    "review-quality": 0
+  },
+  "coverage_ratchet": "PASS_UNCHANGED",
+  "coverage_percent": {
+    "statements": 34.4,
+    "branches": 27.3,
+    "functions": 41.24,
+    "lines": 35.79
+  },
+  "lint": {
+    "errors": 0,
+    "existing_source_warnings": 99,
+    "untracked_generated_coverage_warning": 1
+  },
+  "ordinary_new_head_CI": "REQUIRED",
+  "independent_new_head_review": "REQUIRED",
+  "original_PDF_inspected": false,
+  "accepted_numeric_D": 7,
+  "candidate_numeric_D": 1,
+  "other_unaccepted_numeric_D": 102,
+  "parent_group_occurrences_unaccepted": 10,
+  "PR310": "PAUSED_EXCLUDED",
+  "issue332": "OPEN_UNWAIVED_70_OF_73",
+  "full_masterplan": "NOT_COMPLETE"
+}

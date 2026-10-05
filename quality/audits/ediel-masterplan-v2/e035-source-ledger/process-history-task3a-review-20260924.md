@@ -1,0 +1,33 @@
+### Spec Compliance
+
+- ❌ SPEC: Issues found in the required native proof: the concurrency tests do not establish contention at the fence, and named failure/claim cases are missing. No confirmed unsafe duplicate-send runtime defect was established by this static review.
+- ⚠️ Cannot verify: genuine disposable PostgreSQL/Storage replay, native296 collection/execution, generated schema/types/contracts, and same-head CI. The implementer explicitly withholds those claims in `quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-report-20260924.md:121`; local helper/preflight success is not native qualification.
+
+### Strengths
+
+- `lib/ediel/sources/correctionOutboundDispatch.ts:43-87` consistently records provider results before returning to transport, preserves entry uncertainty on RPC response loss, and never releases after entry was attempted. `lib/email/sendEdielEmail.ts:49-61` places the raw callback after the real S/MIME archive and before sendMail; its attachment callback also immediately precedes sendMail.
+- `supabase/migrations/20260924031626_correction_outbound_dispatch_fence_v1.sql:10-53,86-165` separates immutable originals/attempts/events from the current reservation, seals originals against canonical UTF-8 hashes, serializes owner transitions, and validates actual outbox identity/attempt/worker at preparation and entry. The ledger has no cascading reference to mutable message/outbox parents.
+- `supabase/migrations/20260924031626_correction_outbound_dispatch_fence_v1.sql:142-147,163-185` requires a separately visible event before witnessing, forbids release after entry, retains partial/negative/uncertain observations, and never grants automatic resend. `:225-271` scopes before bounds and keeps history explicitly incomplete.
+- `scripts/ediel-correction-context-native.test.ts:455-473,529-563,576-614` retains the actual direct/worker/helper owners for outcome, byte-binding, archive, and persistence-failure cases; SMTP alone is substituted on the successful native send path. The entry-response-loss seam awaits the real RPC before replacing its response.
+
+### Issues
+
+#### Critical (Must Fix)
+
+- None confirmed.
+
+#### Important (Should Fix)
+
+- **T3A-R1 — The race oracles can pass without exercising the race they claim to prove.** `scripts/ediel-correction-context-native.test.ts:474-483` and `:624-631` discard `Promise.allSettled` results and assert only one provider call/entry. A worker rejected in readiness/claim/preflight, or an already-claimed invocation seeing a later mutable status, satisfies those assertions without ever contending with the winner at the SQL reservation. This does not meet the brief's required actual direct/worker and duplicate-owner concurrency proof. Retain the real owners but use a narrow observation/barrier around the real dispatch RPC to establish that both contenders reach reservation while the winner is paused before entry; assert the losing fence decision and the winner's durable facts. Do not replace the real SQL or owner implementation. Reproduction expectation: make one contender fail before dispatch; the present test can still pass, whereas the corrected test must fail for lack of two observed reservation arrivals. With both admitted to the test barrier, exactly one provider call/entry must remain.
+- **T3A-R2 — Required native cases are absent from the authored matrix.** `scripts/ediel-correction-context-native.test.ts:503-528` covers a released direct owner and an entirely fabricated worker claim, but never a valid current worker claim replaced between successful reservation and entry—the current-claim check added at SQL `:156-160`. The persistence matrix at test `:529-544` injects result-event/status/event/outbox failures, but never failure of the separately committed result witness used by adapter `lib/ediel/sources/correctionOutboundDispatch.ts:65-68`. Add those focused native cases, proving zero provider calls for the stale worker and durable no-resend plus an unwitnessed result gap after result-witness failure. The brief also expressly calls for inactive membership/company and denied-permission variants; `:516-528,632-636` currently supplies foreign actor/tenant/environment and inactive profile only. Add these scoped authorization denials with zero provider/entry assertions. These are mandated safety-boundary cases, not requests for general coverage expansion. Reproduction expectations: pause a genuinely claimed worker after real prepare, change its current claim, then resume and assert entry denial/zero provider calls; fail only the result-witness INSERT after a successful provider/result-event commit, restore persistence, retry after mutable reset, and assert one total provider call, the original result without its witness, and the reader gap. Each authorization denial must keep tenant/message/claim otherwise valid.
+
+#### Minor (Nice to Have)
+
+- `lib/ediel/sources/correctionOutboundDispatch.ts:1-89` compresses the complete fence state machine into dense single-line declarations and control statements; the new SQL similarly repeats the same authorization predicate at `:79-84` and `:132-137`. Conventional formatting would make future review of this safety-sensitive code easier. No additional abstraction is required for this checkpoint.
+
+### Assessment
+
+- **QUALITY: Needs fixes.** The runtime design is conservative and the authored native tests use the correct owners, but the concurrency oracles and missing mandatory failure cases leave specific central invariants untested even if the current suite turns green.
+- **Review boundary:** frozen full diff `d0d95006ad442ffeb1f319351d257f647c0ee688..90a7c653a48dd2bd7b39f0db0e15a3a620d5438a`; no runtime edit, commit, migration execution, or author test rerun.
+- **Focused outside-diff check — client scope shortcut versus canonical immutability:** inspected `supabase/migrations/20260921224255_ediel_inbound_prodat_receive_context.sql:35-64`; outbound canonical raw bytes are hashed and an existing hash prevents later raw/hash changes. No additional bypass defect confirmed for the real DB-loaded paths.
+- **Focused outside-diff check — direct/worker ownership and uncertainty propagation:** inspected `lib/ediel/orchestrator.ts:216-248,389-453` and the context omitted from the changed worker hunk in `lib/ediel/outbox/sendOutboxItem.ts:79-112,291-335`. Direct supplies its authenticated actor and loads the DB row; independent/already-claimed worker modes carry the actual attempt; worker catches `SmtpDeliveryUncertainError` independently of its local accepted flag. No test execution was needed for these static checks.

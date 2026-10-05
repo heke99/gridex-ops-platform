@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "candidateHead": "35016282e182cc713726702a1970c7f78ff451bb",
+  "candidateTree": "eaf4d9ef7ece3f0287f7ff547d059dfb5385e35b",
+  "workflowRun": 36810841916,
+  "artifactIds": {
+    "clean": 11138808869,
+    "upgrade": 11138704223
+  },
+  "archiveSha256": {
+    "clean": "bb61008b55afbcee773bf3875d57727db2f34ef5af097449912cd508e579676d",
+    "upgrade": "ad2ee93d8ba40c24cb8662af2c007809094bfb66c24d2f5565ad4d534a7a989f"
+  },
+  "emptyMigrationReplay": "PASS_ALL_CANDIDATE_DDL",
+  "upgradeBase": "d30fa0203f0499a8e15faeddda7676af81296c86",
+  "upgradeDDL": "PASS_ALL_FORWARD_DDL",
+  "cleanUpgradeSchemaTypesParity": "PASS_BYTE_EXACT",
+  "retainedOriginalsParity": "PASS_BYTE_EXACT",
+  "committedTypesComparator": "FAIL_STALE_COMMITTED_ARTIFACT",
+  "receivedContextRestoreProbe": "PASS_3_OF_3",
+  "ordinaryNativeSuite": "NOT_STARTED",
+  "newInteractiveBrowserSuite": "NOT_STARTED",
+  "firstCleanFailure": {
+    "file": "scripts/ediel-source-ledger-regression.sql",
+    "line": 144,
+    "sqlstate": "P0001",
+    "message": "received_original_immutable_without_native_retention",
+    "classification": "fixture expected only check_violation/23514; actual qualified-retention guard correctly refuses source mutation"
+  },
+  "remediation": "Exact installed trigger/function OID/type/enabled/source-table/update-delete/message oracle; no production guard change or catch-all.",
+  "mandatoryWorkflows": {
+    "Gridex browser and quality E2E": {
+      "run": 36810841913,
+      "conclusion": "success"
+    },
+    "Tenant integrity regression": {
+      "run": 36810841949,
+      "conclusion": "success"
+    },
+    "Ediel masterplan v2 regressions": {
+      "run": 36810841924,
+      "conclusion": "failure"
+    },
+    "Gridex full E2E": {
+      "run": 36810841982,
+      "conclusion": "failure"
+    },
+    "OPS hardening": {
+      "run": 36810841916,
+      "conclusion": "failure"
+    }
+  },
+  "qualificationLimit": "This is an authentic receipt for350 only, never final-candidate runtime acceptance. Later owner/new migrations require complete new replay and regenerated artifacts.",
+  "artifacts": {
+    "database.types.ts": {
+      "sha256": "d2d33ccfb78e5e48b3f4add76fe918d435fe8c7b2f5bb71f28c5a8d808353202",
+      "bytes": 3447528
+    },
+    "schema.sql": {
+      "sha256": "6cf9ee2d85a68066df9718f6e9a3b272ac16571f4757640a4b95c19f640294fe",
+      "bytes": 8468634
+    },
+    "schema.fingerprint.json": {
+      "sha256": "190b82643c2d3884c1f6d578f688794d72cc941e2c84eb76f49be68215d5df07",
+      "bytes": 3122
+    },
+    "retainedOriginals": {
+      "sha256": "461c4ccd645cdeacccab03efd0b6ebff39d51fd7d8da657592c041b5f9cbc6b2",
+      "bytes": 1338
+    }
+  },
+  "schemaCatalog": {
+    "algorithm": "sha256/canonical-json/v1",
+    "schemas": [
+      "gridex_ack_authority",
+      "gridex_ai_processing",
+      "gridex_ai_purpose_sources",
+      "gridex_bilateral_customer_sources",
+      "gridex_bilateral_prodat",
+      "gridex_billing_source",
+      "gridex_brp_changes",
+      "gridex_business_expectations",
+      "gridex_certificate_trust",
+      "gridex_correction_process",
+      "gridex_ediel_ack_guide",
+      "gridex_ediel_ack_replay",
+      "gridex_ediel_business_incidents",
+      "gridex_ediel_common_header",
+      "gridex_ediel_inbound_context",
+      "gridex_ediel_outbound_owner",
+      "gridex_ediel_readiness",
+      "gridex_ediel_retention",
+      "gridex_ediel_services",
+      "gridex_ediel_source_rules",
+      "gridex_ediel_technical_ack",
+      "gridex_ediel_transport",
+      "gridex_ediel_wire_namespace",
+      "gridex_internal",
+      "gridex_metering_method_changes",
+      "gridex_method_expectations",
+      "gridex_negative_fixtures",
+      "gridex_network_registry_sources",
+      "gridex_outbound_dispatch",
+      "gridex_private",
+      "gridex_received_sources",
+      "gridex_registry_import",
+      "gridex_regulated_supply",
+      "gridex_requested_changes",
+      "gridex_service_administration",
+      "gridex_service_permission",
+      "gridex_switch_cancellations",
+      "gridex_transport_exception",
+      "gridex_utilts_binding",
+      "public"
+    ],
+    "sections": {
+      "columns": {
+        "count": 12630,
+        "sha256": "0440e44f0655a81a11628704acef513bd89ca166e37a3d0200e6d5ca876dfaac"
+      },
+      "constraints": {
+        "count": 3524,
+        "sha256": "5579b4707e1bcfe38d3e5c2191520f34c9e16c458adc410e0f565898f5068ca8"
+      },
+      "enums": {
+        "count": 4,
+        "sha256": "e4e1406f2879720d7bec4e002e1bb62cbb3160f29ccc84e90ea8ec388cc6e629"
+      },
+      "extensions": {
+        "count": 7,
+        "sha256": "681146fb7b19ef18f03561a13eff172b8cf4db58ccea291c48c0a5389797d828"
+      },
+      "function_grants": {
+        "count": 2627,
+        "sha256": "b8231dd1673ff8a207a2ea9ecdc4eb4f0d3b376efbbc6ec57db034b8aaee357d"
+      },
+      "functions": {
+        "count": 1354,
+        "sha256": "99031cdf9fe562bcc29c6113fed9cb86460d8e5ffb80d0fe1a5af9c7ede4ce1b"
+      },
+      "indexes": {
+        "count": 2653,
+        "sha256": "a50daef44093c553d0cfab8aa0f991a0c3d42ab22eed4bdb0f2dcb2cb85fe34a"
+      },
+      "policies": {
+        "count": 2560,
+        "sha256": "e7161df11bbd05d022a672da671414b71ad3112aadc119a8e86ff7b43d6706a6"
+      },
+      "relation_grants": {
+        "count": 15037,
+        "sha256": "af68021f69b80c4f17ec202059db8b79f86a917de5793e9d1d3d5b03964951d9"
+      },
+      "relations": {
+        "count": 792,
+        "sha256": "ffff25c0d761e23448354ec695c528cb55c5814ae2e4cf18e2d8d1bf51a98af5"
+      },
+      "schema_grants": {
+        "count": 114,
+        "sha256": "d46460c169182065af96f35f451d2137281effcc20fdc60dd146de828e5f1f04"
+      },
+      "schemas": {
+        "count": 40,
+        "sha256": "6246545692b5ae53bd659fcee9476d353db7cc6eb16c336bb632591346125c18"
+      },
+      "triggers": {
+        "count": 719,
+        "sha256": "da28b853e66730e26d33a94955843f53d7bdb19438ad0d72e1ea73787bade2ea"
+      }
+    },
+    "sha256": "2de2652bc86edfd6f16525878efb2334ddf18609f751ce05d79ef44990a957dc"
+  }
+}

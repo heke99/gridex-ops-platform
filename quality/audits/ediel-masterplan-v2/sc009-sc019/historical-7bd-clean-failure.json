@@ -1,0 +1,36 @@
+{
+  "scope": "Historical #544 clean-gate failure read; current new-head CI still required",
+  "head": "7bd40bd0179a5929b00875911a9744aace14470c",
+  "job_id": 111554272606,
+  "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37242653268/job/111554272606",
+  "conclusion": "failure",
+  "raw_failed_test_excerpt": [
+    "2026-10-05T00:15:21.9593504Z \u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m scripts/ediel-z06f-reading-followup-native.test.ts\u001b[2m > \u001b[22mactual misaligned or missing own reading {\"date\":\"next-day\"} cannot fulfill F or borrow sibling evidence",
+    "2026-10-05T00:15:21.9600494Z \u001b[31m\u001b[1mError\u001b[22m: utilts_consumption_binding_conflict:observation_interval_unresolved\u001b[39m",
+    "2026-10-05T00:15:21.9608010Z \u001b[36m \u001b[2m\u276f\u001b[22m consumptionConflict lib/ediel/utilts/consumptionContract.ts:\u001b[2m95:9\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9663086Z     \u001b[90m 93|\u001b[39m",
+    "2026-10-05T00:15:21.9664548Z     \u001b[90m 94|\u001b[39m \u001b[35mexport\u001b[39m \u001b[35mfunction\u001b[39m \u001b[34mconsumptionConflict\u001b[39m(reason\u001b[33m:\u001b[39m string)\u001b[33m:\u001b[39m never {",
+    "2026-10-05T00:15:21.9667277Z     \u001b[90m 95|\u001b[39m   \u001b[35mthrow\u001b[39m \u001b[35mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m`utilts_consumption_binding_conflict:\u001b[39m\u001b[36m${\u001b[39mreason\u001b[36m}\u001b[39m\u001b[32m`\u001b[39m)",
+    "2026-10-05T00:15:21.9668754Z     \u001b[90m   |\u001b[39m         \u001b[31m^\u001b[39m",
+    "2026-10-05T00:15:21.9669437Z     \u001b[90m 96|\u001b[39m }",
+    "2026-10-05T00:15:21.9670581Z     \u001b[90m 97|\u001b[39m \u001b[35mfunction\u001b[39m \u001b[34mobject\u001b[39m(value\u001b[33m:\u001b[39m unknown)\u001b[33m:\u001b[39m \u001b[33mRecord\u001b[39m\u001b[33m<\u001b[39mstring\u001b[33m,\u001b[39m unknown\u001b[33m>\u001b[39m {",
+    "2026-10-05T00:15:21.9672216Z \u001b[90m \u001b[2m\u276f\u001b[22m lib/ediel/utilts/consumptionPreparation.ts:\u001b[2m74:121\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9672941Z \u001b[90m \u001b[2m\u276f\u001b[22m lib/ediel/utilts/consumptionPreparation.ts:\u001b[2m63:25\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9673826Z \u001b[90m \u001b[2m\u276f\u001b[22m prepareUtiltsConsumptionContracts lib/ediel/utilts/consumptionPreparation.ts:\u001b[2m53:40\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9674903Z \u001b[90m \u001b[2m\u276f\u001b[22m Object.reading scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts:\u001b[2m74:25\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9676375Z \u001b[90m \u001b[2m\u276f\u001b[22m scripts/ediel-z06f-reading-followup-native.test.ts:\u001b[2m45:90\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9677048Z ",
+    "2026-10-05T00:15:21.9677341Z \u001b[31m\u001b[2m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\u001b[22m\u001b[39m",
+    "2026-10-05T00:15:21.9677554Z ",
+    "2026-10-05T00:15:21.9677566Z ",
+    "2026-10-05T00:15:21.9683170Z \u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[1m\u001b[32m45 passed\u001b[39m\u001b[22m\u001b[90m (46)\u001b[39m",
+    "2026-10-05T00:15:21.9687802Z \u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[1m\u001b[32m603 passed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[33m1 skipped\u001b[39m\u001b[90m (605)\u001b[39m"
+  ],
+  "raw_test_summary": [
+    "2026-10-05T00:15:21.9687802Z \u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[1m\u001b[32m603 passed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[33m1 skipped\u001b[39m\u001b[90m (605)\u001b[39m",
+    "2026-10-05T00:15:21.9688875Z \u001b[2m   Start at \u001b[22m 23:36:17",
+    "2026-10-05T00:15:21.9689823Z \u001b[2m   Duration \u001b[22m 2344.30s\u001b[2m (transform 6.52s, setup 2.39s, import 32.26s, tests 2302.77s, environment 5ms)\u001b[22m",
+    "2026-10-05T00:15:21.9692014Z "
+  ],
+  "next_action": "Current-main adoption retains the sole upstream declared-offset calendar correction in consumptionPreparation/resolution/timezone. Z06 test and fixture are byte-exact old7bd; no second fixture/product repair. New required published-head CI must prove its actual outcome."
+}

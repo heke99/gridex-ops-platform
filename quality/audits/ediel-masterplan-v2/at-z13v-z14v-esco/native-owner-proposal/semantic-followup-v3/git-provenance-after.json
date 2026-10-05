@@ -1,0 +1,26 @@
+{
+  "headAfter": "2a96780497eb102527f514103c608f0ec0b3a1a3",
+  "statusAfter": "",
+  "commands": [
+    {
+      "command": "git rev-parse HEAD",
+      "result": {
+        "chunk_id": "9ab60c",
+        "wall_time_seconds": 0.000018945,
+        "exit_code": 0,
+        "original_token_count": 11,
+        "output": "2a96780497eb102527f514103c608f0ec0b3a1a3\n"
+      }
+    },
+    {
+      "command": "git status --porcelain=v1",
+      "result": {
+        "chunk_id": "929283",
+        "wall_time_seconds": 0.000027229,
+        "exit_code": 0,
+        "original_token_count": 0,
+        "output": ""
+      }
+    }
+  ]
+}

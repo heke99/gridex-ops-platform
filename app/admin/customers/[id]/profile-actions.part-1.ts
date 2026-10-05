@@ -5,11 +5,19 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { supabaseService } from "@/lib/supabase/service"
+import { ContactChangeTransactionError, applyCustomerContactChange } from "@/lib/customer-service/contactChangeTransaction"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
-import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates"
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger"
 import type { CustomerActionState } from "./customer-action-state"
+import {
+  CustomerContactChangeError,
+  assertProfileEditableStatus,
+  normalizeContactEmail,
+  normalizeContactPhone,
+  planPrimaryContactSync,
+} from "@/lib/customer-service/contactChange"
+import { identityNumbersEqual } from "@/lib/customer-service/identityChange"
 
 export class CustomerActionError extends Error {
   code: string;
@@ -93,34 +101,6 @@ export function isDatabaseShapeError(error: unknown): boolean {
           maybe.message ?? "",
         )),
   );
-}
-
-export async function runBestEffortCustomerArchiveStep(
-  step: string,
-  fn: () => Promise<void>,
-): Promise<void> {
-  try {
-    await fn();
-  } catch (error) {
-    if (!isDatabaseShapeError(error)) {
-      console.warn(`[customer-archive] ${step} failed`, error);
-      return;
-    }
-
-    console.warn(`[customer-archive] ${step} skipped because schema differs`, error);
-  }
-}
-
-export async function getBestEffortArchiveIds(
-  step: string,
-  fn: () => Promise<string[]>,
-): Promise<string[]> {
-  try {
-    return await fn();
-  } catch (error) {
-    console.warn(`[customer-archive] ${step} lookup failed`, error);
-    return [];
-  }
 }
 
 export function normalizeCustomerType(
@@ -223,12 +203,17 @@ export async function saveCustomerProfileImpl(
   const orgNumberInput = normalizeOptionalString(
     getNullableString(formData, "org_number"),
   );
-  const email = normalizeOptionalString(getNullableString(formData, "email"));
-  const phone = normalizeOptionalString(getNullableString(formData, "phone"));
+  // The OPS form always posts these fields, so an empty value is an explicit clear. Values are
+  // validated only when they change, so legacy stored formats never block unrelated edits.
+  const rawEmail = normalizeOptionalString(getNullableString(formData, "email")) ?? null;
+  const rawPhone = normalizeOptionalString(getNullableString(formData, "phone")) ?? null;
+  const rawStatus = getNullableString(formData, "status");
+  const expectedUpdatedAt = normalizeOptionalString(
+    getNullableString(formData, "expected_updated_at"),
+  );
   const apartmentNumber = normalizeOptionalString(
     getNullableString(formData, "apartment_number"),
   );
-  const status = getNullableString(formData, "status") ?? "draft";
 
   requireValue(
     firstName,
@@ -271,6 +256,16 @@ export async function saveCustomerProfileImpl(
 
   if (beforeError) throw beforeError;
 
+  if (
+    expectedUpdatedAt &&
+    String((before as Record<string, unknown>).updated_at ?? "") !== expectedUpdatedAt
+  ) {
+    throw new CustomerActionError(
+      "version_conflict",
+      "Kunden har ändrats av någon annan sedan du öppnade formuläret. Ladda om och gör ändringen igen.",
+    );
+  }
+
   if (String((before as Record<string, unknown>).status ?? '').toLowerCase() === "archived") {
     throw new CustomerActionError(
       "customer_archived_profile_locked",
@@ -278,46 +273,38 @@ export async function saveCustomerProfileImpl(
     );
   }
 
+  const stored = before as Record<string, unknown>;
+  // F12: personal and organization numbers are never changed by the ordinary profile save. They
+  // go through the audited identity-change flow (customer approval when there are contracts).
+  if (
+    !identityNumbersEqual(personalNumber, typeof stored.personal_number === "string" ? stored.personal_number : null) ||
+    !identityNumbersEqual(orgNumber, typeof stored.org_number === "string" ? stored.org_number : null)
+  ) {
+    throw new CustomerActionError(
+      "identity_change_requires_flow",
+      "Personnummer och organisationsnummer ändras via \"Ändra personnummer/organisationsnummer\" på kundkortet. Ändringen loggas och kräver kundens godkännande om kunden har avtal.",
+    );
+  }
+  let email: string | null;
+  let phone: string | null;
+  let status: string;
+  try {
+    email = rawEmail === (stored.email ?? null) ? rawEmail : normalizeContactEmail(rawEmail ?? "") ?? null;
+    phone = rawPhone === (stored.phone ?? null) ? rawPhone : normalizeContactPhone(rawPhone ?? "") ?? null;
+    status = rawStatus && rawStatus === stored.status
+      ? rawStatus
+      : assertProfileEditableStatus(rawStatus, "draft");
+  } catch (error) {
+    if (error instanceof CustomerContactChangeError) {
+      throw new CustomerActionError(error.code, error.message);
+    }
+    throw error;
+  }
+
   const companyId = await assertUserCanOperateCompany(
     actorUserId,
     typeof before.company_id === "string" ? before.company_id : null,
   );
-
-  const { data: updated, error: updateError } = await supabaseService
-    .from("customers")
-    .update({
-      customer_type: customerType,
-      status,
-      first_name: firstName,
-      last_name: lastName,
-      full_name: fullName,
-      company_name: companyName,
-      personal_number: personalNumber,
-      org_number: orgNumber,
-      email,
-      phone,
-      apartment_number: apartmentNumber,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", customerId)
-    .eq("company_id", companyId)
-    .select("*")
-    .single();
-
-  if (updateError) throw updateError;
-
-  const { data: existingPrimaryContact, error: contactLookupError } =
-    await supabaseService
-      .from("customer_contacts")
-      .select("*")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .eq("is_primary", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-  if (contactLookupError) throw contactLookupError;
 
   const primaryContactName =
     customerType === "private"
@@ -326,48 +313,49 @@ export async function saveCustomerProfileImpl(
         companyName ||
         null;
 
-  if (existingPrimaryContact) {
-    const { error: contactUpdateError } = await supabaseService
-      .from("customer_contacts")
-      .update({
-        name: primaryContactName,
-        email,
-        phone,
-      })
-      .eq("id", existingPrimaryContact.id)
-      .eq("company_id", companyId);
-
-    if (contactUpdateError) throw contactUpdateError;
-  } else if (primaryContactName || email || phone) {
-    const { error: contactInsertError } = await supabaseService
-      .from("customer_contacts")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        type: "primary",
-        name: primaryContactName,
-        email,
-        phone,
-        title: null,
-        is_primary: true,
-      });
-
-    if (contactInsertError) throw contactInsertError;
-  }
-
-  await insertAuditLog({
-    actorUserId,
-    entityType: "customer",
-    entityId: customerId,
-    action: "customer_profile_updated",
-    companyId,
-    oldValues: before,
-    newValues: updated,
-    metadata: {
-      companyId,
-      syncedPrimaryContact: true,
-    },
+  const contactPatch = planPrimaryContactSync({
+    customerType,
+    contactName: primaryContactName,
+    email,
+    phone,
   });
+
+  // One transaction (tenantservice P2b): version lock, customer, primary contact, audit and
+  // outbox. Without a form version the version read above is the lock, so a concurrent save
+  // between read and write is still rejected.
+  try {
+    await applyCustomerContactChange({
+      companyId,
+      customerId,
+      actor: { kind: "staff", userId: actorUserId },
+      channel: "ops",
+      expectedUpdatedAt: expectedUpdatedAt ?? (typeof stored.updated_at === "string" ? stored.updated_at : null),
+      customerPatch: {
+        customer_type: customerType,
+        status,
+        first_name: firstName,
+        last_name: lastName,
+        full_name: fullName,
+        company_name: companyName,
+        personal_number: (stored.personal_number as string | null) ?? null,
+        org_number: (stored.org_number as string | null) ?? null,
+        email,
+        phone,
+        apartment_number: apartmentNumber,
+      },
+      contactPatch,
+    });
+  } catch (error) {
+    if (error instanceof ContactChangeTransactionError) {
+      throw new CustomerActionError(
+        error.code === "customer_archived" ? "customer_archived_profile_locked" : error.code === "not_authorized" ? "forbidden" : error.code,
+        error.code === "version_conflict"
+          ? "Kunden har ändrats av någon annan samtidigt. Ladda om och gör ändringen igen."
+          : error.message,
+      );
+    }
+    throw error;
+  }
 
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath(`/admin/customers/${customerId}/profile`);
@@ -454,190 +442,44 @@ export async function closeCustomerLifecycleImpl(
       : null,
   );
 
-  const { data: sitesBefore, error: sitesError } = await supabaseService
-    .from("customer_sites")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId);
-
-  if (sitesError) throw sitesError;
-
-  const siteIds = (sitesBefore ?? [])
-    .map((row: { id?: string }) => row.id)
-    .filter((value): value is string => Boolean(value));
-
-  const { data: meteringPointsBefore, error: pointsError } =
-    siteIds.length > 0
-      ? await supabaseService
-          .from("metering_points")
-          .select("*")
-          .eq("company_id", companyId)
-          .in("site_id", siteIds)
-      : { data: [], error: null };
-
-  if (pointsError) throw pointsError;
-
-  const { data: contractsBefore, error: contractsError } = await supabaseService
-    .from("customer_contracts")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .in("status", ["draft", "pending_signature", "signature_failed", "signed", "active"]);
-
-  if (contractsError) throw contractsError;
-
-  const { data: switchRequestsBefore, error: switchError } =
-    await supabaseService
-      .from("supplier_switch_requests")
-      .select("*")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("status", ["draft", "queued", "submitted", "accepted"]);
-
-  if (switchError) throw switchError;
-
-  const nowIso = new Date().toISOString();
-  const customerStatus = mode === "terminate" ? "terminated" : "moved";
   const note = buildMoveOutNote({ moveOutDate, reason, mode });
-  const lifecycleMetadata = {
-    mode,
-    moveOutDate,
-    reason,
-    source: "admin_customer_card",
-    legalHandling:
-      "Soft close only. Customer records are retained for Ediel, metering, billing and audit traceability.",
+
+  // Customer, sites, metering points, contracts, switch requests, tasks, the
+  // internal note and the lifecycle event are written in one transaction.
+  const { data: closeData, error: closeError } = await supabaseService.rpc(
+    "gridex_close_customer_lifecycle_v1",
+    {
+      p_company_id: companyId,
+      p_customer_id: customerId,
+      p_actor_user_id: actorUserId,
+      p_mode: mode,
+      p_move_out_date: moveOutDate,
+      p_reason: reason,
+      p_note: note,
+      p_create_follow_up_task: createFollowUpTask,
+    },
+  );
+
+  if (closeError) {
+    if (closeError.message === "customer_lifecycle_already_closed") {
+      throw new CustomerActionError(
+        "already_closed",
+        "Kunden är redan avslutad, flyttad eller arkiverad.",
+      );
+    }
+    throw closeError;
+  }
+
+  const closed = (closeData ?? {}) as {
+    customer?: Record<string, unknown>;
+    failed_switch_request_ids?: string[];
+    lifecycle?: Record<string, unknown>;
   };
+  const customerAfter = closed.customer ?? {};
+  const lifecycleMetadata = closed.lifecycle ?? { mode, moveOutDate, reason };
+  const activeSwitchIds = closed.failed_switch_request_ids ?? [];
 
-  const { data: customerAfter, error: updateCustomerError } =
-    await supabaseService
-      .from("customers")
-      .update({
-        status: customerStatus,
-        moved_out_at: moveOutDate,
-        lifecycle_closed_at: nowIso,
-        lifecycle_closed_by: actorUserId,
-        lifecycle_status_reason: reason,
-        updated_at: nowIso,
-      })
-      .eq("id", customerId)
-      .eq("company_id", companyId)
-      .select("*")
-      .single();
-
-  if (updateCustomerError) throw updateCustomerError;
-
-  if (siteIds.length > 0) {
-    const { error: updateSitesError } = await supabaseService
-      .from("customer_sites")
-      .update({
-        status: "closed",
-        move_out_date: moveOutDate,
-        closed_at: nowIso,
-        closed_reason:
-          reason ??
-          (mode === "terminate" ? "Kund avslutad." : "Kunden har flyttat."),
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("id", siteIds);
-
-    if (updateSitesError) throw updateSitesError;
-
-    const { error: updatePointsError } = await supabaseService
-      .from("metering_points")
-      .update({
-        status: "closed",
-        end_date: moveOutDate,
-        closed_at: nowIso,
-        closed_reason:
-          reason ??
-          (mode === "terminate" ? "Kund avslutad." : "Kunden har flyttat."),
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .in("site_id", siteIds);
-
-    if (updatePointsError) throw updatePointsError;
-  }
-
-  const contracts = (contractsBefore ?? []) as Array<{
-    id: string;
-    company_id?: string | null;
-    customer_id: string;
-    status?: string | null;
-  }>;
-
-  for (const contract of contracts) {
-    const eventType =
-      contract.status === "signed" || contract.status === "active"
-        ? "terminated"
-        : "cancelled";
-    await addCustomerContractEvent({
-      companyId: contract.company_id ?? companyId,
-      customerContractId: contract.id,
-      customerId,
-      eventType,
-      happenedAt: nowIso,
-      note:
-        mode === "terminate"
-          ? `${eventType === "terminated" ? "Avtalet avslutades" : "Avtalsprocessen avbröts"} via kundens livscykelåtgärd.`
-          : `${eventType === "terminated" ? "Avtalet avslutades" : "Avtalsprocessen avbröts"} eftersom kunden registrerades som utflyttad.`,
-      metadata: {
-        ...lifecycleMetadata,
-        ends_at: moveOutDate,
-        termination_notice_date: nowIso,
-        termination_reason: "move_out",
-      },
-      actorUserId,
-    });
-  }
-
-  const activeSwitchIds = (
-    (switchRequestsBefore ?? []) as Array<{ id: string }>
-  ).map((row) => row.id);
   if (activeSwitchIds.length > 0) {
-    const { error: switchUpdateError } = await supabaseService
-      .from("supplier_switch_requests")
-      .update({
-        status: "failed",
-        failed_at: nowIso,
-        failure_reason:
-          mode === "terminate"
-            ? "Kunden avslutades innan switchen slutfördes."
-            : "Kunden registrerades som utflyttad innan switchen slutfördes.",
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("id", activeSwitchIds);
-
-    if (switchUpdateError) throw switchUpdateError;
-
-    await supabaseService.from("customer_operation_tasks").insert({
-      company_id: companyId,
-      customer_id: customerId,
-      site_id: siteIds[0] ?? null,
-      metering_point_id: null,
-      task_type: "supplier_switch_stopped_followup",
-      status: "open",
-      priority: "high",
-      title:
-        mode === "terminate"
-          ? "Följ upp stoppat leverantörsbyte vid avslut"
-          : "Följ upp stoppat leverantörsbyte vid flytt",
-      description:
-        reason ??
-        (mode === "terminate"
-          ? "Kunden avslutades innan leverantörsbytet slutfördes."
-          : "Kunden flyttade innan leverantörsbytet slutfördes."),
-      metadata: { lifecycleMetadata, activeSwitchIds },
-      created_by: actorUserId,
-      updated_by: actorUserId,
-    }).then(({ error }) => {
-      if (error) throw error;
-    });
-
     await logUsageEvent({
       companyId,
       actorUserId,
@@ -675,75 +517,6 @@ export async function closeCustomerLifecycleImpl(
     actorUserId,
   }).catch(() => null);
 
-  const { error: taskCancelError } = await supabaseService
-    .from("customer_operation_tasks")
-    .update({
-      status: "cancelled",
-      resolved_at: nowIso,
-      updated_by: actorUserId,
-    })
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .in("status", ["open", "in_progress", "blocked"]);
-
-  if (taskCancelError) throw taskCancelError;
-
-  if (createFollowUpTask) {
-    const { error: followUpError } = await supabaseService
-      .from("customer_operation_tasks")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        site_id: siteIds[0] ?? null,
-        metering_point_id: null,
-        task_type: "move_out_confirmation_pending",
-        status: "open",
-        priority: "high",
-        title: "Följ upp utflytt och slutunderlag",
-        description:
-          "Bekräfta att nätägaren har registrerat utflytt/avslut, invänta Z05LK vid relevant flöde och säkerställ slutliga mätvärden/faktureringsunderlag.",
-        metadata: lifecycleMetadata,
-        created_by: actorUserId,
-        updated_by: actorUserId,
-      });
-
-    if (followUpError) throw followUpError;
-  }
-
-  const { error: noteError } = await supabaseService
-    .from("customer_internal_notes")
-    .insert({
-      company_id: companyId,
-      customer_id: customerId,
-      body: note,
-      created_by: actorUserId,
-      updated_by: actorUserId,
-    });
-
-  if (noteError) throw noteError;
-
-  const { error: lifecycleEventError } = await supabaseService
-    .from("customer_lifecycle_events")
-    .insert({
-      company_id: companyId,
-      customer_id: customerId,
-      event_type: mode,
-      event_status: "completed",
-      effective_date: moveOutDate,
-      reason,
-      payload: {
-        ...lifecycleMetadata,
-        affectedSites: siteIds.length,
-        affectedMeteringPoints: (meteringPointsBefore ?? []).length,
-        terminatedContracts: contracts.length,
-        cancelledSwitchRequests: activeSwitchIds.length,
-        followUpTaskCreated: createFollowUpTask,
-      },
-      created_by: actorUserId,
-    });
-
-  if (lifecycleEventError) throw lifecycleEventError;
-
   await insertAuditLog({
     actorUserId,
     entityType: "customer",
@@ -753,13 +526,7 @@ export async function closeCustomerLifecycleImpl(
         ? "customer_soft_terminated"
         : "customer_move_out_registered",
     companyId,
-    oldValues: {
-      customer: customerBefore,
-      sites: sitesBefore ?? [],
-      meteringPoints: meteringPointsBefore ?? [],
-      contracts: contractsBefore ?? [],
-      switchRequests: switchRequestsBefore ?? [],
-    },
+    oldValues: { customer: customerBefore },
     newValues: {
       customer: customerAfter,
       lifecycle: lifecycleMetadata,
@@ -768,6 +535,9 @@ export async function closeCustomerLifecycleImpl(
       companyId,
       retainedData: true,
       hardDelete: false,
+      closedSites: (closeData as Record<string, unknown> | null)?.closed_sites ?? 0,
+      closedMeteringPoints: (closeData as Record<string, unknown> | null)?.closed_metering_points ?? 0,
+      closedContracts: (closeData as Record<string, unknown> | null)?.closed_contracts ?? 0,
       note: "Kunden har inte raderats permanent. Historik sparas för spårbarhet, fakturering, mätvärden och Ediel-kedjor.",
     },
   });
@@ -784,277 +554,5 @@ export async function closeCustomerLifecycleImpl(
       mode === "terminate"
         ? "Kundrelationen har avslutats. Historiken sparas."
         : "Flytt/avslut har registrerats. Historiken sparas.",
-  };
-}
-
-export async function selectIds(
-  table: string,
-  column: string,
-  values: string[],
-): Promise<string[]> {
-  if (values.length === 0) return [];
-  const { data, error } = await supabaseService
-    .from(table)
-    .select("id")
-    .in(column, values);
-  if (error) throw error;
-  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-}
-
-export async function selectIdsByCustomerId(
-  table: string,
-  customerId: string,
-): Promise<string[]> {
-  const { data, error } = await supabaseService
-    .from(table)
-    .select("id")
-    .eq("customer_id", customerId);
-  if (error) throw error;
-  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-}
-
-export async function deleteByIds(table: string, ids: string[]): Promise<void> {
-  if (ids.length === 0) return;
-  const { error } = await supabaseService.from(table).delete().in("id", ids);
-  if (error) throw error;
-}
-
-export async function deleteByColumn(
-  table: string,
-  column: string,
-  values: string[],
-): Promise<void> {
-  if (values.length === 0) return;
-  const { error } = await supabaseService
-    .from(table)
-    .delete()
-    .in(column, values);
-  if (error) throw error;
-}
-
-export async function deleteByCustomerId(
-  table: string,
-  customerId: string,
-): Promise<void> {
-  const { error } = await supabaseService
-    .from(table)
-    .delete()
-    .eq("customer_id", customerId);
-  if (error) throw error;
-}
-
-export const MISSING_SCHEMA_CODES = new Set([
-  "42P01", // undefined_table
-  "42703", // undefined_column
-  "PGRST204", // column not found in schema cache
-  "PGRST205", // table not found in schema cache
-]);
-
-export function isMissingSchemaError(
-  error: { code?: string | null } | null | undefined,
-): boolean {
-  return Boolean(error?.code && MISSING_SCHEMA_CODES.has(error.code));
-}
-
-export async function selectRowsByColumnSafe(
-  table: string,
-  select: string,
-  column: string,
-  values: string[],
-): Promise<Array<Record<string, unknown>>> {
-  if (values.length === 0) return [];
-  const { data, error } = await supabaseService
-    .from(table)
-    .select(select)
-    .in(column, values);
-  if (error) {
-    if (isMissingSchemaError(error)) return [];
-    throw error;
-  }
-  return (data ?? []) as unknown as Array<Record<string, unknown>>;
-}
-
-export function uniqueCleanStrings(values: unknown[]): string[] {
-  return Array.from(
-    new Set(
-      values
-        .map((value) => (typeof value === "string" ? value.trim() : ""))
-        .filter(Boolean),
-    ),
-  );
-}
-
-export async function selectIdsByColumnSafe(
-  table: string,
-  column: string,
-  values: string[],
-): Promise<string[]> {
-  const rows = await selectRowsByColumnSafe(table, "id", column, values);
-  return uniqueCleanStrings(rows.map((row) => row.id));
-}
-
-export async function selectIdsByCustomerIdSafe(
-  table: string,
-  customerId: string,
-): Promise<string[]> {
-  const { data, error } = await supabaseService
-    .from(table)
-    .select("id")
-    .eq("customer_id", customerId);
-  if (error) {
-    if (isMissingSchemaError(error)) return [];
-    throw error;
-  }
-  return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-}
-
-export async function deleteByIdsSafe(table: string, ids: string[]): Promise<void> {
-  if (ids.length === 0) return;
-  const { error } = await supabaseService.from(table).delete().in("id", ids);
-  if (error && !isMissingSchemaError(error)) throw error;
-}
-
-export async function deleteByColumnSafe(
-  table: string,
-  column: string,
-  values: string[],
-): Promise<void> {
-  if (values.length === 0) return;
-  const { error } = await supabaseService
-    .from(table)
-    .delete()
-    .in(column, values);
-  if (error && !isMissingSchemaError(error)) throw error;
-}
-
-export async function deleteByCustomerIdSafe(
-  table: string,
-  customerId: string,
-): Promise<void> {
-  const { error } = await supabaseService
-    .from(table)
-    .delete()
-    .eq("customer_id", customerId);
-  if (error && !isMissingSchemaError(error)) throw error;
-}
-
-export async function collectManualFlowDeleteGraph(
-  customerId: string,
-  siteIds: string[],
-  meteringPointIds: string[],
-) {
-  const gridOwnerInformationRequestOrFilters = [
-    `customer_id.eq.${customerId}`,
-    ...siteIds.map((id) => `customer_site_id.eq.${id}`),
-  ];
-
-  let gridOwnerInformationRequestIds: string[] = [];
-  const { data: gridOwnerInformationRequestRows, error: gorError } =
-    await supabaseService
-      .from("grid_owner_information_requests")
-      .select("id")
-      .or(gridOwnerInformationRequestOrFilters.join(","));
-  if (gorError) {
-    if (!isMissingSchemaError(gorError)) throw gorError;
-  } else {
-    gridOwnerInformationRequestIds = (gridOwnerInformationRequestRows ?? [])
-      .map((row: { id: string }) => row.id)
-      .filter(Boolean);
-  }
-
-  const manualEmailOutboxRows = await selectRowsByColumnSafe(
-    "manual_email_outbox",
-    "id,provider_message_id",
-    "request_id",
-    gridOwnerInformationRequestIds,
-  );
-  const manualEmailOutboxIds = uniqueCleanStrings(
-    manualEmailOutboxRows.map((row) => row.id),
-  );
-  const manualEmailProviderMessageIds = uniqueCleanStrings(
-    manualEmailOutboxRows.map((row) => row.provider_message_id),
-  );
-  const manualInboundMessageIds = await selectIdsByColumnSafe(
-    "manual_inbound_messages",
-    "request_id",
-    gridOwnerInformationRequestIds,
-  );
-
-  const powerOfAttorneyIds = await selectIdsByCustomerIdSafe(
-    "powers_of_attorney",
-    customerId,
-  );
-  const powerOfAttorneyEventIds = await selectIdsByColumnSafe(
-    "power_of_attorney_events",
-    "power_of_attorney_id",
-    powerOfAttorneyIds,
-  );
-
-  const customerDocumentIds: string[] = [];
-  let poaDocumentCount = 0;
-  const { data: customerDocumentRows, error: documentError } =
-    await supabaseService
-      .from("customer_documents")
-      .select("id,document_type,mime_type")
-      .eq("customer_id", customerId);
-  if (documentError) {
-    if (!isMissingSchemaError(documentError)) throw documentError;
-  } else {
-    for (const row of customerDocumentRows ?? []) {
-      if (!row?.id) continue;
-      customerDocumentIds.push(row.id);
-      const documentType = String(row.document_type ?? "").toLowerCase();
-      const mimeType = String(row.mime_type ?? "").toLowerCase();
-      if (
-        documentType === "power_of_attorney" ||
-        mimeType === "application/pdf"
-      ) {
-        poaDocumentCount += 1;
-      }
-    }
-  }
-
-  const customerOperationEventIds = await selectIdsByCustomerIdSafe(
-    "customer_operation_events",
-    customerId,
-  );
-  const customerBlockerIds = await selectIdsByCustomerIdSafe(
-    "customer_blockers",
-    customerId,
-  );
-
-  const communicationLogRows = [
-    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "customer_id", [customerId])),
-    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "site_id", siteIds)),
-    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "metering_point_id", meteringPointIds)),
-    ...(await selectRowsByColumnSafe("communication_logs", "id,provider_message_id", "provider_message_id", manualEmailProviderMessageIds)),
-  ];
-  const communicationLogIds = uniqueCleanStrings(
-    communicationLogRows.map((row) => row.id),
-  );
-  const communicationProviderMessageIds = uniqueCleanStrings([
-    ...manualEmailProviderMessageIds,
-    ...communicationLogRows.map((row) => row.provider_message_id),
-  ]);
-  const communicationLogEventRows = [
-    ...(await selectRowsByColumnSafe("communication_log_events", "id", "communication_log_id", communicationLogIds)),
-    ...(await selectRowsByColumnSafe("communication_log_events", "id", "provider_message_id", communicationProviderMessageIds)),
-  ];
-  const communicationLogEventIds = uniqueCleanStrings(
-    communicationLogEventRows.map((row) => row.id),
-  );
-
-  return {
-    gridOwnerInformationRequestIds,
-    manualEmailOutboxIds,
-    manualInboundMessageIds,
-    powerOfAttorneyIds,
-    powerOfAttorneyEventIds,
-    customerDocumentIds,
-    poaDocumentCount,
-    customerOperationEventIds,
-    customerBlockerIds,
-    communicationLogIds,
-    communicationLogEventIds,
   };
 }

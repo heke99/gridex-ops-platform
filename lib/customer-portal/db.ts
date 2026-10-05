@@ -238,6 +238,8 @@ export async function getPortalInvoiceDetail(
 
   if (invoiceError) throw invoiceError
   if (!invoice) return { invoice: null, lines: [], documents: [] }
+  const { requireInvoiceFileCopyAvailable } = await import('@/lib/ediel/retention/invoiceFileRetention')
+  await requireInvoiceFileCopyAvailable({companyId:context.companyId,retentionClass:'customer_invoice_pdf_bytes',targetId:invoice.id})
 
   // Bounded reads: real invoices have at most a handful of lines/documents; the
   // caps only protect page load time against pathological data.
@@ -259,6 +261,7 @@ export async function getPortalInvoiceDetail(
 
   if (linesResult.error) throw linesResult.error
   if (documentsResult.error) throw documentsResult.error
+  for(const document of documentsResult.data??[])await requireInvoiceFileCopyAvailable({companyId:context.companyId,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.id})
 
   return {
     invoice: invoice as CustomerInvoiceRow,

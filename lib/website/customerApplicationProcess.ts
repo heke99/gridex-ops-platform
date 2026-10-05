@@ -1346,6 +1346,7 @@ export async function processWebsiteCustomerApplication(input: {
           },
           updated_at: new Date().toISOString(),
         })
+        .eq("company_id", input.client.company_id)
         .eq("id", application.id);
 
       if (

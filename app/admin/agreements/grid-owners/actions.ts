@@ -162,6 +162,8 @@ export async function saveGridOwnerAgreementAction(formData: FormData) {
   const id = text(formData, 'id')
 
   const companyId = text(formData, 'company_id')
+  // Agreements are tenant-owned (company_id NOT NULL).
+  if (!companyId) throw new Error('Välj vilket bolag avtalet gäller.')
   const agreementScope = scopeFromUsage(text(formData, 'agreement_scope') ?? text(formData, 'agreement_type'))
   const gridOwnerResolution = await resolveOrCreateAgreementGridOwner({
     formData,

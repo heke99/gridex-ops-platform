@@ -93,24 +93,18 @@ export async function saveCommunicationRoute(input: {
       .update(payload)
       .eq('id', input.id)
 
-    // Company-scoped admins must never update platform/global routes.
-    // Platform admins may pass null companyId for global routes.
     if (input.companyId) {
       query = query.eq('company_id', input.companyId)
     }
 
     const { data, error } = await query.select('*').single()
-
     if (error) throw error
     return data as CommunicationRouteRow
   }
 
   const { data, error } = await supabaseService
     .from('communication_routes')
-    .insert({
-      ...payload,
-      created_by: input.actorUserId,
-    })
+    .insert({ ...payload, created_by: input.actorUserId })
     .select('*')
     .single()
 
@@ -122,6 +116,7 @@ export async function findBestCommunicationRoute(params: {
   companyId?: string | null
   requestType: OutboundRequestType
   gridOwnerId?: string | null
+  environment?: 'test' | 'production' | null
 }): Promise<CommunicationRouteRow | null> {
   const companyId = String(params.companyId ?? '').trim()
   if (!companyId) throw new Error('communication_route_company_required')
@@ -134,12 +129,18 @@ export async function findBestCommunicationRoute(params: {
       .eq('route_scope', params.requestType)
       .eq('is_active', true)
 
+    if (params.environment === 'production') {
+      query = query.eq('environment_type', 'production')
+    } else if (params.environment === 'test') {
+      query = query.in('environment_type', ['tgt_test', 'agt_test', 'bilateral_test'])
+    }
+
     query = gridOwnerId ? query.eq('grid_owner_id', gridOwnerId) : query.is('grid_owner_id', null)
     const { data, error } = await query.order('updated_at', { ascending: false }).limit(20)
     if (error) throw error
     const rows = (data ?? []) as CommunicationRouteRow[]
     if (rows.length > 1) {
-      throw new Error(`communication_route_ambiguous:${gridOwnerId ? 'grid_owner' : 'generic'}:${rows.map((row) => row.id).join(',')}`)
+      throw new Error(`communication_route_ambiguous:${params.environment ?? 'unspecified'}:${gridOwnerId ? 'grid_owner' : 'generic'}:${rows.map((row) => row.id).join(',')}`)
     }
     return rows
   }

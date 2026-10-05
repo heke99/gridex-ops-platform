@@ -1,3 +1,14 @@
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatRegisterGroups,prodatRegisterMessageSegments} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
+import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition'
+import {selectedProdatAckRegistryIssues} from './prodatIncomingSelectedAckRegistry'
+import {permissionAckRegistryIssues,isLegacyPermissionFieldIssue,permissionRegistryRegisterFailures} from './prodatPermissionAckRegistry'
+import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy';
+import { prodatReferenceValues } from "@/lib/ediel/prodat/prodatReferenceFields";
+import { parseUna } from "@/lib/ediel/core/una";
 // lib/ediel/core/aperakErrorRuleRegistry.ts
 
 import type { EdielAperakApplicationError } from "@/lib/ediel/ack";
@@ -16,6 +27,8 @@ import type { EdielTgtCaseTestData } from "@/lib/ediel/testing/tgtTestData";
 import { supabaseService } from "@/lib/supabase/service";
 
 export type EdielAperakValidationIssue = {
+  permissionApplicationError?: EdielAperakApplicationError;
+  selectedApplicationError?: EdielAperakApplicationError;
   ruleKey: string;
   severity: "error" | "warning" | "info";
   fieldPath: string | null;
@@ -28,7 +41,7 @@ export type EdielAperakValidationIssue = {
 };
 
 type EdielAperakErrorRuleRow = {
-  id: string;
+  id: string | null;
   message_family: string;
   message_code: string | null;
   direction: string;
@@ -479,7 +492,7 @@ function issueFromTgtComparison(
   });
 }
 
-const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<ProdatValidationIssue['type'], string> = {
+const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<Exclude<ProdatValidationIssue['type'], 'register_invalid'|'register_value_invalid'>, string> = {
   facility_not_identified: 'facility_not_identified',
   metering_point_id_mismatch: 'metering_point_id_mismatch',
   grid_area_id_invalid: 'grid_area_id_invalid',
@@ -504,6 +517,7 @@ const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<ProdatValidationIssue['type'], st
 function issueFromCanonicalProdatValidationIssue(
   validationIssue: ProdatValidationIssue,
 ): EdielAperakValidationIssue | null {
+  if (validationIssue.type==='register_invalid' || validationIssue.type==='register_value_invalid') throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
   const ruleKey = CANONICAL_PRODAT_ISSUE_RULE_KEYS[validationIssue.type];
   if (!ruleKey) return null;
 
@@ -558,19 +572,7 @@ function firstLineReferenceContext(
 }
 
 function firstMeterNumberFromMessage(message: EdielMessageRow): string | null {
-  const facts = parseEdifactMessageFacts(message.raw_payload);
-  for (const line of facts.lineItems) {
-    const segment = line.segments.find((item) =>
-      item.raw.startsWith("RFF+MG:"),
-    );
-    const value =
-      segment?.raw
-        .replace(/^RFF\+MG:/, "")
-        .split(":")[0]
-        ?.trim() ?? "";
-    if (value) return value;
-  }
-  return null;
+  return meterNumbersForMessage(message)[0] ?? null;
 }
 
 function messageHasMissingConstant(message: EdielMessageRow): boolean {
@@ -580,37 +582,16 @@ function messageHasMissingConstant(message: EdielMessageRow): boolean {
 
 function meterNumbersForMessage(message: EdielMessageRow): string[] {
   const facts = parseEdifactMessageFacts(message.raw_payload);
-  const values: string[] = [];
-  for (const line of facts.lineItems) {
-    for (const segment of line.segments) {
-      if (!segment.raw.startsWith("RFF+MG:")) continue;
-      const value =
-        segment.raw
-          .replace(/^RFF\+MG:/, "")
-          .split(":")[0]
-          ?.trim() ?? "";
-      if (value) values.push(value);
-    }
-  }
-  return Array.from(new Set(values));
+  const una = parseUna(message.raw_payload);
+  return Array.from(new Set(facts.lineItems.flatMap(line => prodatReferenceValues('224', line.segments, una))));
 }
 
-function messageLooksLikeSameMeterNumberChange(
-  message: EdielMessageRow,
-): boolean {
+function messageLooksLikeSameMeterNumberChange(message: EdielMessageRow): boolean {
   const facts = parseEdifactMessageFacts(message.raw_payload);
-  return facts.lineItems.some((line) => {
-    const values = line.segments
-      .filter((segment) => segment.raw.startsWith("RFF+MG:"))
-      .map(
-        (segment) =>
-          segment.raw
-            .replace(/^RFF\+MG:/, "")
-            .split(":")[0]
-            ?.trim() ?? "",
-      )
-      .filter(Boolean);
-    return values.length >= 2 && new Set(values).size < values.length;
+  const una = parseUna(message.raw_payload);
+  return facts.lineItems.some(line => {
+    const current = new Set(prodatReferenceValues('224', line.segments, una));
+    return prodatReferenceValues('225', line.segments, una).some(old => current.has(old));
   });
 }
 
@@ -1110,10 +1091,48 @@ export function deriveProdatAperakValidationIssues(params: {
   message: EdielMessageRow;
   testData?: EdielTgtCaseTestData | null;
 }): EdielAperakValidationIssue[] {
+  // Readiness must precede scenario shortcuts and any registry read/write.
+  const selectedIssues=selectedProdatAckRegistryIssues(params.message);
+  let permissionIssues:EdielAperakValidationIssue[];
+  try { permissionIssues=permissionAckRegistryIssues(params.message); } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedApplicationErrors:selectedIssues.map(issue=>issue.selectedApplicationError)});
+  }
+  let other:EdielAperakValidationIssue[];
+  try { other=deriveOtherProdatAperakValidationIssues(params); }
+  catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
+      permissionApplicationErrors:permissionIssues.map(issue=>issue.permissionApplicationError),
+      permissionValidationIssues:permissionIssues,
+      selectedApplicationErrors:selectedIssues.map(issue=>issue.selectedApplicationError),
+      selectedValidationIssues:selectedIssues,
+    });
+  }
+  if(params.message.direction!=='inbound')return other;
+  return [...selectedIssues,...permissionIssues,...other.filter(item=>!isLegacyPermissionFieldIssue(item))];
+}
+
+function deriveOtherProdatAperakValidationIssues(params: {
+  message: EdielMessageRow;
+  testData?: EdielTgtCaseTestData | null;
+}): EdielAperakValidationIssue[] {
   const { message, testData } = params;
   if (message.message_family !== "PRODAT") return [];
+  assertIncomingProdatEnergyProductReview(message.raw_payload);
 
+  const registerParsed=parseProdatMessage(message);
+  const registerWire=parseEdifactMessageFacts(message.raw_payload);
+  const registerFailures=validateProdatRegisterPayload({code:registerParsed.messageCode,
+    rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),requireConditions:false});
+  if (permissionRegistryRegisterFailures(message,registerFailures).length) throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
   if (testData) {
+    // A scenario's "positive" label cannot hide a broken register chain or own
+    // measurements copied from another register. Do not invent a national ERC
+    // mapping for these new scoped failures; require review before any DB write.
+    const expected=resolveTgtExpectedProdatContext({parsed:registerParsed,testData});
+    const comparisons=validateParsedProdatAgainstExpected({parsed:registerParsed,expected});
+    if (comparisons.some(item=>item.type==='register_invalid' || item.type==='register_value_invalid')) {
+      throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
+    }
     return deriveTgtAperakValidationIssues({ message, testData });
   }
 
@@ -1295,7 +1314,7 @@ export function deriveProdatAperakValidationIssues(params: {
       issues.push(
         issue({
           ruleKey: "meter_number_missing",
-          fieldPath: "SG5/RFF/Z09",
+          fieldPath: "SG16/RFF/MG",
           fieldValue: null,
           expectedValue: hasTestDataField(testData, "224")
             ? testDataValuesForField(testData, ["224"]).join(",")
@@ -1508,6 +1527,28 @@ export async function attachAperakErrorDetailsToMessage(params: {
   if (error) throw error;
 }
 
+/** Legacy TGT's same-meter semantic finding still uses the canonical field
+ * text owner and its own physical occurrence. Registry prose and cached row
+ * references never provide received field content or sibling identity. */
+function sourceOwnedLegacyMeterNumberError(message: EdielMessageRow, item: EdielAperakValidationIssue): EdielAperakApplicationError | null {
+  if (item.ruleKey !== 'meter_number_invalid') return null;
+  const held = (): never => { throw new EdielExecutionFailure({kind:'internal_failure',code:'PRODAT_LEGACY_METER_ERROR_SOURCE_UNAVAILABLE'}, 'Det äldre mätarfelet saknar entydigt eget fysiskt underlag.'); };
+  if (message.direction !== 'inbound' || message.message_family !== 'PRODAT' || !message.raw_payload || !item.fieldValue) return held();
+  const wire = tokenizeEdifact(message.raw_payload), rawSegments = wire.segments.map(segment => segment.raw);
+  const groups = prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments, wire.una), wire.una, message.message_code).groups;
+  const own = groups.filter(group => group.itemId === item.meteringPointId &&
+    prodatReferenceValues('226', group.segments.map(segment => segment.raw), wire.una).includes(item.transactionReference ?? '') &&
+    prodatReferenceValues('224', group.segments.map(segment => segment.raw), wire.una).includes(item.fieldValue!) &&
+    prodatReferenceValues('225', group.segments.map(segment => segment.raw), wire.una).includes(item.fieldValue!));
+  if (own.length !== 1) return held();
+  const diagnostic = prodatFieldDiagnostic('224', 'invalid', {rawSegments, una:wire.una, code:message.message_code},
+    own[0].segments.map(segment => segment.raw), 'PRODAT26.A:r3:field224/TGT:meter_number_invalid', own[0].lineIndex);
+  const projection = projectProdatDiagnostics([{code:'PRODAT_LEGACY_METER_NUMBER_INVALID',severity:'error',blocking:true,
+    title:'Felaktigt mätarnummer',description:item.fallbackText,prodatDiagnostic:diagnostic}]);
+  if (projection.disposition.kind !== 'continue' || projection.applicationErrors.length !== 1) return held();
+  return projection.applicationErrors[0];
+}
+
 export async function resolveAndStoreProdatAperakErrors(params: {
   message: EdielMessageRow;
   testData?: EdielTgtCaseTestData | null;
@@ -1531,7 +1572,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     };
   }
 
-  const rules = await listActiveRules({ family, code, environment });
+  const rules = issues.some(item=>!item.permissionApplicationError&&!item.selectedApplicationError) ? await listActiveRules({ family, code, environment }) : [];
   const details: EdielResolvedAperakErrorDetail[] = [];
   const errors: EdielAperakApplicationError[] = [];
   const unmappedIssues: EdielAperakValidationIssue[] = [];
@@ -1541,14 +1582,19 @@ export async function resolveAndStoreProdatAperakErrors(params: {
       messageId: message.id,
       issue: item,
     });
-    const rule = selectRuleForIssue(rules, item, code, environment);
+    const owned=item.selectedApplicationError??item.permissionApplicationError??sourceOwnedLegacyMeterNumberError(message,item);
+    const rule:EdielAperakErrorRuleRow|null = owned ? {
+      id:null,message_family:'PRODAT',message_code:code,direction:'inbound',rule_key:item.ruleKey,
+      rule_description:'Source-owned incoming national field',application_error:owned.ercCode,free_text_code:owned.fieldCode??null,
+      free_text:owned.text??null,applies_to_field:owned.fieldCode??null,environment,priority:0,is_active:true,
+    } : selectRuleForIssue(rules, item, code, environment);
 
     if (!rule) {
       unmappedIssues.push(item);
       continue;
     }
 
-    const freeText = formatRuleFreeText(
+    const freeText = owned?.text ?? formatRuleFreeText(
       rule.free_text ?? item.fallbackText,
       item,
     );
@@ -1573,7 +1619,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     });
 
     details.push(detail);
-    errors.push({
+    errors.push(owned ?? {
       ercCode: rule.application_error,
       fieldCode: rule.free_text_code,
       text: freeText,

@@ -5,6 +5,7 @@ import type {
   EdielMessageFamily,
   EdielMessageStandard,
 } from '@/lib/ediel/types'
+import { canonicalAckRequirements } from '@/lib/ediel/ack/canonicalAckEngine'
 import { PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
 import { UTILTS_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/utiltsRulebook'
 
@@ -47,187 +48,66 @@ export type EdielInstructionCoverage = {
 
 export const EDIEL_ACK_DEADLINE_MINUTES = 30
 
-const LEGACY_EDIEL_INSTRUCTION_SPECS = [
-  {
+function canonicalAckFields(family: string, code: string) {
+  const ack = canonicalAckRequirements({ family, code })
+  return {
+    requiresContrl: ack.requiresContrl,
+    requiresAperak: ack.requiresAperak,
+    supportsNegativeResponse: ack.supportsNegativeAperak || ack.supportsUtiltsErr,
+    ackDeadlineMinutes: ack.requiresContrl || ack.requiresAperak ? EDIEL_ACK_DEADLINE_MINUTES : null,
+  }
+}
+
+/**
+ * PRODAT and UTILTS rows are projections only. Version, validity, support and
+ * ACK semantics come from the canonical rulebooks; this registry must never
+ * carry a second hand-maintained PRODAT/UTILTS matrix.
+ */
+const CANONICAL_PRODAT_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...PRODAT_CANONICAL_PROFILES]
+  .sort((left, right) => left.messageCode.localeCompare(right.messageCode))
+  .map((profile) => ({
     family: 'PRODAT',
-    code: 'Z03',
+    code: profile.messageCode,
     standard: 'edifact',
-    currentVersion: '26A',
-    validFrom: '2026-04-01',
-    previousVersion: '16B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
+    currentVersion: profile.guideVersion,
+    validFrom: profile.effectiveFrom,
+    previousVersion: null,
+    direction:
+      profile.direction === 'actor_to_portal'
+        ? 'outbound'
+        : profile.direction === 'portal_to_actor'
+          ? 'inbound'
+          : 'both',
+    ...canonicalAckFields('PRODAT', profile.messageCode),
     status: 'runtime_ready',
-    sourceTitle: 'PRODAT 26-A / 16-B april 2026',
-    sourceVersion: '26A',
-    sourceDate: '2026-04-01',
-    operationalNote: 'Leverantörsbyte. Runtime ska använda 26A från 2026-04-01 och acceptera närmast föregående giltiga version under övergångsperiod.',
-  },
-  {
-    family: 'PRODAT',
-    code: 'Z04',
-    standard: 'edifact',
-    currentVersion: '26A',
-    validFrom: '2026-04-01',
-    previousVersion: '16B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_partial',
-    sourceTitle: 'PRODAT 26-A / 16-B april 2026',
-    sourceVersion: '26A',
-    sourceDate: '2026-04-01',
-    operationalNote: 'Kund-/anläggningsuppgifter. Stöds i rule engine och ack, men behöver full parser/generator per fält innan den markeras runtime_ready.',
-  },
-  {
-    family: 'PRODAT',
-    code: 'Z05',
-    standard: 'edifact',
-    currentVersion: '26A',
-    validFrom: '2026-04-01',
-    previousVersion: '16B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_ready',
-    sourceTitle: 'PRODAT 26-A / 16-B april 2026',
-    sourceVersion: '26A',
-    sourceDate: '2026-04-01',
-    operationalNote: 'Bekräftelse/utfall i leverantörsbytesflödet. Kopplas till switch lifecycle.',
-  },
-  {
-    family: 'PRODAT',
-    code: 'Z06',
-    standard: 'edifact',
-    currentVersion: '26A',
-    validFrom: '2026-04-01',
-    previousVersion: '16B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_partial',
-    sourceTitle: 'PRODAT 26-A / 16-B april 2026',
-    sourceVersion: '26A',
-    sourceDate: '2026-04-01',
-    operationalNote: 'Avvisning/fel i PRODAT-flöden. Ack och routing finns; full fältvalidering ska kompletteras.',
-  },
-  {
-    family: 'PRODAT',
-    code: 'Z09',
-    standard: 'edifact',
-    currentVersion: '26A',
-    validFrom: '2026-04-01',
-    previousVersion: '16B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_ready',
-    sourceTitle: 'PRODAT 26-A / 16-B april 2026',
-    sourceVersion: '26A',
-    sourceDate: '2026-04-01',
-    operationalNote: 'Masterdata-/uppdateringsflöde som redan används i switch- och kundkortskopplingar.',
-  },
-  {
-    family: 'PRODAT',
-    code: 'Z10',
-    standard: 'edifact',
-    currentVersion: '26A',
-    validFrom: '2026-04-01',
-    previousVersion: '16B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_partial',
-    sourceTitle: 'PRODAT 26-A / 16-B april 2026',
-    sourceVersion: '26A',
-    sourceDate: '2026-04-01',
-    operationalNote: 'Mätar-/anläggningshändelse. Ska mappas klart mot metering_points innan runtime_ready.',
-  },
-  {
+    sourceTitle: 'Canonical PRODAT guide',
+    sourceVersion: profile.guideVersion,
+    sourceDate: profile.effectiveFrom,
+    operationalNote: `${profile.processGroup}; varianter ${profile.allowedVariants.join(', ')}. Status härleds från kanoniskt PRODAT-register.`,
+  }))
+
+const CANONICAL_UTILTS_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...UTILTS_CANONICAL_PROFILES]
+  .filter((profile) => profile.messageCode !== 'ERR')
+  .sort((left, right) => left.messageCode.localeCompare(right.messageCode))
+  .map((profile) => ({
     family: 'UTILTS',
-    code: 'E66',
+    code: profile.messageCode,
     standard: 'edifact',
-    currentVersion: 'E5SE5A',
-    validFrom: '2025-06-01',
-    previousVersion: 'E5SE6B',
+    currentVersion: profile.associationAssignedCode,
+    validFrom: profile.effectiveFrom,
+    previousVersion: null,
     direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_ready',
-    sourceTitle: 'UTILTS & APERAK per objekt elmarknaden',
-    sourceVersion: 'E5SE5A',
-    sourceDate: '2025-04-30',
-    operationalNote: 'Validerade mätdata per objekt. Version E5SE5A gäller från 2025-06-01.',
-  },
-  {
-    family: 'UTILTS',
-    code: 'E73',
-    standard: 'edifact',
-    currentVersion: 'E5SE5A',
-    validFrom: '2025-06-01',
-    previousVersion: 'E5SE6B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_partial',
-    sourceTitle: 'UTILTS & APERAK per objekt elmarknaden',
-    sourceVersion: 'E5SE5A',
-    sourceDate: '2025-04-30',
-    operationalNote: 'Begäran om saknade mätdata. Route och ack finns; komplett request-builder ska kopplas till grid_owner_data_requests.',
-  },
-  {
-    family: 'UTILTS',
-    code: 'E30',
-    standard: 'edifact',
-    currentVersion: 'E5SE5A',
-    validFrom: '2025-06-01',
-    previousVersion: 'E5SE6B',
-    direction: 'inbound',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_partial',
-    sourceTitle: 'UTILTS & APERAK per objekt elmarknaden',
-    sourceVersion: 'E5SE5A',
-    sourceDate: '2025-04-30',
-    operationalNote: 'Insamlade mätdata. Inbound klassificering bör acceptera koden; full datamappning kan byggas efter E66/E73.',
-  },
-  {
-    family: 'UTILTS',
-    code: 'S02',
-    standard: 'edifact',
-    currentVersion: 'E5SE5A',
-    validFrom: '2025-06-01',
-    previousVersion: 'E5SE6B',
-    direction: 'both',
-    requiresContrl: true,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_partial',
-    sourceTitle: 'UTILTS & APERAK per objekt elmarknaden',
-    sourceVersion: 'E5SE5A',
-    sourceDate: '2025-04-30',
-    operationalNote: 'Förbrukningsprognos per objekt. Regel och ack ska finnas men UI/generator är inte huvudflöde ännu.',
-  },
+    ...canonicalAckFields('UTILTS', profile.messageCode),
+    status: profile.productionReadiness === 'partial' ? 'runtime_partial' : 'runtime_ready',
+    sourceTitle: 'Canonical UTILTS guide',
+    sourceVersion: profile.guideVersion,
+    sourceDate: profile.effectiveFrom,
+    operationalNote: `${profile.phase}; ${profile.scope}. Status härleds från kanoniskt UTILTS-register.`,
+  }))
+
+// Non-PRODAT/UTILTS catalog metadata. These rows do not define the canonical
+// PRODAT/UTILTS version, field, code or ACK matrices guarded by this module.
+const OTHER_INSTRUCTION_SPECS = [
   {
     family: 'APERAK',
     code: 'APERAK',
@@ -235,15 +115,12 @@ const LEGACY_EDIEL_INSTRUCTION_SPECS = [
     currentVersion: 'E2SE3B',
     validFrom: null,
     direction: 'both',
-    requiresContrl: false,
-    requiresAperak: false,
-    supportsNegativeResponse: false,
-    ackDeadlineMinutes: null,
+    ...canonicalAckFields('APERAK', 'APERAK'),
     status: 'runtime_ready',
     sourceTitle: 'APERAK-anvisning + generella tekniska regler',
     sourceVersion: '05B revision 4 / E2SE3B där tillämpligt',
     sourceDate: '2011-11-16',
-    operationalNote: 'Applikationskvittens. Positiv APERAK bara när den begärts; negativ APERAK vid fel.',
+    operationalNote: 'Applikationskvittens. ACK-semantik härleds från canonicalAckEngine.',
   },
   {
     family: 'CONTRL',
@@ -252,15 +129,12 @@ const LEGACY_EDIEL_INSTRUCTION_SPECS = [
     currentVersion: 'D96A',
     validFrom: null,
     direction: 'both',
-    requiresContrl: false,
-    requiresAperak: false,
-    supportsNegativeResponse: false,
-    ackDeadlineMinutes: null,
+    ...canonicalAckFields('CONTRL', 'CONTRL'),
     status: 'runtime_ready',
     sourceTitle: 'Generella tekniska regler för Ediel',
     sourceVersion: '24.A revision 6',
     sourceDate: '2026-02-20',
-    operationalNote: 'Syntaxkvittens. Ska inte själv kvitteras med CONTRL.',
+    operationalNote: 'Syntaxkvittens. ACK-semantik härleds från canonicalAckEngine.',
   },
   {
     family: 'UTILTS_ERR',
@@ -270,15 +144,12 @@ const LEGACY_EDIEL_INSTRUCTION_SPECS = [
     validFrom: '2025-06-01',
     previousVersion: 'E5SE6B',
     direction: 'both',
-    requiresContrl: false,
-    requiresAperak: false,
-    supportsNegativeResponse: false,
-    ackDeadlineMinutes: null,
+    ...canonicalAckFields('UTILTS_ERR', 'ERR'),
     status: 'runtime_ready',
     sourceTitle: 'UTILTS & APERAK per objekt elmarknaden',
     sourceVersion: 'E5SE5A',
     sourceDate: '2025-04-30',
-    operationalNote: 'Felkvittens kopplad till UTILTS. Ska behandlas som negativ applikationsrespons, inte som nytt affärsmeddelande.',
+    operationalNote: 'Felkvittens kopplad till UTILTS. ACK-semantik härleds från canonicalAckEngine.',
   },
   {
     family: 'AI_LIST',
@@ -367,60 +238,10 @@ const LEGACY_EDIEL_INSTRUCTION_SPECS = [
   },
 ] as const satisfies readonly EdielInstructionSpec[]
 
-const CANONICAL_PRODAT_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...PRODAT_CANONICAL_PROFILES]
-  .sort((left, right) => left.messageCode.localeCompare(right.messageCode))
-  .map((profile) => ({
-    family: 'PRODAT',
-    code: profile.messageCode,
-    standard: 'edifact',
-    currentVersion: '26.A',
-    validFrom: '2026-04-01',
-    previousVersion: '16.B',
-    direction:
-      profile.direction === 'actor_to_portal'
-        ? 'outbound'
-        : profile.direction === 'portal_to_actor'
-          ? 'inbound'
-          : 'both',
-    requiresContrl: profile.requiresContrl,
-    requiresAperak: !profile.z01AperakException,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: 'runtime_ready',
-    sourceTitle: 'PRODAT 26.A',
-    sourceVersion: '26.A',
-    sourceDate: '2026-04-01',
-    operationalNote: `${profile.processGroup}; varianter ${profile.allowedVariants.join(', ')}. Status härleds från kanoniskt PRODAT-register.`,
-  }))
-
-const CANONICAL_UTILTS_INSTRUCTION_SPECS: EdielInstructionSpec[] = [...UTILTS_CANONICAL_PROFILES]
-  .filter((profile) => profile.messageCode !== 'ERR')
-  .sort((left, right) => left.messageCode.localeCompare(right.messageCode))
-  .map((profile) => ({
-    family: 'UTILTS',
-    code: profile.messageCode,
-    standard: 'edifact',
-    currentVersion: profile.associationAssignedCode,
-    validFrom: profile.effectiveFrom,
-    previousVersion: null,
-    direction: 'both',
-    requiresContrl: profile.requiresContrl,
-    requiresAperak: true,
-    supportsNegativeResponse: true,
-    ackDeadlineMinutes: EDIEL_ACK_DEADLINE_MINUTES,
-    status: profile.productionReadiness === 'partial' ? 'runtime_partial' : 'runtime_ready',
-    sourceTitle: 'UTILTS 25-A-3',
-    sourceVersion: profile.guideVersion,
-    sourceDate: profile.effectiveFrom,
-    operationalNote: `${profile.phase}; ${profile.scope}. Status härleds från kanoniskt UTILTS-register.`,
-  }))
-
 export const EDIEL_INSTRUCTION_SPECS: readonly EdielInstructionSpec[] = [
   ...CANONICAL_PRODAT_INSTRUCTION_SPECS,
   ...CANONICAL_UTILTS_INSTRUCTION_SPECS,
-  ...LEGACY_EDIEL_INSTRUCTION_SPECS.filter(
-    (spec) => spec.family !== 'PRODAT' && spec.family !== 'UTILTS',
-  ),
+  ...OTHER_INSTRUCTION_SPECS,
 ]
 
 export function getEdielInstructionSpec(params: {
@@ -432,14 +253,12 @@ export function getEdielInstructionSpec(params: {
   const code = (params.code ?? '').toUpperCase()
   const standard = params.standard ?? null
 
-  return (
-    EDIEL_INSTRUCTION_SPECS.find((spec) => {
-      if (spec.family !== family) return false
-      if (spec.code !== code) return false
-      if (standard && spec.standard !== standard) return false
-      return true
-    }) ?? null
-  )
+  return EDIEL_INSTRUCTION_SPECS.find((spec) => {
+    if (spec.family !== family) return false
+    if (spec.code !== code) return false
+    if (standard && spec.standard !== standard) return false
+    return true
+  }) ?? null
 }
 
 export function listRuntimeInstructionSpecs(): EdielInstructionSpec[] {
@@ -483,9 +302,7 @@ export function buildInstructionCoverage(): EdielInstructionCoverage[] {
   return [...groups.entries()].map(([key, rows]) => {
     const runtimeReady = rows.filter((row) => row.status === 'runtime_ready').length
     const partial = rows.filter((row) => row.status === 'runtime_partial').length
-    const documentedNotEnabled = rows.filter(
-      (row) => row.status === 'documented_not_enabled'
-    ).length
+    const documentedNotEnabled = rows.filter((row) => row.status === 'documented_not_enabled').length
     const futureScope = rows.filter((row) => row.status === 'future_scope').length
     const status: EdielInstructionStatus =
       futureScope === rows.length

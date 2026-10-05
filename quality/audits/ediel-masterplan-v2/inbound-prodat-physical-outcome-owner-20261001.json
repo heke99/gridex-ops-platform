@@ -1,0 +1,19 @@
+{
+  "owner": "utilts",
+  "sha256": {
+    "supabase/migrations/20261001140000_ediel_inbound_prodat_physical_outcome_owner.sql": "c4da91321a101fe66c6fba6b1eccf0bebddf72a14171158fc98b54a9e2c4418a",
+    "lib/ediel/ack/prodatPhysicalOutcome.ts": "463e1836e2741900f9a667cbc732d5ff353c998eb0534a7204a8e5a73dc347f1",
+    "__tests__/ediel-inbound-prodat-physical-outcome.test.ts": "56ede0dc3c580b3a5d5f8477b922a7bff5217f7a76c78ad124d367cc9a0f8071",
+    "scripts/ediel-inbound-prodat-physical-outcome-sql-regression.mjs": "a584b6ba055a1f5e9f950b1d3647663dee79572dc6804fd075dfc669868375ca"
+  },
+  "verification": {
+    "unit": 12,
+    "sqlMechanics": 45,
+    "canonicalParserParityCases": 11,
+    "types": "PASS",
+    "lint": "PASS",
+    "independentAckReview": "PASS45 actual SQL mechanics"
+  },
+  "actualConsumerPending": "recovery protected C source selection and actual missingLI allocation",
+  "authenticFinalQualification": "NOT_RUN"
+}

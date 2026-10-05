@@ -27,7 +27,8 @@ const assert = (condition, message) => {
 
 const finalizer = read('lib/customer-operations/z01Finalizer.ts')
 const card = read('components/admin/customers/CustomerBusinessActionsCard.tsx')
-const page = read('app/admin/customers/[id]/page.tsx')
+// page.tsx is a facade; the implementation lives in page.part-4.tsx.
+const page = read('app/admin/customers/[id]/page.tsx') + '\n' + read('app/admin/customers/[id]/page.part-4.tsx')
 const infoRequests = read('lib/onboarding/infoRequests.ts')
 
 // ---- 1. CIR linked to outbound regardless of prepared/failed ----

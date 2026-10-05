@@ -1,0 +1,23 @@
+{
+  "head": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
+  "run": "35505371794",
+  "job": "106064154601",
+  "source_path": "/workspace/scratch/2a201d6d5897/pr352-r1-quality-106064154601.log",
+  "saved_source_sha256": "e2891493659177f61951ce2646b1f9901b6754e66d674c8dec93a49a1c907d76",
+  "saved_source_bytes": 97899,
+  "source_note": "Root saved connector-decoded CI content with apply_patch trailing newline; hash identifies those saved bytes. Not claimed to be the original remote log byte stream.",
+  "excerpt_lines": [
+    775,
+    849
+  ],
+  "excerpt_sha256": "cafe56b7cf103ba8a0a2c8ace55beb8a12f36341aa0268f107bf508db7229819",
+  "observed": {
+    "command": "npx vitest run --config quality/vitest.config.ts",
+    "exit": 1,
+    "files_passed": 2,
+    "files_failed": 2,
+    "tests_passed": 59,
+    "failure": "Both archive afterAll observation writers raise ENOENT; all individual assertions passed."
+  },
+  "old_writers_not_rerun": true
+}

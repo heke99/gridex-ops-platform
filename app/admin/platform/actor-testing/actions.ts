@@ -1,8 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { redirect, unstable_rethrow } from 'next/navigation'
+import { isPlatformAdminContext, requireAdminActionAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import {
   requireEdielProductionActivateActionAccess,
   requireEdielTestAttestActionAccess,
@@ -11,10 +11,10 @@ import {
   requireEdielProfileWriteActionAccess,
 } from '@/lib/ediel/actionAccess'
 import { supabaseService } from '@/lib/supabase/service'
+import { getEdielMessageById } from '@/lib/ediel/db'
 import {
   buildActorTestResultEvidence,
   getActorTestCase,
-  userCanManageActorTestingForCompany,
   type ActorTestStatus,
 } from '@/lib/ediel/actorTesting'
 import { logTenantGovernanceEvent } from '@/lib/tenant/governance'
@@ -41,9 +41,14 @@ async function assertActorTestingCompanyAccess(
   admin: Awaited<ReturnType<typeof requireAdminActionAccess>>,
   companyId: string
 ) {
-  const isPlatformAdmin = isPlatformAdminContext(admin)
-  const allowed = await userCanManageActorTestingForCompany(admin.userId, companyId, isPlatformAdmin)
-  if (!allowed) throw new Error('Du saknar behörighet att hantera Ediel för detta bolag.')
+  // White-label membership is read-only: writes need platform admin or an
+  // active admin membership in this specific company.
+  if (isPlatformAdminContext(admin)) return
+  try {
+    await requireCompanyScopedActionAccess(companyId)
+  } catch {
+    throw new Error('Du saknar behörighet att hantera Ediel för detta bolag.')
+  }
 }
 function normalizeResultStatus(value: string): ActorTestStatus {
   if (value === 'passed') throw new Error('passed kan endast sättas av den maskinella evidensmotorn.')
@@ -171,6 +176,7 @@ export async function startActorTestAction(formData: FormData) {
       },
     })
   } catch (error) {
+    unstable_rethrow(error)
     const now = new Date().toISOString()
     const message = error instanceof Error ? error.message : 'Aktörstestet kunde inte köras automatiskt.'
 
@@ -512,9 +518,15 @@ export async function runProductionReadinessAction(formData: FormData) {
 
 export async function runProductionDryRunAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
+  const messageId = readRequiredString(formData, 'message_id')
   const admin = await requirePlatformAdminActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
-  const result = await runProductionDryRun(companyId, admin.userId)
+  const message = await getEdielMessageById(messageId, { companyId })
+  if (!message || message.company_id !== companyId || message.environment !== 'production' || message.direction !== 'outbound') {
+    throw new Error('Välj ett sparat utgående produktionsmeddelande för detta bolag.')
+  }
+  const result = await runProductionDryRun(companyId, admin.userId, message)
   revalidateActorTestingViews(companyId)
   goLiveRedirect(companyId, result.success ? 'prepared' : 'blocked', result.success ? 'Production dry run kördes utan blockerande fel. Inget skick gjordes.' : 'Production dry run blockerades. Inget skick gjordes.', returnPath)
 }

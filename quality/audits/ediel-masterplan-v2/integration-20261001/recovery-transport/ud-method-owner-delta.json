@@ -1,0 +1,135 @@
+{
+  "owner": "recovery-transport",
+  "workspace": "/workspace/scratch/145123787247/gridex-recovery",
+  "branch": "work/recovery-transport-20261001",
+  "baseSha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "incomingSha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "provenance": "Owner working tree in pending preserving merge; qualified composed codeSha/evidenceSha remain root-owned. Supersedes hashes for listed existing files only; first 36-file packet remains prior verification checkpoint.",
+  "paths": [
+    "supabase/migrations/20261001112223_ediel_recovery_protected_ud_preparation.sql",
+    "supabase/migrations/20261001121000_ediel_metering_method_recovery_current_source_bridge.sql",
+    "lib/ediel/production/customerMasterdataSource.ts",
+    "lib/ediel/intent/prodatRecoveryGateway.ts",
+    "lib/ediel/recovery/prodatRecovery.ts",
+    "lib/ediel/recovery/meteringMethodContext.ts",
+    "lib/ediel/transport/index.part-2.ts",
+    "__tests__/ediel-customer-masterdata-source.test.ts",
+    "__tests__/ediel-prodat-recovery-gateway.test.ts",
+    "__tests__/ediel-recovery-metering-method-context.test.ts",
+    "scripts/ediel-recovery-protected-ud-sql-regression.mjs",
+    "scripts/ediel-metering-method-recovery-source-sql-regression.mjs"
+  ],
+  "sha256": {
+    "supabase/migrations/20261001112223_ediel_recovery_protected_ud_preparation.sql": "6d04876c2d187393ca14b0be8949724412d3b0002b8188e03395ea338ca86ce4",
+    "supabase/migrations/20261001121000_ediel_metering_method_recovery_current_source_bridge.sql": "4872a6ad2c272d1017e30a59d976d11381026ccd7365705c99de1d7e2324ed20",
+    "lib/ediel/production/customerMasterdataSource.ts": "ff6a2521f1ac31661ca47d87144f8f9c683638a417990321c79ca3d7c69f7e8b",
+    "lib/ediel/intent/prodatRecoveryGateway.ts": "2347ea356ffa3c5d4a237687add5607669f7e2b61318b657e76bf8e4d1906f71",
+    "lib/ediel/recovery/prodatRecovery.ts": "a8d658c2205d03ddde095923846403f6f094e5a47e8517fff69de2b4ba9e28ca",
+    "lib/ediel/recovery/meteringMethodContext.ts": "764845f5f6fca133d055d3080a394d11f0394fa982c709f82d6e9ba7609783f5",
+    "lib/ediel/transport/index.part-2.ts": "463b44dfb619c44ed3e36e8520244e607f6ad668273e8f9ab05f76f21dfe7447",
+    "__tests__/ediel-customer-masterdata-source.test.ts": "c0e022707fcf96157abde400fa404c8111e2edf4a79de20e2422529d51f7a077",
+    "__tests__/ediel-prodat-recovery-gateway.test.ts": "da6e9dd3ec37191fe39d6767e46f980f685e977c53524765c8ede9bc9a24a324",
+    "__tests__/ediel-recovery-metering-method-context.test.ts": "b001a6ced26f8b754f9aa305d708f404a570866f3a30a30d20be439ca2f590d7",
+    "scripts/ediel-recovery-protected-ud-sql-regression.mjs": "3cca5725c5cff2e349fc383890b272edf7f63cd8db105c40dd4c7d1dc180a880",
+    "scripts/ediel-metering-method-recovery-source-sql-regression.mjs": "553e4ff7f4812da2755f8bb464e5da22f13be06c54b98b1ab117ee14051d628a"
+  },
+  "rulesAndContracts": [
+    "P-09",
+    "SC-030",
+    "AT-P-09",
+    "TR-05",
+    "SC-040",
+    "AT-TR-05",
+    "AT-Z09F-SUPPLIER",
+    "AT-Z09G-SUPPLIER",
+    "TM-METHOD40"
+  ],
+  "implementation": [
+    {
+      "family": "Z01/Z03 protected UD correction65733",
+      "codeStatus": "IMPLEMENTED_AND_CONNECTED",
+      "native": [
+        "ediel_prepare_customer_masterdata_recovery_v1",
+        "require_recovery_preparation_v1",
+        "bind_original_v1",
+        "require_current_v1"
+      ],
+      "callPaths": [
+        "finalizeRecoveryDraft -> native reserved intent -> fresh peroperation/currentactor preparation -> same shared kernel -> actual original INSERT binding -> every provider current source/replay"
+      ],
+      "effects": "New operation/preparer credential with terminal original asOf/observedAt/sourceProof/sourceIDs, persistent preparation/idempotence; old originals + ordinary identities retained; directDB borrowedoldcontext rejects"
+    },
+    {
+      "family": "F/G current genuine source + correction carrier + TM-METHOD40",
+      "codeStatus": "IMPLEMENTED_AND_CONNECTED",
+      "native": [
+        "ediel_metering_method_recovery_scope_v1",
+        "recovery_source_v1",
+        "require_recovery_message_v1",
+        "wire_brp_matches_v1",
+        "bind_recovery_message_v1",
+        "frozen_recovery_basis_v1",
+        "mutate_before_requested_method_original_v1",
+        "reconcile_v1"
+      ],
+      "callPaths": [
+        "prepareAndQueueProdatRecovery -> selected protected terminal event -> original BRP/current intake adapter -> native source recheck -> current legal route",
+        "finalizeRecoveryDraft -> same current native source -> shared kernel -> actual protected BEFORE INSERT/AFTER INSERT durable receipt",
+        "actual public metering method current/send/basis readers -> current recovery source/receipt",
+        "actual accepted native transport -> one genuine event watch -> immutable accepted correction carrier aliases -> watch read/register/at-apply F and G Z06 observation"
+      ],
+      "effects": "Own immutable new carrier receipt; original genuine event/desired receipt preserved; exact217/216/262 plus validity/object/partytuple; no newcontractevent; current actor separated from immutable preparer; source drift/revocation holds; accepted correction links genuine existingwatch and each genuinelydistinctevent still counted forambiguity"
+    },
+    {
+      "family": "H/LK actual executionActor",
+      "codeStatus": "CONNECTED",
+      "callPaths": [
+        "sendEdielMessageViaSmtp -> assertRegistryRulebookAllowsSend(...,actorUserId) -> root protected source getter"
+      ],
+      "effects": "Actual current sender passed explicitly, no created_by default"
+    }
+  ],
+  "verification": [
+    {
+      "kind": "Vitest",
+      "status": "PASS",
+      "testFiles": 6,
+      "tests": 59,
+      "scope": "customer-source/gateway/newmethodcontext plus applicable existing service/reporting SMTP/postacceptance targeted suites; explicit mocked native boundaries"
+    },
+    {
+      "kind": "isolated actual SQL bodies",
+      "status": "PASS",
+      "checks": 62,
+      "scope": "New protectedUD, actual canonical registered/source/bind/current plus finite Auth/recovery synthetic boundaries; no authentic negativeACK/Supabase/race qualification"
+    },
+    {
+      "kind": "isolated actual SQL bodies",
+      "status": "PASS",
+      "newChecks": 64,
+      "scope": "Actual F/G source+001231 BRP context/guard+30944/33558/35044/031906 +121000 carrier/current/watch; inherited source assertions preserved, fixtureDDL duplicate normalization/sessionUTC explicitly declared; finite supply/signed/network/BRP/currentACK boundaries. F and G carrier, real at-apply F/G observation bodies and source revocation. No authentic Supabase or finalcandidate claim"
+    },
+    {
+      "kind": "scoped app tsc",
+      "status": "PASS",
+      "scope": "new owned recovery/customer/gateway/transport inputs and actual imported composed dependencies; root-owned dependency mirror READ ONLY"
+    },
+    {
+      "kind": "eslint",
+      "status": "PASS",
+      "scope": "new changed owner TS/test files, exact root lifecycle regression already verified separately"
+    }
+  ],
+  "notPartOfThisPacket": [
+    "140500 physical selectedscope is separately staged pending final140000 parserparity qualification and new141000 missingLI protectedallocation; it is NOT claimed criterioncomplete in thispacket"
+  ],
+  "compatibilityRollback": "Only additive forwards/new nullable operation FK. Existing actorbasis key widened by op with NULLS NOT DISTINCT retaining ordinary identity. Immutable old source/event/receipt/ordinary paths stay. Actual pg_proc OID/ACL/owner/config metadata preserved for body rewrites (new helpers pinnedUTC). No destructive oldmigration rewrite, DBreset, externaltraffic. Operational rollback stop new preparation/provider-entry lanes and preserve durable receipts; root authentic replay/upgrade/rollback remainsrequired.",
+  "externalBlockers": [
+    "No external source/issuer/key seeded: existing genuine agreement/intake/source authorization mustbeconfigured/approved; held consumers remain failclosed."
+  ],
+  "remainingRootQualification": [
+    "One frozen composed codeSha/evidenceSha",
+    "Authentic blank DB +upgrade +generatedschema/types/fingerprint/nativeHTTP/concurrency/rollback/RBAC/interactivebrowser",
+    "Required exactpublishedheadCI"
+  ]
+}

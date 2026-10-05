@@ -1,0 +1,307 @@
+{
+  "status": "INITIAL_RED_EVIDENCE_WITH_NARROW_N_FIX_AND_POSITIVE_AUTHORITY_BLOCKED",
+  "base": "9c4a23d5",
+  "total": 29,
+  "passed_controls": 10,
+  "failed_defect_expectations": 19,
+  "cases": [
+    {
+      "name": "Z13: root byCell321 must not manufacture bounded-reporting authority (true)",
+      "status": "failed",
+      "failure": "AssertionError: expected 'required' to be 'undetermined' // Object.is equality"
+    },
+    {
+      "name": "Z13: root byCell321 must not manufacture bounded-reporting authority (false)",
+      "status": "failed",
+      "failure": "AssertionError: expected 'not_required' to be 'undetermined' // Object.is equality"
+    },
+    {
+      "name": "Z14: root byCell321 must not manufacture bounded-reporting authority (true)",
+      "status": "failed",
+      "failure": "AssertionError: expected 'required' to be 'undetermined' // Object.is equality"
+    },
+    {
+      "name": "Z14: root byCell321 must not manufacture bounded-reporting authority (false)",
+      "status": "failed",
+      "failure": "AssertionError: expected 'not_required' to be 'undetermined' // Object.is equality"
+    },
+    {
+      "name": ":+?': minimal N control passes protected transport",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": ":+?': N purpose is excluded even with an intentional-invalid-test override",
+      "status": "failed",
+      "failure": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "name": ":+?': N purpose is protected by the rulebook send guard",
+      "status": "failed",
+      "failure": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "name": ":+?': malformed supplied purpose sibling cannot hide in the header",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": ":+?': missing object context cannot be repaired by stale root N/private facts",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": ":+?': supplied Z13 purpose/date does not establish customer-kind/reporting intent",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": ":+?': inbound control does not acquire outbound knowledge rejection",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": ":+?': later message control cannot pass protected transport",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "*;!~: minimal N control passes protected transport",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "*;!~: N purpose is excluded even with an intentional-invalid-test override",
+      "status": "failed",
+      "failure": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "name": "*;!~: N purpose is protected by the rulebook send guard",
+      "status": "failed",
+      "failure": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "name": "*;!~: malformed supplied purpose sibling cannot hide in the header",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": "*;!~: missing object context cannot be repaired by stale root N/private facts",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": "*;!~: supplied Z13 purpose/date does not establish customer-kind/reporting intent",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": "*;!~: inbound control does not acquire outbound knowledge rejection",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "*;!~: later message control cannot pass protected transport",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "^|!%: minimal N control passes protected transport",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "^|!%: N purpose is excluded even with an intentional-invalid-test override",
+      "status": "failed",
+      "failure": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "name": "^|!%: N purpose is protected by the rulebook send guard",
+      "status": "failed",
+      "failure": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "name": "^|!%: malformed supplied purpose sibling cannot hide in the header",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": "^|!%: missing object context cannot be repaired by stale root N/private facts",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": "^|!%: supplied Z13 purpose/date does not establish customer-kind/reporting intent",
+      "status": "failed",
+      "failure": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "name": "^|!%: inbound control does not acquire outbound knowledge rejection",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "^|!%: later message control cannot pass protected transport",
+      "status": "passed",
+      "failure": null
+    },
+    {
+      "name": "existing register evidence correctly does not claim to transport reporting/customer authority",
+      "status": "passed",
+      "failure": null
+    }
+  ],
+  "after_narrow_N_exclusion_fix": {
+    "total": 29,
+    "passed": 19,
+    "failed_positive_authority_expectations": 10,
+    "cases": [
+      {
+        "name": "Z13: root byCell321 must not manufacture bounded-reporting authority (true)",
+        "status": "failed",
+        "failure": "AssertionError: expected 'required' to be 'undetermined' // Object.is equality"
+      },
+      {
+        "name": "Z13: root byCell321 must not manufacture bounded-reporting authority (false)",
+        "status": "failed",
+        "failure": "AssertionError: expected 'not_required' to be 'undetermined' // Object.is equality"
+      },
+      {
+        "name": "Z14: root byCell321 must not manufacture bounded-reporting authority (true)",
+        "status": "failed",
+        "failure": "AssertionError: expected 'required' to be 'undetermined' // Object.is equality"
+      },
+      {
+        "name": "Z14: root byCell321 must not manufacture bounded-reporting authority (false)",
+        "status": "failed",
+        "failure": "AssertionError: expected 'not_required' to be 'undetermined' // Object.is equality"
+      },
+      {
+        "name": ":+?': minimal N control passes protected transport",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": ":+?': N purpose is excluded even with an intentional-invalid-test override",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": ":+?': N purpose is protected by the rulebook send guard",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": ":+?': malformed supplied purpose sibling cannot hide in the header",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": ":+?': missing object context cannot be repaired by stale root N/private facts",
+        "status": "failed",
+        "failure": "AssertionError: expected false to be true // Object.is equality"
+      },
+      {
+        "name": ":+?': supplied Z13 purpose/date does not establish customer-kind/reporting intent",
+        "status": "failed",
+        "failure": "AssertionError: expected false to be true // Object.is equality"
+      },
+      {
+        "name": ":+?': inbound control does not acquire outbound knowledge rejection",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": ":+?': later message control cannot pass protected transport",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "*;!~: minimal N control passes protected transport",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "*;!~: N purpose is excluded even with an intentional-invalid-test override",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "*;!~: N purpose is protected by the rulebook send guard",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "*;!~: malformed supplied purpose sibling cannot hide in the header",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "*;!~: missing object context cannot be repaired by stale root N/private facts",
+        "status": "failed",
+        "failure": "AssertionError: expected false to be true // Object.is equality"
+      },
+      {
+        "name": "*;!~: supplied Z13 purpose/date does not establish customer-kind/reporting intent",
+        "status": "failed",
+        "failure": "AssertionError: expected false to be true // Object.is equality"
+      },
+      {
+        "name": "*;!~: inbound control does not acquire outbound knowledge rejection",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "*;!~: later message control cannot pass protected transport",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "^|!%: minimal N control passes protected transport",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "^|!%: N purpose is excluded even with an intentional-invalid-test override",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "^|!%: N purpose is protected by the rulebook send guard",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "^|!%: malformed supplied purpose sibling cannot hide in the header",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "^|!%: missing object context cannot be repaired by stale root N/private facts",
+        "status": "failed",
+        "failure": "AssertionError: expected false to be true // Object.is equality"
+      },
+      {
+        "name": "^|!%: supplied Z13 purpose/date does not establish customer-kind/reporting intent",
+        "status": "failed",
+        "failure": "AssertionError: expected false to be true // Object.is equality"
+      },
+      {
+        "name": "^|!%: inbound control does not acquire outbound knowledge rejection",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "^|!%: later message control cannot pass protected transport",
+        "status": "passed",
+        "failure": null
+      },
+      {
+        "name": "existing register evidence correctly does not claim to transport reporting/customer authority",
+        "status": "passed",
+        "failure": null
+      }
+    ]
+  },
+  "baseline_runtime_changed": false
+}

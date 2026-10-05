@@ -1,0 +1,1992 @@
+{
+ "batch": 7,
+ "family": "ENV-GOV-DB-IMP",
+ "head": "829902eb",
+ "rules": [
+  {
+   "id": "DB-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "Searched for an authority inventory or guard. scripts/ediel-normative-authority-guard.cjs covers only rule matrices and string-matches files."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:5-12",
+      "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql:1-35"
+     ],
+     "tests": [],
+     "gap": "Expand migrations exist, but there is no backfill→validate→contract process. Only 1 migration has VALIDATE CONSTRAINT."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "lib/ediel/partyRegistry.ts:153-200",
+      "app/admin/ediel/actors/actions.ts:602-760"
+     ],
+     "tests": [],
+     "gap": "Parallel route authorities: platform_actor_routes, ediel_party_addresses and communication_routes/ediel_route_profiles."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "ediel_parties/ediel_party_addresses are a second, market-less route authority.",
+     "evidence": [
+      "lib/ediel/partyRegistry.ts:136-151",
+      "app/admin/ediel/actors/page.tsx:113-118"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "DB-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260813124500_ediel_utilts_transactional_persistence_v1.sql:134-166",
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:255-266"
+     ],
+     "tests": [
+      "scripts/ediel-ai-message-storage-embedded-check.mjs :: ai_bi_header_supplier_tenant_mismatch",
+      "scripts/ediel-transport-data-query-plan-native.test.ts :: (sourceForeignKeyLeak=0, tenant_guard exists)"
+     ],
+     "gap": "Composite (company_id,x) foreign keys exist on only about 10 migrations' tables. Many FKs are UUID-only."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:255-266"
+     ],
+     "tests": [
+      "__tests__/billing-canonical-gate.test.ts :: blocks Z04C-like missing supply and incomplete Ediel lineage"
+     ],
+     "gap": "Overlapping supply/contract periods are only detected in the billing gate. No DB exclusion constraint or RPC guard was found."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/billing/billingGate.ts:255,399"
+     ],
+     "tests": [],
+     "gap": "Same gap as on_pass."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "DB-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260813124500_ediel_utilts_transactional_persistence_v1.sql:292-307"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-consumption-native.test.ts :: native E66 persists SG5 field 512 as the DTM+735 UTC instant ..."
+     ],
+     "gap": "Receipt time is only indirect, via ediel_messages. Structural corrections (PRODAT master data) were not found."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260813124500_ediel_utilts_transactional_persistence_v1.sql:72-74,277-316,168-191"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-consumption-native.test.ts :: same-issuer resend of field 505 is a duplicate identity, a new correction preserves exact noncurrent replay"
+     ],
+     "gap": "New versions are created, but there is no dated (as-of) projection, only the is_current flag."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260813124500_ediel_utilts_transactional_persistence_v1.sql:168-191",
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:196-224"
+     ],
+     "tests": [
+      "scripts/ediel-billing-source-sql-regression.mjs :: finalized_underlay_immutable / correction proof (l.72-77)"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "DB-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "scripts/ediel-transport-data-query-plan-native.test.ts:24-32"
+     ],
+     "tests": [
+      "scripts/ediel-transport-data-query-plan-native.test.ts :: measures actual tenant/environment/actor/deadline/reference and object/period/version/FK plans on unqualified native rows"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "scripts/ediel-transport-data-query-plan-native.test.ts:49-90",
+      "scripts/ediel-source-owner-native.config.ts:21"
+     ],
+     "tests": [
+      "scripts/ediel-transport-data-query-plan-native.test.ts :: measures actual ..."
+     ],
+     "gap": "EXPLAIN covers only ediel_messages, meter_reading_series and sources. Registry, billing and retention queries are not measured, and there is no load profile against the DB."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "scripts/ediel-transport-data-query-plan-native.test.ts:80-89"
+     ],
+     "tests": [
+      "scripts/ediel-transport-data-query-plan-native.test.ts :: measures actual ..."
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "DB-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/retention/customerLifecycleRetention.ts:6-9",
+      "supabase/migrations/20260810191822_canonical_lifecycle_offboarding_v1.sql:46-218"
+     ],
+     "tests": [
+      "scripts/ediel-customer-retention-native.test.ts :: actual native customer class preserves current-source holds then revokes portal access and pseudonymises only its own fields"
+     ],
+     "gap": "Separation is implemented for customers. For tenant and assignment it covers only offboarding/revoke, with no retention class workflow."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/retention/*.ts (submit/review/purge per class)"
+     ],
+     "tests": [
+      "scripts/ediel-customer-retention-native.test.ts :: ...",
+      "scripts/ediel-process-journal-retention-native.test.ts"
+     ],
+     "gap": "No class-based workflow for a whole tenant."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260519_ediel_operations_engine_batch.sql:51",
+      "supabase/migrations/20260813124500_ediel_utilts_transactional_persistence_v1.sql:168-181"
+     ],
+     "tests": [],
+     "gap": "Company ON DELETE CASCADE exists in 87 migrations. Immutability triggers block some of it, but the no-cascade property is not tested, and no deletion path exists for journals once retention expires."
+    },
+    {
+     "effect": "SC-070",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/retention/customerLifecycleRetention.ts:9"
+     ],
+     "tests": [
+      "scripts/ediel-customer-retention-native.test.ts :: actual native customer class ..."
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "DB-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:90-123,255-268",
+      "lib/billing/billingGate.ts:8-40"
+     ],
+     "tests": [
+      "scripts/ediel-billing-source-sql-regression.mjs :: focused billing source/decimal/scope checks",
+      "__tests__/billing-canonical-gate.test.ts :: allows only complete, current and business-covered lineage"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:196-224,245-246",
+      "lib/billing/underlayEngine.ts:536-680"
+     ],
+     "tests": [
+      "scripts/ediel-billing-source-sql-regression.mjs :: finalized_underlay_immutable / finalized_items_immutable / correctionRequired"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:90,122-123"
+     ],
+     "tests": [
+      "scripts/ediel-billing-source-sql-regression.mjs :: 23-DGI-E66-T -> qualified=false (l.59)"
+     ],
+     "gap": "Only E30/E66 are allowed. No explicit S02/E31 test."
+    },
+    {
+     "effect": "SC-019",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:122"
+     ],
+     "tests": [
+      "scripts/ediel-billing-source-sql-regression.mjs :: DGI app ref"
+     ],
+     "gap": "DGI is blanket-rejected. Data basis, purpose and price model are never examined."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "ENV-01",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:124",
+      "lib/ediel/core/edifactEnvelopeCodec.ts:166-173",
+      "lib/ediel/core/edifactEnvelopeCodec.ts:211-212",
+      "lib/ediel/core/una.ts:57-60",
+      "lib/ediel/core/edifactEncoding.ts:3-17"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: encodes every ISO8859-1 byte without losing Swedish characters or substituting values",
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: transcodes all structural separators and released values for an alternate UNA",
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: escapes supplied technical values without turning them into extra envelope structure"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEncoding.ts:3-11",
+      "lib/ediel/transport/index.part-1.ts:209-213",
+      "lib/ediel/transport/index.part-2.ts:373,503-505",
+      "lib/ediel/transport/smime.ts:274"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: reports only offset and code point for an unrepresentable identifier",
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: rejects unrepresentable source text before UNOC:3 output (%s)"
+     ],
+     "gap": "No conversion table exists. Unsupported characters are rejected, not converted."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEncoding.ts:13-17",
+      "lib/ediel/core/referenceRegistry.ts:(normalizeInterchangeReference)"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-byte-integrity.test.ts :: MIME mode ${index} rejects unrepresentable content before encoding",
+      "__tests__/ediel-transport-byte-integrity.test.ts :: the actual send path rejects before route, archive, attempt or provider effects",
+      "__tests__/ediel-reference-allocation.test.ts :: preserves original physical identifiers instead of silently truncating them"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:211-212"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-byte-integrity.test.ts :: MIME mode ${index} preserves Swedish ISO8859-1 bytes"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/index.part-1.ts:209-213"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-byte-integrity.test.ts :: the direct S/MIME adapter rejects before certificate work or temporary files",
+      "__tests__/ediel-transport-byte-integrity.test.ts :: cannot bypass the byte boundary by marking physical %s as XML"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The byte check only rejects code points above 0xFF. C0 and C1 control characters, which are outside the UNOC repertoire, still reach the wire. The UNOC check exists only for some fields.",
+     "evidence": [
+      "lib/ediel/core/edifactEncoding.ts:6",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:719"
+     ]
+    },
+    {
+     "claim": "The inbound DSN MIME decoder decodes base64 and quoted-printable bodies as UTF-8. Latin-1 EDIFACT bytes in returned mail are replaced with U+FFFD. This affects DSN only.",
+     "evidence": [
+      "lib/inbound-mail/mimeStructure.ts:28-33"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactTokenizer.ts:50-111",
+      "lib/ediel/core/edifactTokenizer.ts:157-173",
+      "lib/ediel/core/una.ts:21-37",
+      "lib/ediel/core/edifactValidation.ts:95-97",
+      "lib/ediel/core/unsmGrammar.ts:110-113"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: preserves empty composite positions under alternate separators",
+      "__tests__/ediel-source-message-reference-bounds.test.ts :: counts decoded data rather than release characters in both reference positions",
+      "__tests__/ediel-prodat-party-review-regression.test.ts :: does not lose literal release/element characters in length checks",
+      "__tests__/ediel-canonical-envelope.test.ts :: rejects a dangling release character instead of silently truncating input"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/edifactTokenizer.ts:29-48,130-131",
+      "lib/ediel/core/canonicalEdifactAst.ts:161-185",
+      "lib/ediel/core/canonicalEdifactAst.ts:215-247"
+     ],
+     "tests": [
+      "__tests__/ediel-token-source-spans.test.ts :: retains exact original source offsets through UNA, CRLF and outer whitespace normalization",
+      "__tests__/ediel-token-source-spans.test.ts :: retains alternate-UNA released terminators in one physical segment source"
+     ],
+     "gap": "Spans exist per segment only, in UTF-16 units. Line, object and register groups have no span. Only PRODAT has register grouping; other families group by LIN only."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "lib/ediel/core/canonicalEdifactAst.ts:151-155",
+      "lib/ediel/rulebook/fieldMatrix.ts:98-104",
+      "lib/ediel/rulebook/fieldMatrix.ts:138",
+      "lib/ediel/core/messageBuilder/segmentCounter.ts:3-7"
+     ],
+     "tests": [],
+     "gap": "These paths use filter(Boolean) or a non-release-aware split on CAV and composite components, then take [0], so the first non-empty component wins."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:166-173"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: preserves empty composite positions under alternate separators"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "lib/ediel/core/canonicalEdifactAst.ts:151-153"
+     ],
+     "tests": [],
+     "gap": "No test covers non-PRODAT CAV with empty leading components."
+    },
+    {
+     "effect": "SC-028",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatEnergyProduct.ts"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product.test.ts :: ignores false fourth242 but does not let it supply required fifth506",
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: preserves empty composite positions under alternate separators"
+     ],
+     "gap": "Covered for PRODAT only."
+    },
+    {
+     "effect": "SC-033",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-tgt.test.ts :: keeps register 2 even when only register 1 has a transaction-type score",
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: retains own two-register 213 diagnosis while full APERAK grammar holds the reply"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "In the non-PRODAT cciCavMap, empty CAV components are filtered out and [0] is taken. CAV+:::9:X then yields '9' instead of keeping the component position. This feeds the Z02/Z16 facts.",
+     "evidence": [
+      "lib/ediel/core/canonicalEdifactAst.ts:151-155",
+      "lib/ediel/core/edifactSegments.ts:119-120"
+     ]
+    },
+    {
+     "claim": "fieldMatrix splits segments with a raw split('+') and split(':').filter(Boolean), which ignores the release character and UNA. valueAfterCci reads CAV for Z12/Z13/Z14/Z22-Z25 this way, and the validator is live through prodatSubtypePolicy and prodatZ14Policy.",
+     "evidence": [
+      "lib/ediel/rulebook/fieldMatrix.ts:98-104",
+      "lib/ediel/rulebook/fieldMatrix.ts:130-140",
+      "lib/ediel/rulebook/fieldMatrix.ts:246-258",
+      "lib/ediel/rulebook/prodatSubtypePolicy.ts:68"
+     ]
+    },
+    {
+     "claim": "segmentCounter, which messageBuilder exports, uses split(\"'\").filter(Boolean) and hard-codes the default UNA length.",
+     "evidence": [
+      "lib/ediel/core/messageBuilder/segmentCounter.ts:3-7",
+      "lib/ediel/core/messageBuilder/index.ts:32-35"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:193-210",
+      "lib/ediel/core/edifactValidation.ts:61-125",
+      "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql:6-16,31-66,68-108"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: rejects repeated message references rather than building an ambiguous envelope",
+      "__tests__/ediel-envelope-syntax-integrity.test.ts :: checks second message count rather than only the first UNH/UNT pair",
+      "__tests__/ediel-envelope-syntax-integrity.test.ts :: rejects duplicate message references within the same interchange",
+      "scripts/ediel-wire-reference-namespace-sql-regression.mjs :: namespace_collision asserts"
+     ],
+     "gap": "For 0010, partyComposite silently defaults the qualifier to ZZ. No profile-specific 0010/0019 assertion was found."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:144-146,156-160,209"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-byte-integrity.test.ts :: transcodes all structural separators and released values for an alternate UNA",
+      "__tests__/ediel-canonical-envelope.test.ts :: roundtrips application reference and test indicator in canonical UNB positions"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "lib/ediel/core/referenceRegistry.ts:92-100",
+      "app/admin/ediel/actions.part-4.ts:1009-1019",
+      "lib/ediel/testing/selftest.ts:147-158"
+     ],
+     "tests": [
+      "__tests__/ediel-reference-allocation.test.ts :: shares bounded interchange generation with actual PRODAT callers without tenant counters"
+     ],
+     "gap": "Hand-written stale UNT counts remain in two places. The codec path computes counts correctly."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:203-210"
+     ],
+     "tests": [
+      "__tests__/ediel-envelope-syntax-integrity.test.ts :: accepts two distinct complete message envelopes without inferring national batch permission"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "app/admin/ediel/actions.part-4.ts:1017"
+     ],
+     "tests": [],
+     "gap": "No test guards against hard-coded UNT values outside the codec."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The manual UTILTS simulation hard-codes UNT+6. The real segment count is 5 to 7 (never 6), so the UNT count is always wrong.",
+     "evidence": [
+      "app/admin/ediel/actions.part-4.ts:1009-1019"
+     ]
+    },
+    {
+     "claim": "In selftest, UNT is 8 whenever a date is present, but the count is 7 when the address is missing. UNB '+stamp+++++23-DDQ' puts the application reference at element 9 (0031) and leaves 0020 empty.",
+     "evidence": [
+      "lib/ediel/testing/selftest.ts:147-158",
+      "lib/ediel/testing/selftest.ts:187-197"
+     ]
+    },
+    {
+     "claim": "The 0062 length check uses message.messageReference before trimming, while the trimmed value is what gets serialized.",
+     "evidence": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:149-155"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:130",
+      "lib/ediel/ack/canonicalAckEngine.ts:26-37,105-118"
+     ],
+     "tests": [
+      "__tests__/ediel-tgt-unb-service-positions.test.ts :: actual ${family} TGT draft preserves APP/0031 and puts 0035 in physical element11"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/ack.ts:819,857,989",
+      "lib/ediel/prodat/buildProdat.ts:186"
+     ],
+     "tests": [],
+     "gap": "No test asserts that UNB/0031 equals the persisted requires_contrl/contrl_status."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:25-26,190-192"
+     ],
+     "tests": [
+      "__tests__/ediel-tgt-unb-service-positions.test.ts :: actual ${family} TGT draft preserves APP/0031 and puts 0035 in physical element11",
+      "__tests__/ediel-ack-source-correlation.test.ts :: allows CONTRL for APERAK and binds original UCI parties, rejects a CONTRL loop"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-041",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/ack.ts:865",
+      "lib/ediel/inbound/duplicateResponses.ts:65"
+     ],
+     "tests": [
+      "__tests__/ediel-tgt-unb-service-positions.test.ts :: actual ${family} mock-portal producer uses the same service positions"
+     ],
+     "gap": "The duplicate-103 APERAK omits 0031 even though the ACK matrix says APERAK requires CONTRL."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The duplicate-103 APERAK is built with acknowledgementRequest:false, and SQL sets requires_contrl=false. This contradicts the ACK matrix (APERAK requires CONTRL) and SC-041.",
+     "evidence": [
+      "lib/ediel/inbound/duplicateResponses.ts:65",
+      "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql:213-214",
+      "lib/ediel/ack/canonicalAckEngine.ts:35-37"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:131-139"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-envelope.test.ts :: omits the production test indicator instead of writing zero",
+      "__tests__/ediel-canonical-envelope.test.ts :: roundtrips application reference and test indicator in canonical UNB positions"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql:7,80-81",
+      "lib/ediel/core/dedupe.ts:64-66",
+      "lib/ediel/core/productionGuards.ts:111-150",
+      "lib/ediel/inbound/duplicateResponses.ts:52-55"
+     ],
+     "tests": [
+      "scripts/ediel-wire-reference-namespace-sql-regression.mjs :: production row with test UNB rejected (line 47)",
+      "__tests__/ediel-production-test-bypass.test.ts :: holds live test flags, portal parties and test application addressing even with the legacy marker"
+     ],
+     "gap": "No transport barrier was found for historical_replay. That mode only affects policy resolution."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:132",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts:53",
+      "lib/ediel/core/productionGuards.ts:133-158"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-envelope.test.ts :: omits the production test indicator instead of writing zero",
+      "__tests__/ediel-production-test-bypass.test.ts :: holds live test flags, portal parties and test application addressing even with the legacy marker"
+     ],
+     "gap": "Inbound 0035='0' is not tested anywhere."
+    },
+    {
+     "effect": "SC-068",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:50,179-181,325"
+     ],
+     "tests": [],
+     "gap": "catalog_evidence and historical_replay are not blocked at the transport layer. No test covers a replay decision going to production."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "EdifactEnvelopeCodec.decode maps any 0035 other than '1' (including '0') to production without flagging it.",
+     "evidence": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:224,244,251-253"
+     ]
+    },
+    {
+     "claim": "The production send lock reads the test_flag column, not wire UNB/0035. It depends on the SQL reserve trigger for consistency.",
+     "evidence": [
+      "lib/ediel/core/productionGuards.ts:133",
+      "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql:80-81"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:198",
+      "lib/ediel/prodat/builders/profileRenderer.ts:239-241",
+      "lib/ediel/prodat/prodatDocumentFields.ts:65-80",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:3"
+     ],
+     "tests": [
+      "__tests__/ediel-switch-cancellation-source.test.ts :: renders a separate C original with exact old LI/customer/point/start, preserving the original pointer",
+      "__tests__/ediel-prodat-date-fields.test.ts :: renders header UTC+1 and contract203 after LIN in the real builder"
+     ],
+     "gap": "Outbound only. No test checks inbound BGM with a suffix, e.g. BGM+Z03L."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:51-71",
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:123-145",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:221-227"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: derives the exact current message/subtype combinations from field 223",
+      "__tests__/ediel-prodat-subtypes.test.ts :: contains every current subtype/reason mapping exactly once, including E -> E34"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:132-142",
+      "lib/ediel/prodat/prodatDocumentFields.ts:72",
+      "lib/ediel/rulebook/prodatSubtypePolicy.ts:48-51"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: fail-closes unknown and forbidden combinations",
+      "__tests__/ediel-prodat-subtypes.test.ts :: requires explicit bilateral capability for bilateral-only combinations"
+     ],
+     "gap": "Outbound fails closed. Inbound field 223 is passed raw to resolveProdatSubtype, which also accepts the internal aliases 'L' and 'Z03L'. Only the 30 subtype-dependent D cells reject aliases on the wire. No test for a wrong wire combination at the CONTRL/APERAK level."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:198-241"
+     ],
+     "tests": [
+      "__tests__/ediel-switch-cancellation-source.test.ts :: renders a separate C original with exact old LI/customer/point/start, preserving the original pointer"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:90-105"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: fail-closes unknown and forbidden combinations"
+     ],
+     "gap": "Same inbound alias gap as on_failure. No test for BGM+Z03L."
+    },
+    {
+     "effect": "SC-001",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:52"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: derives the exact current message/subtype combinations from field 223"
+     ],
+     "gap": "Only the ENV-06 part (Z03 + L/Z22) was reviewed. TEN parts are out of scope."
+    },
+    {
+     "effect": "AT-Z01L..Z18V (36 message cases, BGM/field 223 part)",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:51-71"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: derives the exact current message/subtype combinations from field 223",
+      "__tests__/ediel-prodat-subtypes.test.ts :: requires explicit bilateral capability for bilateral-only combinations"
+     ],
+     "gap": "Every case's BGM/223 pair is consistent with the registry. Expectations about acknowledgements, timers and effects belong to other rules and were not reviewed."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Inbound policy accepts a non-three-character field 223 value (CAV+L or CAV+Z03L) as valid, because findProdatSubtypeRule matches the subtype letter and strips a composite prefix.",
+     "evidence": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:90-105",
+      "lib/ediel/rulebook/messageParser.ts:36-39",
+      "lib/ediel/rulebook/validator.ts:368-373",
+      "lib/ediel/rulebook/prodatSubtypePolicy.ts:49-51"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-07",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatInterchangeBatch.ts:36-48",
+      "lib/ediel/core/edifactEnvelopeCodec.ts:204-205",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:412-414"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: refuses mixed Z03/Z08 before the encoder returns any interchange bytes",
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: holds a bypassed mixed-function wire in actual send preflight without inventing syntax failure"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/prodatInterchangeBatch.ts:49-68",
+      "lib/ediel/intent/renderers/switchCancellation.ts:32-35"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: encodes compatible same-function objects with exact individual counts and references",
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: refuses incompatible %s independently of common BGM function"
+     ],
+     "gap": "No outbox batch planner exists: every production renderer encodes exactly one message per UNB. The actor/profile/role guard compares NAD parties only. No tenant separation check."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts:204-205"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: refuses mixed Z03/Z08 before the encoder returns any interchange bytes"
+     ],
+     "gap": "A mixed batch is refused (throw or hold), never split. No splitting logic found (searched for batchPlan/planBatch/BatchPlanner in lib/ediel/outbox and lib/ediel/transport: none)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/prodatInterchangeBatch.ts:19-69"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: keeps subtype outside the main-function comparison specified by P26.A page14"
+     ],
+     "gap": "Same as on_pass: no planner, no tenant check."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatInterchangeBatch.ts:33-35"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: leaves generic non-PRODAT multi-message serialization available",
+      "__tests__/ediel-prodat-interchange-batching.test.ts :: refuses incompatible %s independently of common BGM function"
+     ],
+     "gap": "Refuses rather than splits."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The party-scope comparison uses every header NAD before LIN. Per-object header NADs that legitimately differ between messages would block an otherwise compatible batch.",
+     "evidence": [
+      "lib/ediel/prodat/prodatInterchangeBatch.ts:52-67"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/render/dateSegments.ts:77",
+      "lib/ediel/prodat/prodatDateFields.ts:57",
+      "lib/ediel/utilts.ts:448",
+      "lib/ediel/aperakEngine.ts:305",
+      "lib/ediel/ack.ts:710",
+      "lib/ediel/core/edifactEnvelopeCodec.ts:121"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-date-fields.test.ts :: renders header UTC+1 and contract203 after LIN in the real builder",
+      "__tests__/ediel-prodat-date-fields.test.ts :: does not declare PRODAT offset %s instead of fixed standard time",
+      "__tests__/ediel-utilts-ack-standard-time.test.ts :: renders the creation instant %s without summer-time shift"
+     ],
+     "gap": "UNB uses Europe/Stockholm local time, but no test asserts the summer/winter UNB clock. Inbound UTILTS DTM+735 accepts any valid offset, including +0200."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/core/messagePolicy.ts:32-47",
+      "lib/ediel/prodat/render/dates.ts:80",
+      "lib/ediel/utilts/timezone.ts:40-60"
+     ],
+     "tests": [],
+     "gap": "originalOffset/timeBasis/documentDate are derived but not shown to be persisted. No test asserts originalOffset or timeBasis."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/render/dates.ts:31-37",
+      "lib/ediel/utilts/headerGuide.ts:180-195"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-date-fields.test.ts :: converts creation instants to UTC+1 throughout the year",
+      "__tests__/ediel-utilts-ack-standard-time.test.ts :: renders the creation instant %s without summer-time shift"
+     ],
+     "gap": "Outbound is fixed at UTC+1. Inbound UTILTS +0200 passes without a 206 error. No 92/100-quarter-per-day guard or test found (searched for 92/96/100 quarter counts in lib/ediel/utilts and lib/metering: none)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/render/dateSegments.ts:77",
+      "lib/ediel/utilts.ts:448"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-date-fields.test.ts :: renders header UTC+1 and contract203 after LIN in the real builder"
+     ],
+     "gap": "Storing UTC plus offset is not tested. UNB local time is not tested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/headerGuide.ts:184-186"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: rejects missing or invalid header timezone 206 before an E66 E19 finding"
+     ],
+     "gap": "That test treats +0200:406 as the valid control. A summer offset is accepted for the UTILTS payload."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Inbound UTILTS DTM+735 with a summer offset (+0200) is accepted as valid field 206, and periods are converted with that offset. The fixed +0100 rule is not enforced.",
+     "evidence": [
+      "lib/ediel/utilts/timezone.ts:14-27",
+      "lib/ediel/utilts/headerGuide.ts:184-186",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts:514-524",
+      "__tests__/helpers/utiltsObservationHandoff.ts:12"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-09",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/unsmGrammar.ts:156-193",
+      "lib/ediel/core/unsmGrammar.generated.json"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: rejects a missing mandatory D97A SG8/LIN rather than treating a short national segment list as complete grammar",
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: accepts legitimate trailing full-directory components omitted from a shorter national table"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/unsmGrammar.ts:163-176",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:406-411"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: retains archive and nested original-directory hashes for the actual physical version",
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: selects actual APERAK96A simple BGM/1004 versus actual04A composite C106 without caller metadata authority",
+      "__tests__/ediel-unsm-inbound-source-hold.test.ts :: holds actual %s unknown edition before technical endpoint, actor/tenant reads, syntax receipts and ACK mint"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/unsmGrammar.ts:90-150"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: accepts legitimate trailing full-directory components omitted from a shorter national table",
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: rejects %s at the original physical segment and field"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/unsmGrammar.ts:156-193"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: rejects missing mandatory D97A header DTM while a correct envelope stays valid"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/unsmGrammar.ts:90-150"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: accepts legitimate trailing full-directory components omitted from a shorter national table"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A national APERAK E2SE6A overlay widens directory SG4 cardinality inside the UNSM grammar layer. This mixes national usage into the parser grammar (an owner decision, but it touches ENV-09 layer separation).",
+     "evidence": [
+      "lib/ediel/core/unsmGrammar.ts:23-46",
+      "lib/ediel/core/unsmGrammar.ts:177-179"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ENV-10",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatCharacteristicFields.ts:13-35",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:75",
+      "lib/ediel/utiltsEngine.ts:544",
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts:76-125"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z06-product.test.ts :: (asserts locator 'SG14/CCI[C502/6313=Z14] → CAV/C889/7110[1]', line 51)"
+     ],
+     "gap": "No single test contrasts PRODAT C502 with UTILTS C240 on the same consumer."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/prodatCharacteristicFields.ts:10-37",
+      "lib/ediel/rulebook/fieldRuleRegistry.ts:78-83"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z06-product.test.ts :: (locator assertion, line 51)"
+     ],
+     "gap": "The UTILTS rule registry still serves legacy STATIC_FIELD_RULES with PRODAT-style 'CCI++' paths."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:339-357",
+      "lib/ediel/rulebook/fieldMatrix.ts:112-141",
+      "lib/ediel/utiltsEngine.part-1.ts:851-857",
+      "lib/ediel/core/canonicalMessage.ts:164-176"
+     ],
+     "tests": [],
+     "gap": "Several UTILTS consumers use the PRODAT CCI position (element 2, C502). No test covers these."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/prodatCharacteristicFields.ts:25-37"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z06-product.test.ts :: (locator assertion, line 51)"
+     ],
+     "gap": "Only the PRODAT side is tested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:350-356"
+     ],
+     "tests": [],
+     "gap": "A shared CCI++ position is still used for UTILTS."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "UTILTS_PLANNING_FIELDS locate UTILTS 254/513/507 with 'CCI++E02/CAV' (PRODAT C502). hasCci/valueAfterCci never match the physical UTILTS CCI+++E02 (C240), so R fields are missed and X fields go undetected. The registry serves these rules for UTILTS.",
+     "evidence": [
+      "lib/ediel/rulebook/fieldMatrix.ts:350-356",
+      "lib/ediel/rulebook/fieldMatrix.ts:112-141",
+      "lib/ediel/rulebook/fieldMatrix.ts:375-389",
+      "lib/ediel/rulebook/fieldMatrix.ts:417-430",
+      "lib/ediel/rulebook/fieldRuleRegistry.ts:78-83"
+     ]
+    },
+    {
+     "claim": "The UTILTS E66 meter constant is looked up as 'CCI++Z02' (C502 position). A C240-positioned constant is never found and the code falls back to 1, which can produce a false E19 meter-reading/energy mismatch (needs confirmation against the UTILTS guide).",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:851-866",
+      "lib/ediel/utiltsEngine.part-1.ts:1280-1281"
+     ]
+    },
+    {
+     "claim": "The non-PRODAT canonical subtype reader cciCavSubtype applies the PRODAT CCI++/element-2 layout to UTILTS.",
+     "evidence": [
+      "lib/ediel/core/canonicalMessage.ts:164-176",
+      "lib/ediel/core/canonicalMessage.ts:268-270"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOV-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/guideRegistry.ts:15-28",
+      "lib/ediel/rulebook/guideRegistry.ts:64-158",
+      "lib/ediel/rulebook/canonicalRulePackRegistry.ts:172-175"
+     ],
+     "tests": [
+      "scripts/test-ediel-guide-governance.cjs :: GOV-01: <label> cannot alter source-controlled authority between requests"
+     ],
+     "gap": "The guide rows have a revision, validity dates and a document name, but no sha256, page or section. Only EDIEL_ENERGY_SHARING_CAPABILITY (guideRegistry.ts:7-8) carries a hash, section and page. Rule packs carry source_hash and valid_from/to but no page or section. There is no per-rule record of hash plus page plus scope."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/guideRegistry.ts:37-43",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql (gridex_ediel_source_rules.capture_v1/require_v1)"
+     ],
+     "tests": [
+      "scripts/test-ediel-guide-governance.cjs :: GOV-01: returned guide cannot be used to modify the next caller",
+      "scripts/ediel-source-rule-pack-basis-sql-regression.mjs"
+     ],
+     "gap": "Immutability exists as an in-memory freeze plus a per-message receipt. There is no rule-pack publication step and no publication audit trail: searches for publish_*rule / ediel_rule_packs triggers returned 0 hits."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/canonicalRulePackRegistry.ts:425-440",
+      "lib/ediel/core/runtimeDecision.ts:512-523"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+      "__tests__/ediel-version-time-anchors.test.ts :: does not manufacture an external APERAK code for a missing local admission timestamp"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "Same gaps as condition and on_pass."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/runtimeDecision.ts:512-523"
+     ],
+     "tests": [
+      "__tests__/ediel-future-capability-held.test.ts :: uses internal review with no national APERAK for an explicitly requested blocked capability"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "scripts/ediel-normative-authority-guard.cjs is the only cross-file normative-authority control, and it works by string/allowlist scanning. It is not a behavioural publication gate.",
+     "evidence": [
+      "scripts/ediel-normative-authority-guard.cjs:7-60"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOV-02",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatParentApplicability.ts:3-35",
+      "lib/ediel/prodat/prodatDependentConditionEngine.ts:357-390"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-ud.test.ts (isProdatFieldInInapplicableParent Z14 N)",
+      "__tests__/ediel-prodat-register-conditions.test.ts :: Z06<v>/<f>: own first register controls repetition, not another object"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatRegisterPolicy.ts:91-160",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:79"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-conditions.test.ts :: uses each object's first subtype; a repeated subtype cannot change register semantics"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDependentConditionEngine.ts:384"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-conditions.test.ts :: Z06<v>/<f>: no first value does not automatically forbid a later value",
+      "__tests__/ediel-prodat-register-conditions.test.ts :: <code>/<v>: optional first annual energy makes later annual energy mandatory only for the same object"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatRegisterPolicy.ts:121-126"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-conditions.test.ts"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatParentApplicability.ts:6-9"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-ud.test.ts"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "GOV-03",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/guideRegistry.ts:107-144",
+      "lib/ediel/rulebook/versionSelector.ts:43-48"
+     ],
+     "tests": [
+      "__tests__/ediel-aperak-source-profile-regression.test.ts :: does not model GAS 16-B as a generic electricity APERAK revision"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/versionSelector.ts:60-67"
+     ],
+     "tests": [
+      "scripts/test-ediel-guide-governance.cjs :: GOV-03: APERAK retains the actual P/U source-family profiles, not a generic 16-B guide",
+      "__tests__/ediel-aperak-source-profile-regression.test.ts :: selects the U-family wire profile for UTILTS and UTILTS_ERR acknowledgements"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:167",
+      "lib/ediel/rulebook/versionSelector.ts:47"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts :: holds a physical positive BGM312 with malformed/mismatched profile %s",
+      "__tests__/ediel-aperak-source-profile-regression.test.ts :: fails closed when APERAK source family is not known"
+     ],
+     "gap": "ACK_APERAK_PROFILE_INVALID (ackGuidePolicy.ts:167) has no direct test; the mismatch is covered only through the positive-ACK send guard."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/versionSelector.ts:101-139"
+     ],
+     "tests": [
+      "__tests__/ediel-aperak-source-profile-regression.test.ts :: selects the P-family wire profile for PRODAT acknowledgements"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:167"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts :: holds a physical positive BGM312 with malformed/mismatched profile %s"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "When no sourceMessageFamily is given, the APERAK version check infers the source family from the provided association code. The wire value then proves itself.",
+     "evidence": [
+      "lib/ediel/rulebook/validator.ts:315-318"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOV-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/messagePolicy.ts:66-69",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:196-202",
+      "lib/ediel/transport/index.part-2.ts:405"
+     ],
+     "tests": [
+      "__tests__/ediel-accepted-guide-package.test.ts :: requires the current guide for all outgoing messages"
+     ],
+     "gap": "Outbound sends use only the current guide. There is no bilateral-agreement exception for a divergent resend: searches for resend/omsänd combined with bilateral found no hits in lib/ediel."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/sendGuards.ts:27-38"
+     ],
+     "tests": [
+      "__tests__/ediel-version-time-anchors.test.ts :: rechecks queued outbound content at the current pre-send instant"
+     ],
+     "gap": "That test only checks the admission date. No test sends queued payload across 2026-10-01. Keeping the earlier payload and decision as history was not shown."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/rulebook/sendGuards.ts:51-58"
+     ],
+     "tests": [],
+     "gap": "The raw payload is revalidated, but no test covers an old payload carrying a new version label."
+    },
+    {
+     "effect": "SC-051",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/messagePolicy.ts:136-167"
+     ],
+     "tests": [
+      "scripts/test-ediel-guide-governance.cjs :: GOV-04/05: outbound stays current and inbound grace stops after the fourteenth day"
+     ],
+     "gap": "No test checks one decision across all layers (send, resend, replay). Independent clocks remain (see GOV-06)."
+    },
+    {
+     "effect": "SC-064",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/sendGuards.ts:27-38"
+     ],
+     "tests": [],
+     "gap": "No test changes a policy, route or permission while a message is queued and then checks that a new stored decision is made."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "assertLegacyRuleSnapshotMatchesCanonical has no callers, so a stale stored rule version is never compared at send time.",
+     "evidence": [
+      "lib/ediel/rulebook/canonicalRulePackRegistry.ts:464-478"
+     ]
+    },
+    {
+     "claim": "Send-mode validation resolves policy as catalog_evidence. That mode forces bilateralCapabilityVerified=true for PRODAT and skips the UTILTS supplier outbound gate.",
+     "evidence": [
+      "lib/ediel/rulebook/validator.ts:383",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:218-220",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:332"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOV-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/guideRegistry.ts:227-264"
+     ],
+     "tests": [
+      "scripts/test-ediel-guide-governance.cjs :: GOV-04/05: outbound stays current and inbound grace stops after the fourteenth day",
+      "__tests__/ediel-accepted-guide-package.test.ts :: holds old candidates after the complete two-week window"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/messagePolicy.ts:155-167",
+      "lib/ediel/core/runtimeDecision.ts:349-363"
+     ],
+     "tests": [
+      "__tests__/ediel-accepted-guide-package.test.ts :: admits preceding guide as one complete package on %s",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: shared October grace admits a complete prior guide without blending new identity diagnostics"
+     ],
+     "gap": "Only UTILTS inbound tries the previous guide. APERAK and UTILTS_ERR on E5SE5A never fall back to 25-A-3 during the grace period."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/messagePolicy.ts:160-166",
+      "lib/ediel/rulebook/guideRegistry.ts:53-56"
+     ],
+     "tests": [
+      "__tests__/ediel-accepted-guide-package.test.ts :: admits preceding guide as one complete package on %s",
+      "scripts/test-ediel-guide-governance.cjs :: GOV-01: <label> cannot alter source-controlled authority between requests"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-051",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "See GOV-04."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The grace candidate loop is limited to family==='UTILTS'. Inbound UTILTS-origin APERAK and UTILTS_ERR on 2026-10-01..14 are checked against 25-A-4 only.",
+     "evidence": [
+      "lib/ediel/core/messagePolicy.ts:155"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOV-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/messagePolicy.ts:33-82"
+     ],
+     "tests": [
+      "__tests__/ediel-version-time-anchors.test.ts :: captures document, ingress, measurement and replay separately and freezes the decision"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/runtimeDecision.ts:254",
+      "lib/ediel/utiltsEngine.ts:892-902"
+     ],
+     "tests": [
+      "__tests__/ediel-version-time-anchors.test.ts :: uses receipt rather than the sender document date after the October transition"
+     ],
+     "gap": "The explicit decision is passed to utiltsEngine, but implicit now() remains in several places: outbound admission, detached validation, selectRulebookVersion and versionRegistry. utiltsEngine also re-resolves policy itself when none is passed in."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/runtimeDecision.ts:512-523"
+     ],
+     "tests": [
+      "__tests__/ediel-version-time-anchors.test.ts :: does not manufacture an external APERAK code for a missing local admission timestamp"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-051",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "Independent date selection still exists in several layers."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Implicit clock reads remain in version selection and admission.",
+     "evidence": [
+      "lib/ediel/core/messagePolicy.ts:69",
+      "lib/ediel/rulebook/validator.ts:162",
+      "lib/ediel/rulebook/versionSelector.ts:112",
+      "lib/ediel/core/versionRegistry.ts:58-62,112-115"
+     ]
+    },
+    {
+     "claim": "utiltsEngine re-resolves the policy itself when it is not passed in, which is a second decision point.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.ts:892-895"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOV-07",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/guideRegistry.ts:2-10"
+     ],
+     "tests": [
+      "__tests__/ediel-future-capability-held.test.ts :: retains the frozen source constraints without adopting proposed wire codes"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/futureCapabilityPolicy.ts:16-22",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:188"
+     ],
+     "tests": [
+      "__tests__/ediel-future-capability-held.test.ts :: does not activate from publication or the date alone: %s"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/futureCapabilityPolicy.ts:18-21"
+     ],
+     "tests": [
+      "__tests__/ediel-future-capability-held.test.ts :: does not activate from publication or the date alone: %s"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/runtimeDecision.ts:513"
+     ],
+     "tests": [
+      "__tests__/ediel-future-capability-held.test.ts :: uses internal review with no national APERAK for an explicitly requested blocked capability"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/futureCapabilityPolicy.ts:11-14"
+     ],
+     "tests": [
+      "__tests__/ediel-future-capability-held.test.ts :: does not infer energy sharing from ordinary S17 data sharing"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "GOV-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/testing/negativeFixtureAuthority.ts:9-40",
+      "lib/ediel/testing/positiveFixtureAuthority.ts:9-30"
+     ],
+     "tests": [
+      "__tests__/ediel-negative-fixture-authority.test.ts :: binds the actual persisted message and exact expected negative diagnostic",
+      "__tests__/ediel-positive-fixture-authority.test.ts :: binds only unchanged original bytes and holds an absent original"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/testing/negativeFixtureAuthority.ts:22",
+      "lib/ediel/testing/positiveFixtureAuthority.ts:22"
+     ],
+     "tests": [
+      "__tests__/ediel-positive-fixture-authority.test.ts :: does not accept copied JSON, unexpected findings or a negative registration"
+     ],
+     "gap": "Negative references stay negative, but nothing documents a conflict: 'conflict' has 0 hits in either fixture authority."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/testing/negativeFixtureAuthority.ts:20-24"
+     ],
+     "tests": [
+      "__tests__/ediel-negative-fixture-authority.test.ts :: rejects copied JSON markers even with a matching original hash",
+      "__tests__/ediel-positive-fixture-authority.test.ts :: rejects changed draft scope %o"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-068",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/sendGuards.ts:55-56"
+     ],
+     "tests": [
+      "__tests__/ediel-negative-fixture-send-guard.test.ts :: never opens production with a genuine test qualification"
+     ],
+     "gap": "No test covers historical_replay blocking production sends. The send path itself uses catalog_evidence mode."
+    },
+    {
+     "effect": "SC-072",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "No independent answer-key oracle exists. The TGT tests (e.g. ediel-prodat-invoicee-tgt) use synthetic data run through their own builder and preflight."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "SC-068 forbids using catalog_evidence as send authority, but send-mode validation resolves policy in catalog_evidence mode.",
+     "evidence": [
+      "lib/ediel/rulebook/validator.ts:383",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:179-181"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "IMP-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/parseActorRegistryXml.ts:91-134",
+      "lib/actor-registry/parseActorRegistryTxt.ts:9-57"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-source.test.ts :: inherits the official Market/Company context and preserves original source values",
+      "__tests__/ediel-actor-registry-txt-source.test.ts :: joins an unquoted embedded address newline without inventing another actor"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/types.ts:43-55",
+      "app/admin/ediel/actors/actions.ts:407-443",
+      "lib/actor-registry/importActorRegistry.ts:60-77"
+     ],
+     "tests": [
+      "scripts/ediel-registry-import-native.test.ts :: actual native TXT apply and preview preserve source kind, route history and revoked platform authority"
+     ],
+     "gap": "The XML path in app/admin/network-owners/actions.ts does not use the TXT adapter. That is acceptable but asymmetric."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/importActorRegistry.ts:44",
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:96-99",
+      "lib/actor-registry/parseActorRegistryXml.ts:55",
+      "lib/actor-registry/parseActorRegistryTxt.ts:55",
+      "app/admin/ediel/actors/actions.ts:431-435"
+     ],
+     "tests": [
+      "__tests__/ediel-atomic-registry-import.test.ts :: surfaces the native zero-route diagnostic without local partial-import fallback",
+      "__tests__/ediel-actor-registry-txt-source.test.ts :: rejects %s with a bounded source diagnostic"
+     ],
+     "gap": "An XML syntax error rejects the whole file, not just the bad record. Per-record diagnostics exist only for route, market and country gaps."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/parseActorRegistryTxt.ts:20-31"
+     ],
+     "tests": [
+      "scripts/ediel-authentic-registry-source-regression.mjs :: 697 actors/1126 routes from the authentic file"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/importActorRegistry.ts:44"
+     ],
+     "tests": [
+      "__tests__/ediel-atomic-registry-import.test.ts :: holds a zero-route historical result without replacing its immutable batch"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-057",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:50-56,100-167"
+     ],
+     "tests": [
+      "scripts/ediel-registry-import-native.test.ts :: actual native TXT apply ... (reusedExistingRun)"
+     ],
+     "gap": "No test for 'three conflicting address changes'. The 'running' status cannot be left behind only because the import is one transaction; no interrupt test exists."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The XML parser sets isVerified=true and status=active for EL routes at parse time. The DB ignores this, but the preview DTO carries it.",
+     "evidence": [
+      "lib/actor-registry/parseActorRegistryXml.ts:63-64",
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:147"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "IMP-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/parseActorRegistryTxt.ts:41-53",
+      "lib/actor-registry/parseActorRegistryXml.ts:44-69",
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:5-12,18-27"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-txt-source.test.ts :: separates repeated family columns and preserves legal versus technical identity",
+      "scripts/ediel-registry-market-sql-regression.mjs :: same actor distinct EL/GAS (l.130-139)"
+     ],
+     "gap": "Roles are always [] for TXT, because the source does not carry them."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:151,194-197,221-246",
+      "lib/actor-registry/registryMarketSource.ts:19-22,36-50"
+     ],
+     "tests": [
+      "__tests__/ediel-registry-market-source.test.ts :: requires the actual native owned dispatch before the matching current route source",
+      "scripts/ediel-registry-market-sql-regression.mjs :: GAS blocked/EL verified (l.139)"
+     ],
+     "gap": "The dispatch test is mocked RPC. The native EL/GAS proof is a PGlite fixture."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:57-58,72-81,128",
+      "lib/actor-registry/registrySnapshotDiff.ts:8-10"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-txt-source.test.ts :: retains missing legal IDs as held metadata, without name-based joins",
+      "scripts/ediel-registry-market-sql-regression.mjs :: source_legal_org_conflict (l.150)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-009",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/parseActorRegistryXml.ts:56-65",
+      "lib/actor-registry/parseActorRegistryTxt.ts:52"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-source.test.ts :: preserves company market and exact legal/technical identities without granting representation"
+     ],
+     "gap": "representation_requires_mandate is only a flag. No delegation/mandate check was found on routing or receipt."
+    },
+    {
+     "effect": "SC-058",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:7,237-244"
+     ],
+     "tests": [
+      "scripts/ediel-registry-market-sql-regression.mjs :: same-el/same-gas addresses (l.130-133)"
+     ],
+     "gap": "No end-to-end test of EL route selection when SMTP differs between markets."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A parallel, market-less party-route resolver (first active match, no EL/GAS) remains, backed by admin-writable tables.",
+     "evidence": [
+      "lib/ediel/partyRegistry.ts:136-200",
+      "app/admin/ediel/actors/actions.ts:602-760"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "IMP-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/registrySnapshotDiff.ts:11-29",
+      "app/admin/ediel/actors/actions.ts:222-322,430-441"
+     ],
+     "tests": [
+      "scripts/ediel-registry-import-native.test.ts :: actual native TXT apply and preview ..."
+     ],
+     "gap": "Apply recomputes the preview and never binds to the reviewed snapshotHash. A diff made against one snapshot can be applied to another."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:44,50-54,141-153,165-167",
+      "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql:14-21"
+     ],
+     "tests": [
+      "scripts/ediel-registry-import-native.test.ts :: actual native TXT apply ... route history",
+      "scripts/ediel-registry-route-certificate-native.test.ts :: actual native exact certificate custody survives an SMTP source change ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:147,164,217"
+     ],
+     "tests": [
+      "scripts/ediel-registry-route-certificate-native.test.ts :: ... all new route materialization remains held"
+     ],
+     "gap": "Manual verify sets is_verified=true without any certificate check. auto_send stays false."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The preview snapshot hash is not compared at apply time (TOCTOU between review and apply).",
+     "evidence": [
+      "app/admin/ediel/actors/actions.ts:430-443"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "IMP-04",
+   "verdict": "CONTRADICTED",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/parseActorRegistryTxt.ts:46",
+      "lib/actor-registry/normalizeActor.ts:38-41"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-txt-source.test.ts :: preserves registered case/empty subaddresses and forbids unsupported UTILTS subaddress"
+     ],
+     "gap": "Only the TXT adapter rejects a UTILTS subaddress. The XML adapter does not."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:147,241,258,263"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-txt-source.test.ts :: preserves registered case/empty subaddresses ..."
+     ],
+     "gap": "No re-verification of the Gridex GRIDEX deviation was found."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "CONTRADICTED",
+     "code": [
+      "lib/ediel/utilts.ts:529-530"
+     ],
+     "tests": [],
+     "gap": "The UTILTS builder injects 'UTILTS' as the sender and receiver subaddress when null."
+    },
+    {
+     "effect": "SC-059",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:241,258"
+     ],
+     "tests": [],
+     "gap": "The registry-mapped dispatch fails closed, but unmapped UTILTS routes get an invented subaddress. No E2E test."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A null registered subaddress becomes 'UTILTS' in the UNB.",
+     "evidence": [
+      "lib/ediel/utilts.ts:529-536",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts:118-119",
+      "lib/ediel/flows/utiltsSupplierRequest.ts:206-207"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "IMP-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/importActorRegistry.ts:7-17",
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:155-158,173-193"
+     ],
+     "tests": [
+      "scripts/ediel-registry-route-certificate-native.test.ts :: actual native exact certificate custody survives an SMTP source change ..."
+     ],
+     "gap": "The certificate is bound to actor/env/purpose, not to a route version. No joint certificate+address verification gate exists."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:141-142,184-191,237-244"
+     ],
+     "tests": [
+      "scripts/ediel-registry-route-certificate-native.test.ts :: (old+new routes blocked, needs_review)"
+     ],
+     "gap": "Tenant readiness is invalidated implicitly at dispatch. Return-path verification is absent (the test logs returnPathProven:false)."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:189,196"
+     ],
+     "tests": [
+      "scripts/ediel-registry-route-certificate-native.test.ts :: ..."
+     ],
+     "gap": "The new address is held, but the certificate scope is not re-decided per route version."
+    }
+   ],
+   "suspected_defects": []
+  }
+ ]
+}

@@ -1,19 +1,18 @@
+import { readRegistryRouteSource, type SourceQualifiedRegistryRoute } from '@/lib/actor-registry/registryMarketSource';
+import {readZ01OriginalForRequest} from '@/lib/ediel/prodat/z01OriginalReplay'
+import {allocateZ01WireReferences,type Z01WireReferences} from '@/lib/ediel/prodat/z01WireReferences'
 // lib/ediel/flows/prodatCustomerMasterdata.ts
 
 import { getGridOwnerById } from "@/lib/masterdata/db";
 import type { GridOwnerRow } from "@/lib/masterdata/types";
 import { supabaseService } from "@/lib/supabase/service";
-import {
-  getCustomerExportContext,
-  requireContextCompanyId,
-} from "@/lib/cis/db-shared";
+import { buildCustomerMasterdataZ01Draft } from "@/lib/ediel/intent/renderers/customerMasterdataZ01";
 import type {
   GridOwnerDataRequestRow,
   OutboundRequestRow,
 } from "@/lib/cis/types";
 import { updateGridOwnerDataRequestStatus } from "@/lib/cis/db-data";
 import { resolveCanonicalOutboundContext } from "@/lib/ediel/core/kernel";
-import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import {
   resolveDecisionBackedOutboundContext,
   RouteDecisionBlockedError,
@@ -26,8 +25,6 @@ import type {
   EdielMessageRow,
 } from "@/lib/ediel/types";
 import { buildDefaultApplicationReference } from "@/lib/ediel/config";
-import { buildEdifactEnvelope } from "@/lib/ediel/messages";
-import { inferEdielFileName } from "@/lib/ediel/classify";
 import {
   makeCustomerOperationBlocker,
   routeIssueCodeToCustomerBlocker,
@@ -40,15 +37,9 @@ import {
   Z01_FACILITY_IDENTIFIER_NEXT_ACTION,
   Z01_FACILITY_IDENTIFIER_ROUTE_STATUS,
 } from "@/lib/customer-operations/z01Prerequisites";
-import { buildCanonicalOutboundReferences } from "@/lib/ediel/core/referenceRegistry";
 import { materializeCompanyGridOwnerRoute } from "@/lib/ediel/routeMaterializer";
 import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
 import { resolveCanonicalOutboundVersion } from "@/lib/ediel/core/versionRegistry";
-import {
-  computeOutboundAckDueAt,
-  deriveEdielAckDefaults,
-} from "@/lib/ediel/references";
-import { renderProdat26A } from "@/lib/ediel/prodatEngine";
 import {
   createEdielMessageIntent,
   updateIntentLifecycle,
@@ -84,110 +75,6 @@ type PrepareResult = {
       })
     | null;
 };
-
-function sanitize(value?: string | null): string {
-  return (value ?? "")
-    .replace(/[\r\n'+]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function shortProdatTimestamp(): string {
-  const now = new Date();
-  const year = String(now.getFullYear()).slice(-2);
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hour = String(now.getHours()).padStart(2, "0");
-  const minute = String(now.getMinutes()).padStart(2, "0");
-  return `${year}${month}${day}${hour}${minute}`;
-}
-
-function randomToken(length = 3): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < length; i += 1)
-    out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
-function compactReference(
-  value: string | null | undefined,
-  fallbackPrefix: string,
-  maxLength: number,
-): string {
-  const cleaned = sanitize(value)
-    .toUpperCase()
-    .replace(/[^A-Z0-9_.\/-]/g, "");
-  if (cleaned) return cleaned.slice(0, maxLength);
-  return `${fallbackPrefix}${shortProdatTimestamp()}${randomToken(3)}`.slice(
-    0,
-    maxLength,
-  );
-}
-
-function date102(value?: string | null): string | null {
-  if (!value) return null;
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 8 ? digits.slice(0, 8) : null;
-}
-
-function normalizeCustomerIdentity(
-  customer: Awaited<ReturnType<typeof getCustomerExportContext>>["customer"],
-) {
-  const customerId = sanitize(
-    customer?.personal_number ??
-      customer?.org_number ??
-      customer?.customer_number ??
-      null,
-  );
-  const qualifier = customer?.org_number
-    ? "1"
-    : customerId.length === 10
-      ? "SE1"
-      : "SE2";
-
-  const customerName =
-    sanitize(
-      customer?.company_name ??
-        customer?.full_name ??
-        [customer?.first_name, customer?.last_name].filter(Boolean).join(" ") ??
-        customer?.customer_number ??
-        "Kund",
-    ) || "Kund";
-
-  return {
-    customerId: customerId || null,
-    qualifier,
-    customerName,
-  };
-}
-
-function resolveMeterPointId(
-  context: Awaited<ReturnType<typeof getCustomerExportContext>>,
-): string {
-  return sanitize(
-    context.meteringPoint?.ediel_reference ??
-      context.meteringPoint?.meter_point_id ??
-      context.site?.facility_id ??
-      "",
-  );
-}
-
-function resolveGridAreaId(
-  context: Awaited<ReturnType<typeof getCustomerExportContext>>,
-  gridOwner: GridOwnerRow | null,
-): string | null {
-  // Grid area and bidding/price area are different market concepts.
-  // PRODAT fields that ask for grid area must use e.g. LKA, not SE4.
-  return (
-    sanitize(
-      context.meteringPoint?.grid_area_code ??
-        context.site?.grid_area_code ??
-        gridOwner?.owner_code ??
-        null,
-    ) || null
-  );
-}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -449,15 +336,16 @@ async function findVerifiedPlatformActorRoute(input: {
     .eq("environment", input.environment)
     .eq("status", "active")
     .eq("is_verified", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(100);
   if (error) {
     const code = (error as { code?: string }).code ?? "";
     if (["42P01", "42703", "PGRST204", "PGRST205"].includes(code)) return null;
     throw error;
   }
-  return text((data as { id?: string } | null)?.id);
+  const sources = await Promise.all(((data ?? []) as Array<{ id: string }>).map(row => readRegistryRouteSource(row.id)));
+  const qualified = sources.filter((source): source is SourceQualifiedRegistryRoute => source.status === "source_qualified").filter(source => source.market === "EL");
+  if (qualified.length > 1) throw new Error("ediel_registry_current_el_route_ambiguous");
+  return qualified[0]?.routeId ?? null;
 }
 
 async function findCompanyMarketPartyRoute(input: {
@@ -495,173 +383,12 @@ export function buildProdatZ01Draft(params: {
   externalReference: string;
   transactionReference: string;
   messageVersion: string;
+  wireReferences: Z01WireReferences;
 }): Promise<CreateEdielMessageInput> {
-  return (async () => {
-    const context = await getCustomerExportContext({
-      customerId: params.dataRequest.customer_id,
-      siteId: params.dataRequest.site_id,
-      meteringPointId: params.dataRequest.metering_point_id,
-    });
-    const companyId = requireContextCompanyId(context, "Bygg PRODAT Z01");
-    const customer = normalizeCustomerIdentity(context.customer);
-    const meterPointId = resolveMeterPointId(context);
-    if (!meterPointId) {
-      throw new Error(
-        "PRODAT Z01 kan inte byggas utan anläggnings-id/mätpunkt.",
-      );
-    }
-
-    const messageVersionToken =
-      params.messageVersion === "26A" ? "E2SE6A" : params.messageVersion;
-    const isEdielPortalTgt = isEdielPortalParty(
-      params.routeContext.receiverEdielId,
-    );
-    const senderSubAddress = isEdielPortalTgt
-      ? "PRODAT"
-      : params.routeContext.senderSubAddress;
-    const receiverSubAddress = isEdielPortalTgt
-      ? "PRODAT"
-      : params.routeContext.receiverSubAddress;
-    const applicationReference =
-      params.routeContext.applicationReference ??
-      buildDefaultApplicationReference({
-        actorSubAddress: senderSubAddress,
-        process: "PRODAT",
-      });
-
-    const rendered = renderProdat26A({
-      context: {
-        code: "Z01",
-        bgmReference: params.externalReference,
-        transactionReference: params.transactionReference,
-        senderEdielId: params.routeContext.senderEdielId,
-        receiverEdielId: params.routeContext.receiverEdielId,
-        customerName: customer.customerName,
-        customerId: customer.customerId,
-        customerIdCodeListQualifier: customer.qualifier,
-        meterPointId,
-        gridAreaId: resolveGridAreaId(context, params.gridOwner),
-        startDate:
-          date102(context.site?.move_in_date) ??
-          date102(params.dataRequest.requested_at),
-        customerAddress: context.site?.street ?? null,
-        customerPostalCode: context.site?.postal_code ?? null,
-        customerCity: context.site?.city ?? null,
-        customerCountry: context.site?.country ?? "SE",
-        siteAddress: context.site?.street ?? null,
-        sitePostalCode: context.site?.postal_code ?? null,
-        siteCity: context.site?.city ?? null,
-        siteCountry: context.site?.country ?? "SE",
-        reasonForTransaction: "Z22",
-        powerOfAttorneyReference:
-          params.dataRequest.external_reference ?? params.externalReference,
-      },
-    });
-
-    const envelope = buildEdifactEnvelope({
-      senderEdielId: params.routeContext.senderEdielId,
-      senderSubAddress,
-      receiverEdielId: params.routeContext.receiverEdielId,
-      receiverSubAddress,
-      applicationReference,
-      testFlag: params.routeContext.environment === "production" ? 0 : 1,
-      messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
-      segments: rendered.segments,
-    });
-
-    const ack = deriveEdielAckDefaults({ family: "PRODAT", code: "Z01" });
-    const validationReport = {
-      status: rendered.issues.some((issue) => issue.severity === "error")
-        ? "warning"
-        : "ready",
-      checkedAt: new Date().toISOString(),
-      prodatEngine: rendered.diagnostics,
-      prodatAckExpectation: rendered.ackExpectation ?? null,
-      engineIssues: rendered.issues,
-      payloadPreflight: envelope.payloadPreflight,
-    };
-
-    return {
-      actorUserId: params.actorUserId,
-      companyId,
-      direction: "outbound",
-      messageStandard: "edifact",
-      messageFamily: "PRODAT",
-      messageCode: "Z01",
-      messageVersion: params.messageVersion,
-      processType: "customer_masterdata_request",
-      environment: params.routeContext.environment,
-      testFlag: params.routeContext.environment === "production" ? 0 : 1,
-      status: "draft",
-      transportType: "smtp",
-      mailbox: params.routeContext.mailbox,
-      senderEdielId: params.routeContext.senderEdielId,
-      senderName: params.routeContext.senderName,
-      receiverEdielId: params.routeContext.receiverEdielId,
-      receiverName: params.routeContext.receiverName,
-      senderSubAddress,
-      receiverSubAddress,
-      receiverEmail: params.routeContext.receiverEmail,
-      subject: `PRODAT Z01 ${params.externalReference}`,
-      fileName: inferEdielFileName({
-        family: "PRODAT",
-        code: "Z01",
-        direction: "outbound",
-        extension: "edi",
-      }),
-      mimeType: "application/edifact",
-      interchangeReference: envelope.interchangeReference,
-      applicationReference,
-      externalReference: params.externalReference,
-      transactionReference: params.transactionReference,
-      communicationRouteId: params.routeContext.route.id,
-      gridOwnerDataRequestId: params.dataRequest.id,
-      customerId: params.dataRequest.customer_id,
-      siteId: params.dataRequest.site_id,
-      meteringPointId: params.dataRequest.metering_point_id,
-      gridOwnerId: params.dataRequest.grid_owner_id,
-      rawPayload: envelope.raw,
-      parsedPayload: {
-        draftType: "prodat_customer_masterdata_outbound",
-        processLabel: "customer_masterdata_request",
-        prodatCode: "Z01",
-        expectedResponse:
-          "CONTRL/APERAK och därefter PRODAT Z02 eller negativ APERAK",
-        gridOwnerDataRequestId: params.dataRequest.id,
-        requestScope: params.dataRequest.request_scope,
-        customerId: params.dataRequest.customer_id,
-        siteId: params.dataRequest.site_id,
-        meteringPointId: params.dataRequest.metering_point_id,
-        gridOwnerId: params.dataRequest.grid_owner_id,
-        meterPointId,
-        gridOwnerEdielId: params.gridOwner?.ediel_id ?? null,
-        gridOwnerOwnerCode: params.gridOwner?.owner_code ?? null,
-        // The legal authorization chain must be traceable on the rendered
-        // message (powers_of_attorney -> customer_authorization_documents ->
-        // ... -> ediel_messages metadata), not only on upstream request rows.
-        authorization_document_id: params.dataRequest.authorization_document_id ?? null,
-        power_of_attorney_id:
-          (params.dataRequest.request_payload?.power_of_attorney_id as string | null | undefined) ?? null,
-        prodatEngine: rendered.diagnostics,
-        prodatAckExpectation: rendered.ackExpectation ?? null,
-      },
-      validationReport,
-      requiresContrl: ack.requiresContrl,
-      requiresAperak: ack.requiresAperak,
-      contrlStatus: ack.contrlStatus,
-      aperakStatus: ack.aperakStatus,
-      utiltsErrStatus: ack.utiltsErrStatus,
-      ackDueAt: computeOutboundAckDueAt({
-        requiresContrl: ack.requiresContrl,
-        requiresAperak: ack.requiresAperak,
-        contrlStatus: ack.contrlStatus,
-        aperakStatus: ack.aperakStatus,
-        utiltsErrStatus: ack.utiltsErrStatus,
-      }),
-      syntaxCheckStatus: "not_checked",
-      functionalCheckStatus: "not_checked",
-    };
-  })();
+  return buildCustomerMasterdataZ01Draft({
+    ...params,
+    operationId: params.dataRequest.operation_id ?? null,
+  });
 }
 
 export async function prepareAndQueueProdatZ01FromDataRequest(params: {
@@ -686,6 +413,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
 
   const operationId = params.operationId ?? dataRequest.operation_id ?? null;
   const companyId = dataRequest.company_id;
+  if(companyId){
+    const response=asRecord(dataRequest.response_payload)
+    const prior=await readZ01OriginalForRequest({actorUserId,companyId,requestId:dataRequest.id,requestKind:'customer_masterdata',customerId:dataRequest.customer_id,siteId:dataRequest.site_id,operationId,
+      environment:params.environment,routeId:params.communicationRouteId,messageIds:[text(response.edielMessageId),text(response.ediel_message_id)],outboundIds:[text(response.outboundRequestId)]})
+    if(prior)return {dataRequest,outbound:prior.outbound,message:prior.message,prepared:true,blockerReason:null,blockerCode:null,blockerDetails:null}
+  }
 
   const gridOwner = dataRequest.grid_owner_id
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
@@ -1222,25 +955,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     },
   });
 
-  const refs = buildCanonicalOutboundReferences({
-    family: "PRODAT",
-    code: "Z01",
-    relatedMessageId: dataRequest.id,
-    preferredExternalReference:
-      outbound.external_reference ?? dataRequest.external_reference ?? null,
-    preferredTransactionReference:
-      dataRequest.external_reference ?? outbound.external_reference ?? null,
+  const wireReferences = allocateZ01WireReferences({
+    documentReference: outbound.external_reference ?? dataRequest.external_reference ?? null,
+    transactionReference: dataRequest.external_reference ?? outbound.external_reference ?? null,
   });
-  const externalReference = compactReference(
-    refs.externalReference ?? dataRequest.external_reference,
-    "Z01",
-    20,
-  );
-  const transactionReference = compactReference(
-    refs.transactionReference ?? dataRequest.external_reference,
-    "LIZ01",
-    25,
-  );
+  const externalReference = wireReferences.documentReference;
+  const transactionReference = wireReferences.transactionReference;
   const messageVersion =
     (await resolveCanonicalOutboundVersion({
       family: "PRODAT",
@@ -1340,8 +1060,8 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     facilityId: z01Prerequisites.facilityId ?? facilityIdFromDataRequest(dataRequest),
     meteringPointId: z01Prerequisites.meteringPointId ?? dataRequest.metering_point_id,
     gridAreaCode: gridAreaCodeFromDataRequest(dataRequest),
-    interchangeReference: externalReference,
-    messageReference: externalReference,
+    interchangeReference: wireReferences.interchangeReference,
+    messageReference: wireReferences.messageReference,
     transactionReference,
     idempotencyKey: [
       "customer_masterdata",
@@ -1355,6 +1075,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     },
     payload: {
       ...(dataRequest.request_payload ?? {}),
+      documentReference: wireReferences.documentReference,
       outbound_request_id: outbound.id,
       grid_owner_data_request_id: dataRequest.id,
       authorization_document_id: dataRequest.authorization_document_id ?? null,
@@ -1498,6 +1219,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   }
 
   const message = renderResult.message;
+  if(renderResult.status === 'existing')return {dataRequest,outbound,message,prepared:true,blockerReason:null,blockerCode:null,blockerDetails:null};
 
   await updateGridOwnerDataRequestStatus({
     actorUserId,

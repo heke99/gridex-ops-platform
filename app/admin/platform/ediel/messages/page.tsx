@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,12 +57,12 @@ function statusTone(status: string | null): string {
 }
 
 function Pill({ value }: { value: string | null | undefined }) {
-  const label = value && value.length > 0 ? value : '–'
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(label)}`}>{label}</span>
+  const raw = value && value.length > 0 ? value : '–'
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(raw)}`}>{formatStatusLabel(value, '–')}</span>
 }
 
 async function listCompanies(): Promise<CompanyRow[]> {
-  const { data, error } = await supabaseService.from('companies').select('id,name').order('name', { ascending: true }).limit(300)
+  const { data, error } = await supabaseService.from('companies').select('id,name').eq('status', 'active').eq('lifecycle_status', 'active').eq('is_active', true).is('archived_at', null).order('name', { ascending: true }).limit(300)
   if (error) {
     console.warn('[platform-ediel-messages] companies could not be loaded', error)
     return []

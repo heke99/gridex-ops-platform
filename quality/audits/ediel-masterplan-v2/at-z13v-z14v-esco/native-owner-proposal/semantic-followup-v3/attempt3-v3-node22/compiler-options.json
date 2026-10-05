@@ -1,0 +1,32 @@
+{
+  "target": 4,
+  "lib": [
+    "lib.dom.d.ts",
+    "lib.dom.iterable.d.ts",
+    "lib.esnext.d.ts"
+  ],
+  "allowJs": true,
+  "skipLibCheck": true,
+  "strict": true,
+  "noEmit": true,
+  "esModuleInterop": true,
+  "module": 99,
+  "moduleResolution": 100,
+  "resolveJsonModule": true,
+  "isolatedModules": true,
+  "jsx": 4,
+  "incremental": true,
+  "plugins": [
+    {
+      "name": "next"
+    }
+  ],
+  "paths": {
+    "@/*": [
+      "./*"
+    ]
+  },
+  "pathsBasePath": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005",
+  "checkJs": false,
+  "configFilePath": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.scripts.json"
+}

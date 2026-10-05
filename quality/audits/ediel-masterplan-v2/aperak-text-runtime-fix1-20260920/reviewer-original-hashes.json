@@ -1,0 +1,74 @@
+[
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-controls.test.ts",
+    "sha256": "c80a5fda77aa7986dd061f78053f4b21f52b0191519fcfbe1350148be5d0b48d"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-observations.json",
+    "sha256": "cb0aa8d8dcd6c8c66dbda5926dff11a3eeacae5b800e939ed1bd0a6d642381ea"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-results.json",
+    "sha256": "04bbb91e681f16d6ae617627bab903de08e9738807f4c72e6debbca4a1449804"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/complete-run.log",
+    "sha256": "3b95b51be5490131625a430f74abd18da48264570af80f12a43adf9bc2cf28dc"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner-observations.json",
+    "sha256": "9cc1fec096e08bd1e20f5a4a6bc9ac1335ae3c4cdc86632800995ff786315eae"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner-results.json",
+    "sha256": "b0b35c5eee1c0c84cac0cecdb12e952be30c0787a6f42ab74169b29efd9d66b0"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner-run.log",
+    "sha256": "2382a25c27b7eaaa2c947820a8bb329865b3455e1e5229a051ad0d8d4c508bb3"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/related-owner.test.ts",
+    "sha256": "d8e7f981cf80994ed8b64d4594af1d3fe3714f1af0cd4244c5408428441c5fc4"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/review-receipt-hashes.json",
+    "sha256": "4c24c03db90e92bd565d41d1427057dc7edb26bb472495c225953458d4cfcbd8"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-evidence.test.ts",
+    "sha256": "dfd3148ba7a6b0ecdd1a142e31ea6a482890faf68d0aed19a3cb7d2380db744b"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-observations.json",
+    "sha256": "a0a82d75971f0232ad83e1dcc902fccfc34cb100cb67aea9d729ca08cf5c435a"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-results-with-setup.json",
+    "sha256": "a653c954cea14c6c8b55bb370bd844fc62b1ea4b3809e921c2eccb45ff4ec5b8"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-results.json",
+    "sha256": "869b523b8e278a571766b83533a0898e46184abb3be9af4c6b8511414b207321"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-run-with-setup.log",
+    "sha256": "841fbf4a0c87774927d660782a59d4c5563f9689f876dea24d3cd9f184616d82"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/structural-run.log",
+    "sha256": "3a49c845933a87d8f1ba39484dc669a7bba67007c41dad579ec80956fcf15c2f"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/verification.json",
+    "sha256": "d58ca8f50c2bd0f6cc188d010452dd539cb0477168e815eff54e6f85157a1b51"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/vitest-with-setup.config.mjs",
+    "sha256": "3af8ba7aef42d69625fdcdc4a452a93f27bf43ae0cf0e902e397b5240d2fc928"
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-runtime-review-20260920/vitest.config.mjs",
+    "sha256": "30397706a6eac9bdce82d7f7120bdf3b77f514494361cd313aeb5bd276c55499"
+  }
+]

@@ -1,0 +1,386 @@
+{
+  "scope": "Local mirror of OPS hardening clean-migration-replay + source-owner native suite on the composed candidate; evidence files native-suite-<sha>.json in this directory.",
+  "baseline": {
+    "b6401b75": "369/502 failing",
+    "297e96ae": "373/505 (+134600/142520/142530/probes; only new probe fixture failures)",
+    "a16fa76c": "280/385 after canonical fixture fixes (93 fixed, 0 new)"
+  },
+  "fixed": [
+    {
+      "id": "TENANT-FIX-01",
+      "severity": "critical",
+      "cause": "F-3 outbound_dispatch_events written without company_id (createOutboundDispatchEvent and admin writers; same on main); F-3 user_permission_overrides platform-wide denies classified as tenant; F-8/F-10 ai_list_imports unique message id not tenant scoped",
+      "fix": "migration 20261001230000: dispatch-event tenant trigger from outbound_requests + backfill; overrides reclassified mixed with deny-only check; ai_list_imports company bound to source message and tenant-scoped unique key. Local tenant-isolation-invariants: all checks passed; retention/ai-purpose native PASS."
+    },
+    {
+      "id": "NATIVE-FIX-01",
+      "cause": "Canonical replay lacks legacy-seeded permission catalog keys",
+      "fix": "setup adds catalog keys only (b1be6949)"
+    },
+    {
+      "id": "NATIVE-FIX-02",
+      "cause": "ux_companies_normalized_org collision from constant organisation number",
+      "fix": "unique Luhn org number per fixture company"
+    },
+    {
+      "id": "NATIVE-FIX-03",
+      "cause": "Fixture cleanup deleted retention-protected contract originals",
+      "fix": "expect 083000 storage guard refusal"
+    },
+    {
+      "id": "NATIVE-FIX-04",
+      "cause": "Canonical user_profiles has no disabled_at; pg_proc oid compared as string",
+      "fix": "a16fa76c"
+    },
+    {
+      "id": "NATIVE-FIX-05",
+      "cause": "Draft POA with empty scopes then signed scopes violates immutable signed_scope_snapshot (since 20260720); authorization chain needs coverage",
+      "fix": "1479de85"
+    },
+    {
+      "id": "PRODUCT-FIX-142540",
+      "severity": "high",
+      "cause": "supplier_switch_requests check/trigger allowed only L/LK and rewrote switch to L/Z22, so explicit national H/Z25 (031053 owners, prodatSwitch.ts) was unreachable",
+      "fix": "20261001142540 preserves explicit consistent H/Z25"
+    },
+    {
+      "id": "PRODUCT-FIX-142530",
+      "severity": "high",
+      "cause": "062832 origin-current omitted the 043917 Z13 requestTiming proof; every Z13 origin was stale",
+      "fix": "20261001142530"
+    },
+    {
+      "id": "UNIT-FIX-20261001",
+      "severity": "medium",
+      "cause": "About 100 PRODAT/Ediel unit failures came from tests written before the composed owners: stricter full UNSM grammar (an..3/an..35, segment order), BGM34 every-object rule, renamed/added native ports, the actor gate, and P16B.",
+      "fix": "Commits 7b792216..707fef84. Fixtures were moved to directory-valid positions and values. Stale assertions now follow the newest integrated owner tests. Declared unit ports report absence or no effect and fabricate nothing. Full unit suite: 0 of 9104 failing."
+    },
+    {
+      "id": "PRODUCT-FIX-TGT-Z09-ACTOR-ORDER",
+      "severity": "medium",
+      "cause": "Both TGT consumers read the classified customer-event certification original before the current tenant actor check. The autopilot also applied the life-event source context to unclassified Z09 drafts, which the manual consumer does not do.",
+      "fix": "14ac2d65: assertEdielTenantActor (communication.write|ediel_testing.write) now runs before the read, and the autopilot follows the same classified-only contract as the manual consumer."
+    },
+    {
+      "id": "PRODUCT-FIX-142550",
+      "severity": "high",
+      "cause": "Supply wrapper chain rotated under the history-union order (043234 after the H wrappers)",
+      "fix": "20261001142550; union schema equals the clean replay"
+    },
+    {
+      "id": "PRODUCT-FIX-142560",
+      "severity": "critical",
+      "cause": "UTILTS 25-A-4 (from 2026-10-01, status future) was refused by the source/outbound capture gates. Every UTILTS source failed closed from its effective date. The inbound previous-guide grace was missing.",
+      "fix": "20261001142560 pack_effective_v1 (date-governed; inbound 14-day previous-guide grace; owner decision 2026-10-01)"
+    },
+    {
+      "id": "PRODUCT-FIX-142570",
+      "severity": "high",
+      "cause": "Finance-copy retention permission keys were never registered, so the classes were unreachable",
+      "fix": "20261001142570"
+    },
+    {
+      "id": "PRODUCT-FIX-142580",
+      "severity": "high",
+      "cause": "Customer pseudonymisation could never complete (refresh not executable by the retention owner; refresh would also violate the tombstone guard)",
+      "fix": "20261001142580"
+    },
+    {
+      "id": "PRODUCT-FIX-142590",
+      "severity": "high",
+      "cause": "The canonical schema lacked the batch-7A outbound_requests route columns that lib/cis/db-outbound.ts writes",
+      "fix": "20261001142590 + regenerated types (only diff: these 17 columns)"
+    },
+    {
+      "id": "PRODUCT-FIX-142600",
+      "severity": "critical",
+      "cause": "The BRP source, new-agreement requested method and its context still called the closed network-registry stub, so every new-agreement Z03 was permanently held",
+      "fix": "20261001142600 rewired to network_for_company_v1"
+    },
+    {
+      "id": "PRODUCT-FIX-REVIEW-PAYLOAD",
+      "severity": "medium",
+      "cause": "Review wrappers forwarded extra keys (archive result) into the strict native review",
+      "fix": "requestedChangeReviewPayload in 4 wrappers"
+    },
+    {
+      "id": "NATIVE-FIX-Z03-PROCESS-GROUP",
+      "severity": "high",
+      "cause": "compatAdapter persisted legacy label supplier_switch_request as processType; canonical policy group is supplier_switch, so every adapter-built PRODAT draft failed CANONICAL_PROCESS_GROUP_MISMATCH",
+      "fix": "processType = getCanonicalProdatProfile(code).processGroup (lib/ediel/prodat/compatAdapter.ts)"
+    },
+    {
+      "id": "NATIVE-FIX-Z03-OUTBOUND-REQUEST-BIND",
+      "severity": "high",
+      "cause": "switchRenderGateway did not bind draft.outboundRequestId; original had null outbound_request_id -> switch_original_intent_binding_conflict",
+      "fix": "draft.outboundRequestId=input.outboundRequestId (lib/ediel/intent/switchRenderGateway.ts)"
+    },
+    {
+      "id": "NATIVE-FIX-Z03-RULE-VERSION",
+      "severity": "high",
+      "cause": "Z03 intent expected_rule_version used static policy revision (26-A:r26-A) while message stores DB pack version (26.A:r3) -> ediel_native_validated_intent_required",
+      "fix": "expectedRuleVersion = canonicalRule.originalVersion (lib/ediel/flows/prodatSwitch.ts)"
+    },
+    {
+      "id": "NATIVE-FIX-Z03-SUBADDRESS",
+      "severity": "high",
+      "cause": "adapter defaulted a route-confirmed absent sub-address to PRODAT, diverging from the intent -> ediel_native_intent_wire_scope_changed",
+      "fix": "route-decided value (incl. null) is authoritative; default only when undefined"
+    },
+    {
+      "id": "NATIVE-FIX-142610",
+      "severity": "high",
+      "cause": "Cancellation-origin trigger on ediel_messages was SECURITY INVOKER; service_role lacks USAGE on gridex_switch_cancellations, so every owner-path message update failed (was NATIVE-OPEN-07; approved by owner)",
+      "fix": "migration 142610: SECURITY DEFINER with pinned search_path; EXECUTE stays revoked"
+    },
+    {
+      "id": "NATIVE-FIX-142620",
+      "severity": "high",
+      "cause": "negative fixture reader raised for unlinked test messages, aborting every test-environment send",
+      "fix": "migration 142620: no run link returns NULL; ambiguity still raises"
+    },
+    {
+      "id": "NATIVE-FIX-142630",
+      "severity": "high",
+      "cause": "dsn_sending_mailbox_v1 smtp_from parameter ambiguous with ediel_mailboxes.smtp_from",
+      "fix": "migration 142630: parameter qualified"
+    },
+    {
+      "id": "NATIVE-FIX-142640",
+      "severity": "critical",
+      "cause": "023248 replaced the composed switch-original bind chain with a base-body copy, dropping requested-method and BRP bindings; every later send failed closed",
+      "fix": "migration 142640: non-H branch delegates to method wrapper then binds BRP source"
+    },
+    {
+      "id": "NATIVE-FIX-142650",
+      "severity": "high",
+      "cause": "requested-method parser closed the attribute section at the line-level DTM before CCI; canonical Z03 always NULL",
+      "fix": "migration 142650: DTM before first CCI stays in the LIN group"
+    },
+    {
+      "id": "NATIVE-FIX-142660",
+      "severity": "high",
+      "cause": "three actor gates referenced user_profiles.disabled_at, absent from the canonical schema",
+      "fix": "migration 142660: to_jsonb(row)->>'disabled_at' like 20260728/ediel_retention_lock_auth_actor_v1"
+    },
+    {
+      "id": "NATIVE-FIX-142670",
+      "severity": "critical",
+      "cause": "primary PRODAT object facet required the rule-pack receipt that inbound capture can only create from an earlier committed assessment (cycle since 000148); every inbound PRODAT with object facts stayed unconfirmed",
+      "fix": "migration 142670: recorder no longer requires it; capture and all business consumers still do"
+    },
+    {
+      "id": "NATIVE-FIX-142680",
+      "severity": "high",
+      "cause": "source purge: generated scope_point recomputed as retention owner without EXECUTE; guard compared generated column (NULL in BEFORE trigger)",
+      "fix": "migration 142680: EXECUTE on three pure parsers for the internal owner; guard ignores scope_point"
+    },
+    {
+      "id": "NATIVE-FIX-142690",
+      "severity": "high",
+      "cause": "storage DELETE...RETURNING needs SELECT visibility; ediel-files had none, so qualified purges silently deleted nothing and denials never reached the guard",
+      "fix": "migration 142690: SELECT policy only for storage.object.delete_many on authorized tombstoned targets; no download"
+    },
+    {
+      "id": "NATIVE-FIX-FIXTURE-PARTIES-UNB",
+      "severity": "test",
+      "cause": "inbound fixtures kept template NAD+FR/DO and lacked the UNB test indicator; legal-context derivation correctly held them",
+      "fix": "fixtures rewrite legal parties to fixture identities and set UNB ack/test indicators; capture rule-pack basis after recording, in production order"
+    },
+    {
+      "id": "NATIVE-FIX-220000",
+      "severity": "high",
+      "cause": "0930 rebuilt the dispatch base body and dropped 20260925235000 scoping (malformed PRODAT unscoped; stale Z08 LK row with non-Z08 bytes exempted)",
+      "fix": "migration 20261001220000 restores it exactly"
+    },
+    {
+      "id": "NATIVE-FIX-CLOSURE-RESIDUE",
+      "severity": "test",
+      "cause": "closure-wire test left a force-inserted malformed outbound row; the wire-reference namespace correctly failed closed for every later outbound allocation (76 downstream failures)",
+      "fix": "test removes its row in finally"
+    },
+    {
+      "id": "NATIVE-FIX-UTILTS-FIXTURE-OWNERSHIP",
+      "severity": "test",
+      "cause": "UTILTS consumption/S02 fixtures lacked UNB test indicator, tenant receiver identity, issuer registry/history ground and the production recording step",
+      "fix": "fixture-only: owned identities, synthetic approved issuer + coverage ground, recordFinalCanonicalUtiltsDecision in production order"
+    },
+    {
+      "id": "NATIVE-FIX-S02",
+      "severity": "high",
+      "suite": "scripts/ediel-utilts-s02-required-native.test.ts",
+      "summary": "Outbound reply creation repaired (20261002070000) and ACK inherited rule basis (20261002080000); S02 native 26/26.",
+      "evidence": "commit 71740854; local native run 26 passed / 0 failed",
+      "test_alignment": [
+        "direct oracle sends v2 canonical decimal strings",
+        "forged accepted outcome refused by canonical transaction owner",
+        "QTY before SEQ is UNSM syntax-rejected",
+        "technical CONTRL has no business rule pack (20260930184410)"
+      ]
+    },
+    {
+      "id": "SEC-EXC-NODE-FORGE",
+      "severity": "high",
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "expires": "2026-11-15",
+      "summary": "Owner-approved time-limited audit exception; void if node-forge signature verification is used.",
+      "evidence": "commit 23006a6b"
+    },
+    {
+      "id": "PROD-208-REPLY-IDENTITY",
+      "severity": "medium",
+      "summary": "APERAK for a field-208 fault is built from our resolved legal identity (SVK/260); an unresolved legal receiver is held for manual review without ACK.",
+      "evidence": "commit 89113253"
+    },
+    {
+      "id": "PROD-INBOUND-MAIL-LINK",
+      "severity": "critical",
+      "summary": "ediel_messages.inbound_email_message_id was written by real reception but created only by a non-canonical batch file; every real inbound reception failed on canonical replays. Forward migration 20261002234100 adds column, FK, same-company tenant guard and index.",
+      "evidence": "commit 8444df42"
+    },
+    {
+      "id": "PROD-IDE-QUALIFIER-WIRE",
+      "severity": "high",
+      "summary": "gridex_ack_authority.wire_v1 returned NULL for IDE qualifier other than 24, so a field-505 fault could never be answered. Forward migration 20261002234200 keeps the reference with ideQualifierInvalid; APERAK plan drops empty-text duplicates covered by a qualified sibling.",
+      "evidence": "commit e3a0c483"
+    },
+    {
+      "id": "PROD-MULTI-SEQ-CONSUMPTION",
+      "severity": "high",
+      "summary": "Consumption preparation paired normalized per-observation entries with physical transactions by index; a second SEQ observation failed physical_quantity_membership. Now bound by reference with one cursor per physical transaction.",
+      "evidence": "commit 2da04c28"
+    },
+    {
+      "id": "PROD-CATALOG-DIRECTION-HOLD",
+      "severity": "medium",
+      "summary": "Inbound UTILTS not allowed by the source catalog direction (e.g. E73) crashed the processor; now held for manual review with no ACK/receipt/effect.",
+      "evidence": "commit a5ef90cb"
+    },
+    {
+      "id": "NATIVE-CONSUMPTION-GREEN",
+      "severity": "info",
+      "summary": "ediel-utilts-consumption-native 141/141 locally (clean phase). Remaining failures were stale fixtures: production legal context, issuer namespace (505 uniqueness), exact decimals, syntax-rejected LOC-after-SEQ, forged-RPC payloads, E30 without SG5/MEA.",
+      "evidence": "commit 3484d8a9"
+    },
+    {
+      "id": "MERGE-MAIN-20261002",
+      "severity": "info",
+      "summary": "Merged origin/main (19 commits). The branch's unapplied 2026-10-02 migrations were renumbered to 20261002233000..20261002234400 (same internal order) because main already uses 080000-222000 versions. Main's legacy supply-end change (gridex_end_customer_supply_v1) targets code the source-owned path replaced; follow-up: let the source-owned Z05 end call the same contract/final-invoice closure.",
+      "evidence": "merge commit"
+    }
+  ],
+  "open": [
+    {
+      "id": "NATIVE-OPEN-02",
+      "tests": "ediel-bilateral-prodat-h-original-native (19)",
+      "rootCause": "PRODAT 26.A r3 registry contains no bilateral Z03/Z04/Z05 H profiles; they must originate from an authentic bilateral agreement source. Not synthesized into the shared rule pack.",
+      "status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED"
+    },
+    {
+      "id": "NATIVE-OPEN-03",
+      "tests": "remaining service-evidence/correction-context/document-reference/z04 clusters",
+      "rootCause": "not yet analyzed after fixture fixes",
+      "status": "REMAINING_ANALYSIS"
+    },
+    {
+      "id": "NATIVE-OPEN-04",
+      "tests": "ediel-outbound-ack-replay-native (all 3 cases incl. the new 134600/142520 actor/phase probe)",
+      "error": "23502 canonical_ediel_company_required",
+      "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported. A company-attributed source with the same unlisted wire instead fails canonical_inbound_rule_profile_resolution_failed, so the technical-only path cannot be exercised natively until this is decided. The 142520 gates are therefore verified by unit tests and applied-migration review only.",
+      "status": "REMAINING_DECISION"
+    },
+    {
+      "id": "P16B-TEST-HOLD",
+      "decision": "Owner/user decision 2026-10-01: tests for exact Z07+LI own APERAK cases assert the documented fail-closed hold via __tests__/helpers/p16bHold.ts. Every blocked APERAK must be the diagnosed P16B conflict. Positive-rendering assertions are restored once Ediel gives external normative clarification.",
+      "status": "EXTERNAL_NORMATIVE_CLARIFICATION_REQUIRED"
+    },
+    {
+      "id": "UNIT-OPEN-03-MIXED-REPLY",
+      "status": "UNVERIFIED",
+      "finding": "prodatAckObjectScopes rejects an applicationErrors entry with ERC100 and no prodatOccurrence (aperak_prodat_requested_scope_unqualified). processMixedProdatObjects returns such ERC100 positives for accepted siblings, so a mixed negative+positive Z04 reply may never prepare through prepareSourceAckDraft.",
+      "next": "Run a native or SQL mixed Z04 reply end-to-end before classifying it as a defect."
+    },
+    {
+      "id": "UNIT-NOTE-OWNER-CONFLICTS",
+      "finding": "The base contained contradictory unit tests. Z09E non-death (P-09) is resolved toward death-status-source (bilateral process required, verified bilateral admitted). Service-recovery send is resolved toward the current origin owner (communication.send exactly). Both follow the newest integrated owner. They are recorded here for owner review and production code is unchanged."
+    },
+    {
+      "id": "NATIVE-OPEN-05-Z03-SOURCE-CHAIN",
+      "status": "IN_PROGRESS",
+      "finding": "Every new-agreement Z03 now needs independently approved sources: signed masterdata declaration, requested-method declaration, qualified network registry version (all seeded in the normal-switch fixture) and a signed BRP declaration via gridex_brp_declaration_intake with a BRP registry ground. No positive BRP chain fixture exists in the repo yet, so all native suites built on seedNormalSwitchNativeFixture stop at prodat_new_agreement_brp_held.",
+      "next": "Build a synthetic but owner-faithful BRP registry-ground + signed BRP declaration intake (scope→archive→separate review) in the normal-switch fixture."
+    },
+    {
+      "id": "NATIVE-OPEN-06-SCHEMA-BASELINE",
+      "status": "OPEN",
+      "finding": "supabase/schema.fingerprint.json covers public+gridex_received_sources from 2026-09-30, while CI compares all gridex_* schemas. db:schema:check cannot pass.",
+      "next": "At freeze, commit a fresh canonical snapshot from an authentic clean replay of the final head (CI schema set)."
+    },
+    {
+      "id": "NATIVE-OPEN-08",
+      "severity": "medium",
+      "cause": "Z03 field 261 RFF+ANJ is R in the 26A matrix but production compatAdapter only reads it from validation_snapshot.portalData.powerOfAttorneyReference (portal flow); ordinary switch requests have no independent agreement-reference source, so production Z03 fails FIELD_MATRIX_REQUIRED_FIELD_MISSING.",
+      "fix": "Open: owner decision on the authoritative agreement-reference source (selected signed POA reference vs contract). Native fixture supplies it via portalData like the portal flow."
+    },
+    {
+      "id": "NATIVE-OPEN-09",
+      "severity": "medium",
+      "cause": "Z03 invoicee (P26.A INVOICEE_GROUP) has no live production source; only caller_selection via portalData.dependentConditionFacts.invoiceeObjects.",
+      "fix": "Open per f3 invoicee doc (separate unqualified work). Native fixture supplies a caller_selection invoicee equal to the end user."
+    },
+    {
+      "id": "NATIVE-OPEN-10",
+      "severity": "medium",
+      "cause": "variant of 142690: customer-contract-documents and invoice-file retention buckets also have DELETE-only storage policies for authenticated",
+      "fix": "verify with their native suites; apply the same delete-only visibility if they fail the same way"
+    },
+    {
+      "id": "NATIVE-OPEN-11",
+      "severity": "medium",
+      "cause": "UTILTS consumption tests feed E30/E72/E73/S01/S06 to a supplier fixture; the source-edition catalog allows only grid_owner/metering_collector/balance_responsible/ISR receivers for those codes, so inbound legal context correctly holds them. Remaining ~95 consumption failures also include issuer message-reference reuse across derived sources and R1-R4 collision cases.",
+      "fix": "Per-test receiver role matching the catalog, distinct document references for distinct derived messages; continue cluster by cluster. CI runs the full native suite as an absolute gate."
+    },
+    {
+      "id": "NATIVE-BLOCKED-BILATERAL-H-PROFILES",
+      "status": "blocked",
+      "severity": "high",
+      "suites": [
+        "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19)",
+        "scripts/ediel-bilateral-prodat-profile-native.test.ts (3)"
+      ],
+      "summary": "PRODAT 26.A rule pack has no Z03/H, Z04/H, Z05/H or Z08/LK message profiles. 20261001013034 and the bilateral fixture require them; no migration seeds them.",
+      "evidence": "ediel_message_profiles for PRODAT 26.A r3: Z03 C/L/LK, Z04 A/C/D/L/LK, Z05 C/L/LK, Z08 H only; git log -S finds no seed",
+      "needed": "Owner-provided authoritative bilateral profile definitions (guide source, field matrix) for these subtypes; not invented by the agent."
+    },
+    {
+      "id": "NATIVE-OPEN-Z08H-MANDATE",
+      "status": "open",
+      "severity": "medium",
+      "suites": [
+        "scripts/ediel-correction-context-native.test.ts (41)"
+      ],
+      "summary": "Z08/H (reason Z25) outbound now requires a reviewed national supply rescission mandate (20261001093425); the correction-context dispatch fixture sends Z08/H without one.",
+      "next": "Reuse the H-original mandate setup as a shared native helper once its fixture is unblocked."
+    },
+    {
+      "id": "NATIVE-OPEN-RECEIVER-208-REPLY",
+      "status": "open_design",
+      "severity": "medium",
+      "suites": [
+        "scripts/ediel-utilts-consumption-native.test.ts: six-digit SVK receiver field208, agency-305 GLN 208, IDE qualifier 505 (rule pack basis)"
+      ],
+      "summary": "A UTILTS whose legal receiver (NAD+MR, field 208) cannot be resolved gets a held inbound legal context at reception. recordFinalCanonicalUtiltsDecision then calls captureFreshEdielSourceRulePackEvidence, which requires that context and throws ediel_source_rule_pack_basis_required. The processor fails instead of producing the field-208 negative APERAK the guide prescribes, or an explicit internal-review hold.",
+      "evidence": "DB log: ediel_inbound_legal_context_required from gridex_ediel_inbound_context.require_v1 via gridex_ediel_source_rules.capture_before_outbound_owner_v1; context receipt status=held",
+      "decision_needed": "Whether a reply to an unresolved legal receiver may be authorized by transport identity alone, or such sources are held for manual review. Fail-closed today (no effect), but it is an uncaught error, not a recorded hold."
+    },
+    {
+      "id": "PREEXISTING-INBOUND-CASES-SCHEMA-DRIFT",
+      "status": "open_preexisting_main",
+      "severity": "high",
+      "summary": "lib/ediel/inboundCases.ts inserts match_confidence, message_family, message_code, transaction_type, parsed_customer, parsed_site, parsed_metering_point, parsed_contract, parsed_production, proposed_action ... into public.ediel_inbound_cases, which has only id, company_id, ediel_message_id, case_type, status, customer_id, site_id, metering_point_id, switch_request_id, assigned_to, payload, created_at, updated_at, created_by, updated_by, metadata. No migration ever created those columns; PostgREST rejects the insert (schema cache: match_confidence). Same on origin/main.",
+      "evidence": "information_schema.columns; supabase/database.types.ts ediel_inbound_cases Row; grep of supabase/migrations finds no parsed_customer; scripts/ediel-z04-ack-native.test.ts failure",
+      "proposed_fix": "Separate PR: either a forward migration adding the typed columns, or map the parsed fields into payload/metadata in inboundCases.ts. Needs owner choice of storage model."
+    }
+  ],
+  "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
+}

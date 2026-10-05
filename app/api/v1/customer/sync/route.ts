@@ -10,6 +10,7 @@ import {
 } from '@/lib/customer-portal/externalApi'
 import { syncTenantCustomerRecords, type TenantCustomerSyncPayload } from '@/lib/customer-portal/tenantSync'
 import { parseTenantCustomerSyncPayload } from '@/lib/customer-portal/customerSyncContract'
+import { publicReference } from '@/lib/integrations/publicReferences'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,7 +23,11 @@ export async function POST(request: NextRequest) {
     const body = parseTenantCustomerSyncPayload(
       await readJsonObject(request),
     ) as TenantCustomerSyncPayload
-    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'])
+    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'], {
+      // Tenant master-data sync is the explicit link operation and a machine flow (logged as API client).
+      mode: 'link',
+      allowIdentifierBoundWrite: true,
+    })
     if (!context.ok) return context.response
     client = context.client
 
@@ -40,9 +45,7 @@ export async function POST(request: NextRequest) {
           body: {
             data: {
               status: 'synced',
-              customer_reference:
-                context.identity.external_customer_id ??
-                context.identity.customer_number,
+              customer_reference: publicReference('customer', context.client.company_id, context.identity.customer_id),
               customer_number: context.identity.customer_number,
               external_customer_id: context.identity.external_customer_id,
               summary: result.summary,

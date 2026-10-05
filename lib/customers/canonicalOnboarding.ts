@@ -106,6 +106,11 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+/** Match the SQL's nonempty JSON-object branches on the serialized command. */
+function hasJsonObjectMembers(value: unknown): boolean {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0
+}
+
 function dbErrorCode(error: unknown): string {
   const record = error as { code?: unknown; message?: unknown } | null
   const message = clean(record?.message)?.toLowerCase() ?? ''
@@ -188,8 +193,17 @@ export async function onboardCustomerGraph(
     })
   }
 
+  const requireEdielReceipt = command.channel === 'ediel_inbound'
+  // Capture the JSON actually sent, once. Undefined-only objects become {}, and
+  // later caller mutation or stateful toJSON cannot change receipt requirements.
+  const rpcCommand: CanonicalOnboardingCommand = requireEdielReceipt
+    ? JSON.parse(JSON.stringify(command)) as CanonicalOnboardingCommand
+    : command
+  const requireSiteId = requireEdielReceipt && hasJsonObjectMembers(rpcCommand.site)
+  const requireMeteringPointId = requireEdielReceipt && hasJsonObjectMembers(rpcCommand.metering_point)
+
   const { data, error } = await supabaseService.rpc('canonical_onboard_customer_graph', {
-    p_command: command,
+    p_command: rpcCommand,
   })
 
   if (error) {
@@ -203,7 +217,14 @@ export async function onboardCustomerGraph(
   }
 
   const result = (Array.isArray(data) ? data[0] : data) as CanonicalOnboardingResult | null
-  if (!result || typeof result !== 'object' || !clean(result.code)) {
+  if (
+    !result || typeof result !== 'object' || !clean(result.code) ||
+    (requireEdielReceipt && (
+      (Array.isArray(data) && data.length !== 1) ||
+      !((result.ok === true && result.code === 'customer_onboarding_committed') ||
+        (result.ok === false && result.code === 'ambiguous_customer_match'))
+    ))
+  ) {
     throw new CanonicalOnboardingError({
       code: 'canonical_onboarding_invalid_response',
       message: `Kundregistreringen returnerade inget verifierbart resultat. Referens: ${correlationId}.`,
@@ -213,7 +234,14 @@ export async function onboardCustomerGraph(
   }
 
   if (result.ok) {
-    if (!clean(result.customer_id) || !clean(result.customer_number) || !clean(result.operation_id)) {
+    if (
+      !clean(result.customer_id) || !clean(result.customer_number) || !clean(result.operation_id) ||
+      (requireEdielReceipt && (
+        !clean(result.application_id) ||
+        (requireSiteId && !clean(result.site_id)) ||
+        (requireMeteringPointId && !clean(result.metering_point_id))
+      ))
+    ) {
       throw new CanonicalOnboardingError({
         code: 'canonical_onboarding_incomplete_response',
         message: `Kundregistreringen saknar permanent kundnummer eller kärnidentitet. Referens: ${correlationId}.`,

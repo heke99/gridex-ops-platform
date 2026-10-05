@@ -16,7 +16,26 @@ decisions remain higher-authority sources.
 7. relevant domain files
 8. `decisions.md` and `known-failures.md`
 
+## Parallel side track: tenantservice
+
+The active Ediel campaign owns `checkpoint.json`, `current-task.md` and
+`handover.md`. The user-approved tenantservice side track (customer support
+API + tenant OPS UI) keeps its single resumable checkpoint in
+`tenantservice-checkpoint.md` and its evidence in `quality/tenantservice/`.
+Do not mix the two: an Ediel agent must not resume tenantservice items from the
+Ediel checkpoint, and the tenantservice agent must not edit the Ediel files.
+
+## Parallel side track: customer portfolio
+
+Customer portfolio / white-label analytics (user-approved 2026-10-03) keeps its
+checkpoint in `customer-portfolio-checkpoint.md` and its evidence in
+`quality/customer-portfolio/`. It does not edit the Ediel files either.
+
 ## Update rules
+
+Customer and daily admin UI simplification (user-approved 2026-10-05) keeps its checkpoint in
+`customer-ui-checkpoint.md` and local verification evidence in
+`quality/customer-ui/`, preserving the Ediel campaign's global progress files.
 
 - Maintain exactly one active work item and subtask.
 - Update the checkpoint after implementation, verification, failure or blocker.
@@ -33,3 +52,5 @@ Allowed statuses: `NOT_STARTED`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`,
 Never store API keys, tokens, secrets, `.env` content, private keys, passwords,
 full identity numbers, production customer data, raw webhook secrets, entire
 chats, chain-of-thought or complete terminal output.
+
+Current existing-PR integration: see the top of current-state.md/current-task.md and masterplan-root503-ci-integration-20261005.md. Older freeze snapshots are historical.

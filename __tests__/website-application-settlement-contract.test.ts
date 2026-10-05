@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 
@@ -7,7 +8,7 @@ describe('website customer application settlement contract', () => {
   it('publishes a satisfiable settlement property and validates it at runtime', () => {
     const openApi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
     const application = openApi.components.schemas.CustomerApplicationRequest
-    expect(openApi.info.version).toBe('2026-08-22.2')
+    expect(openApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(application.required).toContain('settlement')
     expect(application.properties.settlement).toEqual({
       $ref: '#/components/schemas/WebsiteQuoteSettlement',

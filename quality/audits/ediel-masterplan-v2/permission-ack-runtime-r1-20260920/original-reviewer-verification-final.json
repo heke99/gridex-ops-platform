@@ -1,0 +1,409 @@
+{
+  "source_sha256": {
+    "count": 14,
+    "mismatches": []
+  },
+  "report_sha256": {
+    "count": 2,
+    "mismatches": []
+  },
+  "receipt_sha256": {
+    "count": 90,
+    "mismatches": []
+  },
+  "original_artifacts": {
+    "count": 22,
+    "mismatches": []
+  },
+  "branch_paths": [
+    ".agent-memory/aperak-text-packaging-review.md",
+    ".agent-memory/checkpoint.json",
+    ".agent-memory/completed-work.md",
+    ".agent-memory/current-state.md",
+    ".agent-memory/current-task.md",
+    ".agent-memory/decisions.md",
+    ".agent-memory/handover.md",
+    ".agent-memory/open-blockers.md",
+    ".agent-memory/permission-ack-register-amendment-review.md",
+    ".agent-memory/permission-ack-source-review.md",
+    ".agent-memory/session-log.md",
+    ".agent-memory/verification-matrix.md",
+    ".agent-memory/work-plan.md",
+    "__tests__/ediel-canonical-inbound-parser-v2.test.ts",
+    "__tests__/ediel-prodat-energy-product-consumers.test.ts",
+    "__tests__/ediel-prodat-permission-ack-consumers.test.ts",
+    "__tests__/ediel-prodat-permission-ack-inbound.test.ts",
+    "__tests__/ediel-prodat-permission-ack.test.ts",
+    "__tests__/fixtures/prodat-permission-ack.ts",
+    "app/admin/ediel/actions.part-3.ts",
+    "lib/ediel/decisionEngine.ts",
+    "lib/ediel/prodat/prodatPermissionAckFields.ts",
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+    "lib/ediel/rulebook/ruleProfileSelector.ts",
+    "lib/ediel/testing/aperakErrorRuleRegistry.ts",
+    "lib/ediel/testing/prodatPermissionAckRegistry.ts",
+    "lib/ediel/testing/prodatPermissionEngine.ts",
+    "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-20260920.evidence.json",
+    "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-20260920.md",
+    "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.evidence.json",
+    "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.md",
+    "quality/audits/ediel-masterplan-v2/permission-ack-plan.md",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/branch-diffcheck.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/branch-diffcheck.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-consumers-observations.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-consumers.test.ts.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-inbound-observations.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-inbound.test.ts.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-result.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-run.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-vitest.config.mjs.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-ediel-eight.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-gates.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-integrity.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-large-files.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-lint.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-performance.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-ratchet.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-route-readiness.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-static-gates.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-tenant-integrity.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-tenant-shutdown.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck-scripts.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck-tests.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-ediel-eight.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-evidence-diffcheck.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-evidence-diffcheck.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-gates.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-integrity.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-large-files.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-lint.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-performance.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-ratchet.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-route-readiness.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-source-diffcheck.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-tenant-integrity.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-tenant-shutdown.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck-scripts.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck-tests.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/focused-preservation.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/focused-preservation.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-corrected-final.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-corrected-final.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-final.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-final.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-amendment.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-amendment.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-checkpoint.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-checkpoint.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-delta.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-delta.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-focused.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-focused.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-first.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-first.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-second.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-second.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/inbound-edges-first.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/inbound-edges-first.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/lint-checkpoint.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/lint-initial.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/packaged-evidence-diffcheck.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/packaged-evidence-diffcheck.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/parser-ruling-green.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/parser-ruling-green.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/qualified-red-consumers.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/qualified-red-fields.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/quality-final.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/quality-final.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-amendment.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-amendment.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-baseline-qualified.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-baseline-qualified.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-classifier.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-classifier.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers-qualified.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers-qualified.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/register-boundary.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/register-observation-probe.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/source-immutable-check.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/task-2-report.md",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-initial.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-tests-checkpoint.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-tests-initial.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-tests-second.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v1.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v2.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run-v2.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v1.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v2.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-observations.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-probe.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-run.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/input-hashes.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/normative-oracles.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v1.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v2.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-observations.json",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-run.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v1.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v2.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-1.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-2.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/source-integrity.log",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/vitest-config.txt"
+  ],
+  "path_count": 144,
+  "json_parse": [
+    {
+      "path": ".agent-memory/checkpoint.json",
+      "kind": "dict",
+      "entries": 43
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-20260920.evidence.json",
+      "kind": "dict",
+      "entries": 22
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.evidence.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/branch-diffcheck.json",
+      "kind": "dict",
+      "entries": 4
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-consumers-observations.json",
+      "kind": "list",
+      "entries": 40
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-inbound-observations.json",
+      "kind": "list",
+      "entries": 14
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-result.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-gates.json",
+      "kind": "list",
+      "entries": 4
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-static-gates.json",
+      "kind": "list",
+      "entries": 8
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-evidence-diffcheck.json",
+      "kind": "dict",
+      "entries": 4
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-gates.json",
+      "kind": "list",
+      "entries": 12
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/focused-preservation.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-corrected-final.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-final.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-amendment.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-checkpoint.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-delta.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-focused.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-first.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-second.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/inbound-edges-first.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/packaged-evidence-diffcheck.json",
+      "kind": "dict",
+      "entries": 4
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/parser-ruling-green.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/quality-final.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-amendment.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-baseline-qualified.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-classifier.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers-qualified.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red.json",
+      "kind": "dict",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/register-boundary.json",
+      "kind": "dict",
+      "entries": 2
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/source-immutable-check.json",
+      "kind": "list",
+      "entries": 22
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v1.json",
+      "kind": "dict",
+      "entries": 2
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v2.json",
+      "kind": "dict",
+      "entries": 3
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-observations.json",
+      "kind": "list",
+      "entries": 13
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/input-hashes.json",
+      "kind": "dict",
+      "entries": 32
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v1.json",
+      "kind": "list",
+      "entries": 82
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v2.json",
+      "kind": "list",
+      "entries": 105
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-observations.json",
+      "kind": "list",
+      "entries": 16
+    }
+  ],
+  "archives": [
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-consumers.test.ts.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-inbound.test.ts.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-vitest.config.mjs.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/qualified-red-consumers.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/qualified-red-fields.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/register-observation-probe.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v1.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v2.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-probe.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/normative-oracles.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v1.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v2.txt",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/vitest-config.txt"
+  ],
+  "runtime_delta_since_full": "",
+  "protected_delta": "",
+  "diff_check": {
+    "exit": 2,
+    "output": ".agent-memory/completed-work.md:123: new blank line at EOF.\n.agent-memory/session-log.md:243: new blank line at EOF.\n.agent-memory/verification-matrix.md:191: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-lint.log:221: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-performance.log:22: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck-scripts.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck-tests.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-lint.log:221: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck-scripts.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck-tests.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/lint-initial.log:7: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-initial.log:5: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run-v2.log:9: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run.log:9: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-run.log:9: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-run.log:232: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-1.log:9: new blank line at EOF.\nquality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-2.log:9: new blank line at EOF.\n"
+  },
+  "head": "92d7074a0d0be6d2cc6ac1c921baab5102c757d4",
+  "tree": "23153129e51b5ceb0a492d62e3978a4bd4f5112f",
+  "result-v3.json": {
+    "numTotalTests": 6,
+    "numPassedTests": 4,
+    "numFailedTests": 2,
+    "success": false
+  },
+  "inbound-result.json": {
+    "numTotalTests": 14,
+    "numPassedTests": 14,
+    "numFailedTests": 0,
+    "success": true
+  },
+  "result-v4.json": {
+    "numTotalTests": 7,
+    "numPassedTests": 5,
+    "numFailedTests": 2,
+    "success": false
+  },
+  "fresh_performance": {
+    "command": "npm run quality:performance",
+    "exit": 0,
+    "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629"
+  }
+}

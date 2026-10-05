@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "NATIVE_EXECUTION_PENDING",
+  "original_statuses_changed": false,
+  "baseline": "e0aaafe30f1d33be2212c2a92573c16db816a065",
+  "ordinary_native_suite": "scripts/ediel-confirmed-customer-bilateral-native.test.ts",
+  "reusable_fixture": "scripts/helpers/ediel-bilateral-customer-native-fixture.ts#createBilateralCustomerSourceFixture",
+  "actual_chain": [
+    "signed contract/signature/PDF Storage/POA",
+    "protected original Z03 and bounded external SMTP receipt",
+    "captured physical Z04, actual canonical ledger and native atomic supply confirmation",
+    "actual full original structural review for post-ledger future supply",
+    "captured physical Z06E, actual full canonical ledger and committed source object availability",
+    "native PDF custody, separate actual GoTrue company grants/reviewer and immutable bilateral receipt",
+    "public safe-apply customer source version plus separate committed availability witness",
+    "same actual immutable source snapshot and WeakMap qualified customer history",
+    "pure dated AI projection and complete existing native structural/customer CSV guard"
+  ],
+  "synthetic_boundaries": [
+    "external SMTP/customer notifications",
+    "disposable external bilateral agreement and issuer competence/representation HMAC keys"
+  ],
+  "not_seeded": [
+    "private accepted canonical assessments",
+    "private approved artifacts/reviews/events/versions",
+    "private purpose decision",
+    "approved intent or AI original"
+  ],
+  "local_executed": [
+    {
+      "command": "npx vitest run __tests__/ediel-bilateral-native-wire.test.ts __tests__/ediel-bilateral-customer-source.test.ts __tests__/ediel-confirmed-customer-source.test.ts __tests__/ediel-confirmed-customer-history.test.ts __tests__/ediel-ai-list-history.test.ts __tests__/ediel-requested-change-intake.test.ts --reporter=dot",
+      "result": "34 PASS across5 discovered files; native not executed"
+    },
+    {
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc -p tsconfig.scripts.json --noEmit --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "targeted ESLint five changed TypeScript files",
+      "result": "PASS"
+    }
+  ],
+  "native_assertions_pending": [
+    "missing genuine issuer held without version",
+    "self review refused",
+    "wrong clause held",
+    "current separate review/sourcebyte continuity",
+    "customer/invoicee version no death inference for bankruptcy",
+    "same first object multiple registers",
+    "committed availability and early cutoff exclusion",
+    "dated AI whole rows plus forged/omitted rows reject",
+    "copied history no capability",
+    "current global reviewer DENY",
+    "agreement disabled and representation revoked",
+    "foreign company byte read denial",
+    "today customer/supply/point/site unchanged",
+    "no Z09/death/outbound writes"
+  ],
+  "remaining_internal": [
+    "distinct physical object atomic customer facet owner",
+    "AI legal-purpose artifact/review/current export decision producer assigned followup",
+    "full native/browser/frozen exact-head verification"
+  ],
+  "prohibited_claims": [
+    "source fixture legal authority is authentic",
+    "local canonical wire test is native execution",
+    "native direct CSV fence proves queued AI original or legal purpose",
+    "green partial tests approve any original criterion"
+  ]
+}

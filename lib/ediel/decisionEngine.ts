@@ -1,3 +1,12 @@
+import {selectedProdatAckFromPayload} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
+import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
+import {permissionAckFieldsFromPayload} from '@/lib/ediel/prodat/prodatPermissionAckFields'
+import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'
+import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
+import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
@@ -25,6 +34,7 @@ export type EdielEngineDecision = {
   outcome: EdielEngineAckOutcome | null
   messageText: string | null
   applicationErrors: EdielAperakApplicationError[]
+  utiltsHeaderRejected?: boolean
   reason: string
   ruleKeys: string[]
   classification: ReturnType<typeof summarizeRuleProfile> | null
@@ -33,6 +43,10 @@ export type EdielEngineDecision = {
 }
 
 export type ProdatAperakDecisionInput = {
+  /** Explicit independent receiver knowledge only; never read from incoming metadata. */
+  deathStatus?:DeathSelection
+  meterChange?:MeterChangeSelection
+
   message?: EdielMessageRow | null
   rawPayload?: string | null
   family?: string | null
@@ -97,38 +111,9 @@ function rawSegments(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-function segmentStarts(rawPayload: string | null | undefined, prefix: string): boolean {
-  const upperPrefix = prefix.toUpperCase()
-  return rawSegments(rawPayload).some((segment) => segment.toUpperCase().startsWith(upperPrefix))
-}
-
-function firstCavAfterCci(rawPayload: string | null | undefined, qualifier: string): string | null {
-  const segments = rawSegments(rawPayload)
-  const expected = `CCI++${qualifier.toUpperCase()}`
-  const index = segments.findIndex((segment) => {
-    const upper = segment.toUpperCase()
-    return upper === expected || upper.startsWith(`${expected}+`)
-  })
-  if (index < 0) return null
-
-  for (let cursor = index + 1; cursor < segments.length; cursor += 1) {
-    const upper = segments[cursor]?.toUpperCase() ?? ''
-    if (upper.startsWith('CCI+')) return null
-    if (upper.startsWith('CAV+')) {
-      const raw = segments[cursor]?.split('+')[1] ?? ''
-      const value = raw.split(':').find((part) => part.trim().length > 0) ?? raw
-      return normalize(value) || null
-    }
-  }
-
-  return null
-}
-
 function firstReference(rawPayload: string | null | undefined, qualifier: string): string | null {
-  const prefix = `RFF+${qualifier}:`
-  const segment = rawSegments(rawPayload).find((item) => item.toUpperCase().startsWith(prefix.toUpperCase()))
-  if (!segment) return null
-  return segment.slice(prefix.length).split('+')[0]?.trim() || null
+  const tokenized = tokenizeEdifact(rawPayload)
+  return prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una)
 }
 
 function firstLinObject(rawPayload: string | null | undefined): string | null {
@@ -230,40 +215,6 @@ function prodatBusinessIssueToAperakError(rawPayload: string | null | undefined,
   return errorForCode({ ercCode: '42', fieldCode: null, text: issue.message ?? 'INCORRECT DATA', rawPayload })
 }
 
-function buildKnownPermissionErrors(params: {
-  rawPayload: string | null
-  classification: EdielClassifiedMessage
-}): EdielAperakApplicationError[] {
-  const { rawPayload, classification } = params
-  const code = normalize(classification.messageCode)
-  const errors: EdielAperakApplicationError[] = []
-  const status = firstCavAfterCci(rawPayload, 'Z23')
-  const endReason = firstCavAfterCci(rawPayload, 'Z25')
-
-  if (code === 'Z14' && classification.variant === 'unknown') {
-    errors.push(errorForCode({
-      ercCode: segmentStarts(rawPayload, 'CCI++Z23') ? '42' : '41',
-      fieldCode: '322',
-      text: segmentStarts(rawPayload, 'CCI++Z23') ? 'INCORRECT DATA - permission status' : 'MANDATORY FIELD MISSING - permission status',
-      rawPayload,
-    }))
-  }
-
-  if (code === 'Z15') {
-    if (status && !['A75'].includes(status)) {
-      errors.push(errorForCode({ ercCode: '42', fieldCode: '322', text: `INCORRECT DATA - permission status ${status}`, rawPayload }))
-    }
-    if (endReason && !['B79', 'B80'].includes(endReason)) {
-      errors.push(errorForCode({ ercCode: '42', fieldCode: '324', text: `INCORRECT DATA - permission end reason ${endReason}`, rawPayload }))
-    }
-  }
-
-  if (code === 'Z18' && !endReason) {
-    errors.push(errorForCode({ ercCode: '41', fieldCode: '324', text: 'MANDATORY FIELD MISSING - permission end reason', rawPayload }))
-  }
-
-  return errors
-}
 
 
 function shouldForcePortalExpectedNegativeAperak(input: ProdatAperakDecisionInput, classification: EdielClassifiedMessage): boolean {
@@ -339,9 +290,21 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   const businessErrors = validateProdatBusinessRules(rawPayload ?? '')
     .filter((item) => item.severity === 'error')
     .map((item) => prodatBusinessIssueToAperakError(rawPayload, item))
-  const knownPermissionErrors = buildKnownPermissionErrors({ rawPayload, classification })
+  const permissionFields = permissionAckFieldsFromPayload(rawPayload)
+  const knownPermissionErrors = permissionFields.applicationErrors
 
-  const applicationErrors = [...businessErrors, ...knownPermissionErrors]
+  const changeWire=tokenizeEdifact(rawPayload??'')
+  const transactionReasonFields=evaluateProdatTransactionReason({rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una})
+  const selectedFields=selectedProdatAckFromPayload(rawPayload,{meterChange:input.meterChange,deathStatus:input.deathStatus})
+  const energyProjection=projectProdatDiagnostics(evaluateIncomingProdatEnergyProduct({rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una}).issues)
+  if(energyProjection.disposition.kind==='internal_review')throw Object.assign(new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED'),{selectedFieldAssessment:selectedFields,permissionFieldAssessment:permissionFields,energyProjection})
+  const energyErrors=energyProjection.applicationErrors
+  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...selectedFields.applicationErrors,...energyErrors,...transactionReasonFields.applicationErrors]
+  if(permissionFields.disposition.kind==='internal_review'||selectedFields.disposition.kind==='internal_review'||transactionReasonFields.disposition.kind==='internal_review')return {
+    kind:'manual_review',ackFamily:'APERAK',outcome:null,messageText:'PRODAT_PERMISSION_ACK_REVIEW_REQUIRED',
+    applicationErrors,reason:JSON.stringify({permissionFields,selectedFields,transactionReasonFields}),ruleKeys:['PRODAT_PERMISSION_ACK_REVIEW_REQUIRED'],
+    classification:summarizeRuleProfile(classification),portalFeedback,expectedComparison:null,
+  }
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {
     applicationErrors.unshift(portalFeedbackError(portalFeedback, rawPayload))
   }
@@ -420,12 +383,23 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
 
   const testCase = normalize(input.testCaseCode)
   const runtime = runUtiltsRuntimeForMessage(input.message)
+  if (!runtime.validation.syntaxOk && runtime.ackPlan.contrlOutcome === 'negative') {
+    return {
+      kind: 'ack', ackFamily: 'CONTRL', outcome: 'negative',
+      messageText: runtime.ackPlan.reason, applicationErrors: [], reason: runtime.ackPlan.reason,
+      ruleKeys: ['UTILTS_SYNTAX_REJECTED', classification.ruleProfileId],
+      classification: summarizeRuleProfile(classification),
+      expectedComparison: compareEngineDecisionWithExpected({ actualFamily: 'CONTRL', actualOutcome: 'negative',
+        expectedFamily: input.expectedFamily ?? null, expectedOutcome: input.expectedOutcome ?? null }),
+    }
+  }
   const certificationCase = findCertificationCase(testCase)
   const registryRequiresUtiltsErr = certificationCase?.messageFamily === 'UTILTS'
     && certificationCase.expectedBusinessResponseFamily === 'UTILTS_ERR'
     && certificationCase.expectedBusinessOutcome === 'negative'
 
-  if (registryRequiresUtiltsErr && input.message.message_family === 'UTILTS') {
+  if (registryRequiresUtiltsErr && input.message.message_family === 'UTILTS'
+    && runtime.validation.syntaxOk && !runtime.ackPlan.utiltsHeaderRejection) {
     const ackPlan = applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: testCase })
     const comparison = compareEngineDecisionWithExpected({
       actualFamily: 'UTILTS_ERR',
@@ -468,7 +442,7 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
 
   if (runtime.ackPlan.shouldSendAperak) {
     const outcome = runtime.ackPlan.aperakOutcome
-    const applicationErrors = runtime.ackPlan.aperakApplicationErrors.map((error) => ({
+    const applicationErrors = (runtime.ackPlan.utiltsHeaderRejection?.applicationErrors ?? runtime.ackPlan.aperakApplicationErrors).map((error) => ({
       ercCode: error.ercCode,
       fieldCode: error.fieldCode ?? null,
       text: error.text,
@@ -488,6 +462,7 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
       outcome,
       messageText: runtime.ackPlan.reason ?? (outcome === 'positive' ? null : 'UTILTS anvisnings-/applikationsfel.'),
       applicationErrors: outcome === 'negative' ? applicationErrors : [],
+      utiltsHeaderRejected: Boolean(runtime.ackPlan.utiltsHeaderRejection),
       reason: runtime.ackPlan.reason || `UTILTS runtime selected ${outcome} APERAK.`,
       ruleKeys: [classification.ruleProfileId],
       classification: summarizeRuleProfile(classification),

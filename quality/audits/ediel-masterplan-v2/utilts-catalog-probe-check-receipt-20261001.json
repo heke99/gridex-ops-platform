@@ -1,0 +1,60 @@
+{
+  "format": "gridex_utilts_catalog_probe_code_check_v1",
+  "checkedAt": "2026-10-01T13:18:48.215781+00:00",
+  "file": "/workspace/scratch/145123787247/gridex-utilts/scripts/ediel-utilts-consumption-native.test.ts",
+  "fileHash": "15d54e8ebbfb136dcbb01000068e79222dbc5a4b53f2a913003cdddff2737801",
+  "tools": {
+    "node": "22.23.3",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9",
+    "eslint": "9.39.4",
+    "next": "16.3.5"
+  },
+  "checks": {
+    "nodeSyntax": "PASS",
+    "ownedFileLint": "PASS",
+    "gitDiffCheck": "PASS",
+    "ownedScriptTypeDiagnostics": [],
+    "fullCloneScriptTypes": {
+      "exitCode": 2,
+      "nonOwnedDiagnosticFiles": [
+        "scripts/ediel-service-evidence-native.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "scripts/fixtures/ediel-service-evidence-native.ts",
+        "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts"
+      ],
+      "log": "/tmp/utilts-catalog-final-delivery-types.log"
+    },
+    "targetTests": {
+      "result": "PASS",
+      "testFiles": 2,
+      "testCount": 15,
+      "files": [
+        "__tests__/ediel-utilts-current-execution-actor.test.ts",
+        "__tests__/ediel-received-context-outcomes.test.ts"
+      ],
+      "log": "/tmp/utilts-catalog-canonical-targets.log"
+    }
+  },
+  "nativeExecution": {
+    "result": "NOT_RUN_CODE_PHASE",
+    "reason": "Parent requires authentic catalog execution first on frozen clean/upgrade native databases."
+  },
+  "review": {
+    "agent": "/root/actors_ai",
+    "scope": "Checksum-bound named migration extractor, SQL dependency closure, effective inherited/SET role matrix, strict pre110500 receipt provenance",
+    "result": "No remaining material scoped findings; multiword type identity and UTC postmaster identity corrected"
+  },
+  "nativeInterface": {
+    "phase": "GRIDEX_NATIVE_DATABASE_PHASE=clean|upgrade",
+    "receipt": "GRIDEX_UTILTS_CATALOG_RECEIPT_PATH",
+    "preActorReceipt": "GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH mandatory for upgrade",
+    "preActorFormat": "gridex_utilts_pre_actor_catalog_v1",
+    "beforeMigrationVersion": "20261001110500"
+  },
+  "limits": [
+    "pg_depend does not record string-body/dynamic references.",
+    "Conservative named-call discovery is not a whole-catalog acceptance parser.",
+    "Full installed callable/trigger/policy inventory requires the separate all-installed-callables source and phase review."
+  ]
+}

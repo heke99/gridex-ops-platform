@@ -1,0 +1,104 @@
+[
+  {
+    "concept": "tenant",
+    "minimum_fields": "id, status, isolation_policy_version",
+    "meaning": "Organisatorisk datagräns. Inte automatiskt marknadsaktör.",
+    "constraint": "Återanvänd companies/tenantmodell; förhindra implicit åtkomst från gemensam koncern."
+  },
+  {
+    "concept": "legal_market_actor",
+    "minimum_fields": "id, market, country, ediel_id, identifiers, roles, validity",
+    "meaning": "Juridisk marknadsidentitet med historik.",
+    "constraint": "Återanvänd platform_market_actors/identifiers; ej unik enbart på orgnr."
+  },
+  {
+    "concept": "actor_profile",
+    "minimum_fields": "id, owner_tenant_id, legal_actor_id, role, market, environment, capability_version",
+    "meaning": "Aktör i viss verksamhetsroll och miljö.",
+    "constraint": "DDQ/DGI separata profiler; transportadressen kan vara gemensam."
+  },
+  {
+    "concept": "technical_route_snapshot",
+    "minimum_fields": "id, actor/profile ref, technical_party_id, qualifier, legal_party_id, subaddress, message_family, smtp_address, source_hash, validity",
+    "meaning": "Teknisk adressering separerad från juridisk aktör.",
+    "constraint": "Återanvänd ruttmodellen; bevara null subaddress och EL/GAS. S/MIME-scope separat."
+  },
+  {
+    "concept": "service_assignment",
+    "minimum_fields": "id, operating_tenant_id, provider_actor_profile_id, beneficiary_tenant_id, end_user_ref, dso_actor_id, purpose, scope, contract_evidence_ids, validity, status",
+    "meaning": "Gridex/annan provider utför specificerat ESCO-uppdrag för annan tenant.",
+    "constraint": "Explicit kors-tenantrelation. Beneficiary får inte själv tilldela sig providerbehörighet."
+  },
+  {
+    "concept": "market_permission",
+    "minimum_fields": "id, owner_tenant_id, esco_actor_profile_id, dso_actor_id, external_permission_id, customer_ref, mode, state, start_at, end_at, grant_created_at, source_z14_id",
+    "meaning": "Marknadens tillstånd, skilt från internt uppdrag.",
+    "constraint": "Verifiera befintliga tillståndstabeller före ny schemaentitet; externt id namnrymdssätts med aktör/DSO/miljö."
+  },
+  {
+    "concept": "permission_object",
+    "minimum_fields": "permission_id, metering_identity_id, direction, energy_product, resolution, reporting_schedule, period, source_message/line",
+    "meaning": "Vilka anläggningar och data som faktiskt omfattas.",
+    "constraint": "Ingen automatisk utvidgning till alla objekt som en kund råkar äga."
+  },
+  {
+    "concept": "assignment_permission_link",
+    "minimum_fields": "assignment_id, permission_id, authorized_scope, evidence_id, validity",
+    "meaning": "Explicit många-till-många-koppling där samma giltiga tillstånd kan stödja flera tillåtna serviceuppdrag.",
+    "constraint": "Samordna slut: ett uppdrag upphör inte automatiskt för alla andra."
+  },
+  {
+    "concept": "data_access_grant",
+    "minimum_fields": "id, owner_tenant_id, beneficiary_tenant_id, assignment_id, permission_id, object/product/period/field/purpose_scope, version, revoked_at",
+    "meaning": "Tillåten intern användning och distribution.",
+    "constraint": "Alla queries/exporter/cache måste pröva scope och aktuell grantversion."
+  },
+  {
+    "concept": "ediel_receipt",
+    "minimum_fields": "id, environment, transport_id, raw_object_ref, hash, received_at, technical_parties, attribution_state",
+    "meaning": "Skyddad råmottagning före säker tenantattribution.",
+    "constraint": "Befintlig ediel_messages/payloads/inbox kan utökas; oattribuerat material får inte bli global tenantläsning."
+  },
+  {
+    "concept": "ediel_message_context",
+    "minimum_fields": "message_id, owner_tenant_id, legal_sender/recipient, role, market, rule_decision_id, original_refs",
+    "meaning": "Affärsmeddelandets fastställda kontext.",
+    "constraint": "Ändra inte ursprunglig roll när data projiceras till beneficiary."
+  },
+  {
+    "concept": "ediel_transaction_disposition",
+    "minimum_fields": "message_id, original_transaction_id_or_line_key, outcome, rule_ids, findings, stored_revision_ids, response_intent_ids",
+    "meaning": "Delresultat och affärseffekt.",
+    "constraint": "Unik per faktiskt behandlad del/version. Godkänd lagring och ACK-intent i samma DBtransaktion."
+  },
+  {
+    "concept": "outbound_attempt",
+    "minimum_fields": "intent_id, attempt_id, lease_token, payload_hash, rfc_message_id, provider_id, queue_id, smtp_code, accepted/rejected_recipients, timestamps, unknown_state",
+    "meaning": "Vad transporten faktiskt gjorde.",
+    "constraint": "Skilj från affärsstatus. Exact-once kan inte antas över SMTP."
+  },
+  {
+    "concept": "effective_structure_version",
+    "minimum_fields": "tenant/actor scope, metering_identity, valid_from/to, observed_at, source_message/line, meter/register/product/BRP facts",
+    "meaning": "Tidsberoende struktur.",
+    "constraint": "Giltighetsdatum != mottagningstid; future/old-versioner ska fungera."
+  },
+  {
+    "concept": "measurement_revision",
+    "minimum_fields": "owner scope, series_identity, observation_type, interval, exact_value, unit, quality, source_registration_time, source_message/IDE, status",
+    "meaning": "Spårbar dataversion.",
+    "constraint": "Energi/effekt/ställning skilda; old-late-positive får inte ersätta nyare."
+  },
+  {
+    "concept": "readiness_evidence",
+    "minimum_fields": "scope tenant/actor/role/capability, release_sha, schema_fingerprint, rulepack_hash, route/cert/permission versions, tests, verified_at, expiry",
+    "meaning": "På vilket bevis en kapabilitet aktiverats.",
+    "constraint": "Flera capability-bevis; ingen global stale is_ready."
+  },
+  {
+    "concept": "process_expectation",
+    "minimum_fields": "process_id, expected_event, timer_rule_id, anchor_type/time/evidence, due_at, status, owner, last_decision_id",
+    "meaning": "Vad systemet väntar på och när det ska agera.",
+    "constraint": "Teknisk ACK och affärssvar är skilda; inga oavsiktliga kedjade30minförlängningar."
+  }
+]

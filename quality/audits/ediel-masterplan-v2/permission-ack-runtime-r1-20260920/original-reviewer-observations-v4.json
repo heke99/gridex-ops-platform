@@ -1,0 +1,1669 @@
+[
+  {
+    "name": "partial322-duplicate324",
+    "issues": [
+      {
+        "severity": "error",
+        "blocking": true,
+        "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+        "title": "Tillståndsfält kräver intern granskning",
+        "description": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}",
+        "fieldPath": "SG8/SG14",
+        "prodatDiagnostic": {
+          "kind": "internal",
+          "sourceRule": "PRODAT26A:P21/73/75/119/123",
+          "reason": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}"
+        }
+      }
+    ]
+  },
+  {
+    "name": "manual-mixed",
+    "error": {
+      "message": "PRODAT_PERMISSION_ACK_REVIEW_REQUIRED",
+      "assessment": {
+        "code": "Z15",
+        "objects": [
+          {
+            "lineIndex": 0,
+            "reason": "S17",
+            "status": null,
+            "endReason": null
+          }
+        ],
+        "issues": [
+          {
+            "severity": "error",
+            "blocking": true,
+            "code": "PRODAT_PERMISSION_322_INVALID",
+            "title": "Tillståndsfält 322",
+            "description": "P26.A s.21/73/75/123: 322 invalid",
+            "fieldPath": "SG8[0]/CCI++Z23/CAV",
+            "prodatDiagnostic": {
+              "kind": "field",
+              "fieldNumber": "322",
+              "errorKind": "invalid",
+              "sourceRule": "PRODAT26A:P21/73/75/119/123",
+              "segmentPath": "CCI++Z23/CAV",
+              "group": "SG8/SG14",
+              "component": {
+                "locator": "CCI++Z23/CAV",
+                "composite": "C889",
+                "cavComponent": 0
+              },
+              "occurrence": {
+                "ownReferences": {
+                  "objectId": {
+                    "kind": "present",
+                    "value": "735123456789012345"
+                  },
+                  "lineItemReference": {
+                    "kind": "present",
+                    "value": "CASE:A+B?C"
+                  },
+                  "customerId": {
+                    "kind": "present",
+                    "value": "001"
+                  }
+                },
+                "scope": "object",
+                "messageReference": "M",
+                "lineIndex": 0,
+                "lineNumber": "1",
+                "registerPosition": 1,
+                "objectId": "735123456789012345",
+                "identityAgency": "9",
+                "lineItemReference": "CASE:A+B?C"
+              },
+              "failureEvidence": [
+                {
+                  "raw": "CAV+X99",
+                  "locator": "CAV/C889/7111",
+                  "content": "X99"
+                }
+              ]
+            }
+          },
+          {
+            "severity": "error",
+            "blocking": true,
+            "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+            "title": "Tillståndsfält kräver intern granskning",
+            "description": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}",
+            "fieldPath": "SG8/SG14",
+            "prodatDiagnostic": {
+              "kind": "internal",
+              "sourceRule": "PRODAT26A:P21/73/75/119/123",
+              "reason": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}"
+            }
+          }
+        ],
+        "applicationErrors": [
+          {
+            "ercCode": "42",
+            "fieldCode": "322",
+            "text": "Felaktigt Tillståndets status X99",
+            "prodatAperakText": {
+              "kind": "ready",
+              "text": "Felaktigt Tillståndets status X99",
+              "fallback": "not_needed"
+            },
+            "prodatOccurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "referenceQualifier": "Z07",
+            "referenceNumber": "735123456789012345",
+            "lineItemReference": "CASE:A+B?C",
+            "prodatFieldDiagnostic": {
+              "kind": "field",
+              "fieldNumber": "322",
+              "errorKind": "invalid",
+              "sourceRule": "PRODAT26A:P21/73/75/119/123",
+              "segmentPath": "CCI++Z23/CAV",
+              "group": "SG8/SG14",
+              "component": {
+                "locator": "CCI++Z23/CAV",
+                "composite": "C889",
+                "cavComponent": 0
+              },
+              "occurrence": {
+                "ownReferences": {
+                  "objectId": {
+                    "kind": "present",
+                    "value": "735123456789012345"
+                  },
+                  "lineItemReference": {
+                    "kind": "present",
+                    "value": "CASE:A+B?C"
+                  },
+                  "customerId": {
+                    "kind": "present",
+                    "value": "001"
+                  }
+                },
+                "scope": "object",
+                "messageReference": "M",
+                "lineIndex": 0,
+                "lineNumber": "1",
+                "registerPosition": 1,
+                "objectId": "735123456789012345",
+                "identityAgency": "9",
+                "lineItemReference": "CASE:A+B?C"
+              },
+              "failureEvidence": [
+                {
+                  "raw": "CAV+X99",
+                  "locator": "CAV/C889/7111",
+                  "content": "X99"
+                }
+              ]
+            }
+          }
+        ],
+        "disposition": {
+          "kind": "internal_review",
+          "reasons": [
+            {
+              "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+              "sourceRule": "PRODAT26A:P21/73/75/119/123",
+              "reason": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}"
+            }
+          ]
+        },
+        "observations": [
+          {
+            "severity": "error",
+            "blocking": true,
+            "code": "PRODAT_PERMISSION_322_INVALID",
+            "title": "Tillståndsfält 322",
+            "description": "P26.A s.21/73/75/123: 322 invalid",
+            "fieldPath": "SG8[0]/CCI++Z23/CAV",
+            "prodatDiagnostic": {
+              "kind": "field",
+              "fieldNumber": "322",
+              "errorKind": "invalid",
+              "sourceRule": "PRODAT26A:P21/73/75/119/123",
+              "segmentPath": "CCI++Z23/CAV",
+              "group": "SG8/SG14",
+              "component": {
+                "locator": "CCI++Z23/CAV",
+                "composite": "C889",
+                "cavComponent": 0
+              },
+              "occurrence": {
+                "ownReferences": {
+                  "objectId": {
+                    "kind": "present",
+                    "value": "735123456789012345"
+                  },
+                  "lineItemReference": {
+                    "kind": "present",
+                    "value": "CASE:A+B?C"
+                  },
+                  "customerId": {
+                    "kind": "present",
+                    "value": "001"
+                  }
+                },
+                "scope": "object",
+                "messageReference": "M",
+                "lineIndex": 0,
+                "lineNumber": "1",
+                "registerPosition": 1,
+                "objectId": "735123456789012345",
+                "identityAgency": "9",
+                "lineItemReference": "CASE:A+B?C"
+              },
+              "failureEvidence": [
+                {
+                  "raw": "CAV+X99",
+                  "locator": "CAV/C889/7111",
+                  "content": "X99"
+                }
+              ]
+            },
+            "prodatAperakText": {
+              "kind": "ready",
+              "text": "Felaktigt Tillståndets status X99",
+              "fallback": "not_needed"
+            },
+            "originalSeverity": "error"
+          },
+          {
+            "severity": "error",
+            "blocking": true,
+            "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+            "title": "Tillståndsfält kräver intern granskning",
+            "description": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}",
+            "fieldPath": "SG8/SG14",
+            "prodatDiagnostic": {
+              "kind": "internal",
+              "sourceRule": "PRODAT26A:P21/73/75/119/123",
+              "reason": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}"
+            },
+            "originalSeverity": "error"
+          }
+        ],
+        "hasNationalError": true
+      }
+    },
+    "events": [],
+    "prior": 0
+  },
+  {
+    "name": "registry-replay",
+    "first": {
+      "errors": [
+        {
+          "ercCode": "42",
+          "fieldCode": "322",
+          "text": "Felaktigt Tillståndets status X99",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Tillståndets status X99",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "322",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z23/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z23/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|X99",
+                "locator": "CAV/C889/7111",
+                "content": "X99"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "324",
+          "text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Orsak till tillståndets upphörande B00",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "324",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z25/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z25/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|B00",
+                "locator": "CAV/C889/7111",
+                "content": "B00"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "322",
+          "text": "Felaktigt Tillståndets status X99",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Tillståndets status X99",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 1,
+            "lineNumber": "2",
+            "registerPosition": 2,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "322",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z23/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z23/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 1,
+              "lineNumber": "2",
+              "registerPosition": 2,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|X99",
+                "locator": "CAV/C889/7111",
+                "content": "X99"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "324",
+          "text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Orsak till tillståndets upphörande B00",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 1,
+            "lineNumber": "2",
+            "registerPosition": 2,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "324",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z25/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z25/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 1,
+              "lineNumber": "2",
+              "registerPosition": 2,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|B00",
+                "locator": "CAV/C889/7111",
+                "content": "B00"
+              }
+            ]
+          }
+        }
+      ],
+      "details": [
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_status_invalid:LIN=0",
+          "applicationError": "42",
+          "freeTextCode": "322",
+          "freeText": "Felaktigt Tillståndets status X99",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 0
+        },
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_end_reason_invalid:LIN=0",
+          "applicationError": "42",
+          "freeTextCode": "324",
+          "freeText": "Felaktigt Orsak till tillståndets upphörande B00",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 1
+        },
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_status_invalid:LIN=1",
+          "applicationError": "42",
+          "freeTextCode": "322",
+          "freeText": "Felaktigt Tillståndets status X99",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 2
+        },
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_end_reason_invalid:LIN=1",
+          "applicationError": "42",
+          "freeTextCode": "324",
+          "freeText": "Felaktigt Orsak till tillståndets upphörande B00",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 3
+        }
+      ],
+      "issueCount": 4,
+      "matchedRuleKeys": [
+        "permission_status_invalid:LIN=0",
+        "permission_end_reason_invalid:LIN=0",
+        "permission_status_invalid:LIN=1",
+        "permission_end_reason_invalid:LIN=1"
+      ],
+      "unmappedIssues": []
+    },
+    "second": {
+      "errors": [
+        {
+          "ercCode": "42",
+          "fieldCode": "322",
+          "text": "Felaktigt Tillståndets status X99",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Tillståndets status X99",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "322",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z23/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z23/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|X99",
+                "locator": "CAV/C889/7111",
+                "content": "X99"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "324",
+          "text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Orsak till tillståndets upphörande B00",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "324",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z25/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z25/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|B00",
+                "locator": "CAV/C889/7111",
+                "content": "B00"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "322",
+          "text": "Felaktigt Tillståndets status X99",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Tillståndets status X99",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 1,
+            "lineNumber": "2",
+            "registerPosition": 2,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "322",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z23/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z23/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 1,
+              "lineNumber": "2",
+              "registerPosition": 2,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|X99",
+                "locator": "CAV/C889/7111",
+                "content": "X99"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "324",
+          "text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Orsak till tillståndets upphörande B00",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 1,
+            "lineNumber": "2",
+            "registerPosition": 2,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "324",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z25/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z25/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 1,
+              "lineNumber": "2",
+              "registerPosition": 2,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV|B00",
+                "locator": "CAV/C889/7111",
+                "content": "B00"
+              }
+            ]
+          }
+        }
+      ],
+      "details": [
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_status_invalid:LIN=0",
+          "applicationError": "42",
+          "freeTextCode": "322",
+          "freeText": "Felaktigt Tillståndets status X99",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 0
+        },
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_end_reason_invalid:LIN=0",
+          "applicationError": "42",
+          "freeTextCode": "324",
+          "freeText": "Felaktigt Orsak till tillståndets upphörande B00",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 1
+        },
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_status_invalid:LIN=1",
+          "applicationError": "42",
+          "freeTextCode": "322",
+          "freeText": "Felaktigt Tillståndets status X99",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 2
+        },
+        {
+          "validationIssueId": "synthetic",
+          "errorRuleId": null,
+          "ruleKey": "permission_end_reason_invalid:LIN=1",
+          "applicationError": "42",
+          "freeTextCode": "324",
+          "freeText": "Felaktigt Orsak till tillståndets upphörande B00",
+          "meteringPointId": "735123456789012345",
+          "transactionReference": "CASE:A+B?C",
+          "sourceOrder": 3
+        }
+      ],
+      "issueCount": 4,
+      "matchedRuleKeys": [
+        "permission_status_invalid:LIN=0",
+        "permission_end_reason_invalid:LIN=0",
+        "permission_status_invalid:LIN=1",
+        "permission_end_reason_invalid:LIN=1"
+      ],
+      "unmappedIssues": []
+    },
+    "writes": [
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_status_invalid:LIN=0",
+          "severity": "error",
+          "field_path": "SG8[0]/CCI++Z23/CAV",
+          "field_value": "X99",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 0
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=0\",\"SG8[0]/CCI++Z23/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_status_invalid:LIN=0",
+          "application_error": "42",
+          "free_text_code": "322",
+          "free_text": "Felaktigt Tillståndets status X99",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 0
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=0\",\"42\",\"322\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_end_reason_invalid:LIN=0",
+          "severity": "error",
+          "field_path": "SG8[0]/CCI++Z25/CAV",
+          "field_value": "B00",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 1
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=0\",\"SG8[0]/CCI++Z25/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_end_reason_invalid:LIN=0",
+          "application_error": "42",
+          "free_text_code": "324",
+          "free_text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 1
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=0\",\"42\",\"324\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_status_invalid:LIN=1",
+          "severity": "error",
+          "field_path": "SG8[1]/CCI++Z23/CAV",
+          "field_value": "X99",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 2
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=1\",\"SG8[1]/CCI++Z23/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_status_invalid:LIN=1",
+          "application_error": "42",
+          "free_text_code": "322",
+          "free_text": "Felaktigt Tillståndets status X99",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 2
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=1\",\"42\",\"322\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_end_reason_invalid:LIN=1",
+          "severity": "error",
+          "field_path": "SG8[1]/CCI++Z25/CAV",
+          "field_value": "B00",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 3
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=1\",\"SG8[1]/CCI++Z25/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_end_reason_invalid:LIN=1",
+          "application_error": "42",
+          "free_text_code": "324",
+          "free_text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 3
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=1\",\"42\",\"324\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_status_invalid:LIN=0",
+          "severity": "error",
+          "field_path": "SG8[0]/CCI++Z23/CAV",
+          "field_value": "X99",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 0
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=0\",\"SG8[0]/CCI++Z23/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_status_invalid:LIN=0",
+          "application_error": "42",
+          "free_text_code": "322",
+          "free_text": "Felaktigt Tillståndets status X99",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 0
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=0\",\"42\",\"322\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_end_reason_invalid:LIN=0",
+          "severity": "error",
+          "field_path": "SG8[0]/CCI++Z25/CAV",
+          "field_value": "B00",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 1
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=0\",\"SG8[0]/CCI++Z25/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_end_reason_invalid:LIN=0",
+          "application_error": "42",
+          "free_text_code": "324",
+          "free_text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 1
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=0\",\"42\",\"324\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_status_invalid:LIN=1",
+          "severity": "error",
+          "field_path": "SG8[1]/CCI++Z23/CAV",
+          "field_value": "X99",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 2
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=1\",\"SG8[1]/CCI++Z23/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_status_invalid:LIN=1",
+          "application_error": "42",
+          "free_text_code": "322",
+          "free_text": "Felaktigt Tillståndets status X99",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 2
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=1\",\"42\",\"322\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_message_validation_issues",
+        "body": {
+          "message_id": "00000000-0000-4000-8000-000000000001",
+          "rule_key": "permission_end_reason_invalid:LIN=1",
+          "severity": "error",
+          "field_path": "SG8[1]/CCI++Z25/CAV",
+          "field_value": "B00",
+          "expected_value": null,
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 3
+        },
+        "conflict": "message_id,rule_key,coalesce_field_path,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=1\",\"SG8[1]/CCI++Z25/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      },
+      {
+        "table": "ediel_aperak_error_details",
+        "body": {
+          "source_message_id": "00000000-0000-4000-8000-000000000001",
+          "validation_issue_id": "synthetic",
+          "error_rule_id": null,
+          "rule_key": "permission_end_reason_invalid:LIN=1",
+          "application_error": "42",
+          "free_text_code": "324",
+          "free_text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "metering_point_id": "735123456789012345",
+          "transaction_reference": "CASE:A+B?C",
+          "source_order": 3
+        },
+        "conflict": "source_message_id,rule_key,application_error,coalesce_free_text_code,coalesce_metering_point_id,coalesce_transaction_reference",
+        "key": "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=1\",\"42\",\"324\",\"735123456789012345\",\"CASE:A+B?C\"]"
+      }
+    ],
+    "keys": [
+      "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=0\",\"SG8[0]/CCI++Z23/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=0\",\"42\",\"322\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=0\",\"SG8[0]/CCI++Z25/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=0\",\"42\",\"324\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=1\",\"SG8[1]/CCI++Z23/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_status_invalid:LIN=1\",\"42\",\"322\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_message_validation_issues\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=1\",\"SG8[1]/CCI++Z25/CAV\",\"735123456789012345\",\"CASE:A+B?C\"]",
+      "[\"ediel_aperak_error_details\",\"00000000-0000-4000-8000-000000000001\",\"permission_end_reason_invalid:LIN=1\",\"42\",\"324\",\"735123456789012345\",\"CASE:A+B?C\"]"
+    ]
+  },
+  {
+    "name": "registry-empty-C829",
+    "error": {
+      "message": "PRODAT_REGISTER_ACK_REVIEW_REQUIRED",
+      "errors": [
+        {
+          "ercCode": "42",
+          "fieldCode": "324",
+          "text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Orsak till tillståndets upphörande B00",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "324",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z25/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z25/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV;B00",
+                "locator": "CAV/C889/7111",
+                "content": "B00"
+              }
+            ]
+          }
+        },
+        {
+          "ercCode": "42",
+          "fieldCode": "324",
+          "text": "Felaktigt Orsak till tillståndets upphörande B00",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Orsak till tillståndets upphörande B00",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE:A+B?C"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 1,
+            "lineNumber": "2",
+            "registerPosition": 2,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE:A+B?C"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "324",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "segmentPath": "CCI++Z25/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z25/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE:A+B?C"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 1,
+              "lineNumber": "2",
+              "registerPosition": 2,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE:A+B?C"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV;B00",
+                "locator": "CAV/C889/7111",
+                "content": "B00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "writes": []
+  },
+  {
+    "name": "direct-preservation",
+    "unknown": {
+      "kind": "ack",
+      "ackFamily": "APERAK",
+      "outcome": "positive",
+      "messageText": null,
+      "applicationErrors": [],
+      "reason": "PRODAT backend decision selected positive APERAK using prodat_permission_z14.",
+      "ruleKeys": [
+        "prodat_permission_z14"
+      ],
+      "classification": {
+        "family": "PRODAT",
+        "messageCode": "Z14",
+        "variant": "unknown",
+        "processType": "permission",
+        "businessResult": "unknown",
+        "applicationValidity": "uncertain",
+        "confidence": "medium",
+        "ruleProfileId": "prodat_permission_z14",
+        "manualReviewReason": "Egen transaktionstyp avgör inte Z14V/Z14N/Z14VH.",
+        "requiredFields": [
+          "BGM",
+          "DTM+137",
+          "NAD+FR",
+          "NAD+DO",
+          "LIN/RFF+Z07"
+        ],
+        "optionalFields": [
+          "CCI/CAV Z04",
+          "CCI/CAV Z12",
+          "CCI/CAV Z23",
+          "CCI/CAV Z24",
+          "CCI/CAV Z25",
+          "RFF+ACW",
+          "RFF+LI"
+        ],
+        "expectedResponses": [
+          "CONTRL",
+          "APERAK"
+        ],
+        "errorMapping": [
+          "facility_not_identified",
+          "permission_flow_not_found",
+          "permission_status_invalid",
+          "permission_end_reason_invalid"
+        ],
+        "matchedSignals": [
+          "Z23=A13",
+          "Z24=B72"
+        ]
+      },
+      "portalFeedback": null,
+      "expectedComparison": {
+        "status": "no_expected",
+        "reason": "Ingen testförväntning angavs."
+      }
+    },
+    "end": {
+      "kind": "ack",
+      "ackFamily": "APERAK",
+      "outcome": "negative",
+      "messageText": "Mätvärdesåtkomst kräver avtalsreferens.",
+      "applicationErrors": [
+        {
+          "ercCode": "41",
+          "fieldCode": null,
+          "text": "Mätvärdesåtkomst kräver avtalsreferens.",
+          "referenceQualifier": "Z07",
+          "referenceNumber": "735123456789012345",
+          "lineItemReference": "CASE:A+B?C"
+        }
+      ],
+      "reason": "PRODAT backend decision selected negative APERAK using prodat_permission_z18.",
+      "ruleKeys": [
+        "prodat_permission_z18",
+        "41:NO_FIELD"
+      ],
+      "classification": {
+        "family": "PRODAT",
+        "messageCode": "Z18",
+        "variant": "Z18V",
+        "processType": "permission",
+        "businessResult": "permission_termination_requested",
+        "applicationValidity": "valid",
+        "confidence": "high",
+        "ruleProfileId": "prodat_permission_z18",
+        "manualReviewReason": null,
+        "requiredFields": [
+          "BGM",
+          "DTM+137",
+          "NAD+FR",
+          "NAD+DO",
+          "LIN/RFF+Z07"
+        ],
+        "optionalFields": [
+          "CCI/CAV Z04",
+          "CCI/CAV Z12",
+          "CCI/CAV Z23",
+          "CCI/CAV Z24",
+          "CCI/CAV Z25",
+          "RFF+ACW",
+          "RFF+LI"
+        ],
+        "expectedResponses": [
+          "CONTRL",
+          "APERAK"
+        ],
+        "errorMapping": [
+          "facility_not_identified",
+          "permission_flow_not_found",
+          "permission_status_invalid",
+          "permission_end_reason_invalid"
+        ],
+        "matchedSignals": [
+          "Z25=E37"
+        ]
+      },
+      "portalFeedback": null,
+      "expectedComparison": {
+        "status": "no_expected",
+        "reason": "Ingen testförväntning angavs."
+      }
+    }
+  },
+  {
+    "name": "partial-controls",
+    "controls": {
+      "valid322": [],
+      "selected322duplicate": [
+        {
+          "severity": "error",
+          "blocking": true,
+          "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+          "title": "Tillståndsfält kräver intern granskning",
+          "description": "{\"reason\":\"Field322 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z23\",\"CAV+A74\",\"CCI++Z23\",\"CAV+A74\"]}",
+          "fieldPath": "SG8/SG14",
+          "prodatDiagnostic": {
+            "kind": "internal",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "reason": "{\"reason\":\"Field322 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z23\",\"CAV+A74\",\"CCI++Z23\",\"CAV+A74\"]}"
+          }
+        }
+      ],
+      "selected324duplicate": [
+        {
+          "severity": "error",
+          "blocking": true,
+          "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+          "title": "Tillståndsfält kräver intern granskning",
+          "description": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}",
+          "fieldPath": "SG8/SG14",
+          "prodatDiagnostic": {
+            "kind": "internal",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "reason": "{\"reason\":\"Field324 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z25\",\"CAV+B79\",\"CCI++Z25\",\"CAV+B79\"]}"
+          }
+        }
+      ],
+      "excluded322duplicate": [
+        {
+          "severity": "error",
+          "blocking": true,
+          "code": "PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED",
+          "title": "Tillståndsfält kräver intern granskning",
+          "description": "{\"reason\":\"Field322 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z23\",\"CAV+A74\",\"CCI++Z23\",\"CAV+A74\"]}",
+          "fieldPath": "SG8/SG14",
+          "prodatDiagnostic": {
+            "kind": "internal",
+            "sourceRule": "PRODAT26A:P21/73/75/119/123",
+            "reason": "{\"reason\":\"Field322 has ambiguous owning CCI/CAV placement\",\"rawSegments\":[\"CCI++Z23\",\"CAV+A74\",\"CCI++Z23\",\"CAV+A74\"]}"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "accepted-main-control",
+    "issues": []
+  }
+]

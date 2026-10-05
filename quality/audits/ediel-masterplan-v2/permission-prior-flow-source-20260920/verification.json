@@ -1,0 +1,383 @@
+{
+  "sourceBase": "7ea935cf",
+  "protectedChanges": [],
+  "inputHashesMatched": 38,
+  "priorReceiptHashesMatched": 33,
+  "hashChecks": [
+    {
+      "kind": "input",
+      "path": "app/admin/ediel/actions.part-1.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "app/admin/ediel/actions.part-3.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/actionAccess.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/types.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/supabase/service.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/testing/prodatPermissionEngine.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/prodat/prodatPermissionAckFields.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/prodat/parser.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/prodat/prodatReferenceFields.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/prodat/prodatPartyFields.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/core/edifactSegments.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/core/edifactTokenizer.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/core/tenantResolver.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/core/executionContext.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/orchestrator.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/core/kernel.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/db.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "supabase/database.types.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "supabase/migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/fixtures/prodat-energy-product.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/fixtures/prodat-identity.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/fixtures/prodat-register.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/ediel-prodat-energy-product-consumers.test.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/ediel-prodat-permission-ack-consumers.test.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/ediel-prodat-document-consumers.test.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "__tests__/ediel-prodat-party-consumers.test.ts",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.md",
+      "matches": true
+    },
+    {
+      "kind": "input",
+      "path": ".agent-memory/permission-ack-source-review.md",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/result-v2.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/vitest.config.mjs.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations.test.ts.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/README.md",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v1.ts.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v2.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/result-v1.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v1.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/manifest.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/run-v1.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/run-v2.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-run.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v1.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/input-hashes.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-observations.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/vitest-config.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-2.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v2.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-run.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v2.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-probe.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/source-integrity.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-1.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v1.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v1.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run-v2.log",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v1.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v2.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-observations.json",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/normative-oracles.txt",
+      "matches": true
+    },
+    {
+      "kind": "prior",
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v2.txt",
+      "matches": true
+    }
+  ],
+  "freshTests": {
+    "total": 69,
+    "passed": 54,
+    "deliberateRed": 15,
+    "observations": 55
+  },
+  "pdfSha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "sourceOnly": true,
+  "liveCalls": false,
+  "runtimeAuthorized": false,
+  "qualificationReplay": {
+    "testSource": "probe-qualified-final.test.ts.txt",
+    "result": "result-qualified-final.json",
+    "observations": "observations-qualified-final.json",
+    "total": 69,
+    "passed": 54,
+    "deliberateRed": 15,
+    "records": 55,
+    "fixtureCorrection": "UNB parties/test flag aligned with source/control row identities; originalfinal receipts unchanged"
+  }
+}

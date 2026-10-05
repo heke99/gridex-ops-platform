@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "candidateBase": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "prerequisite": "48f33677",
+  "scope": [
+    "P16",
+    "P13",
+    "AT-Z08LK-SUPPLIER",
+    "AT-Z05LK-SUPPLIER"
+  ],
+  "wholeCriterionStatus": "NOT_APPROVED",
+  "implementation": "native immutable requested closure operation over actual own supply and authenticated archived independently reviewed LK profile; actual validated intent/render/canonical atomic original; accepted private original matched to whole Z05 before own period end/version/history/source receipt/audit",
+  "migration": "20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+  "byteCustody": "Reuses gridex_bilateral_prodat archived profile; no new legal byte original or copied PDF",
+  "expectedEffects": [
+    "requested closure and original leave own supply unchanged",
+    "matched privately accepted actual Z08 original and canonical whole Z05 atomically end only selected own period and bind immutable original/profile receipt",
+    "original/current source and profile checks precede fresh effects",
+    "captured-profile/current issuer/reviewer replay checks; immutable history does not reselect current guide"
+  ],
+  "prohibitedEffects": [
+    "unsent or unrelated original must not end any period or mint positive ACK",
+    "caller copied operation JSON must not qualify renderer or atomic original",
+    "missing/current revoked supply/profile/reviewer/issuer hold without false success",
+    "last original/end audit failure rolls back original witness/intent, or period end/source transition/receipt",
+    "no public/private history rewriting, no national source guard weakening"
+  ],
+  "verification": {
+    "baselineRed": "new native closure producer absent on complete predecessor chain; EDIEL_EXPECT_CLOSURE_BASELINE_RED=1 expected nonzero",
+    "boundedSql": {
+      "status": "PASS",
+      "checks": 31,
+      "boundary": "PGlite complete forward, real archive/review/current operation/atomic original/full native national end bodies over explicitly finite prior-supply/canonical/provider ports; UTC before fixture timestamps matches native Supabase",
+      "nativeAuthority": "NOT_CLAIMED"
+    },
+    "unitDecoder": {
+      "status": "PASS",
+      "tests": 19,
+      "boundary": "finite scoped RPC decoder, not native issuer/market proof"
+    },
+    "scriptsTypecheck": "PASS",
+    "diffCheck": "PASS",
+    "native": {
+      "status": "NOT_RUN",
+      "suite": "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+      "newCases": 3,
+      "boundary": "actual signed contract/PDF/POA→H original→local provider→whole H Z04→approved supply→archive/independent LK review→operation/intent/atomic original→local provider→matched whole Z05; legal issuer is synthetic mechanism fixture, not real bilateral approval"
+    },
+    "interactiveBrowser": "NOT_RUN",
+    "exactHeadCI": "PENDING_ROOT_INTEGRATION"
+  },
+  "remainingInternal": [
+    "national Z08H legal rescission source producer/original/matched L-end is separate and still requires recreated implementation",
+    "current UI/admin closure-operation trigger is not yet wired",
+    "heterogeneous H/LK whole-source end dispatch is held until its full own-object transaction is implemented"
+  ],
+  "externalProductionFacts": [
+    "Actual authenticated bilateral LK agreement/profile and specific legal issuer representation are required; synthetic configured native fixtures do not establish these facts",
+    "Actual Ediel/counterparty interoperability qualification remains unperformed under forbidden traffic constraints"
+  ]
+}

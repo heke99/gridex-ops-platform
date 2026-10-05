@@ -1,6 +1,6 @@
 // Extracted from tgtRegistry.ts; keep public imports on the facade module.
 
-import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS, EDIEL_TGT_TESTSYSTEM_EDIEL_ID, GRIDEX_EDIEL_ID } from "@/lib/ediel/fileEngine"
+import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS, EDIEL_TGT_TESTSYSTEM_EDIEL_ID, GRIDEX_EDIEL_ID } from "@/lib/ediel/fileEngineConstants"
 import type { EdielTgtTestCaseDefinition } from './tgtRegistry.part-1'
 import { PRODAT_POSITIVE_APERAK } from './tgtRegistry.part-1'
 import { additionalEdielTgtTestCases } from './tgtRegistry.part-2'

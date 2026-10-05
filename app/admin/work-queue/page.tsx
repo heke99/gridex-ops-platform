@@ -1,3 +1,4 @@
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -5,6 +6,9 @@ import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatStatusLabel } from '@/lib/ui/format'
+import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
+import { infoRequestProcessQueueState } from '@/lib/customer-operations/infoRequestProcessQueue'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +49,18 @@ type CountFilter = {
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
 const ACTIVE_TASK_STATUSES = ['open', 'new', 'pending_review', 'action_required', 'missing_authorization', 'blocked', 'route_missing', 'manual_review_required', 'failed']
-const ACTION_REQUIRED_STATUSES = new Set(ACTIVE_TASK_STATUSES)
+// Mirrors customer_info_requests_status_check minus the terminal states.
+const INFO_REQUEST_OPEN_STATUSES = [
+  'draft', 'missing_authorization', 'ready_to_send', 'sent_to_grid_owner', 'waiting_for_contrl',
+  'waiting_for_aperak', 'waiting_for_z02', 'z02_received', 'negative_aperak', 'manual_review_required',
+  'missing_binding_info', 'missing_termination_info', 'ready_for_switch', 'blocked',
+]
+const ACTION_REQUIRED_STATUSES = new Set([
+  ...ACTIVE_TASK_STATUSES,
+  'draft', 'ready_to_send', 'negative_aperak', 'missing_binding_info', 'missing_termination_info', 'ready_for_switch',
+  // OPS-02 process-decision states (infoRequestProcessQueueState).
+  'process_decision_missing', 'process_response_received',
+])
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -299,7 +314,7 @@ export default async function AdminWorkQueuePage() {
   const companyScope = await getOperationalCompanyScope(context.userId)
   const isPlatformAdmin = isPlatformAdminContext(context)
   const supabase = await createSupabaseServerClient()
-  const companyId = isPlatformAdmin ? null : companyScope.companyId
+  const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
   const [dbQueueRows, operationEventRows, operationJobRows] = await Promise.all([
     listCompanyWorkQueue(supabase, companyId, { limit: 250 }),
     loadOperationEventActions(supabase, companyId),
@@ -383,8 +398,8 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'customer_info_requests',
       companyId,
-      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
-      [{ column: 'status', op: 'in', value: ACTIVE_TASK_STATUSES }],
+      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, ediel_message_id, created_at',
+      [{ column: 'status', op: 'in', value: INFO_REQUEST_OPEN_STATUSES }],
       customerIds,
       80,
     ),
@@ -451,20 +466,39 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
+  // OPS-02: waiting rows follow the native process decision of their Ediel
+  // source message. An unreadable decision leaves the map empty (rows held).
+  const processDecisions = new Map<string, EdielProcessNextAction>()
+  const processSourceIds = infoRequests.flatMap((row) => textValue(row.ediel_message_id) ? [String(row.ediel_message_id)] : [])
+  if (companyId && context.permissions.includes('communication.read') && processSourceIds.length) {
+    try {
+      for (let offset = 0; offset < processSourceIds.length; offset += 100) {
+        for (const environment of ['test', 'production'] as const) {
+          const decisions = await readEdielProcessNextActions({ companyId, actorUserId: context.userId, environment, messageIds: processSourceIds.slice(offset, offset + 100),
+            evaluatedAt: new Date().toISOString(), access: { canRead: true, canReview: context.permissions.includes('cases.write'), canPrepare: false } })
+          for (const [sourceId, decision] of decisions) processDecisions.set(sourceId, decision)
+        }
+      }
+    } catch {
+      processDecisions.clear()
+    }
+  }
+
   for (const row of infoRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
     if (!customer) continue
     const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
+    const processState = infoRequestProcessQueueState({ status: textValue(row.status), edielMessageId: textValue(row.ediel_message_id), processDecisions })
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
       source: 'Uppgiftsbegäran',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
-      title: `Väntar på ${target}`,
-      description: textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
-      status: String(row.status ?? 'pending'),
-      priority: ['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal',
+      title: processState?.title ?? `Väntar på ${target}`,
+      description: processState?.description ?? textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
+      status: processState?.status ?? String(row.status ?? 'pending'),
+      priority: processState?.priority ?? (['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal'),
       createdAt: dateValue(row.created_at),
       href: `/admin/customers/${customer.id}?tab=data-requests`,
       actionLabel: 'Öppna uppgiftsbegäran',
@@ -579,12 +613,12 @@ export default async function AdminWorkQueuePage() {
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
       />
 
-      <main className="space-y-6 p-6 lg:p-8">
-        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-950 shadow-sm">
+      <main className="space-y-4 p-4 lg:p-6">
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-sm">
           {staleHint}
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
           <StatCard label="Synliga kunder" value={visibleCustomerCount} />
           <StatCard label="Ärenden i kö" value={sortedItems.length} />
           <StatCard label="Hög prioritet" value={sortedItems.filter((item) => item.priority === 'high' || item.priority === 'critical').length} />
@@ -604,43 +638,41 @@ export default async function AdminWorkQueuePage() {
                 Det betyder att det inte finns öppna blockerare, uppgiftsbegäran eller leverantörsbyten kopplade till synliga kunder.
                 Gamla testdata och orphans visas inte här.
               </p>
-              <div className="mt-6 flex justify-center gap-3">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link href="/admin/customers" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">Öppna kundregister</Link>
                 <Link href="/admin/customers/intake" className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Skapa kund</Link>
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+            <div className="min-w-0">
+              <table className="w-full table-fixed divide-y divide-slate-200 text-sm [&_td]:min-w-0 [&_td]:break-words max-lg:[&_tbody_tr]:grid max-lg:[&_tbody_tr]:grid-cols-1 max-lg:[&_td]:px-4 max-lg:[&_td]:py-2 max-lg:[&_tbody_tr]:p-2">
+                <thead className="sr-only bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.14em] text-slate-600 lg:not-sr-only lg:table-header-group">
                   <tr>
-                    <th className="px-6 py-4">Kund</th>
-                    <th className="px-6 py-4">Ärende</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Prioritet</th>
-                    <th className="px-6 py-4">Skapad</th>
-                    <th className="px-6 py-4">Åtgärd</th>
+                    <th className="px-4 py-3">Kund</th>
+                    <th className="px-4 py-3">Ärende</th>
+                    <th className="px-4 py-3">Status och prioritet</th>
+                    <th className="px-4 py-3">Åtgärd</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {sortedItems.map((item) => (
                     <tr key={`${item.source}-${item.id}`} className="hover:bg-slate-50">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="font-bold text-slate-950">{item.customerLabel}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.customerId}</div>
+                        <p className="mt-1 text-xs text-slate-600">{formatDate(item.createdAt)}</p>
+                        <details className="mt-1 text-xs text-slate-600"><summary className="cursor-pointer">Kund-id</summary><p className="mt-1 break-all">{item.customerId}</p></details>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-800">{item.source}</div>
                         <div className="mt-1 font-semibold text-slate-900">{item.title}</div>
                         <div className="mt-1 max-w-xl text-xs leading-5 text-slate-600">{item.description}</div>
                       </td>
-                      <td className="px-6 py-4 text-slate-700">{statusLabel(item.status)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{item.priority}</span>
+                      <td className="px-4 py-3 text-slate-700">
+                        <p>{statusLabel(item.status)}</p>
+                        <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
                       </td>
-                      <td className="px-6 py-4 text-slate-700">{formatDate(item.createdAt)}</td>
-                      <td className="px-6 py-4">
-                        <Link href={item.href} className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <Link href={item.href} className="inline-flex max-w-full items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
                           {item.actionLabel}
                         </Link>
                       </td>
@@ -658,9 +690,9 @@ export default async function AdminWorkQueuePage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-sm font-bold text-slate-700">{label}</div>
-      <div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="min-w-0 break-words text-sm font-medium text-slate-700">{label}</div>
+      <div className="text-2xl font-semibold text-slate-950">{value}</div>
     </div>
   )
 }

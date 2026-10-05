@@ -1,6 +1,8 @@
+import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 // lib/ediel/prodat/engine.ts
 
 import type {
+  ProdatEngineAckExpectation,
   ProdatEngineInput,
   ProdatEnginePortalSnapshot,
   ProdatEngineProductionContext,
@@ -19,9 +21,12 @@ import { buildZ13Segments } from '@/lib/ediel/prodat/builders/z13'
 import { buildZ14Segments } from '@/lib/ediel/prodat/builders/z14'
 import { buildZ15Segments } from '@/lib/ediel/prodat/builders/z15'
 import { buildZ18Segments } from '@/lib/ediel/prodat/builders/z18'
-import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
-import { buildRulebookMessageDecision } from '@/lib/ediel/rulebook/messageBuilder'
-import { validateProdatProfile } from '@/lib/ediel/prodat/profiles'
+import { prodatMessageTypeToken } from '@/lib/ediel/prodat/registry'
+import {
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 
 export type {
   ProdatEngineAckExpectation,
@@ -37,7 +42,6 @@ export type {
   ProdatEngineValidationIssue,
   ProdatEngineVersionContext,
 } from '@/lib/ediel/prodat/types'
-
 
 export class ProdatRenderValidationError extends Error {
   readonly issues: ProdatEngineRenderResult['issues']
@@ -65,43 +69,92 @@ const BUILDERS = {
   Z18: buildZ18Segments,
 } satisfies Record<ProdatEngineInput['code'], typeof buildZ09Segments>
 
-function withAckExpectation(result: ProdatEngineRenderResult, code?: string | null): ProdatEngineRenderResult {
+function policyReferenceDate(input: ProdatEngineInput): string {
+  return (input.generatedAt ?? new Date()).toISOString().slice(0, 10)
+}
+
+function resolveRenderPolicy(input: ProdatEngineInput): CanonicalEdielPolicy {
+  const subtypeSource = input.variant
+    ?? input.context.reasonForTransaction
+    ?? input.context.contractClosureReason
+    ?? null
+
+  return resolveCanonicalEdielPolicy({
+    family: 'PRODAT',
+    messageCode: input.code,
+    subtypeOrReasonCode: subtypeSource,
+    direction: 'outbound',
+    referenceDate: policyReferenceDate(input),
+    applicationReference: input.route.applicationReference ?? null,
+    businessContext: input.context.businessContext ?? null,
+    bilateralCapabilityVerified: input.context.bilateralCapabilityVerified ?? undefined,
+    prodatDependentFacts: {
+      market: 'electricity',
+      ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
+    },
+    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
+  })
+}
+
+function ackExpectationFromPolicy(policy: CanonicalEdielPolicy): ProdatEngineAckExpectation {
+  const requiresContrl = policy.ackRule.technicalAck === 'CONTRL'
+  const requiresAperak = policy.ackRule.applicationAck === 'APERAK' || policy.ackRule.applicationAck === 'transactional'
   return {
-    ...result,
-    ackExpectation: result.ackExpectation ?? deriveProdatAckExpectation(code),
+    requiresContrl,
+    requiresAperak,
+    contrlStatus: requiresContrl ? 'pending' : 'not_required',
+    aperakStatus: requiresAperak ? 'pending' : 'not_required',
+    utiltsErrStatus: 'not_required',
+    ackDueAt: null,
+  }
+}
+
+function canonicalizeEngineInput(input: ProdatEngineInput, policy: CanonicalEdielPolicy): ProdatEngineInput {
+  return {
+    ...input,
+    variant: policy.subtype,
+    route: {
+      ...input.route,
+      applicationReference: policy.applicationReference,
+    },
+    context: {
+      ...input.context,
+      reasonForTransaction: policy.transactionReasonCode,
+    },
   }
 }
 
 export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult {
-  const builder = BUILDERS[input.code]
-  const rulebookDecision = buildRulebookMessageDecision({
-    family: 'PRODAT',
-    code: input.code,
-    applicationReference: input.route.applicationReference ?? undefined,
-  })
-  const profileValidation = validateProdatProfile({
-    code: input.code,
-    subtype: input.variant,
-    version: input.version.selectedVersion,
-    context: input.context,
-  })
-  const result = builder({
-    context: input.context,
-    portalSnapshot: input.portalSnapshot ?? null,
-    generatedAt: input.generatedAt,
-    mode: input.mode,
-    variant: input.variant ?? null,
-    routeDecisionReason: input.route.routeDecisionReason ?? null,
-    selectedVersion: input.version.selectedVersion,
-    acceptedVersions: input.version.acceptedVersions ?? [],
+  const policy = resolveRenderPolicy(input)
+  const canonicalInput = canonicalizeEngineInput(input, policy)
+  const builder = BUILDERS[canonicalInput.code]
+
+  // `policy` is an intentional runtime-only extension passed through the thin
+  // per-code wrappers to profileRenderer. The wrappers do not own protocol rules.
+  const builderInput = {
+    context: canonicalInput.context,
+    portalSnapshot: canonicalInput.portalSnapshot ?? null,
+    generatedAt: canonicalInput.generatedAt,
+    mode: canonicalInput.mode,
+    variant: canonicalInput.variant ?? null,
+    routeDecisionReason: canonicalInput.route.routeDecisionReason ?? null,
+    selectedVersion: canonicalInput.version.selectedVersion,
+    acceptedVersions: canonicalInput.version.acceptedVersions ?? [],
+    policy,
+  }
+  const result = builder(builderInput)
+  const policyFieldIssues = validateCanonicalPolicyFields({
+    policy,
+    rawSegments: result.segments,
+    scope: 'dependent_only',
   })
 
-  const rendered = withAckExpectation({
+  const rendered: ProdatEngineRenderResult = {
     ...result,
+    ackExpectation: ackExpectationFromPolicy(policy),
     issues: [
       ...result.issues,
-      ...profileValidation.issues,
-      ...rulebookDecision.issues.map((issue) => ({
+      ...policyFieldIssues.map((issue) => ({
         severity: issue.severity,
         code: issue.code,
         title: issue.title,
@@ -110,32 +163,49 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
     ],
     diagnostics: {
       ...result.diagnostics,
-      profileKey: profileValidation.profile?.key ?? null,
-      rulebookProcessGroup: rulebookDecision.processGroup,
-      rulebookApplicationReference: rulebookDecision.applicationReference,
-      rulebookIssues: rulebookDecision.issues as unknown as Array<Record<string, unknown>>,
+      profileKey: policy.profileKey,
+      rulebookProcessGroup: policy.processGroup,
+      rulebookApplicationReference: policy.applicationReference,
+      rulebookIssues: policyFieldIssues as unknown as Array<Record<string, unknown>>,
+      canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
+      dependentConditionStatuses: result.diagnostics.dependentConditionStatuses
+        ?? policy.prodatDependentConditions as unknown as Array<Record<string, unknown>>,
     },
-  }, input.code)
+  }
 
   const blockingIssues = rendered.issues.filter((issue) => issue.severity === 'error')
-  if (input.mode === 'production' && blockingIssues.length > 0) {
-    throw new ProdatRenderValidationError(input, blockingIssues)
+  if (canonicalInput.mode === 'production' && blockingIssues.length > 0) {
+    throw new ProdatRenderValidationError(canonicalInput, blockingIssues)
   }
 
   return rendered
 }
 
-/**
- * Legacy-compatible adapter used by existing switch/TGT code. It renders the
- * same body segments as the old implementation, but the actual responsibility
- * now sits inside lib/ediel/prodat/* so PRODAT can grow without becoming one
- * giant generator.
- */
+/** Legacy-compatible adapter. Guide/version and Application Reference are
+ * resolved through the same canonical policy used by the production renderer. */
 export function renderProdat26A(input: {
   context: ProdatEngineProductionContext
   portalSnapshot?: ProdatEnginePortalSnapshot
   generatedAt?: Date
 }): ProdatEngineRenderResult {
+  const generatedAt = input.generatedAt ?? new Date()
+  const previewPolicy = resolveCanonicalEdielPolicy({
+    family: 'PRODAT',
+    messageCode: input.context.code,
+    subtypeOrReasonCode: input.context.reasonForTransaction ?? input.context.contractClosureReason ?? null,
+    direction: 'outbound',
+    referenceDate: generatedAt.toISOString().slice(0, 10),
+    businessContext: input.context.businessContext ?? null,
+    bilateralCapabilityVerified: input.context.bilateralCapabilityVerified ?? undefined,
+    prodatDependentFacts: {
+      market: 'electricity',
+      ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
+    },
+    mode: input.portalSnapshot ? 'catalog_evidence' : 'send',
+  })
+  const selectedVersion = previewPolicy.associationAssignedCode
+  if (!selectedVersion) throw new Error(`canonical_prodat_association_missing:${input.context.code}`)
+
   return renderProdat({
     code: input.context.code,
     mode: input.portalSnapshot ? 'test' : 'production',
@@ -143,14 +213,19 @@ export function renderProdat26A(input: {
       senderEdielId: input.context.senderEdielId,
       receiverEdielId: input.context.receiverEdielId,
     },
-    route: {},
+    route: {
+      applicationReference: previewPolicy.applicationReference,
+    },
     version: {
-      selectedVersion: '26A',
-      messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A',
-      acceptedVersions: ['26A', 'E2SE6A'],
+      selectedVersion,
+      messageTypeToken: prodatMessageTypeToken(selectedVersion),
+      acceptedVersions: [...new Set([
+        selectedVersion,
+        ...previewPolicy.acceptedOutboundGuides.map((guide) => guide.associationAssignedCode).filter((value): value is string => Boolean(value)),
+      ])],
     },
     context: input.context,
     portalSnapshot: input.portalSnapshot ?? null,
-    generatedAt: input.generatedAt,
+    generatedAt,
   })
 }

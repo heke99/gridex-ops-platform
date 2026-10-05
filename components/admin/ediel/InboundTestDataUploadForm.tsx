@@ -122,7 +122,7 @@ export default function InboundTestDataUploadForm({
 
  <label className="text-xs font-semibold text-slate-700">
  Testfall
- <select
+ <select aria-label="Testfall"
  name="testCaseCode"
  defaultValue={defaultTestCaseCode ?? ''}
  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-2 py-2 text-xs text-slate-950"
@@ -138,7 +138,7 @@ export default function InboundTestDataUploadForm({
 
  <label className="text-xs font-semibold text-slate-700">
  Rubrik
- <input
+ <input aria-label="Rubrik"
  name="title"
  defaultValue={defaultTitle ?? ''}
  placeholder="t.ex. 2.2.1 Z06F felaktigt anläggningsid"
@@ -148,7 +148,7 @@ export default function InboundTestDataUploadForm({
 
  <label className="text-xs font-semibold text-slate-700 md:col-span-2">
  Ladda upp Excel/CSV från Edielportalen
- <input
+ <input aria-label="Ladda upp Excel/CSV från Edielportalen"
  name="testDataFile"
  type="file"
  multiple

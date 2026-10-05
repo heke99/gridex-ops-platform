@@ -1,0 +1,2 @@
+import {defineConfig} from 'vitest/config';
+export default defineConfig({root:'/tmp/gridex-ui-browser',resolve:{alias:[{find:'next/link',replacement:'/tmp/gridex-ui-browser/link.tsx'},{find:'@',replacement:'/workspace/gridex-ops-platform'}]},esbuild:{jsx:'automatic'},test:{environment:'node',include:['remaining-fixtures.test.ts']}});

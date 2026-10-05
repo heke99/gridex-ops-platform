@@ -7,6 +7,7 @@ const supabaseDir = path.join(root, 'supabase');
 const migrationsDir = path.join(supabaseDir, 'migrations');
 const manifestPath = path.join(__dirname, 'migration-history-manifest.json');
 const manifestAdditionsPath = path.join(__dirname, 'migration-history-manifest.additions.json');
+const manifestRuntimeAdditionsPath = path.join(__dirname, 'migration-history-manifest.runtime.additions.json');
 const foundationPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.json');
 const foundationAdditionsPath = path.join(__dirname, 'gridex-aud-003-legacy-foundation.additions.json');
 const foundationOrderPath = path.join(__dirname, 'gridex-aud-003-foundation-order.json');
@@ -43,7 +44,8 @@ function assertLiveSchemaArtifactSyntax(filePath, rel) {
 
 const manifest = readJson(manifestPath, { files: {} });
 const manifestAdditions = readJson(manifestAdditionsPath, { files: {} });
-const pinned = { ...(manifest.files || {}), ...(manifestAdditions.files || {}) };
+const manifestRuntimeAdditions = readJson(manifestRuntimeAdditionsPath, { files: {} });
+const pinned = { ...(manifest.files || {}), ...(manifestAdditions.files || {}), ...(manifestRuntimeAdditions.files || {}) };
 const foundationPlan = readJson(foundationPath, { foundation: [], derivedBootstrap: {} });
 const foundationAdditions = readJson(foundationAdditionsPath, { foundation: [], derivedBootstrap: {}, interleaved: [] });
 const foundationOrder = readJson(foundationOrderPath, { foundation: [] });
@@ -145,6 +147,7 @@ for (const requiredRef of [
   'gridex-aud-003-noncanonical-artifacts.json',
   'migration-history-manifest.json',
   'migration-history-manifest.additions.json',
+  'migration-history-manifest.runtime.additions.json',
   'gridex-aud-003-main-ledger.json',
   'gridex-aud-003-schema-fingerprint.sql',
 ]) {

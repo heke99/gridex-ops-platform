@@ -1,0 +1,31 @@
+# PR367 — received PRODAT source integrity and conflict propagation
+
+Status: IMPLEMENTED_NOT_VERIFIED. Candidate parent9496c01c45925d5754cef21d9f8e85846e5d12cd; resolve the actual published child before review/merge. Accepted main remains7409e28c/PR366. This is one coupled source-integrity prerequisite, not a dated expected-structure loader or E61/E62 implementation.
+
+## Qualified change and meaningful RED
+
+Retain the original received-source plan, edifact-only scope amendment, duplicate/conflict decision and reviewed compatibility choice. Review5764361156's remaining conditions were satisfied by the corrected19-case documentation at9496 and actual0b ordinary OPS35629232486/job106431081680:5222total/5213PASS9FAIL, all9 genuine conflict/environment failures, ten new controls plus all5203 prior casesPASS. Earlier0ad had four behavioral and five mock-setup failures; they remain accurately separated. Real PostgreSQL0ad replay35623709051/job106412748475 independently executed62 assertions:35PASS27FAIL. Root authorization5764452364 precedes implementation. No old assertion is waived.
+
+## Production behavior
+
+Real CLI-created forward migration20260921171346_ediel_inbound_prodat_source_seal.sql uses CREATE OR REPLACE on the EXISTING gridex_validate_ediel_message_contract trigger function. Only INSERT + inbound + PRODAT + edifact assigns a server-computed SHA256 of exact UTF8 raw text. Caller hash is replaced. Null raw produces null hash; empty/whitespace text is hashed, without trim or rendering timestamp. No UPDATE backfill. The existing outbound checks and unconditional OLD-hash mutation guard remain byte-for-byte. No new trigger/signature, grant, policy, index or table. No environment/context freeze, deletion protection, transport authentication or historical source promotion is claimed.
+
+inboundStatusUpdater.ts adds only exact original code23514/message immutable_ediel_payload_cannot_change classification for PRODAT, throwing INBOUND_PRODAT_SOURCE_CONFLICT with the original error as cause. The existing awaited safe updater and unmatched processor path now stop before business/event/final email success on that conflict. Earlier parser diagnostics are not rolled back. Other DB errors, families, unique-conflict handling and lookup identity remain unchanged. The trusted existing mailbox environment is forwarded through the matched processor and safe updater, without a default.
+
+Root explicitly retains the existing company-scoped identical-byte cross-environment fallback. Two tests pin that legacy behavior. It is NOT qualified expected-structure authority; the later loader must independently validate company/environment/actor/object/agency/time/disposition/supersession/completeness. A broader deduplication or transaction redesign is outside this bounded diff.
+
+## Genuine generation and independent byte inspection
+
+Temporary UNMERGED branch bd9d6f9c, based exactly on9496, ran preparation35630581192/job106435514302 to terminalSUCCESS. The source plan permits this isolated generation/blob transport. It invoked real Supabase CLI2.101.0 migration new, the UNCHANGED ordinary clean replay in a disposable local Supabase PostgreSQL17 database, existing physical tenant/correlation checks and all62 new SQL cases. No remote DB/project secrets or deployment target was used. The job created immutable Git blobs only, never refs; its two temporary workflow/script files are excluded from this delivery tree.
+
+Root downloaded artifact10654159054,3125409bytes/20entries, and recomputed ZIP SHA256a079ddc53c45989d9c237948ce03d0d360a8c963a7791bf50dba72367c0df399, matching metadata. Root checked all seven delivery blobs against their actual bytes, all62 unique SQL PASS rows, targeted19/19 real public-caller tests, repeated type outputs, repeated normalized schema and each fingerprint section. Both actual type generations with the existing nullability override equal the unchanged committed database.types.ts. Only the genuine latest-migration/provenance manifest changes. The full normalized schema changes ONLY the intended function body (8 added lines); all object counts and nonfunction fingerprint sections are unchanged. The old restricted replay fingerprint is untouched. Source receipt: e035-source-seal-generation-20260921.json.
+
+The two TS production diffs add9 lines in inboundStatusUpdater.ts and1 line in edielInboundProcessor.ts. SQL62 blob b8f1526a39c749874308d8feedf06ddb194da4c9 and TS19 blob d9ce44298182290786fb47f959ca91d9ef13e68c remain unchanged from the qualified test-first revision. Preparation typing, migration/type checks, tenant invariants, parity injected-drift self-test and schema check succeeded. These preparation results are not final ordinary candidate CI or actual-main acceptance. Root did not execute a local repository suite; root inspected downloaded CI artifacts and exact diffs.
+
+## Required final acceptance and scope
+
+Next: unchanged ordinary exact-head CI (full npm test, types, build, migration replay/SQL62, schema, security, browser, masterplan, coverage), independent completed TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR review, expected-head guarded merge, then fresh actual-mainfull73/73 plus allOPS and independently inspected artifact receipt. PRsmoke15 never substitutes for fullmain. Do not merge while required checks or real findings remain pending.
+
+Skill routing: retained execution plan; actual failure/root-cause and false-positive qualification; TDD; Supabase/PostgreSQL and schema/grant differential verification; independent code review and verification-before-completion. No broad repository audit, UI/Next behavior, performance remediation or infrastructure change. Official PostgreSQL17 CREATE FUNCTION semantics and Supabase CLI documentation were checked; changelog markdown retrieval failed content-type and official HTML was inspected instead. No dependency version or shared gate was altered.
+
+After acceptance, continue the dated E035B source/loader rather than duplicating observed snapshots. Five F3 reconciliation groups remain open; see remaining-plan-status-20260921.md. D110/110+parents10/10 and prior bounded deliveries retained. FullE035/F3/masterplan NOT_COMPLETE. PR310 OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a remains untouched; no live DB/provider/market/settings/explicit deployment action.

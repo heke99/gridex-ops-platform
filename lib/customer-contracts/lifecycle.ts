@@ -142,8 +142,12 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
   const startsAt = normalizeDate(input.startsAt)
   const terminationNoticeDate = normalizeDate(input.terminationNoticeDate)
 
-  const boundUntil = startsAt
-    ? addMonths(startsAt, input.bindingMonths ?? 0)
+  const bindingMonths =
+    typeof input.bindingMonths === 'number' && Number.isFinite(input.bindingMonths) && input.bindingMonths > 0
+      ? input.bindingMonths
+      : null
+  const boundUntil = startsAt && bindingMonths
+    ? addMonths(startsAt, bindingMonths)
     : null
 
   const noticeEffectiveEndDate = terminationNoticeDate
@@ -160,7 +164,11 @@ export function getContractLifecycleSummary(
   const startsAt = normalizeDate(input.startsAt)
   const explicitEndsAt = normalizeDate(input.endsAt)
   const terminationNoticeDate = normalizeDate(input.terminationNoticeDate)
-  const boundUntil = startsAt ? addMonths(startsAt, input.bindingMonths ?? 0) : null
+  const bindingMonths =
+    typeof input.bindingMonths === 'number' && Number.isFinite(input.bindingMonths) && input.bindingMonths > 0
+      ? input.bindingMonths
+      : null
+  const boundUntil = startsAt && bindingMonths ? addMonths(startsAt, bindingMonths) : null
   const noticeEffectiveEndDate = terminationNoticeDate
     ? addMonths(terminationNoticeDate, input.noticeMonths ?? 0)
     : null

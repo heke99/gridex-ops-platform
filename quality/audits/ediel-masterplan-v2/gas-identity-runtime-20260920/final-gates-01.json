@@ -1,0 +1,217 @@
+{
+  "node": "v24.19.0",
+  "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95",
+  "gates": [
+    {
+      "gate": "ediel-eight",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-component-escaping.cjs"
+      ],
+      "exit": 0,
+      "seconds": 3.4,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-ediel-eight-01.log",
+      "sha256": "4c399e309bbc16e1ae9775f491f4ee37421bb98907fce09673b8f3dc93deb6cc",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "full",
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--reporter=json",
+        "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/full-01.json"
+      ],
+      "exit": 0,
+      "seconds": 54.92,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-full-01.log",
+      "sha256": "6eb8cf2453f1f519f52660ff173c9f43dddcf643ed1513ea669dc2e65382fdd3",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "implementation-diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "485a19e6",
+        "--",
+        "lib",
+        "app",
+        "__tests__"
+      ],
+      "exit": 0,
+      "seconds": 0.01,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-implementation-diffcheck-01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "integrity",
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.62,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-integrity-01.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "large-files",
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.77,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-large-files-01.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 108.37,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-lint-01.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "performance",
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 3.36,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-performance-01.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "quality",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts",
+        "--reporter=json",
+        "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/quality-01.json"
+      ],
+      "exit": 0,
+      "seconds": 6.71,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-quality-01.log",
+      "sha256": "e6341935053b5f56530e4318d2a1a6c5a4c24ccb8ae3f1fb35190c2dae8cae6a",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "ratchet",
+      "command": [
+        "node",
+        "scripts/check-service-role-tenant-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.3,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-ratchet-01.log",
+      "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "route-readiness",
+      "command": [
+        "npm",
+        "run",
+        "gridex:route-readiness-regression"
+      ],
+      "exit": 0,
+      "seconds": 2.1,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-route-readiness-01.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "tenant-integrity",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-integrity-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.18,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-tenant-integrity-01.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "tenant-shutdown",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-shutdown-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.18,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-tenant-shutdown-01.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 43.66,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-01.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "typecheck-scripts",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 3.03,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-scripts-01.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "typecheck-tests",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 8.34,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-tests-01.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    }
+  ]
+}

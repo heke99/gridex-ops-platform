@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-05T17:00:51.339060+00:00",
+  "pr": 512,
+  "head": "924248a07bc5f175df7519b1e74acefd3ab18cd7",
+  "actual_main_before": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+  "expected_merge_tree": "013b625fafc4c3e72824e150f2c26a5a0a75f98a",
+  "coverage_changed_only": [
+    "ENV-10",
+    "AT-ENV-10"
+  ],
+  "all_other_350_rows_metadata_order_preserved": true,
+  "scope_paths": [
+    ".agent-memory/masterplan-env10-checkpoint.md",
+    "__tests__/ediel-env10-family-release-locators.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "reviewed_test_exact": "7fab80cce52bc1c8a517e8837849bed3f7e40b76",
+  "whole_approval_comment": 5984122757,
+  "tests_repeated": false
+}

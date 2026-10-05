@@ -1,0 +1,46 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-17",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "current_state": ".agent-memory/current-state.md",
+  "branch": "codex/ediel-v2-prodat-party-fields-20260917",
+  "base_head_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
+  "active_item": "PR326 four substantive NAD/UNA review findings",
+  "next_action": "Publish exact correction; run new-head ordinary CI and substantive review; guarded merge then DTM.",
+  "main_merged": false,
+  "source_state": {
+    "published_parent": "a7b4ddde165ab4ef947715685f80e49360c3133c",
+    "published_parent_tree": "3ab14547025af2310e3f68ff7a2f9f6185aa3011",
+    "correction_local_only": true,
+    "new_review_cases": 87,
+    "review_baseline": {
+      "passed": 30,
+      "failed": 57
+    },
+    "new_review_passed": 87,
+    "retained_source_cases": 848,
+    "local_full_tests": 1434,
+    "local_test_files": 210,
+    "local_types": "app/scripts/tests PASS",
+    "normal_ci": "NEW_EXACT_HEAD_REQUIRED",
+    "substantive_review": "FOUR_FINDINGS_IMPLEMENTED; NEW_REVIEW_REQUIRED"
+  },
+  "prior_completed": {
+    "pr": 325,
+    "merge_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
+    "tested_head": "d28eb25155bfa64938a0ab51264e15b991dee64b",
+    "normal_ci_success": [
+      35215628380,
+      35215628501,
+      35215628412,
+      35215628437
+    ]
+  },
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a",
+    "backup_branch": "backup/pr310-paused-20260916-e9611351"
+  },
+  "pull_request": 326
+}

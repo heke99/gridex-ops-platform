@@ -1,0 +1,118 @@
+{
+  "scenario": "SC-016",
+  "base": "507e8bfa20606be31933eea1582066267ff2577a",
+  "owned_files": [
+    {
+      "path": "/workspace/gridex-masterplan-sc015-sc016/scripts/ediel-sc-016-approved-object-sql-regression.mjs",
+      "sha256": "b83429800d1411c744a3838abfa17f77562501f3e876f9585912b9dc6d9517ce"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc015-sc016/__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+      "sha256": "b8bcdcd3e59e2d6acc7648682384fdb05d41647333de45da3bbd13f51edc515a"
+    }
+  ],
+  "final_checks": [
+    {
+      "command": "node --check scripts/ediel-sc-016-approved-object-sql-regression.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false -p /tmp/masterplan-sc016-tsconfig-20261005.json > /tmp/masterplan-sc016-types-final-20261005.log 2>&1",
+      "exit": 0
+    },
+    {
+      "command": "node node_modules/eslint/bin/eslint.js scripts/ediel-sc-016-approved-object-sql-regression.mjs __tests__/ediel-sc-016-partial-permission-membership.test.ts > /tmp/masterplan-sc016-lint-final-20261005.log 2>&1",
+      "exit": 0
+    },
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH NODE_OPTIONS=--require=/workspace/gridex-masterplan-sc015-sc016/scripts/lib/unit-loopback-network-boundary.cjs ./node_modules/.bin/vitest run __tests__/ediel-sc-016-partial-permission-membership.test.ts --pool=threads --maxWorkers=2 --reporter=default --reporter=junit --outputFile.junit=/tmp/sc016-unit-final.xml > /tmp/sc016-unit-final.log 2>&1",
+      "permission_profile": "with_additional_permissions; network.enabled=true; inherited loopback-only preload",
+      "exit": 0,
+      "tests": 3
+    },
+    {
+      "command": "git diff --exit-code -- scripts/ediel-partial-permission-source-sql-regression.mjs scripts/ediel-esco-04-07-permission-sql-regression.mjs supabase/migrations lib/onboarding/infoRequests.ts lib/onboarding/inboundEdielLinking.ts lib/ediel/permissions/permissionMarketTransition.ts lib/ediel/services",
+      "exit": 0
+    }
+  ],
+  "logs": [
+    {
+      "path": "/tmp/sc016-unit-final.log",
+      "sha256": "860a105cb8c22aa2a74013646a9982d022274027b4fddded1a66ccbb457111a5"
+    },
+    {
+      "path": "/tmp/sc016-unit-final.xml",
+      "sha256": "144053a3c62cd33efa60f8e0168e79517d41d62cc09ae703e7152a7454570d4a"
+    },
+    {
+      "path": "/tmp/masterplan-sc016-types-final-20261005.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/masterplan-sc016-lint-final-20261005.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "owner_functions": [
+    {
+      "signature": "public.ediel_apply_permission_source_v1(uuid,uuid,uuid,uuid)",
+      "migration": "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+      "lastExplicitDefinition": "20261001044351_ediel_partial_permission_source_effects.sql",
+      "definitionSha256": "09d8debab8520b7bac821271380e65ff4b3a4994061cdaf87dd81fb16c391e70",
+      "installedBodySha256": "4362a82ed71d6526be25caea4f1a01ed3d48cd80468f6b1fc962978dc8f454ef",
+      "exactBody": true
+    },
+    {
+      "signature": "public.ediel_permission_source_is_current_v1(uuid,uuid,uuid)",
+      "migration": "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+      "lastExplicitDefinition": "20261001044351_ediel_partial_permission_source_effects.sql",
+      "definitionSha256": "f09a2005ba8444e66080f6d8c7b2eb6af0850f647c50d7daa3864e45923b8273",
+      "installedBodySha256": "0064a7eb2e3e7eb7a1c9c6bac6e4b5b8ffc34cc27e914559de33bdea3528c757",
+      "exactBody": true
+    },
+    {
+      "signature": "public.ediel_service_administration_command_v1(uuid,uuid,jsonb)",
+      "migration": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+      "lastExplicitDefinition": "20261001043917_ediel_service_source_network_period_timing.sql",
+      "definitionSha256": "dc11fa7d7fc7713035d62644f605797f8f658fce70146f756045d617ba70ffb1",
+      "installedBodySha256": "5c0863421c04d31722d02cbfd0c8c7b9d60f2a87dd7a674d21b2628fafd6bec0",
+      "exactBody": true
+    },
+    {
+      "signature": "gridex_service_administration.permission_matches_assignment_v1(public.ediel_service_assignments,public.metering_permissions)",
+      "migration": "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql",
+      "lastExplicitDefinition": "20261001000926_ediel_service_evidence_archive_review.sql",
+      "definitionSha256": "3048539a19c8bbf1f721da317c174551dcdcab656e17bec8baec594cbe6b0593",
+      "installedBodySha256": "644da017403ab0bf57aeaff43de068ed5fee57a9b0e2f4674c0f2d369e2d1db0",
+      "exactBody": true
+    }
+  ],
+  "owner_function_proof_note": "Hashes emitted by first direct mechanism run; final owned Vitest also executed and asserted exact installed body equality and latest explicit definition for the same four unchanged migration bodies. Final Vitest captures child stdout internally.",
+  "finite_bounds": {
+    "new_mechanism_groups": 10,
+    "unchanged_inherited_groups": 61,
+    "new_vitest_tests": 3,
+    "request_objects": 3,
+    "approved_objects": 1,
+    "active_grant_objects": 1,
+    "held_grant_shapes": [
+      "B",
+      "C",
+      "ABC"
+    ]
+  },
+  "limits": [
+    "canonical validation/application and legal identity upstream fixtures",
+    "accepted original Z13 upstream fixture",
+    "separate assignment approval port; not authentic archived legal review",
+    "company-operational/event-storage/writer-admission ports",
+    "SQL-backed SDK read/RPC adapter, not HTTP/network/native Supabase",
+    "embedded PGlite tables/real owner bodies; not full current native schema/replay"
+  ],
+  "native_status": "NOT_RUN",
+  "authentic_legal_acceptance": "NOT_PROVEN",
+  "diagnostic_failures": [
+    "two sandbox Vitest launch attempts EPERM before scenario; final approved loopback boundary run PASS",
+    "first /tmp-only scoped typeconfig ambient type resolution failure; absolute typeRoots corrected, final PASS"
+  ]
+}

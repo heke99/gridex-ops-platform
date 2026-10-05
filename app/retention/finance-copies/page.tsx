@@ -1,0 +1,8 @@
+import Link from 'next/link'
+import { requireRetentionScope } from '@/lib/ediel/retention/retentionHttp'
+import { FinanceCopyWorkspace } from './workspace'
+export default async function FinanceCopyRetentionPage(){
+ let scope:Awaited<ReturnType<typeof requireRetentionScope>>
+ try{scope=await requireRetentionScope()}catch{return <main className="p-4"><h1 className="text-2xl font-semibold">Källbunden gallring av ekonomiska kopior</h1><p role="alert">Välj ett eget bolag med aktuell uttrycklig klassbehörighet för att öppna ekonomiska kopiorna.</p></main>}
+ return <main className="mx-auto grid min-w-0 max-w-5xl gap-5 p-4"><h1 className="text-2xl font-semibold">Källbunden gallring av ekonomiska kopior</h1><p>Varje faktakopia och sparad läsning kräver ett eget juridiskt beslut för den oförändrade källan. Den faktiska källperioden, alla inkluderade kunder och leveranser samt öppna faktura- och exportförsök måste vara avslutade. En särskild prövning ska ange när kroppens uppgifter får tas bort och vilket begränsat journaländamål som därefter gäller.</p><p>Belopp, identiteter, ursprungliga beräkningshashar och historiska kvittenser bevaras. Andra kroppskopior och PDF-filer gallras inte automatiskt. Saknad behörighet, utfärdarkompetens, tidsgrund eller källomfattning håller ingreppet spärrat. Läsningarna styrker inte historisk fullständighet eller rätt att utföra marknadseffekter.</p><nav className="flex flex-wrap gap-4"><Link href="/retention/customer-records" className="underline">Avtals- och kundhistorik</Link><Link href="/retention/message-content" className="underline">Meddelandeoriginal och transportfiler</Link></nav><FinanceCopyWorkspace permissions={scope.permissions}/></main>
+}

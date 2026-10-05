@@ -1,0 +1,532 @@
+{
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/affected.json": {
+    "sha256": "97a47eeb4610414d2dde83f6c7d797d37332a5bcad3af9ade592f4ceb76c1271",
+    "baseSha256": "97a47eeb4610414d2dde83f6c7d797d37332a5bcad3af9ade592f4ceb76c1271",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/affected.log": {
+    "sha256": "1126d9c0dd9614115fa842a4f4b7023794bf47aea24bf434dabfa5985df9ce5b",
+    "baseSha256": "1126d9c0dd9614115fa842a4f4b7023794bf47aea24bf434dabfa5985df9ce5b",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/archive-map.json": {
+    "sha256": "bf80f8584459fbd76353d5cc18c5f5eff28918736107b17f5fe7600d2ecafd90",
+    "baseSha256": "bf80f8584459fbd76353d5cc18c5f5eff28918736107b17f5fe7600d2ecafd90",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ediel-eight.json": {
+    "sha256": "2ae6d8aed6397df4d7fbb7b2fdb5c43fbacd455e896cec4cd9e6aba3d391f24d",
+    "baseSha256": "2ae6d8aed6397df4d7fbb7b2fdb5c43fbacd455e896cec4cd9e6aba3d391f24d",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ediel-eight.log": {
+    "sha256": "e5ecd4ace05e63890fe7ef0194063aa7f7a975dcd93f7b7c5ce3a6312d28d5c1",
+    "baseSha256": "e5ecd4ace05e63890fe7ef0194063aa7f7a975dcd93f7b7c5ce3a6312d28d5c1",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-full.json": {
+    "sha256": "c3330073e7f55ea0f399a82f96d080878138f18efa1d89a94f218fa82021bac7",
+    "baseSha256": "c3330073e7f55ea0f399a82f96d080878138f18efa1d89a94f218fa82021bac7",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-full.log": {
+    "sha256": "aa45223051321b0b3f4c970335fac84e5894439442ae9eeda59e52bf32dcda90",
+    "baseSha256": "aa45223051321b0b3f4c970335fac84e5894439442ae9eeda59e52bf32dcda90",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-gates.json": {
+    "sha256": "c7598c39e3173e38d66cbc3a809730847c0ad5b42ab418b0f272b56b4c827c49",
+    "baseSha256": "c7598c39e3173e38d66cbc3a809730847c0ad5b42ab418b0f272b56b4c827c49",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-implementation-diffcheck.json": {
+    "sha256": "db39d56bf4d020e710727c48c0f0b7cfdbd793b9b02e1f0fda08035526ea8d11",
+    "baseSha256": "db39d56bf4d020e710727c48c0f0b7cfdbd793b9b02e1f0fda08035526ea8d11",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-implementation-diffcheck.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-integrity.json": {
+    "sha256": "0b24ef04e98e93025857b7c6945bad7d51a2007af58f4069a7fca5f43126b9bb",
+    "baseSha256": "0b24ef04e98e93025857b7c6945bad7d51a2007af58f4069a7fca5f43126b9bb",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-integrity.log": {
+    "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "baseSha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-large-files.json": {
+    "sha256": "3c3dad40f4e417e44e79c4ba26cf119db04063fd8df854848a5d060ff240d485",
+    "baseSha256": "3c3dad40f4e417e44e79c4ba26cf119db04063fd8df854848a5d060ff240d485",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-large-files.log": {
+    "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+    "baseSha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-lint.json": {
+    "sha256": "95891625d589a6b9512cbaca01b997732b79588ccb14efcebb9006bbfa05964f",
+    "baseSha256": "95891625d589a6b9512cbaca01b997732b79588ccb14efcebb9006bbfa05964f",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-lint.log": {
+    "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+    "baseSha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-performance.json": {
+    "sha256": "51134372943db0252f6a65e74bcb91a65ec68c6ccd9c21861d8f98d2a7b53ac8",
+    "baseSha256": "51134372943db0252f6a65e74bcb91a65ec68c6ccd9c21861d8f98d2a7b53ac8",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-performance.log": {
+    "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "baseSha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ratchet.json": {
+    "sha256": "f0db31eb7994ab077cabfb18eae3c36a3cf4035c18fd0671cf782af86b72ed7e",
+    "baseSha256": "f0db31eb7994ab077cabfb18eae3c36a3cf4035c18fd0671cf782af86b72ed7e",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ratchet.log": {
+    "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+    "baseSha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-route-readiness.json": {
+    "sha256": "716bf26d777368977d39a9bea9e3f5f534c6afe399532bd6c5a978c1e03ae1d3",
+    "baseSha256": "716bf26d777368977d39a9bea9e3f5f534c6afe399532bd6c5a978c1e03ae1d3",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-route-readiness.log": {
+    "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+    "baseSha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-integrity.json": {
+    "sha256": "665343301559266cad52ca7146f90a0bad1c0a8dd17770359018779ddc7813c2",
+    "baseSha256": "665343301559266cad52ca7146f90a0bad1c0a8dd17770359018779ddc7813c2",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-integrity.log": {
+    "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+    "baseSha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-shutdown.json": {
+    "sha256": "981d600fb82839078fc0b28e524c231cb9a3cc05ccac2d4c1381d577a0d5885f",
+    "baseSha256": "981d600fb82839078fc0b28e524c231cb9a3cc05ccac2d4c1381d577a0d5885f",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-shutdown.log": {
+    "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+    "baseSha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-scripts.json": {
+    "sha256": "2bc365d19de33730d6593deccbd8ddbb0e4193eceb8a7ee07f7c4778fe773ca4",
+    "baseSha256": "2bc365d19de33730d6593deccbd8ddbb0e4193eceb8a7ee07f7c4778fe773ca4",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-scripts.log": {
+    "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+    "baseSha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-tests.json": {
+    "sha256": "629b04c4b67a22e8f1c8eed7facf997e9b2db8bf05fa9ac2f8222474037dd2c4",
+    "baseSha256": "629b04c4b67a22e8f1c8eed7facf997e9b2db8bf05fa9ac2f8222474037dd2c4",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-tests.log": {
+    "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "baseSha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck.json": {
+    "sha256": "a92dd96fe3a35a625616dd4d553fd304794bde7b824ea2e9db9b6362fa08902a",
+    "baseSha256": "a92dd96fe3a35a625616dd4d553fd304794bde7b824ea2e9db9b6362fa08902a",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck.log": {
+    "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "baseSha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/full.json": {
+    "sha256": "d1b2e8da65f1281c5f3bcd3a530937cf395804e3cc90f1a544f9906b9fd6183a",
+    "baseSha256": "d1b2e8da65f1281c5f3bcd3a530937cf395804e3cc90f1a544f9906b9fd6183a",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-baseline-validator.ts.txt": {
+    "sha256": "a0c334494cf7717734af9054187d726f7ab8d44372e01adf3071c4b0d4579580",
+    "baseSha256": "a0c334494cf7717734af9054187d726f7ab8d44372e01adf3071c4b0d4579580",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-inbound-result.json": {
+    "sha256": "82bc3f40fd2c8e7d61073429d7444d330fe4b013609a5aaad08ba80df8aeb66a",
+    "baseSha256": "82bc3f40fd2c8e7d61073429d7444d330fe4b013609a5aaad08ba80df8aeb66a",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-inbound.log": {
+    "sha256": "c51597e3ce5b5d99efa41646f5d613918072c5ca76774238f714acd7cb2a0c94",
+    "baseSha256": "c51597e3ce5b5d99efa41646f5d613918072c5ca76774238f714acd7cb2a0c94",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations-v2.json": {
+    "sha256": "de24759f5fdfed9c185b1b4828794f20b9aa75a12d3e6ec02975e35503492aa1",
+    "baseSha256": "de24759f5fdfed9c185b1b4828794f20b9aa75a12d3e6ec02975e35503492aa1",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations-v3.json": {
+    "sha256": "668b69ddde91c249288ace0155d03bf3cc4ce11dbd83ddb9282252b9b0037aba",
+    "baseSha256": "668b69ddde91c249288ace0155d03bf3cc4ce11dbd83ddb9282252b9b0037aba",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations-v4.json": {
+    "sha256": "62680c5cfd859564a0ab6f4efbe1371aadd2d439a583ae5d673a2c0fb79dfc35",
+    "baseSha256": "62680c5cfd859564a0ab6f4efbe1371aadd2d439a583ae5d673a2c0fb79dfc35",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations.json": {
+    "sha256": "470385dad0a8e92ce8bd1a4f174669a46d0d5148784e082ee83053719b0514dc",
+    "baseSha256": "470385dad0a8e92ce8bd1a4f174669a46d0d5148784e082ee83053719b0514dc",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-performance.log": {
+    "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "baseSha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-receipt-hashes.json": {
+    "sha256": "c93d0fd341104034568ea3c77008c7b02440879970f366201089e72343761492",
+    "baseSha256": "c93d0fd341104034568ea3c77008c7b02440879970f366201089e72343761492",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result-v2.json": {
+    "sha256": "ad799e8c172adb2fba958b65519ba512e72a3e8030e242a9141b9737d0bcaa52",
+    "baseSha256": "ad799e8c172adb2fba958b65519ba512e72a3e8030e242a9141b9737d0bcaa52",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result-v3.json": {
+    "sha256": "7550bdee61670585491025c6801eb66e15d24c25cf5a26e60c0e9b45b920c472",
+    "baseSha256": "7550bdee61670585491025c6801eb66e15d24c25cf5a26e60c0e9b45b920c472",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result-v4.json": {
+    "sha256": "090e948202be32ae53f20bc22ace2f7601f863d3e8332163615691f53c8da9b8",
+    "baseSha256": "090e948202be32ae53f20bc22ace2f7601f863d3e8332163615691f53c8da9b8",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result.json": {
+    "sha256": "5a3e2950deebb38cc83fb1447262a14e564ad37f7581a38625c19a9035573cb4",
+    "baseSha256": "5a3e2950deebb38cc83fb1447262a14e564ad37f7581a38625c19a9035573cb4",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review-v2.test.ts.txt": {
+    "sha256": "d5b0f7011e28697486c94961a8793f852ee10714c98f363635d7511bba3c8bf6",
+    "baseSha256": "d5b0f7011e28697486c94961a8793f852ee10714c98f363635d7511bba3c8bf6",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review-v3.test.ts.txt": {
+    "sha256": "404e9d38357fd1f5de576641b7a7efdac17d2feaad4a178f30987b4082b38413",
+    "baseSha256": "404e9d38357fd1f5de576641b7a7efdac17d2feaad4a178f30987b4082b38413",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review-v4.test.ts.txt": {
+    "sha256": "780e9598ac0642ccd4da9adab338d8c9fe3f8fc3ae8e4921680fab15c207d8ea",
+    "baseSha256": "780e9598ac0642ccd4da9adab338d8c9fe3f8fc3ae8e4921680fab15c207d8ea",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review.test.ts.txt": {
+    "sha256": "3472ab67608be8ee3b29f84aa407525da260a323fe5026dffda7014a32f2e35c",
+    "baseSha256": "3472ab67608be8ee3b29f84aa407525da260a323fe5026dffda7014a32f2e35c",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run-v2.log": {
+    "sha256": "029d2a059288fc161dfd29aa7437ebda906fed6dc25c11d5fab390a3f1118548",
+    "baseSha256": "029d2a059288fc161dfd29aa7437ebda906fed6dc25c11d5fab390a3f1118548",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run-v3.log": {
+    "sha256": "f19dcd6624105ae61f2622508b49c0eb4c5bf3524c90d57b8518f25b966bf8c2",
+    "baseSha256": "f19dcd6624105ae61f2622508b49c0eb4c5bf3524c90d57b8518f25b966bf8c2",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run-v4.log": {
+    "sha256": "2473becf789ab41ce0433ffdf73a32d64d4acc1b0471c2a3c0fb1b589e53a553",
+    "baseSha256": "2473becf789ab41ce0433ffdf73a32d64d4acc1b0471c2a3c0fb1b589e53a553",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run.log": {
+    "sha256": "f5e99c031961ab4304a0127be95321f4ffa02491cd1f592d281cdf4b581130af",
+    "baseSha256": "f5e99c031961ab4304a0127be95321f4ffa02491cd1f592d281cdf4b581130af",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-verification-final.json": {
+    "sha256": "74bfaaa6f6664899ce34e3c105e0df66d52d4e1f1d9402cad3fb5a527281aa0c",
+    "baseSha256": "74bfaaa6f6664899ce34e3c105e0df66d52d4e1f1d9402cad3fb5a527281aa0c",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-verification.json": {
+    "sha256": "5f581955589710b68bf8d5e82ef0fd2e622011808b05168e287d64da9bd270ca",
+    "baseSha256": "5f581955589710b68bf8d5e82ef0fd2e622011808b05168e287d64da9bd270ca",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest-v2.config.mjs.txt": {
+    "sha256": "8f830bd3a4ec54ec8d56e58aad336a71c104d80fd0c7cbcc0cc99206f1d2babc",
+    "baseSha256": "8f830bd3a4ec54ec8d56e58aad336a71c104d80fd0c7cbcc0cc99206f1d2babc",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest-v3.config.mjs.txt": {
+    "sha256": "9a571300a9da93431623f754e70a6848584402d22886192a290f821809a92863",
+    "baseSha256": "9a571300a9da93431623f754e70a6848584402d22886192a290f821809a92863",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest-v4.config.mjs.txt": {
+    "sha256": "b84489ba230f8250bf1c43c2217d14bc0642614458e98bdd4d5c7074276f5d24",
+    "baseSha256": "b84489ba230f8250bf1c43c2217d14bc0642614458e98bdd4d5c7074276f5d24",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest.config.mjs.txt": {
+    "sha256": "27029a99b5e73f1d5a7a905b9e4e5c99c9c6b95b705456552ce61aae483a6289",
+    "baseSha256": "27029a99b5e73f1d5a7a905b9e4e5c99c9c6b95b705456552ce61aae483a6289",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/packaged-diffcheck.json": {
+    "sha256": "316001ed990ef07f6a2a2f926c8e05462d44de9538b7c2733480bc70cd9a5796",
+    "baseSha256": "316001ed990ef07f6a2a2f926c8e05462d44de9538b7c2733480bc70cd9a5796",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/packaged-diffcheck.log": {
+    "sha256": "8bc985ead712aa40d05da00882bfd3fb497dafa1a1a9842117840b873b05dcd6",
+    "baseSha256": "8bc985ead712aa40d05da00882bfd3fb497dafa1a1a9842117840b873b05dcd6",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/preservation-check.json": {
+    "sha256": "4794887d7ff27d1d739b245bd9d8ed7bb1ea018a12e889d977b278889224d988",
+    "baseSha256": "4794887d7ff27d1d739b245bd9d8ed7bb1ea018a12e889d977b278889224d988",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/prior-hashes.json": {
+    "sha256": "88ba272a056c77c90204b0eb7acd2d8d34e074bf235000ccb3f909465e29fcee",
+    "baseSha256": "88ba272a056c77c90204b0eb7acd2d8d34e074bf235000ccb3f909465e29fcee",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/quality.json": {
+    "sha256": "63baba545715b7e0f84e408dbafc7551516caca84bb73f2837c3a1041eed4d27",
+    "baseSha256": "63baba545715b7e0f84e408dbafc7551516caca84bb73f2837c3a1041eed4d27",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/quality.log": {
+    "sha256": "80ec48192b87883316dff2643cc8600fd52dd263bea483dc6ba05b9783dc93aa",
+    "baseSha256": "80ec48192b87883316dff2643cc8600fd52dd263bea483dc6ba05b9783dc93aa",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/red.json": {
+    "sha256": "82cf793896f0464811104b1100cec4a0a405f83e7d9bcea4eac828479609a3a2",
+    "baseSha256": "82cf793896f0464811104b1100cec4a0a405f83e7d9bcea4eac828479609a3a2",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/red.log": {
+    "sha256": "f330eb9a847cbda69dc761922d32053699635c792a6750503b1f9829443b2728",
+    "baseSha256": "f330eb9a847cbda69dc761922d32053699635c792a6750503b1f9829443b2728",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-baseline-validator.ts.txt": {
+    "sha256": "a0c334494cf7717734af9054187d726f7ab8d44372e01adf3071c4b0d4579580",
+    "baseSha256": "a0c334494cf7717734af9054187d726f7ab8d44372e01adf3071c4b0d4579580",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-observations-v4.json": {
+    "sha256": "f422db06cf32d7de6165a348395fbb7121c376324df562281444873006e2f537",
+    "baseSha256": "f422db06cf32d7de6165a348395fbb7121c376324df562281444873006e2f537",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-replay.log": {
+    "sha256": "467c2842b8223e27e0704bcd8a93935dc3cedab301ac13ff001907e8e0b67f36",
+    "baseSha256": "467c2842b8223e27e0704bcd8a93935dc3cedab301ac13ff001907e8e0b67f36",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-result-v4.json": {
+    "sha256": "1c9875a2eacc484fbb3d42a084c960c4c61c94f7a4e55b44ade6e212dfd4b1b9",
+    "baseSha256": "1c9875a2eacc484fbb3d42a084c960c4c61c94f7a4e55b44ade6e212dfd4b1b9",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-review-v4.test.ts.txt": {
+    "sha256": "224643b9bb5ea5c3c0ce8bce00b5c79cb8b481b9d3db55a05c33d50fea072aeb",
+    "baseSha256": "224643b9bb5ea5c3c0ce8bce00b5c79cb8b481b9d3db55a05c33d50fea072aeb",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-run-final.py.txt": {
+    "sha256": "0fad54ff6762a18f8235d55df417f136ab023380b08b4fa71a322f66d446dfaa",
+    "baseSha256": "0fad54ff6762a18f8235d55df417f136ab023380b08b4fa71a322f66d446dfaa",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-vitest.config.mjs.txt": {
+    "sha256": "370f01406b3a3db63238697bad23d5893d97e83f28e392090f8a3d7b42c5f3ae",
+    "baseSha256": "370f01406b3a3db63238697bad23d5893d97e83f28e392090f8a3d7b42c5f3ae",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/task-2-report.md": {
+    "sha256": "b9e79eec4860506a0b74a4683f2c890a670e4e83b5e7481b7a469def7c3040e2",
+    "baseSha256": "b9e79eec4860506a0b74a4683f2c890a670e4e83b5e7481b7a469def7c3040e2",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/typecheck-tests.log": {
+    "sha256": "ddba05bca9a1797e59a719a71f796311fe3b504e4baf947cb0f50b10d56915bf",
+    "baseSha256": "ddba05bca9a1797e59a719a71f796311fe3b504e4baf947cb0f50b10d56915bf",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/README.md": {
+    "sha256": "286671a15e2378708105b2e1b56bf0237c32c8f4e6c79f66e421d3dc58de534a",
+    "baseSha256": "286671a15e2378708105b2e1b56bf0237c32c8f4e6c79f66e421d3dc58de534a",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/manifest.json": {
+    "sha256": "ce325df1f4c437e8d4a4e4aafc7f67cb98ea3019982b7d3e883f87c5dfa24d7d",
+    "baseSha256": "ce325df1f4c437e8d4a4e4aafc7f67cb98ea3019982b7d3e883f87c5dfa24d7d",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v1.json": {
+    "sha256": "7805a2c75bdd14bd39d0b015922d26317abb71a51b437a4695573ea69a3a11b0",
+    "baseSha256": "7805a2c75bdd14bd39d0b015922d26317abb71a51b437a4695573ea69a3a11b0",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v1.ts.txt": {
+    "sha256": "cebdfc8944126009379c731c74631ddb5226f96c65b5acd047ed0ef803d61264",
+    "baseSha256": "cebdfc8944126009379c731c74631ddb5226f96c65b5acd047ed0ef803d61264",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v2.json": {
+    "sha256": "2b80a3b6b133554a70a76c1fa72c3a1d442e9caa040c01a156209434b1916a48",
+    "baseSha256": "2b80a3b6b133554a70a76c1fa72c3a1d442e9caa040c01a156209434b1916a48",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations.test.ts.txt": {
+    "sha256": "a8e7799dbf73829c359bc3be709242b1b2a22eb061ce7cbfd2339bde90e77b64",
+    "baseSha256": "a8e7799dbf73829c359bc3be709242b1b2a22eb061ce7cbfd2339bde90e77b64",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/result-v1.json": {
+    "sha256": "0d4e84e99d7aea828ab206aef143900cf0b1465af219bfa6addc7566c575043e",
+    "baseSha256": "0d4e84e99d7aea828ab206aef143900cf0b1465af219bfa6addc7566c575043e",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/result-v2.json": {
+    "sha256": "1ebda34a8b7846aeb8ac43c353a07c945d67759bc4ea3554cf679542355bcfcf",
+    "baseSha256": "1ebda34a8b7846aeb8ac43c353a07c945d67759bc4ea3554cf679542355bcfcf",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/run-v1.log": {
+    "sha256": "99f97ad07ae334322af1b185d1ad9248c3397242967efaa33f8b0ed274cfb149",
+    "baseSha256": "99f97ad07ae334322af1b185d1ad9248c3397242967efaa33f8b0ed274cfb149",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/run-v2.log": {
+    "sha256": "d00613fc8dc40da4c4ec040dc63789451b6bd9e18ff9b27cd0d026483dd4bf94",
+    "baseSha256": "d00613fc8dc40da4c4ec040dc63789451b6bd9e18ff9b27cd0d026483dd4bf94",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/vitest.config.mjs.txt": {
+    "sha256": "f66fd77610c5139ec60c6644401ad9468677c87d9638e56fcf5b8856ba3b97e4",
+    "baseSha256": "f66fd77610c5139ec60c6644401ad9468677c87d9638e56fcf5b8856ba3b97e4",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/frozen-integrity.log": {
+    "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "baseSha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/input-hashes.json": {
+    "sha256": "5c60a2d6cec7ef8562f8c0d2270ff6d2efc3792a8392a9a8c46ea68f36f714f7",
+    "baseSha256": "5c60a2d6cec7ef8562f8c0d2270ff6d2efc3792a8392a9a8c46ea68f36f714f7",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observation-qualified-summary.json": {
+    "sha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+    "baseSha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observation-summary.json": {
+    "sha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+    "baseSha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observations-final.json": {
+    "sha256": "2e254b08cd4dc5a21c1d4bc154797bc7eec99194babe60a49f9288e20992c4c3",
+    "baseSha256": "2e254b08cd4dc5a21c1d4bc154797bc7eec99194babe60a49f9288e20992c4c3",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observations-qualified-final.json": {
+    "sha256": "337e0b39ff3bd6258c1e9cc523b590cb07b4ed7edf633ff75663f61453d7ee13",
+    "baseSha256": "337e0b39ff3bd6258c1e9cc523b590cb07b4ed7edf633ff75663f61453d7ee13",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/original-pdf-relevant-pages.txt": {
+    "sha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+    "baseSha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/prior-receipt-hashes.json": {
+    "sha256": "6d8cf8ff3f59d3ae008013cfd2c7e362f8cc9e0d4cd34baba3b580dd64a4ed4a",
+    "baseSha256": "6d8cf8ff3f59d3ae008013cfd2c7e362f8cc9e0d4cd34baba3b580dd64a4ed4a",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/probe-final.test.ts.txt": {
+    "sha256": "152402c4b3767baebfa963372633d894f367296e9215a770c862e3822ada2bd0",
+    "baseSha256": "152402c4b3767baebfa963372633d894f367296e9215a770c862e3822ada2bd0",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/probe-qualified-final.test.ts.txt": {
+    "sha256": "c68527da253ce5d43ce77dafd766f767551b4905966e2d9436ba9f76f5cad9a4",
+    "baseSha256": "c68527da253ce5d43ce77dafd766f767551b4905966e2d9436ba9f76f5cad9a4",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/result-final.json": {
+    "sha256": "a584ef9756bd65a2d41287afae6ee8dc2035b31631bb60b2567b6ad389620d03",
+    "baseSha256": "a584ef9756bd65a2d41287afae6ee8dc2035b31631bb60b2567b6ad389620d03",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/result-qualified-final.json": {
+    "sha256": "d844d8e7da2a14eda3fb81533e1b358d7e2f7c572bbf40bdd52c838803141694",
+    "baseSha256": "d844d8e7da2a14eda3fb81533e1b358d7e2f7c572bbf40bdd52c838803141694",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/run-final.log": {
+    "sha256": "d36d0112a32f433078291c5f7c640f46d1c17da17b766ce3b4ac3b8ffa0038c5",
+    "baseSha256": "d36d0112a32f433078291c5f7c640f46d1c17da17b766ce3b4ac3b8ffa0038c5",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/run-qualified-final.log": {
+    "sha256": "be6b1afb1789ff7f3660e7a71b9fbbcbfbdd70652d2f03238483feb13d9234db",
+    "baseSha256": "be6b1afb1789ff7f3660e7a71b9fbbcbfbdd70652d2f03238483feb13d9234db",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/task-1-report.md": {
+    "sha256": "aedd0ccc4af351ffad9938e1c3e6d7b14a946dae3ee7df6f3cb6e3aebf603d46",
+    "baseSha256": "aedd0ccc4af351ffad9938e1c3e6d7b14a946dae3ee7df6f3cb6e3aebf603d46",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/verification.json": {
+    "sha256": "29952d8ddf1a078fb9e24b0055d4f6dd3311ce309c4991dd05230d0c7da5c657",
+    "baseSha256": "29952d8ddf1a078fb9e24b0055d4f6dd3311ce309c4991dd05230d0c7da5c657",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/vitest-final.config.mjs.txt": {
+    "sha256": "4920dc18c4757f14213c37a82541276bf0140051a635b5ceb14c5cee46903fc1",
+    "baseSha256": "4920dc18c4757f14213c37a82541276bf0140051a635b5ceb14c5cee46903fc1",
+    "unchanged": true
+  },
+  "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/vitest-qualified-final.config.mjs.txt": {
+    "sha256": "5e16e672427199213b8cdec332a814058edd94492c82687f90dffcf1009223da",
+    "baseSha256": "5e16e672427199213b8cdec332a814058edd94492c82687f90dffcf1009223da",
+    "unchanged": true
+  }
+}

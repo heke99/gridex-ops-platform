@@ -1,3 +1,4 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -5,8 +6,11 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
   reprocessInvoiceProviderEventsAction,
+  selectInvoiceProviderAction,
+  setInvoiceDispatchEnabledAction,
   testCapwayConnectionAction,
 } from './actions'
+import { listInvoiceProviderCatalog, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +22,22 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-export default async function BillingIntegrationsPage() {
+const PROVIDER_NOTICES: Record<string, { tone: 'ok' | 'error'; text: string }> = {
+  selected: { tone: 'ok', text: 'Fakturaleverantören är sparad. Testa kopplingen och aktivera sedan utskick.' },
+  enabled: { tone: 'ok', text: 'Utskick via fakturaleverantören är aktiverat.' },
+  disabled: { tone: 'ok', text: 'Utskick via fakturaleverantören är avstängt.' },
+  invoice_provider_not_available: { tone: 'error', text: 'Leverantören går inte att välja ännu.' },
+  invoice_provider_switch_blocked_open_exports: { tone: 'error', text: 'Det finns pågående fakturaexporter. Byt leverantör eller miljö när de är klara.' },
+  invoice_provider_not_selected: { tone: 'error', text: 'Välj en fakturaleverantör först.' },
+  invoice_provider_connection_not_ready: { tone: 'error', text: 'Kopplingen måste testas med godkänt resultat innan utskick kan aktiveras.' },
+}
+
+export default async function BillingIntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ provider?: string }>
+}) {
+  const notice = PROVIDER_NOTICES[(await searchParams).provider ?? ''] ?? null
   const admin = await requireAdminPageKeyAccess('billing.workspace')
   const supabase = await createSupabaseServerClient()
   const {
@@ -51,6 +70,20 @@ export default async function BillingIntegrationsPage() {
       200,
     )
   ).filter((row) => String(row.status ?? '') === 'needs_review')
+  const [catalog, selection] = scope?.companyId
+    ? await Promise.all([
+        listInvoiceProviderCatalog(scope.companyId).catch(() => []),
+        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => null),
+      ])
+    : [[], null]
+  const selectedConnection = selection?.invoice_export_target_system
+    ? connections.find(
+        (row) =>
+          String(row.provider ?? '') === selection.invoice_export_target_system &&
+          String(row.environment ?? '') === (selection.billing_provider_environment ?? ''),
+      )
+    : undefined
+  const selectedConnectionReady = ['ready', 'active'].includes(String(selectedConnection?.status ?? ''))
   const capwayTest = connections.find(
     (row) =>
       String(row.provider ?? '') === 'capway_aptic' &&
@@ -71,29 +104,110 @@ export default async function BillingIntegrationsPage() {
         userEmail={admin.email}
         workspaceName={scope?.companyName}
       />
-      <main className="space-y-6 p-8">
-        <section className="grid gap-4 lg:grid-cols-4">
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+      <main className="min-w-0 space-y-4 p-4 lg:p-6 [&_input:not([type=radio])]:min-w-0 [&_select]:min-w-0 [&_select]:w-full [&_label]:min-w-0 [&_label]:grid-cols-1">
+        <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Providerkopplingar</div>
-            <div className="mt-2 text-3xl font-semibold">{connections.length}</div>
+            <div className="mt-1 text-2xl font-semibold">{connections.length}</div>
           </div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Exportkörningar</div>
-            <div className="mt-2 text-3xl font-semibold">{runs.length}</div>
+            <div className="mt-1 text-2xl font-semibold">{runs.length}</div>
           </div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Misslyckade poster</div>
-            <div className="mt-2 text-3xl font-semibold">
+            <div className="mt-1 text-2xl font-semibold">
               {deadLetters.filter((row) => row.status === 'open').length}
             </div>
           </div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Capway test-env</div>
             <div className="mt-2 text-sm font-semibold text-slate-950">
               {envStatus('CAPWAY_APTIC_TEST_BASE_URL')} /{' '}
               {envStatus('CAPWAY_APTIC_TEST_CLIENT_ID')}
             </div>
           </div>
+        </section>
+
+        <section className="rounded-3xl border bg-white p-6 shadow-sm" aria-labelledby="invoice-provider-heading">
+          <h2 id="invoice-provider-heading" className="text-lg font-semibold text-slate-950">Fakturaleverantör</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+            Godkända fakturor skickas via den leverantör bolaget väljer här. Byte av leverantör eller miljö
+            stänger av utskick tills den nya kopplingen är testad och utskick aktiveras igen.
+          </p>
+          {notice ? (
+            <p role="status" className={`mt-4 rounded-2xl border p-3 text-sm ${notice.tone === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'}`}>
+              {notice.text}
+            </p>
+          ) : null}
+          <AdminDisclosurePanel id="billing-select-provider" title="Välj eller byt leverantör och miljö" defaultOpen={!selection?.invoice_export_target_system} className="mt-4 rounded-xl border border-slate-200 p-3"><form action={selectInvoiceProviderAction} className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,160px)_auto] lg:items-end">
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-medium text-slate-800">Leverantör</legend>
+              {catalog.map((entry) => (
+                <label key={entry.provider} className={`flex items-start gap-3 rounded-2xl border p-3 text-sm ${entry.selectable ? 'border-slate-200' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
+                  <input
+                    type="radio"
+                    name="provider"
+                    value={entry.provider}
+                    required
+                    disabled={!entry.selectable}
+                    defaultChecked={selection?.invoice_export_target_system === entry.provider}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="font-semibold">{entry.label}</span>
+                    {!entry.selectable && entry.unavailable_reason ? (
+                      <span className="block text-xs">{entry.unavailable_reason}</span>
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <label className="grid gap-1 text-sm font-medium text-slate-800">
+              Miljö
+              <select
+                name="environment"
+                aria-label="Miljö"
+                defaultValue={selection?.billing_provider_environment === 'production' ? 'production' : 'test'}
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              >
+                <option value="test">Test</option>
+                <option value="production">Produktion</option>
+              </select>
+            </label>
+            <button type="submit" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
+              Spara leverantör
+            </button>
+          </form></AdminDisclosurePanel>
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Vald leverantör</dt>
+              <dd className="mt-1 font-semibold">
+                {catalog.find((entry) => entry.provider === selection?.invoice_export_target_system)?.label ?? 'Ingen vald'}
+                {selection?.billing_provider_environment ? ` (${selection.billing_provider_environment === 'production' ? 'produktion' : 'test'})` : ''}
+              </dd>
+            </div>
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Koppling</dt>
+              <dd className="mt-1 font-semibold">{selectedConnectionReady ? 'Testad och godkänd' : selectedConnection ? 'Behöver testas' : '—'}</dd>
+            </div>
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Utskick</dt>
+              <dd className="mt-1 flex flex-wrap items-center gap-3 font-semibold">
+                {selection?.invoice_export_enabled ? 'Aktiverat' : 'Avstängt'}
+                <form action={setInvoiceDispatchEnabledAction}>
+                  <input type="hidden" name="enabled" value={selection?.invoice_export_enabled ? 'false' : 'true'} />
+                  <button
+                    type="submit"
+                    disabled={!selection?.invoice_export_enabled && !selectedConnectionReady}
+                    className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {selection?.invoice_export_enabled ? 'Stäng av utskick' : 'Aktivera utskick'}
+                  </button>
+                </form>
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
@@ -120,7 +234,7 @@ export default async function BillingIntegrationsPage() {
             </form>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 xl:grid-cols-4">
             {[
               'CAPWAY_APTIC_TEST_TOKEN_URL',
               'CAPWAY_APTIC_TEST_BASE_URL',
@@ -131,7 +245,7 @@ export default async function BillingIntegrationsPage() {
                 key={name}
                 className="rounded-2xl border border-amber-200 bg-white p-4 text-sm"
               >
-                <div className="font-mono text-xs text-slate-600">{name}</div>
+                <div className="break-all font-mono text-xs text-slate-600">{name}</div>
                 <div className="mt-1 font-semibold text-slate-950">
                   {envStatus(name)}
                 </div>
@@ -201,8 +315,8 @@ export default async function BillingIntegrationsPage() {
                 </div>
               ) : null}
               {connections.map((row) => (
-                <div key={String(row.id)} className="p-6 text-sm">
-                  <div className="flex items-center justify-between gap-3">
+                <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="font-semibold">
                       {fmt(row.display_name) || fmt(row.provider)}
                     </div>
@@ -234,8 +348,8 @@ export default async function BillingIntegrationsPage() {
                 </div>
               ) : null}
               {runs.map((row) => (
-                <div key={String(row.id)} className="p-6 text-sm">
-                  <div className="flex items-center justify-between gap-3">
+                <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="font-semibold">
                       {fmt(row.billing_month)} · {fmt(row.provider)}
                     </div>
@@ -249,9 +363,7 @@ export default async function BillingIntegrationsPage() {
                     Poster: {fmt(row.total_items)} · skickade: {fmt(row.sent_items)} ·
                     fel: {fmt(row.failed_items)}
                   </div>
-                  <div className="mt-2 font-mono text-xs text-slate-400">
-                    Körning {String(row.id)}
-                  </div>
+                  <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer">Körnings-id</summary><p className="mt-1 break-all font-mono">{String(row.id)}</p></details>
                 </div>
               ))}
             </div>
@@ -286,8 +398,8 @@ export default async function BillingIntegrationsPage() {
               </div>
             ) : null}
             {reviewEvents.slice(0, 25).map((row) => (
-              <div key={String(row.id)} className="p-6 text-sm">
-                <div className="flex items-center justify-between gap-3">
+              <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="font-semibold">
                     {fmt(row.event_type)} · {fmt(row.provider)}
                   </div>

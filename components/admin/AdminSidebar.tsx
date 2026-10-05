@@ -2,11 +2,12 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
 } from '@/lib/admin/navigation'
+import { findActiveAdminNavigationHref } from '@/lib/admin/navigationMatch'
 import { updateAdminNavigationPreference } from '@/app/admin/navigation-mode/actions'
 
 type AdminSidebarProps = {
@@ -21,17 +22,6 @@ type AdminSidebarProps = {
   companyOptions?: Array<{ id: string; name: string; status?: string | null }>
 }
 
-const EXACT_MATCH_ITEMS = new Set(['/admin', '/admin/ediel', '/admin/controltower'])
-
-function isActive(pathname: string, href: string) {
-  if (EXACT_MATCH_ITEMS.has(href)) return pathname === href
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
-
-function itemIsPlatformOnly(item: { platformOnly?: boolean }) {
-  return item.platformOnly === true
-}
-
 export default function AdminSidebar({
   permissions,
   roles,
@@ -44,6 +34,7 @@ export default function AdminSidebar({
   companyOptions = [],
 }: AdminSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const mode: AdminNavigationMode = isPlatformAdmin ? preferredMode : 'company_view'
   const displayName = workspaceName?.trim() || (isPlatformAdmin ? 'Gridex Plattform' : 'Ditt bolag')
   const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
@@ -57,149 +48,93 @@ export default function AdminSidebar({
     mode,
   })
 
+  const activeHref = findActiveAdminNavigationHref(pathname, visibleGroups)
+
+  const prefetchOnIntent = (href: string) => {
+    if (activeHref !== href) {
+      router.prefetch(href)
+    }
+  }
+
   return (
-    <aside className="flex h-screen w-full flex-col border-r border-emerald-100/80 bg-gradient-to-b from-white via-[#fbfdfb] to-[#f7fbf8] text-slate-900 shadow-sm shadow-emerald-950/5">
-      <div className="border-b border-emerald-100/80 bg-white/90 px-5 py-5 backdrop-blur-xl">
+    <aside className="w-full border-b border-emerald-100 bg-white text-slate-900 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-b-0 lg:border-r">
+      <div className="border-b border-emerald-100 px-4 py-3">
         <Link
           href="/admin"
-          className="group flex items-center gap-3 rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 transition hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-950/10"
+          prefetch={false}
+          onPointerEnter={() => prefetchOnIntent('/admin')}
+          onFocus={() => prefetchOnIntent('/admin')}
+          className="flex min-w-0 items-center gap-3 rounded-xl p-1 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-base font-bold text-white shadow-sm shadow-emerald-700/20">
-            {initial}
-          </span>
+          <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 font-bold text-white">{initial}</span>
           <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
-              {displaySubtitle}
-            </span>
-            <span className="mt-0.5 block truncate text-sm font-semibold text-slate-950">
-              {displayName}
-            </span>
+            <span className="block truncate text-[11px] font-semibold text-emerald-800">{displaySubtitle}</span>
+            <span className="block truncate text-sm font-semibold text-slate-950">{displayName}</span>
           </span>
         </Link>
 
-        <div className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
-          <div className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
-            {mode === 'platform_view' ? 'Plattformskontroll' : 'Bolagsyta'}
-          </div>
-          <h1 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
-            {mode === 'platform_view' ? 'Kontrollcenter' : 'Driftcenter'}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
-            {mode === 'platform_view'
-              ? 'Teknisk drift, tenants, Ediel, routes och governance samlat under färre menyer.'
-              : isCompanyLiveEnabled
-                ? 'Affärsvy för kunder, avtal, byten, mätvärden och faktureringsunderlag.'
-                : 'Live Ediel är inte aktiverat än. Arbeta med kundintag, avtal och go-live-status tills live är godkänt.'}
-          </p>
+        {!isPlatformAdmin && !isCompanyLiveEnabled ? (
+          <p className="mt-2 text-xs leading-5 text-amber-800">Live Ediel är inte aktiverat. Kundintag, avtal och go-live är tillgängliga.</p>
+        ) : null}
 
-          {isPlatformAdmin ? (
-            <form action={updateAdminNavigationPreference} className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-white/70 p-1">
-              <input type="hidden" name="company_id" value={selectedCompanyId ?? ''} />
-              <button
-                type="submit"
-                name="mode"
-                value="platform"
-                className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
-                  mode === 'platform_view'
-                    ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
-                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-              >
-                Plattform
-              </button>
-              <button
-                type="submit"
-                name="mode"
-                value="company"
-                className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
-                  mode === 'company_view'
-                    ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
-                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-              >
-                Bolagsvy
-              </button>
-            </form>
-          ) : null}
+        {isPlatformAdmin ? (
+          <details className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/60">
+            <summary className="cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-emerald-700">
+              Byt vy · {mode === 'platform_view' ? 'Plattform' : 'Bolagsvy'}
+            </summary>
+            <div className="space-y-3 p-3 pt-1">
+              <form action={updateAdminNavigationPreference} className="grid grid-cols-2 gap-2">
+                <input type="hidden" name="company_id" value={selectedCompanyId ?? ''} />
+                <button type="submit" name="mode" value="platform" aria-pressed={mode === 'platform_view'} className={`rounded-lg px-3 py-2 text-xs font-semibold hover:brightness-95 focus-visible:outline-2 focus-visible:outline-emerald-700 ${mode === 'platform_view' ? 'bg-emerald-700 text-white' : 'border border-emerald-200 bg-white text-slate-700'}`}>Plattform</button>
+                <button type="submit" name="mode" value="company" aria-pressed={mode === 'company_view'} className={`rounded-lg px-3 py-2 text-xs font-semibold hover:brightness-95 focus-visible:outline-2 focus-visible:outline-emerald-700 ${mode === 'company_view' ? 'bg-emerald-700 text-white' : 'border border-emerald-200 bg-white text-slate-700'}`}>Bolagsvy</button>
+              </form>
+              {mode === 'company_view' && companyOptions.length > 0 ? (
+                <form action={updateAdminNavigationPreference}>
+                  <input type="hidden" name="mode" value="company" />
+                  <label className="block text-xs font-semibold text-emerald-900">
+                    Aktivt bolag
+                    <select name="company_id" value={selectedCompanyId ?? ''} onChange={(event) => event.currentTarget.form?.requestSubmit()} className="mt-1 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-2 py-2 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-emerald-700">
+                      <option value="">Välj bolag</option>
+                      {companyOptions.map((company) => <option key={company.id} value={company.id}>{company.name}{company.status ? ` (${company.status})` : ''}</option>)}
+                    </select>
+                  </label>
+                </form>
+              ) : null}
+            </div>
+          </details>
+        ) : null}
 
-          {isPlatformAdmin && mode === 'company_view' && companyOptions.length > 0 ? (
-            <form action={updateAdminNavigationPreference} className="mt-3 block">
-              <input type="hidden" name="mode" value="company" />
-              <label>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-900">
-                  Aktivt bolag
-                </span>
-                <select
-                  name="company_id"
-                  value={selectedCompanyId ?? ''}
-                  onChange={(event) => event.currentTarget.form?.requestSubmit()}
-                  className="mt-1 w-full rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
-                >
-                  <option value="">Välj bolag</option>
-                  {companyOptions.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}{company.status ? ` (${company.status})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </form>
-          ) : null}
-        </div>
+        <nav aria-label="Huvudnavigation på mobil" className="mt-3 lg:hidden">
+          <label htmlFor="admin-page-navigation" className="block text-xs font-semibold text-slate-700">Gå till sida</label>
+            <select
+              id="admin-page-navigation"
+              name="admin_destination"
+              value={activeHref ?? ''}
+              onChange={(event) => { if (event.target.value) router.push(event.target.value) }}
+              className="mt-1 w-full min-w-0 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-emerald-700"
+            >
+              <option value="" disabled>Välj sida</option>
+              {visibleGroups.map((group) => <optgroup key={group.key} label={group.title}>{group.items.map((item) => <option key={item.key} value={item.href}>{item.label}</option>)}</optgroup>)}
+            </select>
+        </nav>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
-        {visibleGroups.map((group) => (
-          <section key={group.key} className="rounded-3xl border border-transparent p-1">
-            <div className="px-2">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-800">
-                {group.title}
-              </h2>
-              <p className="mt-1 text-xs leading-5 text-slate-700">{group.description}</p>
-            </div>
-
-            <div className="mt-3 space-y-1.5">
+      <nav aria-label="Huvudnavigation" className="hidden min-h-0 flex-1 space-y-2 overflow-y-auto p-3 lg:block">
+        {visibleGroups.map((group, index) => (
+          <details key={`${group.key}:${pathname}`} open={index === 0 || group.items.some((item) => item.href === activeHref)} className="rounded-xl border border-emerald-100/70">
+            <summary className="cursor-pointer rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700">{group.title}</summary>
+            <div className="space-y-1 px-2 pb-2">
               {group.items.map((item) => {
-                const active = isActive(pathname, item.href)
-
+                const active = item.href === activeHref
                 return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    className={`group relative block rounded-2xl border px-3 py-3 transition duration-150 ${
-                      active
-                        ? 'border-emerald-200 bg-white text-slate-950 shadow-sm shadow-emerald-950/5 ring-1 ring-emerald-100'
-                        : 'border-transparent text-slate-700 hover:border-emerald-100 hover:bg-white/85 hover:text-slate-950 hover:shadow-sm hover:shadow-emerald-950/5'
-                    }`}
-                  >
-                    <span
-                      className={`absolute left-0 top-3 h-8 w-1 rounded-r-full transition ${
-                        active ? 'bg-emerald-600' : 'bg-transparent group-hover:bg-emerald-200'
-                      }`}
-                    />
-                    <div className="pl-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-semibold">{item.label}</div>
-                        {itemIsPlatformOnly(item) && mode === 'platform_view' ? (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                            Plattform
-                          </span>
-                        ) : active ? (
-                          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" />
-                        ) : null}
-                      </div>
-                      {item.description ? (
-                        <div className={`mt-1 text-xs leading-5 ${active ? 'text-emerald-800' : 'text-slate-700 group-hover:text-slate-700'}`}>
-                          {item.description}
-                        </div>
-                      ) : null}
-                    </div>
+                  <Link key={item.key} href={item.href} prefetch={false} onPointerEnter={() => prefetchOnIntent(item.href)} onFocus={() => prefetchOnIntent(item.href)} aria-current={active ? 'page' : undefined} title={item.description} className={`block rounded-lg border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-emerald-700 ${active ? 'border-emerald-200 bg-emerald-50 font-semibold text-emerald-950' : 'border-transparent text-slate-700 hover:border-emerald-100 hover:bg-emerald-50'}`}>
+                    <span className="block break-words">{item.label}</span>
+                    {active && item.description ? <span className="mt-1 block text-xs font-normal leading-5 text-emerald-900">{item.description}</span> : null}
                   </Link>
                 )
               })}
             </div>
-          </section>
+          </details>
         ))}
       </nav>
     </aside>

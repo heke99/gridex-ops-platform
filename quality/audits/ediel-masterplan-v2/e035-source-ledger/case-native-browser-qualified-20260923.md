@@ -1,0 +1,7 @@
+# Case native and protected browser qualification
+
+Published7750e2da44394b1b154eabfb4e3e8e80af30f4f6, OPS35907849473, native107339902379: retained124 PASS; case-native1 PASS including populated legacy retention and incompatible ownership rejection; protected Chromium2 PASS; post-browser1 PASS verifying the real writer status event/audit and absence of business effects. This resolves the case replay/browser defect. Earlier failed runs remain historical evidence.
+
+Authentic typegen reached at2026-09-23T19:18:04Z with pinned CLI2.101.0 and durable nullability override. Expected manifest comparison then failed: new types97d0e4267fcaecdd10d8a6500d6c5ec7709a9198d8361a52849c921c8a8a625d versus oldfcd9fa39904fabbf33e62bb1ca5866dbb8792947b4e1324d1f690e009a51f7a2. Artifact10772286880 (286646bytes, ZIP SHA25602360a24a97e8a0212e124f1fa56c0dbc37df65d5ff6bbc2301b9ab8c2ade9f5) downloaded and both hashes verified. database.types.ts copied byte-for-byte; manifest records actual generating migration/head. Delta233 added lines: customer_case_events and gridex_update_customer_case_status only. No schema snapshot exists in this artifact because the types comparison exits first. No handcrafted generated contracts.
+
+Final consumer R1–R4 correction wave is separate and active; this receipt is not its qualification or whole-branch approval. Next authentic replay must reproduce types and emit schema/fingerprint, and final exact-head review/ordinary gates remain mandatory. E035/F3/masterplan PARTIAL, no merge yet. PR310 and hosted systems unchanged.

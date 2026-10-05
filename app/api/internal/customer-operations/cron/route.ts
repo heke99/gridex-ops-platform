@@ -1,12 +1,19 @@
+import { advanceSupplyMarketDeadlines } from '@/lib/ediel/flows/supplyMarketTransition'
+import { advancePermissionMarketDeadlines } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
 import { validateAutomationUserConfig } from '@/lib/customer-operations/automationConfig'
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
+import { runZ01ResponseSlaWatchdog } from '@/lib/ediel/operations/z01ResponseSlaWatchdog'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
+import { processReadySupplierSwitchActivations } from '@/lib/operations/supplierSwitchActivationSweep'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
+import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilityRequestReconciliation'
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
+import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
+import { sweepEdielBusinessExpectations } from '@/lib/ediel/operations/businessExpectationSweep'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,6 +69,14 @@ async function run(request: NextRequest) {
       limit: Math.min(requestedLimit, 5),
     })
 
+    // Legacy rows may already have a real, sent grid-owner information request
+    // but lack the website-application back-link. Correlate only an exact,
+    // unique company + customer + site match. This step never creates or sends
+    // an external request; ambiguous cases remain review-only.
+    const legacyFacilityRequestReconciliation = await reconcileLegacyFacilityRequestLinks({
+      limit: Math.min(requestedLimit * 2, 100),
+    })
+
     const customerApplicationReconciliation = await reconcileCustomerApplicationContinuationJobs({
       limit: Math.min(requestedLimit * 2, 100),
     })
@@ -69,6 +84,24 @@ async function run(request: NextRequest) {
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
       limit: requestedLimit,
     })
+    // PRODAT Z01 has two independent 30-minute watches from the actual
+    // message_sent_at: technical CONTRL and business Z02/negative APERAK.
+    // The watchdog only escalates; it never creates or resends a Z01.
+    const z01ResponseSla = await runZ01ResponseSlaWatchdog({
+      limit: Math.min(requestedLimit * 2, 100),
+    })
+    const inboundAckSla = automationUserConfig.ok && automationUserConfig.userId
+      ? await checkAckDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
+      : { warning: 0, critical: 0, expired: 0, updated: 0, configurationBlocked: true }
+    const permissionMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
+      ? await advancePermissionMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      : { updated: 0, configurationBlocked: true }
+    const supplyMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
+      ? await advanceSupplyMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      : { updated: 0, configurationBlocked: true }
+    const businessExpectations = automationUserConfig.ok && automationUserConfig.userId
+      ? await sweepEdielBusinessExpectations({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
+      : { scopes: 0, observed: 0, configurationBlocked: true }
     const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
       limit: Math.min(requestedLimit, 25),
     })
@@ -80,15 +113,44 @@ async function run(request: NextRequest) {
     // Persist POA expiry: previously only evaluated at read time, leaving rows
     // 'signed' forever in the admin UI and audit trail.
     const poaExpiry = await expireOverduePowersOfAttorney({ limit: 100 })
+
+    // Becoming the active electricity supplier is a market-state transition,
+    // not an ACK transition. Run only with a verified automation actor; the
+    // atomic RPC re-checks tenant, inbound Z04 and Stockholm effective date.
+    const supplierSwitchActivations = automationUserConfig.ok && automationUserConfig.userId
+      ? await processReadySupplierSwitchActivations({
+          limit: Math.min(requestedLimit, 50),
+          actorUserId: automationUserConfig.userId,
+        })
+      : {
+          marketDate: null,
+          scanned: 0,
+          ready: 0,
+          activated: 0,
+          alreadyCompleted: 0,
+          waiting: 0,
+          blocked: 0,
+          failed: 0,
+          failures: [],
+          configurationBlocked: true,
+        }
+
     return NextResponse.json({
       ok: true,
       result: {
         exactAddressResolution,
+        legacyFacilityRequestReconciliation,
         customerApplicationReconciliation,
         customerOperations,
+        z01ResponseSla,
+        inboundAckSla,
+        permissionMarketDeadlines,
+        supplyMarketDeadlines,
+        businessExpectations,
         facilityLookupDispatch,
         resumedIntents,
         poaExpiry,
+        supplierSwitchActivations,
         automationUserConfig: {
           ok: automationUserConfig.ok,
           issue: automationUserConfig.issue,

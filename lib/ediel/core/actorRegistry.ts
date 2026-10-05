@@ -1,16 +1,28 @@
 // lib/ediel/core/actorRegistry.ts
 
 import type { EdielActorSettingsRow, EdielEnvironment } from '@/lib/ediel/types'
+import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import {
-  buildDefaultApplicationReference,
-  getActiveEdielActorSettings,
-} from '@/lib/ediel/config'
+  resolveCanonicalTenantEdielIdentity,
+  type CanonicalTenantEdielIdentity,
+} from '@/lib/ediel/tenant/tenantEdielIdentity'
+import { tenantMarketRoleFor, type EdielActorRole } from '@/lib/ediel/core/marketRole'
 
 export type CanonicalActorContext = {
   actor: EdielActorSettingsRow
+  /** Operational role of the selected profile; distinct from tenant, legal actor and transport identity. */
+  actorRole: string
+  /** UNB transport sender. For a represented tenant this can be an Ediel ombud. */
   senderEdielId: string
+  /** Legal market actor used in message-level NAD sender/receiver semantics. */
+  legalActorEdielId: string
+  transportActorEdielId: string
+  marketRoles: string[]
+  representedByTransportAgent: boolean
+  tenantIdentity: CanonicalTenantEdielIdentity | null
   senderName: string | null
   senderSubAddress: string | null
+  /** Legacy route fallback only. Canonical message builders must resolve by process/message. */
   defaultApplicationReference: string | null
   mailbox: string | null
   smtpFromEmail: string | null
@@ -33,9 +45,13 @@ function trimOrNull(value?: string | null): string | null {
 
 export async function resolveCanonicalActorContext(
   environment: EdielEnvironment = 'test',
-  companyId?: string | null
+  companyId?: string | null,
+  actorRole?: EdielActorRole | null,
 ): Promise<CanonicalActorContext> {
-  const actor = await getActiveEdielActorSettings(environment, companyId)
+  // TEN-01: tenant, legal actor, operational role and transport identity are
+  // resolved together for one tenant; a tenant-less global profile is never used.
+  if (!trimOrNull(companyId)) throw new Error('canonical_actor_company_required')
+  const actor = await getActiveEdielActorSettings(environment, companyId, actorRole)
 
   if (!actor) {
     throw new Error(
@@ -43,31 +59,44 @@ export async function resolveCanonicalActorContext(
     )
   }
 
-  const senderEdielId = trimOrNull(actor.ediel_id) ?? trimOrNull(actor.actor_ediel_id)
-  if (!senderEdielId) {
-    throw new Error(
-      `Aktiv ediel_actor_settings för ${environment} saknar ediel_id/actor_ediel_id.`
-    )
+  const legacySenderEdielId = trimOrNull(actor.ediel_id) ?? trimOrNull(actor.actor_ediel_id)
+  if (!legacySenderEdielId) {
+    throw new Error(`Aktiv ediel_actor_settings för ${environment} saknar ediel_id/actor_ediel_id.`)
   }
 
+  const tenantIdentity: CanonicalTenantEdielIdentity = await resolveCanonicalTenantEdielIdentity({ companyId: companyId!, environment })
+  if (tenantIdentity.legalEdielId !== legacySenderEdielId) {
+    throw new Error(
+      `canonical_actor_legacy_identity_mismatch:${companyId}:${environment}:${legacySenderEdielId}:${tenantIdentity.legalEdielId}`,
+    )
+  }
+  // TEN-02: a role profile is only usable when the verified tenant identity holds that market role.
+  if (actorRole && !tenantIdentity.roleCodes.includes(tenantMarketRoleFor(actorRole))) {
+    throw new Error(`canonical_actor_market_role_missing:${actorRole}`)
+  }
+
+  const senderEdielId = tenantIdentity?.transportEdielId ?? legacySenderEdielId
+  const legalActorEdielId = tenantIdentity?.legalEdielId ?? legacySenderEdielId
   const senderName = trimOrNull(actor.sender_name) ?? trimOrNull(actor.legal_name) ?? trimOrNull(actor.actor_name)
   const senderSubAddress =
     trimOrNull(actor.sender_subaddress_prodat) ??
     trimOrNull(actor.sender_subaddress) ??
     trimOrNull(actor.sender_sub_address)
-  const defaultApplicationReference =
-    trimOrNull(actor.default_application_reference) ??
-    buildDefaultApplicationReference({
-      actorSubAddress: senderSubAddress,
-      process: 'EDIEL',
-    })
 
   return {
     actor,
+    actorRole: trimOrNull(actor.actor_role) ?? 'supplier',
     senderEdielId,
+    legalActorEdielId,
+    transportActorEdielId: senderEdielId,
+    marketRoles: tenantIdentity?.roleCodes ?? [],
+    representedByTransportAgent: tenantIdentity?.representedByTransportAgent ?? false,
+    tenantIdentity,
     senderName,
     senderSubAddress,
-    defaultApplicationReference,
+    // Never synthesize 23-<role>-<family>. The exact application reference is
+    // message/process specific and must be resolved by the canonical rulebook.
+    defaultApplicationReference: trimOrNull(actor.default_application_reference),
     mailbox: trimOrNull(actor.mailbox),
     smtpFromEmail: trimOrNull(actor.smtp_from_email),
     smtpReplyToEmail: trimOrNull(actor.smtp_reply_to_email),

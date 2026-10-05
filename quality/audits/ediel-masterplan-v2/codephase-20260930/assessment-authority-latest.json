@@ -1,0 +1,254 @@
+[
+  {
+    "ids": [
+      "ENV-03"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/edifactValidation.ts",
+      "lib/ediel/core/syntaxValidator.ts",
+      "supabase/migrations/20261001021545_ediel_fresh_ack_native_envelope_authority.sql",
+      "scripts/ediel-fresh-ack-envelope-sql-regression.mjs",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs"
+    ],
+    "confirmed_code_gap": "Actual direct native fresh ACK preparation/INSERT omitted UNZ reference/count/order although the shared TS syntax owner rejected it. New prospective native guard uses the SAME existing lexer and exact decoded UNB/UNZ and UNH/UNT scalar references/inclusive counts/order before fresh owner mint and first raw storage. Historical wire projector, fixed source/ACK receipts and accepted/entered provider replay remain unchanged.",
+    "blockers": [],
+    "planned_tests": [
+      "Source: T §4; P/U segmenttabeller; exact condition: Unika tekniska referenser; UNT inkluderar UNH/UNT; UNZ count och ref stämmer;0010/0017/0019 enligt profil.; success: Beräkna räknare från faktiskt serialiserad struktur.; prohibited: Återanvänd inte filnamn som tekniskt id; inga handskrivna stale segmentantal.",
+      "FAST RUN: 40 focused actual lexer/new guard/owner-delegation/birth rollback/historical-retention mechanics PASS; upstream canonical delegate is explicitly modeled.",
+      "FAST RUN: 198 focused composed actual native national/source/owner/seal/INSERT checks PASS (including six new envelope cases); registry/legal/upstream canonical boundaries remain explicitly synthetic. Normative guard and scoped lint PASS (0 errors, four existing harness unused warnings).",
+      "FINAL NOT RUN: fixed-candidate native clean replay, authentic schema/type parity, actual DB ACL/role/concurrency, provider accepted replay, full unit/browser/E2E/manual. Prove every fresh ACK family and alternate UNA count/ref closure, no partial witness or row mutation, historical retained/accepted original replay first."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Source: T §4; P/U segmenttabeller; exact condition: Unika tekniska referenser; UNT inkluderar UNH/UNT; UNZ count och ref stämmer;0010/0017/0019 enligt profil.; success: Beräkna räknare från faktiskt serialiserad struktur.; prohibited: Återanvänd inte filnamn som tekniskt id; inga handskrivna stale segmentantal. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "5035a70ef62dd1c6b08500e9e97ee7afc1cc0963"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ENV-03"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/edifactValidation.ts",
+      "lib/ediel/core/syntaxValidator.ts",
+      "supabase/migrations/20261001021545_ediel_fresh_ack_native_envelope_authority.sql",
+      "scripts/ediel-fresh-ack-envelope-sql-regression.mjs",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs"
+    ],
+    "confirmed_code_gap": "Actual direct native fresh ACK preparation/INSERT omitted UNZ reference/count/order although the shared TS syntax owner rejected it. New prospective native guard uses the SAME existing lexer and exact decoded UNB/UNZ and UNH/UNT scalar references/inclusive counts/order before fresh owner mint and first raw storage. Historical wire projector, fixed source/ACK receipts and accepted/entered provider replay remain unchanged.",
+    "blockers": [],
+    "planned_tests": [
+      "Given: UNB/UNH/UNT/UNZ; when: Färdig payload – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: Unika tekniska referenser; UNT inkluderar UNH/UNT; UNZ count och ref stämmer;0010/0017/0019 enligt profil. → Beräkna räknare från faktiskt serialiserad struktur.; prohibited: Återanvänd inte filnamn som tekniskt id; inga handskrivna stale segmentantal.",
+      "FAST RUN: 40 focused actual lexer/new guard/owner-delegation/birth rollback/historical-retention mechanics PASS; upstream canonical delegate is explicitly modeled.",
+      "FAST RUN: 198 focused composed actual native national/source/owner/seal/INSERT checks PASS (including six new envelope cases); registry/legal/upstream canonical boundaries remain explicitly synthetic. Normative guard and scoped lint PASS (0 errors, four existing harness unused warnings).",
+      "FINAL NOT RUN: fixed-candidate native clean replay, authentic schema/type parity, actual DB ACL/role/concurrency, provider accepted replay, full unit/browser/E2E/manual. Prove every fresh ACK family and alternate UNA count/ref closure, no partial witness or row mutation, historical retained/accepted original replay first."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Given: UNB/UNH/UNT/UNZ; when: Färdig payload – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: Unika tekniska referenser; UNT inkluderar UNH/UNT; UNZ count och ref stämmer;0010/0017/0019 enligt profil. → Beräkna räknare från faktiskt serialiserad struktur.; prohibited: Återanvänd inte filnamn som tekniskt id; inga handskrivna stale segmentantal. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "5035a70ef62dd1c6b08500e9e97ee7afc1cc0963"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-02"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/ackPolicy.ts",
+      "lib/ediel/core/outboundAckOriginals.ts",
+      "lib/ediel/core/ackDraftSource.ts",
+      "lib/ediel/prodat/prodatAckMessageFunction.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts",
+      "lib/ediel/core/kernel.ts",
+      "supabase/migrations/20260930235457_ediel_native_prodat_planned_response_authority.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs"
+    ],
+    "confirmed_code_gap": "P pp85–87 permit separate APERAK replies per installation; removed the shared P34 blanket all-source-object coverage rule while retaining exact own reference membership and conflicting outcomes. A negative missing226/LI was incorrectly forced through a LI-only protected-original reader/producer/kernel namespace. It now carries the actual objectId+identityAgency+physical firstLIN token index+true null LI tuple, never a fake LI/Z07 alias; positive missing LI stays held. Existing native235457 already supports unique negative object/noLI and was proven rather than rewritten. Root/U integrate exact same typed capability and immutable duplicate/outcome paths.",
+    "blockers": [],
+    "planned_tests": [
+      "Source: P §3.3–3.5; exact condition: D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.; success: Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.; prohibited: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+      "FAST RUN: 53 focused canonical P/ERR ACK guide tests PASS for partial own replies and contradictions; 45 protected-reader/correlation tests PASS incl missingLI negative, false positive/alias/agency ambiguity held; 22 U producer helper tests reported separately by U, independently bounded code review clear.",
+      "FAST RUN: 192 embedded native original-owner checks PASS including nine added source-bound noLI seal/INSERT/final original tests; same harness later198 includes envelope extension. Upstream canonical/legal/registry facets are explicitly modeled, not authentic acceptance proofs.",
+      "FINAL NOT RUN: full fixed-candidate native/replay/schema/security/concurrency/browser/E2E/manual. Prove independently partial source objects, multi-register firstLIN, missing226 negative ACK replay, positive missingLI hold, conflicting/per-own first-final reservation, no tenant/legal-party or LI substitutions."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Source: P §3.3–3.5; exact condition: D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.; success: Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.; prohibited: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "d67d86ffd926b23151615589c84ab2020f77fccb",
+      "fa0977cebd279cb9f5aa0af8c34690b16efcea32",
+      "6a2b3604e94aea612a724a96eed831c3201e6497",
+      "672c3199eec35a207840402ef916a05d6d180ec9"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-02"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/ackPolicy.ts",
+      "lib/ediel/core/outboundAckOriginals.ts",
+      "lib/ediel/core/ackDraftSource.ts",
+      "lib/ediel/prodat/prodatAckMessageFunction.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts",
+      "lib/ediel/core/kernel.ts",
+      "supabase/migrations/20260930235457_ediel_native_prodat_planned_response_authority.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs"
+    ],
+    "confirmed_code_gap": "P pp85–87 permit separate APERAK replies per installation; removed the shared P34 blanket all-source-object coverage rule while retaining exact own reference membership and conflicting outcomes. A negative missing226/LI was incorrectly forced through a LI-only protected-original reader/producer/kernel namespace. It now carries the actual objectId+identityAgency+physical firstLIN token index+true null LI tuple, never a fake LI/Z07 alias; positive missing LI stays held. Existing native235457 already supports unique negative object/noLI and was proven rather than rewritten. Root/U integrate exact same typed capability and immutable duplicate/outcome paths.",
+    "blockers": [],
+    "planned_tests": [
+      "Given: APERAK på PRODAT; when: Applikationsresultat finns – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.; prohibited: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+      "FAST RUN: 53 focused canonical P/ERR ACK guide tests PASS for partial own replies and contradictions; 45 protected-reader/correlation tests PASS incl missingLI negative, false positive/alias/agency ambiguity held; 22 U producer helper tests reported separately by U, independently bounded code review clear.",
+      "FAST RUN: 192 embedded native original-owner checks PASS including nine added source-bound noLI seal/INSERT/final original tests; same harness later198 includes envelope extension. Upstream canonical/legal/registry facets are explicitly modeled, not authentic acceptance proofs.",
+      "FINAL NOT RUN: full fixed-candidate native/replay/schema/security/concurrency/browser/E2E/manual. Prove independently partial source objects, multi-register firstLIN, missing226 negative ACK replay, positive missingLI hold, conflicting/per-own first-final reservation, no tenant/legal-party or LI substitutions."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Given: APERAK på PRODAT; when: Applikationsresultat finns – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.; prohibited: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "d67d86ffd926b23151615589c84ab2020f77fccb",
+      "fa0977cebd279cb9f5aa0af8c34690b16efcea32",
+      "6a2b3604e94aea612a724a96eed831c3201e6497",
+      "672c3199eec35a207840402ef916a05d6d180ec9"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/ackPolicy.ts",
+      "lib/ediel/core/outboundAckOriginals.ts",
+      "lib/ediel/core/ackDraftSource.ts",
+      "lib/ediel/prodat/prodatAckMessageFunction.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts",
+      "lib/ediel/core/kernel.ts",
+      "supabase/migrations/20260930235457_ediel_native_prodat_planned_response_authority.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs"
+    ],
+    "confirmed_code_gap": "P pp85–87 permit separate APERAK replies per installation; removed the shared P34 blanket all-source-object coverage rule while retaining exact own reference membership and conflicting outcomes. A negative missing226/LI was incorrectly forced through a LI-only protected-original reader/producer/kernel namespace. It now carries the actual objectId+identityAgency+physical firstLIN token index+true null LI tuple, never a fake LI/Z07 alias; positive missing LI stays held. Existing native235457 already supports unique negative object/noLI and was proven rather than rewritten. Root/U integrate exact same typed capability and immutable duplicate/outcome paths.",
+    "blockers": [],
+    "planned_tests": [
+      "Source: P §3; U §5.2; exact condition: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.; success: Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.; prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "FAST RUN: 53 focused canonical P/ERR ACK guide tests PASS for partial own replies and contradictions; 45 protected-reader/correlation tests PASS incl missingLI negative, false positive/alias/agency ambiguity held; 22 U producer helper tests reported separately by U, independently bounded code review clear.",
+      "FAST RUN: 192 embedded native original-owner checks PASS including nine added source-bound noLI seal/INSERT/final original tests; same harness later198 includes envelope extension. Upstream canonical/legal/registry facets are explicitly modeled, not authentic acceptance proofs.",
+      "FINAL NOT RUN: full fixed-candidate native/replay/schema/security/concurrency/browser/E2E/manual. Prove independently partial source objects, multi-register firstLIN, missing226 negative ACK replay, positive missingLI hold, conflicting/per-own first-final reservation, no tenant/legal-party or LI substitutions."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Source: P §3; U §5.2; exact condition: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.; success: Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.; prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "d67d86ffd926b23151615589c84ab2020f77fccb",
+      "fa0977cebd279cb9f5aa0af8c34690b16efcea32",
+      "6a2b3604e94aea612a724a96eed831c3201e6497",
+      "672c3199eec35a207840402ef916a05d6d180ec9"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/ackPolicy.ts",
+      "lib/ediel/core/outboundAckOriginals.ts",
+      "lib/ediel/core/ackDraftSource.ts",
+      "lib/ediel/prodat/prodatAckMessageFunction.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts",
+      "lib/ediel/core/kernel.ts",
+      "supabase/migrations/20260930235457_ediel_native_prodat_planned_response_authority.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs"
+    ],
+    "confirmed_code_gap": "P pp85–87 permit separate APERAK replies per installation; removed the shared P34 blanket all-source-object coverage rule while retaining exact own reference membership and conflicting outcomes. A negative missing226/LI was incorrectly forced through a LI-only protected-original reader/producer/kernel namespace. It now carries the actual objectId+identityAgency+physical firstLIN token index+true null LI tuple, never a fake LI/Z07 alias; positive missing LI stays held. Existing native235457 already supports unique negative object/noLI and was proven rather than rewritten. Root/U integrate exact same typed capability and immutable duplicate/outcome paths.",
+    "blockers": [],
+    "planned_tests": [
+      "Given: Flera objekt/transaktioner; when: En del är fel – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.; prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "FAST RUN: 53 focused canonical P/ERR ACK guide tests PASS for partial own replies and contradictions; 45 protected-reader/correlation tests PASS incl missingLI negative, false positive/alias/agency ambiguity held; 22 U producer helper tests reported separately by U, independently bounded code review clear.",
+      "FAST RUN: 192 embedded native original-owner checks PASS including nine added source-bound noLI seal/INSERT/final original tests; same harness later198 includes envelope extension. Upstream canonical/legal/registry facets are explicitly modeled, not authentic acceptance proofs.",
+      "FINAL NOT RUN: full fixed-candidate native/replay/schema/security/concurrency/browser/E2E/manual. Prove independently partial source objects, multi-register firstLIN, missing226 negative ACK replay, positive missingLI hold, conflicting/per-own first-final reservation, no tenant/legal-party or LI substitutions."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Given: Flera objekt/transaktioner; when: En del är fel – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.; prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "d67d86ffd926b23151615589c84ab2020f77fccb",
+      "fa0977cebd279cb9f5aa0af8c34690b16efcea32",
+      "6a2b3604e94aea612a724a96eed831c3201e6497",
+      "672c3199eec35a207840402ef916a05d6d180ec9"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-13"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/utilts/issuerIdentityAuthority.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20261001015127_ediel_utilts_foreign_issuer_observed_identity_authority.sql"
+    ],
+    "confirmed_code_gap": "Independent canonical U operational invocation had no source-qualified sender-wide original identity authority. WithRegistry selects whole guide once observationally, reads opaque issuer authority for the exact source and selected policy, runs operational runtime ONCE, and retains the same token through initial/final structural owner. Known203 is a whole-header ERC42 without ACW; known505 remains own-IDE ERC42; missing history produces a separate internal hold, never fabricated duplicate or accepted IDE. RPC infrastructure failure preserves genuine independent national negatives while a source-bound local held token supplies no absence/namespace history. U owns unseeded immutable legal-MS/full-UNB mandate namespaces and observed/external-history native gates; a samehash-prior history exemption found in review was corrected before publication.",
+    "blockers": [
+      "No authentic versioned foreign issuer/technical transport mandate registry, complete prior-other issued identifier history, deletion history or legally approved retention/normalization grounds are seeded or inferred. Genuine absence and live eligibility remain held without them."
+    ],
+    "planned_tests": [
+      "Source: P §2.2,3; U §3.9,5.5; SYS; exact condition: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.; success: Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.; prohibited: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "FAST RUN: 21 focused canonical owner/final token tests PASS; 12 targeted issuer failed-read/missing505 tests PASS; scoped lint/normative guard/diff PASS. Reader RPC boundary fixtures are explicitly modeled, not authentic external original proof.",
+      "BOUNDED REVIEW: U15127 +c55 header precedence inspected after correction; no open Critical/Important. U reports41 declared PG+19 TS; not independently rerun and no native replay/real legal evidence claim.",
+      "FINAL NOT RUN: genuine approved foreign legal issuer/full technical mandate over-time all-apps history + deletion/retention grounds, cross-tenant collision/race under same namespace, whole203 precedence/noACW, own505 scope, frozen existing positive/negative retry, revoked new positive held, original admission clock vs current send authorization."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Source: P §2.2,3; U §3.9,5.5; SYS; exact condition: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.; success: Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.; prohibited: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "d77e7b6c514d6881cd8396eedb81cd691731aabb",
+      "bf2c31d1975d340976bf88966f217a38c069cfda",
+      "8d9afeae585fc39734b428513fcc23bd46c8f203",
+      "c55a5caaaa97ca4eda7715562724245cc127368b"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-13"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/utilts/issuerIdentityAuthority.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20261001015127_ediel_utilts_foreign_issuer_observed_identity_authority.sql"
+    ],
+    "confirmed_code_gap": "Independent canonical U operational invocation had no source-qualified sender-wide original identity authority. WithRegistry selects whole guide once observationally, reads opaque issuer authority for the exact source and selected policy, runs operational runtime ONCE, and retains the same token through initial/final structural owner. Known203 is a whole-header ERC42 without ACW; known505 remains own-IDE ERC42; missing history produces a separate internal hold, never fabricated duplicate or accepted IDE. RPC infrastructure failure preserves genuine independent national negatives while a source-bound local held token supplies no absence/namespace history. U owns unseeded immutable legal-MS/full-UNB mandate namespaces and observed/external-history native gates; a samehash-prior history exemption found in review was corrected before publication.",
+    "blockers": [
+      "No authentic versioned foreign issuer/technical transport mandate registry, complete prior-other issued identifier history, deletion history or legally approved retention/normalization grounds are seeded or inferred. Genuine absence and live eligibility remain held without them."
+    ],
+    "planned_tests": [
+      "Given: BGM/UNB/IDE/tillstånd; when: Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.; prohibited: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "FAST RUN: 21 focused canonical owner/final token tests PASS; 12 targeted issuer failed-read/missing505 tests PASS; scoped lint/normative guard/diff PASS. Reader RPC boundary fixtures are explicitly modeled, not authentic external original proof.",
+      "BOUNDED REVIEW: U15127 +c55 header precedence inspected after correction; no open Critical/Important. U reports41 declared PG+19 TS; not independently rerun and no native replay/real legal evidence claim.",
+      "FINAL NOT RUN: genuine approved foreign legal issuer/full technical mandate over-time all-apps history + deletion/retention grounds, cross-tenant collision/race under same namespace, whole203 precedence/noACW, own505 scope, frozen existing positive/negative retry, revoked new positive held, original admission clock vs current send authorization."
+    ],
+    "assessment": "Fresh bounded own assessment against actual current consumer/native scope. Given: BGM/UNB/IDE/tillstånd; when: Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.; expected: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.; prohibited: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel. Frozen formal acceptance status unchanged; these rows supplement prior101-ID and ERR7-ID overlays, not replace co-owner clauses.",
+    "commits": [
+      "d77e7b6c514d6881cd8396eedb81cd691731aabb",
+      "bf2c31d1975d340976bf88966f217a38c069cfda",
+      "8d9afeae585fc39734b428513fcc23bd46c8f203",
+      "c55a5caaaa97ca4eda7715562724245cc127368b"
+    ]
+  }
+]

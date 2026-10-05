@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /workspace/scratch/2a201d6d5897/gridex-next
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  19:59:05
+   Duration  4.15s (transform 1.85s, setup 28ms, import 2.50s, tests 1.43s, environment 0ms)
+

@@ -1,0 +1,20 @@
+import {it,expect,vi} from 'vitest'
+import {permissionAckMessage as message,permissionAckObject as object,characteristic} from '@/__tests__/fixtures/prodat-permission-ack'
+import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
+import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
+import {deriveProdatAperakValidationIssues} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
+import {writeFileSync} from 'node:fs'
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
+it('qualified positive Z14 unknown/bad own323 is silently absent from incoming owners',()=>{
+ const observations=[]
+ for(const reason of ['S17','Z96'])for(const purpose of ['B72','BAD']){
+  const body=object('Z14',reason,reason==='Z96'?'A76':'A74');const i=body.findIndex(p=>p[0]==='RFF');body.splice(i,0,...characteristic('Z24',purpose))
+  const m=message('Z14',reason,reason==='Z96'?'A76':'A74',null,undefined,body)
+  const policy=validateRulebookMessage({family:'PRODAT',code:'Z14',rawPayload:m.raw_payload!,mode:'parse',direction:'inbound'})
+  const direct=decideProdatAperak({rawPayload:m.raw_payload!,testKind:'production'})
+  let registry;try{registry=deriveProdatAperakValidationIssues({message:m})}catch(e){registry=String(e)}
+  observations.push({reason,purpose,policy:policy.issues,direct,registry})
+  expect(policy.issues.filter(x=>x.prodatDiagnostic?.kind==='field'&&x.prodatDiagnostic.fieldNumber==='323')).toEqual([])
+ }
+ writeFileSync('/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/reporting-consumer-observations-01.json',JSON.stringify(observations,null,2))
+})

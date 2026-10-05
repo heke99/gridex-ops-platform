@@ -3,6 +3,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { customerIntakeStatusForReadiness, type WebsiteApplicationReadiness } from "@/lib/website/applicationReview";
 import { EnergyResolutionBindingError } from "@/lib/energy/resolutionBinding";
 import { mapFacilityBusinessError, type FacilityBusinessErrorCode } from "@/lib/energy/facilityDataErrors";
+import { customerPortalWriteError } from "@/lib/api/strictRequest";
 
 export type CustomerRow = {
   id: string;
@@ -386,9 +387,10 @@ export async function stage<T>(
         hint: "Lös kundens elområde på nytt genom OPS och använd den nya resolution_id i både quote och kundansökan.",
       });
     }
-    const coded = error as { code?: unknown; details?: unknown; status?: unknown; field?: unknown };
+    const writeError = customerPortalWriteError(error);
+    const coded = writeError as { code?: unknown; details?: unknown; status?: unknown; field?: unknown };
     throw new WebsiteApplicationError({
-      message: errorMessage(error),
+      message: errorMessage(writeError),
       status: typeof coded?.status === "number" ? coded.status : 500,
       code:
         typeof coded?.code === "string" && coded.code
@@ -400,9 +402,9 @@ export async function stage<T>(
         typeof coded?.details === "object" && coded.details !== null
           ? {
               ...(coded.details as Record<string, unknown>),
-              raw_error: errorMessage(error),
+              raw_error: errorMessage(writeError),
             }
-          : { raw_error: errorMessage(error) },
+          : { raw_error: errorMessage(writeError) },
     });
   }
 }

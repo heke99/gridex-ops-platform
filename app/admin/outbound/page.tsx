@@ -1,3 +1,6 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -16,6 +19,7 @@ import {
 } from '@/app/admin/operations/control-actions'
 import { getBillingExportReadiness } from '@/lib/operations/controlTower'
 import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -273,13 +277,13 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  userEmail={context.email}
  />
 
- <div className="space-y-6 p-8">
- <section className="grid gap-4 xl:grid-cols-4">
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="min-w-0 space-y-4 p-4 lg:p-6 [&_input:not([type=hidden])]:min-w-0 [&_input:not([type=hidden])]:w-full [&_select]:min-w-0 [&_select]:w-full [&_textarea]:min-w-0 [&_textarea]:w-full">
+ <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Saknar route routes
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {unresolvedRequests.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -287,11 +291,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Väntar på svar
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {waitingResponseRequests.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -299,11 +303,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Dispatch-fel
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {failedRequests.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -311,11 +315,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Redo billing-exporter
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {readyBillingExports.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -324,12 +328,12 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </section>
 
- <section className="grid gap-4 xl:grid-cols-4">
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Automation-klara
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {automationReadyRequests.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -337,11 +341,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Auto-ack kandidater
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {autoAckCandidates.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -349,11 +353,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Retrybara dispatch-fel
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {retryableMisslyckadRequests.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -361,11 +365,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Switch utan outbound
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {switchRequestsMissingOutbound.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -374,12 +378,12 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </section>
 
- <section className="grid gap-4 xl:grid-cols-4">
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Leverantörsbyte väntar på ack
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {switchRequestsWaitingAck.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -387,11 +391,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
  <div className="text-sm font-medium text-slate-700 ">
  Leverantörsbyte dispatch-fel
  </div>
- <div className="mt-3 text-3xl font-semibold text-slate-950 ">
+ <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {switchRequestsMisslyckad.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
@@ -400,9 +404,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </section>
 
- <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
- <div className="mb-4 flex flex-wrap gap-3">
+ <section className="grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1fr)_320px]">
+ <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
+ <div className="mb-3"><AdminActionsMenu label="Fler arbetsvyer">
  <Link
  href="/admin/outbound/missing-meter-values"
  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 "
@@ -421,19 +425,19 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  >
  Communication routes
  </Link>
- </div>
+</AdminActionsMenu></div>
 
- <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
- <form className="grid gap-4 xl:grid-cols-[1.2fr_220px_220px_220px_auto]">
+ <div className="space-y-3">
+ <form className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
  <input
- name="q"
+ name="q" aria-label="Sök utskick"
  defaultValue={query}
  placeholder="Sök på kund, anläggning, mätpunkt, körning eller referens"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <select
- name="status"
+ name="status" aria-label="Status"
  defaultValue={status}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -447,7 +451,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </select>
 
  <select
- name="requestType"
+ name="requestType" aria-label="Begärans typ"
  defaultValue={requestType}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -459,7 +463,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </select>
 
  <select
- name="channelType"
+ name="channelType" aria-label="Kanal"
  defaultValue={channelType}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -534,9 +538,9 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  return (
  <article
  key={request.id}
- className="rounded-3xl border border-slate-200 p-5 "
+ className="rounded-2xl border border-slate-200 p-5 "
  >
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+ <div className="min-w-0 space-y-3">
  <div className="min-w-0">
  <div className="flex flex-wrap items-center gap-2">
  <span
@@ -544,7 +548,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_type}
@@ -556,7 +560,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
  <h3 className="text-base font-semibold text-slate-950 ">
- Outbound request {request.id}
+ <CustomerName id={request.customer_id} />
  </h3>
 
  <div className="flex flex-wrap items-center gap-2">
@@ -578,11 +582,12 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+ {request.period_start || request.period_end ? <p className="mt-2 break-words text-sm text-slate-700">Period: {request.period_start ?? '—'} → {request.period_end ?? '—'}</p> : null}
+ <details className="mt-3 text-sm text-slate-700"><summary className="cursor-pointer font-semibold">Referenser och anläggning</summary><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 break-words sm:grid-cols-2 lg:grid-cols-3">
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Kund</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </div>
  </div>
 
@@ -618,7 +623,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  className="text-emerald-700 underline-offset-2 hover:underline "
  >
  {linkedMessage.message_family} {linkedMessage.message_code} ·{' '}
- {linkedMessage.status}
+ {formatStatusLabel(linkedMessage.status)}
  </Link>
  ) : (
  '—'
@@ -655,7 +660,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="mt-4 grid gap-2 text-sm text-slate-700 ">
+ <div className="mt-3 grid min-w-0 grid-cols-1 gap-1 break-words text-sm text-slate-700 ">
  <div>
  Körningsnyckel:{' '}
  <span className="font-medium">
@@ -674,9 +679,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
+ </details>
+ {linkedMessage ? <p className="mt-2 text-sm text-slate-700">Meddelandestatus: {formatStatusLabel(linkedMessage.status)} · {linkedMessage.message_family} {linkedMessage.message_code}</p> : null}
  {request.channel_type === 'unresolved' ? (
  <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ">
- Den här requesten saknar aktiv route. Sweep 7.8 försöker lösa om route finns nu, annars ligger den kvar för manuell route-fix.
+ Den här requesten saknar aktiv route. Den automatiska omkörningen försöker igen om en route finns nu, annars ligger den kvar för manuell route-fix.
  </div>
  ) : null}
 
@@ -693,7 +700,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  {request.failure_reason ??
  'Dispatch misslyckades och kräver ny åtgärd.'}{' '}
  {request.attempts_count < 3
- ? 'Sweep 7.8 kan återköa den efter cooldown.'
+ ? 'Den automatiska omkörningen kan köa den igen efter en väntetid.'
  : 'Retry-taket är uppnått och kräver manuell insats.'}
  </div>
  ) : null}
@@ -755,14 +762,10 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  ) : null}
  </div>
 
- <form
+ <AdminDisclosurePanel id={`outbound-status-${request.id}`} title="Uppdatera dispatch-status" className="rounded-xl border border-slate-200 p-3"> <form
  action={updateOutboundRequestStatusAction}
- className="rounded-3xl border border-slate-200 p-4 "
+ className="rounded-2xl border border-slate-200 p-4 "
  >
- <h3 className="text-sm font-semibold text-slate-900 ">
- Uppdatera dispatch-status
- </h3>
-
  <input
  type="hidden"
  name="outbound_request_id"
@@ -776,7 +779,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  <div className="mt-4 grid gap-3">
  <select
- name="status"
+ name="status" aria-label="Status"
  defaultValue={request.status}
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
@@ -789,20 +792,20 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </select>
 
  <input
- name="external_reference"
+ name="external_reference" aria-label="Extern referens"
  defaultValue={request.external_reference ?? ''}
  placeholder="Extern referens"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
- name="response_payload_note"
+ name="response_payload_note" aria-label="Svar eller intern notering"
  placeholder="Svar / intern notering"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <textarea
- name="failure_reason"
+ name="failure_reason" aria-label="Felorsak"
  defaultValue={request.failure_reason ?? ''}
  placeholder="Felorsak"
  rows={4}
@@ -813,7 +816,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  Spara status
  </button>
  </div>
- </form>
+ </form></AdminDisclosurePanel>
  </div>
  </div>
  </article>
@@ -824,7 +827,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
 
  <div className="space-y-6">
- <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-950 ">
  Ready to export
@@ -856,7 +859,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
 
  <div className="mt-3 text-sm text-slate-700 ">
- Kund {underlay.customer_id} · Site {underlay.site_id ?? '—'} ·
+ Kund <CustomerName id={underlay.customer_id} /> · Site {underlay.site_id ?? '—'} ·
  Mätpunkt {underlay.metering_point_id ?? '—'}
  </div>
 
@@ -883,7 +886,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-950 ">
  Köläge

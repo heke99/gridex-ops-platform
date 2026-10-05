@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -10,7 +11,7 @@ import {
   runGridOwnerReadinessCompletion,
   runGridOwnerVerificationBackfill,
 } from "@/lib/grid-owners/verification";
-import { importActorRegistryXml } from "@/lib/actor-registry/importActorRegistry";
+import { decodeRegistryUpload, importActorRegistryXml, readActorRegistryPriorResult } from "@/lib/actor-registry/importActorRegistry";
 import { refreshCertificatesForGridOwner, refreshScheduledActorCertificates } from "@/lib/ediel/certificates/actorCertificateRefresh";
 import {
   gridOwnerInputSchema,
@@ -142,6 +143,7 @@ export async function refreshGridOwnerCertificatesAction(): Promise<void> {
       message: `Certifikatsökning klar för blockerade elnät i supplier-switch scope. Bearbetade ${result.processed} aktörer, hittade ${result.found} certifikat, infogade ${result.inserted}, uppdaterade ${result.updated}. Misslyckade ${result.errors?.length ?? 0}, skippade ${result.skipped?.length ?? 0}.${result.errors?.[0] ? ` Första felet: ${actionErrorMessage(result.errors[0])}` : ""}`,
     };
   } catch (error) {
+    unstable_rethrow(error)
     console.error("network_owners_certificate_refresh_action_failed", error);
     redirectParams = {
       status: "error",
@@ -167,9 +169,17 @@ export async function importActorRegistryXmlAction(formData: FormData): Promise<
     throw new Error("Filen måste vara en XML-fil.");
   }
 
-  const xml = Buffer.from(await file.arrayBuffer()).toString("utf8");
+  const sourceBytes = Buffer.from(await file.arrayBuffer());
+  const prior = await readActorRegistryPriorResult({ sourceBytes, sourceKind: 'companies_xml', actorUserId: actor.userId });
+  if (prior) {
+    revalidatePath("/admin/network-owners");
+    revalidatePath("/admin/ediel/actors");
+    return;
+  }
+  const xml = decodeRegistryUpload(sourceBytes, 'companies_xml');
   await importActorRegistryXml({
     xml,
+    sourceBytes,
     sourceFilename: name,
     uploadedBy: actor.userId,
     forceReprocess,
@@ -211,6 +221,7 @@ export async function searchGridOwnerCertificateNowAction(formData: FormData): P
             : `Certifikatsökning klar för vald nätägare. Hittade ${result.found}, infogade ${result.inserted}, uppdaterade ${result.updated}, giltiga ${result.valid}, utgångna ${result.expired}. ${result.metadata?.lookupAddresses ? `Sökte via ${(result.metadata.lookupAddresses as string[]).join(', ')}.` : ''}` ,
         };
   } catch (error) {
+    unstable_rethrow(error)
     console.error("network_owner_manual_certificate_search_failed", { gridOwnerId, error });
     redirectParams = {
       edit: gridOwnerId,

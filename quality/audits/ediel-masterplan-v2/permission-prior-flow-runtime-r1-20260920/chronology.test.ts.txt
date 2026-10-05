@@ -1,0 +1,39 @@
+import {readFileSync} from 'node:fs'
+import ts from 'typescript'
+import {it,expect,vi} from 'vitest'
+import {msg,prior,object,alphabets,scopeRecords} from '/workspace/scratch/2a201d6d5897/gridex-next/__tests__/fixtures/prodat-prior-flow'
+import {loadPriorPermissionFlow} from '@/lib/ediel/prodat/loadPriorPermissionFlow'
+import {assertPriorPermissionContext,type PriorScopeRecords} from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
+import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'
+import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
+import {buildAckDraftForSource} from '@/lib/ediel/ack'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('NO_LIVE_DB')}}}))
+function extract(path:string,names:string[],deps:Record<string,unknown>){const f=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true),code=f.statements.filter(s=>ts.isFunctionDeclaration(s)&&names.includes(s.name?.text??'')).map(s=>s.getText(f).replace(/^export /,'')).join('\n'),js=ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function(...Object.keys(deps),js+';return '+names[0])(...Object.values(deps))}
+function resolver(rows:EdielMessageRow[],records=scopeRecords(),failure?:'null'|'error'){
+ const reads:{table:string;ops:unknown[][];returned:string[]}[]=[]
+ const metadata:Record<string,unknown[]>={tenant_ediel_profiles:records.profiles,tenant_actor_identifiers:records.identifiers,tenant_actor_roles:records.roles,tenant_counterparty_relations:records.relations,platform_actor_identifiers:records.actors}
+ const db={from:(table:string)=>{const ops:unknown[][]=[],read={table,ops,returned:[] as string[]};reads.push(read);const q:Record<string,unknown>={then:(done:(v:unknown)=>unknown)=>{let data=((table==='ediel_messages'?rows:metadata[table]) as Record<string,unknown>[]).filter(row=>ops.every(([op,k,v])=>op==='eq'?row[String(k)]===v:op==='in'?(v as unknown[]).includes(row[String(k)]):op==='lte'?String(row[String(k)])<=String(v):op==='not'?!['cancelled','failed'].includes(String(row[String(k)])):true));const range=ops.find(o=>o[0]==='range');if(range)data=data.slice(Number(range[1]),Number(range[2])+1);read.returned=data.map(r=>String(r.id));return done({data:table==='ediel_messages'&&failure==='null'?null:data,error:table==='ediel_messages'&&failure==='error'?{message:'synthetic'}:null})}};for(const op of ['select','eq','in','not','lte','order','limit','range'])q[op]=(...v:unknown[])=>{ops.push([op,...v]);return q};return q}}
+ return {reads,run:extract('app/admin/ediel/actions.part-3.ts',['resolveProdatPermissionContextForAck'],{supabaseService:db,loadPriorPermissionFlow}) as (m:EdielMessageRow)=>ReturnType<typeof loadPriorPermissionFlow>}
+}
+function manual(rows:EdielMessageRow[],records:PriorScopeRecords=scopeRecords()){
+ const events:unknown[]=[],drafts:unknown[]=[],r=resolver(rows,records as ReturnType<typeof scopeRecords>)
+ const run=extract('app/admin/ediel/actions.part-3.ts',['resolveBackendAperakDecision'],{assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,assertPriorPermissionContext,resolveAndStoreProdatAperakErrors:()=>{throw Error('REGISTRY_BYPASS')},resolveTgtTestDataForAckAction:async()=>({testData:null,selectedRow:null}),resolveProdatPermissionContextForAck:r.run,createEdielMessageEvent:async(e:unknown)=>events.push(e)})
+ return {events,drafts,run:async(m:EdielMessageRow)=>{const d=await run({actorUserId:'synthetic',sourceMessage:m,roleCode:'energy_service_company',fallbackOutcome:'positive'});drafts.push(buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:d.outcome,applicationErrors:d.applicationErrors}));return d}}
+}
+
+it('control: request predates response business time',async()=>{
+ const m=msg(); m.raw_payload=m.raw_payload!.replace('137:202609171200','137:202609191200');
+ const p=prior(); p.raw_payload=p.raw_payload!.replace('137:202609171200','137:202609181200');
+ const result=await manual([p]).run(m);expect(result.outcome).toBe('positive')
+})
+it('capture: request created and sent a day after response business time still produces positive event and draft',async()=>{
+ const m=msg();m.raw_payload=m.raw_payload!.replace('137:202609171200','137:202609181200');
+ const p=prior();p.raw_payload=p.raw_payload!.replace('137:202609171200','137:202609191200');p.message_sent_at='2026-09-19T12:00:00Z';
+ const r=manual([p]);const result=await r.run(m);expect(result.outcome).toBe('positive');expect(r.events).toHaveLength(1);expect(r.drafts).toHaveLength(1);
+})
+it('capture: later prior Z15 cancellation target is still correlated',async()=>{
+ const m=msg('Z15','Z24');m.raw_payload=m.raw_payload!.replace('137:202609171200','137:202609181200');
+ const p={...msg('Z15'),id:'previous-end',created_at:'2026-09-19T00:00:00Z',message_received_at:'2026-09-19T12:00:00Z'};p.raw_payload=p.raw_payload!.replace('137:202609171200','137:202609191200');
+ const result=await resolver([p]).run(m);expect(result.kind).toBe('correlated');expect(result.objects[0].kind).toBe('correlated_cancellation')
+})

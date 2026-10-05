@@ -1,27 +1,58 @@
+import { assertEdifactUnocText } from '@/lib/ediel/core/edifactEncoding'
+import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
+import {evaluateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
+import {projectDeathStatus,isDeathStatusField} from '@/lib/ediel/prodat/prodatDeathStatus'
+import {evaluateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import {isMeterChangeField,meterChangeCondition} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {evaluateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
+import {evaluateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
+import {isReportingPermissionField} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import {evaluateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
+import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
+import {evaluateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
+import {INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
+import {evaluateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
+import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
+import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { resolveProdatRegisterInputs, prodatObjectIdentityAgency } from '@/lib/ediel/prodat/prodatRegisterInput'
+import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
+import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import { isProdatReadingField } from '@/lib/ediel/prodat/prodatRegisterReadings'
+import { reconcileProdatRegisterInventoryStatus, validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
+import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
+import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
+import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 // lib/ediel/prodat/builders/profileRenderer.ts
 
 import type {
+  ProdatEngineAckExpectation,
   ProdatEnginePortalSnapshot,
+  ProdatEngineInvoiceeContext,
   ProdatEngineProductionContext,
   ProdatEngineRenderResult,
 } from '@/lib/ediel/prodat/types'
 import {
   compactProdatReference,
   prodatCustomerNadSegment,
+  prodatInvoiceeNadSegment,
   prodatInstallationNadSegment,
   prodatPartySegment,
+  prodatBalanceResponsibleSegment,
   sanitizeProdatText,
   sanitizeProdatToken,
 } from '@/lib/ediel/prodat/render/segments'
-import {
-  prodatDate102,
-  prodatDate203,
-  prodatDate203AtStartOfDay,
-  prodatNowDate203,
-} from '@/lib/ediel/prodat/render/dates'
 import { validateProdatContext } from '@/lib/ediel/prodat/render/validate'
-import { deriveProdatAckExpectation } from '@/lib/ediel/prodat/registry'
-
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
+import {
+  resolveCanonicalEdielPolicy,
+  type CanonicalEdielPolicy,
+} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 function prodatCav(value: string | null | undefined, maxLength = 12): string {
   const code = sanitizeProdatToken(value ?? null, maxLength)
@@ -49,43 +80,102 @@ function portalString(portalData: ProdatEnginePortalSnapshot, key: string): stri
   return typeof value === 'string' && value.trim().length > 0 ? sanitizeProdatText(value) : null
 }
 
+// Literal NAD+UD data keeps source component bytes. This pure text projection
+// does not qualify a customer source; live opaque/native ownership is separate.
+function portalLiteralPartyText(portalData: ProdatEnginePortalSnapshot,key:string):string|null {
+ const value=portalData?.[key]
+ if(value==null)return null
+ if(typeof value!=='string')throw new Error('prodat_party_snapshot_invalid')
+ return value
+}
+function portalLiteralPartyLines(portalData: ProdatEnginePortalSnapshot,key:string):readonly string[]|undefined {
+ const value=portalData?.[key]
+ if(value==null)return undefined
+ if(!Array.isArray(value)||value.some(part=>typeof part!=='string'))throw new Error('prodat_party_snapshot_invalid')
+ return value
+}
+
+function portalPartyText(portalData: ProdatEnginePortalSnapshot, key: string): string | null {
+  const value = portalData?.[key]
+  if (value == null) return null
+  if (typeof value !== 'string') throw new Error('prodat_party_snapshot_invalid')
+  assertEdifactUnocText(value)
+  return value.trim() // An explicitly empty party field must not borrow a fallback.
+}
+
+function portalPartyLines(portalData: ProdatEnginePortalSnapshot, key: string): readonly string[] | undefined {
+  const value = portalData?.[key]
+  if (value == null) return undefined
+  if (!Array.isArray(value) || !value.every(part => typeof part === 'string')) throw new Error('prodat_party_snapshot_invalid')
+  return value as string[]
+}
+
+function portalAgency<T extends string>(portalData: ProdatEnginePortalSnapshot, key: string, allowed: readonly T[]): T | undefined {
+  const value = portalPartyText(portalData, key)
+  if (value === null) return undefined
+  if (!allowed.includes(value as T)) throw new Error('prodat_party_code_list_invalid')
+  return value as T
+}
+
+function invoiceeContext(portalData: ProdatEnginePortalSnapshot, fallback: ProdatEngineInvoiceeContext | null | undefined): ProdatEngineInvoiceeContext | null {
+  if (!portalData || !Object.prototype.hasOwnProperty.call(portalData, 'invoicee')) return fallback ?? null
+  if (portalData.invoicee === null) return null
+  const data = objectValue(portalData.invoicee)
+  if (!data) throw new Error('prodat_party_snapshot_invalid')
+  return {
+    id: portalPartyText(data, 'id'), idCodeListQualifier: portalPartyText(data, 'idCodeListQualifier'),
+    idAgency: portalAgency(data, 'idAgency', ['89', '260'] as const),
+    name: portalPartyText(data, 'name') ?? '', nameLines: portalPartyLines(data, 'nameLines'),
+    address: portalPartyText(data, 'address'), addressLines: portalPartyLines(data, 'addressLines'),
+    city: portalPartyText(data, 'city'), postalCode: portalPartyText(data, 'postalCode'), country: portalPartyText(data, 'country'),
+  }
+}
+
 function portalObject(portalData: ProdatEnginePortalSnapshot, key: string): Record<string, unknown> | null {
   return objectValue(portalData?.[key])
-}
-
-function portalDate102(portalData: ProdatEnginePortalSnapshot, key: string): string | null {
-  return prodatDate102(portalString(portalData, key))
-}
-
-function normalizeReasonForTransaction(value?: string | null): string | null {
-  const normalized = sanitizeProdatText(value).toUpperCase()
-  if (normalized === 'LK' || normalized === 'Z23') return 'Z23'
-  if (normalized === 'L' || normalized === 'Z22') return 'Z22'
-  if (normalized === 'F' || normalized === 'Z06F' || normalized === 'Z09F' || normalized === 'E64') return 'E64'
-  if (normalized === 'G' || normalized === 'Z06G' || normalized === 'Z09G' || normalized === 'E32') return 'E32'
-  if (normalized === 'D' || normalized === 'Z09D' || normalized === 'Z70') return 'Z70'
-  return normalized || null
-}
-
-function isPermissionMessageCode(code: string): boolean {
-  return code === 'Z13' || code === 'Z14' || code === 'Z15' || code === 'Z18'
-}
-
-function isHistoricalPermissionReason(value?: string | null): boolean {
-  const normalized = sanitizeProdatToken(value ?? null, 12)
-  return normalized === 'S18' || normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH'
-}
-
-function resolvePermissionReasonForCode(explicitValue?: string | null): string | null {
-  const normalized = sanitizeProdatToken(explicitValue ?? null, 12)
-  if (normalized === 'VH' || normalized === 'Z13VH' || normalized === 'Z14VH') return 'S18'
-  if (normalized === 'V' || normalized === 'Z13V' || normalized === 'Z14V' || normalized === 'Z18V') return 'S17'
-  return normalizeReasonForTransaction(explicitValue)
 }
 
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
   const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
   return sanitizeProdatToken(override ?? portalString(portalData, 'meteringMethod') ?? fallback ?? null, 12)
+}
+
+function rendererPolicy(input: {
+  portalSnapshot?: ProdatEnginePortalSnapshot
+  context: ProdatEngineProductionContext
+  generatedAt?: Date
+  mode?: 'test' | 'production'
+  variant?: string | null
+  policy?: CanonicalEdielPolicy
+}): CanonicalEdielPolicy {
+  if (input.policy) return input.policy
+  return resolveCanonicalEdielPolicy({
+    family: 'PRODAT',
+    messageCode: input.context.code,
+    subtypeOrReasonCode: input.variant ?? input.context.reasonForTransaction ?? input.context.contractClosureReason ?? null,
+    direction: 'outbound',
+    referenceDate: (input.generatedAt ?? new Date()).toISOString().slice(0, 10),
+    businessContext: input.context.businessContext ?? null,
+    bilateralCapabilityVerified: input.context.bilateralCapabilityVerified ?? undefined,
+    prodatDependentFacts: {
+      market: 'electricity',
+      ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
+    },
+    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
+  })
+}
+
+function ackExpectationFromPolicy(policy: CanonicalEdielPolicy): ProdatEngineAckExpectation {
+  const requiresContrl = policy.ackRule.technicalAck === 'CONTRL'
+  const requiresAperak = policy.ackRule.applicationAck === 'APERAK' || policy.ackRule.applicationAck === 'transactional'
+  return {
+    requiresContrl,
+    requiresAperak,
+    contrlStatus: requiresContrl ? 'pending' : 'not_required',
+    aperakStatus: requiresAperak ? 'pending' : 'not_required',
+    utiltsErrStatus: 'not_required',
+    ackDueAt: null,
+  }
 }
 
 export function buildProfiledProdatSegments(input: {
@@ -98,22 +188,21 @@ export function buildProfiledProdatSegments(input: {
   routeDecisionReason?: string | null
   selectedVersion?: string | null
   acceptedVersions?: string[]
+  policy?: CanonicalEdielPolicy
 }): ProdatEngineRenderResult {
   const portalData = input.portalSnapshot ?? null
   const context = input.context
-  const issues = validateProdatContext(context)
+  const policy = rendererPolicy(input)
+  const dateInputs = resolveProdatDateInputs(policy.code, policy.subtype, context, portalData)
+  const issues = validateProdatContext({ ...context, ...dateInputs })
 
-  const bgmReference = compactProdatReference(context.bgmReference, 35)
-  const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
-  const isPermissionMessage = isPermissionMessageCode(context.code)
-  const isSupplierZ09 = context.code === 'Z09'
-  const explicitReasonForTransaction = isHistoricalPermissionReason(input.variant ?? context.reasonForTransaction ?? null)
-    ? 'S18'
-    : portalString(portalData, 'reasonForTransaction') ?? context.reasonForTransaction ?? input.variant ?? null
-  const reasonForTransaction = isPermissionMessage
-    ? resolvePermissionReasonForCode(explicitReasonForTransaction)
-    : normalizeReasonForTransaction(explicitReasonForTransaction)
-  const isHistoricalPermission = isHistoricalPermissionReason(reasonForTransaction ?? input.variant ?? null)
+  const bgmReference = context.bgmReference.trim()
+  const bgmSegment = renderProdatDocumentHeader({ code: policy.code, documentId: bgmReference })
+  const exactLineReference=policy.code==='Z01'||policy.code==='Z10'||policy.code==='Z05'&&policy.subtype==='LK'||['Z06','Z09'].includes(policy.code)&&policy.subtype==='E'
+  const lineItemReference = exactLineReference ? context.transactionReference : compactProdatReference(context.transactionReference || context.bgmReference, 35)
+  const isPermissionMessage = policy.processGroup === 'metering_access'
+  const isSupplierZ09 = policy.code === 'Z09'
+  const reasonForTransaction = policy.transactionReasonCode
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
   const installationDirection = sanitizeProdatToken(
     portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null,
@@ -124,68 +213,30 @@ export function buildProfiledProdatSegments(input: {
     12,
   )
 
-  // Production rule (no-placeholder): never fabricate an object identifier such as
-  // 'UNKNOWN'. When no real facility/metering point id exists the object id is
-  // omitted. A Z01 customer-identity request is address-keyed and does not require
-  // LIN per its rulebook profile, so omission is documented-safe; other codes
-  // always carry a real id (enforced by their preflight) and are unaffected.
-  const meterPointId = portalString(portalData, 'facilityId') ?? sanitizeProdatText(context.meterPointId)
+  const meterPointId = portalPartyText(portalData, 'facilityId') ?? context.meterPointId.trim()
   const hasObjectIdentifier = meterPointId.trim().length > 0
+  const identityAgency = prodatObjectIdentityAgency(context.meterPointIdAgency)
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
-  const startDate = isHistoricalPermission
-    ? portalDate102(portalData, 'reportStartDateTime') ?? prodatDate102(context.startDate)
-    : portalDate102(portalData, 'reportStartDateTime') ??
-      portalDate102(portalData, 'agreementStartDateTime') ??
-      prodatDate102(context.startDate)
-  const reportEndDate203 =
-    prodatDate203(
-      portalString(portalData, 'reportEndDateTime') ??
-      portalString(portalData, 'permissionEndDate') ??
-      context.permissionEndDate ??
-      (isHistoricalPermission ? null : portalString(portalData, 'agreementEndDateTime')) ??
-      null,
-    )
+  const dates = buildProdatDateSegments(policy.code, policy.subtype, dateInputs, input.generatedAt)
 
   const segments: string[] = [
-    `BGM+${context.code}+${bgmReference}+9+AB`,
-    `DTM+137:${prodatNowDate203(input.generatedAt)}:203`,
-    'DTM+ZZZ:1:805',
-    prodatPartySegment('FR', context.senderEdielId),
-    prodatPartySegment('DO', context.receiverEdielId),
+    bgmSegment,
+    ...dates.header,
+    prodatPartySegment('FR', context.legalSenderId ?? context.senderEdielId, context.legalSenderCountry ?? 'SE'),
+    prodatPartySegment('DO', context.legalReceiverId ?? context.receiverEdielId, context.legalReceiverCountry ?? 'SE'),
   ]
 
-  // Only emit the LIN object identifier when a real id exists. No 'UNKNOWN'.
   if (hasObjectIdentifier) {
-    segments.push(`LIN+1++${sanitizeProdatText(meterPointId)}:::9`)
+    segments.push(`LIN+1++${escapeEdifactValue(meterPointId)}:::${identityAgency}`)
+  } else {
+    segments.push('LIN+1')
   }
 
-  const startDate203 = prodatDate203AtStartOfDay(startDate)
-  if (context.code === 'Z18') {
-    const permissionCreatedAt = prodatDate203(
-      portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp,
-    )
-    const reportingEndDate = prodatDate203(
-      portalString(portalData, 'permissionEndDate') ?? context.permissionEndDate,
-    )
-    if (permissionCreatedAt) segments.push(`DTM+693:${permissionCreatedAt}:203`)
-    if (reportingEndDate) segments.push(`DTM+164:${reportingEndDate}:203`)
-  } else if (context.code === 'Z08') {
-    const closureDate = prodatDate203AtStartOfDay(
-      portalString(portalData, 'endDate') ?? context.endDate ?? context.permissionEndDate,
-    )
-    if (closureDate) segments.push(`DTM+93:${closureDate}:203`)
-  } else if ((context.code === 'Z13' || context.code === 'Z14') && startDate203) {
-    // PRODAT 26.A fält 302/321: tillståndsflöden använder rapportstart
-    // och, för historiska mätvärden, rapportslut. De ska inte renderas som
-    // DTM+92 avtalstart.
-    segments.push(`DTM+90:${startDate203}:203`)
-    if (isHistoricalPermission && reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
-  } else if (startDate203) {
-    // Z09 uses validity date (field 216) in SG8/DTM qualifier 157.
-    // Supplier AGT L7 failed when this was rendered as DTM+92.
-    segments.push(`DTM+${isSupplierZ09 ? '157' : '92'}:${startDate203}:203`)
-  }
+  segments.push(...dates.line)
+  const negativePermissionResponse = policy.code === 'Z14' && policy.subtype === 'N'
+  const carriesPermissionIdentity = policy.code === 'Z18' || policy.code === 'Z15'
+    || (policy.code === 'Z14' && !negativePermissionResponse)
 
   if (reasonForTransaction) {
     segments.push('CCI++Z13', isPermissionMessage ? prodatCav(reasonForTransaction) : `CAV+${reasonForTransaction}`)
@@ -208,8 +259,6 @@ export function buildProfiledProdatSegments(input: {
     35,
   )
   if (isPermissionMessage && energyProductId) {
-    // Fält 506 Energiprodukt skickas som SG14/CCI+Z14 + SG14/CAV/7111,
-    // med GS1 som kodlisteansvarig. Det ska inte renderas som PIA i permission-flöden.
     segments.push('CCI++Z14', prodatCavValue2(energyProductId, 35))
   }
 
@@ -241,11 +290,21 @@ export function buildProfiledProdatSegments(input: {
     portalString(portalData, 'contractClosureReason') ?? context.contractClosureReason ?? null,
     12,
   )
-  if (context.code === 'Z08' && contractClosureReason) {
+  if (policy.code === 'Z08' && contractClosureReason) {
     segments.push('CCI++Z25', prodatCav(contractClosureReason))
   }
 
-  segments.push(`RFF+LI:${lineItemReference}`)
+  segments.push(...projectDeathStatus({code:policy.code,reason:reasonForTransaction,installation:{id:meterPointId,agency:identityAgency},selection:policy.prodatDependentFacts?.deathStatus}))
+  if(policy.code==='Z10'){
+    const own=policy.prodatDependentFacts?.meterChange?.objects.find(o=>o.installation.id===meterPointId&&o.installation.agency===identityAgency)
+    if(own){
+      for(const [field,qualifier,value,position] of [['254','Z15',own.newMeter.settlement,0],['242','Z14',own.newMeter.product,3]] as const){
+        if(meterChangeCondition(own,field)===true&&value.kind==='known')segments.push(`CCI++${qualifier}`,`CAV+${':'.repeat(position)}${escapeEdifactValue(value.value)}`)
+      }
+      segments.push(`RFF+MG:${escapeEdifactValue(own.newMeter.number)}`,`RFF+Z02:${escapeEdifactValue(own.oldMeter.number)}`)
+    }
+  }
+  segments.push(`RFF+LI:${exactLineReference?escapeEdifactValue(lineItemReference):lineItemReference}`)
 
   if (gridAreaId) {
     segments.push(`RFF+Z05:${sanitizeProdatText(gridAreaId)}`)
@@ -253,49 +312,151 @@ export function buildProfiledProdatSegments(input: {
 
   const permissionId = portalString(portalData, 'permissionId') ?? context.permissionId ?? null
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference') ?? context.powerOfAttorneyReference
-  if (context.code === 'Z18') {
-    const z18PermissionId = sanitizeProdatText(permissionId ?? powerOfAttorneyReference ?? '')
-    if (z18PermissionId) segments.push(`RFF+Z09:${z18PermissionId}`)
-  } else if (!isSupplierZ09 && powerOfAttorneyReference) {
+  if (carriesPermissionIdentity) {
+    const canonicalPermissionId = sanitizeProdatText(permissionId ?? '')
+    if (canonicalPermissionId) segments.push(`RFF+Z09:${canonicalPermissionId}`)
+  } else if (!isSupplierZ09 && policy.code !== 'Z14' && powerOfAttorneyReference) {
     segments.push(`RFF+ANJ:${sanitizeProdatText(powerOfAttorneyReference)}`)
   }
 
-  if (!isSupplierZ09) {
+  const partyFieldAllowed = (field: string) => {
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === field)
+    const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === policy.code)
+    return Boolean(descriptor) && codeIndex >= 0 && descriptor?.requirements[codeIndex] !== '-'
+      && !isProdatFieldInInapplicableParent({ messageCode: policy.code, subtype: policy.subtype, fieldNumber: field })
+  }
+
+  const addressOverridden=portalData && (Object.hasOwn(portalData,'customerAddressLines') || Object.hasOwn(portalData,'customerAddress'))
+  const ownAddressLines=addressOverridden ? Object.hasOwn(portalData,'customerAddressLines') ? portalLiteralPartyLines(portalData,'customerAddressLines') ?? [] : undefined : context.customerAddressLines
+  const ownAddress=addressOverridden ? portalLiteralPartyText(portalData,'customerAddress') : context.customerAddress
+  if (partyFieldAllowed('END_USER_GROUP')) {
     segments.push(prodatCustomerNadSegment({
-    customerId: portalString(portalData, 'customerId') ?? context.customerId ?? null,
-    customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
-    customerName: portalString(portalData, 'customerName') ?? context.customerName,
-    address: portalString(portalData, 'customerAddress') ?? context.customerAddress ?? null,
-    city: portalString(portalData, 'customerCity') ?? context.customerCity ?? null,
-    postalCode: portalString(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null,
-    country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? null,
+      customerId: portalPartyText(portalData, 'customerId') ?? context.customerId ?? null,
+      customerIdCodeListQualifier: portalPartyText(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
+      customerName: portalLiteralPartyText(portalData, 'customerName') ?? context.customerName,
+      nameLines: portalLiteralPartyLines(portalData, 'customerNameLines') ?? context.customerNameLines,
+      idAgency: portalAgency(portalData, 'customerIdAgency', ['89', '260'] as const) ?? context.customerIdAgency,
+      addressLines: partyFieldAllowed('229') ? ownAddressLines : undefined,
+      address: partyFieldAllowed('229') ? ownAddress ?? null : null,
+      city: partyFieldAllowed('232') ? portalLiteralPartyText(portalData, 'customerCity') ?? context.customerCity ?? null : null,
+      postalCode: partyFieldAllowed('231') ? portalLiteralPartyText(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null : null,
+      country: portalPartyText(portalData, 'customerCountry') ?? context.customerCountry ?? null,
     }))
   }
 
-  if (!isSupplierZ09 && context.code !== 'Z03' && context.code !== 'Z18') {
+  const siteAddress = portalPartyText(portalData, 'siteAddress') ?? context.siteAddress ?? null
+  const siteAddressLines = portalPartyLines(portalData, 'siteAddressLines') ?? context.siteAddressLines
+  const optionalInstallation = ['Z01', 'Z03', 'Z08'].includes(policy.code)
+  const installationAddressSupplied = Boolean(siteAddress?.trim() || siteAddressLines?.some(value => value.trim()))
+  // P26.A p22 makes this parent optional for Z01/Z03/Z08. Complete,
+  // installation-specific object data selects it; an incomplete optional group
+  // is omitted rather than emitted with one of its mandatory children missing.
+  const installationSelected = !optionalInstallation || (hasObjectIdentifier && installationAddressSupplied)
+  if (partyFieldAllowed('INSTALLATION_GROUP') && installationSelected) {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
-      address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,
-      city: portalString(portalData, 'siteCity') ?? context.siteCity ?? null,
-      postalCode: portalString(portalData, 'sitePostalCode') ?? context.sitePostalCode ?? null,
-      country: portalString(portalData, 'siteCountry') ?? context.siteCountry ?? null,
+      address: siteAddress,
+      addressLines: siteAddressLines,
+      idAgency: portalAgency(portalData, 'siteIdAgency', ['9', '89'] as const) ?? context.siteIdAgency ?? (optionalInstallation ? identityAgency : undefined),
+      city: portalPartyText(portalData, 'siteCity') ?? context.siteCity ?? null,
+      postalCode: portalPartyText(portalData, 'sitePostalCode') ?? context.sitePostalCode ?? null,
+      country: portalPartyText(portalData, 'siteCountry') ?? context.siteCountry ?? null,
     }))
   }
 
-  const balanceResponsibleId = portalString(portalData, 'balanceResponsibleId') ?? context.balanceResponsibleId
-  if (balanceResponsibleId) {
-    segments.push(`NAD+Z02+${sanitizeProdatText(balanceResponsibleId)}:160:SVK`)
+  const invoicee = partyFieldAllowed('INVOICEE_GROUP') ? invoiceeContext(portalData, context.invoicee) : null
+  if (invoicee) {
+    segments.push(prodatInvoiceeNadSegment({
+      customerId: invoicee.id, customerIdCodeListQualifier: invoicee.idCodeListQualifier,
+      idAgency: invoicee.idAgency, customerName: invoicee.name, nameLines: invoicee.nameLines,
+      address: invoicee.address, addressLines: invoicee.addressLines, city: invoicee.city,
+      postalCode: invoicee.postalCode, country: invoicee.country,
+    }))
   }
+
+  const balanceResponsibleId = portalPartyText(portalData, 'balanceResponsibleId') ?? context.balanceResponsibleId
+  if (partyFieldAllowed('262') && balanceResponsibleId) {
+    segments.push(prodatBalanceResponsibleSegment(balanceResponsibleId))
+  }
+
+  const registers = resolveProdatRegisterInputs(context,portalData)
+  const expanded = renderProdatRegisterObject({code:policy.code,segments,registers})
+  segments.splice(0,segments.length,...expanded.segments)
+  const registerPolicy = {...policy, fieldRules:policy.fieldRules.filter(rule => 'fieldNumber' in rule && prodatRegisterFieldScope(String(rule.fieldNumber ?? rule.fieldKey)) === 'local')}
+  const registerFailures = validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments,reportingContext:context.reportingContext})
+  for (const failure of registerFailures) {
+    issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  }
+  if (policy.code === 'Z14') {
+    const firstLine = segments.findIndex(segment => segment.startsWith('LIN+'))
+    const failures = [
+      ...validateProdatZ14Policy({family:'PRODAT',code:'Z14',rawSegments:segments.slice(firstLine),applicationReference:policy.applicationReference}, z14DependentRules()),
+    ]
+    for (const failure of failures) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  }
+  for (const failure of validateProdatDateFields(policy.code, segments)) {
+    issues.push({ severity: 'error', code: failure.code, title: failure.title,
+      description: failure.description })
+  }
+
+  for (const failure of prodatPartySyntaxIssues(segments)) {
+    issues.push({ severity: 'error', code: failure.kind === 'length' ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+      title: 'Ogiltigt PRODAT-partfält',
+      description: `NAD fält ${failure.fieldNumber ?? 'part'} följer inte PRODAT 26.A:s partsdefinition.`,
+    })
+  }
+
+  const addressDecision=evaluateProdatEndUserAddress({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
+  for(const failure of addressDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
+    facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
+    requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const gasDecision=evaluateProdatGasApplicability({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,applicationReference:policy.applicationReference,direction:policy.direction as 'inbound'|'outbound'})
+  for(const failure of gasDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const deathDecision=evaluateProdatDeathStatus({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,direction:policy.direction as 'inbound'|'outbound'})
+  for(const failure of deathDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const meterChangeDecision=evaluateProdatMeterChange({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,applicationReference:policy.applicationReference})
+  for(const failure of meterChangeDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const reportingDecision=evaluateProdatReportingPermission({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,reportingContext:context.reportingContext})
+  for(const failure of reportingDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const dateDecision=evaluateProdatDateEvents({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
+  for(const failure of dateDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
+  for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    isGasApplicabilityField(policy.code,condition.fieldNumber)?{...condition,status:gasDecision.statuses.get(condition.fieldNumber)??'undetermined',requirement:gasDecision.requirements.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_gas' as const}:
+    isDeathStatusField(policy.code,condition.fieldNumber)?{...condition,status:deathDecision.statuses.get('310')??'undetermined',decisionPhase:'rendered_wire_death_status' as const}:
+    isMeterChangeField(policy.code,condition.fieldNumber)?{...condition,status:meterChangeDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_meter_change' as const}:
+    isReportingPermissionField(policy.code,condition.fieldNumber)?{...condition,status:reportingDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_reporting' as const}:
+    isProdatDateEventField(policy.code,condition.fieldNumber)?{...condition,status:dateDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_date_event' as const}:
+    INVOICEE_FIELDS.includes(condition.fieldNumber)
+      ? {...condition,status:invoiceeDecision.statuses.get(condition.fieldNumber) ?? 'undetermined',decisionPhase:'rendered_wire_invoicee' as const}
+      :
+    condition.fieldNumber==='229'
+      ? {...condition,status:addressDecision.status,decisionPhase:'rendered_wire_address' as const}
+      : isProdatReadingField(condition.fieldNumber)
+      ? { ...condition, status: renderedReadings.get(condition.fieldNumber) ?? 'undetermined' as const,
+        decisionPhase: 'rendered_wire_readings' as const }
+      : condition.conditionId === 'optional_installation_wire_parent'
+      ? { ...condition, status: installationSelected ? 'required' as const : 'not_required' as const,
+        decisionPhase: 'rendered_wire_parent' as const }
+      : condition.conditionId === 'multiple_meter_registers'
+        ? { ...condition,
+          status: reconcileProdatRegisterInventoryStatus(condition.status, registerFailures),
+          decisionPhase: 'rendered_wire_inventory' as const }
+      : condition)
 
   return {
     segments,
     issues,
-    ackExpectation: deriveProdatAckExpectation(context.code),
+    ackExpectation: ackExpectationFromPolicy(policy),
     diagnostics: {
       engine: 'prodat',
+      registerCount: expanded.registerCount,
+      registerEvidence: createProdatRegisterEvidence({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts}),
       renderer: input.renderer ?? 'prodat.engine.buildProfiledProdatSegments',
       code: context.code,
-      variant: input.variant ?? null,
+      variant: policy.subtype,
       mode: input.mode,
       lineItemReference,
       bgmReference,
@@ -307,6 +468,13 @@ export function buildProfiledProdatSegments(input: {
       routeDecisionReason: input.routeDecisionReason ?? null,
       selectedVersion: input.selectedVersion ?? null,
       acceptedVersions: input.acceptedVersions ?? [],
+      profileKey: policy.profileKey,
+      rulebookProcessGroup: policy.processGroup,
+      rulebookApplicationReference: policy.applicationReference,
+      canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
+      reportingReadiness:['Z13','Z14'].includes(policy.code)?'unqualified':'not_applicable',
+      dateEventReadiness:['Z06','Z09','Z10'].includes(policy.code)?'unqualified':'not_applicable',
+      dependentConditionStatuses: dependentConditionStatuses as unknown as Array<Record<string, unknown>>,
     },
   }
 }

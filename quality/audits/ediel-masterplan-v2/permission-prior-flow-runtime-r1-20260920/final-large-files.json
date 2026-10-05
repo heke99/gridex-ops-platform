@@ -1,0 +1,13 @@
+{
+  "gate": "large-files",
+  "command": [
+    "npm",
+    "run",
+    "quality:large-file-budget"
+  ],
+  "exit": 0,
+  "seconds": 0.33,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-large-files.log",
+  "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+  "runtimeCommit": "9ba2e38f"
+}

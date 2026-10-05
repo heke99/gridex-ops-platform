@@ -1,0 +1,12 @@
+{
+  "gate": "tenant-integrity",
+  "command": [
+    "node",
+    "scripts/gridex-tenant-integrity-regression.cjs"
+  ],
+  "exit": 0,
+  "seconds": 0.09,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-tenant-integrity.log",
+  "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+  "runtimeCommit": "d9d0a93e"
+}

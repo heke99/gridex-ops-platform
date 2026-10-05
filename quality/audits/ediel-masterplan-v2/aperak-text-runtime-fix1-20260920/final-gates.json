@@ -1,0 +1,150 @@
+[
+  {
+    "gate": "typecheck",
+    "command": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "exit": 0,
+    "seconds": 47.09,
+    "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76"
+  },
+  {
+    "gate": "typecheck-tests",
+    "command": [
+      "npm",
+      "run",
+      "typecheck:tests"
+    ],
+    "exit": 0,
+    "seconds": 15.51,
+    "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602"
+  },
+  {
+    "gate": "typecheck-scripts",
+    "command": [
+      "npm",
+      "run",
+      "typecheck:scripts"
+    ],
+    "exit": 0,
+    "seconds": 1.36,
+    "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae"
+  },
+  {
+    "gate": "lint",
+    "command": [
+      "npm",
+      "run",
+      "lint"
+    ],
+    "exit": 0,
+    "seconds": 77.41,
+    "sha256": "4762efa26f79e3a9886bc73ba8849c1fd735c1bc3523d6710cb3f9b0a77f1b19"
+  },
+  {
+    "gate": "integrity",
+    "command": [
+      "npm",
+      "run",
+      "ediel:masterplan-v2:integrity"
+    ],
+    "exit": 0,
+    "seconds": 0.31,
+    "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18"
+  },
+  {
+    "gate": "tenant-integrity",
+    "command": [
+      "node",
+      "scripts/gridex-tenant-integrity-regression.cjs"
+    ],
+    "exit": 0,
+    "seconds": 0.08,
+    "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690"
+  },
+  {
+    "gate": "tenant-shutdown",
+    "command": [
+      "node",
+      "scripts/gridex-tenant-shutdown-regression.cjs"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e"
+  },
+  {
+    "gate": "ratchet",
+    "command": [
+      "node",
+      "scripts/check-service-role-tenant-ratchet.cjs"
+    ],
+    "exit": 0,
+    "seconds": 0.13,
+    "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f"
+  },
+  {
+    "gate": "large-files",
+    "command": [
+      "npm",
+      "run",
+      "quality:large-file-budget"
+    ],
+    "exit": 0,
+    "seconds": 0.34,
+    "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e"
+  },
+  {
+    "gate": "performance",
+    "command": [
+      "npm",
+      "run",
+      "quality:performance"
+    ],
+    "exit": 0,
+    "seconds": 1.53,
+    "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629"
+  },
+  {
+    "gate": "ediel-eight",
+    "command": [
+      "node",
+      "--experimental-vm-modules",
+      "--test",
+      "scripts/test-ediel-rule-pack-source-identity.cjs",
+      "scripts/test-ediel-prodat-source-locators.cjs",
+      "scripts/test-ediel-prodat-characteristic-fields.cjs",
+      "scripts/test-ediel-prodat-reference-fields.cjs",
+      "scripts/test-ediel-prodat-document-fields.cjs",
+      "scripts/test-ediel-prodat-party-fields.cjs",
+      "scripts/test-ediel-prodat-d-z04-reference.cjs",
+      "scripts/test-ediel-component-escaping.cjs"
+    ],
+    "exit": 0,
+    "seconds": 2.98,
+    "sha256": "44e4b8ee466dbcbe09942706f7e8b38970fc7b3609551995711126e03b793917"
+  },
+  {
+    "gate": "route-readiness",
+    "command": [
+      "npm",
+      "run",
+      "gridex:route-readiness-regression"
+    ],
+    "exit": 0,
+    "seconds": 1.01,
+    "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82"
+  },
+  {
+    "gate": "diffcheck",
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit": 0,
+    "seconds": 0.01,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

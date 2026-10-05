@@ -219,20 +219,18 @@ export default async function AdminEdielRoutesPage() {
  'id,company_id,route_name,is_active,route_scope,route_type,grid_owner_id,target_system,endpoint,target_email,supported_payload_version,notes,updated_at'
  )
 
- if (!isPlatformAdmin) {
  if (companyScope.companyId) {
  routesQuery = routesQuery.eq('company_id', companyScope.companyId)
- } else {
+ } else if (!isPlatformAdmin) {
  routesQuery = routesQuery.eq('company_id', '00000000-0000-0000-0000-000000000000')
- }
  }
 
  const [routesResult, gridOwnersResult, testActor, prodActor] = await Promise.all([
  routesQuery
  .order('updated_at', { ascending: false }),
  supabase.from('grid_owners').select('id,name,ediel_id,owner_code').order('name'),
- resolveCanonicalActorContext('test', isPlatformAdmin ? null : companyScope.companyId).catch(() => null),
- resolveCanonicalActorContext('production', isPlatformAdmin ? null : companyScope.companyId).catch(() => null),
+ resolveCanonicalActorContext('test', companyScope.companyId).catch(() => null),
+ resolveCanonicalActorContext('production', companyScope.companyId).catch(() => null),
  ])
 
  if (routesResult.error) throw routesResult.error

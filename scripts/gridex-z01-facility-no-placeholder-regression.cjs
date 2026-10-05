@@ -17,7 +17,6 @@ function assert(ok, msg) { if (!ok) { console.error(`\u2717 ${msg}`); process.ex
 const guard = read('lib/ediel/intent/noPlaceholderGuard.ts')
 // The generic builder was renamed to the profile-driven renderer.
 const generic = read('lib/ediel/prodat/builders/profileRenderer.ts')
-const segments = read('lib/ediel/prodat/render/segments.ts')
 const prodat = read('lib/ediel/prodat.ts')
 const dispatch = read('lib/customer-operations/facilityLookupEdifactDispatch.ts')
 const renderer = read('lib/ediel/intent/renderers/facilityLookupZ01.ts')
@@ -36,8 +35,13 @@ assert(!/\|\|\s*'UNKNOWN'/.test(generic), "generic PRODAT builder no longer fall
 assert(generic.includes('hasObjectIdentifier') && generic.includes('if (hasObjectIdentifier)'), 'generic builder only emits LIN object id when a real id exists')
 assert(generic.includes('objectIdentifierMissing'), 'generic builder reports objectIdentifierMissing diagnostic')
 
-// Installation NAD renders address-only when no object id
-assert(segments.includes("const partyId = meterPointId ? `${meterPointId}::9` : ''"), 'installation NAD omits fabricated id/agency when no object id')
+// Installation NAD output must retain address-only behavior without inventing
+// identity/agency. Run the real helper AND the profile builder, including
+// positive identity/agency/escaping controls, instead of matching source text.
+require('node:child_process').execFileSync(process.execPath, [
+  'node_modules/vitest/vitest.mjs', 'run', '__tests__/ediel-release-rendering-regression.test.ts',
+  '-t', 'installation identity release rendering contract',
+], { cwd: root, stdio: 'inherit' })
 
 // Switch render path no longer fabricates UNKNOWN
 assert(!/\|\|\s*'UNKNOWN'/.test(prodat), "prodat.ts switch render no longer falls back to 'UNKNOWN'")

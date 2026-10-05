@@ -1,0 +1,32 @@
+{
+  "scope": "PR361 canonical UTILTS observational input only; not full E035/F3/masterplan",
+  "status": "VERIFIED",
+  "pr": 361,
+  "reviewed_head": "a1bf398978450e48e701c68f4ce8eeaa8b31be94",
+  "main_sha": "d7078ac5497c4345491e64491000ca35108915c8",
+  "tree_sha": "b83f3bc76c816392daa9011d7015f9d572c8b699",
+  "final_independent_review": 5758070184,
+  "root_acceptance_comment": 5758187169,
+  "full_run": 35582014896,
+  "full_job": 106276821861,
+  "coverage_job": 106276821495,
+  "ops_run": 35582014678,
+  "ops_jobs": [106276820319, 106276820432, 106276820438],
+  "required_jobs_conclusion": "success",
+  "artifact": {
+    "id": 10630259856,
+    "name": "gridex-e2e-full-35582014896",
+    "bytes": 85854,
+    "entries": 79,
+    "sha256": "468d266b1fd74d0b116740c17e4f8c576ee3f12486d5c63a523edfffa0bf577d",
+    "report_sha256": "90e2bf3a0c2405f731dfd1f3cf5cc360635131a3cfa7313421cfef34a3fe2fe8",
+    "handoff_sha256": "b05e2759106050464094bf9c914decb223abd61a49ab84116dd982fdfff56ecd",
+    "unit_log_sha256": "df648c9ef2970b4e4f5607e72ddcdd2abbc8a3c08d578e0cfc5af5d27a9c818f"
+  },
+  "full_results": {"total": 73, "passed": 73, "failed": 0, "junit_cases": 73},
+  "unit_results": {"files": 320, "passed": 5080, "failed": 0},
+  "finished_at": "2026-09-21T09:18:50.766Z",
+  "readback": "Downloaded actual CI bytes; checked all result rows/exit codes, JUnit, hashes and handoff commit. This is not a locally executed repository suite.",
+  "pr310": "OPEN_DRAFT_PAUSED_UNTOUCHED",
+  "live_operations": false
+}

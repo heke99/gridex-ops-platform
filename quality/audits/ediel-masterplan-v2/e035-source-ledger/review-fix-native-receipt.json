@@ -1,0 +1,20 @@
+{
+  "status": "NATIVE_REVIEW_FIX_VERIFIED_NOT_FINAL_CI_OR_APPROVAL",
+  "reviewed_head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
+  "run": "35718179577",
+  "scratch_head": "1a73173a5724326a3cf71593285573614593ce8a",
+  "migration": "20260922105251_ediel_received_discovery_shape.sql",
+  "migration_sha256": "a0fc753f70f0f18ed2952f689ac114a7bc838befd18ab2758fdf8e33830c515c",
+  "shape_assertions": 64,
+  "old_counterexample": "minimal occurrence/object persisted under original function; now rejected before insert",
+  "null_payload": "already rejected by original receipt binding; explicit hash requirement is additional invariant",
+  "receipt_fixture_mutation": "2 assertion failures when row receipt boundary removed; baseline and restored pass",
+  "types_sha256": "e6086663a93bccc4605eaece24fb83e645b79b90d0b3e744f7862a4ebd856f4e",
+  "schema_sha256": "def469785d1c203c58054104bd119f03cd0de68764d5d63a3a15bbd9b2459a86",
+  "schema_changed_sections": [
+    "functions"
+  ],
+  "full_source_approval": "NOT_ESTABLISHED",
+  "pr310": "UNTOUCHED",
+  "hosted_database_changes": false
+}

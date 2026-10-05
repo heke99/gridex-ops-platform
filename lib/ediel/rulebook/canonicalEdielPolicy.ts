@@ -1,0 +1,445 @@
+import { assertEdielFutureCapabilityHeld, type EdielRequestedCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
+import type { EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
+import {INVOICEE_CODES,INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
+import {copyGasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
+import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
+import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
+import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import {
+  assertProdatDependentConditionsDetermined,
+  evaluateProdatDependentConditions,
+  type ProdatDependentConditionEvaluation,
+  type ProdatDependentConditionFacts,
+} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+export type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import {
+  resolveEdielGuideAcceptance,
+  AUTHORITATIVE_EDIEL_GUIDES,
+  type AuthoritativeEdielGuide,
+  type EdielGuideFamily,
+} from '@/lib/ediel/rulebook/guideRegistry'
+import {
+  resolveCanonicalEdielBusinessSemantics,
+  type CanonicalEdielBusinessSemantics,
+  type CanonicalEdielBusinessFamily,
+} from '@/lib/ediel/rulebook/businessSemantics'
+import { canonicalProdatApplicationReferenceForProcessGroup } from '@/lib/ediel/rulebook/prodatApplicationReference'
+import { getCanonicalProdatProfile } from '@/lib/ediel/rulebook/prodatRulebook'
+import {
+  resolveProdatBusinessContext,
+  resolveProdatSubtype,
+  type ProdatBusinessContext,
+} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import {
+  assertSupplierUtiltsOutboundAllowed,
+  getSupplierUtiltsSupport,
+} from '@/lib/ediel/rulebook/utiltsMarketEngine'
+import { resolveVerifiedUtiltsApplicationReference } from '@/lib/ediel/rulebook/utiltsApplicationReference'
+import { getUtiltsFieldRules, type UtiltsFieldRule } from '@/lib/ediel/rulebook/utiltsFieldMatrix'
+import { resolveCanonicalUtiltsProfile, type UtiltsCanonicalProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import {
+  assertUtiltsMessageUseAllowed,
+  resolveUtiltsProcessabilityPolicy,
+  type UtiltsProcessabilityPolicy,
+} from '@/lib/ediel/rulebook/utilts25A4'
+import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+
+export type CanonicalEdielPolicyDirection = 'inbound' | 'outbound'
+export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay' | 'catalog_evidence'
+
+export type CanonicalEdielSourceTrace = {
+  authority: 'guide' | 'business_semantics' | 'field_matrix' | 'dependent_condition' | 'application_reference' | 'acknowledgement' | 'processability'
+  document: string
+  section: string
+}
+
+export type CanonicalEdielPolicy = {
+  family: CanonicalEdielBusinessFamily
+  code: string
+  subtype: string | null
+  transactionReasonCode: string | null
+  direction: CanonicalEdielPolicyDirection
+  referenceDate: string
+  timeAnchors?: EdielMessageTimeAnchors
+  profileKey: string | null
+  processGroup: string | null
+  phase: string | null
+  semantics: CanonicalEdielBusinessSemantics
+  guide: AuthoritativeEdielGuide
+  acceptedInboundGuides: readonly AuthoritativeEdielGuide[]
+  acceptedOutboundGuides: readonly AuthoritativeEdielGuide[]
+  previousGuideGraceActive: boolean
+  associationAssignedCode: string | null
+  applicationReference: string | null
+  fieldRules: readonly (RulebookFieldRule | UtiltsFieldRule)[]
+  prodatDependentConditions: readonly ProdatDependentConditionEvaluation[]
+  prodatDependentFacts?: ProdatDependentConditionFacts
+  ackRule: CanonicalAckMatrixRule
+  utiltsProfile: UtiltsCanonicalProfile | null
+  utiltsProcessability: UtiltsProcessabilityPolicy | null
+  supplierUtiltsSupport: ReturnType<typeof getSupplierUtiltsSupport> | null
+  bilateralRequired: boolean
+  customerStatusRequired: boolean
+  businessResponses: readonly string[]
+  sourceTrace: readonly CanonicalEdielSourceTrace[]
+}
+
+/** These source-defined D families require the selected physical UD/IV/event tuple.
+ * Admission keeps their unresolved state visible. Every actual candidate must
+ * pass validateCanonicalPolicyFields against its own wire before persistence or
+ * dispatch; absence of qualified own-object facts still blocks that phase. */
+export function isCanonicalProdatOwnWireDependentCondition(condition:ProdatDependentConditionEvaluation):boolean {
+  return condition.fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(condition.messageCode)
+    || INVOICEE_CODES.includes(condition.messageCode) && INVOICEE_FIELDS.includes(condition.fieldNumber)
+    || isProdatDateEventField(condition.messageCode,condition.fieldNumber)
+}
+
+export type ResolveCanonicalEdielPolicyInput = {
+  family: string
+  messageCode: string
+  subtypeOrReasonCode?: string | null
+  direction: CanonicalEdielPolicyDirection
+  referenceDate: string
+  associationAssignedCode?: string | null
+  /** A complete accepted guide candidate; never a field-by-field override. */
+  selectedGuideRevision?: string | null
+  requestedCapability?: EdielRequestedCapability | null
+  applicationReference?: string | null
+  requestedMessageCode?: string | null
+  businessContext?: ProdatBusinessContext | null
+  bilateralCapabilityVerified?: boolean
+  prodatDependentFacts?: ProdatDependentConditionFacts | null
+  mode?: CanonicalEdielPolicyMode
+}
+
+function normalize(value: unknown): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function normalizeDate(value: string): string {
+  const date = String(value ?? '').trim().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('canonical_ediel_reference_date_required')
+  return date
+}
+
+function normalizeFamily(value: string): CanonicalEdielBusinessFamily {
+  const family = normalize(value)
+  if (!['PRODAT', 'UTILTS', 'UTILTS_ERR', 'APERAK', 'CONTRL'].includes(family)) {
+    throw new Error(`canonical_ediel_family_unsupported:${family || 'missing'}`)
+  }
+  return family as CanonicalEdielBusinessFamily
+}
+
+function guideFamily(family: CanonicalEdielBusinessFamily): EdielGuideFamily {
+  if (family === 'UTILTS_ERR') return 'UTILTS'
+  return family as EdielGuideFamily
+}
+
+function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value
+  Object.freeze(value)
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    if (nested && typeof nested === 'object') deepFreeze(nested)
+  }
+  return value
+}
+
+function assertAssociationAccepted(input: {
+  provided?: string | null
+  guides: readonly AuthoritativeEdielGuide[]
+  family: CanonicalEdielBusinessFamily
+}): string | null {
+  const provided = normalize(input.provided)
+  const canonical = input.guides[0]?.associationAssignedCode ?? null
+  if (!provided) return canonical
+
+  const accepted = input.guides.some((guide) => normalize(guide.associationAssignedCode) === provided)
+  if (!accepted) throw new Error(`canonical_ediel_association_not_allowed:${input.family}:${provided}`)
+  return provided
+}
+
+function policyMode(input: {
+  direction: CanonicalEdielPolicyDirection
+  mode?: CanonicalEdielPolicyMode
+}): CanonicalEdielPolicyMode {
+  if (input.mode) return input.mode
+  return input.direction === 'outbound' ? 'send' : 'parse'
+}
+
+/**
+ * Mandatory source-controlled policy gateway for Swedish Ediel/EDIFACT.
+ *
+ * This resolver composes the independent canonical authorities; it does not
+ * duplicate their rule tables. Runtime consumers should resolve one policy
+ * snapshot and use it throughout parse/validate/render/ACK/state processing.
+ * No mutable database row may override the returned protocol/business meaning.
+ *
+ * `catalog_evidence` is intentionally non-operational: it may resolve a static
+ * bilateral profile for DB evidence comparison without asserting that a tenant
+ * actually has that bilateral capability. It must never be used to send data.
+ */
+export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyInput): CanonicalEdielPolicy {
+  const family = normalizeFamily(input.family)
+  const code = family === 'UTILTS_ERR' ? 'ERR' : normalize(input.messageCode)
+  const referenceDate = normalizeDate(input.referenceDate)
+  const mode = policyMode(input)
+  assertEdielFutureCapabilityHeld(input.requestedCapability, referenceDate)
+  if (!code) throw new Error(`canonical_ediel_message_code_required:${family}`)
+
+  const acceptance = resolveEdielGuideAcceptance({
+    family: guideFamily(family),
+    referenceDate,
+    associationAssignedCode: input.associationAssignedCode ?? null,
+  })
+  const directionGuides = input.direction === 'inbound'
+    ? acceptance.acceptedInbound
+    : acceptance.acceptedOutbound
+  const selectedGuide = input.selectedGuideRevision
+    ? directionGuides.find(guide => guide.guideRevision === input.selectedGuideRevision)
+    : acceptance.current
+  if (!selectedGuide) throw new Error(`canonical_ediel_guide_candidate_not_accepted:${family}:${referenceDate}:${input.selectedGuideRevision}`)
+  // Older guides are admitted only by the bounded acceptance window above.
+  // Their complete semantics use their own revision; the decision still carries
+  // the actual admission date and any superior effective-dated use restrictions.
+  const guideReferenceDate = selectedGuide === acceptance.current ? referenceDate : selectedGuide.effectiveTo ?? selectedGuide.effectiveFrom
+  const associationAssignedCode = assertAssociationAccepted({
+    provided: input.associationAssignedCode,
+    guides: directionGuides,
+    family,
+  })
+  const ackRule = resolveCanonicalAckMatrixRule({ family, code })
+
+  if (family === 'PRODAT') {
+    const profile = getCanonicalProdatProfile(code)
+    if (!profile) throw new Error(`canonical_ediel_prodat_code_unsupported:${code}`)
+
+    const bilateralCapabilityVerified = mode === 'catalog_evidence'
+      ? true
+      : input.bilateralCapabilityVerified
+    const subtype = resolveProdatSubtype({
+      messageCode: code,
+      subtypeOrReasonCode: input.subtypeOrReasonCode,
+      bilateralCapabilityVerified,
+    })
+    if (!subtype.ok || !subtype.subtype || !subtype.transactionReasonCode) {
+      throw new Error(subtype.reason ?? `canonical_ediel_prodat_subtype_invalid:${code}`)
+    }
+
+    const contextual = resolveProdatBusinessContext({
+      messageCode: code,
+      subtypeOrReasonCode: subtype.subtype,
+      businessContext: input.businessContext,
+      allowUnknownContext: input.direction === 'inbound',
+      bilateralCapabilityVerified,
+    })
+    if (!contextual.ok) throw new Error(contextual.reason ?? `canonical_ediel_prodat_context_invalid:${code}:${subtype.subtype}`)
+
+    const semantics = resolveCanonicalEdielBusinessSemantics({ family, code, subtype: subtype.subtype })
+    if (!semantics) throw new Error(`canonical_ediel_business_semantics_missing:${family}:${code}:${subtype.subtype}`)
+
+    const expectedApplicationReference = canonicalProdatApplicationReferenceForProcessGroup(profile.processGroup)
+    const providedApplicationReference = normalize(input.applicationReference)
+    if (providedApplicationReference && providedApplicationReference !== expectedApplicationReference) {
+      throw new Error(`canonical_ediel_application_reference_not_allowed:${code}:${providedApplicationReference}`)
+    }
+    if (input.direction === 'inbound' && !providedApplicationReference) {
+      throw new Error(`canonical_ediel_application_reference_required:${family}:${code}`)
+    }
+
+    // Receiver-local evidence cannot turn pre-wire aggregation into a protocol
+    // failure. Keep the original facts below for the wire owner's diagnostic.
+    let preWireDeathStatus = input.prodatDependentFacts?.deathStatus
+    if (input.direction === 'inbound' && preWireDeathStatus != null) {
+      try { preWireDeathStatus = copyDeathSelection(preWireDeathStatus) }
+      catch { preWireDeathStatus = null }
+    }
+    let preWireGas = input.prodatDependentFacts?.gasSerialChange
+    if(input.direction==='inbound' && preWireGas!=null){try{preWireGas=copyGasSerialChangeSelection(preWireGas)}catch{preWireGas=null}}
+    const prodatDependentConditions = evaluateProdatDependentConditions({
+      messageCode: code,
+      facts: {
+        ...(input.prodatDependentFacts ?? {}),
+        deathStatus: preWireDeathStatus,
+        gasSerialChange: preWireGas,
+        market: 'electricity', // This resolved active canonical profile is EL; wire validation resolves its own market.
+        canonicalSubtype: subtype.subtype,
+        businessContext: input.businessContext ?? input.prodatDependentFacts?.businessContext ?? null,
+      },
+    })
+    if (mode === 'send') {
+      assertProdatDependentConditionsDetermined(prodatDependentConditions.filter(condition=>!isCanonicalProdatOwnWireDependentCondition(condition)))
+    }
+
+    return deepFreeze({
+      family,
+      code,
+      subtype: subtype.subtype,
+      transactionReasonCode: subtype.transactionReasonCode,
+      direction: input.direction,
+      referenceDate,
+      profileKey: profile.profileKey,
+      processGroup: profile.processGroup,
+      phase: null,
+      semantics,
+      guide: selectedGuide,
+      acceptedInboundGuides: acceptance.acceptedInbound,
+      acceptedOutboundGuides: acceptance.acceptedOutbound,
+      previousGuideGraceActive: acceptance.previousGuideGraceActive,
+      associationAssignedCode,
+      applicationReference: providedApplicationReference || expectedApplicationReference,
+      fieldRules: canonicalProdat26AFieldRules(code),
+      prodatDependentConditions,
+      prodatDependentFacts: structuredClone(input.prodatDependentFacts ?? {}),
+      ackRule,
+      utiltsProfile: null,
+      utiltsProcessability: null,
+      supplierUtiltsSupport: null,
+      bilateralRequired: contextual.bilateralRequired,
+      customerStatusRequired: contextual.customerStatusRequired,
+      businessResponses: semantics.expectedBusinessResponses,
+      sourceTrace: [
+        { authority: 'guide', document: selectedGuide.documentName, section: 'effective-dated guide registry' },
+        { authority: 'business_semantics', document: semantics.source.document, section: semantics.source.pageOrSection },
+        { authority: 'field_matrix', document: selectedGuide.documentName, section: 'PRODAT 26.A field matrix' },
+        { authority: 'dependent_condition', document: selectedGuide.documentName, section: 'PRODAT 26.A D-cell condition registry' },
+        { authority: 'application_reference', document: selectedGuide.documentName, section: 'PRODAT Application Reference' },
+        { authority: 'acknowledgement', document: selectedGuide.documentName, section: 'PRODAT/APERAK acknowledgement rules' },
+      ],
+    } satisfies CanonicalEdielPolicy)
+  }
+
+  if (family === 'UTILTS' || family === 'UTILTS_ERR') {
+    const version = associationAssignedCode ?? acceptance.current.associationAssignedCode
+    if (!version) throw new Error(`canonical_ediel_association_required:${family}:${code}`)
+
+    const utiltsProfile = resolveCanonicalUtiltsProfile({
+      messageCode: code,
+      businessDate: guideReferenceDate,
+      version,
+    })
+    assertUtiltsMessageUseAllowed({
+      referenceDate,
+      messageCode: code,
+      mode: mode === 'historical_replay' ? 'historical_replay' : input.direction === 'outbound' ? 'outbound' : 'live_inbound',
+    })
+
+    const semantics = resolveCanonicalEdielBusinessSemantics({ family, code })
+    if (!semantics) throw new Error(`canonical_ediel_business_semantics_missing:${family}:${code}`)
+
+    const supplierUtiltsSupport = getSupplierUtiltsSupport(code)
+    if (input.direction === 'outbound' && family === 'UTILTS' && mode !== 'catalog_evidence') {
+      assertSupplierUtiltsOutboundAllowed({
+        code,
+        bilateralCapabilityVerified: input.bilateralCapabilityVerified,
+        requestedMessageCode: input.requestedMessageCode,
+      })
+    }
+
+    const providedApplicationReference = normalize(input.applicationReference)
+    let applicationReference: string | null = providedApplicationReference || null
+    if (family === 'UTILTS') {
+      if (input.direction === 'inbound' && !providedApplicationReference) {
+        throw new Error(`canonical_ediel_application_reference_required:${family}:${code}`)
+      }
+      applicationReference = resolveVerifiedUtiltsApplicationReference({
+        messageCode: code,
+        requestedMessageCode: input.requestedMessageCode,
+        applicationReference: providedApplicationReference || undefined,
+      })
+    }
+
+    const processability = resolveUtiltsProcessabilityPolicy(guideReferenceDate)
+    return deepFreeze({
+      family,
+      code,
+      subtype: null,
+      transactionReasonCode: null,
+      direction: input.direction,
+      referenceDate,
+      profileKey: utiltsProfile.profileKey,
+      processGroup: utiltsProfile.businessProcess,
+      phase: utiltsProfile.phase,
+      semantics,
+      guide: selectedGuide,
+      acceptedInboundGuides: acceptance.acceptedInbound,
+      acceptedOutboundGuides: acceptance.acceptedOutbound,
+      previousGuideGraceActive: acceptance.previousGuideGraceActive,
+      associationAssignedCode,
+      applicationReference,
+      fieldRules: family === 'UTILTS' ? getUtiltsFieldRules(code) : [],
+      prodatDependentConditions: [],
+      ackRule,
+      utiltsProfile,
+      utiltsProcessability: processability,
+      supplierUtiltsSupport,
+      bilateralRequired: utiltsProfile.bilateralCapabilityRequired,
+      customerStatusRequired: false,
+      businessResponses: semantics.expectedBusinessResponses,
+      sourceTrace: [
+        { authority: 'guide', document: selectedGuide.documentName, section: 'effective-dated guide registry' },
+        { authority: 'business_semantics', document: semantics.source.document, section: semantics.source.pageOrSection },
+        { authority: 'field_matrix', document: selectedGuide.documentName, section: family === 'UTILTS' ? 'UTILTS field matrix' : 'UTILTS_ERR structure' },
+        { authority: 'application_reference', document: selectedGuide.documentName, section: family === 'UTILTS' ? 'UTILTS field 311' : 'not applicable' },
+        { authority: 'acknowledgement', document: selectedGuide.documentName, section: 'UTILTS/APERAK/UTILTS_ERR acknowledgement rules' },
+        { authority: 'processability', document: selectedGuide.documentName, section: 'UTILTS processability validation' },
+      ],
+    } satisfies CanonicalEdielPolicy)
+  }
+
+  const semantics = resolveCanonicalEdielBusinessSemantics({ family, code })
+  if (!semantics) throw new Error(`canonical_ediel_business_semantics_missing:${family}:${code}`)
+
+  return deepFreeze({
+    family,
+    code,
+    subtype: null,
+    transactionReasonCode: null,
+    direction: input.direction,
+    referenceDate,
+    profileKey: null,
+    processGroup: null,
+    phase: null,
+    semantics,
+    guide: selectedGuide,
+    acceptedInboundGuides: acceptance.acceptedInbound,
+    acceptedOutboundGuides: acceptance.acceptedOutbound,
+    previousGuideGraceActive: acceptance.previousGuideGraceActive,
+    associationAssignedCode,
+    applicationReference: normalize(input.applicationReference) || null,
+    fieldRules: [],
+    prodatDependentConditions: [],
+    ackRule,
+    utiltsProfile: null,
+    utiltsProcessability: null,
+    supplierUtiltsSupport: null,
+    bilateralRequired: false,
+    customerStatusRequired: false,
+    businessResponses: semantics.expectedBusinessResponses,
+    sourceTrace: [
+      { authority: 'guide', document: selectedGuide.documentName, section: 'effective-dated guide registry' },
+      { authority: 'business_semantics', document: semantics.source.document, section: semantics.source.pageOrSection },
+      { authority: 'acknowledgement', document: selectedGuide.documentName, section: `${family} acknowledgement rules` },
+    ],
+  } satisfies CanonicalEdielPolicy)
+}
+
+/** Project an ACK from the protected original's named guide scope. The caller
+ * must obtain its actual evidence through the source-owner capability port.
+ * This function defines source semantics; it cannot register an original or
+ * grant transport/business authority. Today's guide is never substituted. */
+export function resolveCanonicalInheritedAckPolicy(input:{policy:CanonicalEdielPolicy;originalFamily:string;guideVersion:string;guideRevision:string;originalVersion:string;originalCode:string}):CanonicalEdielPolicy{
+ const family=input.policy.family
+ if(!['APERAK','CONTRL','UTILTS_ERR'].includes(family)||!input.originalVersion)throw new Error('canonical_ack_original_scope_required')
+ if(family==='CONTRL')return input.policy
+ if(!['PRODAT','UTILTS'].includes(input.originalFamily)||(family==='UTILTS_ERR'&&input.originalFamily!=='UTILTS'))throw new Error('canonical_ack_original_family_mismatch')
+ const identifier=(value:string)=>value.replace(/[^A-Z0-9]/gi,'').toUpperCase()
+ const originalGuide=AUTHORITATIVE_EDIEL_GUIDES.find(guide=>guide.family===input.originalFamily&&identifier(guide.guideRevision)===identifier(input.guideVersion))
+ const expectedRevision=input.originalFamily==='PRODAT'?getCanonicalProdatProfile(input.originalCode)?.guideRevision:/-(\d+)$/.exec(originalGuide?.guideRevision??'')?.[1]
+ if(!originalGuide||!expectedRevision||input.guideRevision!==expectedRevision)throw new Error('canonical_ack_original_guide_scope_unqualified')
+ const template=resolveCanonicalEdielPolicy({family,messageCode:family==='UTILTS_ERR'?'ERR':'APERAK',direction:input.policy.direction,
+  referenceDate:originalGuide.effectiveFrom,associationAssignedCode:originalGuide.associationAssignedCode,applicationReference:input.policy.applicationReference,mode:'parse'})
+ return deepFreeze({...template,referenceDate:input.policy.referenceDate,timeAnchors:input.policy.timeAnchors,
+  sourceTrace:[...template.sourceTrace,{authority:'guide',document:originalGuide.documentName,section:`Original registered scope ${input.originalVersion}; unchanged protected source edition.`}]})
+}

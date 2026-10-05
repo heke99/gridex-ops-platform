@@ -1,0 +1,1 @@
+export default {resolve:{alias:{'@':'/workspace/scratch/2a201d6d5897/gridex-next'}},test:{include:['/workspace/scratch/2a201d6d5897/permission-runtime-review-20260920/review-v4.test.ts'],environment:'node'}}

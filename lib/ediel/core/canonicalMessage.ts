@@ -1,3 +1,7 @@
+import { segmentComposite,segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 // lib/ediel/core/canonicalMessage.ts
 
 import type { EdielMessageFamily, EdielMessageRow, EdielMessageStandard } from '@/lib/ediel/types'
@@ -51,6 +55,7 @@ export type CanonicalEdielMessage = {
   statuses: string[]
   references: CanonicalEdielReference[]
   processGroup: string
+  una?: EdifactServiceStringAdvice
   rawSegments: string[]
   facts: Record<string, unknown>
   parserWarnings: string[]
@@ -70,10 +75,6 @@ function splitComposite(value: string | null | undefined): string[] {
   return splitEdifactComponents(value).map((part) => part.trim())
 }
 
-function firstComponent(value: string | null | undefined): string | null {
-  return cleanString(splitComposite(value)[0] ?? null)
-}
-
 function element(rawSegment: string | null | undefined, index: number): string | null {
   const value = splitEdifactElements(rawSegment)[index]?.trim() ?? ''
   return value.length > 0 ? value : null
@@ -86,19 +87,6 @@ function allSegments(rawSegments: readonly string[], prefix: string): string[] {
 
 function firstSegment(rawSegments: readonly string[], prefix: string): string | null {
   return allSegments(rawSegments, prefix)[0] ?? null
-}
-
-function partyIdAndSubAddress(composite: string | null): { id: string | null; subAddress: string | null } {
-  const parts = splitComposite(composite)
-  return {
-    id: cleanString(parts[0] ?? null),
-    subAddress: cleanString(parts[2] ?? null),
-  }
-}
-
-function versionFromUnh(unh: string | null): string | null {
-  const parts = splitComposite(element(unh, 2))
-  return cleanString(parts[4] ?? null)
 }
 
 function familyFromUnhAndBgm(unh: string | null, bgmCode: string | null): ExtendedCanonicalFamily {
@@ -131,14 +119,15 @@ function storageFamily(family: ExtendedCanonicalFamily): EdielMessageFamily {
   return 'OTHER'
 }
 
-function referenceList(rawSegments: readonly string[]): CanonicalEdielReference[] {
-  return allSegments(rawSegments, 'RFF+').flatMap((segment) => {
-    const composite = element(segment, 1)
-    const parts = splitComposite(composite)
+function referenceList(segments: readonly EdifactTokenizedSegment[], una: ReturnType<typeof parseUna>): CanonicalEdielReference[] {
+  return segments.filter(segment => segment.tag === 'RFF').flatMap((segment) => {
+    // ACW carries the original PRODAT BGM identity into APERAK. Decode from
+    // wire once: a literal release at the end is data, not a dangling escape.
+    const parts = segmentComposite(segment, 1, una).map(part => part.trim())
     const qualifier = cleanString(parts[0] ?? null)
     const value = cleanString(parts.slice(1).join(':'))
     if (!qualifier || !value) return []
-    return [{ qualifier, value, raw: segment }]
+    return [{ qualifier, value, raw: segment.raw }]
   })
 }
 
@@ -147,13 +136,13 @@ function referenceValue(references: readonly CanonicalEdielReference[], ...quali
   return references.find((reference) => normalized.includes(reference.qualifier.toUpperCase()))?.value ?? null
 }
 
-function quantities(rawSegments: readonly string[]): CanonicalEdielQuantity[] {
-  return allSegments(rawSegments, 'QTY+').map((segment) => {
-    const parts = splitComposite(element(segment, 1))
+function quantities(segments: readonly EdifactTokenizedSegment[], una: EdifactServiceStringAdvice): CanonicalEdielQuantity[] {
+  return segments.filter(segment => segment.tag === 'QTY').map((segment) => {
+    const parts = segmentComposite(segment, 1, una)
     return {
       qualifier: cleanString(parts[0] ?? null),
       value: cleanString(parts[1] ?? null),
-      raw: segment,
+      raw: segment.raw,
     }
   })
 }
@@ -168,15 +157,16 @@ function dtmValue(rawSegments: readonly string[], qualifier: string): string | n
   return cleanString(parts[1] ?? null)
 }
 
-function cciCavSubtype(rawSegments: readonly string[]): string | null {
-  for (let index = 0; index < rawSegments.length; index += 1) {
-    const segment = rawSegments[index]
-    if (!segment?.toUpperCase().startsWith('CCI++')) continue
-    const cciCode = firstComponent(element(segment, 2))
-    const next = rawSegments[index + 1]
-    if (!next?.toUpperCase().startsWith('CAV+')) continue
-    const cavParts = splitComposite(element(next, 1))
-    const value = cleanString(cavParts.find((part) => /^[A-Z0-9]{1,8}$/.test(part)) ?? cavParts[0] ?? null)
+function cciCavSubtype(segments: readonly EdifactTokenizedSegment[], una: EdifactServiceStringAdvice): string | null {
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index]
+    if (segment.tag !== 'CCI' || segment.elements[1] !== '') continue
+    const cciCode = cleanString(segmentComposite(segment, 2, una)[0])
+    const next = segments[index + 1]
+    if (next?.tag !== 'CAV') continue
+    // Read the physical value slot once. Other C889 components cannot supply
+    // a missing subtype or replace literal separator/release data in that slot.
+    const value = cleanString(segmentComposite(next, 1, una)[0])
     if (cciCode && value) return value.toUpperCase()
   }
   return null
@@ -184,15 +174,73 @@ function cciCavSubtype(rawSegments: readonly string[]): string | null {
 
 function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['direction'] | null): CanonicalEdielMessage {
   const facts = parseEdifactMessageFacts(rawPayload)
+  const una = parseUna(rawPayload)
   const rawSegments = facts.rawSegments
+  // ACK facts use the same service alphabet and physical components as their
+  // guide/correlation consumers; no literal delimiter or metadata fallback.
+  if (facts.messageType === 'APERAK' || facts.messageType === 'CONTRL') {
+    const family=facts.messageType, present=(value:string | undefined)=>value?.length?value:null
+    const unb=(index:number)=>segmentComposite(facts.unb,index,una)
+    const refs=referenceList(facts.segments,una)
+    return {
+      family,messageFamilyForStorage:family,messageStandard:'edifact',messageCode:family,subtype:null,direction,
+      version:present(segmentComposite(facts.unh,2,una)[4]),applicationReference:present(unb(7)[0]),
+      sender:present(unb(2)[0]),receiver:present(unb(3)[0]),senderSubAddress:present(unb(2)[2]),receiverSubAddress:present(unb(3)[2]),
+      interchangeReference:present(unb(5)[0]),messageReference:present(segmentComposite(facts.unh,1,una)[0]),
+      documentReference:present(segmentComposite(facts.bgm,2,una)[0]),transactionReference:referenceValue(refs,'LI','ACW','DM'),
+      businessReference:referenceValue(refs,'LI','ACW'),relatedReference:referenceValue(refs,'ACW','Z07'),facilityId:null,meteringPointId:null,gridArea:null,permissionId:null,
+      period:null,quantities:[],statuses:[],references:refs,processGroup:processGroupForMessage(family,family),una,rawSegments:facts.rawSegments,
+      facts:{parsedBy:'canonicalMessage',sourceFacts:{messageType:family,messageCode:facts.messageCode,documentReference:facts.documentReference}},parserWarnings:[],
+    }
+  }
+  if(facts.messageType==='UTILTS') {
+    const present=(value:string|undefined)=>value!==undefined&&value!==''?value:null
+    const components=(segment:EdifactTokenizedSegment|null|undefined,index:number)=>segmentComposite(segment?{...segment,raw:segmentUntrimmedRaw(segment)}:segment,index,una)
+    const scalar=(segment:EdifactTokenizedSegment|null|undefined,index:number)=>present(components(segment,index)[0])
+    const bgmCode=scalar(facts.bgm,1),family=bgmCode==='ERR'?'UTILTS_ERR':'UTILTS'
+    const messageCode=family==='UTILTS_ERR'?'UTILTS_ERR':bgmCode
+    const refs:CanonicalEdielReference[]=facts.segments.filter(segment=>segment.tag==='RFF').flatMap(segment=>{
+      const values=components(segment,1),qualifier=present(values[0]),value=present(values[1])
+      return qualifier&&value?[{qualifier,value,raw:segmentUntrimmedRaw(segment)}]:[]
+    })
+    const loc=(qualifier:string)=>scalar(facts.segments.find(segment=>segment.tag==='LOC'&&scalar(segment,1)===qualifier),2)
+    const dtm=(qualifier:string)=>present(components(facts.segments.find(segment=>segment.tag==='DTM'&&scalar(segment,1)===qualifier),1)[1])
+    const point=loc('172')
+    return {
+      family,messageFamilyForStorage:family,messageStandard:'edifact',messageCode,subtype:null,direction,
+      version:present(components(facts.unh,2)[4]),applicationReference:scalar(facts.unb,7),una,
+      sender:scalar(facts.unb,2),receiver:scalar(facts.unb,3),senderSubAddress:present(components(facts.unb,2)[2]),receiverSubAddress:present(components(facts.unb,3)[2]),
+      interchangeReference:scalar(facts.unb,5),messageReference:scalar(facts.unh,1),documentReference:scalar(facts.bgm,2),
+      transactionReference:referenceValue(refs,'TN','LI','ACW')??scalar(facts.segments.find(segment=>segment.tag==='IDE'),2),
+      businessReference:referenceValue(refs,'LI','ACW','AGO','TN'),relatedReference:referenceValue(refs,'ACW','AGO','E31','Z07'),
+      facilityId:referenceValue(refs,'Z05')??point,meteringPointId:point,gridArea:loc('239'),permissionId:referenceValue(refs,'Z07','AHL'),
+      period:dtm('324')??dtm('163')??dtm('719'),quantities:facts.segments.filter(segment=>segment.tag==='QTY').map(segment=>{
+        const values=components(segment,1)
+        return {qualifier:present(values[0]),value:present(values[1]),raw:segmentUntrimmedRaw(segment)}
+      }),statuses:facts.segments.filter(segment=>segment.tag==='STS').map(segment=>segmentUntrimmedRaw(segment)),references:refs,
+      processGroup:processGroupForMessage(family,messageCode),rawSegments,
+      facts:{parsedBy:'canonicalMessage',sourceFacts:{messageType:facts.messageType,messageCode:bgmCode,documentReference:scalar(facts.bgm,2),lineItemCount:facts.lineItems.length}},parserWarnings:[],
+    }
+  }
   const unbRaw = facts.unb?.raw ?? firstSegment(rawSegments, 'UNB+')
   const unhRaw = facts.unh?.raw ?? firstSegment(rawSegments, 'UNH+')
   const bgmRaw = facts.bgm?.raw ?? firstSegment(rawSegments, 'BGM+')
-  const bgmCode = firstComponent(element(bgmRaw, 1))
-  const family = familyFromUnhAndBgm(unhRaw, bgmCode)
-  const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
-  const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
-  const references = referenceList(rawSegments)
+  const bgmCode = facts.messageCode
+  const observedFamily = facts.messageType
+  const family: ExtendedCanonicalFamily = observedFamily === 'UTILTS' ? (bgmCode === 'ERR' ? 'UTILTS_ERR' : 'UTILTS')
+    : observedFamily === 'PRODAT' || observedFamily === 'CONTRL' || observedFamily === 'APERAK' || observedFamily === 'DELFOR' || observedFamily === 'QUOTES' || observedFamily === 'MSCONS' ? observedFamily
+      : familyFromUnhAndBgm(unhRaw, bgmCode)
+  // PRODAT policy selection must use the same UNA as its NAD field reader.
+  // Read structured wire components once; decoded colon/release data cannot be
+  // split again or confused with legal FR/DO identities.
+  const sourceParty = (index: number) => {
+    const parts = segmentComposite(facts.unb, index, una)
+    return { id: cleanString(parts[0]), subAddress: cleanString(parts[2]) }
+  }
+  const senderParty = sourceParty(2)
+  const receiverParty = sourceParty(3)
+  const sourceApplication = segmentComposite(facts.unb, 7, una)
+  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(facts.segments, parseUna(rawPayload))
   const transactionReference =
     referenceValue(references, 'TN', 'LI', 'ACW') ??
     facts.lineItems.find((line) => line.rffLi)?.rffLi ??
@@ -205,7 +253,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
         ? 'UTILTS_ERR'
         : bgmCode
   const meteringPointId =
-    firstComponent(element(firstSegment(rawSegments, 'LOC+172+'), 2)) ??
+    cleanString(segmentComposite(facts.segments.find(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, una)[0] === '172'), 2, una)[0]) ??
     facts.lineItems.find((line) => line.itemId)?.itemId ??
     null
 
@@ -214,26 +262,29 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     messageFamilyForStorage: storageFamily(family),
     messageStandard: 'edifact',
     messageCode,
-    subtype: cciCavSubtype(rawSegments),
+    subtype: family === 'PRODAT'
+      ? prodatCharacteristicValue('223', facts.segments, parseUna(rawPayload))?.toUpperCase() ?? null
+      : cciCavSubtype(facts.segments, una),
     direction,
-    version: versionFromUnh(unhRaw),
-    applicationReference: element(unbRaw, 7),
+    version: cleanString(segmentComposite(facts.unh, 2, una)[4]),
+    applicationReference: sourceApplication.length === 1 ? cleanString(sourceApplication[0]) : null,
+    una,
     sender: senderParty.id,
     receiver: receiverParty.id,
     senderSubAddress: senderParty.subAddress,
     receiverSubAddress: receiverParty.subAddress,
     interchangeReference: facts.interchangeReference ?? element(unbRaw, 5),
     messageReference: facts.messageReference ?? element(unhRaw, 1),
-    documentReference: facts.documentReference ?? element(bgmRaw, 2),
+    documentReference: family === 'PRODAT' ? facts.documentReference : facts.documentReference ?? element(bgmRaw, 2),
     transactionReference,
     businessReference: referenceValue(references, 'LI', 'ACW', 'AGO', 'TN'),
     relatedReference: referenceValue(references, 'ACW', 'AGO', 'E31', 'Z07'),
-    facilityId: referenceValue(references, 'Z05') ?? firstComponent(element(firstSegment(rawSegments, 'LOC+172+'), 2)),
+    facilityId: referenceValue(references, 'Z05') ?? meteringPointId,
     meteringPointId,
-    gridArea: firstComponent(element(firstSegment(rawSegments, 'LOC+239+'), 2)),
-    permissionId: referenceValue(references, 'Z07', 'AHL'),
+    gridArea: cleanString(segmentComposite(facts.segments.find(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, una)[0] === '239'), 2, una)[0]),
+    permissionId: family === 'PRODAT' ? referenceValue(references, 'Z09') : referenceValue(references, 'Z07', 'AHL'),
     period: dtmValue(rawSegments, '324') ?? dtmValue(rawSegments, '163') ?? dtmValue(rawSegments, '719'),
-    quantities: quantities(rawSegments),
+    quantities: quantities(facts.segments, una),
     statuses: statuses(rawSegments),
     references,
     processGroup: processGroupForMessage(storageFamily(family), messageCode),
@@ -344,7 +395,10 @@ export function parseCanonicalEdielPayload(params: {
     return parseXmlCanonical(rawPayload, params.direction ?? null)
   }
 
-  if (standardHint === 'ai_list' || (!rawPayload.includes("'") && rawPayload.includes(';'))) {
+  // A declared EDIFACT payload (or its UNA advice) outranks a CSV heuristic.
+  // Semicolon may be the actual data separator, including inside document ids.
+  const edifactDeclared = standardHint === 'edifact' || rawPayload.startsWith('UNA')
+  if (standardHint === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) {
     return parseAiOrBiCanonical(rawPayload, params.direction ?? null)
   }
 

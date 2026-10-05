@@ -1,0 +1,35 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-19",
+  "status": "IN_PROGRESS",
+  "branch": "codex/ediel-register-readings-20260919",
+  "base_head_sha": "5d1e414ebcdf39f813fab91c26510046c765aee9",
+  "active_item": "Implement nine reading-dependent register cells",
+  "next_action": "PublishR1exacttree, independent scopedrereview and freshordinaryCI; guardedmergeonlyafterapproval. No newacceptanceyet.",
+  "accepted_numeric_D": 39,
+  "numeric_D_total": 110,
+  "accepted_parents": 4,
+  "parent_total": 10,
+  "blocked_cells": [
+    "PC-321-Z13",
+    "PC-323-Z13",
+    "PC-321-Z14",
+    "PC-323-Z14"
+  ],
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a"
+  },
+  "full_masterplan": "NOT_COMPLETE",
+  "main_full_certificate": {
+    "run": 35439250983,
+    "job": 105887101866,
+    "passed": 73,
+    "total": 73,
+    "node": "22.23.2"
+  },
+  "source_qualification_commit": "e7210b6dccad1a274c478615293f1306886bbc10",
+  "implementation_head": "1577c2bb0d5c90058f7259d593908599f686fe99",
+  "fix_round": 1
+}

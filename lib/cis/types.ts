@@ -134,6 +134,7 @@ export type BillingUnderlayRow = {
   failure_reason: string | null
   readiness_status?: 'not_checked' | 'ready' | 'warning' | 'blocked' | 'exported' | 'requires_correction' | string | null
   readiness_issues?: Array<Record<string, unknown>> | null
+  invoice_readiness_status?: string | null
   created_at: string
   updated_at: string
   created_by: string | null

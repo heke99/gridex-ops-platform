@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { getVerifiedAuthUser } from '@/lib/auth/currentUser'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { isPlatformAdminRole } from '@/lib/rbac/roleKeys'
@@ -69,16 +70,14 @@ async function userHasPlatformRole(userId: string) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createSupabaseServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getVerifiedAuthUser()
 
   if (!user) redirect('/login')
 
-  const isPlatformAdmin = await userHasPlatformRole(user.id)
-  const companyScope = await getOperationalCompanyScope(user.id)
+  const [isPlatformAdmin, companyScope] = await Promise.all([
+    userHasPlatformRole(user.id),
+    getOperationalCompanyScope(user.id),
+  ])
   const companyName = companyScope.companyName ?? 'ditt elbolag'
 
   const valueCards = isPlatformAdmin

@@ -13,7 +13,9 @@ import {
   inviteCompanyUserAction,
   removeUserFromCompanyAction,
   setCompanyUserRoleAction,
+  reactivateCompanyUserAction,
 } from '../../actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +51,13 @@ async function setCompanyUserRoleFormAction(formData: FormData) {
   'use server'
   const companyId = String(formData.get('company_id') ?? '')
   const result = await setCompanyUserRoleAction(emptyActionState, formData)
+  redirect(buildCompanyUsersActionRedirect(companyId, result))
+}
+
+async function reactivateCompanyUserFormAction(formData: FormData) {
+  'use server'
+  const companyId = String(formData.get('company_id') ?? '')
+  const result = await reactivateCompanyUserAction(emptyActionState, formData)
   redirect(buildCompanyUsersActionRedirect(companyId, result))
 }
 
@@ -248,7 +257,7 @@ export default async function CompanyUsersPage({
                     <td className="px-5 py-3 text-slate-700">{user.membershipRole}</td>
                     <td className="px-5 py-3">
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${membershipStatusTone(user.status)}`}>
-                        {user.status}
+                        {formatStatusLabel(user.status)}
                       </span>
                       {user.userStatus && user.userStatus !== 'active' ? (
                         <p className="mt-1 text-xs text-red-700">Global: {user.userStatus}</p>
@@ -292,8 +301,15 @@ export default async function CompanyUsersPage({
                           </button>
                         </form>
 
+                        {user.status === 'disabled' ? (
+                          <form action={reactivateCompanyUserFormAction}>
+                            <input type="hidden" name="company_id" value={company.id} />
+                            <input type="hidden" name="user_id" value={user.userId} />
+                            <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">Återaktivera personal</button>
+                          </form>
+                        ) : null}
                         <details className="rounded-2xl border border-red-100 bg-red-50/60 p-2 text-xs">
-                          <summary className="cursor-pointer select-none font-semibold text-red-800">Ta bort från bolag</summary>
+                          <summary className="cursor-pointer select-none font-semibold text-red-800">Stäng av personal</summary>
                           <form action={removeUserFromCompanyFormAction} className="mt-2 flex flex-wrap items-center gap-2">
                             <input type="hidden" name="company_id" value={company.id} />
                             <input type="hidden" name="user_id" value={user.userId} />

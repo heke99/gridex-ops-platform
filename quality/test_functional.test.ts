@@ -59,6 +59,7 @@ describe('Spec requirements', () => {
       publicPortalCustomer(
         { id: internalId, company_id: tenantA, full_name: 'Ada' },
         { external_customer_id: 'customer-public', customer_number: '1001' },
+        tenantA,
       ),
       publicPortalSite(tenantA, {
         id: internalId,

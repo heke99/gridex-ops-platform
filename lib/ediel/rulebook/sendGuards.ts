@@ -1,18 +1,58 @@
+import type {RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
+import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
+import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
+import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import type {ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
+import { type RulebookValidationResult, validateEdielMessageRowWithRulebook, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import { sourceQualifiedNegativeFixtureMatchesMessage, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 
-function objectValue(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,negativeFixture?:SourceQualifiedNegativeFixture | null,deathStatusContext?:DeathStatusValidationContext,ackSourceQualification?:SourceQualifiedOutboundAck,customerMasterdataContext?:CustomerMasterdataValidationContext,requestedChangeBasis?:RequestedChangeBasis|null): RulebookValidationResult | null {
+
+  if (message.direction !== 'outbound') return null
+  assertProdatFreeTextSendBoundary(message)
+  if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)
+
+  const validation = validateEdielMessageRowWithRulebook(message, 'send',dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,undefined,customerMasterdataContext,requestedChangeBasis??undefined)
+
+  return enforceQualifiedSendValidation(message, validation, negativeFixture)
 }
 
-export function assertRulebookAllowsSend(message: EdielMessageRow): void {
-  if (message.direction !== 'outbound') return
-  const parsedPayload = objectValue(message.parsed_payload) ?? {}
-  if (parsedPayload.rulebookAllowInvalidSend === true) return
+/** Actual persisted sends consume the same canonical registry/original ports.
+ * In particular ACKs cannot gain original authority from detached row JSON. */
+export async function assertRegistryRulebookAllowsSend(message: EdielMessageRow, dateEventContext?: ProdatDateEventValidationContext,
+  reportingContext?: ExpectedContext, negativeFixture?: SourceQualifiedNegativeFixture | null,deathStatusContext?:DeathStatusValidationContext,ackSourceQualification?:SourceQualifiedOutboundAck,customerMasterdataContext?:CustomerMasterdataValidationContext,requestedChangeBasis?:RequestedChangeBasis|null,executionActorUserId?:string): Promise<RulebookValidationResult | null> {
 
-  const validation = validateEdielMessageRowWithRulebook(message, 'send')
+  if (message.direction !== 'outbound') return null
+  assertProdatFreeTextSendBoundary(message)
+  if (!gasApplicabilitySendIssue(message)) assertMeterChangeSendBoundary(message)
+  const validation = await validateRulebookMessageWithRegistry({family: message.message_family, code: message.message_code,
+    processGroup: message.process_type, applicationReference: message.application_reference, rawPayload: message.raw_payload,
+    parsedPayload: message.parsed_payload, mode: 'send', direction: message.direction, environment: message.environment,
+    companyId: message.company_id, messageRow: message, executionActorUserId, dateEventRow: message, dateEventContext, reportingContext,deathStatusContext,ackSourceQualification,customerMasterdataContext,requestedChangeBasis:requestedChangeBasis??undefined})
+
+  return enforceQualifiedSendValidation(message, validation, negativeFixture)
+}
+
+function enforceQualifiedSendValidation(message: EdielMessageRow, validation: RulebookValidationResult, negativeFixture?: SourceQualifiedNegativeFixture | null): RulebookValidationResult {
   const errors = validation.issues.filter((issue) => issue.severity === 'error' || issue.blocking)
-  if (errors.length === 0) return
+  const registerErrors = errors.filter(issue => issue.scope === 'prodat_register')
+  const dependentErrors = errors.filter(issue => issue.scope === 'prodat_dependent')
+  // Report all protected findings together: a register failure must not hide
+  // an independently verified subtype/product violation behind the same gate.
+  if (registerErrors.length) throw new Error('PRODAT register blockerar skick: ' + [...registerErrors, ...dependentErrors].map(issue => issue.code + ': ' + issue.description).join(' | '))
+  if (dependentErrors.length) throw new Error('PRODAT D-villkor blockerar skick: ' + dependentErrors.map(issue => issue.code + ': ' + issue.description).join(' | '))
+  // Caller metadata never grants permission to send a failed national check.
+  // Any intentional negative certification run requires its separate source owner.
+  if (errors.length === 0) return validation
+  // A failed local authority/configuration decision is not a deliberately bad
+  // national fixture. Protected D/register facts were guarded above as well.
+  if (validation.canonicalPolicy && !errors.some(issue=>issue.code.startsWith('CANONICAL_'))
+    && sourceQualifiedNegativeFixtureMatchesMessage({message,diagnosticCodes:errors.map(issue=>issue.code),qualification:negativeFixture})) return validation
 
   throw new Error(
     `Rulebook blockerar skick: ${errors.map((issue) => `${issue.code}: ${issue.description}`).join(' | ')}`

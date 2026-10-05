@@ -1,0 +1,74 @@
+{
+  "purpose": "S4-01-final-prefix-generated-artifact-import",
+  "imported_at": "2026-10-04T10:36:24.101219+00:00",
+  "workflow_run": 37195224010,
+  "artifact_id": 11301081507,
+  "artifact_zip_sha256": "256bd430ab67d14eab116718b6a427b8f97bb1819ddce9fee6e0f6c6cc35a98b",
+  "published_artifact_digest": "sha256:256bd430ab67d14eab116718b6a427b8f97bb1819ddce9fee6e0f6c6cc35a98b",
+  "original_capture_receipt": "quality/staff-api/S4-01-final-prefix-capture-receipt-20261004.json",
+  "original_capture_receipt_sha256": "6eefd0333c943bb9600d8d5b24876c482048fa85f9338317f5f5a9a4eb24cc52",
+  "preserved_prior_receipt_sha256": {
+    "quality/staff-api/S1-capture-receipt-20261004.json": "61eb3c55b36308016cbef9f396dc558de37e9ca07ed3eee9ed63978d596fc287",
+    "quality/staff-api/S1-capture-import-20261004.json": "f92e42411fcf9b26601fc3ba0468c645a3b5e39c92b66655c6e2070a5d293f91",
+    "quality/staff-api/S1-02-final-acl-capture-receipt-20261004.json": "2c560fabd49cb1400329741169d305c06a87f822787de0a5c5d7c97d86f2cec2",
+    "quality/staff-api/S1-02-final-acl-capture-import-20261004.json": "48ff68dbaeee4ec2c3afc7b5ea500d0724c956ada21c53eb1e91b2802cae75d9"
+  },
+  "captured_checkout_commit": "8f29da0d41e5782f5547b5a2c156817f47aaf130",
+  "captured_checkout_tree": "4359741a42a84b774c661e84f4cd4d77c9b9d4e7",
+  "import_source_commit": "3ea095564f54b672412401b90e3b2eec48504773",
+  "import_source_tree": "4359741a42a84b774c661e84f4cd4d77c9b9d4e7",
+  "validation": {
+    "zip_crc_and_exact_four_member_set": "PASS",
+    "published_artifact_zip_digest": "PASS",
+    "all_eight_captured_input_hashes_against_frozen_s4_source": "PASS",
+    "complete_checkout_tree_equality": "PASS",
+    "all_three_generated_artifact_hashes": "PASS",
+    "latest_replay_migration_and_hash": "PASS",
+    "schema_names_and_canonical_section_fingerprint": "PASS",
+    "capture_only_not_run_flags_preserved": "PASS",
+    "destination_generated_files_byte_identical": "PASS",
+    "prior_receipts_byte_identical": "PASS",
+    "db_migrations_check": "PASS",
+    "independent_artifact_and_provenance_review": "PASS"
+  },
+  "artifact_sha256": {
+    "database.types.ts": "e738c10a566b5ecaa14ac30f797d38f74382b6fc6b59fc2b6495591275d2c4ce",
+    "schema.sql": "c90f82239ad7bf260802eb97495a1472c3a05ca2e23b07adab5f0f52b42ab3d4",
+    "schema.fingerprint.json": "03c928c281b706e4f02481260306903a0f754aba3bb1ebd654826aa41dc41abb"
+  },
+  "latest_replay_migration": {
+    "name": "20261004100918_staff_user_lock_order.sql",
+    "sha256": "e90524bec4766b4eab68c0dc04836e95dc7e7bd8938ce7b602044c441b261e68"
+  },
+  "schema_fingerprint": "e5e70237ca3015ecc7da1350f59bac3064863c90170a3dc4eb66d260eee3a0de",
+  "qualification": "Authentic final S4 own-prefix PostgreSQL clean replay capture only. Captured checkout 8f29da0d41e5782f5547b5a2c156817f47aaf130 and frozen local import source 3ea095564f54b672412401b90e3b2eec48504773 have the same complete tree; ZIP/member hashes, all eight replay-input hashes, three generated-artifact hashes and latest migration match. Generated files are byte-copied and the canonical section fingerprint is independently recomputed from captured sections. This includes S1 plus S2/S3/S4 staff database inputs and final guard forwards. Native tests, browser tests, type-schema comparison and upgrade parity were NOT_RUN in this capture. Fresh final exact-head full CI/OPS clean and upgrade replay/parity remain mandatory; this import is not full CI acceptance.",
+  "capture_workflow_conclusion": "success",
+  "db_migrations_check": {
+    "exit_code": 0,
+    "migration_files": 1055,
+    "version_groups": 958,
+    "checks": [
+      "migration integrity/checksums",
+      "public-contract legal migration",
+      "database contract hardening",
+      "generated types hash/nullability/latest migration"
+    ],
+    "log_sha256": "7aa491450dc4daefbab36fde96ad986fce0adb3c6516ab48a6dda561087388cb"
+  },
+  "independent_review": {
+    "reviewer": "/root/s4_cases/review_s2_lock_order",
+    "critical_findings": 0,
+    "important_findings": 0,
+    "scope": [
+      "fresh GitHub artifact digest/run success and remote commit tree",
+      "ZIP CRC and exact four members",
+      "three generated destinations and raw receipt exact bytes",
+      "eight frozen git-source input hashes",
+      "prior four S1 receipts and superseded manifest preservation",
+      "canonical fingerprint and final seven-file diff",
+      "latest assignee function source identity and required S4 schema objects",
+      "S1 replay direct ACL/RLS and S2 final company lock statements"
+    ],
+    "qualification": "Read-only artifact/provenance review only; native tests, browser tests, type/schema comparison and upgrade parity remain NOT_RUN in the capture."
+  }
+}

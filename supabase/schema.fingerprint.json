@@ -1,0 +1,116 @@
+{
+  "algorithm": "sha256/canonical-json/v1",
+  "schemas": [
+    "gridex_ack_authority",
+    "gridex_ai_processing",
+    "gridex_ai_purpose_sources",
+    "gridex_bilateral_customer_sources",
+    "gridex_bilateral_prodat",
+    "gridex_billing_source",
+    "gridex_brp_changes",
+    "gridex_brp_declaration_intake",
+    "gridex_brp_sources",
+    "gridex_business_expectations",
+    "gridex_certificate_trust",
+    "gridex_contract_source_intake",
+    "gridex_correction_process",
+    "gridex_customer_life_events",
+    "gridex_customer_masterdata",
+    "gridex_ediel_ack_guide",
+    "gridex_ediel_ack_replay",
+    "gridex_ediel_business_incidents",
+    "gridex_ediel_common_header",
+    "gridex_ediel_duplicate_responses",
+    "gridex_ediel_exports",
+    "gridex_ediel_inbound_context",
+    "gridex_ediel_inbound_receptions",
+    "gridex_ediel_outbound_owner",
+    "gridex_ediel_readiness",
+    "gridex_ediel_retention",
+    "gridex_ediel_services",
+    "gridex_ediel_source_rules",
+    "gridex_ediel_technical_ack",
+    "gridex_ediel_transport",
+    "gridex_ediel_wire_namespace",
+    "gridex_internal",
+    "gridex_metering_method_changes",
+    "gridex_method_expectations",
+    "gridex_negative_fixtures",
+    "gridex_network_registry_sources",
+    "gridex_outbound_dispatch",
+    "gridex_private",
+    "gridex_prodat_object_batch",
+    "gridex_received_err_response",
+    "gridex_received_reading_expectations",
+    "gridex_received_sources",
+    "gridex_registry_import",
+    "gridex_regulated_supply",
+    "gridex_requested_changes",
+    "gridex_requested_customer_changes",
+    "gridex_requested_method_watches",
+    "gridex_service_administration",
+    "gridex_service_permission",
+    "gridex_supply_rescission",
+    "gridex_switch_cancellations",
+    "gridex_transport_exception",
+    "gridex_unattributed_intake",
+    "gridex_utilts_binding",
+    "gridex_utilts_issuer",
+    "public"
+  ],
+  "sections": {
+    "columns": {
+      "count": 14394,
+      "sha256": "8f7a6050152be37f656cbf0f7d942018ba64a17c49ec8f78e9d098cf057035fe"
+    },
+    "constraints": {
+      "count": 4542,
+      "sha256": "397bf13f13ad5c671ffb101f62853bf3301c648a65e3690476e4ef53508c6a32"
+    },
+    "enums": {
+      "count": 4,
+      "sha256": "e4e1406f2879720d7bec4e002e1bb62cbb3160f29ccc84e90ea8ec388cc6e629"
+    },
+    "extensions": {
+      "count": 7,
+      "sha256": "681146fb7b19ef18f03561a13eff172b8cf4db58ccea291c48c0a5389797d828"
+    },
+    "function_grants": {
+      "count": 3631,
+      "sha256": "662874b92255d27a18014b5409fcd2c77d5d9fabe4d0322977d78cdd57a34518"
+    },
+    "functions": {
+      "count": 2098,
+      "sha256": "26d1965f5767cae3b0c75d27ee8ca090163ca115f21f71cf7b272b70111fc04b"
+    },
+    "indexes": {
+      "count": 2943,
+      "sha256": "053926e2428d58faf07a1f6e5c4f442c1d30154985694d0c3207cef5f9793752"
+    },
+    "policies": {
+      "count": 2560,
+      "sha256": "e7161df11bbd05d022a672da671414b71ad3112aadc119a8e86ff7b43d6706a6"
+    },
+    "relation_grants": {
+      "count": 16675,
+      "sha256": "42867c43cc7b81edd22e65df64a71706fae07231cbcbf2c50d5eb42c7f169b0a"
+    },
+    "relations": {
+      "count": 973,
+      "sha256": "9adeb94f9c09a660ae17b627f2002aba08d891025f1a367f2a1ad50a8fb254eb"
+    },
+    "schema_grants": {
+      "count": 160,
+      "sha256": "2191009882f465f709eb3a2227fb1bdccd498cf752b30972a1115e30bd974ab0"
+    },
+    "schemas": {
+      "count": 56,
+      "sha256": "a7f4128a89e77ce69677182b570691b1b384129e7cff2923b8d537465343527f"
+    },
+    "triggers": {
+      "count": 1161,
+      "sha256": "4e47515e21badbcf9df4a6048c10257d2f443f088d114aa54abde368cbe94e04"
+    }
+  },
+  "sha256": "9e2db4c7fc4f3a4e3d96e60019bad403400dd44913f0241f07fb7d1be7881b74"
+}

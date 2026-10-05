@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { retryReviewableInvoiceProviderEvents } from '@/lib/billing/providerEventProcessor'
@@ -9,6 +10,12 @@ import { CapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import {
+  InvoiceProviderConfigError,
+  loadTenantInvoiceProviderSelection,
+  selectTenantInvoiceProvider,
+  setTenantInvoiceDispatchEnabled,
+} from '@/lib/billing/providers/registry'
 
 function safeProviderError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
@@ -35,14 +42,52 @@ async function requireScopedBillingCompany() {
   return { context, user, scope, companyId }
 }
 
+async function selectedEnvironment(companyId: string): Promise<'test' | 'production'> {
+  const selection = await loadTenantInvoiceProviderSelection(companyId)
+  return selection?.billing_provider_environment === 'production' ? 'production' : 'test'
+}
+
+function providerSettingsRedirect(status: string): never {
+  revalidatePath('/admin/billing/integrations')
+  redirect(`/admin/billing/integrations?provider=${encodeURIComponent(status)}`)
+}
+
+export async function selectInvoiceProviderAction(formData: FormData): Promise<void> {
+  const { context, companyId } = await requireScopedBillingCompany()
+  const provider = String(formData.get('provider') ?? '')
+  const environment = String(formData.get('environment') ?? '') === 'production' ? 'production' : 'test'
+  try {
+    await selectTenantInvoiceProvider({ companyId, provider, environment, actorUserId: context.userId })
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof InvoiceProviderConfigError) providerSettingsRedirect(error.code)
+    throw error
+  }
+  providerSettingsRedirect('selected')
+}
+
+export async function setInvoiceDispatchEnabledAction(formData: FormData): Promise<void> {
+  const { context, companyId } = await requireScopedBillingCompany()
+  const enabled = String(formData.get('enabled') ?? '') === 'true'
+  try {
+    await setTenantInvoiceDispatchEnabled({ companyId, enabled, actorUserId: context.userId })
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof InvoiceProviderConfigError) providerSettingsRedirect(error.code)
+    throw error
+  }
+  providerSettingsRedirect(enabled ? 'enabled' : 'disabled')
+}
+
 export async function testCapwayConnectionAction(): Promise<void> {
   const { context, companyId } = await requireScopedBillingCompany()
   const testedAt = new Date().toISOString()
+  const environment = await selectedEnvironment(companyId)
 
   try {
     const config = await resolveCapwayConnectionConfig({
       companyId,
-      environment: 'test',
+      environment,
       allowIncompleteStatus: true,
     })
     const client = new CapwayApticClient(config)
@@ -53,10 +98,10 @@ export async function testCapwayConnectionAction(): Promise<void> {
       .select('id,readiness_issues')
       .eq('company_id', companyId)
       .eq('provider', 'capway_aptic')
-      .eq('environment', 'test')
+      .eq('environment', environment)
       .maybeSingle()
     if (loadError) throw loadError
-    if (!existing) throw new Error('Capway/Aptic testkoppling saknas för valt bolag.')
+    if (!existing) throw new Error('Capway-koppling saknas. Välj Capway som fakturaleverantör först.')
 
     const remainingIssues = Array.isArray(existing.readiness_issues)
       ? existing.readiness_issues.filter((item) => {
@@ -73,7 +118,7 @@ export async function testCapwayConnectionAction(): Promise<void> {
         last_tested_at: testedAt,
         last_test_result: {
           ok: true,
-          environment: 'test',
+          environment,
           auth_mode: config.authMode,
           endpoint: '/v1/Invoices/Ping',
           response: ping,
@@ -95,7 +140,7 @@ export async function testCapwayConnectionAction(): Promise<void> {
       action: 'capway_test_connection_succeeded',
       label: 'Capway/Aptic testanslutning verifierad',
       newValues: {
-        environment: 'test',
+        environment,
         endpoint: '/v1/Invoices/Ping',
         authMode: config.authMode,
         billingActivationAllowed: false,
@@ -103,13 +148,14 @@ export async function testCapwayConnectionAction(): Promise<void> {
       source: 'billing_integrations',
     }).catch(() => undefined)
   } catch (error) {
+    unstable_rethrow(error)
     const message = safeProviderError(error)
     const { data: existing } = await supabaseService
       .from('billing_provider_connections')
       .select('id,readiness_issues')
       .eq('company_id', companyId)
       .eq('provider', 'capway_aptic')
-      .eq('environment', 'test')
+      .eq('environment', environment)
       .maybeSingle()
 
     if (existing?.id) {
@@ -133,7 +179,7 @@ export async function testCapwayConnectionAction(): Promise<void> {
           last_tested_at: testedAt,
           last_test_result: {
             ok: false,
-            environment: 'test',
+            environment,
             endpoint: '/v1/Invoices/Ping',
             error: message,
             tested_at: testedAt,
@@ -153,7 +199,7 @@ export async function testCapwayConnectionAction(): Promise<void> {
       entityId: existing?.id ?? companyId,
       action: 'capway_test_connection_failed',
       label: 'Capway/Aptic testanslutning misslyckades',
-      newValues: { environment: 'test', error: message },
+      newValues: { environment, error: message },
       source: 'billing_integrations',
     }).catch(() => undefined)
 

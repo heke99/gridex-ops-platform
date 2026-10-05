@@ -1,8 +1,17 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
+import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {holdCanonicalEvidenceGateBlocked,initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
+import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
+import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
+import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
+import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
@@ -16,7 +25,8 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -73,6 +83,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -109,6 +121,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -119,7 +133,11 @@ export async function prepareAndQueueUtiltsE73(params: {
       transactionReason: 'Begäran om saknade validerade mätvärden',
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
-      readingFrequency: meteringPoint?.reading_frequency ?? null,
+      readingFrequency: sourceStructure.fields.reportingFrequency,
+      resolution:sourceStructure.resolution,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
     },
   })
 
@@ -238,6 +256,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     },
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:params.periodStart??dataRequest.requested_period_start,periodEnd:params.periodEnd??dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -274,6 +294,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -282,12 +304,11 @@ export async function prepareAndQueueUtiltsE66(params: {
       registrationTime: params.registrationTime ?? new Date().toISOString(),
       quantity: params.quantity ?? 0,
       unit: 'KWH',
-      resolution:
-        meteringPoint?.reading_frequency === 'monthly'
-          ? '1440'
-          : meteringPoint?.reading_frequency === 'daily'
-            ? '1440'
-            : '15',
+      resolution:sourceStructure.resolution,
+      readingFrequency:sourceStructure.fields.reportingFrequency,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
       siteType: site?.site_type ?? 'consumption',
     },
   })
@@ -341,6 +362,8 @@ export async function processInboundUtiltsMessage(params: {
   actorUserId: string
   edielMessageId: string
   testCaseCode?: string | null
+  canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision?: CanonicalRuntimeDecision | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -349,6 +372,10 @@ export async function processInboundUtiltsMessage(params: {
   if (message.message_family !== 'UTILTS') {
     throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
   }
+
+  if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
+  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
+
 
   const runtimeTestCaseCode = await resolveUtiltsRuntimeTestCaseCode({
     sourceMessage: message,
@@ -359,7 +386,17 @@ export async function processInboundUtiltsMessage(params: {
   // normalized UTILTS facts. The final ACK decision is run again after canonical
   // business matching, because live/test must use the same production rule: object
   // identity/processability is validated before period/observation-count checks.
-  const provisionalRuntime = runUtiltsRuntimeForMessage(message)
+  const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  if (await holdCanonicalEvidenceGateBlocked({actorUserId,message,initialDecision})) {
+    return {message,matchedDataRequest:null,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
+  const canonicalPolicy = initialDecision.policy
+  if (!canonicalPolicy || canonicalPolicy.family !== 'UTILTS' || canonicalPolicy.code !== message.message_code || canonicalPolicy.direction !== 'inbound') {
+    throw new Error(`utilts_inbound_policy_context_mismatch:${message.id}`)
+  }
+  const periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initialDecision,message})??undefined
+  const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})??undefined
+  const provisionalRuntime = runUtiltsRuntimeForMessage(message, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority })
   const transactionMatches = await matchUtiltsTransactionsForTenant({
     message,
     facts: provisionalRuntime.facts,
@@ -406,57 +443,110 @@ export async function processInboundUtiltsMessage(params: {
         : permissionProbeMessage.business_match_status,
   }
 
-  const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage)
-  const ackPlan = applyCertifiedUtiltsAckPolicy({
-    runtime,
-    testCaseCode: runtimeTestCaseCode,
+  const structuralQualification = await qualifyReceivedUtiltsStructure({
+    message: runtimeSourceMessage, canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority,
+    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority }),
+  })
+  const runtime = structuralQualification.runtime
+  try { await recordFinalCanonicalUtiltsDecision({original:message,validated:runtimeSourceMessage,initialDecision,runtime}) }
+  catch (error) {
+    // The legal receiver (NAD+MR, field 208) could not be resolved when the
+    // source was received: no own identity can sign a reply and no rule basis
+    // can be captured. Hold it for manual review: no ACK, consumption or effect.
+    if (!legalReceiverUnresolved(error)) throw error
+    await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'warning',
+      message:'Mottagarens juridiska identitet (fält 208) kunde inte fastställas. Meddelandet hålls för manuell granskning utan kvittens eller affärseffekt.',
+      payload:{reason:'ediel_inbound_legal_context_required',manualReviewRequired:true}})
+    return {message,matchedDataRequest:canonicalLinks.matchedDataRequest,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
+  const structuralDecisionRequired = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
+  const ackPlan = structuralDecisionRequired ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({
+    runtime, testCaseCode: runtimeTestCaseCode,
   })
   let transactionDispositions = runtime.transactionDispositions
   let transactionPersistenceResults: Awaited<ReturnType<typeof persistUtiltsTransactionResults>> = []
+  const normalizedPayload = {
+    ...runtime.normalizedPayload,
+    utiltsTransactionMatches: transactionMatches,
+    receivedStructureQualification: structuralQualification.evidence,
+    utiltsTransactionDispositions: transactionDispositions,
+    utiltsTransactionPersistenceResults: transactionPersistenceResults,
+    receivedStructuralSources: await readReceivedStructuralSources({ message: runtimeSourceMessage, transactionMatches }),
+    durableReceivedSourceInventory: await readAndRecordDurableReceivedSources(runtimeSourceMessage),
+  }
   const companyId = stringOrNull(runtimeSourceMessage.company_id)
   const messageCode = stringOrNull(runtime.facts.messageCode)
   if (companyId && messageCode && transactionDispositions.length > 0) {
+    const dataRequest = canonicalLinks.matchedDataRequest
+    const fallback = {
+      customerId: canonicalLinks.siteAndCustomer?.customerId ?? dataRequest?.customer_id ?? matchedPermission?.customer_id ?? null,
+      siteId: canonicalLinks.siteAndCustomer?.siteId ?? dataRequest?.site_id ?? matchedPermission?.site_id ?? null,
+      meteringPointId: canonicalLinks.meteringPointId ?? dataRequest?.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
+      gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest?.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
+    }
+    const contracts = await prepareUtiltsConsumptionContracts({ message: runtimeSourceMessage, runtime, policy: canonicalPolicy,
+      matches: transactionMatches, dataRequest, fallback, allowConsumption: true })
     transactionPersistenceResults = await persistUtiltsTransactionResults({
+      actorUserId,
       companyId,
       environment: runtimeSourceMessage.environment,
       sourceMessageId: runtimeSourceMessage.id,
       messageCode,
+      rawPayload: runtimeSourceMessage.raw_payload ?? '',
+      contracts,
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
+        rawSegments: utiltsRuntimeSegments(runtime.facts),
         dispositions: transactionDispositions,
         matches: transactionMatches,
       }),
     })
-    transactionDispositions = transactionDispositions.map((disposition, index) => {
-      const transactionId = resolveUtiltsTransactionId(disposition.transactionId, index)
-      const persisted = transactionPersistenceResults.find((item) => item.transactionId === transactionId)
-      if (!persisted || persisted.persistenceStatus !== 'failed') {
-        return transactionId === disposition.transactionId
-          ? disposition
-          : { ...disposition, transactionId }
-      }
-      return {
-        ...disposition,
-        transactionId,
-        disposition: 'processability_rejected' as const,
-        responseType: 'utilts_err' as const,
-        issueCodes: [...new Set([...disposition.issueCodes, ...(persisted.issueCodes ?? ['UTILTS_PERSISTENCE_FAILED'])])],
-      }
-    })
+    // An RPC array is not evidence unless every requested transaction has one
+    // coherent outcome. Stop internally before ACKs or request completion;
+    // missing/ambiguous evidence must not fabricate a national rejection.
+    const expectedIds = transactionDispositions.map((item, index) => resolveUtiltsTransactionId(item.transactionId, index))
+    const validResults = transactionPersistenceResults.length === expectedIds.length &&
+      new Set(expectedIds).size === expectedIds.length &&
+      transactionDispositions.every((disposition, index) => {
+        const results = transactionPersistenceResults.filter(item => ensureJson(item).transactionId === expectedIds[index])
+        if (results.length !== 1) return false
+        const result = results[0]
+        return result.disposition === disposition.disposition && result.responseType === disposition.responseType &&
+          result.persistenceStatus === (disposition.disposition === 'accepted' ? 'persisted' : 'not_applicable')
+      })
+    if (!validResults) throw new Error('utilts_transaction_persistence_invalid_result')
+    transactionDispositions = transactionDispositions.map((disposition, index) => ({
+      ...disposition, transactionId: resolveUtiltsTransactionId(disposition.transactionId, index),
+    }))
   }
-  const normalizedPayload = {
-    ...runtime.normalizedPayload,
-    utiltsTransactionMatches: transactionMatches,
-    utiltsTransactionDispositions: transactionDispositions,
-    utiltsTransactionPersistenceResults: transactionPersistenceResults,
+  if (transactionPersistenceResults.length === 0 && (transactionDispositions.length > 0 || runtime.validation.ok)) {
+    throw new Error('utilts_transaction_persistence_invalid_result')
   }
+  normalizedPayload.utiltsTransactionDispositions = transactionDispositions
+  normalizedPayload.utiltsTransactionPersistenceResults = transactionPersistenceResults
   const forcedPositiveTgtAckPlan =
-    runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
+    !structuralDecisionRequired && (runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2')
   const shouldRejectByAckPlan =
     ackPlan.contrlOutcome === 'negative' ||
     ackPlan.shouldSendUtiltsErr ||
     (ackPlan.shouldSendAperak && ackPlan.aperakOutcome === 'negative')
+
+  // A guide error belongs to its IDE, not to a healthy sibling. Only enter
+  // the partial consumption path when every error is explicitly referenced to
+  // a rejected transaction and the persisted accepted result has its own
+  // source-bound contract. Header, syntax, functional and structural holds
+  // retain the whole-message stop below.
+  const rejectedGuideIds = new Set(transactionDispositions
+    .flatMap((item, index) => item.disposition === 'guide_rejected' ? [resolveUtiltsTransactionId(item.transactionId, index)] : []))
+  const consumeAcceptedGuideSiblings = !structuralDecisionRequired &&
+    runtime.validation.classification === 'application_rejected' &&
+    ackPlan.contrlOutcome !== 'negative' && !ackPlan.shouldSendUtiltsErr &&
+    rejectedGuideIds.size > 0 && transactionDispositions.some(item => item.disposition === 'accepted') &&
+    transactionDispositions.every(item => item.disposition === 'accepted' || item.disposition === 'guide_rejected') &&
+    runtime.validation.issues.filter(issue => issue.severity === 'error').every(issue =>
+      issue.kind === 'application' && issue.referenceQualifier === 'ACW' &&
+      Boolean(issue.referenceNumber && rejectedGuideIds.has(issue.referenceNumber)))
 
   await updateEdielMessageStatus({
     actorUserId,
@@ -479,6 +569,50 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   if ((!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
+    if (consumeAcceptedGuideSiblings && canonicalLinks.matchedDataRequest) {
+      const request = canonicalLinks.matchedDataRequest
+      for (const outcome of transactionPersistenceResults.filter(item => item.disposition === 'accepted')) {
+        const contract = storedUtiltsConsumption(outcome, message.id)
+        if (!contract || contract.metering.sourceRequestId !== request.id ||
+          contract.metering.meteringPointId !== request.metering_point_id ||
+          contract.metering.customerId !== request.customer_id ||
+          (request.site_id && contract.metering.siteId !== request.site_id) ||
+          (request.grid_owner_id && contract.metering.gridOwnerId !== request.grid_owner_id) ||
+          (contract.billing.capability === 'write' &&
+            (contract.billing.sourceRequestId !== request.id ||
+              contract.billing.meteringPointId !== request.metering_point_id ||
+              contract.billing.customerId !== request.customer_id))) {
+          throw new Error('utilts_partial_request_scope_conflict')
+        }
+      }
+    }
+    // Consume before publishing a positive transaction ACK. An exception in a
+    // sink leaves the source retryable, while the SQL binding and sink identity
+    // keep a repeated attempt tied to the same accepted IDE and source bytes.
+    const partialMeterValues = consumeAcceptedGuideSiblings ? await maybeIngestMeteringValue({
+      boundOutcomes: transactionPersistenceResults,
+      actorUserId,
+      customerId: canonicalLinks.siteAndCustomer?.customerId ?? canonicalLinks.matchedDataRequest?.customer_id ?? matchedPermission?.customer_id ?? null,
+      siteId: canonicalLinks.siteAndCustomer?.siteId ?? canonicalLinks.matchedDataRequest?.site_id ?? matchedPermission?.site_id ?? null,
+      meteringPointId: canonicalLinks.meteringPointId ?? canonicalLinks.matchedDataRequest?.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
+      gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? canonicalLinks.matchedDataRequest?.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
+      dataRequestId: canonicalLinks.matchedDataRequest?.id ?? null,
+      message,
+      normalizedPayload,
+    }) : []
+    const partialBillingUnderlay = consumeAcceptedGuideSiblings && canonicalLinks.matchedDataRequest
+      ? await maybeCreateBillingUnderlay({
+          boundOutcomes: transactionPersistenceResults,
+          actorUserId,
+          dataRequest: canonicalLinks.matchedDataRequest,
+          customerId: canonicalLinks.siteAndCustomer?.customerId ?? canonicalLinks.matchedDataRequest.customer_id ?? null,
+          siteId: canonicalLinks.siteAndCustomer?.siteId ?? canonicalLinks.matchedDataRequest.site_id ?? null,
+          meteringPointId: canonicalLinks.meteringPointId ?? canonicalLinks.matchedDataRequest.metering_point_id ?? null,
+          gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? canonicalLinks.matchedDataRequest.grid_owner_id ?? null,
+          message,
+          normalizedPayload,
+        }) : null
+    const partialMeterValueIds = partialMeterValues.map(row => row.id)
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: runtimeSourceMessage,
@@ -496,6 +630,8 @@ export async function processInboundUtiltsMessage(params: {
         ...(message.parsed_payload ?? {}),
         normalizedMeteringPayload: normalizedPayload,
         utiltsRuntimeFacts: runtime.facts,
+        ingestedMeterValueIds: partialMeterValueIds,
+        billingUnderlayId: partialBillingUnderlay?.id ?? null,
       },
       validationReport: {
         ...(message.validation_report ?? {}),
@@ -512,7 +648,11 @@ export async function processInboundUtiltsMessage(params: {
       edielMessageId: message.id,
       eventType: 'validated',
       eventStatus: 'warning',
-      message: 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
+      message: structuralQualification.hasInternalReview
+        ? 'Inbound UTILTS väntar på godkänt strukturunderlag. Berörda transaktioner har inte kvitterats eller lagrats som mätvärden.'
+        : consumeAcceptedGuideSiblings
+          ? 'Inbound UTILTS avvisade guidefelaktiga transaktioner; endast separat accepterade transaktioner konsumerades och kvitterades.'
+        : 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
       payload: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
@@ -526,10 +666,11 @@ export async function processInboundUtiltsMessage(params: {
       message,
       matchedDataRequest: canonicalLinks.matchedDataRequest,
       ackIds,
+      internalReviewRequired: structuralQualification.hasInternalReview,
       outboundRequestId: null,
-      ingestedMeterValueId: null,
-      ingestedMeterValueIds: [],
-      billingUnderlayId: null,
+      ingestedMeterValueId: partialMeterValueIds[0] ?? null,
+      ingestedMeterValueIds: partialMeterValueIds,
+      billingUnderlayId: partialBillingUnderlay?.id ?? null,
     }
   }
 
@@ -551,6 +692,7 @@ export async function processInboundUtiltsMessage(params: {
       })
 
       const ingestedMeterValues = await maybeIngestMeteringValue({
+        boundOutcomes: transactionPersistenceResults,
         actorUserId,
         customerId: permissionCustomerId,
         siteId: permissionSiteId,
@@ -621,6 +763,7 @@ export async function processInboundUtiltsMessage(params: {
 
     if (allUtiltsTransactionMeteringPointsMatched(transactionMatches)) {
       const ingestedMeterValues = await maybeIngestMeteringValue({
+        boundOutcomes: transactionPersistenceResults,
         actorUserId,
         customerId: canonicalLinks.siteAndCustomer?.customerId ?? null,
         siteId: canonicalLinks.siteAndCustomer?.siteId ?? null,
@@ -739,6 +882,7 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   const ingestedMeterValues = await maybeIngestMeteringValue({
+    boundOutcomes: transactionPersistenceResults,
     actorUserId,
     customerId,
     siteId,
@@ -753,6 +897,7 @@ export async function processInboundUtiltsMessage(params: {
   const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
 
   const billingUnderlay = await maybeCreateBillingUnderlay({
+    boundOutcomes: transactionPersistenceResults,
     actorUserId,
     dataRequest,
     customerId,
@@ -852,4 +997,10 @@ export async function processInboundUtiltsMessage(params: {
     ingestedMeterValueIds,
     billingUnderlayId: billingUnderlay?.id ?? null,
   }
+}
+
+function legalReceiverUnresolved(error: unknown): boolean {
+  if (!(error instanceof Error) || error.message !== 'ediel_source_rule_pack_basis_required') return false
+  const cause = (error as { cause?: unknown }).cause as { message?: unknown } | undefined
+  return typeof cause?.message === 'string' && cause.message.includes('ediel_inbound_legal_context_required')
 }

@@ -2,6 +2,7 @@
 
 import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import type { EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
+import addressparser from 'nodemailer/lib/addressparser'
 
 type ProductionGuardMessageLike = {
   id?: string | null
@@ -30,6 +31,7 @@ type ProductionGuardInputLike = {
   environment?: EdielEnvironment | string | null
   senderEdielId?: string | null
   receiverEdielId?: string | null
+  receiverEmail?: string | null
   applicationReference?: string | null
 }
 
@@ -68,17 +70,14 @@ export function isEdielPortalParty(value?: string | null): boolean {
   return ['91100', '91109'].includes(text(value))
 }
 
-function hasSystemTestAckSendBypass(message: ProductionGuardMessageLike | EdielMessageRow): boolean {
-  const validationReport =
-    message.validation_report && typeof message.validation_report === 'object'
-      ? message.validation_report as Record<string, unknown>
-      : {}
-  const marker =
-    validationReport.systemTestAckSend && typeof validationReport.systemTestAckSend === 'object'
-      ? validationReport.systemTestAckSend as Record<string, unknown>
-      : null
+/** Parse the same mailbox grammar used by the actual SMTP provider. */
+export function edielRecipientAddresses(value?: string | null): string[] {
+  return addressparser(text(value), { flatten: true }).map(mailbox => mailbox.address.toLowerCase())
+}
 
-  return marker?.enabled === true && marker.source === 'system_test_ack_action'
+/** Display names and comments are not SMTP recipients. */
+export function isEdielPortalEmail(value?: string | null): boolean {
+  return edielRecipientAddresses(value).some(address => address.endsWith('@ediel.se'))
 }
 
 function assertNoProductionTgtFields(params: {
@@ -86,9 +85,14 @@ function assertNoProductionTgtFields(params: {
   environment?: EdielEnvironment | string | null
   senderEdielId?: string | null
   receiverEdielId?: string | null
+  receiverEmail?: string | null
   applicationReference?: string | null
 }) {
   if (params.environment !== 'production') return
+
+  if (isEdielPortalEmail(params.receiverEmail)) {
+    throw new Error('ediel_portal_email_in_production: Produktionsruntime innehåller TGT-mottagare för SMTP. Live-send stoppas.')
+  }
 
   if (
     isEdielPortalParty(params.senderEdielId) ||
@@ -107,6 +111,7 @@ export function assertNoTgtLeakageInProductionMessage(message: ProductionGuardMe
     environment: message.environment ?? null,
     senderEdielId: message.sender_ediel_id ?? null,
     receiverEdielId: message.receiver_ediel_id ?? null,
+    receiverEmail: message.receiver_email ?? null,
     applicationReference: message.application_reference ?? null,
   })
 }
@@ -117,6 +122,7 @@ export function assertNoTgtLeakageInProductionInput(input: ProductionGuardInputL
     environment: input.environment ?? null,
     senderEdielId: input.senderEdielId,
     receiverEdielId: input.receiverEdielId,
+    receiverEmail: input.receiverEmail,
     applicationReference: input.applicationReference,
   })
 }
@@ -126,7 +132,6 @@ export function evaluateEdielProductionSendLock(
   preflight?: EdielPayloadPreflightResult | null
 ): EdielSendLockResult {
   const issues: EdielSendLockIssue[] = []
-  const systemTestAckSend = hasSystemTestAckSendBypass(message)
 
   if (message.environment !== 'production') {
     return { locked: false, status: 'ready', issues }
@@ -144,7 +149,7 @@ export function evaluateEdielProductionSendLock(
     })
   }
 
-  if (message.test_flag === 1 && !systemTestAckSend) {
+  if (message.test_flag === 1) {
     issues.push({
       code: 'production_test_flag',
       severity: 'blocked',
@@ -153,8 +158,7 @@ export function evaluateEdielProductionSendLock(
   }
 
   if (
-    (isEdielPortalParty(message.sender_ediel_id) || isEdielPortalParty(message.receiver_ediel_id)) &&
-    !systemTestAckSend
+    (isEdielPortalParty(message.sender_ediel_id) || isEdielPortalParty(message.receiver_ediel_id))
   ) {
     issues.push({
       code: 'ediel_portal_party_in_production',
@@ -163,7 +167,7 @@ export function evaluateEdielProductionSendLock(
     })
   }
 
-  if (isTgtApplicationReference(message.application_reference) && !systemTestAckSend) {
+  if (isTgtApplicationReference(message.application_reference)) {
     issues.push({
       code: 'tgt_application_reference_in_production',
       severity: 'blocked',
@@ -193,6 +197,11 @@ export function evaluateEdielProductionSendLock(
       severity: 'blocked',
       message: 'Produktionsmeddelande saknar receiver_email.',
     })
+  }
+
+  if (isEdielPortalEmail(message.receiver_email)) {
+    issues.push({ code: 'ediel_portal_email_in_production', severity: 'blocked',
+      message: 'Produktionsmeddelande adresserar Edielportalens SMTP-mottagare. Live-send stoppas.' })
   }
 
   if (requiresApplicationReference && !hasText(message.application_reference)) {

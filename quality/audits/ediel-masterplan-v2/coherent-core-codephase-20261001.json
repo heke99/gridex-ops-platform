@@ -1,0 +1,33 @@
+{
+  "scope": "coherent codephase only; not final acceptance",
+  "branch": "codex/ediel-composed-rules-20261001",
+  "parents": [
+    "bba3163741c513a94938c63ffe88cf6089be78d1",
+    "3c7342c64c83b705e85c18f300705166a1732ad6"
+  ],
+  "results": {
+    "appTypes": "PASS",
+    "testTypes": "PASS",
+    "statusSqlMechanics": 28,
+    "statusNativeListAndHUnit": 53,
+    "scopedLint": "PASS",
+    "immutableSpecification": {
+      "files": 33,
+      "rules": 121,
+      "acceptanceContracts": 231
+    }
+  },
+  "finalQualification": "NOT_RUN",
+  "sha256": {
+    "lib/ediel/inbound/businessAckReadModel.ts": "5d706da654624ca9fbb78a4e323822e6e46c4a911a82a4ac208cf88596d0ebf7",
+    "lib/ediel/db.ts": "028da2935f48c60f31e0134af712be3def234df7759e84503739fa389cfb7368",
+    "lib/ediel/rulebook/validator.ts": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875",
+    "supabase/migrations/20261001103735_ediel_canonical_preparation_permission_catalog.sql": "bc21e91c4c25945a5e1f71b50e29b47a84ff1ac0a03026f71ab214add34f8d63",
+    "supabase/migrations/20261001125000_ediel_current_permission_clock_and_business_ack_status_read.sql": "50828fe041161e0fbdfad685e742ae95e41beb562c6e188a2c99ffa9ceb99b89",
+    "scripts/ediel-business-ack-status-current-reader-sql-regression.mjs": "03d0e8ffb0045194fa858a9c1f2252fc2073465dab136c1b0ba885f049e94423",
+    "__tests__/ediel-business-ack-status-read-model.test.ts": "4690680483cc6fdcd4ec67e4ebb27660fa9f203fd89fe25a72fde742c724e4c9",
+    "app/admin/ediel/messages/page.tsx": "ba31a110b19bf8397a1484b0d2d961beb1886265a7d6b1700e4b474c5ad8c10b",
+    "app/admin/ediel/messages/[id]/page.tsx": "c8179ed20dcdb489402d74cff84a84be5a893ec841422c8fc998306a6f1c379c",
+    "next.config.ts": "25e0e2ef085af61e5074f736862f0bd8bb6579801838355ae444440937f8044e"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "kind":"post-merge-main-acceptance", "pr":363, "status":"VERIFIED_BOUNDED_DELIVERY",
+  "main_sha":"34eb943046ab87761b071bc508ea48b7af70eea9",
+  "main_tree":"5062c1831c41cce5840084cf33955cddad472ddc",
+  "reviewed_head":"6cba9ca6fabf46399d6f3418fab79082b463cd19",
+  "final_review":5758952304,
+  "scope":"Raw-owned canonical UTILTS observation handoff through existing parser/runtime/processor diagnostics, not expected structure or E61/E62",
+  "full":{"run":35588522782,"job":106297385609,"coverage_job":106297385788,"conclusion":"success","artifact_id":10634000893,"bytes":86001,"entries":79,"zip_sha256":"163f1590ae42bffb98732dc9a7b18f9c8bb6dfff5ed9ab93d8ae74799459991b","report_sha256":"424a17b12b814c599cc839142e0d3cc7f63a05fbe29852811e85edec294f6601","handoff_sha256":"4aadbf110c6a690ee163f92c99c903bcc048577ba9cb2ba0006c3d4415d975e9","unit_log_sha256":"d4e80c4c2c9b6c0899d3e4a978de78c708b1af59f1400dcc9316bf3c5e04e524","passed":73,"total":73,"failed":0,"all_rows_and_junit_checked":true,"handoff_commit_sha":"34eb943046ab87761b071bc508ea48b7af70eea9","finished_at":"2026-09-21T10:33:19.100Z"},
+  "unit":{"passed":5102,"total":5102,"files_passed":322,"files_total":322},
+  "ops":{"run":35588522787,"conclusion":"success","quality_job":106297385310,"verify_job":106297385689,"replay_job":106297385568,"all_steps_and_cleanup":"success"},
+  "evidence_method":"Downloaded artifact bytes independently rehashed and report rows/JUnit/handoff/unit log inspected; GitHub terminal jobs read. No local repository test execution or live database claim.",
+  "full_E035":"NOT_COMPLETE","full_F3":"NOT_COMPLETE","full_masterplan":"NOT_COMPLETE",
+  "pr310":"OPEN_DRAFT_PAUSED_UNTOUCHED"
+}

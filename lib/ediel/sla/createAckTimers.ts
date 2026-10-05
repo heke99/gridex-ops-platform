@@ -1,6 +1,8 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
+import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
+import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 export type EdielAckTimerPlan = {
   receivedAt: string
@@ -10,19 +12,24 @@ export type EdielAckTimerPlan = {
   criticalAt: string
   expiredAt: string
   finalApprovalDeadline: string | null
+  anchorKind: 'local_ingress_at' | 'local_record_created_at'
+  anchorCertainty: 'observed' | 'uncertain'
 }
 
 function addMinutes(iso: string, minutes: number): string {
   const ms = new Date(iso).getTime()
-  const base = Number.isFinite(ms) ? ms : Date.now()
-  return new Date(base + minutes * 60_000).toISOString()
+  if (!Number.isFinite(ms)) throw new Error('ack_timer_anchor_invalid')
+  return new Date(ms + minutes * 60_000).toISOString()
 }
 
 export function buildAckTimerPlan(message: EdielMessageRow, params?: { testRunStartedAt?: string | null }): EdielAckTimerPlan {
-  const receivedAt = message.message_received_at ?? message.created_at ?? new Date().toISOString()
-  const dueAt = addMinutes(receivedAt, 30)
+  const receivedAt = message.message_received_at ?? message.created_at
+  if (!receivedAt) throw new Error('ack_timer_anchor_invalid')
+  const dueAt = addMinutes(receivedAt, EDIEL_ACK_DEADLINE_MINUTES)
   return {
     receivedAt,
+    anchorKind: message.message_received_at ? 'local_ingress_at' : 'local_record_created_at',
+    anchorCertainty: message.message_received_at ? 'observed' : 'uncertain',
     contrlDueAt: dueAt,
     aperakDueAt: dueAt,
     warningAt: addMinutes(dueAt, -10),
@@ -36,14 +43,16 @@ export async function createAckTimersForMessage(params: {
   actorUserId: string
   message: EdielMessageRow
   testRunStartedAt?: string | null
-}): Promise<EdielAckTimerPlan> {
-  const plan = buildAckTimerPlan(params.message, { testRunStartedAt: params.testRunStartedAt ?? null })
+}): Promise<EdielAckTimerPlan | null> {
   const shouldCreateTimers = params.message.direction === 'inbound' && params.message.message_standard === 'edifact'
 
-  if (!shouldCreateTimers) return plan
+  if (!shouldCreateTimers) return null
+  const plan = buildAckTimerPlan(params.message, { testRunStartedAt: params.testRunStartedAt ?? null })
+  const requirements = canonicalAckRequirementsForFamilyCode({ family: params.message.message_family, code: params.message.message_code })
+  const anchor = { receivedAt: plan.receivedAt, anchorKind: plan.anchorKind, anchorCertainty: plan.anchorCertainty }
 
   const rows = [
-    params.message.requires_contrl !== false
+    requirements.requiresContrl
       ? {
           company_id: params.message.company_id ?? null,
           ediel_message_id: params.message.id,
@@ -52,12 +61,12 @@ export async function createAckTimersForMessage(params: {
           warning_at: plan.warningAt,
           critical_at: plan.criticalAt,
           status: 'open',
-          payload: { receivedAt: plan.receivedAt },
+          payload: anchor,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
         }
       : null,
-    params.message.requires_aperak !== false && params.message.message_family !== 'CONTRL' && params.message.message_family !== 'APERAK' && params.message.message_family !== 'UTILTS_ERR'
+    requirements.requiresAperak || (requirements.supportsNegativeAperak && params.message.requires_aperak === true)
       ? {
           company_id: params.message.company_id ?? null,
           ediel_message_id: params.message.id,
@@ -66,7 +75,7 @@ export async function createAckTimersForMessage(params: {
           warning_at: plan.warningAt,
           critical_at: plan.criticalAt,
           status: 'open',
-          payload: { receivedAt: plan.receivedAt },
+          payload: anchor,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
         }
@@ -80,7 +89,7 @@ export async function createAckTimersForMessage(params: {
           warning_at: addMinutes(plan.finalApprovalDeadline, -60),
           critical_at: addMinutes(plan.finalApprovalDeadline, -15),
           status: 'open',
-          payload: { receivedAt: plan.receivedAt },
+          payload: anchor,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
         }
@@ -90,7 +99,7 @@ export async function createAckTimersForMessage(params: {
   if (rows.length > 0) {
     const { error } = await supabaseService
       .from('ediel_sla_timers')
-      .upsert(rows, { onConflict: 'ediel_message_id,timer_type' })
+      .upsert(rows, { onConflict: 'ediel_message_id,timer_type', ignoreDuplicates: true })
     if (error) throw error
   }
 

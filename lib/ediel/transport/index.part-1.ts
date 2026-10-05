@@ -1,5 +1,10 @@
+import { parseProdatMessage as parseSourceProdat } from '@/lib/ediel/prodat/parser'
+import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // Extracted from index.ts; keep public imports on the facade module.
 import forge from 'node-forge'
+import { parseCmsRecipientCertificates } from './cmsRecipientSet'
 import { execFile } from 'child_process'
 import { createHash } from 'crypto'
 import { promisify } from 'util'
@@ -20,10 +25,11 @@ import { supabaseService } from '@/lib/supabase/service'
 import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import { routeReceiverSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
-import { isAgtPortalProdatAddress, normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
+import { isAgtPortalProdatAddress, resolveRouteTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { encodeEdifactLatin1, encodeEdifactUnoc } from '@/lib/ediel/core/edifactEncoding'
 
 export const execFileAsync = promisify(execFile)
 
@@ -201,6 +207,20 @@ export function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
   return chunks.join('\r\n')
 }
 
+function encodeMimePayload(value: string, encoding: BufferEncoding, edifact: boolean): Buffer {
+  if (edifact) {
+    if (encoding !== 'latin1' && encoding !== 'binary') throw new Error('edifact_mime_encoding_invalid')
+    return encodeEdifactUnoc(value)
+  }
+  return encoding === 'latin1' || encoding === 'binary'
+    ? encodeEdifactLatin1(value)
+    : Buffer.from(value, encoding)
+}
+
+function isEdifactMimeContent(contentType: string): boolean {
+  return /^application\/edifact(?:\s*;|\s*$)/i.test(contentType.trim())
+}
+
 export function sanitizeMimeToken(value: string | null | undefined, fallback = 'edifact'): string {
   const cleaned = sanitizeMimeHeader(value, fallback).replace(/[^A-Za-z0-9._-]/g, '_')
   return cleaned.length > 0 ? cleaned : fallback
@@ -211,7 +231,7 @@ export function buildInnerEdifactMimeForSmime(params: {
   decodedPayload: string
   encoding: BufferEncoding
 }): Buffer {
-  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding, true)
   const payloadBase64 = encodeBase64Mime(payloadBuffer)
   const headers = [
     'Content-Type: application/EDIFACT',
@@ -232,7 +252,7 @@ export function buildSinglePartEdielBase64Mime(params: {
   decodedPayload: string
   encoding: BufferEncoding
 }): Buffer {
-  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding, isEdifactMimeContent(params.contentType))
   const payloadBase64 = encodeBase64Mime(payloadBuffer)
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
@@ -264,7 +284,7 @@ export function buildMultipartValidationBase64Mime(params: {
   encoding: BufferEncoding
 }): Buffer {
   const boundary = `gridex_ediel_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-  const payloadBase64 = encodeBase64Mime(Buffer.from(params.decodedPayload, params.encoding))
+  const payloadBase64 = encodeBase64Mime(encodeMimePayload(params.decodedPayload, params.encoding, isEdifactMimeContent(params.contentType)))
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
     `To: ${sanitizeMimeHeader(params.to)}`,
@@ -324,27 +344,18 @@ export async function encryptSmimeEnvelopedData(params: {
   innerMime: Buffer
   recipientCertPath?: string | null
   recipientCertificatePem?: string | null
+  recipientCertificatePems?: readonly string[]
 }): Promise<Buffer> {
   const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-smime-'))
   const inputPath = join(tempDir, 'inner.mime')
   const outputPath = join(tempDir, 'smime.der')
-  const certPath = params.recipientCertPath ?? join(tempDir, 'recipient.pem')
-  let recipientCertificatePem = params.recipientCertificatePem ?? null
-
   try {
+    if (params.recipientCertificatePems && (params.recipientCertPath || params.recipientCertificatePem)) throw new Error('ediel_cms_recipient_inputs_ambiguous')
+    const pems = params.recipientCertificatePems ?? [params.recipientCertificatePem ?? (params.recipientCertPath ? await readFile(params.recipientCertPath, 'utf8') : '')]
+    parseCmsRecipientCertificates(pems)
+    const certPaths = pems.map((_, index) => join(tempDir, `recipient-${index}.pem`))
     await writeFile(inputPath, params.innerMime)
-    if (!params.recipientCertPath) {
-      if (!recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
-        throw new Error('S/MIME recipient certificate saknas.')
-      }
-      await writeFile(certPath, recipientCertificatePem, 'utf8')
-    } else if (!recipientCertificatePem) {
-      try {
-        recipientCertificatePem = await readFile(params.recipientCertPath, 'utf8')
-      } catch {
-        recipientCertificatePem = null
-      }
-    }
+    await Promise.all(pems.map((pem, index) => writeFile(certPaths[index], pem, 'utf8')))
 
     try {
       await execFileAsync('openssl', [
@@ -358,17 +369,10 @@ export async function encryptSmimeEnvelopedData(params: {
         inputPath,
         '-out',
         outputPath,
-        certPath,
+        ...certPaths,
       ])
-    } catch (error) {
-      if (recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
-        return encryptSmimeEnvelopedDataWithForge({
-          innerMime: params.innerMime,
-          recipientCertificatePem,
-        })
-      }
-      const detail = error instanceof Error ? error.message : String(error)
-      throw new Error(`S/MIME-kryptering misslyckades via OpenSSL och ingen användbar PEM-fallback fanns. Kontrollera certifikat i route/databas eller EDIEL_SMIME_RECIPIENT_CERT_PATH. ${detail}`)
+    } catch {
+      return encryptSmimeEnvelopedDataWithForge({ innerMime: params.innerMime, recipientCertificatePems: pems })
     }
 
     return await readFile(outputPath)
@@ -379,12 +383,14 @@ export async function encryptSmimeEnvelopedData(params: {
 
 export function encryptSmimeEnvelopedDataWithForge(params: {
   innerMime: Buffer
-  recipientCertificatePem: string
+  recipientCertificatePem?: string
+  recipientCertificatePems?: readonly string[]
 }): Buffer {
   try {
-    const certificate = forge.pki.certificateFromPem(params.recipientCertificatePem)
+    if (params.recipientCertificatePems && params.recipientCertificatePem) throw new Error('ediel_cms_recipient_inputs_ambiguous')
+    const certificates = parseCmsRecipientCertificates(params.recipientCertificatePems ?? [params.recipientCertificatePem ?? ''])
     const envelope = forge.pkcs7.createEnvelopedData()
-    envelope.addRecipient(certificate)
+    certificates.forEach(certificate => envelope.addRecipient(certificate))
     const content = forge.util.createBuffer()
     content.putBytes(params.innerMime.toString('binary'))
     envelope.content = content
@@ -440,25 +446,6 @@ export function serialMatchesExpected(serial: string | null | undefined, expecte
   return serialHex === expectedHex || normalizedSerial === normalizedExpected
 }
 
-export function findExpectedSerialAsDerInteger(encryptedDer: Buffer, expectedSerialNumber?: string | null): boolean {
-  const expected = normalizeCmsSerial(expectedSerialNumber)
-  if (!expected) return false
-  const evenHex = expected.length % 2 === 0 ? expected : `0${expected}`
-  const serialBytes = Buffer.from(evenHex, 'hex')
-  if (serialBytes.length === 0 || serialBytes.length > 127) return false
-
-  const derInteger = Buffer.concat([Buffer.from([0x02, serialBytes.length]), serialBytes])
-  if (encryptedDer.includes(derInteger)) return true
-
-  // DER INTEGER values with the high bit set are prefixed by 00 to keep them positive.
-  if ((serialBytes[0] ?? 0) >= 0x80) {
-    const positiveDerInteger = Buffer.concat([Buffer.from([0x02, serialBytes.length + 1, 0x00]), serialBytes])
-    return encryptedDer.includes(positiveDerInteger)
-  }
-
-  return false
-}
-
 export function inspectCmsRecipientInfoWithForge(params: {
   encryptedDer: Buffer
   expectedSerialNumber?: string | null
@@ -491,13 +478,21 @@ export function inspectCmsRecipientInfoWithForge(params: {
     const forgeDetail = error instanceof Error ? error.message : String(error)
     diagnostics.push(`node-forge parse failed: ${forgeDetail}`)
 
-    const expectedReceiverPresent = findExpectedSerialAsDerInteger(params.encryptedDer, params.expectedSerialNumber)
     return {
-      raw: `${diagnostics.join(' | ')} | DER serial fallback=${expectedReceiverPresent ? 'matched' : 'not_matched'}`,
-      serialNumbers: expectedReceiverPresent && params.expectedSerialNumber ? [normalizeCmsSerial(params.expectedSerialNumber) ?? params.expectedSerialNumber] : [],
-      expectedReceiverPresent,
+      raw: diagnostics.join(' | '),
+      serialNumbers: [],
+      expectedReceiverPresent: false,
     }
   }
+}
+
+// OpenSSL prints small ASN.1 integers as decimal and large ones with a 0x
+// prefix. Certificate serials stay hexadecimal; never infer the printed radix
+// from hex-looking digits or coerce through Number (serials exceed 2^53).
+export function parseOpenSslCmsSerial(value: string): string | null {
+  const printed = value.trim()
+  if (!/^(?:[0-9]+|0x[0-9a-f]+)$/i.test(printed)) return null
+  return BigInt(printed).toString(16).toUpperCase()
 }
 
 export async function inspectCmsRecipientInfo(params: {
@@ -523,8 +518,8 @@ export async function inspectCmsRecipientInfo(params: {
         inputPath,
       ], { maxBuffer: 1024 * 1024 * 6 })
       const raw = String(stdout ?? '')
-      const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
-        .map((match) => normalizeCmsSerial(match[1]))
+      const serialNumbers = Array.from(raw.matchAll(/^[ \t]*serialNumber:[ \t]*([^\r\n]*)\r?$/gm))
+        .map((match) => parseOpenSslCmsSerial(match[1]))
         .filter((serial): serial is string => Boolean(serial))
       const expectedReceiverPresent = Boolean(
         params.expectedSerialNumber && serialNumbers.some((serial) => serialMatchesExpected(serial, params.expectedSerialNumber)),
@@ -644,10 +639,10 @@ export async function assertRouteTransportSecurity(params: {
   const effectiveEncryptionMode = params.effectiveEncryptionMode ?? routeProfile?.encryption_mode ?? null
   const effectiveCertificateId = params.effectiveCertificateId ?? routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
   const receiverSubaddress = routeReceiverSubaddress(routeProfile) ?? message.receiver_sub_address ?? null
-  const rawTransportSecurityMode = routeProfile?.transport_security_mode ?? routeProfile?.transport_mode ?? null
-  const transportSecurityMode = rawTransportSecurityMode
-    ? normalizeTransportSecurityMode(rawTransportSecurityMode)
-    : null
+  const transportSecurityMode = resolveRouteTransportSecurityMode({
+    transportSecurityMode: routeProfile?.transport_security_mode,
+    encryptionMode: effectiveEncryptionMode,
+  })
   const family = String(message.message_family ?? routeProfile?.message_family ?? '').toUpperCase()
   const nonProdatSmimeAllowed = family === 'PRODAT' || routeAllowsNonProdatSmime(routeProfile)
   const agtPortalUnencryptedAllowed =
@@ -763,6 +758,7 @@ export function buildSinglePartEdielMime(params: {
   rawPayload: string
   encoding: BufferEncoding
 }): Buffer {
+  if (isEdifactMimeContent(params.contentType)) encodeMimePayload(params.rawPayload, params.encoding, true)
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
     `To: ${sanitizeMimeHeader(params.to)}`,
@@ -779,7 +775,9 @@ export function buildSinglePartEdielMime(params: {
     headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
   }
 
-  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`, params.encoding)
+  const mime = `${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`
+  return params.encoding === 'latin1' || params.encoding === 'binary'
+    ? encodeEdifactLatin1(mime) : Buffer.from(mime, params.encoding)
 }
 
 export function safePreview(value: string, maxLength = 600): string {
@@ -958,15 +956,25 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   const bgmParts = bgm?.split('+') ?? []
   const uciParts = uci?.split('+') ?? []
 
+  const wire = tokenizeEdifact(rawPayload)
+  const wireUnh = wire.segments.find(segment => segment.tag === 'UNH')
+  const wireFamily = segmentComposite(wireUnh, 2, wire.una)[0]?.trim().toUpperCase()
+  const family = wireFamily || unhParts[0]?.trim() || fallbackFamily
+  const referenceSource = family.toUpperCase() === 'PRODAT' ? wire : null
+  const partySource = referenceSource ? parseSourceProdat(rawPayload) : null
   function ref(qualifier: string): string | null {
+    if (referenceSource) {
+      return prodatReferenceByQualifier(qualifier, referenceSource.segments, referenceSource.una)
+    }
     const prefix = 'RFF+' + qualifier.toUpperCase() + ':'
     const hit = rffSegments.find((segment) => segment.toUpperCase().startsWith(prefix))
     return hit?.split('+')[1]?.split(':').slice(1).join(':')?.trim() || null
   }
 
-  const family = unhParts[0]?.trim() || fallbackFamily
   const originalInterchangeReference = uciParts[1]?.trim() || null
-  const bgmReference = bgmParts[2]?.trim() || null
+  const bgmReference = referenceSource
+    ? prodatDocumentValue('203', wire.segments, wire.una)
+    : bgmParts[2]?.trim() || null
   const acwReference = ref('ACW')
   const lineItemReference = ref('LI')
   const transactionReference = ref('TN') || ref('CR') || ref('AAS')
@@ -974,7 +982,7 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   const isAckFamily = family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
   const externalReference = isAckFamily
     ? originalInterchangeReference || acwReference || bgmReference || ref('ACE') || null
-    : bgmReference || ref('ACE') || acwReference || originalInterchangeReference || null
+    : referenceSource ? bgmReference : bgmReference || ref('ACE') || acwReference || originalInterchangeReference || null
   const canonicalTransactionReference = isAckFamily
     ? originalInterchangeReference || acwReference || transactionReference || lineItemReference || null
     : lineItemReference || transactionReference || acwReference || originalInterchangeReference || null
@@ -984,8 +992,8 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
     code:
       isAckFamily
         ? family
-        : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
-    messageVersion: unhMessage,
+        : referenceSource ? prodatDocumentValue('202', wire.segments, wire.una) ?? '' : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
+    messageVersion: referenceSource ? segmentComposite(wireUnh, 2, wire.una).join(':') : unhMessage,
     senderEdielId: envelope.sender,
     senderSubAddress: envelope.senderSubAddress,
     receiverEdielId: envelope.receiver,
@@ -995,15 +1003,16 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
     externalReference,
     transactionReference: canonicalTransactionReference,
     parsedPayload: {
-      rawSegments: segments,
-      segmentCount: segments.length,
-      unb,
-      unh,
+      ...(partySource ? { messageDate: partySource.messageDate, timezoneOffset: partySource.timezoneOffset, legalSenderId: partySource.legalSenderId, legalReceiverId: partySource.legalReceiverId, lineItems: partySource.lineItems } : {}),
+      rawSegments: referenceSource ? wire.segments.map(segment => segment.raw) : segments,
+      segmentCount: referenceSource ? wire.segments.length : segments.length,
+      unb: referenceSource ? wire.segments.find(segment => segment.tag === 'UNB')?.raw ?? null : unb,
+      unh: referenceSource ? wireUnh?.raw ?? null : unh,
       envelopeEnvironment: envelope.environment,
       testIndicator: envelope.testIndicator,
-      bgm,
+      bgm: referenceSource ? prodatDocumentSegment(wire.segments, wire.una)?.raw ?? null : bgm,
       uci,
-      rff: rffSegments,
+      rff: referenceSource ? wire.segments.filter(segment => segment.tag === 'RFF').map(segment => segment.raw) : rffSegments,
       bgmReference,
       documentReference: bgmReference,
       originalInterchangeReference,

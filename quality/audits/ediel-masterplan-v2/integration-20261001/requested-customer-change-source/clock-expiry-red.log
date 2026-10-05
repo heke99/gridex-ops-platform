@@ -1,0 +1,7 @@
+Observed after the NULL-clock correction and before wall-clock correction. Exit 1.
+transaction start must not preserve expired issuer authority
++ actual - expected
++ 'authorized'
+- 'held'
+    at scripts/ediel-requested-customer-change-source-sql-regression.mjs:67:10
+Bounded PGlite; actual queue source helper/producer, synthetic independent source/catalogue ports and issuer controls. Native NOT_RUN. Criterion approval false.

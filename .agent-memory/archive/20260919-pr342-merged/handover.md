@@ -1,0 +1,15 @@
+# Handover
+
+Main `5d1e414ebcdf39f813fab91c26510046c765aee9` includes accepted PR341: three field258 cells in Z04/Z06/Z10. Published head `5268360385fa7be46d3da4aa06f7337a0ebd3b1a`, tree `4ff02953382320fcddd757399ba1776dc324d782`. Independent task/spec and whole-branch review approved after R1 diagnostic-scope correction. All ordinary exact-head CI passed: OPS35439023561, Ediel35439023551, Browser35439023557, FullE2E35439023542. Coverage job105886514492 actually ran3438/3438tests in250files onNode22.23.2. Main full35439250983/job105887101866 SUCCESS: actual73/73Node22.23.2at11:15:54Z; mainOPS35439250975all3jobsSUCCESS.
+
+Accepted numeric D cells:39/110;71remaining. Parent D occurrences:4/10;6IVremaining. Remaining dependency audit2b35bd0d was independently approved; its74count is historical before these3acceptedcells. Four321/323 remainunaccepted despite339Nexclusionfix. Neither those producer gaps nor paused310 block every other cell. TGT inventory is source/run-bound test evidence, not a new live-production grid-owner producer.
+
+PR310 remains PAUSED at `e961135199f292b8210884f07de3b616a670161a`, open draft unchanged; no SQL/types/grants/proof machinery imported. PR335 remainsunmerged overlap. No live DB/storage/send/explicitdeploy/settings actions. Fullmasterplan/F3–F7/livecertification NOT_COMPLETE.
+
+Prior PR340 main full35436864870/job105880907305 actual73/73Node22.23.2 and allOPS35436864881 SUCCESS; PR337–339 mainfull also73/73. Issue332 closed. Do not redo acceptedwork or overwrite it with originaluploads.
+
+One active item: qualify and then implement the nine reading-dependent cells214/218/259 inZ04/Z06/Z10. Sourcequalification e7210b6d completed and root reviewed: originalPDFhashmatched/freshpages, outboundfirst-register frozenX preserved; later214/218falseO and inboundassertions preserved, not newlaterpermissioncertification. Proceed with ninecell runtimeimplementation and actualmoduleRED/GREEN, independent per-object readings and exact ownfirstreason. No priorassertionchanges without sourceevidence/rootreview. Main341full73/73 verified. Main341 automaticfull73/73 and allOPS jobs are verified; retain these receipts.
+
+Nine reading-cell candidate131ed62e implemented:70newcases,full3508/3508Node24.19.0,3typechecks,integrity/unchangedlargefile/performancePASS; finaltype-narrowing-onlyfix followedby70focused/app-testtypesPASS. Rootreviewed narrowmissingmarkettestisolation correction retainsall242guardassertions; no UNBfallback. Catchpath nowrechecksallregister-localrules. Rawsegmentboundarywhitespace limitation and preservedlater214/218falseO disclosed. Independenttask/wholebranchreview and exactheadCI/mergepending; accepted39/110,4/10unchanged.
+
+PR342 R1fix1577c2bb completed: structureerrors protectedscope atsource, snapshotcatch reusescomplete registerpayloadvalidator. Inheritedrulebookgap, transportalreadyblocked,noendtoendbypassclaim. RED12/36 thenGREEN782/782(24files),app/testtypes,diffPASS. Oldassertions/guardorder unchangedbyfix. Scopedrereview/newheadCIpending; accepted39/110unchanged.

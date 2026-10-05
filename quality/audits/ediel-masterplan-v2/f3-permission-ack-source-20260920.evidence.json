@@ -1,0 +1,1884 @@
+{
+  "kind": "source-only qualification; not implementation acceptance",
+  "baseline": "1892cf48e77d2c6cea99fdbb5d7507d51919956a",
+  "taskStart": "343a5506",
+  "authorRuntime": "v24.19.0",
+  "counts": {
+    "numericAccepted": 98,
+    "numericTotal": 110,
+    "parentsAccepted": 10,
+    "parentsTotal": 10,
+    "pr310": "PAUSED_EXCLUDED",
+    "f3": "NOT_COMPLETE"
+  },
+  "source": {
+    "path": "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "pages": 140,
+    "renderedInspected": [
+      21,
+      33,
+      34,
+      35,
+      73,
+      75,
+      123
+    ],
+    "authority": [
+      "P21",
+      "P73",
+      "P75",
+      "P85-95",
+      "P103-105",
+      "P119",
+      "P123",
+      "AT-P-01",
+      "AT-P-02",
+      "AT-ACK-02"
+    ]
+  },
+  "qualifiedFields": {
+    "322": {
+      "path": "CCI++Z23/CAV/C889/7111",
+      "required": [
+        "Z14",
+        "Z15"
+      ],
+      "validCodeSet": [
+        "A74",
+        "A75",
+        "A76",
+        "A13"
+      ],
+      "positiveZ14": [
+        "A74"
+      ],
+      "negativeZ14": [
+        "A76",
+        "A13"
+      ],
+      "Z15": [
+        "A74",
+        "A75"
+      ]
+    },
+    "324": {
+      "path": "CCI++Z25/CAV/C889/7111",
+      "required": [
+        "Z15",
+        "Z18"
+      ],
+      "validCodeSet": [
+        "B77",
+        "B78",
+        "B79",
+        "B80",
+        "E37"
+      ],
+      "interpretationReview": "Z18 P35 diagram omits E37; P75/P123 numbered rules include all five; no E37Z18 normative observation claimed"
+    }
+  },
+  "tests": [
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config <scratch>/vitest.config.mjs (first observation only)",
+      "passed": 4,
+      "failed": 0,
+      "observations": 82,
+      "qualification": "two malformed testData fixtures excluded"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config <scratch>/vitest.config.mjs (v2 observation only)",
+      "passed": 5,
+      "failed": 0,
+      "observations": 105,
+      "qualification": "exploratory metadata42 expectation flags excluded"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config <scratch>/vitest.config.mjs oracle.test.ts",
+      "passed": 7,
+      "failed": 13,
+      "exit": 1,
+      "qualification": "independent source literal oracles; red expected, not fixed"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config <scratch>/vitest.config.mjs inbound.test.ts",
+      "passed": 14,
+      "failed": 0,
+      "observations": 13
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config <scratch>/vitest.config.mjs boundary.test.ts (v1)",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --config <scratch>/vitest.config.mjs boundary.test.ts (v2)",
+      "passed": 13,
+      "failed": 0,
+      "observations": 18
+    },
+    {
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "exit": 0,
+      "originalFiles": 33,
+      "rules": 121,
+      "acceptanceContracts": 231
+    }
+  ],
+  "disclosures": [
+    "v1 group.columns fixture error corrected only in new v2 receipts",
+    "v2 metadata42 exploratory flags are not source-qualified; preserve missing primary41 and ignored unused metadata",
+    "initial subsequent-UNH fixture reused IDs; corrected distinct M/M2 D/D2 in boundaryv2 across three alphabets",
+    "boundaryv2 invalid322-noLI-next-object-donor is actually missing322 due replacement-only set helper; no invalid322 claim from this row",
+    "kernel insertion/routes/providers mocked; true DB writes and live sends not tested",
+    "direct/system source-valid controls have existing unrelated209/261/object failures; no full permission workflow acceptance",
+    "context matching is not authority; substring/unscoped query concerns independently recorded"
+  ],
+  "findings": [
+    {
+      "id": "P-ACK-1",
+      "severity": "medium",
+      "status": "confirmed",
+      "scope": "322 requiredness, code set, subtype and ERC disagreement"
+    },
+    {
+      "id": "P-ACK-2",
+      "severity": "medium",
+      "status": "confirmed",
+      "scope": "324 missing/invalid wire approvals"
+    },
+    {
+      "id": "P-ACK-3",
+      "severity": "medium",
+      "status": "confirmed",
+      "scope": "object/message ownership, raw value, text readiness"
+    },
+    {
+      "id": "P-ACK-4",
+      "severity": "medium",
+      "status": "confirmed",
+      "scope": "selected registry mappings invent wire errors and persist them"
+    },
+    {
+      "id": "P-ACK-5",
+      "severity": "medium",
+      "status": "confirmed",
+      "scope": "canonical unused322/324 negative APERAK"
+    }
+  ],
+  "observedRows": [
+    {
+      "id": "z14-valid-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14n-a76-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status A76"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z14n-a13-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z14-missing-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-invalid-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-z96-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-a13-positive-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14n-a74-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z15-valid-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15c-valid-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status A74"
+        ],
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande E37"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b77-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande B77"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b78-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande B78"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b80-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-missing322-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Tillståndets status saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-invalid322-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-missing324-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "324",
+          "Orsak till tillståndets upphörande saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-invalid324-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-valid-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-missing324-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-invalid324-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "released-a0",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "normalization-A-74-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "normalization-a74-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "second-object-a0",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-valid-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14n-a76-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status A76"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z14n-a13-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z14-missing-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-invalid-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-z96-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-a13-positive-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14n-a74-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z15-valid-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15c-valid-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status A74"
+        ],
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande E37"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b77-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande B77"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b78-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande B78"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b80-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-missing322-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Tillståndets status saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-invalid322-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-missing324-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "324",
+          "Orsak till tillståndets upphörande saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-invalid324-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-valid-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-missing324-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-invalid324-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "released-a1",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "normalization-A-74-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "normalization-a74-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "second-object-a1",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-valid-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14n-a76-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status A76"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z14n-a13-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z14-missing-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-invalid-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-z96-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-a13-positive-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14n-a74-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "z15-valid-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15c-valid-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status A74"
+        ],
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande E37"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b77-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande B77"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b78-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande B78"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-b80-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-missing322-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Tillståndets status saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-invalid322-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-missing324-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "324",
+          "Orsak till tillståndets upphörande saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z15-invalid324-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-valid-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-missing324-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-invalid324-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "released-a2",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "normalization-A-74-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "normalization-a74-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "second-object-a2",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "context-true",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "context-false",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "40",
+          "105",
+          "The object could not be identified"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "context-null",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "context-absent",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "testdata-invents-322",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "41",
+          "322"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "testdata-invents-324",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "41",
+          "324"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "positive-testdata-bad-wire",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "unknown-subtype",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "false-z13-extra",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [
+        [
+          "40",
+          "105"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "subsequent-unh-donor",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "324",
+          "Orsak till tillståndets upphörande saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "cached-code-mismatch-Z14",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z14-",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z14-::A75",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z14-A75::BAD",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z14-A75:BAD",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "cached-code-mismatch-Z15",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "324",
+          "Felaktig orsak till tillståndets upphörande X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z15-",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Tillståndets status saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z15-::A75",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Tillståndets status saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z15-A75::BAD",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "component-Z15-A75:BAD",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "cached-code-mismatch-Z18",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "missing-own-li",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "both-object-invalid",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "42",
+          "322",
+          "Felaktigt tillståndets status X99"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "header-donor",
+      "manualOutcome": "negative",
+      "manualErrors": [
+        [
+          "41",
+          "322",
+          "Tillståndets status saknas"
+        ]
+      ],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "duplicate-status",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z14-false324",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "z18-false322",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "rejected",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 0
+    },
+    {
+      "id": "registry-selected-Z14-322",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 1
+    },
+    {
+      "id": "registry-selected-Z15-322",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "41",
+          "322"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "registry-selected-Z18-322",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [],
+      "registryError": null,
+      "registryWrites": 1
+    },
+    {
+      "id": "registry-selected-Z14-324",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "41",
+          "324"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "registry-selected-Z15-324",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "41",
+          "324"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    },
+    {
+      "id": "registry-selected-Z18-324",
+      "manualOutcome": "positive",
+      "manualErrors": [],
+      "manualError": null,
+      "persistBoundaryCalls": 1,
+      "canonicalSyntax": "accepted",
+      "canonicalApplication": "accepted",
+      "registryErrors": [
+        [
+          "41",
+          "324"
+        ]
+      ],
+      "registryError": null,
+      "registryWrites": 2
+    }
+  ],
+  "immutableArtifacts": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v1.json",
+      "sha256": "cf8fe36c599ea7af154913bc4eca3eb4bc2ea9a9ed88c1a9dc417fe6ecd774e4",
+      "bytes": 14457
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v2.json",
+      "sha256": "624a7da735fb92ea4a5a09b48e38857c0069cd11500fd1ca752910155fbeae4a",
+      "bytes": 85283
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run-v2.log",
+      "sha256": "2e0444dee8b626a822c2a653d43d6391511330fcd394425fbdd504a2506d65a2",
+      "bytes": 230
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run.log",
+      "sha256": "8039113f08e4fe7f62423cabf8e268994bb24af9e53fc5b7b35bbf715945cca3",
+      "bytes": 230
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v1.txt",
+      "sha256": "b151f7197d1fab0f056e8e97dcf4ebde6e3aaaa211d63b200a0ca0ec0d9547af",
+      "bytes": 9413
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v2.txt",
+      "sha256": "c6ffdcba4bd08e0a3e58fca3b9deb185c27116c1734e49c3470a255531b08077",
+      "bytes": 10953
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-observations.json",
+      "sha256": "3044879db648013d4013ff8baf8cfc84326eafa2e83e1e650f44044f48d79863",
+      "bytes": 411222
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-probe.txt",
+      "sha256": "45705610e56d1ce6a8638317655d847da950ae69934922d2bfb56496ed40d084",
+      "bytes": 5549
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-run.log",
+      "sha256": "a7c14e4a51d8b02cdc190ededcb246968a9ab1947cf99c59946c7cf587c4ac5a",
+      "bytes": 230
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/input-hashes.json",
+      "sha256": "373e196674bba25affcf7a6defc9fac7fc00f836de03d02584597f1d66190d15",
+      "bytes": 3643
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/normative-oracles.txt",
+      "sha256": "fc42afe4779f63e24d0fe8fc80f00ec57a90dc67aef7490ef1e3a95fe820b0c6",
+      "bytes": 7728
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v1.json",
+      "sha256": "a1d6a4d92a67806b9eb7390531e8c5a18c4d428b6f2dac216cebe24a060618c0",
+      "bytes": 539664
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v2.json",
+      "sha256": "38eba45c490f97db78de008b433cf217b385878a3d6586324c35d8c617ae9fb8",
+      "bytes": 718611
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-observations.json",
+      "sha256": "c6b15967a0a6d5eff1bca2af8ce6addfad20cad42aa7e83a830c9cb2ed92bbd7",
+      "bytes": 107389
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-run.log",
+      "sha256": "e9d05a0996bd92a020ba12c076da397a301f208b000874b8b84ead6e0c969720",
+      "bytes": 6131
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "sha256": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6",
+      "bytes": 102742
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v1.txt",
+      "sha256": "f028393d5aeccdb71b5703a3ada54aa31f9e8cb9f9b79a4894ef41be482b60d4",
+      "bytes": 9644
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v2.txt",
+      "sha256": "4af18c67bfe27e5f64ac318fde04af27a86c33cd11748062a140de9c246db1d1",
+      "bytes": 12059
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-1.log",
+      "sha256": "713334406424679fd0908305a43b613faf51a65876889110668d7e52909883c9",
+      "bytes": 228
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-2.log",
+      "sha256": "78d08322fb3d643fc9faa7a53856201be764fce692274a148cbfd1b9020fdc68",
+      "bytes": 228
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/source-integrity.log",
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+      "bytes": 197
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/vitest-config.txt",
+      "sha256": "cbeec093e7401a78cca106a513d2daf7243143bb3def839c6da9099f21412028",
+      "bytes": 279
+    }
+  ],
+  "separateResidualFindings": [
+    {
+      "id": "P-ACK-R1",
+      "severity": "high",
+      "status": "confirmed; not fixed by proposed322/324 unit",
+      "scope": "prior-flow authority/tenant matching",
+      "evidence": "permission-ack-source-20260920/boundary-observations-v2.json contextRows candidate/empty/unavailable/cached-nonpermission",
+      "source": "app/admin/ediel/actions.part-3.ts:214-293",
+      "impact": "synthetic other-company substring candidate influences manual permission outcome; no live exposure/grant mutation tested",
+      "next": "separate bounded source-qualified prior-flow authority and tenant task"
+    }
+  ]
+}

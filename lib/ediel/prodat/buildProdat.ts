@@ -1,5 +1,33 @@
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
+import {projectDeathStatus} from './prodatDeathStatus'
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
+import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
+import type {ExpectedContext} from './prodatReportingPermissionContext'
+import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
+import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
+import {assertInvoiceeOwnership} from './prodatInvoicee'
+import type {ProdatEngineInvoiceeContext} from './types'
+import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
+import {createProdatRegisterEvidence,type ProdatRegisterEvidence} from './prodatRegisterEvidence'
+import {assertProdatAddressOwnership} from './prodatEndUserAddress'
+import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
+import { optionalInstallationRules, validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { parseUna } from '@/lib/ediel/core/una'
+import { prodatEndUserWireSubtype, validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
+import { prodatObjectIdentityAgency, type ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
+import { prodatPartySegment, prodatInvoiceeNadSegment, prodatCustomerNadSegment, prodatInstallationNadSegment } from '@/lib/ediel/prodat/render/segments'
+import { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
-import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
+import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { generateEdielInterchangeReference, generateEdielTransactionReference } from '@/lib/ediel/core/referenceGenerator'
 import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
 import { validateProdat } from '@/lib/ediel/prodat/validateProdat'
 import { isSupportedProdatBusinessCode, type SupportedProdatBusinessCode } from '@/lib/ediel/prodat/prodatFieldRules'
@@ -11,8 +39,25 @@ export type BuildProdatMessageInput = {
   transactionSubtype?: string | null
   sender: { edielId: string; subAddress?: string | null }
   receiver: { edielId: string; subAddress?: string | null }
-  meteringPoint?: { id?: string | null; gridArea?: string | null } | null
-  customer?: { id?: string | null; name?: string | null; identity?: string | null } | null
+  /** Legal NAD parties may differ from the technical UNB gateway. Omission preserves legacy calls. */
+  legalSenderId?: string | null
+  legalReceiverId?: string | null
+  legalSenderCountry?: string | null
+  legalReceiverCountry?: string | null
+  meteringPoint?: { id?: string | null; gridArea?: string | null; identityAgency?: '9' | '89' } | null
+  registers?: readonly ProdatMeterRegisterInput[]
+  objects?: readonly BuildProdatObjectInput[]
+  invoicee?: ProdatEngineInvoiceeContext | null
+  reportingContext?:ExpectedContext
+  dependentConditionFacts?: ProdatDependentConditionFacts
+  customer?: {
+    id?: string | null; name?: string | null; identity?: string | null
+    identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null
+    nameLines?: readonly string[]; address?: string | null; addressLines?: readonly string[]
+    city?: string | null; postalCode?: string | null
+  } | null
+  /** Z14 positive-response installation parent (P26.A p22). */
+  installation?: { address?: string | null; addressLines?: readonly string[]; idAgency?: '9' | '89'; city?: string | null; postalCode?: string | null; country?: string | null } | null
   gridOwner?: { edielId?: string | null; name?: string | null } | null
   brp?: { edielId?: string | null } | null
   dates?: Record<string, string | null | undefined>
@@ -24,30 +69,35 @@ export type BuildProdatMessageInput = {
   applicationReference?: string | null
 }
 
+/** Object fields never fall through from another object or a root default. */
+export type BuildProdatObjectInput = Pick<BuildProdatMessageInput, 'meteringPoint' | 'customer' | 'gridOwner' | 'brp' | 'dates' | 'references' | 'codedAttributes' | 'registers' | 'installation' | 'invoicee'>
+
 export type BuiltProdatMessage = {
   rawEdifact: string
   businessCode: SupportedProdatBusinessCode
   applicationReference: string
   interchangeReference: string
+  dateEventReadiness: 'unqualified' | 'not_applicable'
+  reportingReadiness: 'unqualified' | 'not_applicable'
+  registerEvidence: ProdatRegisterEvidence
   validation: ReturnType<typeof validateProdat>
-}
-
-function compactDate(value: string | null | undefined): string | null {
-  if (!value) return null
-  return value.replace(/[^0-9]/g, '').slice(0, 12) || null
 }
 
 function referenceSegments(references: BuildProdatMessageInput['references']): string[] {
   return Object.entries(references ?? {}).flatMap(([qualifier, value]) => {
     const clean = String(value ?? '').trim()
-    return clean ? [`RFF+${escapeEdifactValue(qualifier)}:${escapeEdifactValue(clean)}`] : []
+    return clean && !['messageReference','documentReference','transactionReference'].includes(qualifier) ? [`RFF+${escapeEdifactValue(qualifier)}:${escapeEdifactValue(clean)}`] : []
   })
 }
 
-function codedAttributeSegments(attributes: BuildProdatMessageInput['codedAttributes']): string[] {
+function codedAttributeSegments(attributes: BuildProdatMessageInput['codedAttributes'], businessCode: string): string[] {
   return Object.entries(attributes ?? {}).flatMap(([code, value]) => {
     const clean = String(value ?? '').trim()
-    return clean ? [`CCI++${escapeEdifactValue(code)}`, `CAV+${escapeEdifactValue(clean)}`] : []
+    const messageIndex = PRODAT_26A_MESSAGE_CODES.findIndex(value => value === businessCode)
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.segmentPath === `CCI++${code}/CAV` && row.requirements[messageIndex] !== '-')
+    if (!clean) return []
+    if (!descriptor) throw new Error('prodat_coded_attribute_not_allowed')
+    return [`CCI++${escapeEdifactValue(code)}`, `CAV+${':'.repeat(descriptor.cavComponent ?? 0)}${escapeEdifactValue(clean)}`]
   })
 }
 
@@ -61,7 +111,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const documentReference =
     input.references?.documentReference ??
     input.references?.transactionReference ??
-    `${businessCode}-${generateEdielInterchangeReference('BGM')}`
+    generateEdielTransactionReference(businessCode)
   const interchangeReference = generateEdielInterchangeReference('UNB')
   const applicationReference =
     input.applicationReference ??
@@ -76,26 +126,64 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
       receiver: input.receiver.edielId,
     })
 
-  const startDate = compactDate(input.dates?.startDate ?? input.dates?.requestedStartDate)
-  const endDate = compactDate(input.dates?.endDate)
-  const meteringPointId = input.meteringPoint?.id?.trim()
-  const customerId = input.customer?.identity ?? input.customer?.id
+  const dates = buildProdatDateSegments(businessCode, input.transactionSubtype, resolveProdatDateInputs(businessCode, input.transactionSubtype, input.dates ?? {}))
+  const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === businessCode)
+  const endUserAllowed = codeIndex >= 0 && PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === 'END_USER_GROUP')?.requirements[codeIndex] !== '-'
+    && (['Z06', 'Z09', 'Z14'].includes(businessCode) || !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' }))
 
+  const objects = input.objects ?? [input]
+  if (!objects.length) throw new Error('prodat_register_objects_empty')
+  let nextLineSequence = 1
+  const identities = new Set<string>()
+  const objectSegments = objects.flatMap(object => {
+    const id = object.meteringPoint?.id?.trim()
+    const agency = prodatObjectIdentityAgency(object.meteringPoint?.identityAgency)
+    const identity = JSON.stringify([id,agency])
+    if (id && identities.has(identity)) throw new Error('prodat_register_object_repeated_use_one_inventory')
+    if (id) identities.add(identity)
+    const customerId = object.customer?.identity ?? object.customer?.id
+    const attributes = codedAttributeSegments(object.codedAttributes, businessCode)
+    if(!object.codedAttributes?.Z17)attributes.push(...projectDeathStatus({code:businessCode,reason:object.codedAttributes?.Z13,installation:{id:id??'',agency},selection:input.dependentConditionFacts?.deathStatus}))
+    const objectSubtype = ['Z06', 'Z09', 'Z14'].includes(businessCode)
+      ? prodatEndUserWireSubtype(businessCode, prodatRegisterTokens(attributes), parseUna(null)) : input.transactionSubtype
+    const objectEndUserAllowed = endUserAllowed && !isProdatFieldInInapplicableParent({
+      messageCode:businessCode,subtype:objectSubtype,fieldNumber:'END_USER_GROUP',
+    })
+    const dateSubtype = ['Z14','Z09'].includes(businessCode) ? objectSubtype : input.transactionSubtype
+    const objectDateInputs = resolveProdatDateInputs(businessCode,dateSubtype,object.dates ?? {})
+    const objectDates = buildProdatDateSegments(businessCode,dateSubtype,objectDateInputs)
+    const rows = [
+      id ? `LIN+1++${escapeEdifactValue(id)}:::${agency}` : 'LIN+1',
+      ...objectDates.line,
+      ...attributes,
+      object.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(object.meteringPoint.gridArea)}` : null,
+      ...referenceSegments(object.references),
+      objectEndUserAllowed && customerId ? prodatCustomerNadSegment({
+        customerId,customerIdCodeListQualifier:object.customer?.identityQualifier,idAgency:object.customer?.idAgency,
+        customerName:object.customer?.name ?? '',nameLines:object.customer?.nameLines,country:object.customer?.country,
+        address:object.customer?.address,addressLines:object.customer?.addressLines,
+        city:object.customer?.city,postalCode:object.customer?.postalCode,
+      }) : null,
+      object.invoicee ? prodatInvoiceeNadSegment({customerId:object.invoicee.id,customerIdCodeListQualifier:object.invoicee.idCodeListQualifier,idAgency:object.invoicee.idAgency,customerName:object.invoicee.name,nameLines:object.invoicee.nameLines,address:object.invoicee.address,addressLines:object.invoicee.addressLines,city:object.invoicee.city,postalCode:object.invoicee.postalCode,country:object.invoicee.country}) : null,
+      ((['Z01', 'Z03', 'Z08'].includes(businessCode)) || (businessCode === 'Z14' && objectSubtype !== 'N')) && object.installation
+        ? prodatInstallationNadSegment({meterPointId:id ?? '',...object.installation,
+          ...(['Z01', 'Z03', 'Z08'].includes(businessCode) ? {idAgency:object.installation.idAgency ?? agency} : {})}) : null,
+    ].filter((segment): segment is string => segment !== null)
+    const expanded = renderProdatRegisterObject({code:businessCode,segments:rows,registers:object.registers,firstLineSequence:nextLineSequence})
+    nextLineSequence = expanded.nextLineSequence
+    return expanded.segments
+  })
   const businessSegments = [
-    `BGM+${businessCode}:SVK:260+${escapeEdifactValue(documentReference)}+9${input.requestAck ? '+AB' : ''}`,
-    `DTM+137:${compactDate(input.dates?.createdAt) ?? new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 12)}:203`,
-    startDate ? `DTM+92:${startDate}:102` : null,
-    endDate ? `DTM+93:${endDate}:102` : null,
-    `NAD+MS+${escapeEdifactValue(input.sender.edielId)}:SVK:260`,
-    `NAD+MR+${escapeEdifactValue(input.receiver.edielId)}:SVK:260`,
-    customerId ? `NAD+UD+${escapeEdifactValue(customerId)}:SVK:260` : null,
-    meteringPointId ? `LIN+1++${escapeEdifactValue(meteringPointId)}:Z01:260` : 'LIN+1',
-    input.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(input.meteringPoint.gridArea)}` : null,
-    ...referenceSegments(input.references),
-    ...codedAttributeSegments(input.codedAttributes),
-  ].filter((segment): segment is string => Boolean(segment))
+    renderProdatDocumentHeader({ code: businessCode, documentId: documentReference, acknowledgement: input.requestAck === false ? 'NA' : 'AB' }),
+    ...dates.header,
+    prodatPartySegment('FR', input.legalSenderId ?? input.sender.edielId, input.legalSenderCountry ?? 'SE'),
+    prodatPartySegment('DO', input.legalReceiverId ?? input.receiver.edielId, input.legalReceiverCountry ?? 'SE'),
+    ...objectSegments,
+  ]
 
+  const ack = canonicalAckRequirementsForFamilyCode({ family: 'PRODAT', code: businessCode })
   const rawEdifact = serializeEdifact({
+    acknowledgementRequest: ack.requiresContrl,
     sender: input.sender.edielId,
     senderSubAddress: input.sender.subAddress ?? null,
     receiver: input.receiver.edielId,
@@ -107,14 +195,51 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     businessSegments,
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
-  const validation = validateProdat(rawEdifact)
+  assertInvoiceeOwnership(input.dependentConditionFacts?.invoiceeObjects,{companyId:input.companyId,code:businessCode})
+  const invoiceeFailures=[...validateProdatGasApplicability({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatDeathStatus({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatMeterChange({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatReportingPermission({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,reportingContext:input.reportingContext}),...validateProdatDateEvents({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})]
+  const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
+  validation.issues.push(...invoiceeFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
+  if(invoiceeFailures.length)validation.ok=false
+  // A generic builder must not label an E message valid after discarding its
+  // required customer fields. Keep this bounded UD check out of inbound parsing.
+  if (['Z06', 'Z09'].includes(businessCode)) {
+    const wire = tokenizeEdifact(rawEdifact)
+    const failures = validateProdatEndUserPolicy({family:'PRODAT',code:businessCode,
+      rawSegments:wire.segments.map(segment => segment.raw),una:wire.una}, canonicalProdat26AFieldRules(businessCode))
+    validation.issues.push(...failures.map(failure => ({severity:'error' as const,code:failure.code,message:failure.description})))
+    if (failures.length) validation.ok = false
+  }
 
+  if (businessCode === 'Z14') {
+    const wire = tokenizeEdifact(rawEdifact)
+    const failures = validateProdatZ14Policy({family:'PRODAT',code:businessCode,rawSegments:wire.segments.map(s=>s.raw),una:wire.una},z14DependentRules())
+    validation.issues.push(...failures.map(failure=>({severity:'error' as const,code:failure.code,message:failure.description})))
+    if (failures.length) validation.ok = false
+  }
+
+  if (['Z01', 'Z03', 'Z08'].includes(businessCode)) {
+    const wire = tokenizeEdifact(rawEdifact)
+    const failures = validateProdatOptionalInstallationPolicy({
+      family: 'PRODAT', code: businessCode, rawSegments: wire.segments.map(segment => segment.raw), una: wire.una, mode: 'parse',
+    }, optionalInstallationRules(businessCode))
+    validation.issues.push(...failures.map(failure => ({severity:'error' as const,code:failure.code,message:failure.description})))
+    if (failures.length) validation.ok = false
+  }
+
+  const addressWire=tokenizeEdifact(rawEdifact)
+  assertProdatAddressOwnership(input.dependentConditionFacts?.endUserAddressObjects,{companyId:input.companyId,code:businessCode})
+  const addressFailures=validateProdatEndUserAddress({code:businessCode,rawSegments:addressWire.segments.map(s=>s.raw),una:addressWire.una,facts:input.dependentConditionFacts})
+  validation.issues.push(...addressFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
+  if(addressFailures.length)validation.ok=false
   if (!validation.ok) {
     throw new Error(`PRODAT ${businessCode} kunde inte valideras: ${validation.issues.map((issue) => issue.message).join(' | ')}`)
   }
 
   return {
     rawEdifact,
+    reportingReadiness:['Z13','Z14'].includes(businessCode)?'unqualified':'not_applicable',
+    dateEventReadiness:['Z06','Z09','Z10'].includes(businessCode)?'unqualified':'not_applicable',
+    registerEvidence:createProdatRegisterEvidence({code:businessCode,rawSegments:addressWire.segments.map(s=>s.raw),una:addressWire.una,facts:input.dependentConditionFacts}),
     businessCode,
     applicationReference,
     interchangeReference,

@@ -1,7 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # Agent Operating Contract
@@ -39,7 +43,7 @@ production customer data or raw credentials in project memory.
 # Installed agent skills and execution contract
 
 The canonical installed-skill inventory is `skills-lock.json`. The repository
-currently contains 38 project-local skills under `.agents/skills/`.
+currently contains 42 project-local skills under `.agents/skills/`.
 
 For every non-trivial task, inspect the available skills before acting. Use all
 skills relevant to the task, but do not run unrelated skills merely to satisfy a
@@ -54,7 +58,7 @@ multi-tenant review, database review, API-contract review, performance review,
 or broad refactor, use the full baseline workflow below. A skill may only be
 skipped when its trigger is objectively absent; record the reason in the audit.
 
-## Canonical inventory: 38 installed skills
+## Canonical inventory: 42 installed skills
 
 ### Orchestration and delivery
 
@@ -109,8 +113,17 @@ skipped when its trigger is objectively absent; record the reason in the audit.
 37. `spec-to-code-compliance`
 38. `web-design-guidelines`
 
-`react-best-practices` is not installed and must not be referenced as an
-available project skill.
+### Performance and observability
+
+39. `vercel-react-best-practices`
+40. `performance-optimization`
+41. `observability-and-instrumentation`
+42. `sql-optimization-patterns`
+
+The installed `vercel-react-best-practices` skill is available for React and
+Next.js performance work. The repository's installed Next.js documentation in
+`node_modules/next/dist/docs/` remains higher authority for version-specific
+APIs, caching, rendering, route conventions, and deprecations.
 
 ## Full baseline audit workflow
 
@@ -174,6 +187,26 @@ phase before changing source code.
 31. `web-design-guidelines` for user-facing UI, accessibility, interaction, or
     design-system work
 
+### Performance review overlay
+
+When performance is in scope, complete this evidence pass before remediation:
+
+- `performance-optimization` defines the measure → identify → fix → verify →
+  guard workflow. Do not keep neutral or unmeasured optimizations.
+- `vercel-react-best-practices` applies to React/Next.js waterfalls, server/client
+  boundaries, bundle size, serialization, rendering and re-render findings.
+- `observability-and-instrumentation` applies when production-safe timing,
+  p50/p95/p99, tracing or structured telemetry is needed to prove the bottleneck
+  or verify the result.
+- `sql-optimization-patterns` applies to measured database/query bottlenecks,
+  together with `supabase-postgres-best-practices`.
+- Never cache or shortcut tenant-sensitive auth/RBAC/RLS decisions across
+  security boundaries. Never move authoritative server validation client-side
+  for speed.
+- Record baseline and after measurements using comparable conditions and retain
+  only changes that improve the proven metric while all correctness gates stay
+  green.
+
 ### Phase 5 — Remediation
 
 Do not modify production code until the finding is evidenced and passes
@@ -200,6 +233,43 @@ Do not modify production code until the finding is evidenced and passes
 44. `finishing-a-development-branch`
 45. Do not state that work is complete unless the required checks were executed
     successfully and the results are recorded.
+
+## Ediel masterplan v2 delivery contract
+
+Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-03).
+
+1. **One rule at a time, to done.** Pick one rule card (or a small cluster that
+   shares code) and implement every `condition`/`on_pass`/`on_failure` and every
+   acceptance contract `expected`/`prohibited` effect from
+   `docs/ediel/masterplan-v2/registers/{rules,acceptance_tests}.json`.
+2. **Every effect has an asserting behaviour test.** Call the code; do not
+   string-match source files. Tag each test file with the IDs it proves:
+   `// masterplan: P-04, AT-P-04, SC-024`.
+3. **Approve in the same PR.** When all effects of an ID are asserted and green,
+   set it in `quality/audits/ediel-masterplan-v2/coverage.json` (rule
+   `VERIFIED`, contract `PASSED`) with the code and test paths as evidence.
+   `npm run ediel:masterplan-v2:test-coverage` lists tagged-green candidates;
+   `-- --check` (run in CI) fails if an approved ID has no tagged test or a
+   tagged test fails. Market activation and counterparty testing stay separate
+   gates and do not block code approval.
+4. **Small PRs, merged when green.** One rule or cluster per PR, merged the same
+   day CI is green. No long-lived composed candidate branches; rebase or split
+   instead of accumulating hundreds of files.
+5. **Minimal paperwork.** The test and the coverage row are the evidence. Record
+   one line per merge in `.agent-memory/handover.md`; do not write new audit
+   narratives per step.
+6. **Priority:** TEN (beneficiary/data-access grants) → ESCO (Z13 21-day repeat,
+   Z15VH, scoped market permission) → ACK (correlation key, incident flow) →
+   remaining partial cards.
+7. **Shared work:** before starting a cluster, check open PRs and
+   `.agent-memory/handover.md` so two sessions never fix the same thing.
+8. **Claim board (mandatory, Claude and Codex):** issue #530 is the single
+   source of who works on which rule. Before writing code, read it and post
+   `CLAIM <ID>, <ID> — <agent> — branch <branch>` (two rules at a time, only
+   unclaimed IDs). Post `RELEASE <ID> — <reason/what is missing>` when you stop
+   and `DONE <ID> — PR #N` when the PR is open and green, then claim the next
+   free pair. Never edit `coverage.json` rows for IDs you have not claimed.
+   Mirror each CLAIM/DONE as one line in `.agent-memory/handover.md`.
 
 ## Non-negotiable project invariants
 

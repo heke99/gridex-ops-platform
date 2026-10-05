@@ -1,0 +1,40 @@
+{
+  "schema": "gridex.ediel.candidate-publication-proof.v1",
+  "status": "QUALIFIED_CANDIDATE_NOT_PR_ACCEPTED",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 359,
+  "runtime_publication": "6ce695c4c46757e154dbc53dd57363d477901e68",
+  "runtime_tree": "1b4260b78b2eae0aa7e0e4bda6760514cf2411aa",
+  "parent_before_runtime": "19ab3894d2c980122dfb077b208a1eab63546cc2",
+  "proof_commit": "f2bfe730ffb6a354d7bf65ed5807794aa2ef43f0",
+  "proof_tree_equals_runtime_tree": true,
+  "helper_commit_not_in_candidate_ancestry": "80023c802859b91113f9a0f2defecc0b04a3dc61",
+  "proof_run": 35540907964,
+  "proof_job": 106158255726,
+  "proof_result": "success",
+  "artifact": {
+    "id": 10614114768,
+    "bytes": 68565,
+    "zip_sha256": "8119c55d82ade9f40fb37fadcf31d5f01754c9b68cd63a27924aa8c3558e1b8e",
+    "independently_rehashed": true,
+    "receipt_and_all_log_digests_inspected": true
+  },
+  "verified_in_proof": {
+    "native_ftx": {"passed":248,"total":248,"failed":0,"skipped":0,"sha256":"76196c97b5528f736e303748f2b14310f1977ed20bb3365c19b208e3a8c185ac"},
+    "selected_prior_native": {"files":8,"passed":648,"total":648,"failed":0,"skipped":0,"sha256":"86c22df51c59e2d6a49f26daba6fd367199090b4ab6a813f55a61998dd68f29d"},
+    "genuine_vitest": {"files":2,"smtp_tests":12,"native_wrapper_tests":1,"passed":13,"total":13,"sha256":"673c952dcd6dda8a7c8633afcf962e7b2f366ef5306ce80443ffed67984024f0"},
+    "typecheck_app":"success",
+    "typecheck_tests":"success",
+    "typecheck_scripts":"success",
+    "frozen_source_integrity":"success;33originalFiles/121rules/231contracts;not application acceptance"
+  },
+  "smtp_positive_control_scope":"Reaches existing route DB boundary, not delivery or complete end-to-end acceptance",
+  "ordinary_pr_ci":"REQUIRED_ON_FINAL_HEAD",
+  "independent_runtime_review":"REQUIRED_ON_FINAL_HEAD",
+  "guarded_merge_and_actual_main_certificate":"NOT_DONE",
+  "prior_accepted_main":"352fd8ee9129697b55c1d3796fb99ed04ca0d6f5",
+  "accepted_D":{"numeric":110,"parents":10},
+  "full_F3":"NOT_COMPLETE",
+  "full_masterplan":"NOT_COMPLETE",
+  "paused_pr310":"e961135199f292b8210884f07de3b616a670161a"
+}

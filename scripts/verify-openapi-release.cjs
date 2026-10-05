@@ -3,7 +3,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
-const version = '2026-08-22.2'
+const { currentContractVersion: version } = require('./lib/current-api-contract.cjs')
 const specifications = [
   {
     key: 'website',
@@ -14,6 +14,11 @@ const specifications = [
     key: 'customer_portal',
     path: 'docs/openapi/customer-portal-v1.json',
     contractName: 'customer-portal-v1',
+  },
+  {
+    key: 'staff',
+    path: 'docs/openapi/staff-v1.json',
+    contractName: 'staff-v1',
   },
 ]
 

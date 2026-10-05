@@ -1,6 +1,7 @@
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  inboundLegalReceiverEdielId,
   resolveInboundTenantFromIdentifiers,
   type InboundTenantEvidence,
   type InboundTenantResolution as SharedInboundTenantResolution,
@@ -28,13 +29,8 @@ function clean(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function firstParty(parsed: ParsedEdifactEnvelope, ...qualifiers: string[]): string | null {
-  for (const qualifier of qualifiers) {
-    const values = parsed.parties[qualifier]
-    const value = Array.isArray(values) ? clean(values[0]) : null
-    if (value) return value
-  }
-  return null
+function upper(value: unknown): string {
+  return String(value ?? '').trim().toUpperCase()
 }
 
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
@@ -60,6 +56,21 @@ function referenceCandidatesForTenant(parsed: ParsedEdifactEnvelope): string[] {
   ])
 }
 
+function outboundPartiesMirrorInboundAck(row: Record<string, unknown>, parsed: ParsedEdifactEnvelope): boolean {
+  const inboundSender = upper(parsed.senderEdielId)
+  const inboundReceiver = upper(parsed.receiverEdielId)
+  const outboundSender = upper(row.sender_ediel_id)
+  const outboundReceiver = upper(row.receiver_ediel_id)
+  if (!inboundSender || !inboundReceiver || !outboundSender || !outboundReceiver) return false
+  if (inboundSender !== outboundReceiver || inboundReceiver !== outboundSender) return false
+
+  const expectedInboundSenderSub = upper(row.receiver_sub_address ?? row.receiver_subaddress)
+  const expectedInboundReceiverSub = upper(row.sender_sub_address ?? row.sender_subaddress)
+  if (expectedInboundSenderSub && upper(parsed.senderSubAddress) !== expectedInboundSenderSub) return false
+  if (expectedInboundReceiverSub && upper(parsed.receiverSubAddress) !== expectedInboundReceiverSub) return false
+  return true
+}
+
 async function findCompanyIdFromMatchedOutbound(parsed: ParsedEdifactEnvelope, environment?: string | null): Promise<{ companyId: string | null; references: string[] }> {
   if (!['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(parsed.messageFamily)) {
     return { companyId: null, references: [] }
@@ -83,7 +94,7 @@ async function findCompanyIdFromMatchedOutbound(parsed: ParsedEdifactEnvelope, e
   for (const column of columns) {
     const query = supabaseService
       .from('ediel_messages')
-      .select('id,company_id,message_family,message_code,direction,environment,sender_ediel_id,receiver_ediel_id,created_at,message_sent_at')
+      .select('id,company_id,message_family,message_code,direction,environment,sender_ediel_id,sender_sub_address,receiver_ediel_id,receiver_sub_address,created_at,message_sent_at')
       .eq('direction', 'outbound')
       .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
       .in(column, references)
@@ -96,7 +107,11 @@ async function findCompanyIdFromMatchedOutbound(parsed: ParsedEdifactEnvelope, e
     rows.push(...((data ?? []) as Array<Record<string, unknown>>))
   }
 
-  const companyIds = uniqueStrings(rows.map((row) => typeof row.company_id === 'string' ? row.company_id : null))
+  // A reference is only tenant evidence when the ACK transport parties are the
+  // exact reverse of the original outbound UNB parties. A colliding reference
+  // must never elevate an unrelated tenant to a resolved match.
+  const partyBoundRows = rows.filter((row) => outboundPartiesMirrorInboundAck(row, parsed))
+  const companyIds = uniqueStrings(partyBoundRows.map((row) => typeof row.company_id === 'string' ? row.company_id : null))
   return { companyId: companyIds.length === 1 ? companyIds[0] : null, references }
 }
 
@@ -119,16 +134,18 @@ function adaptResolution(resolution: SharedInboundTenantResolution): InboundTena
 }
 
 export async function resolveTenantForInboundEdiel(input: {
+  existingCompanyId?: string | null
   mailboxCompanyId?: string | null
   mailboxId?: string | null
   mailbox?: string | null
   environment?: string | null
   parsed: ParsedEdifactEnvelope
 }): Promise<InboundTenantResolution> {
-  const marketActorEdielId = firstParty(input.parsed, 'DO', 'DDQ', 'MR', 'MS') ?? input.parsed.receiverEdielId
+  // Only the family's legal receiver NAD (PRODAT DO, UTILTS MR) names the market actor; never the sender MS.
+  const marketActorEdielId = inboundLegalReceiverEdielId(input.parsed.rawPayload, input.parsed.receiverEdielId)
   const outbound = await findCompanyIdFromMatchedOutbound(input.parsed, input.environment)
   const resolution = await resolveInboundTenantFromIdentifiers({
-    existingCompanyId: outbound.companyId,
+    existingCompanyId: input.existingCompanyId ?? outbound.companyId,
     mailboxCompanyId: input.mailboxCompanyId,
     mailboxId: input.mailboxId,
     mailbox: input.mailbox,

@@ -1,0 +1,82 @@
+{
+  "base": "d0d95006ad442ffeb1f319351d257f647c0ee688",
+  "source": "/workspace/scratch/4b1d39503015/gridex-ops-platform",
+  "isolated": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated",
+  "status": "UNVERIFIED_DRAFT_SNAPSHOT",
+  "files": [
+    {
+      "path": ".agent-memory/checkpoint.json",
+      "sha256": "c60c0b75134ba8e8d988383b0de46ad7f8cc89112640e73b3a291aa0ef72c4e0"
+    },
+    {
+      "path": ".agent-memory/current-state.md",
+      "sha256": "c25d7c26128dca08747f157a0bff4c8c43878ebd7957deab01588e49247e20b7"
+    },
+    {
+      "path": ".agent-memory/current-task.md",
+      "sha256": "7795a032dfb747f96319a451eb9f7a8b0c605a611685229d7ddb868ac5268bd4"
+    },
+    {
+      "path": ".agent-memory/handover.md",
+      "sha256": "c34172c0255f3a9fe21df10d43d9aac057594ccace15b0b380eca7160f48762e"
+    },
+    {
+      "path": ".agent-memory/known-failures.md",
+      "sha256": "7f66393bc560487fa9cb6c699cf3b7615e4587c8e2ff13af8dfa182c918ff613"
+    },
+    {
+      "path": ".agent-memory/work-plan.md",
+      "sha256": "8d6fdcf33e6027c24c563bbbc215d75ea2f7f1d4f3fb39e99fade59b16d0aedf"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "3cb2a7243b352b319e6ed08d6d2af6178f0f3ac81de3fc95f5cefa0d00b392a8"
+    },
+    {
+      "path": "lib/ediel/outbox/sendOutboxItem.ts",
+      "sha256": "a104fe965d0d423e6f0c796ca6b7d6b607b15ce50c19c8589871c7e01ffa4bcc"
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "sha256": "df3137ab41e908c381b4e380d92f23845969faef1e722bd2059628347e252cd0"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "sha256": "4e04aa1e3986369ec85a44b1c463c66605010c3a974d978dde77b5d6cce632a0"
+    },
+    {
+      "path": "lib/email/sendEdielEmail.ts",
+      "sha256": "c1e0d696fd451f1e7dd8e4bff77e34a9123a5cd098f39082bf68c059fe7a9208"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/e035-source-ledger/historical-source-discovery-20260924.md",
+      "sha256": "babe21a5f73e66010ef77458bc37636e9a48d8e62e91c8023c46ea98c59935a1"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-local.config.mjs",
+      "sha256": "b206f04714c7931d3d786436ea70dfc075a0bb829158b7601e57d60e5826724b"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-review-brief-20260924.md",
+      "sha256": "eba0c78c00bd125863c1d329ffdf87711b57baee372db1c79bde3b0b0cc56cfa"
+    },
+    {
+      "path": "scripts/ediel-correction-context-native.test.ts",
+      "sha256": "b7e05b293658df60edd7ffac54bad16dcf8c92c59cf7640e65251ee8f0279f8f"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "sha256": "3cfbea516d2de478bdd51211c3b459f237576bd8aa231bf53e720dc4d8877483"
+    },
+    {
+      "path": "supabase/migrations/20260924031626_correction_outbound_dispatch_fence_v1.sql",
+      "sha256": "3056c8f400a1148a59092dd2d5f8c1bf381ee6ae7bdca0d2261661852d5712f7"
+    }
+  ],
+  "reason": "Unaccounted draft SQL/manifest edits; preserve exact bytes and resume sole author in isolated path. No native or completion claim.",
+  "archive": "quality/audits/ediel-masterplan-v2/e035-source-ledger/task3a-unverified-draft-20260924.patch.gz",
+  "archive_sha256": "aa4bd4eddd3273f44cd6c767a0e829a3d35b44bb9c6d85a4f866c78d949a4682",
+  "archive_base": "d0d95006ad442ffeb1f319351d257f647c0ee688",
+  "archive_snapshot": "6eece160b0b60cbf538d0fd52cd40b8e8b5907fb",
+  "archive_notice": "Unverified draft recovery evidence only, not an executable migration or accepted candidate. Final implementation supersedes this archived snapshot."
+}

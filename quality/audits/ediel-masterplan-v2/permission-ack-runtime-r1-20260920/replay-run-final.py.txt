@@ -1,0 +1,16 @@
+import subprocess,json,os,hashlib,time,concurrent.futures
+from pathlib import Path
+root=Path('/workspace/scratch/2a201d6d5897/gridex-next'); out=root/'quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920'
+old=json.loads((root/'quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-20260920.evidence.json').read_text())
+gates=old['gates']
+gates[-1]['command']=['git','diff','--check','81bc68b5','--','lib','app','__tests__']
+full={'gate':'full','command':['npm','test','--','--reporter=json','--outputFile='+str(out/'full.json')]}
+env={**os.environ,'NODE_OPTIONS':'--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs'}
+def run(g):
+ start=time.time();log=out/('final-'+g['gate']+'.log')
+ with log.open('wb') as f: result=subprocess.run(g['command'],cwd=root,env=env,stdout=f,stderr=subprocess.STDOUT)
+ record={'gate':g['gate'],'command':g['command'],'exit':result.returncode,'seconds':round(time.time()-start,2),'log':str(log.relative_to(root)),'sha256':hashlib.sha256(log.read_bytes()).hexdigest()}
+ (out/('final-'+g['gate']+'.json')).write_text(json.dumps(record,indent=2)+'\n'); print(json.dumps(record),flush=True);return record
+with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+ results=list(pool.map(run,[full]+gates))
+(out/'final-gates.json').write_text(json.dumps(results,indent=2)+'\n')

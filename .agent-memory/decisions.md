@@ -1,3 +1,91 @@
+## Current — 2026-09-30 #421 SC-044 accepted; full ID/gate reconciliation and syntax/header native probe
+
+Last fully verified exact head `d30fa0203f0499a8e15faeddda7676af81296c86`; main/base `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Five mandatory workflows SUCCESS: Ediel36695341379, browser36695341358, FullE2E36695341472, tenant36695341489, OPS36695341457. OPS verify109821852569/quality109821852531/replay109821852700 SUCCESS. Native439/439 includes all27 S02 and exactSC0443IDE; case/browser/tenant/parity/types/schema PASS. Authentic artifact11087503506 ZIPsha4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6; types36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d; schema8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93. All earlier d30/S02/SC044 pending text is superseded by these actual results.
+
+SC-044 PASSED after independent full-criterion source/facit/callgraph/oracle/native review. Exact one own acceptedseries/QTY136500/contract/positive312, own guide-negative313/42/209, own functionalE87 ERR, three finalreservations/ACKs and immutable fullretry. Receipt quality/audits/ediel-masterplan-v2/acceptance-sc044-20260930.md. Wider U02/U03/U14/ACK03/08 remain PARTIAL; internal contract acceptance does not approve merge/traffic/billing.
+
+Current full121+231 inventory quality/audits/ediel-masterplan-v2/masterplan-v2-reconciliation-20260930.json/.md has352exactIDs,354committedreferencehashes atd30, literalcriteria/ownformal-gap/technicalcomponentresponsibility/approvalgate for eachID;28rows changed references since0b6ea32a. Fivepriorityrules andSC044freshsemanticreview; other20260927codefindings explicitlyinherited/notfreshlycertified. Rules110NOT_VERIFIED/11PARTIAL; contracts219NOT_EXECUTED/11PARTIAL/1PASSED. Frozen33originalfiles remainimmutable. No whole-system percentage.
+
+One active work item: U-03/ACK-03 direct syntax and header-scope test-first native package. Three new test-only probes (442planned): valid paired control then onlyUNT999; onlyUNH/UNTrefOTHER; SC045 onlyremoveheadDTM735+correctUNT with lower ownE87. Actualsourcecapture/policy/tenant/matching/SQL/ACKwriter/finalizer/retry; no productchange. Native not executed yet. Independent reviewersapprovefacit; existing identity guard refutes acceptedstorage risk of refOTHER, leaving only candidate syntaxACKlevel there. Read actualCI before productfix. Next: publish coherent acceptance/reconciliation/nativeprobe evidence fast-forward fromd30, inspect first realnativefail, make minimumsource-backed fix only ifconfirmed, then exactnewheadfullgates. Do not rerun green unchangedheads.
+
+External requests are concrete in external-evidence-requests-20260930.md, not sent: marketissuer/representation; archivecontinuousoriginal/deletioncoverage; legalretention/tombstones; positiveLOC175registry/mandate/separatedurableconsumer/ACKretryowner; E035pre/postepochproducer/erasurecutoff. Namedexternalowners and authenticnewrecords notestablished. Historical203/505, positive175, fullE035 BLOCKED; olderStoragecause UNKNOWN. Root sole writer, independentread-only reviewers. #421draftunmerged, #310untouched, trafficHELD; no staging/TGT/AGT/counterparty/real send.
+
+## 2026-09-30 — Contract closure follows exact original clauses
+
+SC044 requires accepted application storage and independent positive/guide-negative/functionalresponses, not downstream billing or marketactivation. Independent originals/wholecontractreviewsagree; addexact3IDE nativevalue/contract/reservation/ACK/retry receipt. Approveeligiblecontracts individuallyincoverage aftercompleteproof; broaderlinkedrulesstaypartial. TechnicalCONTRL syntaxack is permitted forsource-qualified agency89 heldbusinessdata; directfailedSQLattemptsremainzeroeffects. Frozenoriginal acceptance_tests remainimmutable.
+
+## 2026-09-30 — S02 physical required fields precede durable effects
+
+After authentic native RED, enforce own LOC172 and per-observation QTY135 through retained canonical25-A-4 policy before functional eligibility; preserve guide-negative siblings and real zero. Extend the existing physical identity qualifier to guide-valid agency89 internal hold. Raw service SQL independently checks accepted S02 own physical point and every own SEQ quantity before receipt/ACK/series/contracts, without synthetic actual observations or exposed helper/grants. Quantity-content/tamper/full grammar and prior-guide/history acceptance are not inferred from presence controls.
+
+## 2026-09-30 — S02 native oracle preserves forecast semantics
+
+Empty consumption observations are correct for nonbilling forecasts, not a waiver of physical required LOC172/QTY135. Use the public canonical dispatcher, real evidence trigger and ACK writer/finalizer. Direct atomicity tests call raw supabaseService.rpc, so an application guard cannot mask database acceptance. Source-required omissions must be per-IDE guide-negative fields209/515; do not invent E87/internal national codes. Forecast quantities remain QTY135; no actual consumption observations or assumed mandates. Product changes require authentic native RED first.
+
+## 2026-09-29 — ERR builder consumes canonical policy facade
+
+Actual delivery guard rejected direct utiltsRulebook ownership inack.ts. Preserve the guard and use resolveCanonicalEdielPolicy with the generated ERR's own DTM137 date, matching the retained canonical validator; guide selection stays canonical. Do not add a projection allowlist exemption, a local version/effective-date rule, or a source-observation-date substitute. Full-IDE retry semantics are unchanged.
+
+## 2026-09-29 — Canonical ERR process and full physical IDE ownership
+
+After native a671a663407/411 reproduced both defects (all previous407 passed), derive ERR process from the canonical UTILTS profile and use complete original IDE for transaction-scoped ERR lookup/operation/23505 recovery. Retain APERAK and unscoped code sequencing. Independent review approves the bounded change pending exact-head native/five delivery gates. No repair of immutable historical wrong ACKs or claim of native concurrent deduplication. Formal ACK-08/SC-044/CALL-11 acceptance remains partial.
+
+## 2026-10-03 — Ediel masterplan delivery contract (owner decision)
+
+Masterplan work now follows the "Ediel masterplan v2 delivery contract" in AGENTS.md: one rule to done, behaviour tests tagged `// masterplan: <IDs>`, approval in coverage.json in the same PR, small PRs merged when green, priority TEN → ESCO → ACK. `npm run ediel:masterplan-v2:test-coverage -- --check` runs in CI. Approved on main: ENV-04, P-01, P-04, AT-ENV-04, SC-024..030, SC-032, SC-033. Verified complete on #426 head 1b5ed5d79 and to be approved when that code lands: AI-01/02/03/05, AT-AI-01/02/03/05, SC-065, SC-067.
+
+## 2026-09-24 — Task3a necessary S/MIME serial representation correction
+
+Native298/301 revealed actual existing inspectCmsRecipientInfo printed-serial parser treats OpenSSL decimal1234 as hex rather than certificate04D2; regex also truncates a prefixed0x form. Parent inspected index.part-1.ts530 and authorized narrowly correcting recognized OpenSSL serial representations after actual local crypto reproduction. Keep original native1234 fixture; do not choose serial9 to hide the defect. Exact integer conversion, no Number precision loss, wrong serial remains rejected; expected-certificate normalization and fallback policy unchanged. Focused real crypto tests and independent fix3 review mandatory. No broader crypto refactor or published migration change.
+
+## 2026-09-24 — Task3a exact provider-entry seam
+
+Parent confirmed sendEdielEmail owns S/MIME archive/readback before actual nodemailer invocation. Narrow helper callback/type extension is necessary to place SQL entry after preparation and immediately before both sendMail branches; no broad helper refactor, no fallback, no new policy. Prepared only pending Task2b acceptance. Tracked process-history-task3a-preparation-20260924.md records callback response-loss and safe-release semantics.
+
+## 2026-09-24 — Canonical registry completion and direct grant isolation
+
+Fix4 independently reviewed proposal permits exactly existing communication.read/send registry rows with conflict-do-nothing and zero assignments. Role-list SELECT references did not materialize them on clean replay. Shared direct grants are restricted by company/membership and active/status/allow predicates, preserving role/platform branches, null-company legacy global and union-positive semantics. No deny-precedence redesign or override changes. CLI forwards and isolated regression/replay tests; native qualification pending. Audit correction-capture-fix4-report/proposal-review-20260924.md.
+
+## 2026-09-24 — E035 canonical operational capture capability
+
+Native evidence showed communication.write is absent from canonical permissions; new capture was unusable. Independent narrow SPEC/QUALITY amendment approves existing communication.send in action and forward SQL, with unchanged tenant/actor/company/original/witness checks. No new permission, alias, grants, test fallback, semantic review or outbound operation. This corrects an internal nonexistent identifier under user-authorized implementation, not a new role-policy decision. Document capture retains documents.read/customers.read. Published SQL remains immutable.
+
+## 2026-09-24 — E035 raw correction date does not establish prior boundary
+
+A bare C source DTM93 is an observed date only. Until an independently linked authentic L/LK establishes the prior end, correction capture oldStop remains unknown, so the hold spans the matching interval. Later authentic target composition may refine the derived readset without mutating original capture or saved cutoffs. No positive correction authority follows.
+
+2026-09-20 Task2 interface clarification: standalone validateProdatPermissionMessage remains field-only as approved manual composition; remove obsoleteBooleancontext and unsupported40 inference, preserve existingfield assertions. MissingLI/duplicatefieldfixtures must not mint correlatedauthority. Actualmanual resolver independently validates typedsourcebound correlation beforeevent/return/no null-TGT-success bypass. Existingdirect/canonical/system prior-free scope remains explicit. Actualmanual mocks adapt with qualifiedsyntheticevidence; sole semantic exception is namedenergyfalse test.
+
+Prior-flow source0fd41d86 independent all5APPROVE. Root authorizes bounded Task2 pureperobject/scopedloader/manualguard and single energyfalsecontext40/105 assertionexception; typedfixtureadapters preserveoldoutcomes. Main353accepted, no runtime/countacceptance yet;98/110+10unchanged;PR310paused.
+
+2026-09-20 Correction of root parser-fixture ruling: c0a84050 DTMZZZ/UNT8 was wrong (DTMZZZ=206timezone), caught by implementer before edit. Authorized own223 is CCI**Z13!CAV*Z96!, ownZ23/A76 underLIN, UNT9. FactsassertZ13/Z96+Z23/A76, existingclassification unchanged, originalshape noN regression. Earlier DTM instruction SUPERSEDED; no source/runtime change implemented from it.
+
+2026-09-20 Exact parser-fixture exception authorized after root inspected original CUSTOM_UNA_PRODAT_Z14N: headerZ23/A75/no223 cannot justifyN. Only ownLIN relocation+ownDTM223Z96+statusA76+UNT8 and source facts assertion change; preserve classification/customUNA intent, add original-shape noN regression. See plan Task2 exact parser-fixture ruling. Full4679/4688 failures retained; other partial-policy/missing-primary regressions require implementation fixes, not assertion edits.
+
+2026-09-20 Root authorizes narrow Task2 registry-only derivative258 exclusion after independent SOURCE/SPEC+ARCHITECTURE approval. Exact own wire incomingZ14/Z15/Z18, omittedC829, typed258missing+structured physical causalproblem only. Shared grouping/canonical258/scenarioambiguity holds unchanged. Finite controls mandatory, no oldassertion waiver. See permission-ack-plan amendment and independent review.
+
+Permission322/324 source2a49a63c independently all4APPROVE. Root authorizes Task2 finite shared owner/canonical/manual/direct/registry/system integration; E37Z18 accepted, exact two energy-consumer assertion exceptions only, before-event/write readiness and physical-occurrence persistence guard mandatory. P-ACK-R1 HIGH and generic209/261 residuals separate/open. PR352main73+OPS accepted,counts98/110+10 unchanged,PR310paused.
+
+2026-09-20 Task2 narrowcodec exception authorized after independent27observation source/architecture review: sanitizeSegment terminalcanonicalapostrophe releaseparity only. Existing user authorization to complete masterplan covers evidenced boundedfix; no newpermissionneeded. Original no-codec scope amended explicitly, not silently ignored. FTX-only emptyelement workaround valid, sharedowner fix chosen for verified existing ownLI failure too. Preserve actualpartialUNA behavior, allgates; no generalcodec redesign.
+
+2026-09-20 APERAK text Task2 authorized after four independent source approvals and main35173+OPS. Individual C1a-c X×36 field506 (12 executions) and C2 C×36 field317 (one execution) wire-readiness expectation changes authorized exactly as Task2 brief; national F identity/value/refs and short/false/other cases preserved. No blanket old-assertion changes. Source70 capacity conflicts measured73/71; no truncation or new nationalclassification.
+
+## 2026-09-18 — PR330 recovery and review correction (current snapshot)
+
+Original exact candidate0a89e102 published;four ordinary workflows green.
+Independent reviews5730637320/5730659831 identified row-code suppression of
+wire-requiredZ09:216. Refined33-case red baseline32fail/1pass;34 review cases
+now pass (one additional list regression reproduced and repaired). Fresh2474
+application/851retained-source cases and all3types/coverage/quality gates pass.
+New-head CI/build/replay and substantive rereview are still required before
+merge. See `current-state.md` and f3-d-review-remediation-20260918 audit.
+Existing main70/73 certificate and automatic Vercel Git deployment are recorded,
+not hidden or certified by this PR. PR310 paused;other104D/full plan unverified.
+
+---
+
+## Older entries below are historical
+
 # Active decisions
 
 ## ADR-001 — One progress system
@@ -92,3 +180,92 @@ Customer-facing legal documents are grouped into agreement, POA and withdrawal.
 Canonical module rows are never merged or deleted; they remain the immutable
 version/hash evidence. A grouped acceptance is expanded to all covered modules.
 POA scope and legal identity are immutable and may never be widened on reuse.
+
+## 2026-09-18 — source-derived subtype D requirement and object authority
+
+Status: PARTIAL (six cells locally qualified, not published or independently reviewed).
+
+Z06:508/217/306/254 and Z09:216/217 derive required/optional/forbidden/
+undetermined outcomes from the original field notes and existing subtype registry.
+Do not collapse optional and forbidden or allow byCell flags to override these
+source rules. Actual first-register field223 and object/agency boundaries own
+authority; root snapshots and sibling objects cannot fill missing wire evidence.
+Protected outbound D issues precede the legacy invalid-test-send exception.
+The remaining original cells require their own evidence; no blanket completion.
+
+## Continue after338
+Keep310paused and335unmerged. Accept boundedZ14 unit only; next321/323 context requires independent per-object evidence, never field-presence/byCell inference.
+
+Independent reporting source/spec APPROVE; rootexplicit323adjudication privateR,qualifiednonprivateZ13include/omitwithassessedincludedpurpose,positiveZ14independentrequestpresence/valueequality,Nforbidden. Originalworkbook+fullp21/p74/p32 and§7.3support;frozenoriginalunchanged. ARCHITECTURE REQUEST_CHANGES R1exactclock/minute/UTC+1/anchor;R2strictaggregate/envelopes andkey/LI/ANJ/revision/CAS/clearlifecycle. Originalimplementerreporting_permissionownsdoc-onlycorrectionround1; no runtimeauthorized. Report /workspace/scratch/2a201d6d5897/reporting-permission-source-review-report.md. Counts96/110,10/10parents unchanged;positivepersistedZ14producer separate.
+
+Z10 sourceR1 approved p119 early true/false/U gate; U suppliedcodes need independent scope, U-dependent compatibility diagnostic. Individual oldcatalog assertion adds Z10:242/254unknown only. Root+independentreviewer reject false242-driven506projection: originalp68 fourthcomponent242/fifth506 distinct. Source-refuted newtest expectation corrected; general506inbound disposition remains unqualified separately.
+
+PR347 scopedR1 review closes R2/R3, holds R4 for concrete adjacent valid ai_list trailing? tokenizer exception before routing. Original7/7 and new10/10passed; exactadjacent0/1RED. Root adjudication: real load-bearing format regression, notparked. Continue bounded necessary residual correction through originalauthor under user explicit continue/correct/green authorization and developer persistence; no duplicate permission pause. This overrides local skill final-one-wave stopping guideline for this authorized correction, without waiving tests/review or inventing approval. Original7+adjacent1 assertions retained; no fullreviewrestart, no unrelated scope.
+
+## Death310 p119 component ruling, 2026-09-19
+Death310 source review: SOURCE/SPEC REQUEST_CHANGES S310-R1 only; ARCHITECTURE APPROVE bounded OptionA. Original author correcting source-only p119 component matrix. Root adopts false-field ignore precedence, applicable1131/3055 errors, explicitly scoped U supplied qualifier inference, residual unused data inbound tolerance when unambiguous; outgoing unused forbidden. Runtime remains unauthorized until independent R1 approval. No counts change; PR310paused. Next: scoped R1 review then death-status-runtime-brief.md dispatch.
+Full original p119 qualifier paragraph and extra-field paragraph both apply: field false first; applicable unused qualifier treatment is adopted interpretation, residual X text tolerance is inference, not an express blanket original rule. Source review report death-status-source-review-report.md provides matrix and source evidence. No runtime/test modification authorized by this doc ruling alone.
+
+## Death310 individually authorized legacy assertions, 2026-09-19
+Root inspected exact tests/source/production before author proposal. Approve only: prodat-dependent-condition-engine.test.ts lines63/64 retain root-only death/bankruptcy inputs, expected required/not_required both become undetermined (own subtype/assessment absent). prodat-26a-semantic-hardening.test.ts both Z09E identity_change cases become ok:false,bilateralRequired:false, p112death-only/p65Z06-onlyexception. ediel-canonical-policy-batch-regression.test.ts unknownIds adds onlyZ05:310 (invalidV ownscope), all110catalog equality retained. New normative tests required; no blanket assertion permission.
+
+Death310 additional individual ruling: inspected ediel-prodat-dependent-z06-product.test.ts boundedpositive loop lines223–227 and fixture. Only test-env E34 now expects310SOURCE_UNQUALIFIED and bothguards throwing it because persisted unresolvedZ06E hold was explicitly approved. Field242blockers=[] assertions retained, allF/G and productionDATE_EVENT_SOURCE_UNQUALIFIED branches retained. Fullsuite175 diagnosticcomposition failures are implementation defects, not permission to rewriteoldtests.
+
+Death310 individual follow-up rulings A–D after exact rootinspection: dependent-subtype-message-scope singleZ06E and releasedUNH-data positives now310SOURCE_UNQUALIFIED/guardsblocked, retaining UNHcount1 and hasScopefalse. dependent-subtype-review pre-mismatch actualZ06E same; all wrongcodeDATE_EVENT_SCOPE_MISMATCH expectations retained. dependent-subtype-ud-boundaries boundedE else branch Z06test/Z09test+production now310hold, retaining UDfilters and Z06productiondate branch. Its genericpurebuilder fixture gets independently fixed nondeath assessment for A/agency9/customer00-CUSTOMER89/legal12345→54321(160/SVK)/Z06E34 and LI CASE or CASE-A, independent event/evidence; no B/E64fact, alloldassertionsretained. Sourceinputfixture only, not persistedauthority. Rootreadexactblocksbeforeapproving. No blanketoldtestchanges.
+
+## GAS240 Z06E bounded source interpretation, 2026-09-19
+GASsource independentlyAPPROVE boundedSOURCE/SPEC+ARCHITECTURE, nonblockingS-GAS-N1 docclarification requestedbefore runtime. Rootreadoriginalp109/p21 andadopts specificp21field240Z06Eoptionalovergeneralp109customer-onlyprose for thispurecell; explicitboundedinterpretation, p15precedenceonlyAppendix4notAppendix1. Originalauthor doconlynote+D125historicalcoordinatefixactive; no runtimeauthorizedyet. Grayincomingpolicy/ELexclusionunchanged;counts98/110+10 andPR310paused.
+
+## GAS route-consistency ordering clarification
+Root accepts actualwire/row checks beforeSMTPdependencies; actualresolvedroute profile check immediatelyafter existingcompany-scopedroute read andbeforeprovider/storage/send effects. Unloadedroute cannot be verifiedbeforethatread. No extraDBlookup/livecall; do notclaimzeroDBforrouteconflict. Author/reviewer mustrecord/testactualeffectorder andpreserveexistingtenantread.
+
+## GAS individually authorized legacy assertions, 2026-09-19
+Root inspected exact existing assertions and approved source audit before authorization. Catalog unknownIds adds only Z10:240: own subtype V/byCell lacks source-valid M/E58 and causal serial assessment; preserve all110 registry equality and every other fixture/expectation. Reference-field script id240 alone no longer expects inbound wrong-value comparison mismatch under adopted p123 grey240 no-new-content-rejection policy; retain all other field mismatches, parser exact identity, immutable source assertion and all818 cases. Clarify label/comment for240; no loader/gate or broader assertion edits authorized. Five other full-suite failures were production composition/shape defects fixed by original author, not rewritten expectations. Final full suite and independent runtime review remain required.
+
+## Typed ACK identity: individually authorized old LI regression repair
+Root inspected scripts/ediel-rule-regression.cjs original121-133 and213-216 plus f3-field-identity-script-proposal.md. Approve only complete source-qualified Z03 control minusLI (UNT17; control18), direction:inbound, replace obsolete RFF_LI_MISSING alias with owner prodatDiagnostic kindfield/fieldNumber226/errorKindmissing, strengthen existingnegativeAPERAK assertion with41/226. Actual223Z22 suppliesL, no unsupportedsubtypeargument. Newnormativecontrolproveszeroerrors thenonly226missing; initialmissing262fixturecorrectedfromsourcebeforequalification, notproductiondefect. Keeprestscript/loader/customregistryfixtures/downstreamZ03rowunchanged; no productionalias or broadassertionpermission. Verifyliteralandsubsequentfailuresindividually.
+
+## 2026-09-20 field506 source proposal and two individual assertion rulings
+Root read full source audit adcb599a, originalP20/P68/P119/P122, actual manual derive/resolve boundary and exact two tests. Accept for independent source/architecture review a coherent incoming506 owner with necessary shared242 exclusion/isolation only; no global74 rewrite/outgoing weakening/GAS role. Applicable506 genuine field defects may use narrowly proposed manual/TGT pre-positive/pre-DB review-required guard because506 has no mapping, pending independent architecture approval; never hold false extras/U or invent national ERC. Automatic/direct use existing typed41/42. Root authorizes ONLY, upon runtime authorization, the two source-refuted incoming assertions in ediel-prodat-meter-change-inbound.test.ts current41 and ediel-prodat-meter-change-review-regression.test.ts current24 to assert no forbidden506 negative, preserving independent242 checks and all outgoing controls. No broader old-assertion authority. Runtime still unauthorized until independent source/architecture approval.
+
+2026-09-20 remaining D Task2: source/design independent APPROVE; authorize RD-1/2/3 finite nine incomingcells. Exact meter-change-inbound25–26/death-status-inbound38–39/gas-disposition27–29 old category-hold assertions may become ready typed42/254+242,41/310,41/320 with scoped mocked persistence. Preserve separate genuine register/text/internal holds and no-I/O there; no general258 exemption. No other old assertion waiver. Task2 plan gives full constraints.
+
+Remaining D incoming scope clarification: exact permission-ack-consumers110–112 single own UNKNOWN/A75 remains positive, X99 still322negative. RD-2 selects qualified own S17/S18 only; unknown reason alone and supplied B72 do not create blanket323/internal hold. Genuine ambiguous physical ownership/223/syntax remain separate. No old assertion exception. Root inspected exact test before ruling.
+
+Remaining D incoming: allow narrow reporting323 physical-LIN ownership for Z14 with omitted C829 matching already accepted PR353 permission boundary. Preserve shared grouping, genuine populated-C829 registry hold and all old repeated-permission assertions; no Z04/Z06/Z10 exemption. New own323 repeated identity and opposing populated-C829 controls required for runtime review.
+
+Remaining D incoming: actual historical GAS E2SE6B canonical receive/persist reaches existing ediel_guide_resolution_missing after qualified receive time. Preserve/assert capability-specific operational guide hold; typed derive/direct/manual/system/finalrenderer proof remains bounded scope, no guide/codec/transport expansion. I/unready stops effects; ready F may pass pure business assessment but never emits a false success/positive draft.
+
+GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpolicy call and absence of serialId/240input/projection. Do not add producer merely for positivefixture. Existing renderer tests cover required240missing/optionalomission/ELselectorboundary; supplied TIM/SCH semantic positives/negatives use actual canonicalsharedfieldconsumer. Explicitly disclose no positivebuilder/persistedproducerproof. No injected bypass/guideactivation.
+
+2026-09-20 Task3 runtime authorized after independentlyapprovedRD-4 and actualmain35573+OPS. Only exact gas-policy decodedRFFvalue fixture (threealphabets lines72/74) may gain independentlyboundTIMSERIES authority preserving outcomes. No otheroldassertionwaiver. No producer/guideactivation; strictpureidentity and persistedrejection.
+
+## 2026-10-03 — Service Z13 field 513 and 260 (P26.A annex 2)
+- Z13 field 513 (CCI++Z22, installation direction) is required. A service grid-area request names no metering point and the evidence terms define no direction, so the renderer sends E19 (both directions), matching Ediel's own TGT reference data for Z13 (`resolvePermissionInstallationDirection`).
+- Z13 field 260 (RFF+Z05) is '-' in P26.A annex 2 pp.114–116; the canonical matrix wins over TGT data and the old SQL binding. The request grid area remains a required source term (receiver choice) but is not rendered; 20261002235100 makes the binding require its absence in the wire.
+
+## 2026-10-03 — Ingen separation of duties för closure-granskning
+Ägarbeslut: granskaren (reviewerUserId) får vara samma/annan behörig tenantanvändare som källans aktör. DB-bindningen till behörighet är tillräcklig. Testet prövar i stället att obehörig granskare avvisas.
+
+## 2026-10-03 — Blandade PRODAT Z04: design A med rättning
+Ägarbeslut: partitionsägaren (043234/043602) äger blandade Z04. Ett komplett BGM34-svar skapas av createReceivedProdatCommittedEffectAcks: egna kvalificerade negativa + ERC100 endast för objekt med committed effektkvitto. Facetten projicerar negativet med syskon held. Framåtmigration 20261003100100 låter require_before_prodat_scope_v1 delegera ERC100-omfång till domain_response_birth när källan är partitionsägd. Den äldre mixed-ägaren (prodat_mixed_*) används inte.
+
+## 2026-10-03 — Två regler i taget, granskning av #426
+Ägaren: granska allt i #426 i mindre batcher mot regelregistren (metod och status i
+`quality/audits/ediel-masterplan-v2/pr426-rule-review/README.md`). Framåt byggs två
+regler åt gången; båda ska vara korrekt byggda, ha märkta gröna beteendetester och
+vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras för nästa agent.
+2026-10-03 Customer portfolio: customer counts (active/new/churned) come only from customer_supply_periods; white-label access is read-only and assignment is superadmin-only via gridex_assign_company_to_whitelabel; analytics consumption is read from metering_point_monthly_consumption (never hourly values on page views) and monthly analytics are rebuilt set-based in SQL, never summed client-side.
+
+## 2026-10-04 — Split av #426 och godkännandegrind
+- #426 delas i staplade PR:er per regelområde (#483–#489); bara toppen bevisas grön, merge i ordning (användarbeslut 2026-10-03).
+- Ett masterplan-ID godkänns först när varje condition/on_pass/on_failure och AT expected/prohibited har asserterande test; kärnbeteende räcker inte (TEN-01/02/05/06, U-04, U-14 lämnade ogodkända 2026-10-04).
+- Användaren: stanna före fasen "två regler i taget" och lämna över till nästa agent med prompt.
+- 2026-10-04 TEN-09: explicit permission reuse obeys the same request timing (DSO network contract period + 3 years) as the coordinator; owner chose the conservative gate over Codex's 'old source-approved reuse may predate' reading.
+- 2026-10-04 P-08: valid receipt = positive APERAK on our bound Z09D confirms our own production-contract event (owner choice over 'not applicable for supplier').
+
+## 2026-10-04 — Masterplan readings (P-06, U-11, U25-A-4/A-5)
+- U25-A-5 is not a separate edition: masterplan §2.1/G07 says the uploaded U footer reads 25-A-5 despite cover revision 4 (registered source conflict). U cards stay on U25-A-4.
+- P-06 "ändra inte alla ZZZ globalt" = E012: fix only the NAD+UD end-user agency to 260; keep other legitimate ZZZ (field 206 DTM+ZZZ:1:805).
+- U-11: E30 is a disabled (non-production) capability for DDQ/DGI (§9). U-11 only scopes E90/E97/E98 away from individual E66 and keeps them for aggregates; aggregate value limits are CV-U-FN-* rules behind G02.
+- Owner rule (2026-10-04): open interpretation questions are answered first by re-reading the project's purpose and MASTERMASTERPLAN_v2 + annexes A–E (incl. E-findings, §20 gates G01–G07); only ask the owner when the sources truly leave it open.

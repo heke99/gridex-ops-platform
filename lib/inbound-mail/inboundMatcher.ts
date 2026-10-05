@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
+import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 
 export type InboundEntityMatch = {
   status: 'matched' | 'missing' | 'ambiguous' | 'not_checked'
@@ -51,7 +52,13 @@ export async function matchOutboundRequestForInbound(input: {
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
 }): Promise<InboundEntityMatch> {
-  const references = [
+  // P26.A §§3.3–3.5: P-APERAK ACW is the original BGM/1004. The reply's
+  // own UNB/UNH values are independent identities and must never select the
+  // outbound business row. Multiple distinct ACWs are not an exact match.
+  const prodatAperak = input.parsed.messageFamily === 'APERAK' &&
+    classifyCanonicalInboundAck(input.parsed).profile === 'PRODAT_16_B'
+  const acw = Array.from(new Set((input.parsed.references.ACW ?? []).map(value => value.trim()).filter(Boolean)))
+  const references = prodatAperak ? acw.length === 1 ? acw : [] : [
     input.parsed.interchangeReference,
     firstReference(input.parsed, ['UCI', 'UCM', 'ACW', 'TN', 'LI', 'Z09', 'Z07', 'DOC_PRODAT', 'DOC_UTILTS', 'DOC_APERAK', 'DOC']),
     input.parsed.bgmReference,
@@ -73,36 +80,51 @@ export async function matchOutboundRequestForInbound(input: {
     return uuidPattern.test(reference) ? [...base, `source_id.eq.${reference}`] : base
   })
 
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
-    .eq('company_id', input.companyId)
-    .or(conditions.join(','))
-    .limit(5)
-
-  if (error) throw error
-
-  const outboundRows = (data ?? []) as Array<Record<string, unknown>>
-  if (outboundRows.length > 0) {
-    const match = singleOrAmbiguous('outbound_request', outboundRows, [`Referenser testade mot outbound_requests: ${references.join(', ')}`])
-    await insertAttempt({ ...input, matchType: 'outbound_request', match })
-    return match
+  if (!prodatAperak) {
+    const { data, error } = await supabaseService
+      .from('outbound_requests')
+      .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
+      .eq('company_id', input.companyId)
+      .or(conditions.join(','))
+      .limit(5)
+    if (error) throw error
+    const outboundRows = (data ?? []) as Array<Record<string, unknown>>
+    if (outboundRows.length > 0) {
+      const match = singleOrAmbiguous('outbound_request', outboundRows, [`Referenser testade mot outbound_requests: ${references.join(', ')}`])
+      await insertAttempt({ ...input, matchType: 'outbound_request', match })
+      return match
+    }
   }
 
-  const { data: edielData, error: edielError } = await supabaseService
-    .from('ediel_messages')
+  // P-APERAK must identify the outbound Ediel BGM before its linked request
+  // may be updated. A request's own external reference cannot stand in for it.
+  // ACW remains literal document data, never a PostgREST filter expression.
+  const edielQuery = () => supabaseService.from('ediel_messages')
     .select('id,company_id,outbound_request_id,customer_id,site_id,metering_point_id,grid_owner_id,message_family,message_code,external_reference,interchange_reference,transaction_reference,correlation_reference,original_message_id')
     .eq('company_id', input.companyId)
     .eq('direction', 'outbound')
     .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
-    .or(references.flatMap((reference) => [
+  let edielData: Array<Record<string, unknown>> | null = null
+  let edielError: unknown = null
+  if (prodatAperak) {
+    const [external, bgm] = await Promise.all([
+      edielQuery().eq('external_reference', references[0]).limit(5),
+      edielQuery().eq('bgm_reference', references[0]).limit(5),
+    ])
+    edielError = external.error ?? bgm.error
+    edielData = [...new Map([...(external.data ?? []), ...(bgm.data ?? [])]
+      .map(row => [row.id, row as Record<string, unknown>])).values()]
+  } else {
+    const result = await edielQuery().or(references.flatMap((reference) => [
       `interchange_reference.eq.${reference}`,
       `transaction_reference.eq.${reference}`,
       `external_reference.eq.${reference}`,
       `correlation_reference.eq.${reference}`,
       `original_message_id.eq.${reference}`,
-    ]).join(','))
-    .limit(5)
+    ]).join(',')).limit(5)
+    edielData = (result.data ?? []) as Array<Record<string, unknown>>
+    edielError = result.error
+  }
 
   if (edielError) throw edielError
 
@@ -144,33 +166,35 @@ export async function matchMeteringPointForInbound(input: {
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
 }): Promise<InboundEntityMatch> {
-  const candidates = [
+  const candidates = Array.from(new Set([
+    input.parsed.locations['172']?.[0] ?? null,
     firstReference(input.parsed, ['Z07', 'MG', 'TN']),
-    input.parsed.references.LI?.[0],
-  ].filter((value): value is string => Boolean(value))
+    input.parsed.references.LI?.[0] ?? null,
+  ].filter((value): value is string => Boolean(value))))
 
   if (candidates.length === 0) {
-    const match = { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: ['Ingen anläggnings-/mätpunktsreferens hittades.'], candidates: [] } satisfies InboundEntityMatch
+    const match = { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: ['Ingen canonical LOC+172/anläggnings-/mätpunktsreferens hittades.'], candidates: [] } satisfies InboundEntityMatch
     await insertAttempt({ ...input, matchType: 'metering_point', match })
     return match
   }
 
   const ors = candidates.flatMap((candidate) => [
     `meter_point_id.eq.${candidate}`,
+    `metering_point_id.eq.${candidate}`,
     `site_facility_id.eq.${candidate}`,
     `ediel_reference.eq.${candidate}`,
   ])
 
   const { data, error } = await supabaseService
     .from('metering_points')
-    .select('id, customer_id, site_id, grid_owner_id, meter_point_id, site_facility_id, ediel_reference')
+    .select('id, company_id, customer_id, site_id, grid_owner_id, meter_point_id, metering_point_id, site_facility_id, ediel_reference')
     .eq('company_id', input.companyId)
     .or(ors.join(','))
     .limit(5)
 
   if (error) throw error
 
-  const match = singleOrAmbiguous('metering_point', (data ?? []) as Array<Record<string, unknown>>, [`Mätpunktsreferenser testade: ${candidates.join(', ')}`])
+  const match = singleOrAmbiguous('metering_point', (data ?? []) as Array<Record<string, unknown>>, [`Canonical mätpunktsreferenser testade: ${candidates.join(', ')}`])
   await insertAttempt({ ...input, matchType: 'metering_point', match })
   return match
 }

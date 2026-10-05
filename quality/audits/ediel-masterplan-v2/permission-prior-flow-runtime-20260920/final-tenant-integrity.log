@@ -1,0 +1,52 @@
+Tenant integrity migration SHA256:
+20260827134553_tenant_integrity_auditor_v1.sql 13beb652ffb9d1dfb5872f3208ee8837942de1666e23e0b8c161a73885373783
+20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql c62f4953a200c1f06988c501fd1197a889f80290125be792f74abda93e42723c
+20260827134827_tenant_integrity_effective_latest_views.sql 30357ffb592992d7e640137046cb34331959dd923b0785fef85d3f0fcf67673f
+20260827135630_tenant_integrity_requested_by_fk_index.sql b13f9b7bd7764b1df0027deef99dcba1b7e2977417a51961d04c424229cdf62f
+✅ migration provenance pin matches 20260827134553_tenant_integrity_auditor_v1.sql
+✅ migration provenance pin matches 20260827134617_tenant_integrity_auditor_v1_uuid_aggregate_hotfix.sql
+✅ migration provenance pin matches 20260827134827_tenant_integrity_effective_latest_views.sql
+✅ migration provenance pin matches 20260827135630_tenant_integrity_requested_by_fk_index.sql
+✅ migration defines tenant_integrity_rule_registry
+✅ migration defines tenant_integrity_audit_runs
+✅ migration defines tenant_integrity_findings
+✅ rule registry contains TENANT-001
+✅ rule registry contains ACCESS-001
+✅ rule registry contains ACCESS-002
+✅ rule registry contains ACCESS-003
+✅ rule registry contains ACCESS-004
+✅ rule registry contains ACCESS-005
+✅ rule registry contains OPS-001
+✅ rule registry contains OUTBOUND-001
+✅ rule registry contains EDIEL-001
+✅ rule registry contains EDIEL-002
+✅ rule registry contains EDIEL-003
+✅ rule registry contains EDIEL-004
+✅ rule registry contains EDIEL-005
+✅ rule registry contains EDIEL-006
+✅ audit RPC uses a fixed search_path
+✅ audit RPC is revoked from public/anon/authenticated
+✅ audit RPC is service-role only
+✅ tenant_integrity_rule_registry has RLS enabled
+✅ tenant_integrity_rule_registry has forced RLS
+✅ tenant_integrity_audit_runs has RLS enabled
+✅ tenant_integrity_audit_runs has forced RLS
+✅ tenant_integrity_findings has RLS enabled
+✅ tenant_integrity_findings has forced RLS
+✅ integrity views use security_invoker
+✅ latest findings allow tenant-specific runs to supersede global runs
+✅ company summary counts only findings for the selected tenant
+✅ UUID aggregate hotfix is persisted
+✅ audit requested_by foreign key has a covering index
+✅ server service calls canonical audit RPC
+✅ server service reads canonical summary/finding views
+✅ audit mutation requires platform-admin action access
+✅ tenant integrity UI is platform-admin only
+✅ tenant integrity UI exposes explicit audit execution
+✅ audit engine never auto-repairs canonical business data
+✅ audit engine never auto-repairs canonical business data
+✅ audit engine never auto-repairs canonical business data
+✅ audit engine never auto-repairs canonical business data
+✅ audit engine never auto-repairs canonical business data
+
+✓ Tenant integrity regression passed.

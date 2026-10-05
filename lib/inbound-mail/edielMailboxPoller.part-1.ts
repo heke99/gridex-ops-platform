@@ -1,6 +1,7 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 
 import { createHash } from "crypto"
+import { isDeliveryStatusNotification } from './dsnClassifier'
 import { extractEdifactPayload, parseEdifactPayload, normalizeEdifactMessageCode } from "@/lib/inbound-mail/edielEmailParser"
 
 
@@ -47,6 +48,7 @@ export type InboundEmailAttachmentInput = {
 export type StoreInboundEmailInput = {
   mailboxId: string;
   companyId?: string | null;
+  actorUserId?: string | null;
   environment?: string | null;
   internetMessageId?: string | null;
   fromAddress?: string | null;
@@ -752,6 +754,12 @@ export function splitMimeParts(rawEmail: string | null): {
       attachments: [],
       rawEdifactPayload: null,
     };
+
+  if (isDeliveryStatusNotification(rawEmail)) {
+    // Keep the complete MIME envelope available for transport review, including
+    // after S/MIME unpacking, without creating business payload candidates.
+    return { bodyText: rawEmail, bodyHtml: null, attachments: [], rawEdifactPayload: null };
+  }
 
   const firstBlank = rawEmail.search(/\r?\n\r?\n/);
   const rootHeader = firstBlank >= 0 ? rawEmail.slice(0, firstBlank) : "";

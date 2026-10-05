@@ -1,3 +1,4 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess, isPlatformAdminContext } from '@/lib/admin/guards'
@@ -317,36 +318,17 @@ export default async function MessagesPage({ searchParams }: PageProps) {
         subtitle="EDIEL-meddelanden, utskick och kommunikationshistorik"
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto min-w-0 max-w-7xl p-4 lg:p-6 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
         {/* Filters */}
-        <form method="GET" className="mb-6 flex flex-wrap gap-3">
+        <form method="GET" className="mb-4 grid min-w-0 grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
           <input
-            name="q"
+            name="q" aria-label="Sök meddelanden"
             defaultValue={q ?? ''}
             placeholder="Sök referens, Ediel-ID…"
             className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
           />
           <select
-            name="direction"
-            defaultValue={directionFilter ?? ''}
-            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-          >
-            <option value="">Alla riktningar</option>
-            <option value="outbound">Utgående</option>
-            <option value="inbound">Inkommande</option>
-          </select>
-          <select
-            name="family"
-            defaultValue={familyFilter ?? ''}
-            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-          >
-            <option value="">Alla typer</option>
-            {MESSAGE_FAMILIES.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
-          <select
-            name="status"
+            name="status" aria-label="Status"
             defaultValue={statusFilter ?? ''}
             className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
           >
@@ -355,18 +337,34 @@ export default async function MessagesPage({ searchParams }: PageProps) {
               <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
-          <input
-            name="from"
+          <details open={Boolean(directionFilter || familyFilter || fromFilter || toFilter)} className="sm:col-span-2 lg:col-span-3"><summary className="cursor-pointer text-sm font-semibold text-slate-700">Fler filter</summary><div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"><select
+            name="direction" aria-label="Riktning"
+            defaultValue={directionFilter ?? ''}
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+          >
+            <option value="">Alla riktningar</option>
+            <option value="outbound">Utgående</option>
+            <option value="inbound">Inkommande</option>
+          </select><select
+            name="family" aria-label="Meddelandetyp"
+            defaultValue={familyFilter ?? ''}
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+          >
+            <option value="">Alla typer</option>
+            {MESSAGE_FAMILIES.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select><input
+            name="from" aria-label="Från datum"
             type="date"
             defaultValue={fromFilter ?? ''}
             className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-          />
-          <input
-            name="to"
+          /><input
+            name="to" aria-label="Till datum"
             type="date"
             defaultValue={toFilter ?? ''}
             className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-          />
+          /></div></details>
           <button
             type="submit"
             className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
@@ -394,7 +392,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
         {/* Operational pre-message rows: outbound_requests and grid_owner_data_requests */}
         {showOperationalRows && (pendingOutboundRows.length > 0 || pendingGodrRows.length > 0) ? (
           <div className="mb-6 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Operativa rader utan EDIEL-meddelande</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Operativa rader utan EDIEL-meddelande</p>
             {pendingOutboundRows.map((row) => {
               const customerLink = row.customer_id ? `/admin/customers/${row.customer_id}` : null
               const isFailed = row.status === 'failed'
@@ -421,7 +419,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                         tone={isFailed ? 'border-red-200 bg-red-100 text-red-800' : 'border-amber-200 bg-amber-100 text-amber-800'}
                       />
                     </div>
-                    <span className="text-xs text-slate-400">{formatDate(row.created_at)}</span>
+                    <span className="text-xs text-slate-600">{formatDate(row.created_at)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
                     <span>
@@ -445,11 +443,11 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                     </Link>
                   ) : null}
                   {isPlatformAdmin ? (
-                    <div className="mt-1 font-mono text-[10px] text-slate-400 space-y-0.5">
+                    <details className="mt-2 break-words text-xs text-slate-600"><summary className="cursor-pointer font-semibold">Tekniska referenser</summary><div className="mt-2 space-y-1 font-mono">
                       <div>outbound: {row.id}</div>
                       {row.ediel_route_profile_id ? <div>route_profile: {row.ediel_route_profile_id}</div> : null}
                       {row.source_type ? <div>source: {row.source_type} / {row.source_id?.slice(0, 8)}</div> : null}
-                    </div>
+                    </div></details>
                   ) : null}
                 </div>
               )
@@ -464,7 +462,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                       {isPlatformAdmin ? <Pill text={row.request_scope ?? 'PRODAT Z01'} /> : null}
                       <Pill text={row.status === 'pending' ? 'Väntar på finalisering' : row.status === 'draft' ? 'Förbereds' : 'I kö'} tone="border-amber-200 bg-amber-100 text-amber-800" />
                     </div>
-                    <span className="text-xs text-slate-400">{formatDate(row.created_at)}</span>
+                    <span className="text-xs text-slate-600">{formatDate(row.created_at)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
                     <span>
@@ -478,7 +476,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                     <span><span className="font-medium">Nätägare:</span> {gridOwnerLabel(row.grid_owner_id)}</span>
                   </div>
                   {isPlatformAdmin ? (
-                    <div className="mt-1 font-mono text-[10px] text-slate-400">
+                    <div className="mt-1 font-mono text-[10px] text-slate-600">
                       godr: {row.id}
                     </div>
                   ) : null}
@@ -504,7 +502,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
               return (
                 <div
                   key={message.id}
-                  className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-emerald-200 hover:shadow transition-shadow"
+                  className="group min-w-0 break-words rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-emerald-200 hover:shadow transition-shadow"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -529,7 +527,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                         tone={statusTone(message.status)}
                       />
                     </div>
-                    <span className="text-xs text-slate-400">{dateStr}</span>
+                    <span className="text-xs text-slate-600">{dateStr}</span>
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
@@ -574,12 +572,12 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                         {message.outbound_request_id ? (
                           <Link
                             href={`/admin/outbound?q=${message.outbound_request_id}`}
-                            className="text-xs text-slate-400 hover:text-slate-600"
+                            className="text-xs text-slate-600 hover:text-slate-600"
                           >
                             Utskick
                           </Link>
                         ) : null}
-                        <span className="font-mono text-[10px] text-slate-300">{message.id}</span>
+                        <span className="font-mono text-[10px] text-slate-600">{message.id}</span>
                       </>
                     ) : null}
                   </div>
@@ -590,12 +588,14 @@ export default async function MessagesPage({ searchParams }: PageProps) {
         )}
 
         {/* Quick filter shortcuts */}
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-4">
+          <AdminActionsMenu label="Snabbfilter">
           <Link href={filterUrl({ direction: 'outbound', status: null })} className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100">Utgående</Link>
           <Link href={filterUrl({ direction: 'inbound', status: null })} className="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-100">Inkommande</Link>
           <Link href={filterUrl({ status: 'failed', direction: null })} className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100">Misslyckade</Link>
           <Link href={filterUrl({ status: 'sent', direction: null })} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Skickade</Link>
           <Link href={filterUrl({ family: 'PRODAT', status: null, direction: null })} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100">PRODAT</Link>
+          </AdminActionsMenu>
         </div>
       </main>
     </div>

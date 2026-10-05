@@ -11,6 +11,7 @@ import {
   saveSettlementAreaDraftsAction,
   transitionSettlementAction,
 } from "./actions";
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,10 @@ export default async function PortfolioSettlementsPage({
   const companiesResult = await supabaseService
     .from("companies")
     .select("id,name")
+    .eq("status", "active")
+    .eq("lifecycle_status", "active")
+    .eq("is_active", true)
+    .is("archived_at", null)
     .order("name", { ascending: true });
   if (companiesResult.error) throw companiesResult.error;
   const companies = companiesResult.data ?? [];
@@ -493,7 +498,7 @@ export default async function PortfolioSettlementsPage({
                             {amount(row.management_fee_ore_per_kwh)} öre/kWh
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 font-bold">
-                            {row.status}
+                            {formatStatusLabel(row.status)}
                           </td>
                           <td className="min-w-[230px] space-y-2 px-4 py-3">
                             {transitions.map(([transition, label]) => (

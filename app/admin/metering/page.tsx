@@ -1,6 +1,6 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
@@ -24,17 +24,14 @@ type PageProps = {
 }
 
 export default async function AdminMeteringPage({ searchParams }: PageProps) {
- await requirePermissionServer('metering.read')
-
- const params = await searchParams
+ const [context, params] = await Promise.all([
+ requirePermissionServer('metering.read'),
+ searchParams,
+ ])
  const query = (params.q ?? '').trim()
 
- const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
- const companyScope = user ? await getOperationalCompanyScope(user.id) : null
- const companyId = companyScope?.companyId ?? null
+ const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyId = companyScope.companyId
 
  const [requests, values] = await Promise.all([
  listAllGridOwnerDataRequests({
@@ -54,16 +51,16 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  <AdminHeader
  title="Mätvärden"
  subtitle="Driftvy för mätvärdesbegäran, UTILTS-import, kvalitet och koppling till rätt anläggning, nätägare och kund."
- userEmail={user?.email ?? null}
+ userEmail={context.email}
  />
 
- <div className="space-y-6 p-8">
+ <div className="min-w-0 space-y-4 p-4 lg:p-6">
  <MeteringFilterBar query={query} />
  <MeteringOperationalSummary requests={requests} values={values} />
 
- <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_420px]">
+ <section className="space-y-4">
  <MeteringRequestsSection requests={requests} />
- <MeteringIngestForm />
+ <AdminDisclosurePanel id="metering-register-value" title="Registrera mätvärde manuellt" className="rounded-2xl border border-slate-200 bg-white p-4"><MeteringIngestForm /></AdminDisclosurePanel>
  </section>
 
  <MeteringValuesTable values={values} />

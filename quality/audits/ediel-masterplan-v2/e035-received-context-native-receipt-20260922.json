@@ -1,0 +1,21 @@
+{
+  "kind":"native-generation-not-final-pr-acceptance",
+  "base_sha":"c6e624e23b7894568b0435919d3abc3cd9659c3c",
+  "preparation_sha":"6400ccc253408e83357c54c63d52c926d3e6308b",
+  "run_id":35664024836,"job_id":106545606850,"conclusion":"success",
+  "artifact_id":10668686301,"artifact_bytes":3136127,"artifact_entries":20,
+  "artifact_sha256":"e6ea0ad916576eb5ea55c827951e873226d8d44bc4e53ced9f15ef0ffe4e3a3e",
+  "migration":"supabase/migrations/20260921224255_ediel_inbound_prodat_receive_context.sql",
+  "migration_sha256":"6a959ebee1af9759aeb224de4bc3a488116befd42a0208454b6dfe4e05022e2d",
+  "types_sha256":"b839bc610ff376fe78469cd7266de7a1d205022afa96c9924e2a9b1f0b4da6e8",
+  "schema_sha256":"d1bafaedc0dde57994f464281718fc7b6f258127d1f62f2fa55b5cce0e9bfa63",
+  "fingerprint_sha256":"9f32365e8edf7fbf233686a78c47dc5886eb52113a311b280cfb2a25112be062",
+  "native_log_sha256":"b5ee43bd8174c6f1133d29c82f56ef7741c028cef13da97ae41498e54d9a2e8a",
+  "targeted_log_sha256":"3f2b157fa13bd1a9969eba05b10b1171b35be938ad483cd5a08d4213c5fdb51a",
+  "sql":{"existing_passed":62,"new_passed":84,"upgrade_probes_passed":3},
+  "targeted_ts":{"writer":15,"reader":32,"outcomes":6,"passed":53,"failed":0},
+  "types_repeated_and_equal_base":true,"schema_repeated_and_exact_function_delta":true,
+  "unchanged_object_counts_grants_rls_triggers":true,
+  "temporary_preparation_files_adopted":false,"final_ordinary_ci":"PENDING","final_review":"PENDING",
+  "full_E035":"NOT_COMPLETE","full_F3":"NOT_COMPLETE","full_masterplan":"NOT_COMPLETE"
+}

@@ -303,6 +303,7 @@ export default function CustomerPortalApiDocumentationPage() {
             <a className="block hover:text-slate-950" href="#customer-portal">Customer Portal</a>
             <a className="block hover:text-slate-950" href="#partner-api">Partner API</a>
             <a className="block hover:text-slate-950" href="#webhooks">Webhooks</a>
+            <a className="block hover:text-slate-950" href="/developers/staff-api">Staff API</a>
             <a className="block hover:text-slate-950" href="#reliability">Reliability</a>
             <a className="block hover:text-slate-950" href="#errors">Errors</a>
             <a className="block hover:text-slate-950" href="#endpoints">Endpoint reference</a>
@@ -425,6 +426,19 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               The Customer Portal API exposes only data belonging to the verified linked customer identity. Use granular scopes and request only the capabilities your portal needs.
               Available resources include profile data, contracts, sites, invoices, metering values, documents, legal acceptances, powers of attorney, events and notifications.
+            </p>
+            <h3 className="text-lg font-semibold text-slate-950">Support cases and attachments</h3>
+            <p className="leading-7 text-slate-700">
+              Your support page can open cases, exchange messages and attach files with the explicit <code>customer_support.read</code> and <code>customer_support.write</code> scopes.
+              Your staff handle the same cases in OPS, including cases that continue over the phone. Only customer-visible messages and released files are returned; internal notes and staff-only files never are.
+              Upload a file as the raw request body (<code>application/pdf</code>, <code>image/png</code> or <code>image/jpeg</code>, at most 4&nbsp;MB) with an <code>Idempotency-Key</code>.
+              Every file is quarantined and released only after a content check; rejected files return <code>422 attachment_rejected</code> and are never served.
+            </p>
+            <h3 className="text-lg font-semibold text-slate-950">Verified customer login (optional)</h3>
+            <p className="leading-7 text-slate-700">
+              Your organization can let Gridex verify the end customer&apos;s own login (OPS → Inställningar → Kundinloggning). Your server then forwards the login&apos;s signed assertion in <code>x-gridex-customer-assertion</code>:
+              a compact JWS (RS256, PS256 or ES256) with your organization&apos;s <code>iss</code> and <code>aud</code>, <code>sub</code> = the linked portal user id, <code>exp</code> at most 15 minutes after <code>iat</code> and a unique <code>jti</code>.
+              In report mode a missing or invalid assertion is only logged; when verification is required the API returns <code>403 customer_assertion_required</code> or <code>403 customer_assertion_invalid</code>. Organizations without a configuration are unaffected.
             </p>
             <EndpointTable rows={customerPortalRows} />
           </Section>

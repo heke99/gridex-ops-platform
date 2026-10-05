@@ -189,7 +189,7 @@ describe('canonical base app URL', () => {
   })
 
   it('fails closed in production when no public app URL is configured', () => {
-    process.env.NODE_ENV = 'production'
+    process.env = { ...process.env, NODE_ENV: 'production' }
     delete process.env.NEXT_PUBLIC_APP_URL
     delete process.env.NEXT_PUBLIC_SITE_URL
     delete process.env.NEXT_PUBLIC_BASE_URL

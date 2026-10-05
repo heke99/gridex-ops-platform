@@ -1,7 +1,8 @@
 'use server'
 
+import { verifyElRegistryActor } from '@/lib/actor-registry/registryMarketSource'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { materializePlatformActorRoute, materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
@@ -136,6 +137,7 @@ export async function materializeCompanyGridOwnerRouteAction(formData: FormData)
         : { kind: 'error', code: result.reasonCode ?? 'route_materialization_failed' }
     }
   } catch (error) {
+    unstable_rethrow(error)
     await auditLaunchAction({
       actorUserId: context.userId,
       action: 'route_readiness.company_route_materialize_failed',
@@ -208,6 +210,7 @@ export async function bulkMaterializeOperationalRoutesAction(formData: FormData)
       }
     }
   } catch (error) {
+    unstable_rethrow(error)
     await auditLaunchAction({
       actorUserId: context.userId,
       action: 'route_readiness.bulk_materialize_failed',
@@ -262,6 +265,7 @@ export async function approveFirstProductionSendAction(formData: FormData) {
       }
     }
   } catch (error) {
+    unstable_rethrow(error)
     await auditLaunchAction({
       actorUserId: context.userId,
       action: 'route_readiness.production_approval_failed',
@@ -281,31 +285,9 @@ export async function verifyActorRouteForManualSendAction(formData: FormData) {
   const routeId = normalizeUuidOrNull(value(formData, 'routeId'), 'platform_actor_route_id')
   if (!actorId) throw new Error('Actor saknas.')
 
-  const actorUpdate = await supabaseService
-    .from('platform_market_actors')
-    .update({
-      status: 'active',
-      match_status: 'verified',
-      visible_to_tenants: true,
-      verified_at: new Date().toISOString(),
-      verified_by: context.userId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', actorId)
-  if (actorUpdate.error) throw actorUpdate.error
+  await verifyElRegistryActor({ actorUserId: context.userId, actorId, routeId })
 
   if (routeId) {
-    const routeUpdate = await supabaseService
-      .from('platform_actor_routes')
-      .update({
-        status: 'active',
-        is_verified: true,
-        auto_send_allowed: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', routeId)
-      .eq('actor_id', actorId)
-    if (routeUpdate.error) throw routeUpdate.error
     await materializePlatformActorRoute({
       platformActorRouteId: routeId,
       actorUserId: context.userId,
@@ -736,18 +718,7 @@ export async function bulkRouteReadinessByStatusAction(formData: FormData) {
   let affected = 0
   for (const row of rows) {
     if (bulkAction === 'verify_manual_send' && row.route_id) {
-      const actorUpdate = await supabaseService
-        .from('platform_market_actors')
-        .update({ status: 'active', match_status: 'verified', visible_to_tenants: true, verified_at: new Date().toISOString(), verified_by: context.userId, updated_at: new Date().toISOString() })
-        .eq('id', row.actor_id)
-      if (actorUpdate.error) throw actorUpdate.error
-
-      const routeUpdate = await supabaseService
-        .from('platform_actor_routes')
-        .update({ status: 'active', is_verified: true, auto_send_allowed: false, updated_at: new Date().toISOString() })
-        .eq('id', row.route_id)
-        .eq('actor_id', row.actor_id)
-      if (routeUpdate.error) throw routeUpdate.error
+      await verifyElRegistryActor({ actorUserId: context.userId, actorId: row.actor_id, routeId: row.route_id })
       await materializePlatformActorRoute({
         platformActorRouteId: row.route_id,
         actorUserId: context.userId,

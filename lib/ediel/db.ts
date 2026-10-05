@@ -1,3 +1,7 @@
+import { readBusinessAckStatus, readBusinessAckStatusForDisplay } from '@/lib/ediel/inbound/businessAckReadModel'
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/db.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -198,10 +202,6 @@ function payloadOutcomeOrNull(
   return value === 'positive' || value === 'negative' ? value : null
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
 function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
@@ -323,22 +323,39 @@ function referenceRowsForMessage(row: EdielMessageRow): Array<{
   reference_value: string
 }> {
   const parsed = row.parsed_payload ?? {}
-  const references = Array.isArray(parsed.references)
-    ? parsed.references as Array<{ qualifier?: unknown; value?: unknown }>
-    : []
+  let hasProdatWire = false
+  let wireDocumentReference: string | null = null
+  let references: Array<{ qualifier?: unknown; value?: unknown }> = Array.isArray(parsed.references)
+    ? parsed.references as Array<{ qualifier?: unknown; value?: unknown }> : []
+  if (row.message_family === 'PRODAT') {
+    try {
+      const wire = tokenizeEdifact(row.raw_payload)
+      hasProdatWire = wire.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+      if (hasProdatWire) {
+        references = prodatReferenceEntries(wire.segments, wire.una)
+        wireDocumentReference = prodatDocumentValue('203', wire.segments, wire.una)
+      }
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+      // The original message must remain available for syntax/quarantine review.
+      // Undecodable wire cannot publish an identity from a stale parsed fallback.
+      hasProdatWire = true
+      references = []
+    }
+  }
   const rff = (qualifier: string) =>
     references.find((item) => item.qualifier === qualifier && typeof item.value === 'string')?.value as string | undefined
 
   const values: Array<[string, string | null | undefined]> = [
     ['UNB_REF', row.interchange_reference],
-    ['BGM_REF', row.external_reference],
-    ['RFF_LI', rff('LI') ?? row.external_reference],
-    ['RFF_ACW', rff('ACW') ?? row.correlation_reference],
+    ['BGM_REF', hasProdatWire ? wireDocumentReference : row.external_reference],
+    ['RFF_LI', rff('LI') ?? (hasProdatWire ? null : row.external_reference)],
+    ['RFF_ACW', rff('ACW') ?? (hasProdatWire ? null : row.correlation_reference)],
     ['RFF_Z07', rff('Z07')],
-    ['RFF_TN', rff('TN') ?? row.transaction_reference],
-    ['DOC_REF', typeof parsed.documentReference === 'string' ? parsed.documentReference : null],
-    ['IDE', typeof parsed.transactionReference === 'string' ? parsed.transactionReference : row.transaction_reference],
-    ['PERMISSION_ID', typeof parsed.permissionId === 'string' ? parsed.permissionId : null],
+    ['RFF_TN', rff('TN') ?? (hasProdatWire ? null : row.transaction_reference)],
+    ['DOC_REF', hasProdatWire ? null : typeof parsed.documentReference === 'string' ? parsed.documentReference : null],
+    ['IDE', hasProdatWire ? null : typeof parsed.transactionReference === 'string' ? parsed.transactionReference : row.transaction_reference],
+    ['PERMISSION_ID', hasProdatWire ? rff('Z09') : typeof parsed.permissionId === 'string' ? parsed.permissionId : null],
     ['METERING_POINT_ID', typeof parsed.meteringPointId === 'string' ? parsed.meteringPointId : null],
   ]
 
@@ -455,11 +472,15 @@ export async function createEdielMessage(
     related_message_id: input.relatedMessageId ?? null,
 
     communication_route_id: input.communicationRouteId ?? null,
+    route_profile_id: input.routeProfileId ?? null,
+    canonical_rule_pack_id: input.canonicalRulePackId ?? null,
+    source_operation_id: input.sourceOperationId ?? null,
     rule_profile_key: input.ruleProfileKey ?? null,
     rule_profile_version_id: input.ruleProfileVersionId ?? null,
     rule_profile_version: input.ruleProfileVersion ?? null,
     rule_pack_checksum: input.rulePackChecksum ?? null,
     rule_pack_snapshot: ensureJson(input.rulePackSnapshot),
+    execution_context_snapshot: ensureJson(input.executionContextSnapshot),
     intent_id: input.intentId ?? null,
     party_id: input.partyId ?? null,
     party_address_id: input.partyAddressId ?? null,
@@ -554,95 +575,56 @@ export async function getEdielMessageById(
 
 export async function findSequencedAckForSource(params: {
   sourceMessageId: string
+  actorUserId: string
   ackFamily: 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative' | null
   sequenceField: 'relatedTransactionReference' | 'utiltsErrSequenceToken' | 'aperakSequenceToken'
   sequenceValue: string
 }): Promise<EdielMessageRow | null> {
-  const sequenceValue = params.sequenceValue.trim()
-  if (!sequenceValue) return null
-
-  let query = supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .eq('direction', 'outbound')
-    .eq('related_message_id', params.sourceMessageId)
-    .eq('message_family', params.ackFamily)
-    .eq(`parsed_payload->>${params.sequenceField}`, sequenceValue)
-    .not('status', 'in', '(cancelled,failed)')
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (params.outcome) {
-    query = query.eq('ack_outcome', params.outcome)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-
-  return ((data ?? [])[0] as EdielMessageRow | undefined) ?? null
+  const reference=params.sequenceValue
+  if(!reference.trim())return null
+  // Historical error-code sequencing does not identify an original IDE. Hold
+  // callers until they supply a physical source reference; never query caches.
+  if(params.sequenceField==='utiltsErrSequenceToken')throw new Error('ediel_ack_physical_transaction_reference_required')
+  const {findExistingAckForSource}=await import('@/lib/ediel/core/ackPolicy')
+  if(!params.actorUserId)throw new Error('ediel_existing_ack_original_current_actor_required')
+  return findExistingAckForSource({sourceMessageId:params.sourceMessageId,actorUserId:params.actorUserId,phase:'read',ackFamily:params.ackFamily,
+    outcome:params.outcome ?? undefined,ackScope:'transaction',transactionReference:reference})
 }
 
 export async function listAckMessagesForSource(params: {
   sourceMessageId: string
+  actorUserId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
   companyId?: string | null
 }): Promise<EdielMessageRow[]> {
-  const rowsBySource = await listAckMessagesForSources({
-    sourceMessageIds: [params.sourceMessageId],
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
-    companyId: params.companyId,
-  })
-
-  return rowsBySource.get(params.sourceMessageId) ?? []
+  const status = await readBusinessAckStatus(params)
+  return params.outcome ? status.messages.filter(row => inferAckOutcome(row) === params.outcome) : status.messages
 }
 
 export async function listAckMessagesForSources(params: {
   sourceMessageIds: string[]
+  actorUserId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
   companyId?: string | null
 }): Promise<Map<string, EdielMessageRow[]>> {
   const sourceMessageIds = Array.from(new Set(params.sourceMessageIds.filter(Boolean)))
-  const rowsBySource = new Map<string, EdielMessageRow[]>()
+  const pairs = await Promise.all(sourceMessageIds.map(async sourceMessageId => [sourceMessageId,
+    await listAckMessagesForSource({ ...params, sourceMessageId }),
+  ] as const))
+  return new Map(pairs)
+}
 
-  for (const sourceMessageId of sourceMessageIds) {
-    rowsBySource.set(sourceMessageId, [])
-  }
-
-  if (sourceMessageIds.length === 0) return rowsBySource
-
-  let query = supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .in('related_message_id', sourceMessageIds)
-    .in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
-
-  query = applyCompanyScope(query, params.companyId)
-
-  if (params.ackFamily) {
-    query = query.eq('message_family', params.ackFamily)
-  }
-
-  if (params.outcome) {
-    query = query.eq('ack_outcome', params.outcome)
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false })
-
-  if (error) throw error
-
-  const rows = (data ?? []) as EdielMessageRow[]
-  const filteredRows = params.outcome ? rows.filter((row) => inferAckOutcome(row) === params.outcome) : rows
-
-  for (const row of filteredRows) {
-    if (!row.related_message_id) continue
-    rowsBySource.get(row.related_message_id)?.push(row)
-  }
-
-  return rowsBySource
+export async function listBusinessAckStatusForSources(params: {
+  sourceMessageIds: string[]
+  actorUserId: string
+  companyId?: string | null
+}) {
+  const pairs = await Promise.all(Array.from(new Set(params.sourceMessageIds.filter(Boolean))).map(async sourceMessageId =>
+    [sourceMessageId, await readBusinessAckStatusForDisplay({ sourceMessageId, actorUserId: params.actorUserId, companyId: params.companyId })] as const))
+  return new Map(pairs)
 }
 
 export async function getEdielMessageAckStateById(

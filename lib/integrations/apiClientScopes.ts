@@ -2,12 +2,27 @@ export type ApiPermissionGroup = {
   groupKey: string
   label: string
   description: string
-  category: 'website' | 'portal' | 'events'
+  category: 'website' | 'portal' | 'events' | 'staff'
   scopes: string[]
   recommendedDefault: boolean
   riskLevel: 'low' | 'normal' | 'high'
   sortOrder: number
 }
+
+export const STAFF_API_SCOPES = [
+  'staff_users.read', 'staff_users.write', 'staff_customers.read', 'staff_customers.write',
+  'staff_cases.read', 'staff_cases.write',
+] as const
+
+/** Opt-in only; no existing group or recommended/default credential acquires staff access. */
+export const STAFF_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
+  { groupKey: 'staff_users', label: 'Personalkonton', description: 'Hantera personal med ett verifierat personalbevis och personalens aktuella rättigheter.',
+    category: 'staff', scopes: ['staff_users.read', 'staff_users.write'], recommendedDefault: false, riskLevel: 'high', sortOrder: 70 },
+  { groupKey: 'staff_customers', label: 'Personalens kundarbete', description: 'Läsa kunder och ändra kunduppgifter med personalens egna rättigheter.',
+    category: 'staff', scopes: ['staff_customers.read', 'staff_customers.write'], recommendedDefault: false, riskLevel: 'high', sortOrder: 80 },
+  { groupKey: 'staff_cases', label: 'Personalens ärendearbete', description: 'Hantera supportärenden, svar, anteckningar, samtal och bilagor som verifierad personal.',
+    category: 'staff', scopes: ['staff_cases.read', 'staff_cases.write'], recommendedDefault: false, riskLevel: 'high', sortOrder: 90 },
+]
 
 export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
@@ -173,6 +188,16 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     sortOrder: 50,
   },
   {
+    groupKey: 'customer_support',
+    label: 'Kundsupport',
+    description: 'Inloggad kund kan skapa och följa sina supportärenden och läsa kundsynliga svar. Interna anteckningar exponeras aldrig.',
+    category: 'portal',
+    scopes: ['customer_support.read', 'customer_support.write'],
+    recommendedDefault: false,
+    riskLevel: 'normal',
+    sortOrder: 55,
+  },
+  {
     groupKey: 'facility_power_of_attorney',
     label: 'Komplettera anläggning och fullmakt',
     description: 'Kommande mer granulär behörighet för kontaktuppgifter, anläggningsdata och fullmakt. Tills routes är helt uppdelade används customer_portal.write.',
@@ -182,6 +207,7 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     riskLevel: 'high',
     sortOrder: 60,
   },
+  ...STAFF_API_PERMISSION_GROUPS,
 ]
 
 export const CUSTOMER_PORTAL_SCOPES = [
@@ -215,6 +241,8 @@ export const CUSTOMER_PORTAL_SCOPES = [
   'customer_documents.write',
   'customer_notifications.read',
   'customer_notifications.write',
+  'customer_support.read',
+  'customer_support.write',
   'customer_contact.write',
   'customer_facility_data.write',
   'customer_power_of_attorney.write',

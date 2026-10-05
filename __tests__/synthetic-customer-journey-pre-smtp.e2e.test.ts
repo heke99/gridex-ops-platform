@@ -1,3 +1,4 @@
+import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { ApplicationSchema } from '@/lib/website/customerApplicationSchemas'
 import { contractLegalMailEvidenceReady } from '@/lib/website/contractLegalMailEvidence'
@@ -114,6 +115,8 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
       },
     })
 
+    if (!application.site) throw new Error('synthetic_application_site_required')
+
     expect(application.customer.first_name).toBe('Anna')
     expect(application.settlement.model).toBe('market_hourly')
     expect(application.powerOfAttorney?.scope).toContain('supplier_switch')
@@ -173,15 +176,17 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     const z03 = buildZ03Segments({
       mode: 'production',
       generatedAt: new Date(acceptedAt),
+      variant: 'L',
       context: {
         code: 'Z03',
+        reasonForTransaction: 'Z22',
         bgmReference: 'SYNTH-Z03-900001',
         transactionReference: 'SWITCH-900001',
         senderEdielId: '21660',
         receiverEdielId: '99999',
         customerName: 'Anna Andersson',
         customerId: '199001011234',
-        customerIdCodeListQualifier: 'Z01',
+        customerIdCodeListQualifier: 'SE2',
         meterPointId: '735999999999999999',
         gridAreaId: 'STH',
         startDate: '2026-09-01',
@@ -189,13 +194,28 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
         customerCity: 'Stockholm',
         customerPostalCode: '11122',
         customerCountry: 'SE',
+        siteAddress: application.site.street,
+        siteCity: application.site.city,
+        sitePostalCode: application.site.postal_code,
+        siteCountry: 'SE',
         powerOfAttorneyReference: 'POA-SYNTH-900001',
+        dependentConditionFacts: {
+          endUserAddressAvailable: true,
+          endUserAddressObjects:[selectedAddressFact('735999999999999999','00000000-0000-4000-8000-000000000001','9','199001011234',['Testgatan 1'],'SE2')],invoiceeObjects:[selectedInvoiceeFact('735999999999999999','00000000-0000-4000-8000-000000000001','9','199001011234',['Testgatan 1'],'SE2','11122','Stockholm')],
+          invoiceeAddressDiffersFromEndUser: false,
+          byCell: {
+            'Z03:233': true,
+            'Z03:234': true,
+          },
+        },
       },
     })
     expect(z03.issues.filter((issue) => issue.severity === 'error')).toEqual([])
     expect(z03.segments.some((segment) => segment.startsWith('BGM+Z03+'))).toBe(true)
     expect(z03.segments.some((segment) => segment.includes('735999999999999999'))).toBe(true)
     expect(z03.segments.some((segment) => segment.startsWith('RFF+ANJ:POA-SYNTH-900001'))).toBe(true)
+    expect(z03.segments.some((segment) => segment.startsWith('NAD+UD+199001011234:SE2:260++Anna Andersson'))).toBe(true)
+    expect(z03.segments).toContain('NAD+IT+735999999999999999::9+++Testgatan 1+Stockholm++11122+SE')
 
     const certificate = evaluateCertificateStatus({
       usage: 'outbound_recipient',
@@ -207,9 +227,38 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     expect(certificate.isUsableForSmime).toBe(true)
 
     const transportSource = readModuleFamily('lib/ediel/transport/index.ts')
-    const resolverUse = transportSource.indexOf('await resolveOutboundRecipientCertificate')
-    const smtpUse = transportSource.indexOf('sendEdielEmail(', resolverUse)
+    // The transport now sends through the dispatch fence. Keep this source
+    // contract tied to the S/MIME branch and follow the real helper chain.
+    expect(transportSource).toContain('const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {')
+    const smimeStart = transportSource.indexOf("else if (mimeMode === 'ediel-smime-enveloped')")
+    expect(smimeStart).toBeGreaterThan(-1)
+    const smimeEnd = transportSource.indexOf('} else if', smimeStart + 1)
+    expect(smimeEnd).toBeGreaterThan(smimeStart)
+    const smimeBranch = transportSource.slice(smimeStart, smimeEnd)
+    const resolverUse = smimeBranch.indexOf('resolveOutboundRecipientCertificate({')
+    const encryptionUse = smimeBranch.indexOf('await encryptSmimeEnvelopedData')
+    const recipientGate = smimeBranch.indexOf('if (!cmsRecipientInfo.expectedReceiverPresent)')
+    const recipientRejection = smimeBranch.indexOf('throw new Error(', recipientGate)
+    const smtpUse = smimeBranch.indexOf('await sendFenced(')
     expect(resolverUse).toBeGreaterThan(-1)
-    expect(smtpUse).toBeGreaterThan(resolverUse)
+    expect(smimeBranch.indexOf('await withTransportExceptionCertificateScope(')).toBeLessThan(resolverUse)
+    expect(encryptionUse).toBeGreaterThan(resolverUse)
+    expect(recipientGate).toBeGreaterThan(encryptionUse)
+    expect(recipientRejection).toBeGreaterThan(recipientGate)
+    expect(smtpUse).toBeGreaterThan(recipientRejection)
+
+    const fenceSource = readModuleFamily('lib/ediel/sources/correctionOutboundDispatch.ts')
+    expect(fenceSource).toContain("from '@/lib/email/sendEdielEmail'")
+    expect(fenceSource).toContain('if(!potential)return sendGenericFencedEdielEmail(input,context)')
+    const archiveEntry=fenceSource.indexOf('const entry={archiveContext:')
+    const fencedProvider=fenceSource.indexOf('await sendEdielEmail(input,entry)')
+    expect(archiveEntry).toBeGreaterThan(-1)
+    expect(fencedProvider).toBeGreaterThan(archiveEntry)
+    expect(fenceSource).toContain('beforeProviderCall:')
+    const helperSource = readModuleFamily('lib/email/sendEdielEmail.ts')
+    const archiveUse = helperSource.indexOf('await archiveTransportRawMime(raw, entry.archiveContext)')
+    const providerUse = helperSource.indexOf('await transporter.sendMail(')
+    expect(archiveUse).toBeGreaterThan(-1)
+    expect(providerUse).toBeGreaterThan(archiveUse)
   })
 })

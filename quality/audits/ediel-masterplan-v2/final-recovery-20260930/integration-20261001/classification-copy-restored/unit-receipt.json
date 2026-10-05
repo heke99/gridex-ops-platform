@@ -1,0 +1,329 @@
+{
+  "numTotalTestSuites": 2,
+  "numPassedTestSuites": 2,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 28,
+  "numPassedTests": 28,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1790845351303,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "uses server-selected own company and actual session actor for archive, preserving absent issuer qualification",
+          "status": "passed",
+          "title": "uses server-selected own company and actual session actor for archive, preserving absent issuer qualification",
+          "duration": 58.05120599999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "rejects caller company or actor authority fields before archival",
+          "status": "passed",
+          "title": "rejects caller company or actor authority fields before archival",
+          "duration": 3.164867000000072,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "denies missing current exact class even with all base operation grants",
+          "status": "passed",
+          "title": "denies missing current exact class even with all base operation grants",
+          "duration": 1.3492730000000392,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "allows read-only metadata while denying originals and review/purge mutation",
+          "status": "passed",
+          "title": "allows read-only metadata while denying originals and review/purge mutation",
+          "duration": 4.342761999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "preserves held current native review instead of creating approval",
+          "status": "passed",
+          "title": "preserves held current native review instead of creating approval",
+          "duration": 4.201810000000023,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "validates original bytes against actual returned native hash before download",
+          "status": "passed",
+          "title": "validates original bytes against actual returned native hash before download",
+          "duration": 16.375260000000026,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "denies foreign policy tuple without returning original data or attempting purge",
+          "status": "passed",
+          "title": "denies foreign policy tuple without returning original data or attempting purge",
+          "duration": 2.3586199999999735,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "does not reuse a previous session when current native role/grant is revoked",
+          "status": "passed",
+          "title": "does not reuse a previous session when current native role/grant is revoked",
+          "duration": 0.9666760000000068,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "rejects over-limit streamed request before original/archive access",
+          "status": "passed",
+          "title": "rejects over-limit streamed request before original/archive access",
+          "duration": 1.896743000000015,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1790845352180,
+      "endTime": 1790845352272.8967,
+      "status": "passed",
+      "message": "",
+      "name": "/workspace/scratch/29079c3a4297/gridex-transport-retention-restored/__tests__/ediel-decision-evidence-retention-http.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "archives exact document bytes with actual session actor and source selectors, never caller qualification",
+          "status": "passed",
+          "title": "archives exact document bytes with actual session actor and source selectors, never caller qualification",
+          "duration": 17.837640999999962,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace artifact_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace artifact_retention_decision_original_bytes",
+          "duration": 1.102312999999981,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace blob_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace blob_retention_decision_original_bytes",
+          "duration": 4.262283000000025,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace record_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace record_retention_decision_original_bytes",
+          "duration": 3.1002770000000055,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace process_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace process_retention_decision_original_bytes",
+          "duration": 1.4730769999999893,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace decision_evidence_policy_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace decision_evidence_policy_original_bytes",
+          "duration": 0.5104469999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace finance_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace finance_retention_decision_original_bytes",
+          "duration": 0.9161860000000388,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace invoice_file_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace invoice_file_retention_decision_original_bytes",
+          "duration": 0.4882349999999178,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace customer_retention_decision_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace customer_retention_decision_original_bytes",
+          "duration": 0.8044280000000299,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace life_event_classification_source_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace life_event_classification_source_original_bytes",
+          "duration": 0.8094470000000911,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace life_event_classification_receipt_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace life_event_classification_receipt_original_bytes",
+          "duration": 0.8862759999999525,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "keeps independent original namespace life_event_classification_revocation_original_bytes",
+          "status": "passed",
+          "title": "keeps independent original namespace life_event_classification_revocation_original_bytes",
+          "duration": 0.26811499999996613,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "denies missing current GoTrue actor before any mutation",
+          "status": "passed",
+          "title": "denies missing current GoTrue actor before any mutation",
+          "duration": 1.9309480000000576,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "rejects oversize document before archive or source read",
+          "status": "passed",
+          "title": "rejects oversize document before archive or source read",
+          "duration": 0.586447000000021,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "rejects inconsistent returned archive hash without treating a receipt as source authority",
+          "status": "passed",
+          "title": "rejects inconsistent returned archive hash without treating a receipt as source authority",
+          "duration": 1.5306039999999257,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "preserves native held separate review without synthesizing approval",
+          "status": "passed",
+          "title": "preserves native held separate review without synthesizing approval",
+          "duration": 1.2850210000000288,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "preserves a retained hash tombstone with unavailable bytes and no fresh authority",
+          "status": "passed",
+          "title": "preserves a retained hash tombstone with unavailable bytes and no fresh authority",
+          "duration": 1.9095409999999902,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "rejects foreign original scope without returning bytes",
+          "status": "passed",
+          "title": "rejects foreign original scope without returning bytes",
+          "duration": 0.5356669999999895,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "returns actual native completed replay without treating old policy as fresh approval",
+          "status": "passed",
+          "title": "returns actual native completed replay without treating old policy as fresh approval",
+          "duration": 1.0989519999999402,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1790845352150,
+      "endTime": 1790845352192.0989,
+      "status": "passed",
+      "message": "",
+      "name": "/workspace/scratch/29079c3a4297/gridex-transport-retention-restored/__tests__/ediel-decision-evidence-retention-port.test.ts"
+    }
+  ]
+}

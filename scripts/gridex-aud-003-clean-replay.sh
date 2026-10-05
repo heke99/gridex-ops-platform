@@ -8,6 +8,7 @@ SEED="$SUPABASE/seed.sql"
 LEDGER="$ROOT/scripts/gridex-aud-003-main-ledger.json"
 HISTORY="$ROOT/scripts/migration-history-manifest.json"
 HISTORY_ADDITIONS="$ROOT/scripts/migration-history-manifest.additions.json"
+HISTORY_RUNTIME_ADDITIONS="$ROOT/scripts/migration-history-manifest.runtime.additions.json"
 FOUNDATION_PLAN="$ROOT/scripts/gridex-aud-003-legacy-foundation.json"
 FOUNDATION_ADDITIONS="$ROOT/scripts/gridex-aud-003-legacy-foundation.additions.json"
 FOUNDATION_ORDER="$ROOT/scripts/gridex-aud-003-foundation-order.json"
@@ -15,17 +16,61 @@ NONCANONICAL="$ROOT/scripts/gridex-aud-003-noncanonical-artifacts.json"
 FINGERPRINT_SQL="$ROOT/scripts/gridex-aud-003-schema-fingerprint.sql"
 POA_LIVE_PREREQUISITE="$SUPABASE/bootstrap/20260824_powers_of_attorney_legal_bundle_version_document_prerequisite.sql"
 POA_LIVE_PREREQUISITE_SHA256="57a0d0ec161d53ec4c938af7621dac4d23d9cd7c867a32129ee9868f0589e753"
-EXPECTED_FINGERPRINT="a594bb02a06a96d6b1ba3d8233c066a7cae57c1984ca96272515d6498a514164"
+INBOUND_DEDUPE_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_inbound_email_dedupe_replay_prerequisite.sql"
+INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256="f41a8afa81c8e8327e89ae6a1a6c57b22d3bc9d0b94ea3af8891fa0cecb23f2a"
+INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_inbound_ediel_pipeline_replay_prerequisite.sql"
+INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256="9c896c658e924b96e3598b0b103ff74fd01ca24e117f7901707cbf3dfb32b64e"
+GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_grid_owner_name_key_replay_prerequisite.sql"
+GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="4cedc24155993c8e61616769ec02b712542d69cf5cd91d3aafe4fe016345316d"
+WHITE_LABEL_HYGIENE_REPLAY_SHIM="$SUPABASE/bootstrap/20260902_white_label_admin_membership_hygiene_replay_shim.sql"
+WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256="73db4904c17a721b756dfa56efc4e38005f46ea8d1e40d6d05f2367ce44ccf38"
+EXPECTED_FINGERPRINT="9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
-DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+# Supautils <=3.2.2 crashes on actual EXECUTE-denied calls for hint roles.
+# The vendor-fixed image preserves the real 42501 and every RLS/ACL test.
+# https://github.com/supabase/supautils/issues/214#issuecomment-5312009974
+REPLAY_POSTGRES_VERSION="17.6.1.155"
+REPLAY_PG_VERSION_PATH="$SUPABASE/.temp/postgres-version"
+REPLAY_PG_VERSION_BACKUP=""
+REPLAY_PG_VERSION_PINNED=""
+# Clean replay normally runs against the local Supabase stack. Where Docker is
+# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
+# that this script provisions with the Supabase-compatible surface instead. The
+# migration ordering, checksum pinning and fingerprint below are identical in
+# both modes; only how the empty database is obtained differs.
+EXTERNAL_DB="${GRIDEX_REPLAY_DB_URL:-}"
+SUPABASE_BOOTSTRAP="$ROOT/scripts/sql/gridex-supabase-compatible-bootstrap.sql"
+if [[ -n "$EXTERNAL_DB" ]]; then
+  DB_URL="$EXTERNAL_DB"
+else
+  DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+fi
+
+# The native catalog probe qualifies this actual clean stack. Its receipt stays
+# with already-redacted/uploaded browser evidence, and cannot claim old OIDs.
+if [[ -z "$EXTERNAL_DB" ]]; then
+  export GRIDEX_NATIVE_DATABASE_PHASE=clean
+  export GRIDEX_UTILTS_CATALOG_RECEIPT_PATH="$ROOT/e2e-artifacts/native/utilts-catalog-clean.json"
+  unset GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
+  mkdir -p "$ROOT/e2e-artifacts/native"
+fi
 
 cleanup(){
   set +e
-  supabase stop --no-backup >/dev/null 2>&1 || true
+  if [[ -z "${EXTERNAL_DB:-}" ]]; then
+    supabase stop --no-backup >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${REPLAY_PG_VERSION_PINNED:-}" ]]; then
+    if [[ -n "${REPLAY_PG_VERSION_BACKUP:-}" ]]; then
+      mv "$REPLAY_PG_VERSION_BACKUP" "$REPLAY_PG_VERSION_PATH"
+    else
+      rm -f "$REPLAY_PG_VERSION_PATH"
+    fi
+  fi
   rm -f "$MIGRATIONS"/*.sql
   cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
   cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
@@ -33,15 +78,35 @@ cleanup(){
 }
 trap cleanup EXIT
 
-command -v supabase >/dev/null
+if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi
 command -v psql >/dev/null
 command -v python3 >/dev/null
-for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE"; do
+for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
   test -f "$required" || { echo "missing replay provenance input: $required" >&2; exit 1; }
 done
 ACTUAL_POA_LIVE_PREREQUISITE_SHA256="$(sha256sum "$POA_LIVE_PREREQUISITE" | awk '{print $1}')"
 if [[ "$ACTUAL_POA_LIVE_PREREQUISITE_SHA256" != "$POA_LIVE_PREREQUISITE_SHA256" ]]; then
   echo "verified POA live-schema prerequisite checksum drift: $ACTUAL_POA_LIVE_PREREQUISITE_SHA256 != $POA_LIVE_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
+ACTUAL_INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256="$(sha256sum "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" | awk '{print $1}')"
+if [[ "$ACTUAL_INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256" != "$INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256" ]]; then
+  echo "verified inbound dedupe replay prerequisite checksum drift: $ACTUAL_INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256 != $INBOUND_DEDUPE_REPLAY_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
+ACTUAL_INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256="$(sha256sum "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" | awk '{print $1}')"
+if [[ "$ACTUAL_INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256" != "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256" ]]; then
+  echo "verified inbound EDIEL pipeline replay prerequisite checksum drift: $ACTUAL_INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256 != $INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
+ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="$(sha256sum "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" | awk '{print $1}')"
+if [[ "$ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" != "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" ]]; then
+  echo "verified grid-owner name-key replay prerequisite checksum drift: $ACTUAL_GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256 != $GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256" >&2
+  exit 1
+fi
+ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256="$(sha256sum "$WHITE_LABEL_HYGIENE_REPLAY_SHIM" | awk '{print $1}')"
+if [[ "$ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" != "$WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" ]]; then
+  echo "verified white-label hygiene replay shim checksum drift: $ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256 != $WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" >&2
   exit 1
 fi
 
@@ -60,27 +125,37 @@ rm -f "$MIGRATIONS"/*.sql
 # 6) restore the checksum-pinned, verified-live POA document binding immediately before the first
 #    timestamped migration that consumes it; this reconciles live schema provenance without rewriting
 #    the already-applied 20260824140830 migration;
-# 7) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
-python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
+# 7) reconstruct the checksum-pinned inbound dedupe columns sourced from the historical non-ledger
+#    20260615 migration immediately before 20260902093000 consumes raw_message_sha256;
+# 8) reconstruct the source-defined Batch 7A inbound parser relations immediately before the recovered
+#    20260902096000 tenant-attribution migration carries company ownership down the inbound pipeline;
+# 9) reconstruct only gridex_grid_owner_name_key immediately before 20260902100000 hardens it;
+#    the full canonical 20260902100045 source still replays later and remains authoritative;
+# 10) when canonical clean replay intentionally lacks white_label_platform_memberships, create a
+#    fail-closed helper only while 20260902100500 applies privilege hygiene, then remove that shim;
+# 11) recreate the observed dev ledger only through Supabase CLI-owned no-op markers.
+python3 - "$HISTORY" "$HISTORY_ADDITIONS" "$HISTORY_RUNTIME_ADDITIONS" "$FOUNDATION_PLAN" "$FOUNDATION_ADDITIONS" "$FOUNDATION_ORDER" "$NONCANONICAL" "$SUPABASE" "$HOLD" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" <<'PY'
 import hashlib,json,pathlib,re,sys
 history_path=pathlib.Path(sys.argv[1])
 history_add_path=pathlib.Path(sys.argv[2])
-plan_path=pathlib.Path(sys.argv[3])
-plan_add_path=pathlib.Path(sys.argv[4])
-order_path=pathlib.Path(sys.argv[5])
-noncanonical_path=pathlib.Path(sys.argv[6])
-supabase=pathlib.Path(sys.argv[7])
-hold=pathlib.Path(sys.argv[8])
-foundation_out=pathlib.Path(sys.argv[9])
-timestamp_out=pathlib.Path(sys.argv[10])
+history_runtime_add_path=pathlib.Path(sys.argv[3])
+plan_path=pathlib.Path(sys.argv[4])
+plan_add_path=pathlib.Path(sys.argv[5])
+order_path=pathlib.Path(sys.argv[6])
+noncanonical_path=pathlib.Path(sys.argv[7])
+supabase=pathlib.Path(sys.argv[8])
+hold=pathlib.Path(sys.argv[9])
+foundation_out=pathlib.Path(sys.argv[10])
+timestamp_out=pathlib.Path(sys.argv[11])
 
 history=json.loads(history_path.read_text())
 history_add=json.loads(history_add_path.read_text()) if history_add_path.exists() else {'files':{}}
+history_runtime_add=json.loads(history_runtime_add_path.read_text()) if history_runtime_add_path.exists() else {'files':{}}
 plan=json.loads(plan_path.read_text())
 plan_add=json.loads(plan_add_path.read_text()) if plan_add_path.exists() else {'foundation':[],'derivedBootstrap':{},'interleaved':[]}
 order=json.loads(order_path.read_text())
 noncanonical=json.loads(noncanonical_path.read_text())
-checksums={**history.get('files',{}),**history_add.get('files',{})}
+checksums={**history.get('files',{}),**history_add.get('files',{}),**history_runtime_add.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
 derived={**(plan.get('derivedBootstrap') or {}),**(plan_add.get('derivedBootstrap') or {})}
 declared=set([*(plan.get('foundation') or []),*(plan_add.get('foundation') or [])])
@@ -213,25 +288,81 @@ for e in entries:
     last=version
     (out/f'{version}_{name}.sql').write_text('-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n')
 PY
-cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
-
-# Supabase CLI owns the official ledger from the beginning so later governance
-# migrations can inspect it. Marker migrations are no-op SQL and carry exactly
-# the checksum-pinned dev-ledger versions verified below.
-supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+if [[ -z "$EXTERNAL_DB" ]]; then
+  cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
+  # Supabase CLI owns the official ledger from the beginning so later governance
+  # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
+  # the checksum-pinned dev-ledger versions verified below.
+  # Only this already-disposable local stack uses the image override. A
+  # linked/production project is not upgraded and no database GUC is changed.
+  python3 -c 'import pathlib,tomllib; assert tomllib.loads(pathlib.Path("supabase/config.toml").read_text())["db"]["major_version"] == 17'
+  if [[ -L "$REPLAY_PG_VERSION_PATH" ]]; then
+    echo "refusing symlinked local PostgreSQL version pin" >&2; exit 1
+  fi
+  if [[ -e "$REPLAY_PG_VERSION_PATH" ]]; then
+    test -f "$REPLAY_PG_VERSION_PATH"
+    REPLAY_PG_VERSION_BACKUP="$(mktemp)"
+    cp -p "$REPLAY_PG_VERSION_PATH" "$REPLAY_PG_VERSION_BACKUP"
+  fi
+  mkdir -p "$SUPABASE/.temp"
+  REPLAY_PG_VERSION_PINNED=1
+  printf '%s' "$REPLAY_POSTGRES_VERSION" > "$REPLAY_PG_VERSION_PATH"
+  echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
+  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+else
+  # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
+  # official ledger is deliberately left untouched: writing it by hand would
+  # make the verification below assert rows this script had just invented.
+  # External mode therefore carries NO ledger provenance and is a diagnostic
+  # replay of the schema only.
+  echo "[GRIDEX-REM-002 replay] provisioning Supabase-compatible surface on the external database"
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
+fi
 
 apply_sql(){
   local file="$1"
   test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
   echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
+  if [[ "${file##*/}" == 20261001000500_ediel_artifact_retention_decision_and_purge.sql ]]; then
+    psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$ROOT/scripts/sql/ediel-retention-replay-role-diagnostic.sql"
+  fi
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
 poa_live_prerequisite_applied=false
+inbound_dedupe_replay_prerequisite_applied=false
+inbound_ediel_pipeline_replay_prerequisite_applied=false
+grid_owner_name_key_replay_prerequisite_applied=false
+white_label_hygiene_boundary_reached=false
+white_label_hygiene_replay_shim_applied=false
 while IFS= read -r file; do
   if [[ "$(basename "$file")" == 20260824140830_* ]]; then
     apply_sql "$POA_LIVE_PREREQUISITE"
     poa_live_prerequisite_applied=true
+  fi
+  if [[ "$(basename "$file")" == 20260902093000_* ]]; then
+    apply_sql "$INBOUND_DEDUPE_REPLAY_PREREQUISITE"
+    inbound_dedupe_replay_prerequisite_applied=true
+  fi
+  if [[ "$(basename "$file")" == 20260902096000_* ]]; then
+    apply_sql "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE"
+    inbound_ediel_pipeline_replay_prerequisite_applied=true
+  fi
+  if [[ "$(basename "$file")" == 20260902100000_* ]]; then
+    apply_sql "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE"
+    grid_owner_name_key_replay_prerequisite_applied=true
+  fi
+  if [[ "$(basename "$file")" == 20260902100500_* ]]; then
+    white_label_hygiene_boundary_reached=true
+    if [[ "$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -c "select case when to_regclass('public.white_label_platform_memberships') is null and to_regprocedure('public.gridex_user_has_white_label_admin_membership(uuid)') is null then 'yes' else 'no' end")" == "yes" ]]; then
+      apply_sql "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"
+      white_label_hygiene_replay_shim_applied=true
+    fi
+    apply_sql "$file"
+    if [[ "$white_label_hygiene_replay_shim_applied" == true ]]; then
+      psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "drop function if exists public.gridex_user_has_white_label_admin_membership(uuid);"
+    fi
+    continue
   fi
   apply_sql "$file"
 done < "$TIMESTAMP_EXEC"
@@ -239,7 +370,26 @@ if [[ "$poa_live_prerequisite_applied" != true ]]; then
   echo "verified POA live-schema prerequisite boundary was not reached before 20260824140830" >&2
   exit 1
 fi
+if [[ "$inbound_dedupe_replay_prerequisite_applied" != true ]]; then
+  echo "verified inbound dedupe replay prerequisite boundary was not reached before 20260902093000" >&2
+  exit 1
+fi
+if [[ "$inbound_ediel_pipeline_replay_prerequisite_applied" != true ]]; then
+  echo "verified inbound EDIEL pipeline replay prerequisite boundary was not reached before 20260902096000" >&2
+  exit 1
+fi
+if [[ "$grid_owner_name_key_replay_prerequisite_applied" != true ]]; then
+  echo "verified grid-owner name-key replay prerequisite boundary was not reached before 20260902100000" >&2
+  exit 1
+fi
+if [[ "$white_label_hygiene_boundary_reached" != true ]]; then
+  echo "verified white-label hygiene replay boundary was not reached at 20260902100500" >&2
+  exit 1
+fi
 
+if [[ -n "$EXTERNAL_DB" ]]; then
+  echo "[GRIDEX-REM-002 replay] external mode: NO ledger provenance. The CLI-owned official ledger is not reproduced and not verified; this run proves schema reconstruction only and must not be cited as canonical provenance."
+else
 python3 - "$LEDGER" "$DB_URL" <<'PY'
 import json,subprocess,sys
 ledger=json.load(open(sys.argv[1])); db=sys.argv[2]
@@ -250,6 +400,7 @@ if actual != expected:
     print('official ledger mismatch after Supabase CLI marker replay',file=sys.stderr); print('expected:',expected,file=sys.stderr); print('actual:',actual,file=sys.stderr); raise SystemExit(1)
 print(f'[GRIDEX-REM-002 replay] Supabase CLI ledger verified: {len(actual)} official rows')
 PY
+fi
 
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 select
@@ -280,4 +431,15 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[GRIDEX-REM-002 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
+# The historical August migration seeds readiness before subsequent canonical
+# functions and RLS policies exist. Refresh from real catalog evidence only
+# after every checksum-pinned replay input has applied; never force a ready bit.
+REPLAY_MIGRATION_VERSION="$(python3 - "$TIMESTAMP_EXEC" <<'PY'
+import pathlib,re,sys
+names=[pathlib.Path(line).name for line in pathlib.Path(sys.argv[1]).read_text().splitlines()]
+print(max(name[:14] for name in names if re.match(r'^\d{14}_',name)))
+PY
+)"
+psql "$DB_URL" -X -v ON_ERROR_STOP=1 -v replay_migration_version="$REPLAY_MIGRATION_VERSION" \
+  -f "$ROOT/scripts/sql/gridex-replay-refresh-runtime-readiness.sql"
 echo '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger'

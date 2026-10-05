@@ -74,14 +74,14 @@ function roleFromRpcRow(row: UserRoleRpcRow): string | null {
   return resolveRoleKey(row)
 }
 
-async function isPlatformAdminUser(userId: string): Promise<boolean> {
+const isPlatformAdminUser = cache(async function isPlatformAdminUser(userId: string): Promise<boolean> {
   const { data, error } = await supabaseService.rpc('gridex_get_user_roles', { p_user_id: userId })
   if (error || !Array.isArray(data)) return false
 
   return (data as UserRoleRpcRow[])
     .map(roleFromRpcRow)
     .some(isPlatformAdminRole)
-}
+})
 
 async function getSelectedMembershipCompany(
   memberships: CompanyMembershipSummary[]
@@ -137,6 +137,16 @@ export const listOperationalCompaniesForUser = cache(async function listOperatio
     .filter((row) => isCompanyVisibleInTenantWorkspace(row.companyStatus))
 })
 
+export const TENANT_COMPANY_REQUIRED_MESSAGE =
+  'Kontot saknar ett bolag som är aktivt, under onboarding eller tillfälligt pausat. Kontakta er administratör för att få tillgång.'
+
+export class TenantCompanyRequiredError extends Error {
+  constructor() {
+    super(TENANT_COMPANY_REQUIRED_MESSAGE)
+    this.name = 'TenantCompanyRequiredError'
+  }
+}
+
 export const getOperationalCompanyScope = cache(async function getOperationalCompanyScope(
   userId: string
 ): Promise<OperationalCompanyScope> {
@@ -155,6 +165,11 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
   }
 
   if (memberships.length === 0) {
+    // Callers read companyId=null as "all companies" (platform view). A tenant
+    // user without an operational company must never get that, so fail closed.
+    if (!(await isPlatformAdminUser(userId))) {
+      throw new TenantCompanyRequiredError()
+    }
     return {
       companyId: null,
       companyName: null,
@@ -199,7 +214,7 @@ export async function assertUserCanOperateCompany(
   if (await isPlatformAdminUser(userId)) {
     const { data, error } = await supabaseService
       .from('companies')
-      .select('id')
+      .select('id, status')
       .eq('id', normalized)
       .maybeSingle()
 
@@ -208,7 +223,17 @@ export async function assertUserCanOperateCompany(
       throw error
     }
 
-    if (data?.id) return normalized
+    if (!data?.id) {
+      throw new Error('Det valda elhandelsbolaget finns inte.')
+    }
+
+    if (!isCompanyWritableInTenantWorkspace(data.status)) {
+      throw new Error(
+        'Bolaget är pausat eller inte operativt. Vanliga driftåtgärder är blockerade även för platform admin tills bolaget återaktiveras via tenantstyrningen.'
+      )
+    }
+
+    return normalized
   }
 
   const memberships = await listOperationalCompaniesForUser(userId)

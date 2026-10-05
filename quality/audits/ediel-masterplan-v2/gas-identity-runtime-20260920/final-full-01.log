@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 test
+> vitest run --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/full-01.json
+
+JSON report written to /workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/full-01.json

@@ -20,6 +20,7 @@ import type {
 import { gridexBlockerLabel } from "@/lib/ediel/businessLabels";
 import type { EdielDispatchStateResult } from "@/lib/ediel/intent/dispatchState";
 import type { ManualRequestSummary } from "@/lib/customer-operations/manualRequestSummary";
+import type { EdielProcessNextAction } from "@/lib/ediel/operations/processNextAction";
 
 export type WorkflowStepStatus =
   | "done"
@@ -54,6 +55,19 @@ export type WorkflowSecondaryAction = {
   href?: string;
 };
 
+/** OPS-02: what the customer card shows the process is waiting for, taken from
+ * the native process decision (reason, time basis, responsibility, blockers). */
+export type CustomerCardProcessDecision = {
+  cause: EdielProcessNextAction["cause"];
+  responsibility: EdielProcessNextAction["responsibility"];
+  waitingFor: readonly string[];
+  blockers: readonly string[];
+  allowedActions: EdielProcessNextAction["allowedActions"];
+  summary: string;
+  businessDueAt: string | null;
+  technicalDueAt: string | null;
+};
+
 export type CustomerCardWorkflow = {
   primaryStatus: string;
   adminMessage: string;
@@ -69,6 +83,11 @@ export type CustomerCardWorkflow = {
   outboundStatus: string | null;
   edielMessageStatus: string | null;
   latestMessageId: string | null;
+  // Null when no process decision exists for the open request's source message.
+  processDecision: CustomerCardProcessDecision | null;
+  // True when decisions were read but none exists for a sent request: the card
+  // holds instead of deriving "waiting" from the static request status.
+  processDecisionMissing: boolean;
   canShowTechnicalActions: boolean;
   canRunRepair: boolean;
   canContinueFinalization: boolean;
@@ -198,7 +217,28 @@ export type CustomerCardWorkflowInput = {
   // When provided, "waiting for grid owner" is derived from a real queued/sent
   // state, never from a legacy `ready_to_send` or a queued outbound_requests row.
   dispatchState?: EdielDispatchStateResult | null;
+  // OPS-02: native process decisions keyed by Ediel source message id
+  // (readEdielProcessNextActions). When provided they decide waiting, response
+  // and blockers; a static `waiting_for_*` status never does.
+  processDecisions?: ReadonlyMap<string, EdielProcessNextAction> | null;
 };
+
+const STATIC_WAITING_STATUSES = [
+  "sent_to_grid_owner",
+  "waiting_for_z02",
+  "waiting_for_aperak",
+  "waiting_for_contrl",
+];
+
+function processDecisionStepStatus(decision: EdielProcessNextAction): WorkflowStepStatus {
+  if (decision.cause === "business_response_received") return "done";
+  if (
+    decision.blockers.length > 0 ||
+    ["business_response_rejected", "technical_rejection", "source_context_held"].includes(decision.cause)
+  )
+    return "blocked";
+  return "waiting";
+}
 
 export function buildCustomerCardWorkflow(
   input: CustomerCardWorkflowInput,
@@ -252,6 +292,16 @@ export function buildCustomerCardWorkflow(
   ].includes(manualStatus ?? "");
 
   const infoStatus = openInfoRequest?.status ?? null;
+  const processDecisionsProvided = Boolean(input.processDecisions);
+  const processDecision =
+    processDecisionsProvided && openInfoRequest?.ediel_message_id
+      ? input.processDecisions?.get(openInfoRequest.ediel_message_id) ?? null
+      : null;
+  const processStepStatus = processDecision ? processDecisionStepStatus(processDecision) : null;
+  const staticWaiting = STATIC_WAITING_STATUSES.includes(infoStatus ?? "");
+  const processDecisionMissing = processDecisionsProvided && !processDecision && staticWaiting;
+  const processHeldExplanation =
+    "Processbeslut saknas för det skickade meddelandet. Systemet visar inte väntan utifrån en statisk status.";
   const blockerCode = asString(openInfoRequest?.blocker_code);
   const blockerReason = asString(openInfoRequest?.blocker_reason);
 
@@ -376,7 +426,14 @@ export function buildCustomerCardWorkflow(
     "Systemet har inte begärt uppgifter från nätägaren ännu.";
   let dataRequestBlocker: string | null = null;
 
-  if (openInfoRequest) {
+  if (openInfoRequest && processDecision && processStepStatus) {
+    dataRequestStatus = processStepStatus;
+    dataRequestExplanation = processDecision.summary;
+    dataRequestBlocker = processDecision.blockers.length ? processDecision.blockers.join(", ") : null;
+  } else if (openInfoRequest && processDecisionMissing) {
+    dataRequestStatus = "current";
+    dataRequestExplanation = processHeldExplanation;
+  } else if (openInfoRequest) {
     if (
       ["completed", "z02_received", "ready_for_switch"].includes(
         infoStatus ?? "",
@@ -483,32 +540,33 @@ export function buildCustomerCardWorkflow(
   });
 
   // Step 6: Väntar på svar
-  const isWaiting = [
-    "sent_to_grid_owner",
-    "waiting_for_z02",
-    "waiting_for_aperak",
-    "waiting_for_contrl",
-  ].includes(infoStatus ?? "");
-  const responseReceived = [
-    "z02_received",
-    "ready_for_switch",
-    "completed",
-  ].includes(infoStatus ?? "");
+  const isWaiting = processStepStatus
+    ? processStepStatus === "waiting"
+    : !processDecisionMissing && staticWaiting;
+  const responseReceived = processStepStatus
+    ? processStepStatus === "done"
+    : ["z02_received", "ready_for_switch", "completed"].includes(infoStatus ?? "");
   steps.push({
     id: "waiting_response",
     label: "Väntar på svar från nätägare",
-    explanation: responseReceived
-      ? "Svar mottaget från nätägaren."
-      : isWaiting
-        ? "Vi väntar på svar från nätägaren."
-        : "Inte skickat ännu.",
-    status: responseReceived ? "done" : isWaiting ? "waiting" : "not_started",
+    explanation: processDecision
+      ? processDecision.summary
+      : processDecisionMissing
+        ? processHeldExplanation
+        : responseReceived
+          ? "Svar mottaget från nätägaren."
+          : isWaiting
+            ? "Vi väntar på svar från nätägaren."
+            : "Inte skickat ännu.",
+    status: processStepStatus ?? (processDecisionMissing ? "current" : responseReceived ? "done" : isWaiting ? "waiting" : "not_started"),
+    timestamp: processDecision?.timeBasis.businessDueAt ?? null,
+    blockerReason: processDecision?.blockers.length ? processDecision.blockers.join(", ") : null,
   });
 
   // Step 7: Nästa steg
-  const hasResponseForSwitch = ["z02_received", "ready_for_switch"].includes(
-    infoStatus ?? "",
-  );
+  const hasResponseForSwitch = processStepStatus
+    ? processStepStatus === "done"
+    : ["z02_received", "ready_for_switch"].includes(infoStatus ?? "");
   const hasPendingSwitch = Boolean(activeSwitchRequest);
   steps.push({
     id: "next_step",
@@ -615,7 +673,7 @@ export function buildCustomerCardWorkflow(
     id: "customer_info_request",
     label: "Customer info request",
     explanation: openInfoRequest ? "Customer info request finns." : "Customer info request är inte skapad ännu.",
-    status: openInfoRequest ? infoRequestToStepStatus(infoStatus) : "not_started",
+    status: openInfoRequest ? processStepStatus ?? (processDecisionMissing ? "current" : infoRequestToStepStatus(infoStatus)) : "not_started",
     messageId: isPlatformAdmin ? openInfoRequest?.id ?? null : null,
   });
   steps.push({
@@ -677,11 +735,22 @@ export function buildCustomerCardWorkflow(
           : "EDIEL-utskicket är inte skickat ännu.",
     status: facilityDispatchSent ? "done" : facilityDispatchQueued ? "current" : isWaiting ? "waiting" : "not_started",
   });
+  const acknowledgementStep = (id: string, label: string, value: string | null | undefined): CustomerWorkflowStep => ({
+    id, label,
+    explanation: value === 'received' ? 'Kvittens är mottagen.'
+      : value === 'failed' ? 'Negativ kvittens är mottagen och behöver åtgärdas.'
+        : value === 'not_required' ? 'Kvittens krävs inte för detta meddelande.'
+          : facilityDispatchSent ? 'Kvittens inväntas separat från affärssvaret.' : 'Begäran är inte skickad ännu.',
+    status: value === 'received' || value === 'not_required' ? 'done'
+      : value === 'failed' ? 'blocked' : facilityDispatchSent ? 'waiting' : 'not_started',
+  });
+  steps.push(acknowledgementStep('ack_status', 'Teknisk kvittens', dispatchState?.acknowledgements?.technical));
+  steps.push(acknowledgementStep('application_ack_status', 'Applikationskvittens', dispatchState?.acknowledgements?.application));
   steps.push({
-    id: "ack_status",
-    label: "CONTRL/APERAK status",
-    explanation: responseReceived ? "Svar/kvittens är mottagen." : "Kvittens inväntas när meddelandet är skickat.",
-    status: responseReceived ? "done" : isWaiting ? "waiting" : "not_started",
+    id: 'business_response_status', label: 'Affärssvar',
+    explanation: responseReceived ? 'Nätägarens uppgiftssvar är mottaget.'
+      : facilityDispatchSent ? 'Nätägarens uppgiftssvar inväntas.' : 'Begäran är inte skickad ännu.',
+    status: responseReceived ? 'done' : facilityDispatchSent ? 'waiting' : 'not_started',
   });
   steps.push({
     id: "supplier_switch",
@@ -728,6 +797,13 @@ export function buildCustomerCardWorkflow(
         : "Nätägarbegäran är redo och förbereds för sändning. Ingen åtgärd krävs.";
       nextRequiredAction = "Systemet köar och skickar begäran automatiskt.";
     }
+  } else if (processStepStatus === "blocked" && processDecision) {
+    primaryAction = "review_blocker";
+    adminMessage = processDecision.summary;
+    nextRequiredAction = processDecision.blockers.length ? processDecision.blockers.join(", ") : null;
+  } else if (processDecisionMissing) {
+    primaryAction = "review_blocker";
+    adminMessage = processHeldExplanation;
   } else if (hasResponseForSwitch) {
     primaryAction = "create_supplier_switch";
     adminMessage = "Uppgifter mottagna. Starta leverantörsbyte när du är redo.";
@@ -838,6 +914,19 @@ export function buildCustomerCardWorkflow(
     outboundStatus: outboundRequestId ? "exists" : null,
     edielMessageStatus: edielMessageId ? "exists" : null,
     latestMessageId: edielMessageId ?? null,
+    processDecision: processDecision
+      ? {
+          cause: processDecision.cause,
+          responsibility: processDecision.responsibility,
+          waitingFor: processDecision.waitingFor,
+          blockers: processDecision.blockers,
+          allowedActions: processDecision.allowedActions,
+          summary: processDecision.summary,
+          businessDueAt: processDecision.timeBasis.businessDueAt,
+          technicalDueAt: processDecision.timeBasis.technicalDueAt,
+        }
+      : null,
+    processDecisionMissing,
     canShowTechnicalActions: isPlatformAdmin,
     canRunRepair,
     canContinueFinalization,

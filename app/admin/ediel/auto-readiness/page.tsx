@@ -472,33 +472,39 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
         ) : null}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-4">
+      <section className="grid gap-4 lg:grid-cols-2">
         <form action={runActorReadinessBackfillAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Backfilla och verifiera</h2>
-          <p className="mt-1 text-sm text-slate-600">Matchar XML-importerad aktörsdata, verifierar säkra PRODAT/UTILTS-routes och skapar certifikat-checkar.</p>
+          <h2 className="text-base font-semibold text-slate-950">1. Backfilla och verifiera</h2>
+          <p className="mt-1 text-sm text-slate-600">Matchar importerad aktörsdata, verifierar säkra PRODAT/UTILTS-routes och skapar certifikatkontroller.</p>
           <button className="mt-4 rounded-xl bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">Kör backfill nu</button>
         </form>
-        <form action={refreshActorCertificatesAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Kontrollera certifikat</h2>
-          <p className="mt-1 text-sm text-slate-600">Söker mottagarcertifikat bara för blockerade elnät i supplier-switch scope. Gas, systemleverantörer och övriga roller skannas inte här.</p>
-          <button className="mt-4 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Kontrollera igen</button>
-        </form>
-        <form action={confirmSafeBlankSubaddressesAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Bekräfta tom subadress</h2>
-          <p className="mt-1 text-sm text-slate-600">Markerar bara unika, verifierade PRODAT/UTILTS-routes där registret visar att subadress inte krävs. Ingen fake-subadress skapas.</p>
-          <button className="mt-4 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Bekräfta säkra routes</button>
-        </form>
         <form action={applyActorAutoSendReadinessAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Försök aktivera auto-send</h2>
-          <p className="mt-1 text-sm text-slate-600">Aktiverar bara routes där readiness är grön. PRODAT kräver giltigt mottagarcertifikat.</p>
+          <h2 className="text-base font-semibold text-slate-950">2. Aktivera automatiskt skick</h2>
+          <p className="mt-1 text-sm text-slate-600">Aktiverar bara routes där allt är grönt. PRODAT kräver giltigt mottagarcertifikat.</p>
           <button className="mt-4 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Aktivera där säkert</button>
         </form>
       </section>
 
+      <details className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-800">Fler kontroller</summary>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <form action={refreshActorCertificatesAction}>
+            <h3 className="text-sm font-semibold text-slate-950">Kontrollera certifikat</h3>
+            <p className="mt-1 text-sm text-slate-600">Söker mottagarcertifikat för blockerade elnät som behövs för leverantörsbyten.</p>
+            <button className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Kontrollera igen</button>
+          </form>
+          <form action={confirmSafeBlankSubaddressesAction}>
+            <h3 className="text-sm font-semibold text-slate-950">Bekräfta tom subadress</h3>
+            <p className="mt-1 text-sm text-slate-600">Markerar unika, verifierade routes där registret visar att subadress inte krävs.</p>
+            <button className="mt-3 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Bekräfta säkra routes</button>
+          </form>
+        </div>
+      </details>
+
       <form className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" action="/admin/ediel/auto-readiness">
         <div className="grid gap-3 md:grid-cols-5">
           <label className="text-xs font-bold text-slate-700">Roll
-            <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+            <select aria-label="Roll" name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="all">Alla roller</option>
               <option value="grid_owner">Nätägare</option>
               <option value="electricity_supplier">Elleverantörer</option>
@@ -509,7 +515,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Route-scope
-            <select name="family" defaultValue={familyFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+            <select aria-label="Route-scope" name="family" defaultValue={familyFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="electricity">Elhandel: PRODAT/UTILTS utan GAS</option>
               <option value="PRODAT">PRODAT</option>
               <option value="UTILTS">UTILTS</option>
@@ -518,7 +524,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Readiness
-            <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+            <select aria-label="Readiness" name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="all">Alla statusar</option>
               <option value="ready">Klar</option>
               <option value="partial">Delvis klar</option>
@@ -528,7 +534,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Sök
-            <input name="q" defaultValue={params.q ?? ''} placeholder="Aktör, Ediel-ID, SMTP..." className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+            <input aria-label="Sök" name="q" defaultValue={params.q ?? ''} placeholder="Aktör, Ediel-ID, SMTP..." className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs" />
           </label>
           <div className="flex items-end gap-2">
             <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>

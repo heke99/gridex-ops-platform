@@ -1,0 +1,11 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z09b-z09d-supplier-20261005
+
+ ✓ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts (48 tests) 375ms
+
+ Test Files  1 passed (1)
+      Tests  48 passed (48)
+   Start at  15:21:41
+   Duration  10.11s (transform 7.67s, setup 55ms, import 9.26s, tests 375ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z09b-z09d-supplier-20261005/quality/audits/ediel-masterplan-v2/at-z09b-z09d-supplier/final-junit.xml

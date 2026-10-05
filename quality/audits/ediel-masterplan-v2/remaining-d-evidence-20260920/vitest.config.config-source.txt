@@ -1,0 +1,1 @@
+import {defineConfig} from '/workspace/scratch/2a201d6d5897/gridex-next/node_modules/vitest/dist/config.js';export default defineConfig({resolve:{alias:{'@':'/workspace/scratch/2a201d6d5897/gridex-next'}},test:{include:['/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/*.test.ts'],environment:'node'}})
