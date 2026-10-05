@@ -138,9 +138,12 @@ function expectOwnAcks(f:Fixture,change:Change,route:{routeId:string;profileId:s
  }
 }
 
-// Valid native controls deliberately fail if actual canonical auth, technical
+// Proposed native controls deliberately fail if actual canonical auth, technical
 // endpoint, source-bound route or ACK prerequisites are absent. They do not skip,
 // catch-and-pass, seed missing permission keys or substitute mocked effects.
+// Inherited field306 input is E22; retained P26.A page60/122 witnesses require
+// Z11/Z12. #503 must qualify/fix that existing fixture and canonical code list;
+// this unexecuted proposal does not establish guide-valid source admission.
 it('already-applied F source reaches real inbound case, own physical ACK/outbox and immutable retained replay',async()=>{
  const f=await fixture(),change=await f.change('F'),route=configureAckRoute(f)
  const initial=evidence(f,change.message.id),current=await pending(f,change)

@@ -1,0 +1,48 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/runner/work/_temp/sc071-native-base[39m
+
+ [32m✓[39m scripts/ediel-sc-071-projection-revocation-native.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 20807[2mms[22m[39m
+   [33m[2m✓[22m[39m writer-first real grant revocation COMMIT serializes before projection, including a retained page [33m 4030[2mms[22m[39m
+   [33m[2m✓[22m[39m writer-first real grant revocation ROLLBACK serializes before projection, including a retained page [33m 3383[2mms[22m[39m
+   [33m[2m✓[22m[39m reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions [33m 3195[2mms[22m[39m
+   [33m[2m✓[22m[39m SC071 actual leased export waits for grant writer COMMIT before its internal result commit [33m 3385[2mms[22m[39m
+   [33m[2m✓[22m[39m SC071 actual leased export waits for grant writer ROLLBACK before its internal result commit [33m 3435[2mms[22m[39m
+   [33m[2m✓[22m[39m SC071 actual export result transaction commits before waiting revoke; later reads cannot disclose its retained page [33m 3375[2mms[22m[39m
+ [31m❯[39m scripts/ediel-sc-010-beneficiary-export-native.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 44544[2mms[22m[39m
+   [33m[2m✓[22m[39m SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload [33m 4135[2mms[22m[39m
+   [33m[2m✓[22m[39m SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values [33m 3763[2mms[22m[39m
+[31m   [31m×[31m SC010 lease expires during a real 'results' write lock wait and rolls back result, completion and receipt together[39m[33m 18350[2mms[22m[39m
+[31m   [31m×[31m SC010 lease expires during a real 'jobs' write lock wait and rolls back result, completion and receipt together[39m[33m 18294[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m scripts/ediel-sc-010-beneficiary-export-native.test.ts[2m > [22mSC010 lease expires during a real 'results' write lock wait and rolls back result, completion and receipt together
+[41m[1m FAIL [22m[49m scripts/ediel-sc-010-beneficiary-export-native.test.ts[2m > [22mSC010 lease expires during a real 'jobs' write lock wait and rolls back result, completion and receipt together
+[31m[1mAssertionError[22m: expected { code: '57014', details: null, …(2) } to match object { message: StringContaining{…} }
+(3 matching properties omitted from actual)[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "message": StringContaining "ediel_export_lease_not_current",[39m
+[31m+   "message": "canceling statement due to statement timeout",[39m
+[2m  }[22m
+
+[36m [2m❯[22m scripts/ediel-sc-010-beneficiary-export-native.test.ts:[2m144:60[22m[39m
+    [90m142|[39m     [35mawait[39m lock[33m.[39m[34mrelease[39m([32m'COMMIT'[39m)
+    [90m143|[39m     [35mconst[39m outcome [33m=[39m [35mawait[39m running
+    [90m144|[39m     expect(outcome.data).toBeNull(); expect(outcome.error).toMatchObje…
+    [90m   |[39m                                                            [31m^[39m
+    [90m145|[39m   } [35mfinally[39m {
+    [90m146|[39m     [35mawait[39m lock[33m.[39m[34mdispose[39m()
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 11:56:35
+[2m   Duration [22m 69.99s[2m (transform 2.77s, setup 80ms, import 4.18s, tests 65.35s, environment 0ms)[22m
+
+JUNIT report written to /home/runner/work/gridex-ops-platform/gridex-ops-platform/sc071-native-working/native-junit.xml

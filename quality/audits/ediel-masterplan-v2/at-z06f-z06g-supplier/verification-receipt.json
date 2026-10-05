@@ -22,12 +22,12 @@
   "authored_native_files": [
     {
       "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
-      "sha256": "48d5df1dc0d75514f5d7a99ded9890f3db47ba291f1f290b8301a45df46b0455",
+      "sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef",
       "case_count": 2
     },
     {
       "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
-      "sha256": "42dc82d2f003c3631cb6509b7a4811ee5f54a73d270789a5f1551187bc1b833b",
+      "sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881",
       "case_count": 2
     }
   ],
@@ -59,21 +59,22 @@
   ],
   "review": {
     "reviewer": "/root/review_saved_packets",
-    "verdict": "APPROVE bounded static test design only",
+    "verdict": "APPROVE bounded proposal/design only; guide-valid inherited positive control HELD",
     "exact_hashes": [
       {
         "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
-        "sha256": "48d5df1dc0d75514f5d7a99ded9890f3db47ba291f1f290b8301a45df46b0455",
+        "sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef",
         "case_count": 2
       },
       {
         "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
-        "sha256": "42dc82d2f003c3631cb6509b7a4811ee5f54a73d270789a5f1551187bc1b833b",
+        "sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881",
         "case_count": 2
       }
     ],
     "execution": "NOT_RUN",
-    "source_qualified_to": "fff486f822001d35970f163507b10e17c3692f58"
+    "source_qualified_to": "fff486f822001d35970f163507b10e17c3692f58",
+    "post_freeze_source_limitation": "field-306-source-qualification.json"
   },
   "review_correction": {
     "initial_F_sha256": "be258a1de8640a5b2019a3712368c4da2f48d7366c1142dfb22397322c8da8db",
@@ -106,7 +107,8 @@
     "Four authored cases are not four executed cases. Actual SQL/ACK/case/authorization remain unmocked; synthetic nodemailer acceptance is an external producer port and proves no transport or legal authority.",
     "Caller tenant/actor/selection/LIN/denial checks do not prove physical input role/direction/RD/correlation/mutation refusal or ignored UD.",
     "F pending expectation is not the complete subsequent UTILTS/meter-value chain. Existing E66 suite was not duplicated.",
-    "Static and ordinary CI success do not approve either whole acceptance row."
+    "Static and ordinary CI success do not approve either whole acceptance row.",
+    "Inherited field306 E22 is not qualified against retained original P26.A Z11/Z12 witnesses; source/native owners retain canonical code-list and fixture correction."
   ],
   "retained_native_registration_proposal": {
     "file": "native-registration.patch",
@@ -118,6 +120,26 @@
     "owner": "503 retained native/config coordinator"
   },
   "preflight_snapshot_sha256": "3a971d4b06e983cb965ceaeed0d2209435180e08d187e4e649038b6a12c2ff31",
-  "ci": "NOT_PUBLISHED",
-  "main_integration": "NOT_MERGED"
+  "ci": "NEW_CORRECTION_NOT_PUBLISHED; initial58ee checks are historical",
+  "main_integration": "NOT_MERGED",
+  "historical_initial_published_head": "58ee11ef80a754ae31266f8440c555e4359a2723",
+  "historical_initial_local_freeze": "2a4c5102cda483adb3b2d8449cb9be4c4179fcdd",
+  "comment_only_requalification": {
+    "proof": "comment-only-source-qualification.json",
+    "original_lint_typecheck_files": [
+      {
+        "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "sha256": "48d5df1dc0d75514f5d7a99ded9890f3db47ba291f1f290b8301a45df46b0455",
+        "case_count": 2
+      },
+      {
+        "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+        "sha256": "42dc82d2f003c3631cb6509b7a4811ee5f54a73d270789a5f1551187bc1b833b",
+        "case_count": 2
+      }
+    ],
+    "executable_syntax_unchanged": true,
+    "source_dependencies_runtime_and_lock_unchanged": true,
+    "reuse_scope": "Original static lint/types only, qualified by unchanged executable syntax and dependencies; native still NOT_RUN. No original CI transferred to new head."
+  }
 }

@@ -609,7 +609,8 @@
     "static_types": "PASS",
     "scoped_lint": "PASS",
     "no_dependency_install_or_native_rerun": true,
-    "static_receipt": "verification-receipt.json"
+    "static_receipt": "verification-receipt.json",
+    "guide_valid_positive_fixture": "HELD: inherited field306E22 conflicts with preserved originalZ11/Z12 witnesses; retainedowner qualification required"
   },
   "whole_acceptance": "HELD",
   "machine_tags": false,
@@ -628,7 +629,8 @@
   "source_dependencies": [
     "Existing fixed native registration list is owned by503",
     "Existing change fixture applies before returning; first-apply and physicalUD require retained input/defer seam",
-    "Declared public ACK-route/profile input must not fabricate protected authority or a permission alias"
+    "Declared public ACK-route/profile input must not fabricate protected authority or a permission alias",
+    "Retained fixture/canonical source owner must qualify field306Z11/Z12 and existing E22 input before guide-valid native controls; field-306-source-qualification.json"
   ],
   "dependency_reuse": {
     "package_and_lock_sha_equal_prior_locked_install": true,
@@ -643,5 +645,6 @@
     "applied": false,
     "git_apply_check_exit": 0,
     "owner": "503 retained native/config coordinator"
-  }
+  },
+  "post_freeze_source_qualification": "field-306-source-qualification.json"
 }

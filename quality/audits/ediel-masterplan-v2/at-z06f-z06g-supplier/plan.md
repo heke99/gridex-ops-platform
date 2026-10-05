@@ -2,6 +2,8 @@
 
 Whole acceptance is HELD and both rows remain NOT_EXECUTED. No native test has executed in this packet.
 
+Current source-input prerequisite: retained original P26.A page 60/122 witnesses require field-306 Z11/Z12; the inherited fixture supplies E22 and the canonical descriptor lacks allowedValues. The unexecuted case/ACK proposal and unchanged code's static checks do not qualify that input as nationally valid. #503 and the canonical source owner retain this correction and real valid/invalid-code controls. See field-306-source-qualification.json; no source value or shared implementation is changed here.
+
 1. Preserve the exact frozen literals, three rule cards, message cases, original revision/source manifest and 25 Z06 dependent cells recorded in baseline.json. F/E64 and G/E32 are inbound DSO→SUPPLIER/23-DDQ-PRODAT, physical BGM Z06; UD cannot become customer identity authority.
 2. Author only two new native acceptance files using the existing real F/G source fixture, native service client and actual processInbound→case→approveEdielInboundCase→protected structuralACK/final-reader/outbox consumers. Existing fixture already applies before returning: this bridge does not prove first application.
 3. Assert stored physical CONTRL/applicable positive APERAK and their exact original/object/LI correlation, committed source receipts and outbox IDs; F pending reading expectation versus G none. Reuse existing E66 fulfillment evidence only at its qualified source; do not duplicate that matrix.

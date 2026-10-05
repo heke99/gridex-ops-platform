@@ -1,0 +1,106 @@
+--- a/.github/workflows/ediel-sc071-native.yml
++++ b/.github/workflows/ediel-sc071-native.yml
+@@ -4,6 +4,7 @@
+   pull_request:
+     paths:
+       - 'scripts/ediel-sc-071-projection-revocation-native.test.ts'
++      - 'scripts/ediel-sc-010-beneficiary-export-native.test.ts'
+       - 'quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts'
+       - 'scripts/fixtures/ediel-service-evidence-native.ts'
+       - 'scripts/helpers/native-lock-process.ts'
+@@ -25,8 +26,8 @@
+   cancel-in-progress: true
+ 
+ # Supplemental selected execution of the sole canonical replay/native owners.
+-# Ordinary OPS clean/upgrade/browser/parity gates remain mandatory. Neither
+-# this job nor its three projection cases establishes the leased export seam.
++# Ordinary OPS clean/upgrade/browser/parity gates remain mandatory.
++# Whole approval requires independent effect review after execution.
+ jobs:
+   sc071-native:
+     runs-on: ubuntu-latest
+@@ -58,7 +59,7 @@
+           sudo apt-get update -qq
+           sudo apt-get install -y -qq "postgresql-client-$server_major"
+           echo "/usr/lib/postgresql/$server_major/bin" >> "$GITHUB_PATH"
+-      - name: Run the three grant races after canonical clean replay
++      - name: Run ten actual export and revocation cases after canonical clean replay
+         shell: bash
+         env:
+           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+@@ -93,6 +94,7 @@
+           export SC071_COMPONENT_EXIT="$component_exit"
+           python3 - <<'PY'
+           import hashlib, json, os, pathlib, subprocess, xml.etree.ElementTree as ET
++          from collections import Counter
+           inputs = [
+               '.github/workflows/ediel-sc071-native.yml',
+               'scripts/ediel-sc-071-projection-revocation-native.test.ts',
+@@ -110,6 +112,12 @@
+               'lib/ediel/services/projection.ts',
+               'lib/ediel/utilts/transactionPersistence.ts',
+               'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
++              'lib/ediel/services/beneficiaryExport.ts',
++              'app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts',
++              'app/api/ediel/beneficiary/exports/[jobId]/route.ts',
++              'app/api/ediel/beneficiary/exports/process/route.ts',
++              'supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql',
++              'scripts/ediel-sc-010-beneficiary-export-native.test.ts',
+           ]
+           junit = pathlib.Path('sc071-native-working/native-junit.xml')
+           junit_error = None
+@@ -119,11 +127,20 @@
+               cases, junit_error = [], str(error)
+           counts = {name: sum(c.find(name) is not None for c in cases)
+                     for name in ('failure', 'error', 'skipped')}
+-          complete = len(cases) == 3 and not any(counts.values())
++          expected_case_files = {
++              'scripts/ediel-sc-071-projection-revocation-native.test.ts': 6,
++              'scripts/ediel-sc-010-beneficiary-export-native.test.ts': 4,
++          }
++          case_files = dict(Counter(c.get('classname', '') for c in cases))
++          unique_cases = {(c.get('classname', ''), c.get('name', '')) for c in cases}
++          complete = (len(cases) == sum(expected_case_files.values())
++                      and case_files == expected_case_files
++                      and len(unique_cases) == len(cases)
++                      and not any(counts.values()))
+           component_exit = int(os.environ['SC071_COMPONENT_EXIT'])
+           stage = pathlib.Path(os.environ['RUNNER_TEMP'], 'sc071-stage').read_text()
+           receipt = {
+-              'scope': 'SC071 native projection/revocation component only',
++              'scope': 'SC010 leased export and SC071 grant/export revocation native cases',
+               'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+               'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+@@ -131,13 +148,17 @@
+               'native_execution': 'ATTEMPTED' if stage.startswith('native') else 'NOT_RUN',
+               'native_exit_code': component_exit if stage.startswith('native') else None,
+               'canonical_replay': 'COMPLETED' if stage != 'replay' else 'FAILED',
+-              'expected_cases': 3, 'actual_cases': len(cases), 'junit_counts': counts,
++              'expected_cases': 10, 'actual_cases': len(cases), 'junit_counts': counts,
++              'expected_case_files': expected_case_files, 'actual_case_files': case_files,
+               'junit_parse_error': junit_error,
+-              'complete_three_case_pass': component_exit == 0 and complete,
+-              'test_scope': ['scripts/ediel-sc-071-projection-revocation-native.test.ts'],
++              'complete_ten_case_pass': component_exit == 0 and complete,
++              'test_scope': list(expected_case_files),
+               'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in inputs},
+               'ordinary_required_gates': 'NOT_REPLACED',
+-              'whole_sc071': 'UNAPPROVED', 'leased_export_consumer': 'NOT_PROVEN',
++              'whole_sc071': 'AWAITING_INDEPENDENT_FULL_CONTRACT_REVIEW',
++              'whole_sc010': 'AWAITING_RETAINED_OWNER_REVIEW',
++              'leased_export_consumer': 'EXERCISED_SELECTED_CASES_PASS' if component_exit == 0 and complete else 'NOT_QUALIFIED',
++              'route_session_selection': 'FINITE_SELECTED_ACTOR_PORT; ACTUAL_NATIVE_MEMBERSHIP_PERMISSION_CHECKS',
+               'external_issuer_and_smtp_ports': 'FINITE_SYNTHETIC_FIXTURE',
+               'browser_tests': 'NOT_RUN', 'upgrade_parity': 'NOT_RUN',
+               'authentic_market_evidence': 'NOT_PROVIDED',
+--- a/quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts
++++ b/quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts
+@@ -7,6 +7,6 @@
+   ...canonical,
+   test: {
+     ...canonical.test,
+-    include: ['scripts/ediel-sc-071-projection-revocation-native.test.ts'],
++    include: ['scripts/ediel-sc-071-projection-revocation-native.test.ts', 'scripts/ediel-sc-010-beneficiary-export-native.test.ts'],
+   },
+ })
