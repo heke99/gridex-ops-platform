@@ -1498,13 +1498,28 @@
     },
     {
       "id": "SC-021",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql"
+      ]
     },
     {
       "id": "SC-022",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-022-overdue-contact-effects.test.ts",
+        "lib/ediel/businessExpectations.ts",
+        "lib/ediel/operations/businessExpectationSweep.ts",
+        "lib/ediel/operations/processNextAction.ts",
+        "lib/inbound-mail/inboundOverdueMonitor.ts",
+        "lib/operations/db.part-1.ts",
+        "supabase/migrations/20260930154712_ediel_source_bound_business_expectations_v1.sql"
+      ]
     },
     {
       "id": "SC-023",
@@ -1818,8 +1833,13 @@
     },
     {
       "id": "SC-055",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/ack/sourceCorrelation.ts",
+        "lib/ediel/db.ts"
+      ]
     },
     {
       "id": "SC-056",
