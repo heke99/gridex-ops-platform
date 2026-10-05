@@ -1,0 +1,90 @@
+{
+  "status": "PASS_CAPTURE_ONLY",
+  "import_applied": true,
+  "verified_at_utc": "2026-10-05T03:56:50.886028+00:00",
+  "pr": 553,
+  "source_commit": "aa1a4df009262b9793616e511073977d4fe32e8b",
+  "remote_head": "aa1a4df009262b9793616e511073977d4fe32e8b",
+  "tree": "f67ca2c182149321f601f2cd8bed78218db8479c",
+  "workflow_run": 37260842526,
+  "workflow_run_attempt": 1,
+  "artifact_id": 11324487263,
+  "archive_sha256": "17541251651d1b77694b6a17c5bb67162e7d8f450fadf7d4788d93f21ddbd13d",
+  "metadata_sha256": "20b2651bbc7809526eb8f9ab469d27df60a0546b6f086e49ba5ff8eacf97887c",
+  "artifact_expires_at": "2026-10-19T03:51:13Z",
+  "exact_four_members_crc_and_published_digest_verified": true,
+  "all_eight_frozen_inputs_verified": true,
+  "latest_replay_migration": {
+    "name": "20261005010327_customer_identity_version_conflict_http409.sql",
+    "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+  },
+  "schema_delta": {
+    "function_changes": [
+      {
+        "function": "public.gridex_customer_contact_change_v1",
+        "source_migration": "20261005004623_customer_contact_version_conflict_http409.sql",
+        "qualified_before_body_sha256": "4c00ce8bffa2f89fe5627c05c2c05020e50046be5b4b08b01f9ca7e99c39b3e2",
+        "qualified_after_body_sha256": "dcc59600b4daa4a3dc25b5ff531ace5c9b4b6a7834408ed5751b5d82657bea54",
+        "only_change": "expected business-conflict SQLSTATE 40001 -> PT409"
+      },
+      {
+        "function": "public.gridex_decide_customer_identity_change_v1",
+        "source_migration": "20261005010327_customer_identity_version_conflict_http409.sql",
+        "qualified_before_body_sha256": "e91471965c7b4989c1c81a679e4c828656ddf0b997eb2d3e92731a76158ab272",
+        "qualified_after_body_sha256": "075b242bf2891fbe4cb5eaeaae043e97a6173fa27b3304ff1e719e28038618a0",
+        "only_change": "expected business-conflict SQLSTATE 40001 -> PT409"
+      }
+    ],
+    "all_other_schema_bytes_equal": true
+  },
+  "exact_source_migrations": [
+    {
+      "name": "20261005004623_customer_contact_version_conflict_http409.sql",
+      "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+    },
+    {
+      "name": "20261005010327_customer_identity_version_conflict_http409.sql",
+      "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+    }
+  ],
+  "fingerprint_delta": {
+    "canonical_sha256": "09f2153fcada5292bda033e01e93b6e3c34d0912e368b2e050a5757d9288f833",
+    "only_changed_section": "functions",
+    "all_counts_equal": true
+  },
+  "generated_outputs": [
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "bytes": 3679044,
+      "raw_bytes_equal_to_prior": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "a8f3f51ab2d0b08dc1cfeaceb1fd35f85654fe167b74350d30e9fbdd1d913c6e",
+      "bytes": 11170097,
+      "raw_bytes_equal_to_prior": false
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "74a306f936d7c95a5f5c93a66bdd077e7423e4c0ad14cb59dad8e3287f1c68e0",
+      "bytes": 3625,
+      "raw_bytes_equal_to_prior": false
+    }
+  ],
+  "raw_capture_receipt_sha256": "a39d1aeb137bc142d696c37b628b26ccaff67cb9553eb74d7a657f0b31f862e6",
+  "prior_manifest_sha256": "7a8ce5354187d1d80a837dc9d65a32017907abfa4f2ee5c758ae6d636942a3fe",
+  "prior_current_capture_preserved_compactly": true,
+  "existing_compact_history_preserved": true,
+  "existing_compact_history_preserved_as": "pre_main_integration_prior_current_capture",
+  "existing_compact_history_canonical_sha256": "8d0c953927df6290afe7e9c43b13175300b86d5693f9209169c5ed8924300de1",
+  "existing_compact_history_source_commit": "9f8f0832ec6a32c1f0071846946e1fe2c5bdc824",
+  "existing_compact_history_source_tree": "95158b16af078d2b608c0b745e93991b284ba696",
+  "existing_superseded_provenance_retained": true,
+  "no_entire_manifest_nested_again": true,
+  "qualification": "Capture-only. Fresh exact-head full native/browser/upgrade/parity/application CI remains mandatory after import.",
+  "native_tests": "NOT_RUN",
+  "browser_tests": "NOT_RUN",
+  "type_schema_comparison": "NOT_RUN",
+  "upgrade_parity": "NOT_RUN"
+}

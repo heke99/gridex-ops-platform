@@ -1,3 +1,4 @@
+// SC-034 (complete-first-lin-two, complete-global-order-132): whole-message P-17 rejection with no partial effect.
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
@@ -19,7 +20,7 @@ function sql<T>(statement:string):T {
   return output?JSON.parse(output) as T:undefined as T
 }
 
-for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence','missing-header-date','invalid-header-date','missing-header-offset','invalid-header-offset','missing-header-ack-request','invalid-header-ack-request','lowercase-header-ack-request','invalid-header-function','invalid-header-code-metadata','missing-header-code','unlisted-header-code'] as const) it(`real inbound Z04 ${variant} holds unowned physical codes and persists only qualified ACK intent, retry-stable without business state`,async()=>{
+for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence','complete-first-lin-two','complete-global-order-132','missing-header-date','invalid-header-date','missing-header-offset','invalid-header-offset','missing-header-ack-request','invalid-header-ack-request','lowercase-header-ack-request','invalid-header-function','invalid-header-code-metadata','missing-header-code','unlisted-header-code'] as const) it(`real inbound Z04 ${variant} holds unowned physical codes and persists only qualified ACK intent, retry-stable without business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
   // Synthetic local mail settings: the ACK owner checks SMTP readiness before queueing.
   vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
@@ -37,6 +38,14 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (variant === 'whole-message-lin-sequence') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
     parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
+  }
+  // SC-034: every object is otherwise complete and actionable; only the national
+  // LIN sequence is wrong (first LIN 2, or global order 1,3,2).
+  if (variant === 'complete-first-lin-two' || variant === 'complete-global-order-132') {
+    const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+    parts.splice(second+1,0,qty('20'))
+    const numbers=variant==='complete-first-lin-two'?['2','3','4']:['1','3','2']
+    parts.map((part,i)=>part[0]==='LIN'?i:-1).filter(i=>i>=0).forEach((at,n)=>{parts[at]=[...parts[at].slice(0,1),numbers[n],...parts[at].slice(2)]})
   }
   if (variant === 'missing-header-date' || variant === 'invalid-header-date' || variant === 'missing-header-offset' || variant === 'invalid-header-offset' || variant === 'missing-header-ack-request' || variant === 'invalid-header-ack-request' || variant === 'lowercase-header-ack-request' || variant === 'invalid-header-function' || variant === 'invalid-header-code-metadata' || policyOnly) {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
@@ -140,7 +149,7 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['APERAK','negative'],['CONTRL','positive']])
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
   const aperak=first.messages[0].wire
-  if (variant === 'whole-message-lin-sequence') {
+  if (variant === 'whole-message-lin-sequence' || variant === 'complete-first-lin-two' || variant === 'complete-global-order-132') {
     expect(aperak).toContain('BGM+++27')
     expect(aperak).toContain('FTX+AAO++314::260')
     expect(aperak).toContain('RFF+ACW:D')
@@ -157,7 +166,10 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     expect(aperak).toContain('FTX+AAO++213::260')
   }
   if (!variant.includes('header-')) expect(aperak).toContain('RFF+Z07:735123456789012345')
-  expect(aperak).not.toContain('RFF+Z07:735123456789012352')
+  // SC-034 complete variants: both objects are actionable, so the whole-message
+  // rejection references each of them; elsewhere object 2 is the incomplete one.
+  if (variant === 'complete-first-lin-two' || variant === 'complete-global-order-132') expect(aperak).toContain('RFF+Z07:735123456789012352')
+  else expect(aperak).not.toContain('RFF+Z07:735123456789012352')
   expect(first.outbox).toHaveLength(2)
   expect(first.outbox.every(row=>row.company===ids.company&&row.source===ids.source&&row.profile===ids.profile&&row.status==='queued'&&row.hash?.length===64)).toBe(true)
   expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])

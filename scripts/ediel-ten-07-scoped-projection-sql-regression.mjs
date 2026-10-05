@@ -1,4 +1,4 @@
-// masterplan: TEN-07, AT-TEN-07, ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11
+// masterplan: TEN-07, AT-TEN-07, ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11, SC-004
 // Real scoped projection/grant/receipt consumers over the existing explicitly
 // finite source, accepted-storage and legal-review dependency fixture. This
 // proves consumer effects; it is not native replay or market/legal activation.
@@ -12,6 +12,24 @@ const marker = " console.log('Projection provenance SQL:"
 assert.equal(base.split(marker).length, 2)
 const extension = String.raw`
  await db.exec(readFileSync(new URL('../supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql',import.meta.url),'utf8'))
+ // Use the final committed graph lock too. Its extra permission-override table
+ // is an empty finite schema port; the existing actor-permission function is
+ // still explicitly substituted by the parent fixture, not native RBAC.
+ await db.exec('CREATE TABLE public.user_permission_overrides(id uuid)')
+ const currentLock=readFileSync(new URL('../supabase/migrations/20261001004953_ediel_current_company_permission_denies.sql',import.meta.url),'utf8')
+ const lockStart=currentLock.indexOf('CREATE OR REPLACE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2()')
+ assert.ok(lockStart>=0)
+ await db.exec(currentLock.slice(lockStart,currentLock.indexOf('END $$;',lockStart)+7))
+ const finalSchema=readFileSync(new URL('../supabase/schema.sql',import.meta.url),'utf8')
+ for(const name of ['public.ediel_beneficiary_series_page_v1','gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2','gridex_ediel_ack_replay.require_current_source_role_v2','gridex_ediel_ack_replay.lock_current_graph_v2']){
+  const start=finalSchema.indexOf('CREATE FUNCTION '+name+'(')
+  const bodyStart=finalSchema.indexOf('AS $$',start)+5
+  const bodyEnd=finalSchema.indexOf('$$;',bodyStart)
+  assert.ok(start>=0&&bodyStart>start&&bodyEnd>bodyStart,name+' final schema body exists')
+  const installed=(await db.query("SELECT p.prosrc FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname=$1 AND p.proname=$2",name.split('.'))).rows
+  assert.equal(installed.length,1,name+' has one installed overload')
+  assert.equal(installed[0].prosrc.trim(),finalSchema.slice(bodyStart,bodyEnd).trim(),name+' uses the final committed consumer body')
+ }
  // TEN-07: two accepted-storage fixture transactions share one owner source;
  // the beneficiary has a grant for point-a only. No parser/acceptance authority
  // is invented here: the upstream contract port remains explicitly synthetic.
@@ -29,11 +47,23 @@ const extension = String.raw`
  let ten07Checks=0
  const effect=async fn=>{await fn();assert.deepEqual(await ownerState(),originalState);ten07Checks++}
  const scopedPage=async({beneficiary=uid(2),grantId=grant.grantId,purpose='analysis',seriesId=uid(211),fields=['quantity'],start='2026-01-01',end='2026-02-01'}={})=>(await db.query('SELECT ediel_beneficiary_series_page_v1($1,$2,$3,2,$4,$5,$6,$7,$8) page',[beneficiary,uid(20),grantId,purpose,seriesId,fields,start,end])).rows[0].page
+ // SC004: SaaS customers use explicit grants without their own Ediel profile,
+ // identifier or market role. Snapshot every identity row, including provider
+ // identities, so a successful actual read cannot silently manufacture one.
+ const identityState=async()=>(await db.query("SELECT jsonb_build_object('profiles',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]'::jsonb) FROM tenant_ediel_profiles p),'identifiers',(SELECT coalesce(jsonb_agg(to_jsonb(i) ORDER BY i.id),'[]'::jsonb) FROM tenant_actor_identifiers i),'roles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]'::jsonb) FROM tenant_actor_roles r)) state")).rows[0].state
+ const identityBefore=await identityState()
+ for(const rows of Object.values(identityBefore)){
+  assert.equal(rows.filter(row=>[uid(2),uid(3)].includes(row.company_id)).length,0)
+  assert.ok(rows.some(row=>row.company_id===uid(1)))
+ }
  await effect(async()=>{
   const page=await scopedPage()
   assert.deepEqual(page.rows,[{quantity:'17.250'},{quantity:'20.000'}])
   assert.equal(page.provenance.sourceMessageId,uid(210));assert.equal(page.provenance.purpose,'analysis')
   assert.deepEqual(page.provenance.fields,['quantity'])
+  assert.equal(page.grantId,grant.grantId)
+  assert.equal(page.grantVersion,2)
+  assert.deepEqual(await identityState(),identityBefore)
   assert.equal(JSON.stringify(page).includes(source.raw_payload),false)
   for(const forbidden of ['raw_payload','observations','company_id','point-b','99.000','quality":"56'])assert.equal(JSON.stringify(page).includes(forbidden),false)
  })
@@ -61,6 +91,8 @@ const extension = String.raw`
   assert.equal(quality.provenance.sourceMessageId,uid(210))
   assert.notEqual(quality.consumerReceiptId,(await scopedPage()).consumerReceiptId)
  })
+ assert.deepEqual(await identityState(),identityBefore)
+ console.log('PASS SC-004 explicit granted reads with zero beneficiary Ediel profiles/identifiers/market roles before and after; four installed current bodies qualified')
  console.log('PASS '+ten07Checks+' TEN-07 scoped-object/window/field/raw-owner effects; real SQL consumer, finite synthetic upstream dependencies')
  // Restore only added fixture rows for the unchanged parent administration
  // assertions. The production consumer and original source bytes stay intact.
