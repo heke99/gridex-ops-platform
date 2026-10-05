@@ -1,0 +1,63 @@
+{
+  "recordType": "source-fixture prerequisite gap; static inspection only",
+  "observedAtUtc": "2026-10-05T15:23:09Z",
+  "agent": "/root",
+  "ownedAcceptance": "AT-Z06F-SUPPLIER",
+  "sourceCommit": "9809608768284565a0b26b83a02a201776256e6b",
+  "sourceTree": "e06b8809aa20221c0c21d0525410df935fba74fa",
+  "frozenContract": {
+    "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+    "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+    "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "id": "AT-Z06F-SUPPLIER",
+    "expected": "ytterligare UTILTS för F enligt ändring och Handbok; versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar",
+    "wholeProhibitedRetained": true
+  },
+  "callChain": [
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "blob": "bdc078bbae5f52955c1e2a7544babeb92bf41c41",
+      "sha256": "65e2b6c559e187d864ece902ade76e49fe25dcea31ee9c20d4c08058c75cbdf1",
+      "lines": [
+        72,
+        76,
+        78,
+        87
+      ],
+      "effect": "Existing reading() first calls registerUtiltsIssuer, then captures the E66 original and calls seedUtiltsIssuerHistoryGround before canonical/runtime/contract qualification and real persist."
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "blob": "b15f49466f94adebcdf42db6ab9149a6f5cb4661",
+      "sha256": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5",
+      "lines": [
+        33,
+        35,
+        37,
+        40,
+        46,
+        51,
+        53,
+        62
+      ],
+      "effect": "registerUtiltsIssuer directly inserts synthetic namespace/issuer legal-decision and transport-mandate versions with approved_at/by into gridex_utilts_issuer tables. seedUtiltsIssuerHistoryGround directly inserts synthetic registry/deletion/retention/history-coverage approval bytes and references into source_absence_grounds, bound to actual source admission."
+    },
+    {
+      "path": "scripts/ediel-z06f-reading-followup-native.test.ts",
+      "blob": "82260ac485e832fe41893b8416832080da1535e5",
+      "sha256": "35b0b330d79a995fc350538c4e53ccf4b95b1fbaa723cf60adc09023172227eb",
+      "effect": "Existing retained suite covers actual accepted persistence→observation/followup consumer and mismatch matrix under that fixture; it remains with its existing owner, not duplicated."
+    }
+  ],
+  "classification": "Fixture-side authority prerequisite and limits of whole-contract proof; not a reproduced runtime failure or a new production defect.",
+  "currentSixCases": {
+    "callReading": false,
+    "native": "NOT_RUN",
+    "wholeAcceptance": "HELD",
+    "sourceAndAckBridgeUnchanged": true
+  },
+  "permittedReuse": "Retained finite consumer/runtime receipts only within their actual synthetic fixture/provenance scope; no transfer into legal/source/whole-AT qualification.",
+  "requiredOwnerResponse": "Retained #503 coordinates existing UTILTS issuer/history/source owner and identifies an already qualified immutable original/issuer/mandate/history witness and callable persistence→observation seam, or documents the exact remaining prerequisite/fixture scope. Root does not create a second source helper or insert private approval evidence.",
+  "newChanges": "Own audit/checkpoint only; no code, tests, native, registry, grants, protected authority, source or schema edit.",
+  "sourceReadCommands": "Read existing F/G frozen contract, helper reading() and complete utiltsConsumptionParties.ts; hash those exact files. No reproduction/native execution claimed."
+}

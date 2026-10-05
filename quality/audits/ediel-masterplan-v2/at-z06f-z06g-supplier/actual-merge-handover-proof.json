@@ -1,0 +1,21 @@
+{
+  "recordType": "independent actual-merge handover uniqueness proof",
+  "verifier": "/root/z06_memory_native_map",
+  "commit": "7f33ff3c8df4dd9be5247021010b582528ca55b8",
+  "commitTitle": "Record current main integrations and exclusive coordinator handoffs",
+  "path": ".agent-memory/handover.md",
+  "blob": "238ef9287db0db12a6c9ce828d2adcaddc5f5ef7",
+  "line": 1314,
+  "url": "https://github.com/heke99/gridex-ops-platform/blob/7f33ff3c8df4dd9be5247021010b582528ca55b8/.agent-memory/handover.md#L1314",
+  "actualMerge": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+  "pr": 588,
+  "semanticHandoverEntries": 1,
+  "fullFileMatchingTextHits": 1,
+  "changedFileNewActualHandoverEntries": 1,
+  "wording": "- 2026-10-05 main integration: #588 aa271e14b8a39145dca04aa1433dd54be88f44bd — actual parentsd10402d5 +7453605e, tree b519b3271f5bdd41bc3aac794b607420b5b725f5; F/G proposal-only release, whole AT/native HELD, helper continuation excluded; no production apply.",
+  "otherStatusReferencesAreNotHandoverEntries": true,
+  "method": "Immutable coordinator commit metadata plus exact commit-pinned full handover file and changed-file diff through authorized read-only connector; local object absent.",
+  "uniqueRequestComment": 5997120615,
+  "newHandoverRequested": false,
+  "actions": "No edits, publication, requests or native/CI/main polling."
+}

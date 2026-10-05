@@ -1,0 +1,49 @@
+{
+  "recordType": "durable proposal handoff; no acceptance or CI transfer",
+  "requestedByComment": 5997187270,
+  "answeredByComment": 5997324364,
+  "updatedSourceProposalComment": 5996407394,
+  "agent": "/root",
+  "continuationBranch": "codex/ediel-at-z06fg-native-extension-20261005",
+  "snapshots": [
+    {
+      "localCommit": "dd82da381bf8bd66e3c204574f1e3bea60d89658",
+      "remoteCommit": "c406b19ac812654cd700df3163a7a64179de69f9",
+      "exactSharedTree": "7fa0cf94aba824a5bdab21160cb6a301ed91abad"
+    },
+    {
+      "localCommit": "9809608768284565a0b26b83a02a201776256e6b",
+      "remoteCommit": "2f77f1adb69e611c0a8eb4962775887ce21e261c",
+      "exactSharedTree": "e06b8809aa20221c0c21d0525410df935fba74fa",
+      "remoteParents": [
+        "c406b19ac812654cd700df3163a7a64179de69f9",
+        "aa271e14b8a39145dca04aa1433dd54be88f44bd"
+      ]
+    }
+  ],
+  "connectorMetadataChangesCommitSha": true,
+  "originalLocalHistoriesPreserved": true,
+  "independentCompositionReview": {
+    "approve": true,
+    "scope": "Records and tree preservation only; not writer's own code review",
+    "foreignMainEntriesByteExact": 7778,
+    "checkpointSha256": "fca14cd8205e72996fc70e39e18d3a99374e7c66623185aa63b17643c41141f1",
+    "compositionSha256": "00e182cb567a7cd432b347a7b436a6f059b73a5851400c130b0242356c2bd797"
+  },
+  "archive": {
+    "commit": "14c0a2ad7affe7f1ada78e78a2182c264364fac1",
+    "tree": "6f70e1207d07b3012ff475a029b2fcddeacbf635",
+    "statusOnlyTwoPaths": true,
+    "recordComment": 5997221255,
+    "actualMerge": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "uniqueHandoverComment": 5997120615,
+    "reportedSharedMemoryCommit": "7f33ff3c8df4dd9be5247021010b582528ca55b8"
+  },
+  "native": "NOT_RUN",
+  "wholeAcceptance": "HELD",
+  "registration": "UNAPPLIED",
+  "carryOwner": "Retained #503 once; exact proposed helper bdc078bbae5f52955c1e2a7544babeb92bf41c41",
+  "publicationType": "Owner-requested isolated review snapshot; no new PR or source integration",
+  "historicalReceiptStatus": "native-extension-verification.json records its original LOCAL_UNPUBLISHED status at 14:42, superseded only for pointer publication by this handoff record; original static run data unchanged",
+  "nextAction": "Retained owner qualifies/carries exact helper and source/field306/registration; root continues own test run-plan/gap mapping while independent reader performs new-pair ownership preflight."
+}
