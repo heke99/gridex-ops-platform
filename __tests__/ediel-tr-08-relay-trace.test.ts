@@ -81,7 +81,7 @@ describe('TR-08 Received-header hop chain', () => {
     expect(verifyRelayTrace({ rawHeaders: trace(), probeId: PROBE, ownHosts: ['other.example.invalid'] }).reasons).toContain('own_server_not_found')
     const onlyOwn = ['Received: from app.example.invalid by smtp.own.example.invalid with ESMTPSA id d4 (TLSv1.3); Sun, 4 Oct 2026 12:00:00 +0200',
       'Authentication-Results: x; spf=pass', `X-Gridex-Relay-Probe: ${PROBE}`, ''].join('\r\n')
-    expect(verifyRelayTrace({ rawHeaders: onlyOwn, probeId: PROBE, ownHosts: OWN }).reasons).toEqual(['no_relay_hop_after_own_server'])
+    expect(verifyRelayTrace({ rawHeaders: onlyOwn, probeId: PROBE, ownHosts: OWN }).reasons).toEqual(['no_relay_hop_after_own_server', 'spf_absent'])
     expect(verifyRelayTrace({ rawHeaders: trace({ probe: 'probe-other' }), probeId: PROBE, ownHosts: OWN }).reasons).toEqual(['probe_id_mismatch'])
     expect(verifyRelayTrace({ rawHeaders: trace({ spf: 'softfail' }), probeId: PROBE, ownHosts: OWN }).reasons).toEqual(['spf_fail'])
     expect(verifyRelayTrace({ rawHeaders: trace({ spf: null }), probeId: PROBE, ownHosts: OWN }).reasons).toEqual(['spf_absent'])
@@ -157,5 +157,29 @@ describe('TR-08 operator probe (injected transports; no mail traffic)', () => {
     const result = await runRelayTraceProbe(relayProbeConfigFromEnv(env), { probeId: () => PROBE, send: async () => {}, fetchHeaders: async () => null, persist, sleep: async () => {}, pollIntervalMs: 10_000 })
     expect(result).toEqual({ evidenceId: null, verdict: null, reason: 'relay_probe_not_delivered_within_timeout' })
     expect(persist).not.toHaveBeenCalled()
+  })
+})
+
+describe('TR-08 independent-review contrasts (permissive verdicts must fail)', () => {
+  it('a forged spf=pass from another authserv-id cannot mask the receiver SPF fail', () => {
+    const raw = trace({ spf: 'fail' }).replace('X-Gridex-Relay-Probe', 'Authentication-Results: attacker.example.invalid; spf=pass smtp.mailfrom=own.example.invalid\r\nX-Gridex-Relay-Probe')
+    const v = verifyRelayTrace({ rawHeaders: raw, probeId: PROBE, ownHosts: OWN })
+    expect(v.spf).toBe('fail')
+    expect(v.verified).toBe(false)
+    const forgedOnly = trace({ spf: null }).replace('X-Gridex-Relay-Probe', 'Authentication-Results: attacker.example.invalid; spf=pass\r\nX-Gridex-Relay-Probe')
+    expect(verifyRelayTrace({ rawHeaders: forgedOnly, probeId: PROBE, ownHosts: OWN })).toMatchObject({ spf: 'absent', verified: false })
+  })
+
+  it('a remote relay -> MX hop over plaintext LMTP is a relay hop without TLS, not mailbox-internal', () => {
+    const v = verifyRelayTrace({ rawHeaders: trace({ mxHop: 'Received: from relay.provider.example.invalid (relay.provider.example.invalid [192.0.2.20])\r\n\tby mx.mailbox.example.invalid with LMTP id b2; Sun, 4 Oct 2026 12:00:02 +0200' }), probeId: PROBE, ownHosts: OWN })
+    expect(v.hops[2].role).toBe('relay')
+    expect(v.reasons).toContain('relay_hop_without_tls:2')
+    expect(v.verified).toBe(false)
+  })
+
+  it('a disconnected Received chain (spliced or hidden hop) is rejected', () => {
+    const v = verifyRelayTrace({ rawHeaders: trace({ mxHop: 'Received: from other.relay.example.invalid (other.relay.example.invalid [192.0.2.99])\r\n\tby mx.mailbox.example.invalid with ESMTPS id b2 (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384); Sun, 4 Oct 2026 12:00:02 +0200' }), probeId: PROBE, ownHosts: OWN })
+    expect(v.reasons).toContain('received_chain_disconnected:2')
+    expect(v.verified).toBe(false)
   })
 })

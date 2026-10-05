@@ -20,6 +20,9 @@ export type RelayHopRole = 'before_own_server' | 'own_submission' | 'relay' | 'm
 export type RelayHop = {
   index: number
   from: string | null
+  /** Names the receiving server recorded for the sender: HELO plus the reverse-DNS name in parentheses. */
+  fromNames: string[]
+  fromLoopback: boolean
   by: string | null
   with: string | null
   tls: boolean
@@ -81,15 +84,26 @@ function hostMatches(host: string | null, ownHosts: string[]): boolean {
   return ownHosts.some((own) => h === own || h.endsWith('.' + own))
 }
 
+/** Same host, or one is a subdomain of the other (mx.mailbox.example vs mailbox.example). */
+function hostsRelated(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false
+  const x = a.toLowerCase().replace(/\.$/, ''), y = b.toLowerCase().replace(/\.$/, '')
+  return x === y || x.endsWith('.' + y) || y.endsWith('.' + x)
+}
+
 export function parseReceivedHop(value: string, index: number): Omit<RelayHop, 'role'> {
   const from = value.match(/^\s*from\s+([^\s;()]+)/i)?.[1] ?? null
+  const fromClause = value.match(/^\s*from\s+([^;]*?)(?=\s+by\s)/i)?.[1] ?? ''
+  const paren = fromClause.match(/\(([^)]*)\)/)?.[1] ?? ''
+  const fromNames = normalizeOwnHosts([from ?? '', ...paren.split(/\s+/).filter((t) => /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(t))])
+  const fromLoopback = Boolean((from && LOOPBACK.test(from)) || /\[(127\.\d+\.\d+\.\d+|::1)\]/.test(paren))
   const by = value.match(/\bby\s+([^\s;()]+)/i)?.[1] ?? null
   const withProto = value.match(/\bwith\s+([A-Za-z0-9-]+)/i)?.[1]?.toUpperCase() ?? null
   const tlsVersion = tlsVersionOf(value)
   const cipher = value.match(/cipher[=\s]+([A-Za-z0-9_-]+)/i)?.[1] ?? null
   const weakTls = tlsVersion === 'SSLv3' || tlsVersion === 'TLS1.0' || tlsVersion === 'TLS1.1'
   const tls = Boolean((withProto && TLS_PROTOCOLS.has(withProto)) || tlsVersion)
-  return { index, from, by, with: withProto, tls, tlsVersion, cipher, weakTls }
+  return { index, from, fromNames, fromLoopback, by, with: withProto, tls, tlsVersion, cipher, weakTls }
 }
 
 export function normalizeOwnHosts(hosts: Iterable<string>): string[] {
@@ -118,10 +132,18 @@ export function verifyRelayTrace(input: { rawHeaders: string; probeId: string; o
     let role: RelayHopRole
     if (ownIndex < 0 || hop.index < ownIndex) role = 'before_own_server'
     else if (hop.index === ownIndex) role = 'own_submission'
-    else if ((hop.with && INTERNAL_PROTOCOLS.has(hop.with)) || (hop.from && LOOPBACK.test(hop.from))) role = 'mailbox_internal'
+    // Mailbox-internal delivery needs local evidence (loopback sender, or an
+    // internal protocol between names of the same receiving host); a remote
+    // relay -> MX hop is a relay hop and must carry TLS whatever its protocol.
+    else if (hop.fromLoopback || (hop.with && INTERNAL_PROTOCOLS.has(hop.with) && hop.fromNames.some((n) => hostsRelated(n, hop.by)))) role = 'mailbox_internal'
     else role = 'relay'
     return { ...hop, role }
   })
+  // Every hop after our server must be handed over by the previous hop's
+  // receiving host; a gap means headers were spliced or a hop is hidden.
+  if (ownIndex >= 0) for (let i = ownIndex + 1; i < hops.length; i++) {
+    if (!hops[i].fromNames.some((n) => hostsRelated(n, hops[i - 1].by))) reasons.push(`received_chain_disconnected:${i}`)
+  }
   const relays = hops.filter((hop) => hop.role === 'relay')
   if (ownIndex >= 0 && !relays.length) reasons.push('no_relay_hop_after_own_server')
   for (const hop of relays) {
@@ -130,9 +152,15 @@ export function verifyRelayTrace(input: { rawHeaders: string; probeId: string; o
   }
   const allRelayHopsTls = relays.length > 0 && relays.every((hop) => hop.tls && !hop.weakTls)
 
-  const auth = fields.filter((f) => f.name === 'authentication-results' || f.name === 'received-spf')
-  const spfValues = auth.map((f) => (f.name === 'received-spf' ? f.value.split(/\s/)[0] : f.value.match(/\bspf=(\w+)/i)?.[1] ?? '').toLowerCase()).filter(Boolean)
-  const spf: RelayTraceVerdict['spf'] = !spfValues.length ? 'absent' : spfValues[0] === 'pass' ? 'pass' : 'fail'
+  // Only the final receiver's own result counts: the topmost
+  // Authentication-Results whose authserv-id names the last relay hop's
+  // receiving host (RFC 8601 §5). Results from other authserv-ids, or added
+  // earlier in transit, are ignored, so a forged spf=pass cannot mask the
+  // receiver's verdict.
+  const receiver = [...relays].reverse()[0]?.by ?? null
+  const receiverResult = fields.find((f) => f.name === 'authentication-results' && hostsRelated(f.value.split(';')[0].trim().split(/\s/)[0], receiver))
+  const spfValue = receiverResult?.value.match(/\bspf=(\w+)/i)?.[1]?.toLowerCase() ?? ''
+  const spf: RelayTraceVerdict['spf'] = !spfValue ? 'absent' : spfValue === 'pass' ? 'pass' : 'fail'
   if (spf !== 'pass') reasons.push(`spf_${spf}`)
 
   return {
