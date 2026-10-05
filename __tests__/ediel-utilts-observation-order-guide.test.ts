@@ -1,3 +1,4 @@
+// masterplan: U-18, AT-U-18, U-12, U-15
 import {describe,expect,it} from 'vitest'
 import {utiltsObservationOrderGuideIssues} from '@/lib/ediel/utilts/observationOrderGuide'
 import {utiltsPackagingGuideViolations} from '@/lib/ediel/utilts/packagingGuide'

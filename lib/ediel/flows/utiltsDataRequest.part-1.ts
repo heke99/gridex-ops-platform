@@ -911,7 +911,13 @@ export async function linkInboundUtiltsMessageCanonically(params: {
     meteringPointId,
     companyId: params.message.company_id ?? null,
   })
-  const matchedDataRequest = await findMatchingGridOwnerDataRequest(params.message)
+  // Give the correlator the point resolved here so a reference hit naming
+  // another point is not bound (U-19).
+  const matchedDataRequest = await findMatchingGridOwnerDataRequest(
+    meteringPointId && !params.message.metering_point_id
+      ? { ...params.message, metering_point_id: meteringPointId }
+      : params.message,
+  )
 
   await linkEdielMessage({
     actorUserId: params.actorUserId,

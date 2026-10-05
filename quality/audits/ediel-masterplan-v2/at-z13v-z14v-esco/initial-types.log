@@ -1,0 +1,8 @@
+__tests__/ediel-at-z13v-esco-profile.test.ts(77,141): error TS2322: Type '{ company_id: string; environment: EdielEnvironment | undefined; direction: EdielDirection; message_code: string; sender_ediel_id: string | null | undefined; ... 8 more ...; route_profile_id: string | ... 1 more ... | undefined; }' is not assignable to type 'ProdatDateEventRow'.
+  Types of property 'environment' are incompatible.
+    Type 'EdielEnvironment | undefined' is not assignable to type 'EdielEnvironment'.
+      Type 'undefined' is not assignable to type 'EdielEnvironment'.
+__tests__/ediel-at-z13v-esco-profile.test.ts(98,136): error TS2322: Type '{ company_id: string; environment: EdielEnvironment | undefined; direction: EdielDirection; message_code: string; sender_ediel_id: string | null | undefined; ... 8 more ...; route_profile_id: string | ... 1 more ... | undefined; }' is not assignable to type 'ProdatDateEventRow'.
+  Types of property 'environment' are incompatible.
+    Type 'EdielEnvironment | undefined' is not assignable to type 'EdielEnvironment'.
+      Type 'undefined' is not assignable to type 'EdielEnvironment'.
