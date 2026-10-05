@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "reviewer": "Codex env02_delivery; independent of root-authored migration/native fixture",
+  "verdict": "APPROVE",
+  "scope": "Whole GOV-08 / AT-GOV-08 implementation behavior at the exact frozen source. No market, original-custody, final-main or merge approval.",
+  "head": "d0a85ac78307699b1f86aff4bba36360617f5676",
+  "tree": "82c35782bf44cbe7493149618b24f5a18feebe15",
+  "pr": 533,
+  "source_read_method": "Read-only file inspection initially at exact clean HEAD; after root staged main composition, all byte/source qualification used git show at the immutable d0a85ac commit.",
+  "literal": {
+    "rule": {
+      "id": "GOV-08",
+      "applies_to": "Referenser och TGT",
+      "trigger": "Inför acceptanstest",
+      "condition": "Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat.",
+      "on_pass": "Bevara negativa referenser som negativa; dokumentera konflikt.",
+      "on_failure": "Ändra inte referensen för att passa egen renderer."
+    },
+    "acceptance": {
+      "id": "AT-GOV-08",
+      "given": "Referenser och TGT",
+      "when": "Inför acceptanstest – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "expected": "Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. → Bevara negativa referenser som negativa; dokumentera konflikt.",
+      "prohibited": "Ändra inte referensen för att passa egen renderer."
+    }
+  },
+  "effects": [
+    {
+      "effect": "Bind original file hash to source, test case, revision, role and positive/negative expected result.",
+      "code": [
+        "supabase/migrations/20260930171839_ediel_source_qualified_negative_fixture_v1.sql:33",
+        "supabase/migrations/20260930212435_ediel_source_qualified_positive_fixture_v1.sql:37",
+        "lib/ediel/testing/negativeFixtureAuthority.ts:30",
+        "lib/ediel/testing/positiveFixtureAuthority.ts:25"
+      ],
+      "proof": "Actual native authorized publication in both orders asserts complete company/run/role/case/suite/revision/step tuple, source/owner references, expected diagnostics, retained Latin1 original and both byte hashes. Actual read/prepare RPC rechecks qualified original. Finite positive89/negative20 and 18 unit controls provide source/scope/hash/error contrasts.",
+      "status": "PROVED"
+    },
+    {
+      "effect": "Preserve negative references as negative and document conflict.",
+      "code": [
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql:12",
+        "lib/ediel/rulebook/sendGuards.ts:41"
+      ],
+      "proof": "Both authorized orders reject opposite publication with named original_conflict/P0001 and unchanged original rows. Native legacy counterpart requires 22 actual private/public read/prepare/pending-witness holds while preserving both legacy originals. Finite SQL guards consumed-message require and trigger-before-cached-return paths, including expired opposing declaration. Existing send-boundary assertions preserve ok:false/blocking:true and expected diagnostic instead of relabeling a negative reference.",
+      "status": "PROVED"
+    },
+    {
+      "effect": "Do not change reference to match a renderer.",
+      "code": [
+        "supabase/migrations/20260930171839_ediel_source_qualified_negative_fixture_v1.sql:20",
+        "supabase/migrations/20260930212435_ediel_source_qualified_positive_fixture_v1.sql:25",
+        "lib/ediel/testing/negativeFixtureAuthority.ts:21",
+        "lib/ediel/testing/positiveFixtureAuthority.ts:20"
+      ],
+      "proof": "Protected immutable original tables reject UPDATE/DELETE and application writes. Finite SQL explicitly rejects changed original_wire and source/diagnostic declarations; same-outcome replay returns the same registration. Native preserves full original bytes/hashes and all prior rows. Actual TS adapters reject changed bytes/scope, copied markers, absent originals and unexpected findings; no renderer rewrite added.",
+      "status": "PROVED"
+    },
+    {
+      "effect": "Conflicting legacy registrations cannot survive through another consumer boundary.",
+      "code": [
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql:12"
+      ],
+      "proof": "Exactly nine targets: two publishers; read_v1/read_positive_v1/read_negative_preparation_v1; consume_positive_v1/consume_negative_v1 before cached return; require_positive_message_v1/require_negative_message_v1 before cached qualification. Read/prepare/prepared wrappers traverse these functions. Native22 holds prove read/preparation routes; finite89 asserts both actual consumption triggers and consumed-message require paths.",
+      "status": "PROVED"
+    },
+    {
+      "effect": "Concurrent publication uses one stored-key authority, without stale-snapshot or step-alias bypass.",
+      "code": [
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql:45",
+        "scripts/ediel-test-original-outcome-native.test.ts:137",
+        "scripts/ediel-test-original-outcome-native.test.ts:193"
+      ],
+      "proof": "Current native eight isolation cases: both RR/SERIALIZABLE orders refuse 25000; RC/RU controls retain first publication and reject opposite P0001. Two genuine overlapping RC cases use numbers31/32 vs strings031/032, observe equal advisory keys and actual pg_blocking_pids before first commit, then reject opposite P0001. Stored integer cast is identical in validation, lock, lookup and uniqueness.",
+      "status": "PROVED"
+    },
+    {
+      "effect": "No authorization expansion or market/business grant.",
+      "code": [
+        "scripts/ediel-test-original-outcome-native.test.ts:40",
+        "scripts/ediel-test-original-outcome-native.test.ts:63",
+        "scripts/ediel-test-original-outcome-native.test.ts:340"
+      ],
+      "proof": "Application receipt independently recomputed: all17 pg_proc metadata equal; only two body keys differ, other15 bodies exact. All17 postimage bodies equal frozen captured dump. Native compares full function/schema/table/RLS/role/membership snapshots, asserts only authority owner can publish, real authenticated GoTrue publication fails42501, application table reads denied, and messages/attempts/consumptions remain zero. Setup-only local SET bridge is committed before publishers, adds no namespace grant, and afterAll requires pristine restoration. Positive/preparation qualifiers authorizesBusinessEffect:false.",
+      "status": "PROVED"
+    }
+  ],
+  "source_sha256": {
+    "forward": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
+    "native": "586ecc27099fa28f99405fa3516cfcd345963264eb666895c14dc8d164f4140f",
+    "positive_regression": "b2e62f1aa7c9051da963a33dc0a192484ade94258196efa464587fd1ccc94bc0",
+    "negative_regression": "16e9a85abfe87eab8e2dd8e0d82959fed10c24c5822363c60a2ace1d72d3325d"
+  },
+  "actual_native": {
+    "run_id": 37350415311,
+    "run_attempt": 1,
+    "run_head": "d0a85ac78307699b1f86aff4bba36360617f5676",
+    "clean_job_id": 111900094250,
+    "clean_job_status": "completed",
+    "clean_job_conclusion": "success",
+    "artifact_id": 11363339584,
+    "zip_path": "/workspace/attachments/37fae5c1-4eca-444b-94a9-95ebca3c5a83/github-actions-artifact-11363339584.zip",
+    "zip_sha256": "821e4e26afa7a04337dc26211d9f42e4f521154c52af11f2e3bb0f844195f96a",
+    "member_count": 57,
+    "all_crc_valid": true,
+    "artifact_api_digest_matches": true,
+    "junit_member": "rem002-native-junit.xml",
+    "junit_sha256": "8275b213bdb9a4076d283eeccca24f7baccc5ab391ef72ae867a0d103fdcaddc",
+    "own_suite": "scripts/ediel-test-original-outcome-native.test.ts",
+    "own_tests": 14,
+    "own_passed": 14,
+    "own_failed": 0,
+    "own_errors": 0,
+    "own_skipped": 0,
+    "own_cases": {
+      "authorized_original_orders": 2,
+      "isolation_orders": 8,
+      "in_flight_stored_integer_alias_orders": 2,
+      "legacy_22_holds": 1,
+      "acl_no_business_authority": 1
+    },
+    "catalog_member": "e2e-artifacts/native/utilts-catalog-clean.json",
+    "catalog_sha256": "ed819c0e522215d1e37f98e1e2908f2da109d23474379ebb1a8dc7624a658008",
+    "catalog_codeSha": "d0a85ac78307699b1f86aff4bba36360617f5676",
+    "catalog_codeTree": "82c35782bf44cbe7493149618b24f5a18feebe15",
+    "database_phase": "clean",
+    "whole_junit_total": 626,
+    "whole_passed": 625,
+    "whole_failed": 0,
+    "whole_skipped": 1,
+    "whole_masterplan_approval": false
+  },
+  "retained_evidence": {
+    "application_receipt_path": "/tmp/gridex-gov08-alias-candidate-application.json",
+    "application_receipt_sha256": "66d423be6bf477adb755e84c315500557950050555e5a82ae75bf4ecce0381db",
+    "all17metadata_equal": true,
+    "all17bodies_match_frozen_capture": true,
+    "changed_bodies": [
+      "publish_positive_v1",
+      "publish_v1"
+    ],
+    "other15bodies_exact": true,
+    "positive89": {
+      "path": "/tmp/gridex-gov08-canonical-lock-positive-qualified.log",
+      "sha256": "c7704ec8ca44ba8028685ac791ea3d4127ee1ef135f5f4ebac5b11434a663233",
+      "qualification": "Existing finite committed-function regression with declared schema/Auth/canonical-owner ports; not a new/native run."
+    },
+    "negative20": {
+      "path": "/tmp/gridex-gov08-canonical-lock-negative-qualified.log",
+      "sha256": "2d6cc7ec5bc13d54fb9ab04f70f899ff55d85511c33811534ef28b95add8d00e",
+      "qualification": "Existing finite synthetic-original protection regression; not a new/native run."
+    },
+    "unit18": {
+      "path": "/tmp/gridex-gov08-composed-authority-unit.log",
+      "sha256": "c84fa3221457beeca1714782703484a494f6b1440c95ef72f5a7f588c738ef6d",
+      "qualification": "Existing composed positive/negative adapter unit receipt; mocked upstream ports remain declared."
+    },
+    "historical_d315_native": {
+      "passed": 1,
+      "failed": 11,
+      "skipped": 0,
+      "qualification": "Historical setup-role failure retained unchanged. It is not relabeled as current native success."
+    },
+    "historical_eight_case_postfix_diagnostic": {
+      "scope": "Owned restored PostgreSQL17.5 only, no Supabase HTTP/native qualification",
+      "receipt_sha256": "db4d0e70104295f9f6aef8b5c2c6365584ba8b1ba992ec52433be8d5aff7be42"
+    },
+    "alias_diagnostic": {
+      "receipt_sha256": "3bdfa9d03b5e345b129e4db289e3566ca1b354ad76363e3926233c74c50104b3",
+      "raw_log_sha256": "f7cc64feede86b442515c5c75e04db3de4ebd7623119219bbc8e7e4847efbf79",
+      "qualification": "Prior owned PostgreSQL17.5 private-port diagnostic; two real alias cases, historical seven originals and six zero-effect counters retained. Not public/native source custody."
+    }
+  },
+  "capture": {
+    "source": "43f983e9fdd0174bedbc3ecbb6ccc97c10a0beee",
+    "tree": "12ea5409b8a7d338aa9a49104001df08fe99feff",
+    "run": 37345992657,
+    "artifact": 11360916097,
+    "prior_independent_review": "https://github.com/heke99/gridex-ops-platform/pull/533#issuecomment-5999666407",
+    "all_eight_source_inputs_exact": true,
+    "all_three_raw_outputs_match_d0a": true,
+    "full_superseded_manifest_equal": true,
+    "prior_manifest_sha256": "ebaa15e22353536644c8744d5a261026230a359462e5e50a074e822f8bd2e459",
+    "qualification": "Capture-only source stays43f; current native source separately d0a. Preserve full previous provenance, do not relabel capture/native."
+  },
+  "blockers": [],
+  "false_positive_refutations": [
+    "Historical d315 setup ROLE/namespace hold is not evidence that current d0a14 native cases failed: exact source-bound current JUnit shows14PASS, no skips.",
+    "The temporary local membership bridge cannot serialize the race because its single COMMIT precedes A/B; native requires matching advisory wait and actual blocker. No per-publisher catalogue grant.",
+    "The previous diagnostic label 'same representation' does not erase actual zero-padded B context; current native source makes31/031 and32/032 contrasts explicit.",
+    "No separate conflict journal or renderer rewrite is introduced: named immutable-declaration diagnostics, retained original rows and ordinary recorded test/error receipts satisfy documentation of conflict within this architecture."
+  ],
+  "limits": [
+    "Approval covers internal implementation and behavior of GOV-08/AT-GOV-08 only.",
+    "Synthetic source/original/owner references do not establish authentic certification custody, TGT/AGT/counterparty acceptance or live market permission.",
+    "Consumed-message require/trigger contrasts use qualified finite SQL89, not an inferred native14 consumer execution.",
+    "All historical RED/diagnostic receipts retain their own source/version limits.",
+    "Root's staged newer main composition is outside this exact d0a whole review; root owns current-main carry, final ordinary CI, any two-row promotion and merge.",
+    "Reviewer performed zero test executions, downloads, native/replay runs, repository/database mutations, pushes or merges."
+  ],
+  "skill_routing": {
+    "active": [
+      "supabase",
+      "code-review",
+      "differential-review",
+      "verification-before-completion"
+    ],
+    "method": "Literal whole-card condition/pass/failure and expected/prohibited matrix, complete caller reading, static source/receipt qualification and adversarial refutation.",
+    "skipped": "No runtime implementation, new test execution, hosted database operation, UI/performance/dependency work or broad audit/delegation. Retained current Supabase/PostgreSQL17 docs and changelog inspected."
+  }
+}

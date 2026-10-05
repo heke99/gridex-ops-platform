@@ -1,0 +1,239 @@
+{
+  "reviewed_at": "2026-10-05T04:29:48.859770+00:00",
+  "reviewer": "/root/sc007_sc066_review",
+  "scope": "Read-only existing authentic capture ZIP/producer-input/receipt/fingerprint qualification; no SQL/test/browser/replay/parity execution.",
+  "verdict": "APPROVE_AUTHENTIC_CAPTURE_ARTIFACT",
+  "producer": {
+    "sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "tree": "c1a15c0597cb32995b81a8a621d865afc3eeb96e",
+    "run_id": 37260943445,
+    "job_id": 111607846726,
+    "artifact_id": 11325200901
+  },
+  "zip": {
+    "path": "/workspace/attachments/2f4243fd-536f-46da-95ca-59f72f1123cd/root503-329-composed-P08-source-capture.zip",
+    "sha256": "9353629de11059586e05caf1957d35e31d6e382a22f8b704d21feac380cfb657",
+    "bytes": 1619708,
+    "unique_members": 4,
+    "crc": "PASS"
+  },
+  "raw_directory": "/tmp/root503-329-composed-capture",
+  "raw_artifacts": {
+    "database.types.ts": {
+      "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "bytes": 3679044,
+      "zip_equals_extracted": true
+    },
+    "schema.sql": {
+      "sha256": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6",
+      "bytes": 11212356,
+      "zip_equals_extracted": true
+    },
+    "schema.fingerprint.json": {
+      "sha256": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44",
+      "bytes": 3625,
+      "zip_equals_extracted": true
+    },
+    "capture-receipt.json": {
+      "sha256": "cb3d361a01e7e311dcff36cd499fdcea1586ef7e22d85e10587278c1cb2bd13d",
+      "bytes": 3990,
+      "zip_equals_extracted": true
+    }
+  },
+  "producer_inputs": {
+    "scripts/gridex-aud-003-clean-replay.sh": {
+      "expected": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "producer_git_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "equal": true
+    },
+    "scripts/migration-history-manifest.json": {
+      "expected": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
+      "producer_git_sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
+      "equal": true
+    },
+    "scripts/migration-history-manifest.additions.json": {
+      "expected": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "producer_git_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "equal": true
+    },
+    "scripts/migration-history-manifest.runtime.additions.json": {
+      "expected": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09",
+      "producer_git_sha256": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09",
+      "equal": true
+    },
+    "scripts/supabase-types-manifest.json": {
+      "expected": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
+      "producer_git_sha256": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
+      "equal": true
+    },
+    "scripts/apply-supabase-types-nullability-overrides.cjs": {
+      "expected": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "producer_git_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "equal": true
+    },
+    "scripts/gridex-schema-snapshot.cjs": {
+      "expected": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "producer_git_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "equal": true
+    },
+    "supabase/config.toml": {
+      "expected": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "producer_git_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "equal": true
+    }
+  },
+  "latest_replay_migration": {
+    "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+    "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+  },
+  "fingerprint": {
+    "algorithm": "sha256/canonical-json/v1",
+    "sha256": "6ae86b71da37f26a0d61793ecd72277f4ecd8ed66ad642764d78ef23d601dc87",
+    "schemas_count": 54,
+    "sections_count": 13,
+    "sections": {
+      "columns": {
+        "count": 14344,
+        "sha256": "abba0e4b8b06c23c8cdc75fc4b161763bf8f5d002643452b35c00e769ff75b02"
+      },
+      "constraints": {
+        "count": 4499,
+        "sha256": "43ad47451784c325d98407eb075bd441149d34355f7638788a3f9af2e7541917"
+      },
+      "enums": {
+        "count": 4,
+        "sha256": "e4e1406f2879720d7bec4e002e1bb62cbb3160f29ccc84e90ea8ec388cc6e629"
+      },
+      "extensions": {
+        "count": 7,
+        "sha256": "681146fb7b19ef18f03561a13eff172b8cf4db58ccea291c48c0a5389797d828"
+      },
+      "function_grants": {
+        "count": 3596,
+        "sha256": "ce5d2b11f1231de08dbdcf109cce72a8d941d23712ec56beea8ea7d1fab6cf95"
+      },
+      "functions": {
+        "count": 2070,
+        "sha256": "93bbb651fa3a41f958839c0713b456624afcff51c8cd23ecb5eb3da86794189d"
+      },
+      "indexes": {
+        "count": 2926,
+        "sha256": "f790353f05c710fe9a16f1a35a0c73e4df019db1832219a7ae54665890c1bc8b"
+      },
+      "policies": {
+        "count": 2560,
+        "sha256": "e7161df11bbd05d022a672da671414b71ad3112aadc119a8e86ff7b43d6706a6"
+      },
+      "relation_grants": {
+        "count": 16619,
+        "sha256": "2c4b9c4d186b0c08542cd89f557794f4d150ccf6e8ab28ce0114fa9fe15ee9db"
+      },
+      "relations": {
+        "count": 966,
+        "sha256": "b828990cd3d9f74320ccc9397fc9cbddcfbece11c8c2de86679722853d5a5061"
+      },
+      "schema_grants": {
+        "count": 155,
+        "sha256": "f0daeede8631b378efe907da4bbce7b0b696e6100a7ce07e43501a4798f8985e"
+      },
+      "schemas": {
+        "count": 54,
+        "sha256": "46519c18e22977a4f9acd48e43c3a2136e5bc79583036fca942d3b6f7d0ebc05"
+      },
+      "triggers": {
+        "count": 1138,
+        "sha256": "b60ab8880b1f43b0f799fead5853227fed947221275e414bc696b719bf35dee5"
+      }
+    },
+    "canonical_sections_hash_and_receipt_equal": true,
+    "introspection_rows_reexecuted": false
+  },
+  "generated_outputs_delta_from_producer_commit": {
+    "database.types.ts": {
+      "producer_retained_sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "new_raw_sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "changed": false
+    },
+    "schema.sql": {
+      "producer_retained_sha256": "117ced74ea6228814b246c9b19ecc672520055ded4886bbf1e0ea7a22ed35d6f",
+      "new_raw_sha256": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6",
+      "changed": true
+    },
+    "schema.fingerprint.json": {
+      "producer_retained_sha256": "d401087fdd50e8f37de85d8946017f7546352b6974a6e62da061be3fba80f517",
+      "new_raw_sha256": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44",
+      "changed": true
+    }
+  },
+  "producer_raw_receipt_flags": {
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN"
+  },
+  "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+  "github_custody": {
+    "path": "/workspace/agent-review-checkpoints/root503-329-capture11325200901-github-custody.json",
+    "sha256": "21ad45bf7c8ec71bf2b15946a2d43feaa1a724628a6af9a89cbcc6a2f62752fe",
+    "independently_read_live_api": true
+  },
+  "manifest_provenance_baseline": {
+    "upstream_main_manifest": {
+      "commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "502cb4515098eaa4aa8c9b593cd3c8520e773e42",
+      "sha256": "ec3346fe4b0ebb28ca1054437f3434e3819120b6a192a9df730dd5b2ede208f3",
+      "retained_origin": 37219877261,
+      "purpose": "immutable provenance pointer; not a new combined-prefix capture"
+    },
+    "current_prefix_verification": {
+      "kind": "mandatory_actual_composed_head_proof",
+      "latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "retained_root_manifest": {
+        "commit": "6b0e6a218f09efae230a01682beaf6af1d9104f1",
+        "path": "scripts/supabase-types-manifest.json",
+        "git_blob": "34548bc1325c43aa6798c3d1dcbb6ae28fdd07f6",
+        "sha256": "cc9dee39a72f26b5d52fdea9251dfc1a35bec62855c0990a6fd98029b5358019"
+      },
+      "source_migrations": [
+        {
+          "name": "20261004205603_staff_customer_retention_read_prerequisite.sql",
+          "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+        },
+        {
+          "name": "20261004205816_support_attachment_quarantine_carrier.sql",
+          "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+        },
+        {
+          "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+          "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+        }
+      ],
+      "requirements": [
+        "Bind actual checkout head/tree, all eight actual replay inputs, latest migration and all three generated raw bytes.",
+        "Import only genuine changed capture bytes; do not relabel retained root/main receipts.",
+        "Mandatory exact-head clean and upgrade native/browser/schema/type/parity and application release checks pass."
+      ]
+    },
+    "upstream_tr04_manifest": {
+      "commit": "4b2245416df6d268c48db32ff6f01915396af94d",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "fc722c041cfdf9799e14d9d6fe6a1572bdfe2320",
+      "sha256": "c5356c270582be1826827c4afc640a6f4455358ea3dbbcf3becdb73d604145c1"
+    },
+    "upstream_primary_side_manifest": {
+      "commit": "1db2920c3b23c5029f9f2946c671955ada6e559d",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "c7ba6b65869478f1ec234b6bfa667241925dc637",
+      "sha256": "2cceb0077be2c9a5223381f96d5e59a4ce800010870585caa57281267fa1f940"
+    }
+  },
+  "staged_import": "PENDING_ROOT_READY_MESSAGE; actual active staging checkout /workspace/gridex-masterplan-retry",
+  "limits": [
+    "Authentic capture producer is329, not a later consumer head.",
+    "Raw NOT_RUN fields are retained.",
+    "Native/browser/type-schema comparison/upgrade parity and exact-current release gates remain mandatory.",
+    "No new database introspection or per-section row digest computation was executed; the overall canonical hash of the supplied13section records was independently recomputed.",
+    "Approval is artifact qualification only; future import/source-input carry is not inferred."
+  ]
+}

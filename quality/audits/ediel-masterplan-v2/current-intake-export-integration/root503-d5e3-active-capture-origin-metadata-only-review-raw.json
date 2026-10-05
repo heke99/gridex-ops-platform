@@ -1,0 +1,13 @@
+{
+  "records": [
+    {
+      "member": "root503-d5e3-active-capture-origin-metadata-only-review.md",
+      "sha256": "c4a12e0903918bea1a22e622e93f8d15c1582578c2e9a62840e4f8c943790ab7"
+    },
+    {
+      "member": "root503-d5e3-active-capture-origin-metadata-only-review.json",
+      "sha256": "0113d13c95ba8a0d908ecb731db97f9651919fb090fe9521a8de5181fbfa4c03"
+    }
+  ],
+  "zip_sha256": "9a583b096db70f3d482adc1c844fff0197a03ca3396e8033be1ede00645ca56b"
+}

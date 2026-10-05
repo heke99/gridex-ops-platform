@@ -1,0 +1,291 @@
+{
+  "schema": "gridex-readonly-next-free-pair-scout/v2",
+  "scout": "/root/sc004_sc006_integrate",
+  "status": "FINAL_IMMUTABLE_HELD_HANDOFFS_ONLY",
+  "decision": "No genuinely free whole-rule pair identified; keep existing owners.",
+  "public_origin": "https://github.com/heke99/gridex-ops-platform",
+  "origin_verified_private": false,
+  "ownership_snapshot": {
+    "complete530": 289,
+    "complete491": 455,
+    "complete503": 42,
+    "final_append530": 292,
+    "final_append491": 455,
+    "final503": 44,
+    "complete_open_prs": 69,
+    "filename_entries": 5616,
+    "all9overflow_pr_pages_read": true,
+    "read_errors": 0,
+    "full_inventory_not_exported": true,
+    "external_carry_root_ack": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5997005674"
+  },
+  "source_freeze": {
+    "main": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "main_tree": "b519b3271f5bdd41bc3aac794b607420b5b725f5",
+    "parents": [
+      "d10402d5028021794994e6d5d61622de61d08b57",
+      "7453605e27b313309240184e8bd5f664bc156b8a"
+    ],
+    "root503": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "coverage_source": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/aa271e14b8a39145dca04aa1433dd54be88f44bd/quality/audits/ediel-masterplan-v2/coverage.json",
+    "actual_main_coverage": {
+      "ids": 352,
+      "verified_rules": 92,
+      "passed_contracts": 130,
+      "total_approved": 222,
+      "selected_rows": [
+        {
+          "id": "GOV-04",
+          "status": "NOT_VERIFIED"
+        },
+        {
+          "id": "TEN-09",
+          "status": "PARTIAL"
+        },
+        {
+          "id": "P-01",
+          "status": "VERIFIED"
+        },
+        {
+          "id": "SC-034",
+          "status": "PASSED"
+        },
+        {
+          "id": "SC-047",
+          "status": "PARTIAL"
+        },
+        {
+          "id": "SC-064",
+          "status": "NOT_EXECUTED"
+        },
+        {
+          "id": "AT-GOV-04",
+          "status": "NOT_EXECUTED"
+        },
+        {
+          "id": "AT-TEN-09",
+          "status": "PARTIAL"
+        },
+        {
+          "id": "AT-P-01",
+          "status": "PARTIAL"
+        },
+        {
+          "id": "AT-P-04",
+          "status": "NOT_EXECUTED"
+        }
+      ]
+    },
+    "correction": "Earlier scout status incorrectly attributed 221→222 to AT-P-04. Actual36e→d104 diff promotes SC-034 PARTIAL→PASSED with existing z04 native evidence and only adds SC-047 ERR gateway evidence while retaining PARTIAL. AT-P-04 remains NOT_EXECUTED. #588 merged proposal adds no ledger approval."
+  },
+  "candidates": [
+    {
+      "priority": 1,
+      "ids": [
+        "TEN-09",
+        "AT-TEN-09"
+      ],
+      "state": "HELD_EXISTING_CLAUDE_TIMING_AND_NATIVE_OWNER",
+      "owner_pointers": [
+        "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5982184108",
+        "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5982240442"
+      ],
+      "existing_code": [
+        "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
+        "scripts/ediel-service-request-timing-sql-regression.mjs",
+        "scripts/ediel-service-manual-sql-regression.mjs",
+        "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
+        "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+        "scripts/ediel-service-evidence-native.test.ts",
+        "scripts/fixtures/ediel-service-evidence-native.ts",
+        "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+        "lib/ediel/services/commands.ts"
+      ],
+      "specific_gap": "The exact timing runner explicitly declares its public resolver predecessor a finite read-only stub. Its authorized contrast returns permission_required, not real approved reuse. The selected real service-evidence native test and fixture have zero calls to the public explicit resolver/resolveEdielServicePermission. Existing actual coordinator reuse/end-assignment cases do not substitute for this missing joined explicit-reuse timing effect.",
+      "next_action": "Retained Claude timing/native owner identifies an existing exact-input authentic combined resolver+approved-reuse witness, or explicitly hands off only an addition to the existing service-native suite/fixture. Reuse existing archive/stage/review/approval and manual resolver; do not build a new coordinator, fake accepted permission, class or native harness.",
+      "conditional_file_reservation": "No current claim. Any existing scripts/ediel-service-evidence-native.test.ts / scripts/fixtures/ediel-service-evidence-native.ts addition requires explicit retained source/native-owner clearance. SQL/schema/migration/capture and live #561/#570 stay retained.",
+      "frozen_rule_pointer": "https://github.com/heke99/gridex-ops-platform/blob/aa271e14b8a39145dca04aa1433dd54be88f44bd/docs/ediel/masterplan-v2/registers/rules.json",
+      "scout_executes_or_claims": false
+    },
+    {
+      "priority": 2,
+      "ids": [
+        "AT-P-01 supporting field217 metadata component"
+      ],
+      "state": "HELD_EXPLICIT_P_Z14_OWNER_SOURCE_HANDOFF",
+      "owner_pointers": [
+        "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995744186"
+      ],
+      "existing_code": [
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ],
+      "specific_gap": "Existing source fail() lines38–43 emits blocking numeric217 CCI/CAV format result without prodatDiagnostic; guard100–118 has the descriptor and exact field. Canonical caller passes it to actual projection, which safely returns internal_review and zero external errors for absent typed metadata. Prior independent causal witness5995744186 already establishes the exact BAD CAV contrast. Scout did not reproduce or infer a native/live authority defect.",
+      "next_action": "Reuse the prior independent causal witness and current byte hashes. Ask the retained P/Z14 keeper for a source-backed typed numeric217 occurrence/component/result patch, or explicit hunk handoff. Preserve current malformed-field hold and all unrelated fields; source-qualified typed metadata must never be derived from a regex over description/path.",
+      "conditional_file_reservation": "If explicitly transferred, lib/ediel/rulebook/prodatZ14Policy.ts fail()38–43 and existing CCI/CAV guard100–118 only, plus exact same owner's existing narrow assertion file. No canonicalPolicyFieldValidator.ts / ENV06 (#517/#576) or projection/class/native/schema rewrite. No whole P01/AT promotion from this single component.",
+      "frozen_rule_pointer": "https://github.com/heke99/gridex-ops-platform/blob/aa271e14b8a39145dca04aa1433dd54be88f44bd/docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "scout_executes_or_claims": false
+    },
+    {
+      "priority": 3,
+      "ids": [
+        "GOV-04",
+        "AT-GOV-04",
+        "SC-064 supporting"
+      ],
+      "state": "HELD_RETAINED_GOV04_TR_RECOVERY_OWNER",
+      "owner_pointers": [
+        "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5984623767",
+        "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5984791806",
+        "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996923739"
+      ],
+      "existing_code": [
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/rulebook/sendGuards.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-smtp-post-acceptance.test.ts",
+        "__tests__/fixtures/ediel-transport-journal.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "__tests__/ediel-sc-051-revision-treatment.test.ts"
+      ],
+      "specific_gap": "Existing SMTP persistence suite explicitly mocks admission and uses one frozen PRODAT snapshot; it cannot prove fresh current-guide assessment plus old original/attempt-decision history across the boundary. #503 carries real immutable recovery/current actor/POA/guide/clock denial evidence and #561 adds an actual queued-worker/fresh revision admission seam, but their joined full GOV04/SC064 scope must be qualified by the retained owners rather than relabelled as a new native result.",
+      "next_action": "First read-only whole-literal carry of existing authentic #503 recovery and independently approved #561 worker/revision records, pinning exact reached sources. If a concrete clause remains absent, request an addition through the existing fixture/owner; no second sender/journal/native harness and no CI restart of frozen candidates.",
+      "conditional_file_reservation": "No claim or writer allocation. #503 recovery/source/worker and #561 existing scenario file remain exclusive and frozen. Any SMTP persistence/journal fixture hunk must first receive explicit existing-owner clearance; foreign #536/#537 and historical #421/#423/#424 overlaps are preserved.",
+      "frozen_rule_pointer": "https://github.com/heke99/gridex-ops-platform/blob/aa271e14b8a39145dca04aa1433dd54be88f44bd/docs/ediel/masterplan-v2/registers/rules.json",
+      "scout_executes_or_claims": false
+    }
+  ],
+  "scoped_overlap": [
+    {
+      "path": "lib/ediel/rulebook/prodatZ14Policy.ts",
+      "open_prs": []
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "open_prs": [
+        {
+          "number": 517,
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d"
+        },
+        {
+          "number": 424,
+          "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a"
+        },
+        {
+          "number": 423,
+          "head": "604e339922b9fa0eb449dbd1ef720c49a8b5cafa"
+        },
+        {
+          "number": 421,
+          "head": "3c7342c64c83b705e85c18f300705166a1732ad6"
+        },
+        {
+          "number": 335,
+          "head": "a39ce436d68327d021e126c1c4ade7404c3db0b3"
+        }
+      ]
+    },
+    {
+      "path": "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
+      "open_prs": []
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "open_prs": [
+        {
+          "number": 424,
+          "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a"
+        }
+      ]
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "open_prs": [
+        {
+          "number": 424,
+          "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a"
+        }
+      ]
+    },
+    {
+      "path": "scripts/ediel-tr-05-recovery-native.test.ts",
+      "open_prs": [
+        {
+          "number": 503,
+          "head": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4"
+        }
+      ]
+    },
+    {
+      "path": "__tests__/ediel-smtp-post-acceptance.test.ts",
+      "open_prs": [
+        {
+          "number": 424,
+          "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a"
+        },
+        {
+          "number": 421,
+          "head": "3c7342c64c83b705e85c18f300705166a1732ad6"
+        }
+      ]
+    },
+    {
+      "path": "__tests__/fixtures/ediel-transport-journal.ts",
+      "open_prs": [
+        {
+          "number": 424,
+          "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a"
+        },
+        {
+          "number": 421,
+          "head": "3c7342c64c83b705e85c18f300705166a1732ad6"
+        }
+      ]
+    }
+  ],
+  "fg_read_only_pointer_request": {
+    "root_coordinates_github": true,
+    "owner_public_comment": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996407394",
+    "merged_old_proposal": {
+      "pr": 588,
+      "head": "7453605e27b313309240184e8bd5f664bc156b8a",
+      "merge": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+      "native": "NOT_RUN",
+      "whole_acceptance": "HELD"
+    },
+    "newer_helper": {
+      "base_blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+      "base_sha256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194",
+      "public_patch_sha256": "b705390993dcb28fe9cf3fecdbaae52e6f17bfdeb7b70e995db0381a9d7c5da8",
+      "result_blob": "bdc078bbae5f52955c1e2a7544babeb92bf41c41",
+      "result_sha256": "65e2b6c559e187d864ece902ade76e49fe25dcea31ee9c20d4c08058c75cbdf1",
+      "local_unpublished_commit": "02ea44017706183e5cb266c91049d46f0adacc46",
+      "local_unpublished_tree": "130748b247508b9b904ae86a724391164f557cff",
+      "F_sha256": "0dbef8cd9005c01cade8bb90621f5cb504e273c0e1f6afb2e6992d9f3baab18b",
+      "G_sha256": "443b06fddfc0f617165a5d86c2de2b45d921707e694a7a0ce6cf22c7e456e4ca"
+    },
+    "request": [
+      "Return existing exact published source head/tree (or clearly labelled public patch custody if still unpublished), preserving root-only once-through503 adoption; do not reopen/push merged588.",
+      "Provide immutable complete25-cell human matrix SHA/path/review and source/provenance pointers; merged native-gap-map references those cells but its examples explicitly do not exhaust them. Keep306 E22 vsZ11/Z12, birth/current route/registration/malformed/unknown and fullF/E66 gaps HELD.",
+      "Provide existing same-input semantic scripts tsc --noEmit --incremental false receipt, TS/Node versions, before/after helper/F/G hashes, actual0 diagnostics/exit0 and original log SHA/public pointer. Existing14:38:49.423803 Node22.23.3 claim is not old58813:06 static proof; no rerun requested."
+    ],
+    "published_gap_map": "https://github.com/heke99/gridex-ops-platform/blob/7453605e27b313309240184e8bd5f664bc156b8a/quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/native-gap-map.md",
+    "published_source_provenance": "https://github.com/heke99/gridex-ops-platform/blob/7453605e27b313309240184e8bd5f664bc156b8a/quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/field-306-source-qualification.json",
+    "newer_delta_remains_excluded": true,
+    "no_new_writer_or_run": true
+  },
+  "executions": {
+    "source_edits": 0,
+    "claims": 0,
+    "tests": 0,
+    "source_probes": 0,
+    "native": 0,
+    "ci_dispatches": 0,
+    "pushes": 0,
+    "merges": 0
+  },
+  "next": "Root coordinates existing-owner pointer requests; scout does not allocate or implement."
+}

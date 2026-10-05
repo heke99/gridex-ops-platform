@@ -1,0 +1,63 @@
+{
+  "qualified_at": "2026-10-05T14:28:37.622907+00:00",
+  "scope": "Archived exact minimal public CI failure excerpt and newly executed adapter/import checks; no full log/environment dump.",
+  "archive": "root503-tr04-adapter-and-import-checks.zip",
+  "archive_sha256": "e32502f6630017edb0e0b321942c846b7beca346f66e6302d05fbf57899ce661",
+  "raw_sha256": {
+    "root503-5be-quality-failure-excerpt.log": "c0fc115d3f9a82702ec2cdc6ac3155fdedee194ec80b50570329684c27b0e1e7",
+    "root503-tr04-intake-read-test.log": "21de3e172c31a91e6b33eab6be1256dcf156576f10693aa6eb356f7f1c486e0f",
+    "root503-tr04-intake-read-junit.xml": "339d28d31d799674876bbf4acb6c30ac078012851297c16fd53a63a74bfb514c",
+    "root503-tr04-intake-read-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "root503-5be-import-app-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "checks": {
+    "generated_types": {
+      "exit_code": 0,
+      "bytes": 3680729,
+      "latest_migration": "20261005101500_ediel_beneficiary_export_jobs.sql"
+    },
+    "migration_integrity": {
+      "exit_code": 0,
+      "files": 1073,
+      "version_groups": 976
+    },
+    "frozen_integrity": {
+      "exit_code": 0,
+      "originals": 33,
+      "rules": 121,
+      "acceptance_contracts": 231
+    },
+    "app_types": {
+      "exit_code": 0,
+      "command": "Node22 typescript/bin/tsc --noEmit --project tsconfig.app.json"
+    },
+    "attributed_dsn_adapter": {
+      "exit_code": 0,
+      "tests": 5,
+      "failed": 0,
+      "skipped": 0,
+      "node": "22",
+      "loopback_guard": "UNCHANGED"
+    },
+    "scoped_lint": {
+      "exit_code": 0,
+      "path": "__tests__/ediel-tr-04-attributed-dsn.test.ts"
+    }
+  },
+  "independent_reviews": [
+    "root503-5be-capture-import-independent.json",
+    "root503-tr04-protected-intake-read-adaptation.json"
+  ],
+  "not_claimed": [
+    "Current native/browser/upgrade/type-schema parity/whole-card promotion.",
+    "No new capture run or source correction."
+  ],
+  "invocation_correction": "A guessed check-migration-history.cjs filename was unavailable; the actual repository check-migration-versions.cjs was then executed successfully. No source defect was inferred.",
+  "independent_raw_review_archive": {
+    "path": "root503-5be-capture-import-independent-raw.zip",
+    "sha256": "0b65b11e4f5bae1286878ce8b2b930c19bc2bb602b71efb0e9b3e2f93189721b",
+    "member": "root503-5be-capture-import-independent.md",
+    "raw_sha256": "7c08b68123be3dd1d64aaa87c647d834e1ac7dd2b7369cb93bff812407988991",
+    "reason": "Preserve exact independent raw report EOF bytes; no whitespace normalization or invented clean raw-diff claim."
+  }
+}

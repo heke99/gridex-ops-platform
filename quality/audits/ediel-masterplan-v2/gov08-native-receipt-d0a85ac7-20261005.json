@@ -1,0 +1,96 @@
+{
+  "source_head": "d0a85ac78307699b1f86aff4bba36360617f5676",
+  "source_tree": "82c35782bf44cbe7493149618b24f5a18feebe15",
+  "run": 37350415311,
+  "job": 111900094250,
+  "artifact": 11363339584,
+  "zip_sha256": "821e4e26afa7a04337dc26211d9f42e4f521154c52af11f2e3bb0f844195f96a",
+  "members": 57,
+  "crc": "PASS",
+  "own_native": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+  },
+  "overall": {
+    "passed": 625,
+    "failed": 0,
+    "skipped": 1
+  },
+  "cases": [
+    {
+      "name": "authorized 'positive' original remains immutable and idempotent when 'negative' is rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "authorized 'negative' original remains immutable and idempotent when 'positive' is rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'REPEATABLE READ' snapshot cannot publish 'negative' after committed 'positive'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'REPEATABLE READ' snapshot cannot publish 'positive' after committed 'negative'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'SERIALIZABLE' snapshot cannot publish 'negative' after committed 'positive'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'SERIALIZABLE' snapshot cannot publish 'positive' after committed 'negative'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'READ COMMITTED' snapshot cannot publish 'negative' after committed 'positive'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'READ COMMITTED' snapshot cannot publish 'positive' after committed 'negative'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'READ UNCOMMITTED' snapshot cannot publish 'negative' after committed 'positive'",
+      "result": "PASS"
+    },
+    {
+      "name": "native 'READ UNCOMMITTED' snapshot cannot publish 'positive' after committed 'negative'",
+      "result": "PASS"
+    },
+    {
+      "name": "native in-flight 'positive' blocks zero-padded 'negative' on the same stored step",
+      "result": "PASS"
+    },
+    {
+      "name": "native in-flight 'negative' blocks zero-padded 'positive' on the same stored step",
+      "result": "PASS"
+    },
+    {
+      "name": "retained legacy contradictions hold at actual private/public reads, preparation and existing prepared witnesses",
+      "result": "PASS"
+    },
+    {
+      "name": "conflict handling retains the declared publisher ACL and gives no market or business authority",
+      "result": "PASS"
+    }
+  ],
+  "junit": {
+    "path": "rem002-native-junit.xml",
+    "sha256": "8275b213bdb9a4076d283eeccca24f7baccc5ab391ef72ae867a0d103fdcaddc"
+  },
+  "native_source_receipt": {
+    "path": "e2e-artifacts/native/utilts-catalog-clean.json",
+    "sha256": "ed819c0e522215d1e37f98e1e2908f2da109d23474379ebb1a8dc7624a658008",
+    "codeSha": "d0a85ac78307699b1f86aff4bba36360617f5676",
+    "codeTree": "82c35782bf44cbe7493149618b24f5a18feebe15",
+    "databasePhase": "clean"
+  },
+  "source_sha256": {
+    "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
+    "scripts/ediel-test-original-outcome-native.test.ts": "586ecc27099fa28f99405fa3516cfcd345963264eb666895c14dc8d164f4140f",
+    "scripts/ediel-source-owner-native.config.ts": "18cb87031d609e570350409bd47a575ad0cff48c94e78977b7893ffd15f56f78"
+  },
+  "clean_job_conclusion": "success",
+  "qualification": "Actual mandatory native producer and all fourteen own cases bound to exact d0a source/tree. Whole suite has one inherited skip; prior diagnostic and earlier 1 PASS/11 FAIL source remain historical. No market/business authority, hosted send, final publication-head CI or whole-rule approval is inferred."
+}

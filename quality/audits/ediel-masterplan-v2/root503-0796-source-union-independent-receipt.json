@@ -1,0 +1,1218 @@
+{
+  "decision": "APPROVE_SOURCE_COMPOSITION_AFTER_EXACT_FIXTURE_REPAIR",
+  "date": "2026-10-05T01:22:24.112354+00:00",
+  "reviewer": "/root/ten07_rule_review",
+  "checkout": "/workspace/gridex-masterplan-main-union",
+  "root_parent": "6b0e6a218f09efae230a01682beaf6af1d9104f1",
+  "primary_parent": "0796a57181657d0c2b55dc4437f3ad5c6c8d88c3",
+  "merge_base": "e07e5937a07e5aa11868d35e6aec1c84142177a5",
+  "snapshot_kind": "staged_index_before_root_memory_evidence_finalization",
+  "technical_path_blob_snapshot_sha256": "df6e4e08e1047df6314d40f059831e8958b8f9d50cea916621721e76c2d0183e",
+  "changed_from_base": {
+    "root": 91,
+    "primary": 71,
+    "intersection": [
+      ".agent-memory/handover.md",
+      ".github/workflows/ops-hardening.yml",
+      "__tests__/ediel-ack-01-contrl.test.ts",
+      "__tests__/ediel-z06f-native-wire-grammar.test.ts",
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json",
+      "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts",
+      "scripts/supabase-types-manifest.json"
+    ]
+  },
+  "index_blobs": [
+    {
+      "path": ".agent-memory/checkpoint.json",
+      "index_blob": "ecbccafb1dd36945f2c628dd05dc5e8630de1655",
+      "root_blob": "95e735c10e89145eff146a1165459c039931e114",
+      "primary_blob": "ecbccafb1dd36945f2c628dd05dc5e8630de1655",
+      "index_sha256": "3c102d7b1d77a3508be534b21c71092a094ec900842eba6e5e24f44006d8e09c"
+    },
+    {
+      "path": ".agent-memory/current-task.md",
+      "index_blob": "285cbcc36f71af18a555367810ed9e4ae9c9a09a",
+      "root_blob": "7f606c1ca834fa728b9840b8eccfc5293bffc19f",
+      "primary_blob": "285cbcc36f71af18a555367810ed9e4ae9c9a09a",
+      "index_sha256": "749301c0c129f1ea083b67f760ba24e6098a5d58448ec197f906006d2fd9ccab"
+    },
+    {
+      "path": ".agent-memory/handover.md",
+      "index_blob": "03c343afe75f0e79b36a52ed9ecb92ac0af49f0f",
+      "root_blob": "f758693696deeff77ca69245d7b579a763ee0e01",
+      "primary_blob": "b0cd09cc548fa55901beb868b2c980e1bf2a88f0",
+      "index_sha256": "bad43ff904dd0bb6eafbd91f8f5a7743732a2c5c5b9e018a5148ab284785dac4"
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-archive-checkpoint.md",
+      "index_blob": "60d71832750204dad6d1cc9d512e25057e92edba",
+      "root_blob": "60d71832750204dad6d1cc9d512e25057e92edba",
+      "primary_blob": null,
+      "index_sha256": "fc3d01b91132d5f5eed48c981e9be8ed49b3e22831435991be0e4f704d34edba"
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-dsn-checkpoint.md",
+      "index_blob": "2cbc49a302eece0b32afd252ba74d7de13ec8f8e",
+      "root_blob": "2cbc49a302eece0b32afd252ba74d7de13ec8f8e",
+      "primary_blob": null,
+      "index_sha256": "1336effe9399f2fd2306de4865080a0d79317382bb9f49eaab047de2e1900f00"
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-retry-checkpoint.md",
+      "index_blob": "aab2e97ab3eaa667377faf1c1b255e25125dab0f",
+      "root_blob": "aab2e97ab3eaa667377faf1c1b255e25125dab0f",
+      "primary_blob": null,
+      "index_sha256": "ed0dc01cac24d1eb39011965adfb7a3419e4e49cab67b48321c6c3c40e19aef2"
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-tr05-whole-contrl-checkpoint.md",
+      "index_blob": "977959a7979c755e96acd5be183285f580f1ad8b",
+      "root_blob": "977959a7979c755e96acd5be183285f580f1ad8b",
+      "primary_blob": null,
+      "index_sha256": "4691c1b4ab2b99accb7df0f1c139a496491ce80a22214134707efc087a13db41"
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-uncertain-case-checkpoint.md",
+      "index_blob": "d5dbbbce106de948a00c60d8fa7634472afd0531",
+      "root_blob": "d5dbbbce106de948a00c60d8fa7634472afd0531",
+      "primary_blob": null,
+      "index_sha256": "6a812386da3fc3d554812df35af71f31ff4e91d71c1b051cc0072a6e77abe962"
+    },
+    {
+      "path": ".agent-memory/masterplan-env01-checkpoint.md",
+      "index_blob": "2c58e96b859bb2fda74f3a474701311812d0b975",
+      "root_blob": null,
+      "primary_blob": "2c58e96b859bb2fda74f3a474701311812d0b975",
+      "index_sha256": "787c89c720c0aa6b940bde6bf08f39bdcb213f4a74d567a6bc7a4dc29ce87b8e"
+    },
+    {
+      "path": ".agent-memory/masterplan-tr06-checkpoint.md",
+      "index_blob": "bf5cc3079e187774a193ee5bb60d8e810419a147",
+      "root_blob": null,
+      "primary_blob": "bf5cc3079e187774a193ee5bb60d8e810419a147",
+      "index_sha256": "8897995eb41127007bc5999f27f9185a7516d18aa2c77598f6c1bb4659f40d9d"
+    },
+    {
+      "path": ".agent-memory/open-blockers.md",
+      "index_blob": "595e86d4bdbbdfa3acd2fc349f20c529db0748d6",
+      "root_blob": "4a43322da46b3176feeb91f964fda1751519861a",
+      "primary_blob": "595e86d4bdbbdfa3acd2fc349f20c529db0748d6",
+      "index_sha256": "18c86c86791bfddd34ed6af6aead560986b4cf537d27184d6f81bca57736a12a"
+    },
+    {
+      "path": ".github/workflows/ediel-recovery-native.yml",
+      "index_blob": "76b1465e04f40d1174d54f8ea2999b96feed0398",
+      "root_blob": "76b1465e04f40d1174d54f8ea2999b96feed0398",
+      "primary_blob": null,
+      "index_sha256": "5cc097dccc90f4649250e40b45dff7c297f10bdad5dc57ce3c795916c069de52"
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "index_blob": "3062a6a4631ff6bf4fe24272124c4a08f5a2594f",
+      "root_blob": "762bd0fd5efdf01c1ff13120bab7b1fdcc35f7f9",
+      "primary_blob": "66a1cb3d21ddd48395b55017c141dc3da478e6f3",
+      "index_sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261"
+    },
+    {
+      "path": "__tests__/ediel-ack-01-contrl.test.ts",
+      "index_blob": "1151483e2629e8d317a70e981a608f0808debbf9",
+      "root_blob": "1151483e2629e8d317a70e981a608f0808debbf9",
+      "primary_blob": "1151483e2629e8d317a70e981a608f0808debbf9",
+      "index_sha256": "193d9f0169456eb3f56471205f0db20f94719e22e5b1175506a599a81fe055f0"
+    },
+    {
+      "path": "__tests__/ediel-certificate-trust-crypto.test.ts",
+      "index_blob": "08420e588400a56bc478168a40682ef52b65a0d7",
+      "root_blob": "22926e2c574dc86f6460de8bbe97cf0961a11dc7",
+      "primary_blob": "08420e588400a56bc478168a40682ef52b65a0d7",
+      "index_sha256": "d2a4b07cebf926f5394d946b5ad8c9d97a005c90663cfef31c73fdca9848855f"
+    },
+    {
+      "path": "__tests__/ediel-certificate-validity-boundaries.test.ts",
+      "index_blob": "f926cbf68c17d361213f46a7b1890e4c6b10aba5",
+      "root_blob": "4e03854ab11f65b87312afa02e3c1cce3043bc94",
+      "primary_blob": "f926cbf68c17d361213f46a7b1890e4c6b10aba5",
+      "index_sha256": "3459e91bf0ea5e6ef379aa0f1fb59d04fd83c76a628e59d15daebc5923270f5b"
+    },
+    {
+      "path": "__tests__/ediel-dsn-classification.test.ts",
+      "index_blob": "76a0f645a347b9670ec4b599a26aec4069ff7c6d",
+      "root_blob": "76a0f645a347b9670ec4b599a26aec4069ff7c6d",
+      "primary_blob": "cb4d1927e4ec22c4509701bf9c264e86d347ef41",
+      "index_sha256": "a206504d9f40ae81127a7c9d7bbc79badfd4e7b8ff6c3c934cf4f42103fb5818"
+    },
+    {
+      "path": "__tests__/ediel-env01-unoc-text.test.ts",
+      "index_blob": "2f0ca597824a37b0364d00cf68965c7854958681",
+      "root_blob": null,
+      "primary_blob": "2f0ca597824a37b0364d00cf68965c7854958681",
+      "index_sha256": "431792c28469cfea89cf2600b08aeeccd6a70716472a3ce9b4954bc9d1cecc7b"
+    },
+    {
+      "path": "__tests__/ediel-gov-03-aperak-source-family.test.ts",
+      "index_blob": "8cd4d8b09ef66f86d8db3c7317af3f89bf802bc6",
+      "root_blob": null,
+      "primary_blob": "8cd4d8b09ef66f86d8db3c7317af3f89bf802bc6",
+      "index_sha256": "e0a6298e3a872f314b24ac78cf339400909480dfd33b75e4421c8a90236dfbd8"
+    },
+    {
+      "path": "__tests__/ediel-inbound-reception-persistence.test.ts",
+      "index_blob": "89b90a946e08d15a0a96cd1d8cc02d694cc5dfc4",
+      "root_blob": "89b90a946e08d15a0a96cd1d8cc02d694cc5dfc4",
+      "primary_blob": "90bab7bffb66a7984f35112dff69c936a276246b",
+      "index_sha256": "e935fc111af0ede608c7d9ce3fb8263372d98563ea01cfc3cac9d6102e37ccf3"
+    },
+    {
+      "path": "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
+      "index_blob": "74dae94be2725defab2361a7adfdcb6a8082e165",
+      "root_blob": null,
+      "primary_blob": "74dae94be2725defab2361a7adfdcb6a8082e165",
+      "index_sha256": "26099458a9475ba112a6ac99affa8fc0e6e7931703a4045954bbbeeee638519b"
+    },
+    {
+      "path": "__tests__/ediel-process-next-action.test.ts",
+      "index_blob": "6defe6ed3ddc15e1734aa2a5ff605b4159ce33e1",
+      "root_blob": "139ccd87fccf360db704ab3f23b1512d10c1d1ad",
+      "primary_blob": "6defe6ed3ddc15e1734aa2a5ff605b4159ce33e1",
+      "index_sha256": "b9a789c0088dd71c25cb410848405082dc346b1499c6310e022716a4046cc280"
+    },
+    {
+      "path": "__tests__/ediel-prodat-recovery-gateway.test.ts",
+      "index_blob": "29df01d2b41f88d7199c8439e3e871a4418a1fb6",
+      "root_blob": "29df01d2b41f88d7199c8439e3e871a4418a1fb6",
+      "primary_blob": "f3cb05367fd9e9cc8019964a1ec9ad2d7bddeac0",
+      "index_sha256": "a59a4d51ce41456f8ff730049bceab9fe3bb63324b038ee49fb7b74bbf760448"
+    },
+    {
+      "path": "__tests__/ediel-raw-mime-archive.test.ts",
+      "index_blob": "73bdc30ab5cb61e0b00937afb261292397afa9c5",
+      "root_blob": "73bdc30ab5cb61e0b00937afb261292397afa9c5",
+      "primary_blob": "0c46684736c08c5caa2232fd473430e9627b2b34",
+      "index_sha256": "ce9f97b8d4cb433f9b4c951d4fec15e8171ea4481b5a4853b417f3fabe5bf75b"
+    },
+    {
+      "path": "__tests__/ediel-recipient-certificate-scope.test.ts",
+      "index_blob": "3c6f1f3559c7fe3acb047f1686c3ad62bda77bdb",
+      "root_blob": "2be75d1643534d0514cefa9ba9e22b2d6a3cb429",
+      "primary_blob": "3c6f1f3559c7fe3acb047f1686c3ad62bda77bdb",
+      "index_sha256": "32110b7b8e481aa8dc2aea1c89633e25c672f2a279312bb5a72f000cbee57312"
+    },
+    {
+      "path": "__tests__/ediel-recipient-preparation.test.ts",
+      "index_blob": "5683de063baf84e5a6a745c09c1835c90979a16f",
+      "root_blob": null,
+      "primary_blob": "5683de063baf84e5a6a745c09c1835c90979a16f",
+      "index_sha256": "4fbd2eb9d816d48445d3e907bc7f87cfe7d64ad65cb037607904c66c7bab4b87"
+    },
+    {
+      "path": "__tests__/ediel-recipient-readiness.test.ts",
+      "index_blob": "14f854931d4b71f4a008da4ca31816788eb1d628",
+      "root_blob": null,
+      "primary_blob": "14f854931d4b71f4a008da4ca31816788eb1d628",
+      "index_sha256": "73e56746401da44d1d0b96d508f35c674a5221c5e6956b3ce728b4301b606e72"
+    },
+    {
+      "path": "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+      "index_blob": "fa0e617e008f4bdace3121153bcc7980764dcc02",
+      "root_blob": null,
+      "primary_blob": "fa0e617e008f4bdace3121153bcc7980764dcc02",
+      "index_sha256": "5482025f74d19d45d5ee767e2a101f1e1a16f3a7c13346698a8f5363605a1d05"
+    },
+    {
+      "path": "__tests__/ediel-smime-archive-send-guard.test.ts",
+      "index_blob": "28eb274898c7ee3754d5c257ad1c99b9ba77be5e",
+      "root_blob": "28eb274898c7ee3754d5c257ad1c99b9ba77be5e",
+      "primary_blob": "42f188bec494295aee470a10895042a6b2ff13bc",
+      "index_sha256": "214334e399a399ff181160d2ab4c53cc02bf2ad014ec7bc0411b1625578eed3d"
+    },
+    {
+      "path": "__tests__/ediel-smime-archive-storage.test.ts",
+      "index_blob": "ad2b3fc32cb58fb9950e4512a797d2cfbf301ee7",
+      "root_blob": "ad2b3fc32cb58fb9950e4512a797d2cfbf301ee7",
+      "primary_blob": "bacb9316e3f54380df384318fd3753da3cf5db61",
+      "index_sha256": "3a2cb5bbcb95b7d63b2f013b0d6c406691c9780d60bb8b9e02454898905d6ee6"
+    },
+    {
+      "path": "__tests__/ediel-smtp-outcome.test.ts",
+      "index_blob": "186c941d742b6f358adefdaa0efab028f5393ae4",
+      "root_blob": "186c941d742b6f358adefdaa0efab028f5393ae4",
+      "primary_blob": "a3947b3c2fd4f9214c2e1bedd170430b29fcf9fc",
+      "index_sha256": "436b2c88e7abd733de15f3dd1b737e41bfaa7086315c3e97f339f113b53f488f"
+    },
+    {
+      "path": "__tests__/ediel-structural-source-selection.test.ts",
+      "index_blob": "f8313cda4fe5f8137165a713ae9a4dc3781de365",
+      "root_blob": "9e1e8ea0c0fa36e24e77936172ed0a5468552b46",
+      "primary_blob": "f8313cda4fe5f8137165a713ae9a4dc3781de365",
+      "index_sha256": "40d364db15cdc54ca99e6b5f428c3bf39bb58f2abf1662f873a683766adec188"
+    },
+    {
+      "path": "__tests__/ediel-tr-03-archive-dispatch.test.ts",
+      "index_blob": "7ededf8ff11771aa9bb3bdff0c4d61dbace5bf1b",
+      "root_blob": "7ededf8ff11771aa9bb3bdff0c4d61dbace5bf1b",
+      "primary_blob": null,
+      "index_sha256": "2ee9dede44c4f8db227cf6c2e4534f1bcbf1ef5e7302720c97bba3cda3323e7a"
+    },
+    {
+      "path": "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+      "index_blob": "c30a9f89125d13d96734b76bd303d691465353f6",
+      "root_blob": "c30a9f89125d13d96734b76bd303d691465353f6",
+      "primary_blob": null,
+      "index_sha256": "213f02436eb868a2882eba8e8a4ed48ab708d27fc0c0257be11540f394153410"
+    },
+    {
+      "path": "__tests__/ediel-tr-10-reconciliation-copy.test.ts",
+      "index_blob": "14e03f7bfccfcb87347b8b6cd02420d97bff0a86",
+      "root_blob": "14e03f7bfccfcb87347b8b6cd02420d97bff0a86",
+      "primary_blob": null,
+      "index_sha256": "da669cbccb0347c7489184a6133a409bcde8df12ca713fa23efe7b04e38f0c95"
+    },
+    {
+      "path": "__tests__/ediel-transport-byte-integrity.test.ts",
+      "index_blob": "354c5a2a640da1fe317c546cdf316e932b540fb1",
+      "root_blob": "ccd748d050810b6a4dec926aeae41e604eb8918a",
+      "primary_blob": "354c5a2a640da1fe317c546cdf316e932b540fb1",
+      "index_sha256": "8552b2921e1b76aa77f9a6181db117ca9e04366f57233e76e151cd605b70d530"
+    },
+    {
+      "path": "__tests__/ediel-transport-copy-api.test.ts",
+      "index_blob": "0545c5cade28ebe71df1a183ac626fdecfc6aaf1",
+      "root_blob": "0545c5cade28ebe71df1a183ac626fdecfc6aaf1",
+      "primary_blob": "7e198d0320356ce5bbc33f3dba8ef31ca687c44f",
+      "index_sha256": "7d07c42537887bd324d54566b232de613ac30b6f1de9ed8ee5b554fd10bcdfee"
+    },
+    {
+      "path": "__tests__/ediel-u-08-esco-partial-structure.test.ts",
+      "index_blob": "f9def000f6f13fd44b89efe61c86b15c0b25d948",
+      "root_blob": "d0ea019191800a7dde9fbacb248e698d97951db1",
+      "primary_blob": "f9def000f6f13fd44b89efe61c86b15c0b25d948",
+      "index_sha256": "883130703d0301d51185c3b0aac1b951451d631a3831d617387c9cd42fc61694"
+    },
+    {
+      "path": "__tests__/ediel-u-09-estimate-never-actual.test.ts",
+      "index_blob": "f153939e966d53fb29a523ec4c295290ecfa31d2",
+      "root_blob": null,
+      "primary_blob": "f153939e966d53fb29a523ec4c295290ecfa31d2",
+      "index_sha256": "54c6264565f35e900801cb4107a543ab2131ec49ca9633f9e19ff11ecdd2528e"
+    },
+    {
+      "path": "__tests__/ediel-utilts-canonical-header-projection.test.ts",
+      "index_blob": "ef72c4fcc86b3c78bd37eaee864092536da4583e",
+      "root_blob": "db9216f28713e647e29e0c80a4c62b35d26ab8d4",
+      "primary_blob": "ef72c4fcc86b3c78bd37eaee864092536da4583e",
+      "index_sha256": "ee8da97f916a361eb55805ae70956e0fbfacb2d4403f2cfcc69191a23a28bf51"
+    },
+    {
+      "path": "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+      "index_blob": "dce74cde052e8554fe88dabab02f594d3eb8479e",
+      "root_blob": null,
+      "primary_blob": "dce74cde052e8554fe88dabab02f594d3eb8479e",
+      "index_sha256": "0fe6f8a8177906121691adc24616765aa2193927e9fbfd799c2752f343bda5f7"
+    },
+    {
+      "path": "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
+      "index_blob": "8db4c575673033af73ef5a8012209ca7301d58e9",
+      "root_blob": null,
+      "primary_blob": "8db4c575673033af73ef5a8012209ca7301d58e9",
+      "index_sha256": "df96cffba6f74f2aec9202396fbb2b150d41a13d6edd41dc3a89eaeb37bc6bf6"
+    },
+    {
+      "path": "__tests__/ediel-utilts-structural-comparison.test.ts",
+      "index_blob": "fe56724adce4a922f0a174ce1ffbc426acf87e53",
+      "root_blob": "7e6ba7ea641dfc4d3aebab45598f7b7198dc47ef",
+      "primary_blob": "fe56724adce4a922f0a174ce1ffbc426acf87e53",
+      "index_sha256": "e9e84e78497eb725e0ef1673b2e653f757e261b0700bf6dc710bdc43f780234d"
+    },
+    {
+      "path": "__tests__/ediel-z06f-native-wire-grammar.test.ts",
+      "index_blob": "8a62e21bb98dd104ff3f85307925390ef2f8f4a3",
+      "root_blob": "d746c7bb74d86a9cdc2a543ac01db2254e3bc7e5",
+      "primary_blob": "8a62e21bb98dd104ff3f85307925390ef2f8f4a3",
+      "index_sha256": "fda9239c45afb4c05ab12f61b2ceacc7483e6983f88faf69e8e55389b57eadd9"
+    },
+    {
+      "path": "__tests__/helpers/syntheticEdielRecipientFixture.ts",
+      "index_blob": "eeb217651514718cb1d4976734addc57127fe5b1",
+      "root_blob": null,
+      "primary_blob": "eeb217651514718cb1d4976734addc57127fe5b1",
+      "index_sha256": "1444b12a3485fa00eeffcad513579fb1fd0b94acdaa3451bfd9213ba6819f18b"
+    },
+    {
+      "path": "__tests__/staff-api-context-sdk.test.ts",
+      "index_blob": "7d714abe0a000d768e0dd8cc59d7cccc61bf5aff",
+      "root_blob": null,
+      "primary_blob": "7d714abe0a000d768e0dd8cc59d7cccc61bf5aff",
+      "index_sha256": "454ea5c7dde07d9eaccfbc879122c9a0ae35f364056cad0e56f6499ef6821b15"
+    },
+    {
+      "path": "__tests__/staff-customer-detail-retention-prerequisite.test.ts",
+      "index_blob": "8d0960d94ea6f791c362ac059acf56824b7a10e9",
+      "root_blob": null,
+      "primary_blob": "8d0960d94ea6f791c362ac059acf56824b7a10e9",
+      "index_sha256": "8bde2857eeef77419c42c5f0d52808f5fc23795403715f5974a17121f63de359"
+    },
+    {
+      "path": "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts",
+      "index_blob": "5f4142220800e3b2de81bcf651786cb35b101b23",
+      "root_blob": null,
+      "primary_blob": "5f4142220800e3b2de81bcf651786cb35b101b23",
+      "index_sha256": "733244ff7db752f8c3260fc85a0b921ac007772b6fd160a1167fff02a4b75b7f"
+    },
+    {
+      "path": "__tests__/support-attachment-quarantine-carrier.test.ts",
+      "index_blob": "5e75f31ef3364550cd2bfcec861d96d30009a1f0",
+      "root_blob": null,
+      "primary_blob": "5e75f31ef3364550cd2bfcec861d96d30009a1f0",
+      "index_sha256": "b41ea12caa57c195bf4f74b5f5cfeb041f3765c60b34dbdb3d9bd087ef66576b"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-4.tsx",
+      "index_blob": "296e0039c409fed61a13a891313a97cafb42ba55",
+      "root_blob": "e95a99cc2e42586a6f1e02dba51310c85cfc152b",
+      "primary_blob": "296e0039c409fed61a13a891313a97cafb42ba55",
+      "index_sha256": "79efa21a185685a4ef12276ec6af4daff51f0ac268cbd21227fc1ea1929d27d4"
+    },
+    {
+      "path": "app/admin/ediel/system-tests/actions.part-1.ts",
+      "index_blob": "604103232b1cc5929741820ff2b3f46088855368",
+      "root_blob": "2269f16c48afc9121e3b48d7df6a3fbb0b494137",
+      "primary_blob": "604103232b1cc5929741820ff2b3f46088855368",
+      "index_sha256": "9be731d5c93b6b24448a80bb1328ab48d74b618945586d59be9163ccb410cfa0"
+    },
+    {
+      "path": "app/admin/work-queue/page.tsx",
+      "index_blob": "07ced1e5dcca2c90c7de997c42df7648e5a67c6f",
+      "root_blob": "a956d65f8ee47fef9953596a8ff8d8345e9e9e6b",
+      "primary_blob": "07ced1e5dcca2c90c7de997c42df7648e5a67c6f",
+      "index_sha256": "e554e09140e44e915db0d8c2100722e2c00e11ff68d8de43f753aafed929be17"
+    },
+    {
+      "path": "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+      "index_blob": "a131ec94ee9a24422e537d60e5e76539188fa658",
+      "root_blob": "a131ec94ee9a24422e537d60e5e76539188fa658",
+      "primary_blob": "8891fa6b34348d3632ce6767297c05c13576bfb4",
+      "index_sha256": "1fc95f3120017d96328e0cc92a3f41b378fb8e774b19381a597e9ba8eeed2df9"
+    },
+    {
+      "path": "app/developers/staff-api/page.tsx",
+      "index_blob": "9a67137277fcd32e0afe7c63e2f72f427212cdf5",
+      "root_blob": "c64a90838bc7004b74f860ec265ea22c0b61e261",
+      "primary_blob": "9a67137277fcd32e0afe7c63e2f72f427212cdf5",
+      "index_sha256": "058946316ae5b8cb4edb7fbbaed7ab5c729c3a220b7ca674c77b05f17f8f8ea8"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-ack-ledger-independent-role-red-39af9.json",
+      "index_blob": "638644ff65ea8a5075b00c77065fe4074a80becf",
+      "root_blob": "638644ff65ea8a5075b00c77065fe4074a80becf",
+      "primary_blob": null,
+      "index_sha256": "0b8e6e9c8a44a19c7a2a6e991793a304c0bf479d2db389614b680362c746664c"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-primary-0796-independent-calendar-logs.zip",
+      "index_blob": "1dee81661a4810c822016a85514964cb6ec8057d",
+      "root_blob": "1dee81661a4810c822016a85514964cb6ec8057d",
+      "primary_blob": null,
+      "index_sha256": "73af0ffba1e66a74848efccdda9cae47680f97fe54913f25ba94f715ab39e9e5"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-switch-original-independent-role-red-0c526.json",
+      "index_blob": "7f52eaf42688865b3d11c0fd6e4e210c7fe731d2",
+      "root_blob": "7f52eaf42688865b3d11c0fd6e4e210c7fe731d2",
+      "primary_blob": null,
+      "index_sha256": "26af69483736b79b957aa37290a4b49deef80e41add39938f80d976c2e293849"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-current-facts-handoff-validation.json",
+      "index_blob": "19769de4fd06da687450c9d7838b0e19e1dbc666",
+      "root_blob": "19769de4fd06da687450c9d7838b0e19e1dbc666",
+      "primary_blob": null,
+      "index_sha256": "5f53e6a548d36b76e4f910b3fac66bef484e45ce77a537135396961dde848e45"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-current-facts-logs.zip",
+      "index_blob": "c4b155aaefc5fc5469624b805e31f19c10336b19",
+      "root_blob": "c4b155aaefc5fc5469624b805e31f19c10336b19",
+      "primary_blob": null,
+      "index_sha256": "fa50b6f8d8fe4d308c55fb82694531eea7b81f55f784e9130835102b61a01dff"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-current-queue-boundary-verification.json",
+      "index_blob": "ecc1e085c0ef19a30faa3a0c5473dd38909804b0",
+      "root_blob": "ecc1e085c0ef19a30faa3a0c5473dd38909804b0",
+      "primary_blob": null,
+      "index_sha256": "c49420e2f57bfbe284041f9d8d69bdac7817c9848d1ca477fcb93ef2b1f5c3ac"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-capture-05c6-receipt.json",
+      "index_blob": "10c5618fcd0aa981f0351ceacbdb0818c50e7cbd",
+      "root_blob": "10c5618fcd0aa981f0351ceacbdb0818c50e7cbd",
+      "primary_blob": null,
+      "index_sha256": "a883795e4cdb188847c5c55b84978f72199eed85f862b81aa5a56072316bd6f8"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-capture-0c526-receipt.json",
+      "index_blob": "e29f9b62881a0689736c9913311e6dad20a22da0",
+      "root_blob": "e29f9b62881a0689736c9913311e6dad20a22da0",
+      "primary_blob": null,
+      "index_sha256": "89e4ac85f32f0f2650fd979e27733e515e890b7cefee2a394a7851bd93201fe7"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-capture-39af9-receipt.json",
+      "index_blob": "28a07a49e2e893311359bfa1aef9cfa8256d9908",
+      "root_blob": "28a07a49e2e893311359bfa1aef9cfa8256d9908",
+      "primary_blob": null,
+      "index_sha256": "eb1af41201fd5de3099bbf39244fa89f06bb4a5c06fe6666057bebf46efad200"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-capture-954-receipt.json",
+      "index_blob": "7a41d91b17b0fa016f65c3f8710d1b250e31ba85",
+      "root_blob": "7a41d91b17b0fa016f65c3f8710d1b250e31ba85",
+      "primary_blob": null,
+      "index_sha256": "767b5d7b07faab42e686b32ffae201adb5b373618eb039e0b37faf18ca59b39a"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+      "index_blob": "ad01fde4a391398e0236e9e43d905b662105cb7f",
+      "root_blob": "ad01fde4a391398e0236e9e43d905b662105cb7f",
+      "primary_blob": null,
+      "index_sha256": "b0bd24325729750acac96c9d63e81fd91b744d5ef0588fb7fb5a13b73ca05023"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-native-0c526-receipt.json",
+      "index_blob": "d236d78afce7586cc0e62e90c489e07271b3fe9a",
+      "root_blob": "d236d78afce7586cc0e62e90c489e07271b3fe9a",
+      "primary_blob": null,
+      "index_sha256": "700ddd6748a83755077f2ba7e569e456e94981deee407e6d6af0564f9746643c"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-native-954-receipt.json",
+      "index_blob": "a4b2bfdcd6b51434a934192f1c35554090cd6127",
+      "root_blob": "a4b2bfdcd6b51434a934192f1c35554090cd6127",
+      "primary_blob": null,
+      "index_sha256": "a28457e885ea0b0bc55a6a23bf3e1a796107eba21fe233de641f2e8941320a11"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-native-954.zip",
+      "index_blob": "40c36f83037c4e62e41e839ee4fa7c253c12c17f",
+      "root_blob": "40c36f83037c4e62e41e839ee4fa7c253c12c17f",
+      "primary_blob": null,
+      "index_sha256": "91baa90d983ac4b2a85199c7e4835c376a703c0bf9c72ec217963d294d374ae4"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+      "index_blob": "7f4bf8c93e822a14534ead18127d8f0881013281",
+      "root_blob": "7f4bf8c93e822a14534ead18127d8f0881013281",
+      "primary_blob": null,
+      "index_sha256": "0ce4614e80f128406deb855e3a148bba59350c26a94dc5289cdfcdae8dc9725e"
+    },
+    {
+      "path": "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+      "index_blob": "4f693450e43cc0b265d24123ede2a222d4c78c7e",
+      "root_blob": "4f693450e43cc0b265d24123ede2a222d4c78c7e",
+      "primary_blob": null,
+      "index_sha256": "6b865270909fb8db03155316e25bd6a302f59258aef201806f09ab5c6276a5c1"
+    },
+    {
+      "path": "components/admin/customers/CustomerBusinessActionsCard.tsx",
+      "index_blob": "b97176d3db33ebff0512f60c8b767ba3db5a0559",
+      "root_blob": "e7bcce16f4bf7ef15f7ac57c134daaf58e953191",
+      "primary_blob": "b97176d3db33ebff0512f60c8b767ba3db5a0559",
+      "index_sha256": "3b4e1baad55a4dd58d786f28e0fc7686e543972ce244336fd5773b1915b582eb"
+    },
+    {
+      "path": "components/admin/customers/CustomerDataRequestsCard.tsx",
+      "index_blob": "ef5a7b0a6d4a67748128183ff2795ba20c9e5f2f",
+      "root_blob": "a75aa91f464c005020091d9631c02c03d5dc2fc4",
+      "primary_blob": "ef5a7b0a6d4a67748128183ff2795ba20c9e5f2f",
+      "index_sha256": "6702d356b998e751589d24e2decdca0dbe7491f4e680bc52cba3275260645ed8"
+    },
+    {
+      "path": "docs/gridex-staff-api.md",
+      "index_blob": "e6cce5bb556645f0406a2b41c8717cdb373af568",
+      "root_blob": "c0f9f6b5a445915048fb6eb40a3f78d11c2443b8",
+      "primary_blob": "e6cce5bb556645f0406a2b41c8717cdb373af568",
+      "index_sha256": "01cec5a011771c8e6988078d281ef6a5089a2f73a3739d1425fb3d8888ab5154"
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "index_blob": "bb4bcc96ddde1cba7cbf5728cb83ed2ca8db6029",
+      "root_blob": "986e88db5bc5144081fe41f7b81f7ff47d248754",
+      "primary_blob": "bb4bcc96ddde1cba7cbf5728cb83ed2ca8db6029",
+      "index_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296"
+    },
+    {
+      "path": "lib/customer-operations/customerCardWorkflow.ts",
+      "index_blob": "87e8e82ce92dc7295f120f5b9c9f48c25e224246",
+      "root_blob": "2a295bb45f236c805992cc9ea8c2d882764ccc9d",
+      "primary_blob": "87e8e82ce92dc7295f120f5b9c9f48c25e224246",
+      "index_sha256": "a3e5fc59062186fbaa62150d510911e64608af6b7daa8e1ebaa4151e253ad6a0"
+    },
+    {
+      "path": "lib/customer-operations/infoRequestProcessQueue.ts",
+      "index_blob": "b92162e3b58653c04e80bca9f2b253a8bc619ef6",
+      "root_blob": null,
+      "primary_blob": "b92162e3b58653c04e80bca9f2b253a8bc619ef6",
+      "index_sha256": "8aa48cb658ea9cb72feba5da55343b1398331abe746f41267c0885f042c61345"
+    },
+    {
+      "path": "lib/ediel/core/edifactEncoding.ts",
+      "index_blob": "6f8b17ac4d1b4705bc6050ea31d03b8f30f0882d",
+      "root_blob": "43c42690eb1b3b8c025337dddf3fd6afd93b10b0",
+      "primary_blob": "6f8b17ac4d1b4705bc6050ea31d03b8f30f0882d",
+      "index_sha256": "77e74f0a9d7b9ec54ed8c82b087cddce9d33541585c6bd4ad901ccc629bd76b3"
+    },
+    {
+      "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+      "index_blob": "d909b4918756b08122ca8bd6c35f2b7477d1b844",
+      "root_blob": "87a8ce7a3a3345f54ed680e9721a883f5ded9879",
+      "primary_blob": "d909b4918756b08122ca8bd6c35f2b7477d1b844",
+      "index_sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed"
+    },
+    {
+      "path": "lib/ediel/intent/prodatRecoveryGateway.ts",
+      "index_blob": "b151af7f430824e8859bb66c855a114e15dece22",
+      "root_blob": "b151af7f430824e8859bb66c855a114e15dece22",
+      "primary_blob": "96f103c616317f8ecaa31c1aba98401fbeb83e81",
+      "index_sha256": "fddc77e17dc6aa6d358546ed8501eba592a8769bae7cfa7c4e885607a8b95a44"
+    },
+    {
+      "path": "lib/ediel/outbox/sendOutboxItem.ts",
+      "index_blob": "1cc10c95abc7a15d0f54d514ac4b750407bb55e9",
+      "root_blob": "1cc10c95abc7a15d0f54d514ac4b750407bb55e9",
+      "primary_blob": "692036e8bcc96fe5ccd5235baf41de3daba3ff93",
+      "index_sha256": "e22878fa467279bba66088415f60bbc525f82347aaa24bd9f239406bed1dd0a8"
+    },
+    {
+      "path": "lib/ediel/prodat/builders/profileRenderer.ts",
+      "index_blob": "acb51bf381d003bff15c79325ee23a754dc8dd16",
+      "root_blob": "ebd52f3785caa0dabe6d625552ddba4939e10e0c",
+      "primary_blob": "acb51bf381d003bff15c79325ee23a754dc8dd16",
+      "index_sha256": "7d5eff3c51ecb817a1378d55e5821dc437017e41849bb256671d15db16471c95"
+    },
+    {
+      "path": "lib/ediel/prodat/render/segments.ts",
+      "index_blob": "a38635e1ba9663059d73921b8d8213a4ea62920e",
+      "root_blob": "4bcb9bfa8601b74a85920df4d468e6a557cb8771",
+      "primary_blob": "a38635e1ba9663059d73921b8d8213a4ea62920e",
+      "index_sha256": "b30fa5058cc1757be9ad3d52b56264c8b08ecd56fd3a660c0442e4053cd16ebe"
+    },
+    {
+      "path": "lib/ediel/routeProfileProductionReadiness.ts",
+      "index_blob": "7464ef9873b204fe429d0979b7d7a6839d9f7d8e",
+      "root_blob": "59de27098a433c468e00b4b7aca56b049a8aa09d",
+      "primary_blob": "7464ef9873b204fe429d0979b7d7a6839d9f7d8e",
+      "index_sha256": "9126dd1453b38f5d0bc93aa5fb15bdc6ddaf32b4c35cc3f84f03653971b1fc42"
+    },
+    {
+      "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+      "index_blob": "8eef646e17c1bb709766a4dca48a02995c6cfeff",
+      "root_blob": "32d46f6559bf358c6332bb012be4d29ae4829c9d",
+      "primary_blob": "8eef646e17c1bb709766a4dca48a02995c6cfeff",
+      "index_sha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f"
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "index_blob": "6ea8c9081658008b64ef52a3a8cb7d07784e6a22",
+      "root_blob": "6ea8c9081658008b64ef52a3a8cb7d07784e6a22",
+      "primary_blob": "03db8ec469c8929d83d662aa4234000e55ac4e70",
+      "index_sha256": "45698f2d4b494902a864efff0dee733ae7ee039b7a29b863da1a08ac1ec6ed1e"
+    },
+    {
+      "path": "lib/ediel/testing/testRunTransportMetadata.ts",
+      "index_blob": "01ced2bbcf2021ae945d148717aedd65933a8685",
+      "root_blob": "61fc43ad421d51c65d15c444ec2a53cf94268b34",
+      "primary_blob": "01ced2bbcf2021ae945d148717aedd65933a8685",
+      "index_sha256": "3df4784e39dc2b83a629f37d4112241d1c410840c44ead478b328478763113d2"
+    },
+    {
+      "path": "lib/ediel/transport/copy.ts",
+      "index_blob": "9690bbe81411eacbddb5b19e32c40d03083bf8a6",
+      "root_blob": "9690bbe81411eacbddb5b19e32c40d03083bf8a6",
+      "primary_blob": "7583b0b1c6ecfe8ac2feba34545e41a0dd36e86d",
+      "index_sha256": "fa07c585a10606d6ea3f5548d4cbd8b47a032b4fa22e868311e4ea03717f2fbc"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-1.ts",
+      "index_blob": "2b1028e38c612ba33a0f9d3e88e12f4e9cd39016",
+      "root_blob": "d4b9d3efae36b6ecd9d80098941474977eda61cc",
+      "primary_blob": "2b1028e38c612ba33a0f9d3e88e12f4e9cd39016",
+      "index_sha256": "87537e744315cc7cbe48d2cd402d2425f4994387c4327871dea0176bf029479e"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "index_blob": "7bb8a9fa9817315b926740633ae1c96e3287a77e",
+      "root_blob": "ad2a5b6f6f6e41f9b11cd4b300836a62a2a4644c",
+      "primary_blob": "7bb8a9fa9817315b926740633ae1c96e3287a77e",
+      "index_sha256": "bbaf51fad4b0be0c48b940301b7cce73165fa6062d96a6aabb82d848747f27ed"
+    },
+    {
+      "path": "lib/ediel/transport/outboundAttempt.ts",
+      "index_blob": "131077faa4557778722f4c8b27e2caeb68a20885",
+      "root_blob": "131077faa4557778722f4c8b27e2caeb68a20885",
+      "primary_blob": "eb318b361a6de4a8ce00bbc1354b73ee4a1f0531",
+      "index_sha256": "3a3505ded65fa001f8b71a7a3bbdffc8a8948a97f7c5295ac2e1ed7c1ccfc1ff"
+    },
+    {
+      "path": "lib/ediel/transport/smime.ts",
+      "index_blob": "d84fd5308f869aae8f59e55880c1e7cd39fff231",
+      "root_blob": "a9746ded791a51670558877aeae9fe920120e7e1",
+      "primary_blob": "d84fd5308f869aae8f59e55880c1e7cd39fff231",
+      "index_sha256": "9680531491c53b381df732a4cd6c2aa4fa4ed7e443efd5ec72085f869a4cf70f"
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "index_blob": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+      "root_blob": "aa7106dbb2d1951391248e738d198bee5999d926",
+      "primary_blob": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+      "index_sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8"
+    },
+    {
+      "path": "lib/ediel/utilts/resolution.ts",
+      "index_blob": "6eb95bdc83fe8c80cbcf171381fdfc605faa0258",
+      "root_blob": "2d6f5052f759e1acf7462ad231a52b6a02f6144e",
+      "primary_blob": "6eb95bdc83fe8c80cbcf171381fdfc605faa0258",
+      "index_sha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498"
+    },
+    {
+      "path": "lib/ediel/utilts/timezone.ts",
+      "index_blob": "ac5252ac61e7069873562bdaa17796194ff31e74",
+      "root_blob": "a8b27bbc761d502d1d48d9ac9d19ffcc13125589",
+      "primary_blob": "ac5252ac61e7069873562bdaa17796194ff31e74",
+      "index_sha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954"
+    },
+    {
+      "path": "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "index_blob": "bc271289ac70ce8a3649a87f1f505bd9d2cc60d0",
+      "root_blob": "bc271289ac70ce8a3649a87f1f505bd9d2cc60d0",
+      "primary_blob": "bc271289ac70ce8a3649a87f1f505bd9d2cc60d0",
+      "index_sha256": "d4584532e262641c25800aa96e45c3e9442e6d6fb235a227d62c54eb5d6e9943"
+    },
+    {
+      "path": "lib/inbound-mail/dsnClassifier.ts",
+      "index_blob": "5e5abe621f224713b036a46551fcd99275423b66",
+      "root_blob": "5e5abe621f224713b036a46551fcd99275423b66",
+      "primary_blob": "69492238cbcbd93709efa5c1bc7485754fa3e306",
+      "index_sha256": "d4e77cd8c7ba8effdaa93e996aed1ab539df6fcbee7c92ff788833c676ffa664"
+    },
+    {
+      "path": "lib/inbound-mail/inboundStatusUpdater.ts",
+      "index_blob": "1be9e27b4f4b514d74cb38960a8912a153ac7eec",
+      "root_blob": "1be9e27b4f4b514d74cb38960a8912a153ac7eec",
+      "primary_blob": "d6531c413108431f5367256fb94f0adb020301d6",
+      "index_sha256": "aabdd68ad40d93a26c28e2306cf128a5ad29d9939e9442a605b8c864904c1657"
+    },
+    {
+      "path": "lib/inbound-mail/mimeStructure.ts",
+      "index_blob": "d40fb4a2821594e9d0ea610ae082905e2a212dfa",
+      "root_blob": "d40fb4a2821594e9d0ea610ae082905e2a212dfa",
+      "primary_blob": "cf12bc066955e521050ccdadb80879d7820354e4",
+      "index_sha256": "fd28790fcd32106a7889183b1d6f54b619fab261ba68d6dfedddcccc36489365"
+    },
+    {
+      "path": "lib/staff-api/context.ts",
+      "index_blob": "a205269d6819588adf76021feef19f93efceb370",
+      "root_blob": "16ae0055ff55a12e6b2a3efd0e62fd438ae0afd7",
+      "primary_blob": "a205269d6819588adf76021feef19f93efceb370",
+      "index_sha256": "8d038f0e5d452419c9dd9b9782a6d80c0b520c2743dd8c147655dddc801b920d"
+    },
+    {
+      "path": "lib/ui/format.ts",
+      "index_blob": "ec57b7c933d46301962d3c17a17218a6003a1377",
+      "root_blob": "52d12d518241f64d6f96aa0af782479c0780e8e8",
+      "primary_blob": "ec57b7c933d46301962d3c17a17218a6003a1377",
+      "index_sha256": "8cc3184817ee1da9ea41b96331b30d4052908a72173c3f8ff37b84884d01a08a"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/captures/tr-04-composed-ten09-staff-capture-receipt-20261004.json",
+      "index_blob": "327452a8323707f02879919d7882742e90823953",
+      "root_blob": "327452a8323707f02879919d7882742e90823953",
+      "primary_blob": null,
+      "index_sha256": "414dc3694b4663935782b360d357086522eeb651a763f152cfe80cca1ff12dba"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/captures/tr-04-dsn-source-capture-receipt-20261004.json",
+      "index_blob": "8ce9301a293eadd2dd7290a5c4828a71a72ce259",
+      "root_blob": "8ce9301a293eadd2dd7290a5c4828a71a72ce259",
+      "primary_blob": null,
+      "index_sha256": "86e17a5f284e782784a9b44cb1390ce3b0f78c79e9c82ccae17e2e2acd0e2a77"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "index_blob": "0cb0db3277b6003ec2654f97e88d3c2292abcf3e",
+      "root_blob": "f8d9bda4ddee7d0b09acade20238b93b23c98fc6",
+      "primary_blob": "709cc15b0d26c59b208dcf7ab9ffda91ece614ac",
+      "index_sha256": "21e53a0801f11d81ebc62f7380d119052c7994d82c01438dab04f19e7182f7eb"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/p-u-cards/gap-register-2026-10-04.md",
+      "index_blob": "096b0fb64a0a9a98eb03ce279610ae3b64e01933",
+      "root_blob": "192c1fd8523bae2d5f22af89f6f375d8b1967ae7",
+      "primary_blob": "096b0fb64a0a9a98eb03ce279610ae3b64e01933",
+      "index_sha256": "1b8d8f73540d1b1a4900f7971609be330c03566f7938a389d8ebadfb28a2dac9"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md",
+      "index_blob": "9054ae41e5fb292e728f837ad1c4e08128f1e6ed",
+      "root_blob": "2bcfb9b08c02b4beb0b523201edb53446a2c7a76",
+      "primary_blob": "9054ae41e5fb292e728f837ad1c4e08128f1e6ed",
+      "index_sha256": "c2d50cfbb14e1a3240244cfe76e3fecf49caed4062a7c656ce1a4fa3e18f0687"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/primary-0796-calendar-independent-receipt.json",
+      "index_blob": "62b1b98c55c29441126b21642ac266a8945da685",
+      "root_blob": "62b1b98c55c29441126b21642ac266a8945da685",
+      "primary_blob": null,
+      "index_sha256": "4e8ab48176fbf2081a634578b4fef9bb94d7ef625b1dcf2ec073266578f295d9"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/primary-0796-calendar-independent-review.md",
+      "index_blob": "c0c1fa07cc6ad09b575495deb6fc711a3d0b27f7",
+      "root_blob": "c0c1fa07cc6ad09b575495deb6fc711a3d0b27f7",
+      "primary_blob": null,
+      "index_sha256": "abc0cfb083dec709daeb8e59034d6868169267eba0eafb18ace8d242b69c5aeb"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr-05-current-queue-boundary-review-954-20261004.md",
+      "index_blob": "37f9bb10792dc42ab80c2ced012187c9123be46c",
+      "root_blob": "37f9bb10792dc42ab80c2ced012187c9123be46c",
+      "primary_blob": null,
+      "index_sha256": "00450c9288cbd8e2c743655137d7be5bbc724c6dd712296720ed1cb35f2ea198"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr-05-lockwait-native-proof-05c6-20261004.md",
+      "index_blob": "c149564a0cb54fe58ea3c150762dd5d58401a694",
+      "root_blob": "c149564a0cb54fe58ea3c150762dd5d58401a694",
+      "primary_blob": null,
+      "index_sha256": "60a343948aec01fdb72236686a96462db7688bf1e2c0183b72b7852f8cbcec64"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr-05-native-review-05c6-20261004.md",
+      "index_blob": "3ca14bf0ea3b79b7abe345a026af2e274785ad34",
+      "root_blob": "3ca14bf0ea3b79b7abe345a026af2e274785ad34",
+      "primary_blob": null,
+      "index_sha256": "c8c7c4a3b849bc63e4d65e1f48cc7ebaaf7dc4e123bfd064a912cfc4dfd55ecb"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md",
+      "index_blob": "6cdba1d8c269dfa1b8be903b2e05c1a12dad05ba",
+      "root_blob": "6cdba1d8c269dfa1b8be903b2e05c1a12dad05ba",
+      "primary_blob": null,
+      "index_sha256": "303da7e487d35ea4b6f300ec210997f35ad8bba208ceff96ad13f8d49b1035d8"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr-10-sc-063-native-approval-20261004.md",
+      "index_blob": "275ae41abe16e31ee7cbded17af399c8cfdd0eb5",
+      "root_blob": "275ae41abe16e31ee7cbded17af399c8cfdd0eb5",
+      "primary_blob": null,
+      "index_sha256": "1a9c86d71d416145778dc04c7a46a6114c867366a71f8b22ff259ca2b8fce988"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+      "index_blob": "10dfbc86229044ebb03708afaf5ab7d6973efed6",
+      "root_blob": "10dfbc86229044ebb03708afaf5ab7d6973efed6",
+      "primary_blob": null,
+      "index_sha256": "d0d082c578516fae03dae8aa87510c8d2d7a6ecfe442087bf1c34cc7d10a6434"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json",
+      "index_blob": "0ffac5007352f68f674ff3199a586272e753ece2",
+      "root_blob": "0ffac5007352f68f674ff3199a586272e753ece2",
+      "primary_blob": null,
+      "index_sha256": "d2dff8bc29d4b1de90c6c94b948af19a458213d46d65dfbf546274be9591ff43"
+    },
+    {
+      "path": "quality/staff-api/customer-detail-retention-prerequisite-20261004.json",
+      "index_blob": "6f71b73f71fa54238d06d63b82c3370e9852c0d6",
+      "root_blob": null,
+      "primary_blob": "6f71b73f71fa54238d06d63b82c3370e9852c0d6",
+      "index_sha256": "50012dbb89194e25555d06ced8b3419609df3024247933f28aebbd3351e66065"
+    },
+    {
+      "path": "scripts/ediel-ack-first-reception-native.test.ts",
+      "index_blob": "90485bfc33d13cc926c04900f73ef0db91220f9a",
+      "root_blob": "90485bfc33d13cc926c04900f73ef0db91220f9a",
+      "primary_blob": null,
+      "index_sha256": "9da4053f09fcae9f68558925c77e360d759f6bf38612f13bb292ef17ae7c5f46"
+    },
+    {
+      "path": "scripts/ediel-ack-validation-private-original-sql-regression.mjs",
+      "index_blob": "f46bd0e217b65c39932c2a15c37bf6e6ee9856b2",
+      "root_blob": "f46bd0e217b65c39932c2a15c37bf6e6ee9856b2",
+      "primary_blob": null,
+      "index_sha256": "ad12e87834ee631f952fec85c1d4cde3c5d4c2154df66d2ff56d7003e362f5da"
+    },
+    {
+      "path": "scripts/ediel-dsn-source-native.test.ts",
+      "index_blob": "c1750d031db0d7e9fe32f904b1443712e5867b7f",
+      "root_blob": "c1750d031db0d7e9fe32f904b1443712e5867b7f",
+      "primary_blob": null,
+      "index_sha256": "468330394f86e050192e651ea2b19c32357765f330b6d6d649cd1c4f7c5dad92"
+    },
+    {
+      "path": "scripts/ediel-dsn-source-observation-sql-regression.mjs",
+      "index_blob": "cfcd984581736f3a021bc9a7cc51b8b89e1c88f3",
+      "root_blob": "cfcd984581736f3a021bc9a7cc51b8b89e1c88f3",
+      "primary_blob": "ae636f876cb06efb596a2786ff0db649cd003743",
+      "index_sha256": "1c535f6ed5ee355bedeeceb280b5d7ddade098a53d2df208c9f88bec778a776c"
+    },
+    {
+      "path": "scripts/ediel-prodat-recovery-phase-regression.mjs",
+      "index_blob": "f1bd7af8d1f99ab555cfca2dbae8ce52bee962d7",
+      "root_blob": "f1bd7af8d1f99ab555cfca2dbae8ce52bee962d7",
+      "primary_blob": "b6df6de0d009b158d9d1a53ce06591f8a8794b74",
+      "index_sha256": "f50e7ba675433e904eb2b3d4d8716857eb7f7dfb71c160f0d6b7bb605d31e96b"
+    },
+    {
+      "path": "scripts/ediel-recovery-physical-negative-scope-sql-regression.mjs",
+      "index_blob": "38db86c2a5b713b152f7a24d38ee926c51bad75b",
+      "root_blob": "38db86c2a5b713b152f7a24d38ee926c51bad75b",
+      "primary_blob": "c1732ca09f673961550e41be0b67cc4ac6d59877",
+      "index_sha256": "b03c8301675cd5b7522033f710c2537957a1f43b5f97bcca2014292a3ab9e192"
+    },
+    {
+      "path": "scripts/ediel-sealed-worker-lease-sql-regression.mjs",
+      "index_blob": "ec6e5303e043089faf025aa7306257af30bfe5fe",
+      "root_blob": "ec6e5303e043089faf025aa7306257af30bfe5fe",
+      "primary_blob": null,
+      "index_sha256": "2972b8c79f2e62ffc029ff4e69b01045a28f2060bda30f198abff7a90f97d9ad"
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "index_blob": "3fe8a4e44ddbc8b3e69236a4f6cd0b59913501a8",
+      "root_blob": "3fe8a4e44ddbc8b3e69236a4f6cd0b59913501a8",
+      "primary_blob": "98c119c3e93dc11dbe8708f651bda2062e5059d8",
+      "index_sha256": "07ef4b84cfc45cf78a2fe9ed16daf7da26d5029ef1b1292545e28ba8aa99b03c"
+    },
+    {
+      "path": "scripts/ediel-switch-original-guard-owner-sql-regression.mjs",
+      "index_blob": "42d1cdffc974be38f9a1d543041d309ba374d3eb",
+      "root_blob": "42d1cdffc974be38f9a1d543041d309ba374d3eb",
+      "primary_blob": null,
+      "index_sha256": "711a4ac7c95fb1ca276bcbd5d302600cf7eae12981693b398d34a2b90dbbf81d"
+    },
+    {
+      "path": "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs",
+      "index_blob": "a9a4e59fe9347030f57b00d48b270216ebaea0ff",
+      "root_blob": "a9a4e59fe9347030f57b00d48b270216ebaea0ff",
+      "primary_blob": null,
+      "index_sha256": "9850e4cd4d1944c02c9b940cf8c590df6aab0b0cb27db056290ca5fd20f5db38"
+    },
+    {
+      "path": "scripts/ediel-tr-05-recovery-native.test.ts",
+      "index_blob": "273312f2f84c072653126fd7764724736b1d70b1",
+      "root_blob": "273312f2f84c072653126fd7764724736b1d70b1",
+      "primary_blob": null,
+      "index_sha256": "3dec85216ea9f79f6d1155926288405fe97086424c4e7358d60b4243ff04b463"
+    },
+    {
+      "path": "scripts/ediel-tr-10-reconciliation-native.test.ts",
+      "index_blob": "64734a04ae810618453a1e94652c048ce02cea8d",
+      "root_blob": "64734a04ae810618453a1e94652c048ce02cea8d",
+      "primary_blob": null,
+      "index_sha256": "11cb0e9e4050d7a4f671da11727de7f8c9381df5481645dfefddd9f9e73e1db3"
+    },
+    {
+      "path": "scripts/ediel-tr-10-reconciliation-sql-regression.mjs",
+      "index_blob": "f77b96cc5fd2d332235940db7702eb4f903ee1e2",
+      "root_blob": "f77b96cc5fd2d332235940db7702eb4f903ee1e2",
+      "primary_blob": null,
+      "index_sha256": "a154eb6ae054adec6ac0591dba3a82bdf3847de05a0b2c393e039fd96faaa130"
+    },
+    {
+      "path": "scripts/ediel-worker-lease-sql-regression.mjs",
+      "index_blob": "23441e02481a61848e16d66b6f64029e066e4ec1",
+      "root_blob": "23441e02481a61848e16d66b6f64029e066e4ec1",
+      "primary_blob": null,
+      "index_sha256": "abd937df9146234fc9ed0b73345938445979cc5e4982828c1fe86c3f7679119e"
+    },
+    {
+      "path": "scripts/fixtures/ediel-switch-original-guard-captured-functions.sql",
+      "index_blob": "17d240facf1364530718e59e2bde24fc6ff670d9",
+      "root_blob": "17d240facf1364530718e59e2bde24fc6ff670d9",
+      "primary_blob": null,
+      "index_sha256": "55e089193b06973b26fa8b221ae5ba25e8fea573514fcc7c7c18a601137ea0b9"
+    },
+    {
+      "path": "scripts/gridex-route-profile-certificate-auto-match-regression.cjs",
+      "index_blob": "2312f61220a23faf4e3227bd2b8679d16ef9c9cb",
+      "root_blob": "9c459d05cbf86b3ca342f9dbebbe5c5a9aa67ae0",
+      "primary_blob": "2312f61220a23faf4e3227bd2b8679d16ef9c9cb",
+      "index_sha256": "639acddc7909f908afeca2b43c5a732c85f38baba1608a0c425e948b581efa01"
+    },
+    {
+      "path": "scripts/gridex-route-profile-production-readiness-regression.cjs",
+      "index_blob": "f201fd6730c5d4a1b9701c3847a7bd70f38b3e16",
+      "root_blob": "015ed6af3172445257c16fdc4d3553768e56525c",
+      "primary_blob": "f201fd6730c5d4a1b9701c3847a7bd70f38b3e16",
+      "index_sha256": "0511e841e7d3da7595db36c93fa3c310224f46f0f75a55329c7ab02236a5d8a1"
+    },
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "index_blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+      "root_blob": "342080e0de09717717aaac01bbc1ed44c433bb1a",
+      "primary_blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+      "index_sha256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194"
+    },
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts",
+      "index_blob": "3435a81d610efb5a90ae43c7c003606c988b5e22",
+      "root_blob": "7bb066f9e34f481f3bc396f611f5bb3fd1423fb0",
+      "primary_blob": "3435a81d610efb5a90ae43c7c003606c988b5e22",
+      "index_sha256": "7b39f1ed1490fe5521f4a13e6033794904f7a133de97f1984c6d44803fbeba6b"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "index_blob": "82e6b1751ee86013910213c8a978029a81f3059b",
+      "root_blob": "82e6b1751ee86013910213c8a978029a81f3059b",
+      "primary_blob": "61fd3fd2bf37d4df2404fda49bb0371c7271479c",
+      "index_sha256": "c96bcd39b28ab6d8f9fd44cb9e0bd2da5dd717d19c77e175588f008cd09b1332"
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "index_blob": "45431b6347b29477f2e8711a9f41227d40644d5a",
+      "root_blob": "02e62a3abbb93b7416029a43fe6d9b2d0cd067a1",
+      "primary_blob": "45431b6347b29477f2e8711a9f41227d40644d5a",
+      "index_sha256": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09"
+    },
+    {
+      "path": "scripts/staff-attachment-quarantine-carrier-regression.sql",
+      "index_blob": "c5eebb00a2d2abc0df6f0f75d5d7afde11a9eff7",
+      "root_blob": null,
+      "primary_blob": "c5eebb00a2d2abc0df6f0f75d5d7afde11a9eff7",
+      "index_sha256": "7bd9adf9bb0436e44e725b6768bf543262df2c3fb6d56cd4495b36da96ac3038"
+    },
+    {
+      "path": "scripts/staff-customer-retention-read-prerequisite-regression.sql",
+      "index_blob": "3977f9bd99d8f959e40415cc8498a34738e8a400",
+      "root_blob": null,
+      "primary_blob": "3977f9bd99d8f959e40415cc8498a34738e8a400",
+      "index_sha256": "6d37a2260cc53cb2e090734cf4022abd22a5f1759826f0f4ad084a962f31758a"
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "index_blob": "1667c41e3e2ca1886669ab500bd32be5f7def813",
+      "root_blob": "34548bc1325c43aa6798c3d1dcbb6ae28fdd07f6",
+      "primary_blob": "502cb4515098eaa4aa8c9b593cd3c8520e773e42",
+      "index_sha256": "10ea5780a9ce201c9fe74cd7677da65018955e1e313f65232ffc476a4cfbdd29"
+    },
+    {
+      "path": "scripts/test-ediel-ten-07-scoped-projection.cjs",
+      "index_blob": "a1fc3424e3317b7436ee588a819a9e3fd6126fa5",
+      "root_blob": "a1fc3424e3317b7436ee588a819a9e3fd6126fa5",
+      "primary_blob": "18f69a449895ffea1ebd27275efe749f2ca85f42",
+      "index_sha256": "d78c0c44427de9016347845737806e7480f43714406b7914561da8f1b8b8417a"
+    },
+    {
+      "path": "scripts/test-ediel-tr-04-dsn-source.cjs",
+      "index_blob": "bee6fc01e0961ff55fda8f1e7cdc71a14b99236e",
+      "root_blob": "bee6fc01e0961ff55fda8f1e7cdc71a14b99236e",
+      "primary_blob": null,
+      "index_sha256": "a0645958c47d46aee5180ea5357c374e726dab77f3377910be68a2dc2bd8b8c3"
+    },
+    {
+      "path": "scripts/test-ediel-tr-05-recovery-source.cjs",
+      "index_blob": "6ba9019f4e2d8701ff4450bf837b1ccd2cddecd6",
+      "root_blob": "6ba9019f4e2d8701ff4450bf837b1ccd2cddecd6",
+      "primary_blob": null,
+      "index_sha256": "2af174ec138f9e63f6f5903a40f829da443ad7845d935415e13ef0d05da4b966"
+    },
+    {
+      "path": "scripts/test-ediel-tr-10-reconciliation.cjs",
+      "index_blob": "b0c77a83db522f512c5137902db9600aa9795990",
+      "root_blob": "b0c77a83db522f512c5137902db9600aa9795990",
+      "primary_blob": null,
+      "index_sha256": "52e54f8f8432d0a9f5069eff7f4d4b65142991c83b700738389b10295409ed4e"
+    },
+    {
+      "path": "scripts/test-ediel-tr-10-worker-source.cjs",
+      "index_blob": "27413e1a960aa7422c57f11b5c5356c3948285fe",
+      "root_blob": "27413e1a960aa7422c57f11b5c5356c3948285fe",
+      "primary_blob": null,
+      "index_sha256": "983e43375923816ab623466c8ec1952accf67347af312c9137f6c14a1a7c2b03"
+    },
+    {
+      "path": "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+      "index_blob": "7f4ea54835ceaf5a865aafe1dc45b9a5cdaf57e4",
+      "root_blob": "7f4ea54835ceaf5a865aafe1dc45b9a5cdaf57e4",
+      "primary_blob": null,
+      "index_sha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985"
+    },
+    {
+      "path": "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+      "index_blob": "45b27af733d94eb3b0bea3f129302014bbb745e6",
+      "root_blob": "45b27af733d94eb3b0bea3f129302014bbb745e6",
+      "primary_blob": null,
+      "index_sha256": "35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1"
+    },
+    {
+      "path": "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql",
+      "index_blob": "50d7bc9a181a2bf26aa62f65314112df9c8c3a47",
+      "root_blob": "50d7bc9a181a2bf26aa62f65314112df9c8c3a47",
+      "primary_blob": null,
+      "index_sha256": "888d1c2dc890647e69105a3077b0b6b902f27a1afea09e03c74987c275e756e4"
+    },
+    {
+      "path": "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+      "index_blob": "b7301ea1968fce510fb1251bc4fa0e56ac5d4006",
+      "root_blob": "b7301ea1968fce510fb1251bc4fa0e56ac5d4006",
+      "primary_blob": null,
+      "index_sha256": "61beb70a0b8b4837d0356dfe86c2c1a9a4798f74dc549b0292af63f79cde2cb8"
+    },
+    {
+      "path": "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql",
+      "index_blob": "8250fc34519ea93c9d52e488521dfd84bdbed8e1",
+      "root_blob": null,
+      "primary_blob": "8250fc34519ea93c9d52e488521dfd84bdbed8e1",
+      "index_sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+    },
+    {
+      "path": "supabase/migrations/20261004205816_support_attachment_quarantine_carrier.sql",
+      "index_blob": "80aa23297bb9b571d0b97f5df8d398592c0ce483",
+      "root_blob": null,
+      "primary_blob": "80aa23297bb9b571d0b97f5df8d398592c0ce483",
+      "index_sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+    },
+    {
+      "path": "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+      "index_blob": "1018826e24516776a0ff32efd7a2e1debf89219b",
+      "root_blob": "1018826e24516776a0ff32efd7a2e1debf89219b",
+      "primary_blob": null,
+      "index_sha256": "ed925604abf81ebab51a778797ce040a290c8d05aefcd23a156e4004eb765f6b"
+    },
+    {
+      "path": "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql",
+      "index_blob": "6b034ed08fb5758b561cab8bb9f0b1b60b3a991f",
+      "root_blob": "6b034ed08fb5758b561cab8bb9f0b1b60b3a991f",
+      "primary_blob": null,
+      "index_sha256": "2fa019efcbf3df9f687595ce057ab2e58f4427b424611c0943006f13811766ad"
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "index_blob": "4b5599d658a413ebee0a92ae8c4cd1c3839e95f4",
+      "root_blob": "4b5599d658a413ebee0a92ae8c4cd1c3839e95f4",
+      "primary_blob": "97e000df6562d01e2e09dcac6d33cbbf8d59a026",
+      "index_sha256": "d401087fdd50e8f37de85d8946017f7546352b6974a6e62da061be3fba80f517"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "index_blob": "4648ef15e1576333c854d074153f6547716b4b1f",
+      "root_blob": "4648ef15e1576333c854d074153f6547716b4b1f",
+      "primary_blob": "6364063eb129147c9c3acb0d093caad905393672",
+      "index_sha256": "117ced74ea6228814b246c9b19ecc672520055ded4886bbf1e0ea7a22ed35d6f"
+    }
+  ],
+  "nonparent_merge_blobs": [
+    {
+      "path": ".agent-memory/handover.md",
+      "index_blob": "03c343afe75f0e79b36a52ed9ecb92ac0af49f0f",
+      "root_blob": "f758693696deeff77ca69245d7b579a763ee0e01",
+      "primary_blob": "b0cd09cc548fa55901beb868b2c980e1bf2a88f0",
+      "index_sha256": "bad43ff904dd0bb6eafbd91f8f5a7743732a2c5c5b9e018a5148ab284785dac4"
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "index_blob": "3062a6a4631ff6bf4fe24272124c4a08f5a2594f",
+      "root_blob": "762bd0fd5efdf01c1ff13120bab7b1fdcc35f7f9",
+      "primary_blob": "66a1cb3d21ddd48395b55017c141dc3da478e6f3",
+      "index_sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "index_blob": "0cb0db3277b6003ec2654f97e88d3c2292abcf3e",
+      "root_blob": "f8d9bda4ddee7d0b09acade20238b93b23c98fc6",
+      "primary_blob": "709cc15b0d26c59b208dcf7ab9ffda91ece614ac",
+      "index_sha256": "21e53a0801f11d81ebc62f7380d119052c7994d82c01438dab04f19e7182f7eb"
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "index_blob": "1667c41e3e2ca1886669ab500bd32be5f7def813",
+      "root_blob": "34548bc1325c43aa6798c3d1dcbb6ae28fdd07f6",
+      "primary_blob": "502cb4515098eaa4aa8c9b593cd3c8520e773e42",
+      "index_sha256": "10ea5780a9ce201c9fe74cd7677da65018955e1e313f65232ffc476a4cfbdd29"
+    }
+  ],
+  "exact_owner_checks": {
+    "primary_exact": [
+      "lib/ediel/utilts/resolution.ts",
+      "lib/ediel/utilts/timezone.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
+      "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+      "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts",
+      "__tests__/ediel-z06f-native-wire-grammar.test.ts"
+    ],
+    "root_exact": [
+      "lib/ediel/intent/prodatRecoveryGateway.ts",
+      "scripts/ediel-tr-05-recovery-native.test.ts",
+      "scripts/ediel-tr-10-reconciliation-native.test.ts",
+      "scripts/ediel-ack-first-reception-native.test.ts",
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "__tests__/ediel-ack-01-contrl.test.ts",
+      "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+      "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql"
+    ]
+  },
+  "caught_and_resolved": {
+    "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+    "initial_stale_index_blob": "342080e0de09717717aaac01bbc1ed44c433bb1a",
+    "defect": "Retained9433 import/call of z06fNativeRequestedStartDate absent from the exact-primary wire module. Root independently confirmed TS2305.",
+    "repair": "Sole owner exact0796/main fixture bytes",
+    "final_blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+    "final_sha256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194"
+  },
+  "approved_row_union": {
+    "root": 175,
+    "primary": 181,
+    "staged": 189,
+    "extra": 0,
+    "lost": 0,
+    "total": 352
+  },
+  "migration_registrations": [
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "root_entries": 818,
+      "primary_entries": 812,
+      "union_entries": 818,
+      "missing_or_changed_hash": 0
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "root_entries": 262,
+      "primary_entries": 262,
+      "union_entries": 262,
+      "missing_or_changed_hash": 0
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "root_entries": 122,
+      "primary_entries": 124,
+      "union_entries": 124,
+      "missing_or_changed_hash": 0
+    }
+  ],
+  "manifest": {
+    "root_capture_object_byte_semantics_unchanged": true,
+    "root_generated_metadata_unchanged": true,
+    "immutable_pointer_blobs_sha_verified": true,
+    "composition_capture_pending": true,
+    "generated_types_sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4"
+  },
+  "workflow_diff": {
+    "from_root_additions": 9,
+    "from_root_deletions": 0,
+    "from_primary_additions": 3,
+    "from_primary_deletions": 0,
+    "existing_failure_gates_retained": true
+  },
+  "reviewer_execution": "Read-only Git/blob/hash/JSON/dependency/order checks; no unit/native/full repeat or source edits.",
+  "owner_reported_only": "37/37 bounded targeted tests; migration1068/971 and contracts/generated-hash checks; app/scripts types ongoing.",
+  "limits": [
+    "No final merge commit/tree yet; exact staged technical blob identities recorded.",
+    "Fresh actual composed-head capture/native/upgrade/browser/fullCI remain mandatory.",
+    "No new whole foreign-card approval or runtime/market claim.",
+    "Original d4 28/28 proof still qualifies d4 only; source reuse is not a relabeled composed receipt."
+  ]
+}

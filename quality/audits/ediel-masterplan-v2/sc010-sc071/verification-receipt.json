@@ -1,0 +1,107 @@
+{
+  "recorded_at": "2026-10-05T09:06:41.650900+00:00",
+  "branch": "codex/ediel-sc010-sc071-grant-revalidation-20261005",
+  "base_commit": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "runtime": "Node22.23.3",
+  "component_status": "VERIFIED",
+  "whole_scenario_status": {
+    "SC-010": "BLOCKED_NOT_EXECUTED",
+    "SC-071": "RELEASED_TO_NATIVE_OWNER_NOT_EXECUTED"
+  },
+  "coverage_changed": false,
+  "new_production_or_sql_code": false,
+  "verification": [
+    {
+      "command": "node22 node_modules/vitest/vitest.mjs run __tests__/ediel-sc-010-071-grant-revalidation.test.ts __tests__/ediel-beneficiary-projection-api.test.ts __tests__/ediel-beneficiary-projection-provenance.test.ts --reporter=default --reporter=junit --outputFile=quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/component-junit.xml",
+      "exit_code": 0,
+      "tests": 38,
+      "owned_tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "evidence/component-test.log",
+      "junit": "evidence/component-junit.xml"
+    },
+    {
+      "command": "node22 --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+      "exit_code": 0,
+      "log": "evidence/types.log"
+    },
+    {
+      "command": "node22 node_modules/eslint/bin/eslint.js __tests__/ediel-sc-010-071-grant-revalidation.test.ts",
+      "exit_code": 0,
+      "log": "evidence/lint.log"
+    },
+    {
+      "command": "node22 scripts/check-ediel-masterplan-v2.cjs",
+      "exit_code": 0,
+      "log": "evidence/spec-integrity.log",
+      "scope": "33 frozen files,121 rules,231 contracts; specification integrity/evidence references only"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "executed_code": [
+    "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+    "lib/ediel/services/projectionRequest.ts",
+    "lib/ediel/services/projection.ts"
+  ],
+  "finite_ports": [
+    "requireAdminApiAccess authentication/tenant selection",
+    "supabaseService.rpc database results and asynchronous RPC completion"
+  ],
+  "component_effects": [
+    "Identical reads each authenticate and call actual current-grant RPC adapter with unchanged tenant/actor/version/scope",
+    "Earlier successful data, receipt and cursor do not bypass a later denied RPC result",
+    "RPC data returned alongside an error is refused",
+    "Different grant version is not accepted silently for a captured request",
+    "Deferred route params and in-flight RPC denial propagate current result without cached success or implicit retry",
+    "Changed selected tenant/actor are evaluated independently",
+    "A later explicitly requested active version is evaluated freshly; this is not revoked-grant resurrection proof",
+    "Old-version cursor cannot be widened to a new version"
+  ],
+  "not_proved": [
+    "Production queued export worker and lease execution",
+    "Native database revocation or transaction/concurrency effects",
+    "External distribution/send or delivery",
+    "Whole SC-010 or SC-071 literal acceptance",
+    "Current-head CI success or main integration"
+  ],
+  "remaining": [
+    {
+      "id": "SC-010",
+      "owner": "retained TEN10/TEN12/service producer; coordinator to identify or explicitly assign real worker",
+      "requirement": "Actual queued/leased export rechecks grant version before reading/sending; captured cache decision cannot authorize export",
+      "action": "Identify existing operative consumer or clear one sole new product owner; add asserting worker/native effect proof without duplicate harness"
+    },
+    {
+      "id": "SC-071",
+      "owner": "revocation-20261005 via #5305991386261",
+      "requirement": "Concurrent actual data-access grant revocation and E66 beneficiary distribution under real PostgreSQL fence, no rows/receipt or forbidden effects",
+      "action": "Use owned scripts/ediel-sc-071-projection-revocation-native.test.ts and root-coordinated native include/current-source qualification"
+    }
+  ],
+  "failures_and_recoveries": [
+    "Initial gh read commands denied sandbox network; supported additional network permission succeeded, empty files discarded",
+    "Dependency setup ran with hostNode24 and emitted engine mismatch warning; actual tests/types/lint/spec ran under locally installedNode22.23.3",
+    "Older gh lacks --slurp; full paginated file inventory parsed as consecutive JSON arrays without dropping pages"
+  ],
+  "evidence_hashes": {
+    "evidence/component-junit.xml": "e24accbf205c27469b9f4285c2f58931f7b9bb94bc95b71f9f6f33cdcb46aec7",
+    "evidence/component-test.log": "f338e661968967f3043132f23ca18fb68de03557cf1c5627d764dc33ba54633f",
+    "evidence/lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "evidence/spec-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "evidence/types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_manifest": "source-manifest.json",
+  "independent_review": "independent-literal-review.md",
+  "ownership_inventory": "ownership-inventory.json",
+  "publication_status": "LOCAL_COMPONENT_VERIFIED_REVIEW_CI_INTEGRATION_PENDING",
+  "independent_review_sha256": "03ece3573a785feca76e397e281878e0ac64e435dbd0708ce72bc289fc013d5a",
+  "independent_review_outcome": "component test acceptable; no actionable test defect; full literal SC010/071 BLOCKED",
+  "additional_native_oracle_limit": "Existing f.effects() omits projection_receipts and ediel_service_history; native owner must assert those directly while preserving legitimate revocation/history writes",
+  "technical_commit": "b06c58fd837f2405ee20eafcd82dbaded025c1c1",
+  "owned_test_sha256": "576261e90616efabd396c2c660af2de7279b16a1e35c02228ef66a7dd6e8a0d9"
+}
