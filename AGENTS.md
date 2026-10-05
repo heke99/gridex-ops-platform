@@ -263,6 +263,13 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    remaining partial cards.
 7. **Shared work:** before starting a cluster, check open PRs and
    `.agent-memory/handover.md` so two sessions never fix the same thing.
+8. **Claim board (mandatory, Claude and Codex):** issue #530 is the single
+   source of who works on which rule. Before writing code, read it and post
+   `CLAIM <ID>, <ID> — <agent> — branch <branch>` (two rules at a time, only
+   unclaimed IDs). Post `RELEASE <ID> — <reason/what is missing>` when you stop
+   and `DONE <ID> — PR #N` when the PR is open and green, then claim the next
+   free pair. Never edit `coverage.json` rows for IDs you have not claimed.
+   Mirror each CLAIM/DONE as one line in `.agent-memory/handover.md`.
 
 ## Non-negotiable project invariants
 

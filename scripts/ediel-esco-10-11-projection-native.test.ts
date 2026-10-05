@@ -1,4 +1,4 @@
-// masterplan: ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11
+// masterplan: ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11, SC-017, SC-007
 import { createHash, randomUUID } from 'node:crypto'
 import { beforeEach, expect, it } from 'vitest'
 import { projectEdielSeriesToBeneficiary } from '@/lib/ediel/services/projection'

@@ -1,3 +1,4 @@
+// masterplan: ENV-05, AT-ENV-05
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {resolveCanonicalRouteContext,assertFreshBusinessRegistryRouteSource} from '@/lib/ediel/core/routeRegistry'
 import {materializeCompanyGridOwnerRoute,materializePlatformActorRoute} from '@/lib/ediel/routeMaterializer'
@@ -40,6 +41,21 @@ beforeEach(()=>{
 
 describe('actual AI technical route protocol projection',()=>{
  const input={requestType:'meter_values' as const,preferredRouteId:routeId,companyId:company,environment:'production' as const,messageStandard:'ai_list' as const}
+ it('does not select a production communication route for a test actor',async()=>{
+  await expect(resolveCanonicalRouteContext({...input,environment:'test'})).rejects.toThrow('canonical_route_environment_mismatch')
+  expect(io.actor).toHaveBeenCalledWith('test',company,null)
+  expect(io.runtime).not.toHaveBeenCalled()
+ })
+ it.each(['tgt_test','agt_test','bilateral_test'])('does not select a %s communication route for production',async environment_type=>{
+  io.from.mockImplementation(()=>({select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:{...route(),environment_type},error:null})}))
+  await expect(resolveCanonicalRouteContext(input)).rejects.toThrow('canonical_route_environment_mismatch')
+  expect(io.runtime).not.toHaveBeenCalled()
+ })
+ it('holds a profile of the other environment even when the communication route matches',async()=>{
+  io.runtime.mockResolvedValue({...runtime(),environment:'test'})
+  await expect(resolveCanonicalRouteContext(input)).rejects.toThrow('canonical_route_profile_environment_mismatch')
+  expect(io.writes).toEqual([])
+ })
  it('keeps absent AI APP despite the own actor PRODAT default',async()=>{
   const context=await resolveCanonicalRouteContext(input)
   expect(context).toMatchObject({applicationReference:null,messageStandard:'ai_list',senderEdielId:'SUPPLIER-TRANSPORT',receiverEdielId:'NETWORK-TRANSPORT'})
