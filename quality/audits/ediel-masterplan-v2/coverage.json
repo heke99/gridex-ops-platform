@@ -1308,8 +1308,16 @@
     {
       "id": "OPS-05",
       "acceptance_id": "AT-OPS-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/services/authorization.ts",
+        "lib/ediel/core/failureDisposition.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/operations/controlTower.ts",
+        "__tests__/ediel-ops-05-tenant-refusal-disposition.test.ts",
+        "__tests__/ediel-ops-05-caller-effects.test.ts"
+      ]
     },
     {
       "id": "ENV-10",
@@ -1384,13 +1392,25 @@
   "acceptance_contracts": [
     {
       "id": "SC-001",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-receipt.json"
+      ]
     },
     {
       "id": "SC-002",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-receipt.json"
+      ]
     },
     {
       "id": "SC-003",
@@ -1457,8 +1477,14 @@
     },
     {
       "id": "SC-012",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-012-dual-role-state-isolation.test.ts",
+        "scripts/ediel-sc-012-dual-role-state-sql-regression.mjs",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts"
+      ]
     },
     {
       "id": "SC-013",
@@ -1751,8 +1777,10 @@
     },
     {
       "id": "SC-045",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-utilts-err-gateway.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
         "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.ts"
       ]
@@ -3011,8 +3039,16 @@
     },
     {
       "id": "AT-OPS-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/authorization.ts",
+        "lib/ediel/core/failureDisposition.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/operations/controlTower.ts",
+        "__tests__/ediel-ops-05-tenant-refusal-disposition.test.ts",
+        "__tests__/ediel-ops-05-caller-effects.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-10",

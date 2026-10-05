@@ -1,0 +1,6 @@
+{
+  "extends": "../../../../tsconfig.scripts.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["../../../../scripts/ediel-sc-071-projection-revocation-native.test.ts", "native.config.ts"],
+  "exclude": ["../../../../node_modules", "../../../../.next"]
+}
