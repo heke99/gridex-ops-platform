@@ -1,0 +1,51 @@
+{
+  "status": "PASS_FINAL_SOURCE_NATIVE_UPGRADE_ARTIFACT_BINDING_ONLY",
+  "time_utc": "2026-10-05T11:59:24.677367+00:00",
+  "run_id": 37301295082,
+  "job_id": 111734755731,
+  "job_conclusion": "success",
+  "artifact_id": 11340779653,
+  "zip_sha256": "3f7f5a7d65eed5bca1963142064f09ff53c439486d62846c804fe0181a8b1476",
+  "zip_crc_ok": true,
+  "source": {
+    "baseSha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "candidateSha": "4fd1b0447400bcfaa0381524c575383eba966297",
+    "candidateTree": "260c8a2097c317fcb9d86072248ae1f8391aab9c",
+    "historicalMigrationsPreserved": 644
+  },
+  "forward_count": 421,
+  "all_forward_checksums_verified": true,
+  "branches": [
+    {
+      "branch": "clean",
+      "types_sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+      "types_byte_equal_committed": true,
+      "fingerprint_object_equal_committed": true,
+      "fingerprint_sha256": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+      "schema_line_lstrip_equal_committed": true,
+      "schema_raw_sha256": "266c412cb3fbdc16bc550dbba1334d6a4e46537135562dd71a6cc492b7702cc7",
+      "schema_raw_byte_equal_committed": false
+    },
+    {
+      "branch": "upgraded",
+      "types_sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+      "types_byte_equal_committed": true,
+      "fingerprint_object_equal_committed": true,
+      "fingerprint_sha256": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+      "schema_line_lstrip_equal_committed": true,
+      "schema_raw_sha256": "266c412cb3fbdc16bc550dbba1334d6a4e46537135562dd71a6cc492b7702cc7",
+      "schema_raw_byte_equal_committed": false
+    },
+    {
+      "branch": "applied-txt-branch/upgraded",
+      "types_sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+      "types_byte_equal_committed": true,
+      "fingerprint_object_equal_committed": true,
+      "fingerprint_sha256": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+      "schema_line_lstrip_equal_committed": true,
+      "schema_raw_sha256": "266c412cb3fbdc16bc550dbba1334d6a4e46537135562dd71a6cc492b7702cc7",
+      "schema_raw_byte_equal_committed": false
+    }
+  ],
+  "scope": "Genuine ancestor upgrade plus independent clean/schema/type parity. Not final clean native/browser regression acceptance; not hosted gridex-prod acceptance. Raw schema differs only in leading whitespace on42lines; fingerprint objects and types match exactly. No artifact bytes modified. No database writes performed."
+}

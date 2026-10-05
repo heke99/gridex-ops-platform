@@ -1,0 +1,27 @@
+{
+  "status": "PASS_FROZEN_CODE_QUALIFICATION_NOT_PROD_ACTIVATION",
+  "captured_at_utc": "2026-10-05T12:18:00.006937+00:00",
+  "api_source": "4fd1b0447400bcfaa0381524c575383eba966297",
+  "api_tree": "260c8a2097c317fcb9d86072248ae1f8391aab9c",
+  "portal_source": "54b406d82ddb7a26a3bdc510a7fd4b460c4a0cfe",
+  "hardening_run": 37301295082,
+  "clean_artifact": 11343703305,
+  "upgrade_artifact": 11340779653,
+  "files": {
+    "final-api-checks.json": "9a540def631e6495ee9f55f0df1e28cb72a700c9800387434406677868fbf374",
+    "final-portal-checks.json": "61a92e31b7280164fb7333db81c6f35764e2aaefedd52b2a5061adae565f9506",
+    "gridex-prod-onboarding-catalog-20261005.json": "1097b2ccc55efeb2576ea8a198fd9f840c234fcf2af35e77566fcb95ec34ce6f",
+    "gridex-prod-onboarding-prerequisite-addendum-review.json": "f122c71b30008464073980d48c8e3ace572b6d97ff58357d2d14ad5153d23d39",
+    "staff-onboarding-final-clean-authenticated-metadata.json": "1859e30490098943e029a6032c6f6e5c0390600c8e5a70dce1c90275f98d1b1b",
+    "staff-onboarding-final-clean-native-independent-review.json": "76269e04ea7182b3dd19b725cdcff34d37d9b7ef372fd890183f2fadd012d14a",
+    "staff-onboarding-final-upgrade-artifact-verification.json": "d6a1f84e6d94188566fe2771f2ce3eb89bd16d0fee8e551373de23158f7b2a43",
+    "staff-onboarding-final-upgrade-independent-review.json": "cf604f4dd2535e661548b3ae44538243fa50b3533d04d2209b63abb5a79cd408",
+    "../gridex-prod-onboarding-prerequisite-addendum-20261005.md": "6c2009e019691bc32abae5db373b7933e23bb6169810da8457b0d558a4f99da2"
+  },
+  "bounds": [
+    "Immutable copied receipts retain original paths and exact hashes.",
+    "Checks captured before converting drafts; optional skipped checks and automated draft reviews are not test passes.",
+    "Only final documentation/checkpoint changes occur on this branch; qualified code PR heads unchanged.",
+    "No hosted write, Auth/configuration/email or domain activation in this task."
+  ]
+}

@@ -1,4 +1,45 @@
-# Independent support123 checkpoint — 2026-10-05
+# Independent support123 checkpoint — source qualified 2026-10-05
+
+## Latest authoritative state — supersedes historical next actions below
+
+CODE QUALIFICATION COMPLETE. API frozen4fd1b0447400bcfaa0381524c575383eba966297,
+tree260c8a2097c317fcb9d86072248ae1f8391aab9c; all required PR578CI GREEN.
+OPS hardening37301295082 SUCCESS12:05:13UTC: nativeclean52m27s, genuine
+upgrade/type/schema parity and complete quality/build/security gates PASS.
+Portal frozen54b406d82ddb7a26a3bdc510a7fd4b460c4a0cfe has all required
+PR45support/contract/websiteCI GREEN;56tests/17Chromium/noJSerrors/build PASS.
+Root/author/safety/rollout source reviews are complete. Native counts include
+explicit mode skips and owner reruns, never unique duplicate PASS claims.
+
+Final qualification/receipts:
+quality/staff-api/independent-onboarding-final-qualification-20261005.md
+quality/staff-api/final-source-evidence-20261005/manifest.json
+Artifacts clean11343703305 and upgrade11340779653 bind exact4fd. Imported
+raw types/schema/fingerprint and frozen SQL remain unchanged. Both tested PR
+heads and original receipts are preserved. Only final documentation/checkpoint
+changes are published on codex/support-source-qualified-20261005, a doc-only
+child of4fd, without another PR or production-source edit. Worktree unchanged.
+
+PROD NOT ACTIVATED. No hosted migration, data/enrollment, Auth setting, real
+email, environment mutation or domain move. Existing OPS target and support123
+marketing assignment remain unchanged. New support Auth/API storage is locked
+to named gridex-prod ayiuxjlfazkjmmtlvhsl; no default dev target is permitted.
+12:04:35UTC read-only Prod catalog confirms five queried acceptance/worker RPCs
+absent; profile status defaults active(nullable), membership(company,user)
+uniqueness exists, Auth/profile trigger bodies and role scope remain unqualified.
+No verified Gridex company/admin; required identity question still unanswered.
+
+NEXT: qualify exact existing Prod definitions/ACL/ownership and genuine
+readiness, build a faithful Prod-shaped fixture and bounded guarded prerequisite
+forwards from the original map plus new onboarding addendum. Structural work
+can proceed independently; company/admin identity is required before enrollment.
+Never replay all historical OPS migrations, fabricate readiness/ledger/authority,
+copy dev UUID/users or auto-merge marketing tickets. Only after qualification:
+retarget runtime to Prod, enroll verified company/client/provider, allow own
+callback, qualify real leased delivery/acceptance and independent domain move.
+Do not edit other agents' Ediel memory or ordinary/frozen worktrees.
+
+## Historical source cutpoint — retained facts, superseded pending actions
 
 Active user decision: support123 is an independent company support application,
 with its own login and navigation, using the shared Personal API. Gridex is one

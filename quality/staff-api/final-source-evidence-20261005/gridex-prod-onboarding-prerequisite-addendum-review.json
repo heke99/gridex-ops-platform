@@ -1,0 +1,218 @@
+{
+  "status": "PASS_BOUNDED_DEPENDENCY_ADDENDUM_SOURCE_ONLY_PROD_PENDING",
+  "source": {
+    "commit": "4fd1b0447400bcfaa0381524c575383eba966297",
+    "tree": "260c8a2097c317fcb9d86072248ae1f8391aab9c",
+    "inputs": [
+      {
+        "path": "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+        "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492"
+      },
+      {
+        "path": "lib/staff-api/onboarding.ts",
+        "sha256": "372ca43ebf079317ba200c7f621e2b331e6d04d79b917d582e94e0eb36d05a1b"
+      },
+      {
+        "path": "lib/auth/staffInvitationRouting.ts",
+        "sha256": "cd7dd603067afca05459d8f89d2d79f7bee996c5b38e587f4761c3de1636078b"
+      },
+      {
+        "path": "lib/auth/companyInvitationFlow.ts",
+        "sha256": "e7938a4a41c5b70a1e4e1c174f3d1706dedc8fe9f44b0a62b50e255d315d7c9c"
+      },
+      {
+        "path": "lib/auth/authEmailFlow.ts",
+        "sha256": "b185b0eed7f758a161a18505dce02b984548ed3aede5959f781462dd2165ea28"
+      },
+      {
+        "path": "lib/tenant/provisioningWorker.ts",
+        "sha256": "ac0eb5a39a9b6b25468f52a5db9503efc7cacc45afbc0a73aed40eb01eb24708"
+      },
+      {
+        "path": "supabase/migrations/20260802203000_canonical_runtime_consistency_hardening.sql",
+        "sha256": "96a4402e5b642453a7358f55f9a5c93b2559a707df66b958a770318d10412930"
+      },
+      {
+        "path": "supabase/migrations/20260810193450_canonical_access_provisioning_runtime_v1.sql",
+        "sha256": "390b0223a8fbafb633795f1ad0116d6cf8ebbddea056226be84711e7d878a4b8"
+      },
+      {
+        "path": "supabase/migrations/20261004090602_staff_case_events_api_auth.sql",
+        "sha256": "7056422a92a27d6b2f7a5fde4086daebae4b9fa38a98fecf628c8d3dc30741a0"
+      },
+      {
+        "path": "supabase/migrations/20260519_auth_callback_email_reset_sync.sql",
+        "sha256": "59efbf233d314558f8cc7ffbb2b15788cadaaf7ba476e0f80fa1e820299419a9"
+      },
+      {
+        "path": "app/api/v1/staff-onboarding/invitations/accept/route.ts",
+        "sha256": "957604a9c5fac1fb6ffd029d8bd683b1d656c35b0dc32c1329f68abce0e883d9"
+      },
+      {
+        "path": "docs/staff-api/independent-onboarding.md",
+        "sha256": "cdbcc154c66c9056fd8573e5bb46e52960200b5fc52bc1c2c4282caac44e52ef"
+      },
+      {
+        "path": "docs/openapi/staff-onboarding-v1.json",
+        "sha256": "5b074690ffaba2192d75c6229fc8c2f13ce3e0e014296f2533ec817e72ba47ff"
+      },
+      {
+        "path": "supabase/migrations/20260810224500_canonical_review_remediation_v1.sql",
+        "sha256": "12fb80b8c13f7e105e4c5b63a6145e863872874fd4a2caaea9f669df5a80010d"
+      },
+      {
+        "path": "supabase/migrations/20260822223013_tenant_api_bundle_operation_entitlement.sql",
+        "sha256": "f688adb455470e429fd7ea1258cbcc357dced30b367dd450ad4a991b9967b7f2"
+      }
+    ]
+  },
+  "original_map": {
+    "path": "/workspace/gridex-support-portal-ops/quality/staff-api/gridex-prod-prerequisite-map-20261005.md",
+    "sha256": "592112c96b4091688029db120286e4f205715f6850ab74a546b1611a240f4c14",
+    "unchanged": true
+  },
+  "addendum": {
+    "path": "/tmp/gridex-staff-review/gridex-prod-onboarding-prerequisite-addendum-20261005.md",
+    "sha256": "6c2009e019691bc32abae5db373b7933e23bb6169810da8457b0d558a4f99da2"
+  },
+  "additional_hard_prerequisite_rpc": {
+    "signature": "public.canonical_accept_tenant_invitation(jsonb)",
+    "prosrc_sha256": "1fa6349633150ab630282cb06524006eadf53559da393614ddc1f82dfd1bf19a",
+    "captured_equals_historical_body": true,
+    "prod_catalog_state": "CONFIRMED_ABSENT_AT_2026-10-05T12:04:35.318814+00:00"
+  },
+  "auth_predecessor": {
+    "prosrc_md5": "377d73119aba7d046045b1b38805e5d8",
+    "matches_original_events_auth_forward": true
+  },
+  "explicit_data_requirements": [
+    "real approved Prod tenant/admin",
+    "actual role definition plus assignable mapping",
+    "active profile whose id equals confirmed Prod Auth UUID",
+    "genuine immutable original-client invitation receipt",
+    "registered canonical onboarding origin in client allowed_origins",
+    "enforced purposeStaff provider"
+  ],
+  "additional_worker_rpc_names": [
+    "canonical_claim_company_provisioning_jobs",
+    "canonical_complete_company_provisioning_job",
+    "canonical_tenant_operation_decision",
+    "canonical_complete_company_provisioning_job_v1_pre_history_guard"
+  ],
+  "global_readiness": "STILL_CONFIRMED_ABSENT; unchanged helper gates this new route too",
+  "new_replay_or_idempotency_table_needed_by_this_route": false,
+  "qualification": {
+    "tests_run": 0,
+    "old22_inventory_rerun": false,
+    "sql_http_calls": 0,
+    "repo_source_runtime_edits": 0,
+    "keys_configs_provider_actions": 0,
+    "prod_activation": "NOT_RUN",
+    "new_db_calls_in_addendum_update": 0
+  },
+  "limits": [
+    "The five queried public RPC names are now observed absent; the hidden completion alias was not separately queried.",
+    "Prod user_status default active and membership uniqueness are verified; trigger body semantics, profile Auth UUID binding, default-role scope and actual invited active profile remain unqualified.",
+    "nativeCI/artifact proof owned by root and not independently executed/promoted here; parent reports4fd clean CI SUCCESS52m27s.",
+    "global profile concurrency/rotation enforcement not added by this wrapper"
+  ],
+  "current_canonical_worker_prosrc_sha256": {
+    "canonical_claim_company_provisioning_jobs": "7f9020f11dac0ba4bc246ba42546ea81f814f74da0d7db040dccb9d80d640489",
+    "canonical_complete_company_provisioning_job": "1cbee39f6fed99cbb0970a0c4f385bf26b561e17019182c63c6d67ec3ca198f3",
+    "canonical_tenant_operation_decision": "9ec4b938a8fa9187b5583c332fec3d947b72d8ae81ce5a0b5ec34fe84a94cec9"
+  },
+  "worker_completion_hidden_alias": {
+    "defined_in_filtered_capture": false,
+    "referenced_by_captured_wrapper": true,
+    "authentic_rename_origin": "20260810224500_canonical_review_remediation_v1.sql",
+    "direct_app_execute": "revoked from PUBLIC,anon,authenticated,service_role; called only through owner wrapper"
+  },
+  "latest_prod_catalog": {
+    "path": "/tmp/gridex-staff-review/gridex-prod-onboarding-catalog-20261005.json",
+    "sha256": "1097b2ccc55efeb2576ea8a198fd9f840c234fcf2af35e77566fcb95ec34ce6f",
+    "captured_at": "2026-10-05T12:04:35.318814+00:00",
+    "queried_public_names": [
+      "canonical_accept_tenant_invitation",
+      "canonical_claim_company_provisioning_jobs",
+      "canonical_complete_company_provisioning_job",
+      "canonical_tenant_operation_decision",
+      "gridex_accept_staff_invitation_v1"
+    ],
+    "functions": [],
+    "profile_columns": [
+      {
+        "type": "uuid",
+        "column": "id",
+        "default": null,
+        "not_null": true
+      },
+      {
+        "type": "text",
+        "column": "user_status",
+        "default": "'active'::text",
+        "not_null": false
+      },
+      {
+        "type": "text",
+        "column": "last_auth_email_action",
+        "default": null,
+        "not_null": false
+      }
+    ],
+    "membership_constraints": [
+      {
+        "name": "company_memberships_company_id_fkey",
+        "type": "f",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "company_memberships_company_id_user_id_key",
+        "type": "u",
+        "definition": "UNIQUE (company_id, user_id)"
+      },
+      {
+        "name": "company_memberships_pkey",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "name": "company_memberships_role_check",
+        "type": "c",
+        "definition": "CHECK ((membership_role = ANY (ARRAY['company_admin'::text, 'member'::text, 'viewer'::text, 'owner'::text, 'admin'::text, 'operations'::text, 'support'::text])))"
+      },
+      {
+        "name": "company_memberships_status_check",
+        "type": "c",
+        "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'invited'::text, 'pending'::text, 'suspended'::text, 'disabled'::text, 'removed'::text, 'removed_from_company'::text, 'invitation_revoked'::text, 'locked_security'::text, 'revoked'::text])))"
+      }
+    ],
+    "profile_auth_triggers": [
+      {
+        "name": "on_auth_user_created",
+        "table": "users",
+        "schema": "auth",
+        "enabled": "O",
+        "body_md5": "98da28bfaa0f83aa71eea73d070b42e0",
+        "function": "public.handle_new_user"
+      },
+      {
+        "name": "on_user_profile_created",
+        "table": "user_profiles",
+        "schema": "public",
+        "enabled": "O",
+        "body_md5": "7603304b04df99b17e2ffa19214cf358",
+        "function": "public.assign_default_role"
+      },
+      {
+        "name": "trg_user_profiles_identity_sync",
+        "table": "user_profiles",
+        "schema": "public",
+        "enabled": "O",
+        "body_md5": "11d21045f9c6efec044a25c4109bd79b",
+        "function": "public.sync_user_profiles_identity"
+      }
+    ],
+    "trigger_bodies_and_authority_behavior_qualified": false,
+    "actual_profile_or_role_rows_read": false
+  }
+}

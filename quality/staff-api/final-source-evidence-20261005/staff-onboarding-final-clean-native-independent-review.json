@@ -1,0 +1,541 @@
+{
+  "format": "staff_onboarding_final_clean_native_artifact_independent_review_v1",
+  "reviewed_at_utc": "2026-10-05T12:15:39.597273+00:00",
+  "status": "PASS_FINAL4FD_CLEAN_NATIVE_BROWSER_AND_RAW_GENERATED_BINDING",
+  "blockers": [],
+  "scope": "One connector artifact download and one authorized download_file; offline ZIP/CRC/source/phase/JUnit/native-hook checks. Only three safe generated files extracted; no raw logs or credentials printed or written, no suite/replay/hosted call or source edit.",
+  "artifact": {
+    "id": 11343703305,
+    "run_id": 37301295082,
+    "job_id": 111734755702,
+    "job_conclusion": "success",
+    "repository_id": 1190539955,
+    "head_branch": "codex/support-portal-ops",
+    "source": "4fd1b0447400bcfaa0381524c575383eba966297",
+    "tree": "260c8a2097c317fcb9d86072248ae1f8391aab9c",
+    "zip_path": "/workspace/attachments/35023112-5b86-4b2f-aea5-58213b409439/gridex-support-final-clean-evidence.zip",
+    "sha256": "407b6d6349083dec2fbbd1f0175efc50db7031fc9f4aa17c64a0ab92abe40ac3",
+    "bytes": 16069842,
+    "members": 57,
+    "crc_pass": true,
+    "safe_unique_paths_pass": true,
+    "authenticated_metadata_path": "/tmp/gridex-staff-review/staff-onboarding-final-clean-authenticated-metadata.json",
+    "authenticated_metadata_sha256": "1859e30490098943e029a6032c6f6e5c0390600c8e5a70dce1c90275f98d1b1b",
+    "job_started_at": "2026-10-05T11:12:45Z",
+    "job_completed_at": "2026-10-05T12:05:12Z",
+    "job_duration_seconds": 3147.0,
+    "required_step_conclusion": "success",
+    "redaction_step_conclusion": "success"
+  },
+  "phases": {
+    "count": 18,
+    "ordered_complete": true,
+    "markers": [
+      [
+        "2026-10-05T11:13:28Z",
+        "clean_replay_start"
+      ],
+      [
+        "2026-10-05T11:16:01Z",
+        "clean_replay_complete"
+      ],
+      [
+        "2026-10-05T11:16:01Z",
+        "artifact_generation_start"
+      ],
+      [
+        "2026-10-05T11:16:12Z",
+        "artifact_generation_complete"
+      ],
+      [
+        "2026-10-05T11:16:12Z",
+        "sql_regressions_start"
+      ],
+      [
+        "2026-10-05T11:16:28Z",
+        "merge_concurrency_start"
+      ],
+      [
+        "2026-10-05T11:16:33Z",
+        "merge_concurrency_complete"
+      ],
+      [
+        "2026-10-05T11:16:33Z",
+        "sql_regressions_complete"
+      ],
+      [
+        "2026-10-05T11:16:34Z",
+        "native_owners_start"
+      ],
+      [
+        "2026-10-05T11:55:08Z",
+        "native_owners_complete"
+      ],
+      [
+        "2026-10-05T11:55:08Z",
+        "browser_fixtures_start"
+      ],
+      [
+        "2026-10-05T11:57:59Z",
+        "browser_fixtures_complete"
+      ],
+      [
+        "2026-10-05T11:57:59Z",
+        "browser_start"
+      ],
+      [
+        "2026-10-05T12:03:49Z",
+        "browser_complete"
+      ],
+      [
+        "2026-10-05T12:03:49Z",
+        "after_browser_native_start"
+      ],
+      [
+        "2026-10-05T12:04:40Z",
+        "after_browser_native_complete"
+      ],
+      [
+        "2026-10-05T12:04:40Z",
+        "schema_gates_start"
+      ],
+      [
+        "2026-10-05T12:04:48Z",
+        "schema_gates_complete"
+      ]
+    ],
+    "native_owners_seconds": 2314.0,
+    "post_browser_native_seconds": 51.0,
+    "schema_gates_complete": "2026-10-05T12:04:48Z",
+    "actual_ci_error_flags": 0
+  },
+  "junit_summary": {
+    "files": 26,
+    "declared_cases": 674,
+    "passed_case_executions": 667,
+    "mode_skipped": 7,
+    "failures": 0,
+    "errors": 0,
+    "main_native": {
+      "declared": 609,
+      "passed": 608,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0,
+      "files": 48,
+      "duration_seconds": 2271.731338309
+    },
+    "pre_browser_owner_reruns": {
+      "files": 12,
+      "declared": 17,
+      "passed": 16,
+      "mode_skipped": 1
+    },
+    "post_browser_owner_reruns": {
+      "files": 12,
+      "declared": 17,
+      "passed": 12,
+      "mode_skipped": 5,
+      "every_required_file_has_passed_case": true
+    },
+    "browser": {
+      "declared": 31,
+      "passed": 31,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0
+    },
+    "native_passed_executions_including_owner_reruns": 636,
+    "counting_note": "Owner reruns repeat cases; counts describe executions, not unique coverage. Seven skips are the business-incident producer/post-browser mode switch, confirmed against source."
+  },
+  "junit_files": [
+    {
+      "member": "rem002-native-junit.xml",
+      "sha256": "2ce0dd836c720654c0b1e3633e3c890c313208d80a6bfb4748bd8acdb82bcf3c",
+      "declared": 609,
+      "passed": 608,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 2271.731338309,
+      "files": 48,
+      "skipped_tests": [
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "post-browser genuine native receipt retains exactly two incidents, immutable accepted ACK, held plans and zero market/outbox mutations"
+        }
+      ]
+    },
+    {
+      "member": "rem002-case-native-junit.xml",
+      "sha256": "ba242c1475b5680183866983b68479e08f350146644361441b16582c0c16a7e7",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 5.50215651,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-case-after-browser-junit.xml",
+      "sha256": "0604fccf9bb6ddb59043760589ee9784d37f618a19152c11b25e0589819f2d01",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.613078925,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-requested-change-native-junit.xml",
+      "sha256": "783e41fccb23a0c3567ed220e111acb75a1197642f35a32fb89deedbffc6cd57",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 10.262350927,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-requested-change-after-browser-junit.xml",
+      "sha256": "42b1da06e03fe2c3d3d291db5889982707990057f115059ef4b905bdb2246ee7",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.191927363,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-regulated-supply-native-junit.xml",
+      "sha256": "2bfddc2d4e449e7b6c77dcd6578515890b60240e217d1962f704a94f74cad79e",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 6.669530537,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-regulated-supply-after-browser-junit.xml",
+      "sha256": "a0a129bf36f5d6bd4afa14239e2efd34e6a1812e9cdcdfa8f5c1962bc08f9928",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.049817294,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-bilateral-customer-native-junit.xml",
+      "sha256": "eeaf06184fa8a20d4fb5b8d5156bf3dfe0ad7918c72d4f4d60da7d2b84d6a802",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 8.446471389,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-bilateral-customer-after-browser-junit.xml",
+      "sha256": "e1a027d079242578726e942b7ea4d99e21eafdd1137e84c6224e60733b039d61",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.104827421,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-bilateral-prodat-native-junit.xml",
+      "sha256": "9a7ac80c3e5af278c314cabb2590d358c513f12200d6b0f7645f8fe43916aee9",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 6.658501259,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "sha256": "bbe09dac2a4f99b0c14254721fea950a76de37be1b3d6c56c99908a64b407bf0",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.057386229,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-ai-purpose-native-junit.xml",
+      "sha256": "4d3c04a735e3179352a23b3845540e20c5f40af0dd361edffb3939a6354e2027",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 8.020052355,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-ai-purpose-after-browser-junit.xml",
+      "sha256": "f34f86f74a3e420d12e649592d1078affdeef1a6262160fc8a9bb274877061e6",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.236005518,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-record-retention-native-junit.xml",
+      "sha256": "3edc25a2cb3d849ca20e198b6c71bb43d0de7ae08790479cac25707e5ac87e09",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 8.402849151,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-record-retention-after-browser-junit.xml",
+      "sha256": "940e8e39b1f4ca58f73becf95a2ce5d535e22c7be5c9c329bcf69354f15e2d0a",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.096687679,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-business-incident-native-junit.xml",
+      "sha256": "2aa5c59de95e2b00127c494cfb3223c6a75466e92bb78e6c22201baec58c7bdf",
+      "declared": 6,
+      "passed": 5,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 46.552512946,
+      "files": 1,
+      "skipped_tests": [
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "post-browser genuine native receipt retains exactly two incidents, immutable accepted ACK, held plans and zero market/outbox mutations"
+        }
+      ]
+    },
+    {
+      "member": "rem002-business-incident-after-browser-junit.xml",
+      "sha256": "5c21e038af38e41c81b3f2125ccb848101d3107345f205482ed153f9745517e9",
+      "declared": 6,
+      "passed": 1,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 1.848496943,
+      "files": 1,
+      "skipped_tests": [
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "genuine incident producer and browser fixture > fresh reported incident requires actual accepted original ACK and positive own scope; retry attempts no writes or ACK/history/outbox effects"
+        },
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "genuine incident producer and browser fixture > last incident audit failure rolls back incident and both held plans without touching the accepted original"
+        },
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "genuine incident producer and browser fixture > real pending company DENY serializes before fresh incident qualification and yields zero effects"
+        },
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "genuine incident producer and browser fixture > real pending global DENY serializes before fresh incident qualification and yields zero effects"
+        },
+        {
+          "class": "scripts/ediel-fresh-business-incident-native.test.ts",
+          "name": "genuine incident producer and browser fixture > actual own-company read-only incident inspection requalifies current originals without send authority and never changes any row"
+        }
+      ]
+    },
+    {
+      "member": "rem002-blob-retention-native-junit.xml",
+      "sha256": "66fe77661a359fa3d2dc22846c8a398642212594b373dfe8564c5529ec3b7ea7",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 8.047040884,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-blob-retention-after-browser-junit.xml",
+      "sha256": "dc0eaa63596d14e93690898e4b752c8a7f6ad368a09d3a8a6373065ca1291939",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.245725351,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-process-journal-retention-native-junit.xml",
+      "sha256": "8714e21fd7f7b2f063aedf28f6667cdd9fecbe10d83fb8b009fbea35e6fa659e",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 6.117804739,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-process-journal-retention-after-browser-junit.xml",
+      "sha256": "627e3fde71560a0071acbce302eee8535eb7bb0feaf3a4166eb71e32be7d0d68",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.308694143,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-finance-copy-retention-native-junit.xml",
+      "sha256": "d516595b4ee57cc7603088b67f8ad00f012cdab4577a48ee62473357a2b3c41a",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 6.886048946,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "sha256": "71e7da0f7f5c5bde8b3796bd121147872145c207c3cc7def384f638cd3eaa54c",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.223209555,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-decision-original-after-browser-junit.xml",
+      "sha256": "e29851e969a96ba37792ee4e932d1d411edbe993502cb0043e2526edd18315ea",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.09614326,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "rem002-decision-original-native-junit.xml",
+      "sha256": "a6b3dcf436943081230df021801fcb79a8e417a8d9bd7f61158a17006a47e49b",
+      "declared": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 1.962833721,
+      "files": 1,
+      "skipped_tests": []
+    },
+    {
+      "member": "e2e-artifacts/playwright-junit.xml",
+      "sha256": "002e5934c121a8855cdb651a7fd9b11a893eed279d67a39075eea60d38e5565f",
+      "declared": 31,
+      "passed": 31,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 328.62634699999995,
+      "files": 13,
+      "skipped_tests": []
+    }
+  ],
+  "onboarding_native_sql": {
+    "status": "PASS_REQUIRED_UNCONDITIONAL_ON_ERROR_STOP_HOOK_IN_SUCCESSFUL_BLOCKING_STEP",
+    "script": "scripts/staff-onboarding-acceptance-regression.sql",
+    "sha256": "15e922b1e7f705038e1b2b490bfc562754560e93d38a93fa94c30f254dd77d84",
+    "workflow_sha256": "c3b15cf790d35fea6c809f8065f0534ba5d9f8fb15021db2e9750f2cf6268f7d",
+    "workflow_call_line": 202,
+    "migration_sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+    "migration_replayed_once_named_trace": true,
+    "stop_on_error": true,
+    "failure_sets_sticky_native_suite_failed": true,
+    "terminal_both_failure_flags_required_zero": true,
+    "all_later_sql_native_browser_schema_phases_completed": true,
+    "rollback_fixture": true,
+    "standalone_named_success_notice_exists": false,
+    "evidence_boundary": "Exact final workflow invokes this checked-in script unconditionally with psql ON_ERROR_STOP; any failure sets the sticky flag and fails terminal step. Successful step plus zero emitted flag and complete later phases establishes execution/pass. SQL script emits command tags, not a distinct named PASS marker."
+  },
+  "generated_raw_outputs": {
+    "supabase/database.types.ts": {
+      "member": "rem002-database.types.ts",
+      "sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+      "bytes": 3679151,
+      "byte_equal_immutable4fd": true
+    },
+    "supabase/schema.sql": {
+      "member": "rem002-schema-snapshot/schema.sql",
+      "sha256": "e891f1e8cca13860f060251c41d333430233cfe3ab7192d576c7ab9ce0c2922f",
+      "bytes": 11193134,
+      "byte_equal_immutable4fd": true
+    },
+    "supabase/schema.fingerprint.json": {
+      "member": "rem002-schema-snapshot/schema.fingerprint.json",
+      "sha256": "969b0b3f9738cb4846478acba85594c5cb4d3baddd10030c6c8933032d539f16",
+      "bytes": 3625,
+      "byte_equal_immutable4fd": true
+    }
+  },
+  "schema_fingerprint_canonical_sha256": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+  "native_catalog_code_sha_tree_match": true,
+  "safe_extraction_directory": "/tmp/gridex-support-final-clean-native",
+  "raw_log_sha256_only": "5eb12434ae2913d1de2e4506ae893eccfc73b511059ebde466fc1fe3d3e13905",
+  "limits": [
+    "Final4fd CI and disposable PostgreSQL17/native/browser qualification only; source remains immutable4fd/tree260c even if a separate docs-only branch advances.",
+    "Full hosted gridex-prod prerequisite alignment, enrollment, migrations and real invite/provider email delivery remain separate and pending.",
+    "No production database, Auth, secret, provider, domain or configuration actions performed."
+  ]
+}

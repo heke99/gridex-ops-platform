@@ -1,0 +1,127 @@
+{
+  "artifact": {
+    "id": 11343703305,
+    "name": "gridex-rem-002-clean-replay",
+    "size_in_bytes": 16069842,
+    "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11343703305",
+    "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11343703305/zip",
+    "expired": false,
+    "created_at": "2026-10-05T12:05:10Z",
+    "expires_at": "2027-01-03T11:11:05Z",
+    "updated_at": "2026-10-05T12:05:10Z",
+    "digest": "sha256:407b6d6349083dec2fbbd1f0175efc50db7031fc9f4aa17c64a0ab92abe40ac3",
+    "workflow_run": {
+      "id": 37301295082,
+      "repository_id": 1190539955,
+      "head_repository_id": 1190539955,
+      "head_branch": "codex/support-portal-ops",
+      "head_sha": "4fd1b0447400bcfaa0381524c575383eba966297"
+    }
+  },
+  "job": {
+    "id": 111734755702,
+    "name": "clean-migration-replay",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-05T11:12:45Z",
+    "completed_at": "2026-10-05T12:05:12Z",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-10-05T11:12:45Z",
+        "completed_at": "2026-10-05T11:12:46Z"
+      },
+      {
+        "name": "Run actions/checkout@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-10-05T11:12:46Z",
+        "completed_at": "2026-10-05T11:12:50Z"
+      },
+      {
+        "name": "Run actions/setup-node@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-10-05T11:12:50Z",
+        "completed_at": "2026-10-05T11:12:52Z"
+      },
+      {
+        "name": "Run npm ci",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-10-05T11:12:52Z",
+        "completed_at": "2026-10-05T11:13:10Z"
+      },
+      {
+        "name": "Run supabase/setup-cli@v1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-10-05T11:13:10Z",
+        "completed_at": "2026-10-05T11:13:12Z"
+      },
+      {
+        "name": "Install a PostgreSQL client matching the replay server",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-10-05T11:13:12Z",
+        "completed_at": "2026-10-05T11:13:28Z"
+      },
+      {
+        "name": "Clean empty-database replay and verify generated types",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-10-05T11:13:28Z",
+        "completed_at": "2026-10-05T12:05:08Z"
+      },
+      {
+        "name": "Redact disposable credentials from native and browser evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-10-05T12:05:08Z",
+        "completed_at": "2026-10-05T12:05:09Z"
+      },
+      {
+        "name": "Upload clean-replay evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-10-05T12:05:09Z",
+        "completed_at": "2026-10-05T12:05:11Z"
+      },
+      {
+        "name": "Post Run actions/setup-node@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 17,
+        "started_at": "2026-10-05T12:05:11Z",
+        "completed_at": "2026-10-05T12:05:11Z"
+      },
+      {
+        "name": "Post Run actions/checkout@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 18,
+        "started_at": "2026-10-05T12:05:11Z",
+        "completed_at": "2026-10-05T12:05:11Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 19,
+        "started_at": "2026-10-05T12:05:11Z",
+        "completed_at": "2026-10-05T12:05:11Z"
+      }
+    ]
+  }
+}

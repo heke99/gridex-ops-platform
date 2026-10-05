@@ -1,0 +1,86 @@
+{
+  "status": "READ_ONLY_REAL_PROD_ONBOARDING_PREREQUISITE_CATALOG",
+  "project": {
+    "name": "gridex-prod",
+    "ref": "ayiuxjlfazkjmmtlvhsl",
+    "link_id": "link_6abfe8a022548191be4c4495dee62966"
+  },
+  "query_scope": "Canonical accept/worker/new wrapper signatures, profile defaults, membership constraints and existing Auth/profile trigger hashes. No role/user/customer rows. No writes.",
+  "catalog": {
+    "functions": [],
+    "captured_at": "2026-10-05T12:04:35.318814+00:00",
+    "profile_columns": [
+      {
+        "type": "uuid",
+        "column": "id",
+        "default": null,
+        "not_null": true
+      },
+      {
+        "type": "text",
+        "column": "user_status",
+        "default": "'active'::text",
+        "not_null": false
+      },
+      {
+        "type": "text",
+        "column": "last_auth_email_action",
+        "default": null,
+        "not_null": false
+      }
+    ],
+    "profile_auth_triggers": [
+      {
+        "name": "on_auth_user_created",
+        "table": "users",
+        "schema": "auth",
+        "enabled": "O",
+        "body_md5": "98da28bfaa0f83aa71eea73d070b42e0",
+        "function": "public.handle_new_user"
+      },
+      {
+        "name": "on_user_profile_created",
+        "table": "user_profiles",
+        "schema": "public",
+        "enabled": "O",
+        "body_md5": "7603304b04df99b17e2ffa19214cf358",
+        "function": "public.assign_default_role"
+      },
+      {
+        "name": "trg_user_profiles_identity_sync",
+        "table": "user_profiles",
+        "schema": "public",
+        "enabled": "O",
+        "body_md5": "11d21045f9c6efec044a25c4109bd79b",
+        "function": "public.sync_user_profiles_identity"
+      }
+    ],
+    "membership_constraints": [
+      {
+        "name": "company_memberships_company_id_fkey",
+        "type": "f",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "company_memberships_company_id_user_id_key",
+        "type": "u",
+        "definition": "UNIQUE (company_id, user_id)"
+      },
+      {
+        "name": "company_memberships_pkey",
+        "type": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "name": "company_memberships_role_check",
+        "type": "c",
+        "definition": "CHECK ((membership_role = ANY (ARRAY['company_admin'::text, 'member'::text, 'viewer'::text, 'owner'::text, 'admin'::text, 'operations'::text, 'support'::text])))"
+      },
+      {
+        "name": "company_memberships_status_check",
+        "type": "c",
+        "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'invited'::text, 'pending'::text, 'suspended'::text, 'disabled'::text, 'removed'::text, 'removed_from_company'::text, 'invitation_revoked'::text, 'locked_security'::text, 'revoked'::text])))"
+      }
+    ]
+  }
+}
