@@ -207,3 +207,23 @@ install, branch carry, commit, push or remote action was performed by this
 delegate. The finite historical SQL receipt does not establish current native
 wrapper/admission, full business or hosted authority. Root must carry actual
 current main normally and require fresh CI on the resulting immutable head.
+
+## Root normal current-main composition, 19:16 UTC
+
+The reviewed SC055 hunk is committed as4d81bf35d; normal merge of actual
+main4b179ee45dce580142f0684e330675fe9e033d69 produced3c9dfd892abc197204affd67c27b32f1b8958298,
+treea382b37a003bb149a6549a8e0a6594b7c6c8196e. All earlier commits/history remain.
+The three original production blobs and website suite are exact1f450e9d;
+all8,476foreignmainentries and the entire coverage blob are exact4b. Only six
+owned paths differ. Admitted SC068 postimage2f326 and all main503 schema/provenance
+inputs remain unchanged; no generated output or forward is authored here.
+
+One necessary verification on that changed composition passed109cases/11suites,
+including5SC055/18originalSQLcontrols. App and tests TypeScript exit0/no diagnostics;
+scoped ESLint exit0 with only the same two pre-existing unused-variable warnings.
+Logs are /tmp/gridex-pr606-current-main-composed-{tests,app-types,test-types,lint}-20261005.log.
+The machine foreign/source guard is /tmp/gridex-pr606-composed-source-guard-20261005.json.
+This footer alone changes the final documentation commit; root now publishes
+normally and requires fresh exact-head ordinary CI. Earlier1f npm-test FAILURE
+is retained historically and is not relabeled PASS. No full/native/capture rerun
+or hosted action was dispatched by this local composition.
