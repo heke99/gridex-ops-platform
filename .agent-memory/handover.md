@@ -1149,3 +1149,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-05 #556 review: U-19 fixed (parser record shape, fcaa0317). U-11 got a declared E97 preserve/remove test through the real filter. P-06 now runs the real requestMissingFacilityInformation flow (protected identity → needs_review/blocked, no outbox, no PoA event). SC-036 downgraded to PARTIAL (gap in open-blockers).
 - 2026-10-05 #556: SC-035 and SC-037 downgraded to PARTIAL after review (gaps in open-blockers).
 - 2026-10-05 #556: SC-048 downgraded to PARTIAL after review.
+- 2026-10-05 #556: SC rows → PARTIAL; #556 now carries rule cards + fixes only.

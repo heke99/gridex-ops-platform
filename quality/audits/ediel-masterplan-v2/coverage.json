@@ -1555,7 +1555,7 @@
     },
     {
       "id": "SC-031",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
         "__tests__/ediel-received-register-validation-binding.test.ts",
@@ -1590,7 +1590,7 @@
     },
     {
       "id": "SC-034",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
         "lib/ediel/prodat/prodatRegisterGroups.ts",
@@ -1626,7 +1626,7 @@
     },
     {
       "id": "SC-038",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "scripts/test-ediel-p-12-z04ad-scope.cjs",
         "__tests__/ediel-supply-market-consumers.test.ts"
@@ -1657,7 +1657,7 @@
     },
     {
       "id": "SC-043",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-prodat-field-identity-owners.test.ts",
         "__tests__/ediel-sc-043-utilts-field-512.test.ts",
@@ -1666,7 +1666,7 @@
     },
     {
       "id": "SC-044",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
         "__tests__/ediel-utilts-transaction-disposition.test.ts",
@@ -1675,7 +1675,7 @@
     },
     {
       "id": "SC-045",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.ts"
@@ -1683,7 +1683,7 @@
     },
     {
       "id": "SC-046",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "scripts/test-ediel-utilts-series-and-err-ack.cjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
@@ -1692,7 +1692,7 @@
     },
     {
       "id": "SC-047",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.part-1.ts",
@@ -1718,7 +1718,7 @@
     },
     {
       "id": "SC-050",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
         "__tests__/ediel-utilts-runtime-cutoff.test.ts",
@@ -1741,7 +1741,7 @@
     },
     {
       "id": "SC-053",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
         "__tests__/ediel-u-09-estimate-never-actual.test.ts",
