@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { staffCapturedIdentityAuthoritySql } from './fixtures/staff-captured-identity-authority'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const file = (name: string) => readFileSync(`supabase/migrations/${name}`, 'utf8')
@@ -49,6 +50,7 @@ beforeAll(async () => {
     CREATE TABLE integration_api_clients(id uuid PRIMARY KEY,company_id uuid,status text,scopes text[],deleted_at timestamptz,revoked_at timestamptz,expires_at timestamptz);
     CREATE TABLE audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,actor_user_id uuid,entity_type text,entity_id text,action text,new_values jsonb,metadata jsonb,actor_type text,request_id text,correlation_id text,resource_type text,resource_id text);
     CREATE TABLE company_invitations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,invited_user_id uuid,status text,revoked_at timestamptz);`)
+  await db.exec(staffCapturedIdentityAuthoritySql(schema))
   await db.exec(extract(file('01_db1_schema_repair_core_helpers_and_canonical_tables.sql'), 'create table if not exists public.roles (', ');'))
   // The sole legacy drift is the production-proven NOT NULL role reference.
   await db.exec(extract(schema, 'CREATE TABLE public.user_roles (', ');').replace('role_id uuid,', 'role_id uuid NOT NULL,'))
@@ -127,6 +129,16 @@ const column = async () => (await db.query<Record<string, unknown>>(`SELECT attn
   WHERE attribute.attrelid='user_roles'::regclass AND attribute.attname='role_id' AND NOT attribute.attisdropped`)).rows[0]
 
 describe('legacy user_roles role reference normalization', () => {
+  it('refuses a registered tenant actor without an explicit binding before role changes', async () => {
+    await db.exec(forward)
+    await db.exec(`UPDATE integration_api_clients SET metadata='{"staff_tenant_auth":{"url":"https://abcdefghijklmnopqrst.supabase.co"}}'::jsonb`)
+    const before = await rows()
+    await expect(invoke(command)).rejects.toMatchObject({ code: '42501', message: 'staff_identity_binding_missing' })
+    expect(await rows()).toEqual(before)
+    expect((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM canonical_command_results')).rows[0].count).toBe(0)
+    expect((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM audit_logs')).rows[0].count).toBe(0)
+  })
+
   it.each(['change_role', 'enable'])('reproduces 23502 in the real guarded %s chain without partial writes', async operation => {
     if (operation === 'enable') {
       await invoke({ ...command, action: 'disable', staff_operation: 'disable', idempotency_key: 'legacy-disable' })

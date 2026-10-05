@@ -24,7 +24,7 @@ DO $regression$
 DECLARE
  company uuid:=gen_random_uuid(); other_company uuid:=gen_random_uuid();
  client uuid:=gen_random_uuid(); provider uuid:=gen_random_uuid(); invitation uuid:=gen_random_uuid();
- tenant_user uuid:=gen_random_uuid(); job uuid:=gen_random_uuid(); lease uuid:=gen_random_uuid();
+ tenant_user uuid:=gen_random_uuid(); job uuid; lease uuid:=gen_random_uuid();
  actor uuid; binding uuid; command jsonb; delivery jsonb; receipt jsonb; accepted jsonb; resolved jsonb; saved_provider jsonb; saved_metadata jsonb;
  payload jsonb; before_state jsonb; denied boolean; patch text; ops_admin uuid:=gen_random_uuid(); bootstrap jsonb; bootstrap_command jsonb; bootstrap_invitation uuid; bootstrap_actor uuid; bootstrap_binding uuid; legacy_user uuid:=gen_random_uuid(); legacy_invitation uuid:=gen_random_uuid(); legacy_result jsonb;
 BEGIN
@@ -46,8 +46,11 @@ BEGIN
  payload:=jsonb_build_object('company_id',company,'channel','staff_api','api_client_id',client,'staff_operation','invite');
  INSERT INTO public.canonical_command_results(company_id,command_type,idempotency_key,request_hash,request_payload,result_payload)
  VALUES(company,'tenant.invitation.create','external-staff-intent',public.canonical_json_sha256(payload),payload,jsonb_build_object('invitation_id',invitation));
- INSERT INTO public.company_provisioning_jobs(id,company_id,job_key,status,idempotency_key,lease_token,locked_at)
- VALUES(job,company,'auth_invite','processing','external-staff-intent',lease,now());
+ -- The actual invitation trigger already enqueued the unique delivery job.
+ -- Lease that owned row, as the worker does, instead of creating a second job.
+ UPDATE public.company_provisioning_jobs SET status='processing',lease_token=lease,locked_at=now()
+ WHERE company_id=company AND job_key='auth_invite' AND idempotency_key='external-staff-intent' AND status='pending' AND lease_token IS NULL
+ RETURNING id INTO STRICT job;
  command:=command||jsonb_build_object('invitation_id',invitation,'provisioning_job_id',job,'provisioning_lease_token',lease);
  delivery:=public.gridex_prepare_staff_identity_delivery_v1(command);
  actor:=(delivery->>'actor_user_id')::uuid;
@@ -153,8 +156,9 @@ BEGIN
  IF NOT EXISTS(SELECT FROM public.canonical_command_results WHERE company_id=company AND command_type='tenant.invitation.create' AND idempotency_key='initial-admin'
   AND actor_user_id=ops_admin AND request_payload->>'channel'='ops' AND request_payload->'external_staff_identity'='true'::jsonb AND request_payload->>'api_client_id'=client::text)
  THEN RAISE EXCEPTION 'external initial admin bypassed canonical intent'; END IF;
- UPDATE public.company_provisioning_jobs SET status='processing',lease_token=gen_random_uuid(),locked_at=now() WHERE company_id=company AND idempotency_key='initial-admin';
- SELECT id,lease_token INTO job,lease FROM public.company_provisioning_jobs WHERE company_id=company AND idempotency_key='initial-admin';
+ UPDATE public.company_provisioning_jobs SET status='processing',lease_token=gen_random_uuid(),locked_at=now()
+ WHERE company_id=company AND job_key='auth_invite' AND idempotency_key='initial-admin' AND status='pending' AND lease_token IS NULL
+ RETURNING id,lease_token INTO STRICT job,lease;
  bootstrap_command:=command||jsonb_build_object('invitation_id',bootstrap_invitation,'provisioning_job_id',job,'provisioning_lease_token',lease);
  bootstrap:=public.gridex_prepare_staff_identity_delivery_v1(bootstrap_command);
  bootstrap_actor:=(bootstrap->>'actor_user_id')::uuid;

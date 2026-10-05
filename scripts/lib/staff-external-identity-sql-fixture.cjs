@@ -22,6 +22,13 @@ function buildStaffExternalIdentityFixture(root) {
     if (start < 0) throw new Error(`Missing actual function: ${name}`)
     return schema.slice(start, schema.indexOf('\n\n--\n-- Name:', start))
   }
+  const provisioningConstraint = name => {
+    const definition = schema.match(new RegExp(`ALTER TABLE ONLY public\\.company_provisioning_jobs\\s+ADD CONSTRAINT ${name}\\b[^;]*;`))
+    if (!definition) throw new Error(`Missing actual provisioning constraint: ${name}`)
+    return definition[0]
+  }
+  const enqueueTrigger = schema.match(/CREATE TRIGGER canonical_enqueue_invitation_delivery_job AFTER INSERT ON public\.company_invitations[^;]*;/)
+  if (!enqueueTrigger) throw new Error('Missing actual invitation delivery enqueue trigger')
   const canonical = read('supabase/migrations/20260802203000_canonical_runtime_consistency_hardening.sql')
     .match(/create or replace function public\.canonical_accept_tenant_invitation\([\s\S]+?\n\$function\$;/)[0]
   const immutableFunction = (file, name) => {
@@ -44,8 +51,9 @@ ${['tenant_customer_identity_providers','company_invitations','company_provision
       .map(table).join('\n')}
 ALTER TABLE tenant_customer_identity_providers ADD PRIMARY KEY(id);
 ALTER TABLE company_invitations ADD PRIMARY KEY(id);
-ALTER TABLE company_provisioning_jobs ADD PRIMARY KEY(id);
-ALTER TABLE company_provisioning_jobs ADD UNIQUE(company_id,job_key,idempotency_key);
+${provisioningConstraint('company_provisioning_jobs_pkey')}
+${provisioningConstraint('company_provisioning_jobs_company_key')}
+${provisioningConstraint('company_provisioning_jobs_company_id_fkey')}
 ALTER TABLE user_profiles ADD PRIMARY KEY(id);
 ALTER TABLE company_memberships ADD UNIQUE(company_id,user_id);
 ALTER TABLE roles ADD PRIMARY KEY(id);
@@ -55,6 +63,8 @@ ALTER TABLE canonical_tenant_access_role_mapping ADD PRIMARY KEY(role_key);
 ${fn('canonical_json_sha256')}
 ${fn('canonical_command_request_hash_guard')}
 CREATE TRIGGER canonical_command_results_request_hash_guard BEFORE INSERT OR UPDATE OF request_payload,request_hash ON canonical_command_results FOR EACH ROW EXECUTE FUNCTION canonical_command_request_hash_guard();
+${fn('canonical_enqueue_invitation_delivery_job')}
+${enqueueTrigger[0]}
 ${canonical}
 ${fn('canonical_create_tenant_invitation_pre_staff_v1')}
 ${fn('gridex_staff_active_membership_v1')}

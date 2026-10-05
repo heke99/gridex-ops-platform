@@ -1,0 +1,38 @@
+{
+  "status": "PASS_GENUINE_ANCESTOR_UPGRADE_AND_INDEPENDENT_CLEAN_PARITY",
+  "source_head": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "source_tree": "31edb9c97c8ba70b83cc1723ed2907a8ac105c45",
+  "workflow_run": 37321777130,
+  "job_name": "upgrade-migration-replay",
+  "artifact_id": 11351588510,
+  "zip_sha256": "2d5582eb4764ad409c3694112616449150a55c57d5795bda0b77481dcb6e74a6",
+  "zip_safe25_members_crc_verified": true,
+  "historical_migrations_preserved": 644,
+  "base_head": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "upgrade_inputs_sha256": "abc4b0a231caa60f237a49d125d874e364e2051f957aa9e9d7f21a1f7fcf6bef",
+  "schema_fingerprints": {
+    "clean": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1",
+    "upgraded": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1",
+    "applied_txt_upgraded": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1"
+  },
+  "both_retained_snapshot_pairs_equal": true,
+  "utilts_catalog_junit": [
+    {
+      "file": "utilts-catalog-upgrade-junit.xml",
+      "cases": 141,
+      "failures": 0,
+      "skipped": 140
+    },
+    {
+      "file": "applied-txt-branch/utilts-catalog-upgrade-junit.xml",
+      "cases": 141,
+      "failures": 0,
+      "skipped": 140
+    }
+  ],
+  "hosted_writes": 0,
+  "qualification_limits": [
+    "Exact e545 upgrade/parity proof; clean native SQL/browser job remains separate and pending",
+    "New source fixture closure and public channel fix need fresh final-source CI"
+  ]
+}

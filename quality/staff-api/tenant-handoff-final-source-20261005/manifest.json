@@ -1,0 +1,95 @@
+{
+  "status": "FINAL_LOCAL_SOURCE_SLICES_PASS_EXACT_HEAD_CI_PENDING",
+  "created_at_utc": "2026-10-05T15:01:55.557606+00:00",
+  "base_head": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "source_sha256": {
+    "__tests__/staff-identity-version-conflict-sql.test.ts": "79cf8e3635d87bf2da7dc37cc1b6b12fb42f6b35913b3154680e3c3792b41a4e",
+    "__tests__/staff-invitation-domain-columns.test.ts": "ba42489d917099aa1a9c0601a9739b2d78d5bb12150d2a9f26b2a7ab4c2813b8",
+    "__tests__/staff-user-role-id-nullability.test.ts": "02440f7a0714f8f641660020c24a729728651fd2af2b9ce6c24606b576b7a9f2",
+    "__tests__/fixtures/staff-captured-identity-authority.ts": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296",
+    "lib/customer-service/supportConversation.ts": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+    "__tests__/support-detail-openapi-schema.test.ts": "82916af528bc1bc24c157dad81e31d2aa632f440b2080a6d84f68cd4d2663e37",
+    "scripts/staff-external-identity-binding-regression.sql": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47"
+  },
+  "runtime_delta": "Only customer publicSupportCase channel projection; staff_api->admin, documentedchannels unchanged, unknown->null",
+  "test_delta": "Authentic four-file SQL fixture dependency closure,3additional42501no-effect negatives,14actualpublicchannel contract cases",
+  "protected_capture8_inputs_sha256": {
+    "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+    "scripts/migration-history-manifest.json": "ef624c7fecd352d0fe8bf87b464bdd40c25fecccd4465bd02c2e42c69a608d5b",
+    "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+    "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+    "scripts/supabase-types-manifest.json": "832f0d31c229484f95a39ee6a7006bfa3c8754246433ad9baddca100c7907233",
+    "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+  },
+  "all8_capture_inputs_and_raw3_unchanged": true,
+  "receipt_sha256": {
+    "staff-finite-captured-identity-fixture-qualification.json": "095952f0268b76f9faa9432959efd278597467016ce15859c6cdf9b02fbc5d06",
+    "staff-captured-identity-authority-fixture-independent-review-20261005.json": "997b24cb3a81e280aee0810c93c37999bbfba979c3c45810f323b8bc66077aab",
+    "support-public-channel-contract-qualification.json": "20995a7c233aee927a91ce88d9c77ff5b7b881784a5463968d256dbfe5ab440c",
+    "support-customer-channel-final-independent-review-20261005.json": "d35c4ff7818f067c470d8f3e23ab325a49364e90dba289f94340de65f4be794f",
+    "finalhead-capture-byte-match-verification.json": "ca5f634076ef0cbdc92ecb00d8c532ec26d28a9df778dca193c331c90fe1d1f2",
+    "tenant-split-upgrade-e545-artifact-verification.json": "f8c5f744b610c08cf2db28eff9fd8a39832497d07de4dae02d1be0615bc15c6f",
+    "tenant-split-capture-import-independent-review-20261005.json": "c7143b3287325d263c8fa75d9d2e835fbd64b9f6a8fdefd6d17253de0dbaefd5",
+    "staff-external-identity-enqueue-fixture-qualification.json": "a5d5ec3f265b64ff101aa7b2e7e7076448622f6b2da8c757e73a244ef58099d9",
+    "staff-external-identity-native-fixture-closure-independent-source-review.json": "fd9a994869821eea88d7ec2c9e9fa18521e147396fdd2913fe339d2297166c2a",
+    "tenant-split-e545-native-upgrade-independent-review.json": "1137ffe174728dad64f9fdd6508bdd75fa10aed70ab258293526f3a4f0048348",
+    "staff-external-identity-native-fixture-closure-qualified-independent-supplement.json": "a6946a59b0a95f6b43099490b6f21cf7b1e4b8a6b86adf07e49902dafb9a3e8b"
+  },
+  "uncompressed_log_sha256": {
+    "staff-captured-fixture-full-coverage.log": "59958a5d8ade6e4f319eb68faaefdb6161b8654a2eecfb3e69f3167490eed64b",
+    "staff-captured-fixture-coverage-ratchet.log": "697557153bd01f77e6bf79f08e1f8fbc0934b8e65b6f071a15916db78ded12bc",
+    "tenant-final-channel-app-types.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "tenant-final-channel-api-parity.log": "5ba55328bbbebd115804d7068eb4c6a0a46444ecb4ac4129923036dc69ffb0a0",
+    "gridex-support-public-channel-red.log": "2aa23baf77a0f712fa644d043d416efdcd3b66a288b5987b840617a39877d0f6",
+    "gridex-support-public-channel-green.log": "4ff2dccba22672b3dce26f5906eed67cac05919ca68c5a0086127dee8e3ef612",
+    "gridex-support-public-channel-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gridex-support-public-channel-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-external-identity-enqueue-fixture-green.log": "8e60e03827b35d89d6fa86bf78249f18202ab4b1db22ee2455cec3a1369c4a38",
+    "staff-external-identity-enqueue-fixture-red.log": "b9cf3678f51f2dbfe27d2658645bff074b46ec5c72242d23e5b59e768f64f125"
+  },
+  "checks": {
+    "finite_sql_fixture_closure": {
+      "pass": 45,
+      "fail": 0,
+      "original_red_fail": 20,
+      "additional_security_negatives": 3
+    },
+    "actual_public_channel_and_support_contract_regressions": {
+      "pass": 67,
+      "fail": 0,
+      "schema_red_fail": 4
+    },
+    "app_types": "PASS",
+    "all_test_types": "PASSowner",
+    "scoped_lint": "PASS0warnings",
+    "frozen_api_runtime_parity": "PASS116routes137operations58schemas",
+    "whole_coverage_intermediate_diagnostic": "10761PASS838files; ratchetPASS; this run does not qualify all final public-channel source/test bytes",
+    "authentic_capture_e545": "PASSraw3byteforbyteandall8inputs",
+    "genuine_upgrade_e545": "PASSverifiedartifact11351588510; exacte545proofonly",
+    "entire_external_identity_native_sql_embedded": {
+      "pass": 7,
+      "fail": 0,
+      "genuine_red_duplicate_trigger_created_job": 2,
+      "actual_enqueue_trigger_and_constraints_in_fixture": true,
+      "assertions_retained_byte_exact_outside3job_setups": true
+    },
+    "prior_e545_clean_native": "FAILactualfixtureduplicateenqueue;17/18phases;674JUnit0fail7complementaryskips;31browserPASS;raw3exact;newexternalidentityassertionsnotreached"
+  },
+  "pending": [
+    "FinalpublishedheadmandatoryCIincludingactualclean/upgrade",
+    "Trustedtenantclient/provider/adminenrollmentandowncallback",
+    "Independent support deployment/domain assignment"
+  ],
+  "hosted_writes": 0,
+  "qualification_limits": [
+    "Historical source and producer receipts unchanged, never relabeled",
+    "No incoming JWT-version-to-native-commit atomicity claim",
+    "No hosted invitation/email/session proof",
+    "Customer enforce-provider requires separate customer assertion integration; no bypass",
+    "GridexProd stores ownAuth/delivery/publiccontacts; canonicalactors/membership/RBAC/customers/cases/auditremainindependentOPS",
+    "e545 clean failed test setup; never relabel it as native external-identity acceptance or final-head proof"
+  ]
+}
