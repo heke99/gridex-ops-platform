@@ -11,7 +11,7 @@ import { readInboundAckSourceCorrelation, qualifyInboundAckSourceCandidates } fr
 import { requireEdielInboundLegalContext } from '@/lib/ediel/tenant/sourceLegalContext'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import {
-  extractMarketActorEdielIdFromRawPayload,
+  inboundLegalReceiverEdielId,
   resolveInboundTenantFromIdentifiers,
   tenantResolutionForStorage,
   type InboundTenantResolution,
@@ -202,7 +202,7 @@ function tenantResolutionFromReferenceChoice(params: {
     status: 'resolved',
     companyId: params.companyId,
     transportEdielId: params.snapshot.receiver,
-    marketActorEdielId: extractMarketActorEdielIdFromRawPayload(params.message.raw_payload) ?? params.snapshot.receiver,
+    marketActorEdielId: inboundLegalReceiverEdielId(params.message.raw_payload, params.snapshot.receiver),
     receiverEdielId: params.snapshot.receiver,
     receiverSubaddress: params.snapshot.receiverSubAddress,
     source: 'ediel_business_references',
@@ -322,7 +322,7 @@ export async function resolveInboundTenantForMessage(params: {
   message: EdielMessageRow
 }): Promise<EdielTenantResolutionResult> {
   const snapshot = snapshotFromMessage(params.message)
-  const marketActorEdielId = extractMarketActorEdielIdFromRawPayload(params.message.raw_payload) ?? snapshot.receiver
+  const marketActorEdielId = inboundLegalReceiverEdielId(params.message.raw_payload, snapshot.receiver)
 
   const sharedResolution = await resolveInboundTenantFromIdentifiers({
     existingCompanyId: params.message.company_id ?? null,

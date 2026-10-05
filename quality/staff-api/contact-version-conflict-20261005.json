@@ -1,0 +1,225 @@
+{
+  "status": "IMPLEMENTED_TARGETED_VERIFIED_AUTHENTIC_CAPTURE_IMPORTED_SHARED_NATIVE_ASSERTION_CORRECTED_FRESH_CI_PENDING",
+  "base_commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+  "problem": "The deliberately raised contact_change_version_conflict40001 triggered PostgREST automatic retries instead of a timely409.",
+  "production_evidence": {
+    "synthetic_run": "eceb461e-c713-4ac2-ba1c-827ea5d6d55f",
+    "timing_passed": 4,
+    "main_passed": 48,
+    "main_total": 49,
+    "contact_conflict_occurrences": 4950,
+    "first_at": "2026-10-05T00:29:52.719Z",
+    "last_at": "2026-10-05T00:30:42.512Z",
+    "subsequent_deadlock_at": "2026-10-05T00:30:43.513Z",
+    "deadlock_boundary": "Still-retrying contact RPC client SHARE versus guaranteed synthetic-cleanup revocation transaction.",
+    "cleanup_catalog_and_three_strict_key_denials": "PASS",
+    "private_state_removed": true
+  },
+  "official_reference": "https://supabase.com/docs/guides/troubleshooting/high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions-77326b",
+  "forward": {
+    "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+    "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+    "old_body_sha256": "4c00ce8bffa2f89fe5627c05c2c05020e50046be5b4b08b01f9ca7e99c39b3e2",
+    "new_body_sha256": "dcc59600b4daa4a3dc25b5ff531ace5c9b4b6a7834408ed5751b5d82657bea54",
+    "only_body_change": "ERRCODE40001 becomesPT409 on the deliberately raised contact_change_version_conflict; message unchanged.",
+    "invariants": "Exact qualified predecessor or fixed-body hash only. OID, owner, ACL, security mode, search_path, permissions, locks, replay and all remaining body bytes preserved. No application mapping change."
+  },
+  "targeted_unit_verification": {
+    "red": {
+      "failed": 1,
+      "passed": 40,
+      "total": 41,
+      "failure": "Actual SQL returns40001 where nonretryablePT409 is required; five-table no-effects snapshot unchanged."
+    },
+    "green": {
+      "passed": 51,
+      "total": 51,
+      "files": 2
+    },
+    "coverage": "Actual whole forward; staff_api/ops/phone/customer_api stale conflicts; unchanged full customer/contact/audit/domain/outbox rows; positive/replay; exact body/metadata preservation; repeat application; altered-source and security-mode refusal; PT409 adapter mapping and unrelated-message control; genuine40001 compatibility."
+  },
+  "native_verification": {
+    "status": "NOT_RUN",
+    "test": "scripts/staff-customer-write-native.test.ts",
+    "coverage": "ExactPT409/messages and escaping unexpected-success sentinels for contact and identity decisions; full effect snapshots unchanged; original positive/replay/company/client controls retained."
+  },
+  "independent_forward_review": {
+    "status": "PASS_SOURCE_ONLY",
+    "receipt_sha256": "08f644b55624d3843fc1db6aa64d3cb7ecdf829cb6cf9955d87f0c861e83b99f"
+  },
+  "skill_routing": {
+    "active": [
+      "systematic-debugging",
+      "test-driven-development",
+      "using-git-worktrees",
+      "supabase",
+      "verification-before-completion",
+      "full-e2e-verification"
+    ],
+    "reason": "Confirmed SQL/RPC retry bug, isolated fix, test-first reproduction, migration and exact deployed acceptance.",
+    "conditional": [
+      "finishing-a-development-branch",
+      "requesting-code-review"
+    ],
+    "skipped": "No UI/React, broad audit, new architecture, dependency, email delivery, payment, AWS or market-rule change.",
+    "verification_config": "PROJECT_E2E.yaml read; apply security/isolation/contract and release gates to the authorized Personal API S1-S5 scope. Unrelated company/market-rule scenarios are outside this task."
+  },
+  "release_gates": "Fresh exact corrected-head capture/raw parity and all mandatory CI/native/upgrade; guarded merge and exact READY production deployment; apply ONLY the two new pinned conflict forwards once after old/new catalog preflight; one complete synthetic acceptance attempt with guaranteed cleanup. Existing installed migrations remain unchanged.",
+  "scope_limits": "No original migration reapplication, real-company activation, real communication or positive invitation/contract-approval email claim.",
+  "identity_variant": {
+    "classification": "CONFIRMED_REACHABLE_SOURCE_VARIANT_NO_HOSTED_STALE_OCCURRENCE_CLAIM",
+    "route": "POST /api/v1/staff/customers/[ref]/identity-change",
+    "trigger": "No approval-required contracts and concurrent identity field change before automatic staff decision.",
+    "production_coverage": "Retry3 already passed positive201 automatic no-contract identity apply; stale field race was not covered.",
+    "mapping": "Existing identity_change_stale message maps to409.",
+    "forward": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+    "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
+    "before_body_sha256": "e91471965c7b4989c1c81a679e4c828656ddf0b997eb2d3e92731a76158ab272",
+    "after_body_sha256": "075b242bf2891fbe4cb5eaeaae043e97a6173fa27b3304ff1e719e28038618a0",
+    "invariants": "Only deliberately raised identity_change_stale40001 becomesPT409; existing definer/search_path/owner/ACL, approval, takeover, actor and row locks preserved.",
+    "atomicity_boundary": "Decision RPC has zero mutations when stale. Earlier request creation/requested event are separate transactions and may remain; no whole-command rollback claim.",
+    "test_first_red": {
+      "failed": 1,
+      "total": 1,
+      "at": "2026-10-05T01:05:01Z",
+      "failure": "Actual service_role RPC returned40001 rather thanPT409; full predecision snapshots unchanged."
+    },
+    "green": {
+      "passed": 19,
+      "total": 19,
+      "at": "2026-10-05T01:11:37Z",
+      "coverage": "Actual full forward and service_role decision; both identity fields and customer-approval stale path; predecision no-effects; positive masked attribution/single-use; approval/takeover/role/revocation/Auth/ACL/company controls; complete metadata and exact1line body delta; reapply/alteredsource/invoker refusal.",
+      "test_sha256": "112f4f24f8512eb03611368a0fa5021dffb417f1e2473647989a24ede41243f9",
+      "log_sha256": "7fb6ff153087e19207538cd255986ac0eed36cefc0338d0b44af941d1ec64ff4"
+    },
+    "independent_fp_check_sha256": "d169203ce70ac90a3cdc4c935d99dbee3074f491383858eaed31f5589f3e078c",
+    "test_predecessor": "Verbatim immutable20261004084204 decisionbodye914, so future updatedgeneratedschema cannotturn old\u2192newcoverage into reapply-only.",
+    "independent_final_unit_quality_review_sha256": "533b0fabe105ae47fac17ce33cbad27aa0f91665e34798431a080856e5fd8e3b"
+  },
+  "targeted_total": {
+    "passed": 70,
+    "total": 70,
+    "files": 3
+  },
+  "authentic_capture": {
+    "status": "PASS_CAPTURE_ONLY_IMPORTED",
+    "workflow_run": 37261957906,
+    "artifact_id": 11325176661,
+    "source_commit": "8424820983ac007bdb57fd70237a8abc58a13506",
+    "remote_head": "8424820983ac007bdb57fd70237a8abc58a13506",
+    "tree": "3935e88eb302789f025a1ddcf56eaa36e5b51711",
+    "archive_sha256": "8904b143cfd7c1a64f04774f622ff9b96ef735eadacbf3db5a2a70f0408b41b4",
+    "independent_review_sha256": "c3b93811cbaefb89d1273a2fdf0f2ae229665cda0d7c8eda63da5be3fdf0965b",
+    "importer_history_independent_review_sha256": "dbc9411efb0aa8a2c4de8d825423005e25508343362f507f66390e0472409ac3",
+    "import_receipt": "quality/staff-api/customer-conflicts-main6f-capture-import-20261005.json",
+    "raw_receipt": "quality/staff-api/customer-conflicts-main6f-capture-receipt-20261005.json",
+    "scope": "Authentic combined main6f prefix. Whole raw schema delta versus main6f is only the two pinned deliberate SQLSTATE changes. Types unchanged; DSN, TEN09 and all other main schema bytes preserved.",
+    "qualification": "Capture origin842 only. Fresh resulting final-head mandatory CI, raw capture parity, native and upgrade remain required."
+  },
+  "main_integration": {
+    "main_commit": "eacb6c7cb473b2130e668479e0c176d456766e61",
+    "composition_commit": "329a22eeb3a76af9a55d71aadb3d373c19d3c4e1",
+    "composition_tree": "e93d7062528266524b330c7288d896eb6c275281",
+    "explicit_merge_base": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+    "preserved_all_unrelated_main_changes": true,
+    "main_changed_paths": 17,
+    "staff_changed_paths": 17,
+    "disjoint_path_sets": true,
+    "main_delta_contains_no_migration_or_capture_input_changes": true,
+    "capture_origin": "8424820983ac007bdb57fd70237a8abc58a13506",
+    "capture_scope": "Authentic origin prefix retained with exact input parity; no relabeling as resulting-head verification. Fresh final-head capture/native/upgrade/full CI mandatory.",
+    "source_composition_receipt_sha256": "e257f8fbf2515117609bdc12d1851ecc2009a8742374013860600e4f770fe8ad",
+    "fresh_final_head_CI": "NOT_RUN"
+  },
+  "prior_staff_prefix_capture": {
+    "status": "PASS_CAPTURE_ONLY_IMPORTED",
+    "workflow_run": 37250665118,
+    "artifact_id": 11321221097,
+    "source_commit": "9f8f0832ec6a32c1f0071846946e1fe2c5bdc824",
+    "remote_head": "7c862e548d27df454af28ac6e08a04dd664318fe",
+    "tree": "95158b16af078d2b608c0b745e93991b284ba696",
+    "archive_sha256": "029bf2c38b839cc1e0be19491a8d7043544ffdc4915eafb05d014a68514d9131",
+    "independent_review_sha256": "00afbd55e82e1a09fff699c72b8b32480c8fedf8165bda4760e5cde165ed1646",
+    "import_receipt": "quality/staff-api/contact-version-http409-capture-import-20261005.json",
+    "raw_receipt": "quality/staff-api/contact-version-http409-capture-receipt-20261005.json",
+    "scope": "Raw generated artifacts imported unchanged after full source/digest/tree/input verification. Entire schema changes only the two pinned business-conflict SQLSTATE lines. Types remain byte-identical. Fresh resulting-head native/browser/upgrade and full CI still mandatory.",
+    "qualification": "Valid historical7c frozen-prefix capture only. It does not qualify later composition with main507e8bfa; all prior verification assertions retain their original exact source identity."
+  },
+  "prior_main507_integration": {
+    "main_commit": "507e8bfa20606be31933eea1582066267ff2577a",
+    "main_tree": "20b492198c7b4bdbb5bec1634a42ee5cec978d47",
+    "preserved_all_unrelated_main_changes": true,
+    "raw_generated_baseline_source": "507e8bfa20606be31933eea1582066267ff2577a",
+    "new_inherited_migration": "20261004170000_ediel_service_resolve_permission_request_timing.sql",
+    "prior_staff_import_source": "15329eb3fbb4bf0a2cbd7edc5c37ddac621ed42e",
+    "capture": "PASS_CAPTURE_ONLY_IMPORTED",
+    "fresh_final_head_CI": "NOT_RUN",
+    "independent_composition_review_sha256": "4738dcf0fb26e7d81c5696d7e9d7dd0741c120536a4edddad7bb2529958d73ff"
+  },
+  "prior_main507_staff_capture": {
+    "status": "PASS_CAPTURE_ONLY_IMPORTED",
+    "workflow_run": 37260842526,
+    "artifact_id": 11324487263,
+    "source_commit": "aa1a4df009262b9793616e511073977d4fe32e8b",
+    "remote_head": "aa1a4df009262b9793616e511073977d4fe32e8b",
+    "tree": "f67ca2c182149321f601f2cd8bed78218db8479c",
+    "archive_sha256": "17541251651d1b77694b6a17c5bb67162e7d8f450fadf7d4788d93f21ddbd13d",
+    "independent_review_sha256": "6b2e42b47f9408a7b933d1e86ed5a4807bd40c1fe4429289cf944d228476fe0f",
+    "importer_history_independent_review_sha256": "dc1ebbe3ca8d34029b53cf9502f90f61b4f0f49c6aa298caff301a24689ca3f9",
+    "import_receipt": "quality/staff-api/customer-conflicts-main-integrated-capture-import-20261005.json",
+    "raw_receipt": "quality/staff-api/customer-conflicts-main-integrated-capture-receipt-20261005.json",
+    "scope": "Authentic combined current-main prefix. Whole schema delta versus raw main507 baseline is only the two pinned deliberate SQLSTATE changes. Types remain byte-identical; TEN09 and all other main schema bytes preserved. Fresh resulting-head native/browser/upgrade and full CI still mandatory.",
+    "qualification": "Historical main507 capture only; fresh main6f combined capture required."
+  },
+  "capture_main6f_integration": {
+    "main_commit": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+    "main_tree": "ade806c86aab3f08019e15e1ad6982a5e20b95e1",
+    "preserved_all_unrelated_main_changes": true,
+    "raw_generated_baseline_source": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+    "new_inherited_migration": "20261004175536_ediel_dsn_encoded_source_identity.sql",
+    "prior_staff_import_source": "019d09abb96e47f7ceff068a5a7c5efb7c7d4d69",
+    "capture": "PASS_CAPTURE_ONLY_IMPORTED",
+    "fresh_final_head_CI": "NOT_RUN",
+    "independent_composition_review_sha256": "f4c6dee66363249154db37906dadecc86a0539f56612533096856eab455bb19c"
+  },
+  "prior_final_candidate": {
+    "source": "6e8663806ccd182baee239c80354d20d4fdb4ee2",
+    "tree": "abaca893af4576214475b41ee6c7d62bd3829b40",
+    "ops_workflow_run": 37263714768,
+    "acceptance": "FAILED_ONE_OBSOLETE_SHARED_SQL_EXPECTATION",
+    "clean_job": 111616097731,
+    "failed_artifact": 11327125472,
+    "failed_archive_sha256": "c326575126f9fe45284c0e1a7e99a415e95c9ee64ac1740460251d90f2f9a93f",
+    "cause": "The shared native identity/billing SQL regression still caught serialization_failure40001 for the deliberately changed PT409 identity_change_stale decision conflict.",
+    "failure_independent_receipt_sha256": "b20a93428b000d736a50183b22f2c82815be3ecb5175d763e542910f57eabeee",
+    "application_unit": {
+      "passed": 10285,
+      "total": 10285,
+      "files": 796
+    },
+    "upgrade_job": "SUCCESS_ARTIFACT_NOT_QUALIFIED_INDEPENDENTLY",
+    "capture": "PASS_FINAL6E_RAW_PARITY_ONLY",
+    "boundary": "All eighteen phases completed and all twenty-six JUnit files had no failures, but the accumulated native flag remained FAILED. Those facts do not qualify this source."
+  },
+  "shared_native_assertion_correction": {
+    "path": "scripts/tenantservice-identity-billing-regression.sql",
+    "sha256": "ef692d01d013faae090f17a304c8abef27edd792920cfc9b932a72c62a352c83",
+    "behavior": "Accept only PT409 with exact identity_change_stale; unexpected-success sentinel escapes; compare whole scoped customer/request/events/audit/billing-revision snapshots before cancellation.",
+    "preservation": "All unrelated approval, positive, cancellation, expiry, takeover, billing and append-only controls and the genuine invoice_file_items_changed serialization_failure catcher remain unchanged.",
+    "targeted": {
+      "passed": 5,
+      "total": 5,
+      "scope": "Actual stale native excerpt with captured real decision RPC in embedded PostgreSQL; baseline RED, corrected GREEN, old40001, wrongPT409message and unexpected success refused."
+    },
+    "targeted_receipt_sha256": "ac9503516688a5e8f29c2b98b558763bc0f77a9a83aa13308acbeda48be4811b",
+    "independent_source_receipt_sha256": "6603b71136247e8c7e2c0277271661d533a468cc5c186946da84301dbae09565",
+    "independent_final_receipt_sha256": "aa26e9f8654ba8d0cbb9d10ba1b568e6c20227209fc52b1446584c4224a5003f",
+    "full_native_PG17_acceptance": "FRESH_CORRECTED_HEAD_REQUIRED"
+  },
+  "current_main_qualification_target": {
+    "main": "61e84d8d93945c1daed4c8e685aa2866686bee0f",
+    "authenticated_compare_base": "eacb6c7cb473b2130e668479e0c176d456766e61",
+    "delta": "Disjoint Ediel tests, native case/config, workflow and evidence only; no staff application, migration, generated output or eight capture-input changes.",
+    "preservation": "All main changes must be retained in the corrected candidate and fresh mandatory CI/native/upgrade must qualify that exact resulting source."
+  }
+}

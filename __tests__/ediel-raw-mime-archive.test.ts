@@ -1,3 +1,4 @@
+// masterplan: TR-03, AT-TR-03
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const io = vi.hoisted(() => ({ rpc:vi.fn(),from: vi.fn(), upload: vi.fn(), download: vi.fn(), insert: vi.fn(), source: {} as Record<string, unknown> }))

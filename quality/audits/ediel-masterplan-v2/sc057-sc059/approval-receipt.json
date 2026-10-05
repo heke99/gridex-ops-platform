@@ -1,0 +1,51 @@
+{
+  "whole_approval": "SC-057 PASSED / SC-059 PASSED",
+  "technical_review_head": "aaa6b095463469b067c9f3141a680e1e38eddea8",
+  "current_source_adoption": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+  "independent_unit_result": {
+    "passed": 22,
+    "failed": 0,
+    "errors": 0,
+    "skips": 0,
+    "inherited_SQL_groups_once": 28
+  },
+  "immutable_review_and_evidence": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/independent-review.md",
+      "sha256": "c16c1638854844f304b6e4e95ad3d66571bd9071abaf8f80b97001efbf936ede"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/independent-receipt.json",
+      "sha256": "107dc0f7e5511580a4b4561d2c12a681818f5a58d457854dbc56c5a38d94cda6"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/source-qualification.json",
+      "sha256": "64664fab449826d2e7a86fb1f5d41c9e906c9b8ec87ddabc7c7bceb282d96d5a"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/independent-unit.log",
+      "sha256": "346a1636cd8ce1dc32a7967f878b1aced015a5c16eb86b77bdc4a99fe0e312ff"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/independent-unit.xml",
+      "sha256": "917300d835adb8dded5491b19c111c32e2906d9cf6b405688b6979dc5a6cd7ce"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/independent-sc057-effects.json",
+      "sha256": "8c4cda041d68337ba250fd96b10a58dce5c214bb48c407d2d6f83a5f52d839a1"
+    }
+  ],
+  "current_main_carry": "current-main-carry.json",
+  "coverage_changed_only": [
+    "SC-057",
+    "SC-059"
+  ],
+  "other350_rows_exact_adopted_main": true,
+  "original52_execution_inputs_unchanged_except_unrelated_whole_schema_capture": true,
+  "both_new_test_bytes_unchanged": true,
+  "production_source_edits": false,
+  "runtime_reruns": false,
+  "native_or_custody_proof": false,
+  "ordinary_current_head_CI": "PENDING",
+  "final_main_merge_owner": "root"
+}

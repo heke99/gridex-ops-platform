@@ -178,10 +178,20 @@ export function describeCertificate(row: CertificateRow | null | undefined): Rec
 }
 
 /** One scope guard shared by explicit-id and candidate selection. */
+function recipientCertificateTenantScopeBlocker(row: CertificateRow, companyId: string): string | null {
+  if (!companyId) return 'receiver_certificate_tenant_scope_mismatch'
+  if (text(row.company_id)?.toLowerCase() === companyId.toLowerCase()) return null
+  if (row.company_id === null && text(row.scope) === 'platform_shared') return null
+  return 'receiver_certificate_tenant_scope_mismatch'
+}
+
 export function outboundRecipientCertificateScopeBlocker(row: CertificateRow, input: {
+  companyId: string
   receiverEdielId: string; receiverSubaddress?: string | null; messageFamily?: string | null;
   businessCode?: string | null; certificateEnvironment?: string | null;
 }): string | null {
+  const tenant = recipientCertificateTenantScopeBlocker(row, input.companyId)
+  if (tenant) return tenant
   if (inferUsage(row) !== 'outbound_recipient') return 'receiver_certificate_usage_mismatch'
   if (!['encryption', 'both'].includes(inferPurpose(row) ?? '')) return 'receiver_certificate_purpose_mismatch'
   if (!inferOwnerEdielId(row) || normalize(inferOwnerEdielId(row)) !== normalize(input.receiverEdielId)) return 'receiver_certificate_owner_mismatch'
@@ -219,7 +229,7 @@ export function recipientCertificateTrustBlocker(): string {
  * latest-row or explicit-id shortcut may silently discard a required leaf. */
 export async function verifyRequiredRecipientCertificateSet(input: {
   rows: readonly CertificateRow[]; scope: EdielCertificateTrustScope & {
-    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null
+    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null; smtpTo?: string | null
   }; authority: EdielCertificateTrustAuthority; now?: Date
 }): Promise<readonly OutboundRecipientCertificateLeaf[]> {
   const now = input.now ?? new Date(), required = input.authority.recipientFingerprints
@@ -228,6 +238,9 @@ export async function verifyRequiredRecipientCertificateSet(input: {
   const leaves: OutboundRecipientCertificateLeaf[] = []
   for (const fingerprint of required) {
     const matching = input.rows.filter(row => {
+      // A foreign tenant's copy of the same public leaf is neither a usable
+      // recipient nor a competing record in this tenant's required set.
+      if (recipientCertificateTenantScopeBlocker(row, input.scope.companyId)) return false
       const pem = textFrom(row, 'public_certificate_pem', 'publicCertificatePem')
       if (!pem || pem.length > 1_048_576) return false
       try { return new X509Certificate(pem).fingerprint256.replaceAll(':','').toLowerCase() === fingerprint } catch { return false }
@@ -238,6 +251,13 @@ export async function verifyRequiredRecipientCertificateSet(input: {
     if (blocker || !evaluateCertificateStatus(row,now).isUsableForSmime || !text(row.id)) return held(blocker ?? 'Obligatoriskt mottagarcertifikat är inte giltigt i aktuell scope.')
     const trustEvidence = await verifyEdielCertificateTrust({scope:input.scope,leafPem:pem,authority:input.authority,now})
     if (!trustEvidence.verified) return held(trustEvidence.code)
+    const smtpTo = text(input.scope.smtpTo)?.toLowerCase()
+    if (!smtpTo) return held('receiver_certificate_smtp_target_missing')
+    // A.4.2 binds the actual mailbox to signed Subject email or SAN RFC822.
+    // Mutable row labels and opaque source references cannot supply this fact.
+    let boundEmail: string | undefined
+    try { boundEmail = new X509Certificate(pem).checkEmail(smtpTo, { subject: 'always' }) } catch { /* Unusable target stays held. */ }
+    if (!boundEmail) return held('receiver_certificate_smtp_identity_unqualified')
     leaves.push({id:text(row.id)!,publicCertificatePem:pem,subject:textFrom(row,'subject','subject'),issuer:textFrom(row,'issuer','issuer'),
       serialNumber:new X509Certificate(pem).serialNumber,fingerprintSha256:fingerprint,ownerEdielId:inferOwnerEdielId(row),ownerSubaddress:inferOwnerSubaddress(row),usage:inferUsage(row),purpose:inferPurpose(row),environment:inferEnvironment(row),raw:row,trustEvidence})
   }
@@ -265,6 +285,13 @@ export async function resolveOutboundRecipientCertificate(input: {
   const messageFamily = String(input.messageFamily ?? input.messageType ?? '').trim().toUpperCase()
   const businessCode = String(input.businessCode ?? '').trim().toUpperCase()
   const environment = String(input.environment ?? '').trim().toLowerCase()
+  const companyId = String(input.companyId ?? '').trim().toLowerCase()
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(companyId) || !['test', 'production'].includes(environment)) {
+    throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_SCOPE_REQUIRED' }, 'Sändning stoppad: verifierad tenant/miljö för certifikatauktoritet saknas.')
+  }
+  // The company UUID is validated before interpolation into PostgREST's OR.
+  // Only explicitly shared platform rows may cross the tenant boundary.
+  const certificateTenantFilter = `company_id.eq.${companyId},and(company_id.is.null,scope.eq.platform_shared)`
   let certificateEnvironment = String(input.certificateEnvironment ?? '').trim().toLowerCase() || environment
 
   if (input.routeProfileId && (!certificateId || !ownEdielId)) {
@@ -272,8 +299,10 @@ export async function resolveOutboundRecipientCertificate(input: {
       .from('ediel_route_profiles')
       .select('receiver_certificate_id,certificate_id,receiver_ediel_id,own_ediel_id,sender_ediel_id,receiver_subaddress,receiver_sub_address,receiver_message_subaddress,message_family,environment_type,target_system,certificate_environment,metadata')
       .eq('id', input.routeProfileId)
+      .eq('company_id', companyId)
       .maybeSingle()
     if (routeError) throw routeError
+    if (!routeProfile) throw new Error('Sändning stoppad: route saknas i aktuell tenant.')
     const route = (routeProfile ?? {}) as Record<string, unknown>
     if (routeLooksLikeAgtProdat(route, messageFamily)) {
       // Ediel actor tests are logical test runs, but Expisoft/Ediel requires production certificates.
@@ -291,13 +320,14 @@ export async function resolveOutboundRecipientCertificate(input: {
   }
 
   const now = new Date()
-  const scope = { receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment }
+  const scope = { companyId, receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment, smtpTo: input.smtpTo }
   let data: CertificateRow | null = null
   let candidateRows: CertificateRow[] = []
   if (certificateId) {
     const byId = await supabaseService
       .from('ediel_certificates')
       .select('*')
+      .or(certificateTenantFilter)
       .eq('id', certificateId)
       .maybeSingle()
 
@@ -313,6 +343,7 @@ export async function resolveOutboundRecipientCertificate(input: {
     let query = supabaseService
       .from('ediel_certificates')
       .select('*')
+      .or(certificateTenantFilter)
       .eq('usage', 'outbound_recipient')
       .eq('owner_ediel_id', receiverEdielId)
       .in('purpose', ['encryption', 'both'])
@@ -430,15 +461,11 @@ export async function resolveOutboundRecipientCertificate(input: {
     }
   }
 
-  const companyId = String(input.companyId ?? '').trim()
-  if (!companyId || !['test', 'production'].includes(environment)) {
-    throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_SCOPE_REQUIRED' }, 'Sändning stoppad: verifierad tenant/miljö för certifikatauktoritet saknas.')
-  }
   const trustScope = { companyId, environment: environment as 'test' | 'production', receiverEdielId }
   const authority = await resolveEdielCertificateTrustAuthority(trustScope)
   if (!authority) throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${recipientCertificateTrustBlocker()}.`)
   if (!candidateRows.length) {
-    let query = supabaseService.from('ediel_certificates').select('*').eq('usage','outbound_recipient').eq('owner_ediel_id',receiverEdielId).in('purpose',['encryption','both']).in('status',['active','renewal_available']).limit(100)
+    let query = supabaseService.from('ediel_certificates').select('*').or(certificateTenantFilter).eq('usage','outbound_recipient').eq('owner_ediel_id',receiverEdielId).in('purpose',['encryption','both']).in('status',['active','renewal_available']).limit(100)
     if (certificateEnvironment) query = query.eq('environment',certificateEnvironment)
     const candidates = await query
     if (candidates.error) throw candidates.error

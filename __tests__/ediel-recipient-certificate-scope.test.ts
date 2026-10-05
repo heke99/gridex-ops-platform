@@ -1,8 +1,9 @@
+// masterplan: TR-06, AT-TR-06
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {} }))
 import { outboundRecipientCertificateScopeBlocker, recipientCertificatePemValidityBlocker, recipientCertificateTrustBlocker } from '@/lib/ediel/security/outboundRecipientCertificate'
-const receiver = { receiverEdielId: '27700', receiverSubaddress: 'PRODAT', messageFamily: 'PRODAT', businessCode: 'Z03', certificateEnvironment: 'production' }
-const certificate = { usage: 'outbound_recipient', purpose: 'encryption', owner_ediel_id: '27700', owner_subaddress: 'PRODAT', message_family: 'PRODAT', message_type: 'PRODAT', environment: 'production' }
+const receiver = { companyId: '10000000-0000-4000-8000-000000000001', receiverEdielId: '27700', receiverSubaddress: 'PRODAT', messageFamily: 'PRODAT', businessCode: 'Z03', certificateEnvironment: 'production' }
+const certificate = { company_id: receiver.companyId, scope: 'tenant_owned', usage: 'outbound_recipient', purpose: 'encryption', owner_ediel_id: '27700', owner_subaddress: 'PRODAT', message_family: 'PRODAT', message_type: 'PRODAT', environment: 'production' }
 
 describe('recipient certificate same scope for explicit IDs and candidate search', () => {
   it('accepts correctly scoped family material and explicit code scope', () => {
