@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "created_at": "2026-10-05T14:20:52Z",
+  "owner": "ten08_rule_review; explicit root handoff",
+  "pr": 561,
+  "whole_code_effect_verdicts": {
+    "SC-051": "APPROVE",
+    "SC-068": "APPROVE"
+  },
+  "promoted_coverage_rows": [
+    "SC-051",
+    "SC-068"
+  ],
+  "technical_reviewed_head": "50005ee8fd2af075c0f8effaf3992ecaab9eb1eb",
+  "technical_reviewed_tree": "142b9e621f89ed4f8c2d66b39fc25b7e124c49f7",
+  "adopted_actual_main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "immutable_independent_records": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.md",
+      "sha256": "9b87af4a2cea371d8a134870fc58341783d5032895cbb4689d4386f617e3d633"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.json",
+      "sha256": "a6915eb69f331927e06f8e773228f9387b4c408a36562c293bfaee1c342449e9"
+    }
+  ],
+  "raw_focused_results": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green-final.xml",
+      "sha256": "edd6f89f5cc505174390f2dab20859f0abf0aabf5dfe58650274b6adb9b66942",
+      "passed": 8,
+      "failed": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-focused.xml",
+      "sha256": "6de987d29a497aa9a53192037d5ddfb187ba7b64a02c964f1ff82f9c1b46b602",
+      "passed": 8,
+      "failed": 0,
+      "errors": 0,
+      "skips": 0
+    }
+  ],
+  "total_raw_passed": 16,
+  "raw_failures": 0,
+  "raw_errors": 0,
+  "raw_skips": 0,
+  "inherited_unchanged_legal_harness_groups_in_same_SC068_run": 20,
+  "new_execution": false,
+  "selected51inputs_unchanged_except_authorized_coverage": true,
+  "other50inputs_exact_reviewed_freeze": true,
+  "evidence36paths_exact_reviewed_freeze": true,
+  "prior14asserting_cases_preserved": true,
+  "prior688bounded_envelope_current_main_qualification": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/current-688-prior-envelope-carry.json",
+  "source_qualification_receipt": {
+    "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/verification-receipt.json",
+    "sha256": "e7cef81c20232e7588c49dafc9600506301e730b68bc6bf884e19d4ce4589c36"
+  },
+  "current_SQL_owner_bodies": 12,
+  "captured_empty_table_declarations": 6,
+  "other350rows_and_metadata_exact_adopted_main": true,
+  "new_production_helper_SQL_schema_config_workflow_changes": false,
+  "current_head_mandatory_CI": "PENDING on documentation/coverage publication head; root owns exact-current gate verification and final merge",
+  "native_custody_positive_SMTP_claim": false,
+  "limits": [
+    "SC051 actual queued reconsideration reaches fresh October admission, then declared absent-qualified-original port holds; no successful provider run or native leased queue is inferred.",
+    "SC068 actual legal/source/effect denial uses unchanged physical0035 TEST reference in production; TEST contrast passes the genuine SQL legal boundary. Reduced schema, retention and favorable diagnostic ports are finite.",
+    "Catalogue/history diagnostic copies have no operative authority; genuine opaque final-owner seal remains unchanged, no new operative mode or private approved source is fabricated.",
+    "Historical f6bf and continuation pending prose remain immutable records; this independent whole approval supersedes their two held proof effects.",
+    "The bound raw .patch/.diff context-space whitespace findings are preserved as record formatting; no executable source whitespace fault or criterion failure."
+  ],
+  "tests_full_native_repeated": false,
+  "final_main_merge_owner": "root"
+}

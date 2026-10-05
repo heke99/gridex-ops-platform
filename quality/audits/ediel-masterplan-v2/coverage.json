@@ -1840,8 +1840,15 @@
     },
     {
       "id": "SC-051",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.md",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/approval-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green-final.xml"
+      ]
     },
     {
       "id": "SC-052",
@@ -1991,8 +1998,15 @@
     },
     {
       "id": "SC-068",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.md",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/approval-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-focused.xml"
+      ]
     },
     {
       "id": "SC-069",
