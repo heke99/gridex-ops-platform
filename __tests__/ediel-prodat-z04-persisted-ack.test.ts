@@ -821,3 +821,29 @@ it('refuses absent protected actual-original authority before any application AC
  expect(state.authorityCalls.some(row=>row.name==='ediel_probe_source_rule_pack_capture_v1')).toBe(true)
  expect(state.sourceReads).toEqual([])
 })
+
+it.each([['first LIN 2',['2','3','4']],['global order 1,3,2',['1','3','2']]] as const)(
+ 'SC-034 %s is rejected as the whole message through the actual processor: one persisted P-APERAK 27/314, no business effect, stable retry',async(_case,numbers)=>{
+ const parts=mixedZ04Parts()
+ const lines=parts.map((part,i)=>part[0]==='LIN'?i:-1).filter(i=>i>=0)
+ // Every object stays otherwise complete; only the national LIN sequence is wrong.
+ parts.splice(lines[1]+1,0,qty('20'))
+ const shifted=parts.map((part,i)=>part[0]==='LIN'?i:-1).filter(i=>i>=0)
+ shifted.forEach((at,n)=>{parts[at]=[...parts[at].slice(0,1),numbers[n],...parts[at].slice(2)]})
+ expect(parts.filter(part=>part[0]==='LIN').map(part=>part[1])).toEqual([...numbers])
+ state.source={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
+ const decision=resolveCanonicalRuntimeDecision(state.source)
+ expect(decision.syntaxDecision).toBe('accepted')
+ expect(decision.responsePlan.find(item=>item.family==='APERAK')).toMatchObject({outcome:'negative',
+  applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:'314'})])})
+ const input={actorUserId:fixtureActor,edielMessageId:state.source.id}
+ await processInboundEdielMessage(input)
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+ const aperak=String(state.messages[1].raw_payload)
+ expect(aperak).toContain('BGM+++27');expect(aperak).toContain('FTX+AAO++314::260');expect(aperak).not.toContain('ERC+100')
+ expect(state.effects).toEqual([])
+ const retained=structuredClone({messages:state.messages,outbox:state.outbox})
+ await processInboundEdielMessage(input)
+ expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
+ expect(state.effects).toEqual([])
+})
