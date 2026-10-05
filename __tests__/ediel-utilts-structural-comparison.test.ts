@@ -1,4 +1,4 @@
-// masterplan: U-02, U-08
+// masterplan: U-02, U-08, SC-049
 import {describe,it,expect} from 'vitest'
 import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
 import {comparisonInput,structureVersion,utiltsStructureWire,STRUCTURE_POINT} from './helpers/structuralComparisonFixtures'

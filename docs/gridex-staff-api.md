@@ -114,7 +114,7 @@ Attachments use a raw PDF, PNG or JPEG body of at most 4 MiB, plus an optional `
 
 ## Read complete case history
 
-Case detail contains initial events and attachments plus `events_page` and `attachments_page`. When `has_more` is true, call `GET /staff/cases/{reference}/events` or `GET /staff/cases/{reference}/attachments` with `cursor=next_cursor`. Each collection accepts `limit` from 1 to 100 (default 50). Follow the returned cursor until `has_more` is false; sign a fresh assertion for every page. Cursors are bound to the organization, customer and case and cannot select another resource.
+Case detail contains initial events and attachments plus `events_page` and `attachments_page`. When `has_more` is true, call `GET /api/v1/staff/cases/{reference}/events` or `GET /api/v1/staff/cases/{reference}/attachments` with `cursor=next_cursor`. Each collection accepts `limit` from 1 to 100 (default 50). Follow the returned cursor until `has_more` is false; sign a fresh assertion for every page. Cursors are bound to the organization, customer and case and cannot select another resource.
 
 Customer detail explicitly marks its initial contacts, addresses and sites with `contacts_page`, `addresses_page` and `sites_page`: `limit` is 100, `returned` is the included count, and `has_more` identifies additional records beyond the initial collection.
 

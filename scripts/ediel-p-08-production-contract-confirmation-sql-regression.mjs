@@ -1,5 +1,5 @@
 // masterplan: P-08, AT-P-08
-// Embedded PostgreSQL over the real 20261004190000 migration with minimal
+// Embedded PostgreSQL over the real 20261005020000 migration with minimal
 // declared stubs of the pre-existing production-contract ledger. Not native replay.
 import {readFileSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
@@ -16,7 +16,7 @@ await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_ro
  CREATE TABLE gridex_received_sources.production_contract_events(id uuid PRIMARY KEY,company_id uuid,environment text);
  CREATE TABLE gridex_received_sources.production_contract_revocations(event_id uuid PRIMARY KEY);
  CREATE TABLE gridex_received_sources.production_contract_origins(event_id uuid PRIMARY KEY,message_id uuid UNIQUE);`)
-await db.exec(readFileSync(new URL('../supabase/migrations/20261004190000_ediel_production_contract_ack_confirmation.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql',import.meta.url),'utf8'))
 const A=uid(1),B=uid(2)
 await db.exec(`INSERT INTO public.companies VALUES('${A}'),('${B}')`)
 let n=100
