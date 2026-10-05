@@ -1,3 +1,7 @@
+## Current — all nine required CI passed on repaired candidate
+
+PR593 exact `4e98af7a33feffd013c20524887cc65424d98912` has all9requiredCI SUCCESS. Source-qualified local71PASS/types/lint and peer reviewceb469c3 remain intact. Fresh actualmaincf275d78 clean preview preserves all43own paths and7,800foreign paths/currentcoverage. Retained503 queue handoff5997568280/5305997570599. See owned all-nine-ci-ready-receipt.json for exact check IDs/URLs and read-only593→597 union. No actual merge or wholeAT/native claim. This evidence-only branch retains historical source bytes; it qualifies only referenced repaired593 head. Next action: retained queue finalmain/head guard and actualmerge handover; root continues distinct NEW B/D test publication while597clean replay runs.
+
 # Current published Z02 repair checkpoint — 2026-10-05
 
 ExistingPR593 now contains the bounded source repair at exact implementation

@@ -1,0 +1,120 @@
+{
+  "recorded_at": "2026-10-05T15:31:46.770267+00:00",
+  "candidate": {
+    "pr": 593,
+    "head": "4e98af7a33feffd013c20524887cc65424d98912",
+    "state": "open",
+    "mergeable": true,
+    "checks": [
+      {
+        "id": 111828207395,
+        "name": "pr-certificate",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T15:13:05Z",
+        "completed_at": "2026-10-05T15:13:17Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507755/job/111828207395"
+      },
+      {
+        "id": 111812832027,
+        "name": "coverage",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:57:14Z",
+        "completed_at": "2026-10-05T15:00:51Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507755/job/111812832027"
+      },
+      {
+        "id": 111812831294,
+        "name": "smoke",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:51:59Z",
+        "completed_at": "2026-10-05T14:53:58Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507755/job/111812831294"
+      },
+      {
+        "id": 111808656899,
+        "name": "clean-migration-replay",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:31:57Z",
+        "completed_at": "2026-10-05T15:21:03Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656899"
+      },
+      {
+        "id": 111808656878,
+        "name": "verify",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:26:33Z",
+        "completed_at": "2026-10-05T14:28:27Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656878"
+      },
+      {
+        "id": 111808656845,
+        "name": "upgrade-migration-replay",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:36:29Z",
+        "completed_at": "2026-10-05T14:44:46Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656845"
+      },
+      {
+        "id": 111808656306,
+        "name": "quality-release-gates",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:22:15Z",
+        "completed_at": "2026-10-05T14:32:43Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656306"
+      },
+      {
+        "id": 111808279402,
+        "name": "browser-public",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:31:14Z",
+        "completed_at": "2026-10-05T14:32:30Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323508053/job/111808279402"
+      },
+      {
+        "id": 111808277486,
+        "name": "targeted-regressions",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T14:26:43Z",
+        "completed_at": "2026-10-05T14:30:53Z",
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507770/job/111808277486"
+      }
+    ]
+  },
+  "actualmain": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+  "premerge_preview": {
+    "pr": 593,
+    "head": "4e98af7a33feffd013c20524887cc65424d98912",
+    "merge_base": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "preview_tree": "00706de1652888250d0dd354bbe9c35c68d51d81",
+    "own_paths": 43,
+    "foreign_paths_byte_preserved": 7800,
+    "coverage_byte_preserved": true,
+    "merge_tree_exit": 0
+  },
+  "order_preview": {
+    "checked_at": "2026-10-05T15:30:30.586893+00:00",
+    "actualmain": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+    "synthetic_unpublished_commit": "15a88840fd6bdb9239efb83ad08da71537d99acc",
+    "first_preview_tree": "00706de1652888250d0dd354bbe9c35c68d51d81",
+    "combined_preview_tree": "992eb6785864c70a2e5fcadc73ac57c53b49df23",
+    "combined_legacy_sha256": "e9ff9d52b3efc52d3deefa1f2d8e9185ea9d145ba91bbe9897e52c2e759e0f3b",
+    "source_union": "Exact Z02 candidate source plus only documented Z05 cached-scope ternary removal",
+    "limits": "Read-only order preview; no source branch/head mutation, actual merge, composed CI/native proof",
+    "initial_script_error_preserved": "z02-z05-cf275-order-preview-initial-error.json"
+  },
+  "handoff": {
+    "503": 5997568280,
+    "530": 5997570599
+  },
+  "whole_rows": "AT-Z02L/LK NOT_EXECUTED unchanged",
+  "limits": "Evidence-only continuation branch; historical source tree does not equal repaired candidate. Only exact PR5934e98 is qualified. Retained503 owns queue/common handover. No actual merge/native/whole approval."
+}
