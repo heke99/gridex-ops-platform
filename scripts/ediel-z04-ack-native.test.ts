@@ -166,7 +166,10 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     expect(aperak).toContain('FTX+AAO++213::260')
   }
   if (!variant.includes('header-')) expect(aperak).toContain('RFF+Z07:735123456789012345')
-  expect(aperak).not.toContain('RFF+Z07:735123456789012352')
+  // SC-034 complete variants: both objects are actionable, so the whole-message
+  // rejection references each of them; elsewhere object 2 is the incomplete one.
+  if (variant === 'complete-first-lin-two' || variant === 'complete-global-order-132') expect(aperak).toContain('RFF+Z07:735123456789012352')
+  else expect(aperak).not.toContain('RFF+Z07:735123456789012352')
   expect(first.outbox).toHaveLength(2)
   expect(first.outbox.every(row=>row.company===ids.company&&row.source===ids.source&&row.profile===ids.profile&&row.status==='queued'&&row.hash?.length===64)).toBe(true)
   expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
