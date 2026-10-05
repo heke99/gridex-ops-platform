@@ -1,0 +1,23 @@
+[
+  {
+    "select": "id,customer:customers(id),site:customer_sites(id),grid_owner:grid_owners(id)",
+    "status": 300,
+    "code": "PGRST201",
+    "message": "Could not embed because more than one relationship was found for 'grid_owner_information_requests' and 'customers'",
+    "hint": "Try changing 'customers' to one of the following: 'customers!grid_owner_information_requests_company_customer_fkey', 'customers!grid_owner_information_requests_customer_id_fkey'. Find the desired relationship in the 'details' key."
+  },
+  {
+    "select": "id,customer:customers!grid_owner_information_requests_customer_id_fkey(id),site:customer_sites!grid_owner_information_requests_customer_site_id_fkey(id),grid_owner:grid_owners(id)",
+    "status": 400,
+    "code": "PGRST200",
+    "message": "Could not find a relationship between 'grid_owner_information_requests' and 'grid_owners' in the schema cache",
+    "hint": "Perhaps you meant 'grid_owner_contact_routes' instead of 'grid_owners'."
+  },
+  {
+    "select": "id,customer:customers!grid_owner_information_requests_customer_id_fkey(id),site:customer_sites!grid_owner_information_requests_customer_site_id_fkey(id)",
+    "status": 401,
+    "code": "42501",
+    "message": "permission denied for table grid_owner_information_requests",
+    "hint": null
+  }
+]

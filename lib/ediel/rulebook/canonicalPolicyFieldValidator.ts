@@ -1,4 +1,5 @@
 import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
+import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
@@ -97,6 +98,8 @@ export function validateCanonicalPolicyFields(input: {
 
   const baseRules = input.policy.family === 'PRODAT' ? rules.filter(rule => {
     const field = rule.fieldNumber ?? ''
+    // The physical national223 owner also runs before subtype policy resolves.
+    if(field==='223')return false
     // FTX301/303 have no national rejection mapping. Outbound uses the local
     // construction guard below; incoming gray/unused text remains raw evidence.
     if (prodatFreeTextField(field)) return false
@@ -123,6 +126,7 @@ export function validateCanonicalPolicyFields(input: {
     issues.push(...utiltsDecimalGuideViolations(wire.segments,wire.una).map(violation=>({severity:'error' as const,code:violation.code,title:'Felaktigt numeriskt fält',description:violation.description,fieldPath:violation.field,blocking:true})))
   }
   if (input.policy.family !== 'PRODAT') return issues
+  if(input.scope!=='dependent_only'&&rules.some(rule=>rule.fieldNumber==='223'))issues.push(...evaluateProdatTransactionReason({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
   if (input.policy.direction === 'outbound') issues.push(...validateProdatFreeText({ code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una }))
   if (input.policy.direction === 'inbound') {
     const energy = evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]})

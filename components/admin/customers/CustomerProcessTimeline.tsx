@@ -42,18 +42,6 @@ function stepIcon(status: WorkflowStepStatus) {
   )
 }
 
-function stepConnector(status: WorkflowStepStatus) {
-  const color =
-    status === 'done'
-      ? 'bg-emerald-200'
-      : status === 'current' || status === 'waiting'
-        ? 'bg-blue-100'
-        : status === 'blocked'
-          ? 'bg-red-100'
-          : 'bg-slate-100'
-  return <div className={`ml-4 mt-1 h-6 w-0.5 ${color}`} aria-hidden="true" />
-}
-
 export default function CustomerProcessTimeline({
   steps,
   showTechnical = false,
@@ -64,13 +52,13 @@ export default function CustomerProcessTimeline({
   if (!steps.length) return null
 
   return (
-    <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-sm font-semibold text-slate-700">
         Processöversikt
       </h2>
-      <ol className="space-y-0">
-        {steps.map((step, index) => (
-          <li key={step.id}>
+      <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {steps.map((step) => (
+          <li key={step.id} className="min-w-0 rounded-xl bg-slate-50 p-3">
             <div className="flex items-start gap-3">
               {stepIcon(step.status)}
               <div className="min-w-0 flex-1 pb-1">
@@ -85,24 +73,23 @@ export default function CustomerProcessTimeline({
                             ? 'text-blue-900'
                             : step.status === 'waiting'
                               ? 'text-amber-800'
-                              : 'text-slate-400'
+                              : 'text-slate-600'
                     }`}
                   >
                     {step.label}
                   </span>
                   {step.timestamp ? (
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-600">
                       {new Date(step.timestamp).toLocaleString('sv-SE')}
                     </span>
                   ) : null}
                 </div>
-                <p
-                  className={`mt-0.5 text-xs leading-5 ${
-                    step.status === 'not_started' ? 'text-slate-400' : 'text-slate-600'
-                  }`}
-                >
-                  {step.explanation}
-                </p>
+                {step.status === 'done' || step.status === 'not_started' ? (
+                  <details className="mt-1 text-xs text-slate-600">
+                    <summary className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{step.status === 'done' ? 'Klart' : 'Ej påbörjat'} · detaljer</summary>
+                    <p className="mt-1 leading-5">{step.explanation}</p>
+                  </details>
+                ) : <p className="mt-1 text-xs leading-5 text-slate-600">{step.explanation}</p>}
                 {step.blockerReason && step.status === 'blocked' ? (
                   <p className="mt-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-800">
                     {step.blockerReason}
@@ -113,7 +100,6 @@ export default function CustomerProcessTimeline({
                 ) : null}
               </div>
             </div>
-            {index < steps.length - 1 ? stepConnector(step.status) : null}
           </li>
         ))}
       </ol>

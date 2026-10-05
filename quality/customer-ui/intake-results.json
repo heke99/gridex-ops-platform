@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "sticky footer menu inside desktop/mobile viewport",
+    "closed required field opens and receives native invalid focus",
+    "server field error opens section and focuses field with ARIA association",
+    "manual/import URL selection preserves manual state",
+    "mobile no horizontal overflow"
+  ],
+  "errors": [],
+  "fixture": "Real client components; synthetic required field and stubbed server action, no database writes"
+}
