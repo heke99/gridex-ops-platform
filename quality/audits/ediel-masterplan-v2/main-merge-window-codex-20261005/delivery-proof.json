@@ -1,0 +1,293 @@
+{
+  "recorded_at_utc": "2026-10-05T17:46:48.587145+00:00",
+  "scope": "Codex-owned seven-merge delivery log and five preserved withdrawn drafts; fixed snapshot, not a repository-wide completion claim",
+  "owner": "/root/gov08_native_fixture_design",
+  "branch": "codex/ediel-main-merge-window-codex-20261005",
+  "snapshot_main_commit": "37b06fd31d91b23671c6f62fd459b6eb7635d605",
+  "snapshot_main_tree": "59c478ef38697b72ba63a8af7cbc9c360516ae25",
+  "coverage_sha256": "aabbe7c528504e5c50aaa68d73464fe52a0e384167a17025de2a8cdddc945ac6",
+  "snapshot_coverage_counts": {
+    "rules": {
+      "NOT_VERIFIED": 16,
+      "VERIFIED": 100,
+      "PARTIAL": 5
+    },
+    "acceptance_contracts": {
+      "PASSED": 148,
+      "NOT_EXECUTED": 67,
+      "PARTIAL": 16
+    }
+  },
+  "merged_prs": [
+    {
+      "pr": 561,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/561",
+      "merge_commit": "faddfdccb214305330e408a06c0f1d5a8c96896b",
+      "merge_tree": "99633083b4aa204d1c205af1e47e2ac198f006a6",
+      "actual_main_before": "de6d22bea64cf2b8810969cb87924128176ebab1",
+      "merged_head": "16e7c71d8f307cf193a5ef14be6b5aad9db8d74c",
+      "guard_path": "receipts/gridex-merge561-final-source-guard.json",
+      "guard_sha256": "a8f55796424407de8f516f1fcd27e0fde29d0c6cc4c0a2148e615ff99131089a",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "SC-051",
+        "SC-068"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    },
+    {
+      "pr": 508,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/508",
+      "merge_commit": "a24885d52275f832307329b92bcfaef95fca8cb2",
+      "merge_tree": "11829a51d300c2cb5a3b8f5ab4bd7746baaf40d0",
+      "actual_main_before": "c65aacf80169b8f25720e76916290d20b43e7355",
+      "merged_head": "6688c5e17e781861b6006e9ce188ad6e27eb0c2d",
+      "guard_path": "receipts/gridex-merge508-final-source-guard.json",
+      "guard_sha256": "4851ea65df5f0d79ee37c79cab88624d9c1d8844d343adbec8f3f39a5e907294",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "ENV-02",
+        "AT-ENV-02"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    },
+    {
+      "pr": 526,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/526",
+      "merge_commit": "b817c1f19d4c8322d1e80c840406ddf12557d8b2",
+      "merge_tree": "3339f3942427ce745754e5c3c315f5a22e2c4997",
+      "actual_main_before": "7a016db1c174ee1fedaeba1dfdb32b2ebe5155d7",
+      "merged_head": "44ac89975d2671c6d0ae3520185ae5dc36b0cb36",
+      "guard_path": "receipts/gridex-merge526-final-source-guard.json",
+      "guard_sha256": "09adb03d4b19cf5336040c06e038194e8aef69a0ce699239c22487a283c5a688",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "IMP-03",
+        "AT-IMP-03"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    },
+    {
+      "pr": 512,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/512",
+      "merge_commit": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+      "merge_tree": "013b625fafc4c3e72824e150f2c26a5a0a75f98a",
+      "actual_main_before": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+      "merged_head": "924248a07bc5f175df7519b1e74acefd3ab18cd7",
+      "guard_path": "receipts/gridex-merge512-final-source-guard.json",
+      "guard_sha256": "adca235ce1ca8bb350c0b486617467f2efad3d4170aef62a5ce414f0b33d3a42",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "ENV-10",
+        "AT-ENV-10"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    },
+    {
+      "pr": 514,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/514",
+      "merge_commit": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "merge_tree": "bd7a50913a5c23eabe11e4f16a84b604d95c1822",
+      "actual_main_before": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+      "merged_head": "338a6abb47291eb9d3bcc7bf3261626e0e29162c",
+      "guard_path": "receipts/gridex-merge514-final-source-guard.json",
+      "guard_sha256": "c353592b6e835c6b19c2e86333965f1d6b5d9bb779fe832f00037635dc88edd2",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "ENV-07",
+        "AT-ENV-07"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    },
+    {
+      "pr": 513,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/513",
+      "merge_commit": "fd429e5dc042a01a2fd86ccf9875b31dc5e212c7",
+      "merge_tree": "a12d34bfbd6dee7cace2ca76dcac574e11b033d6",
+      "actual_main_before": "25c0a12f78e650d456a62c789be8f814b595783e",
+      "merged_head": "7eb5faa09ebee5a72a7415eaa7c85c00ce063ed1",
+      "guard_path": "receipts/gridex-merge513-final-source-guard.json",
+      "guard_sha256": "208b3ccefe30d70a7f9cc0802092066974a9a71beee652ec8157a5093fa27713",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "SC-041"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    },
+    {
+      "pr": 522,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/522",
+      "merge_commit": "37b06fd31d91b23671c6f62fd459b6eb7635d605",
+      "merge_tree": "59c478ef38697b72ba63a8af7cbc9c360516ae25",
+      "actual_main_before": "fd429e5dc042a01a2fd86ccf9875b31dc5e212c7",
+      "merged_head": "b828f32fcd98c2af797f781d9902482a14fe0784",
+      "guard_path": "receipts/gridex-merge522-final-source-guard.json",
+      "guard_sha256": "2a2625303fcaf6fdac95e1dec2844a7bfb8ce64a79451187ba48aeb6f6ada8f4",
+      "guard_parents_and_tree_match_actual_git": true,
+      "owned_coverage_rows": [
+        "GOV-05",
+        "AT-GOV-05"
+      ],
+      "all_other_coverage_rows_metadata_order_preserved": true,
+      "product_tests_repeated": false
+    }
+  ],
+  "withdrawn_prs": [
+    {
+      "pr": 529,
+      "state": "closed",
+      "merged": false,
+      "branch": "claude/imp-02-imp-03",
+      "preserved_head": "a272a04660b52701aae683a6d37e3702a1472ecf",
+      "head_tree_from_retained_source_receipt": "b11cf0e6cd7024c51dcb1519a4fbeafc3463ee94",
+      "remote_branch_head_freshly_observed_equal": true,
+      "close_comment_url": "https://github.com/heke99/gridex-ops-platform/pull/529#issuecomment-5999559825",
+      "source_comparison_baseline": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "distinct_source_paths_in_retained_comparison": [
+        "__tests__/ediel-imp-02-03-registry-normalization.test.ts",
+        "__tests__/ediel-imp-03-reviewed-snapshot-apply.test.ts",
+        "__tests__/helpers/edielRegistryProbeBridge.mjs",
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts"
+      ],
+      "source_equivalence_to_snapshot_asserted": false,
+      "independent_draft_head_blob_recheck": "NOT_RUN in this clone; exact remote heads and retained owner receipt are the source-preservation evidence"
+    },
+    {
+      "pr": 537,
+      "state": "closed",
+      "merged": false,
+      "branch": "claude/gov-05-gov-06",
+      "preserved_head": "8cf8cc914beb07723e7efc6f747dc0f996364389",
+      "head_tree_from_retained_source_receipt": "70e3d9f4c66f463c04ac0c37e5ea0b5b17dec586",
+      "remote_branch_head_freshly_observed_equal": true,
+      "close_comment_url": "https://github.com/heke99/gridex-ops-platform/pull/537#issuecomment-5999585173",
+      "source_comparison_baseline": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "distinct_source_paths_in_retained_comparison": [
+        "__tests__/ediel-masterplan-gov-05-gov-06.test.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/utiltsEngine.ts"
+      ],
+      "source_equivalence_to_snapshot_asserted": false,
+      "independent_draft_head_blob_recheck": "NOT_RUN in this clone; exact remote heads and retained owner receipt are the source-preservation evidence"
+    },
+    {
+      "pr": 538,
+      "state": "closed",
+      "merged": false,
+      "branch": "claude/db-01-pr1-expand",
+      "preserved_head": "1578d763b6cccc0af19abfa10d89bd1d0aa7524c",
+      "head_tree_from_retained_source_receipt": "38af0476f9b212d1c4d948c5fc55d02eabd99308",
+      "remote_branch_head_freshly_observed_equal": true,
+      "close_comment_url": "https://github.com/heke99/gridex-ops-platform/pull/538#issuecomment-5999562870",
+      "source_comparison_baseline": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "distinct_source_paths_in_retained_comparison": [
+        "__tests__/db-01-communication-routes-expand.test.ts",
+        "scripts/migration-history-manifest.json",
+        "supabase/migrations/20261004180000_db01_communication_routes_expand.sql"
+      ],
+      "source_equivalence_to_snapshot_asserted": false,
+      "independent_draft_head_blob_recheck": "NOT_RUN in this clone; exact remote heads and retained owner receipt are the source-preservation evidence"
+    },
+    {
+      "pr": 540,
+      "state": "closed",
+      "merged": false,
+      "branch": "claude/gov-01-rule-metadata",
+      "preserved_head": "1eb4560b1038a3df23ba3032f080c77efb5a5e2c",
+      "head_tree_from_retained_source_receipt": "401ca7183a42fa3f022c221b3157dea1e455fd0f",
+      "remote_branch_head_freshly_observed_equal": true,
+      "close_comment_url": "https://github.com/heke99/gridex-ops-platform/pull/540#issuecomment-5999588310",
+      "source_comparison_baseline": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "distinct_source_paths_in_retained_comparison": [
+        "__tests__/ediel-gov-01-normative-rule-metadata.test.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/normativeRuleMetadata.ts"
+      ],
+      "source_equivalence_to_snapshot_asserted": false,
+      "independent_draft_head_blob_recheck": "NOT_RUN in this clone; exact remote heads and retained owner receipt are the source-preservation evidence"
+    },
+    {
+      "pr": 542,
+      "state": "closed",
+      "merged": false,
+      "branch": "claude/db-02-tenant-fk-inventory",
+      "preserved_head": "c250c94124c6af7fd39c7b716b617bee997d56b9",
+      "head_tree_from_retained_source_receipt": "a5f334881da963914c4bfbddbc555a0cfb7e26d3",
+      "remote_branch_head_freshly_observed_equal": true,
+      "close_comment_url": "https://github.com/heke99/gridex-ops-platform/pull/542#issuecomment-5999565659",
+      "source_comparison_baseline": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "distinct_source_paths_in_retained_comparison": [
+        ".github/workflows/tenant-integrity-regression.yml",
+        "__tests__/tenant-fk-ratchet.test.ts",
+        "package.json",
+        "quality/audits/ediel-masterplan-v2/db-01-db-02-plan.md",
+        "quality/audits/ediel-masterplan-v2/tenant-fk-baseline.json",
+        "scripts/sql/tenant-fk-inventory.sql",
+        "scripts/tenant-fk-inventory.mjs"
+      ],
+      "source_equivalence_to_snapshot_asserted": false,
+      "independent_draft_head_blob_recheck": "NOT_RUN in this clone; exact remote heads and retained owner receipt are the source-preservation evidence"
+    }
+  ],
+  "retained_source_receipt_comparison_main": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+  "withdrawn_remote_branch_verification_command": "git ls-remote --heads origin refs/heads/claude/imp-02-imp-03 refs/heads/claude/gov-05-gov-06 refs/heads/claude/db-01-pr1-expand refs/heads/claude/gov-01-rule-metadata refs/heads/claude/db-02-tenant-fk-inventory",
+  "withdrawn_close_status_source": {
+    "path": "receipts/gridex-five-withdrawn-close-verified.json",
+    "sha256": "a0cde5615492866eeeada419fc7533b0a0ed5bc8ef35a1d674179c81080d1429",
+    "captured_at": "2026-10-05T17:29:36.283560+00:00"
+  },
+  "withdrawn_source_preservation_source": {
+    "path": "receipts/gridex-released-draft-source-preservation-current.json",
+    "sha256": "8e168c12c9572df40f9a3a76ca7f1cc378361e07d7c09156c497bef7386767c8"
+  },
+  "central_memory_baseline_sha256": {
+    ".agent-memory/README.md": "ca99bc170d81e53403349c417928198821cd7627d47781d71703269e4d709ecc",
+    ".agent-memory/current-state.md": "1d32de9fafc7d2f178347e52987e18bac78edf8a2a17e7ac64b81acac69ff404",
+    ".agent-memory/current-task.md": "69647e9c074d91ad35980c7e172e113db314fb8cfc3bddde9b699817fab77d57",
+    ".agent-memory/checkpoint.json": "d054f1ee54d31d423c1bc0dba9731b72657db2e3948bda7f77f54cc8015f30c2",
+    ".agent-memory/handover.md": "17c4fc51a636fbedfaf3d8e676a45c92403dfb7b1eca491ce020e3e7b19f9527",
+    ".agent-memory/open-blockers.md": "8a490090d6641ab46eaf8ca4dee092e50923c22c5f5df7ecbf48ce8aa07b8700",
+    ".agent-memory/work-plan.md": "1b7cc1108a306b56512387cd275fae03ca39d08b65fe480fae36be105d7f26bc",
+    ".agent-memory/decisions.md": "a4a767d5bbfa1e2ea5edd786578640bbc13099426c715e6a0cd80e419bc13f33",
+    ".agent-memory/known-failures.md": "5418a69e3cba8948b19944d2236109688e89bc802c6f60b017d7f5111e04930f"
+  },
+  "skill_routing": {
+    "applied": "verification-before-completion for fresh Git/JSON/spec checks; existing code-review scope discipline",
+    "skipped": "No implementation, database operation, broad audit, UI, performance work or new product test in this documentation-only scope"
+  },
+  "validation": {
+    "all_retained_json_parse": true,
+    "seven_actual_merge_parents_and_trees": true,
+    "seven_coverage_row_boundaries": true,
+    "five_preserved_remote_branch_heads": true,
+    "spec_integrity": {
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "exit_code": 0,
+      "original_files": 33,
+      "rules": 121,
+      "acceptance_contracts": 231,
+      "application_conformance_asserted": false,
+      "production_readiness_asserted": false
+    },
+    "new_product_test_runs": 0,
+    "new_native_runs": 0,
+    "new_replay_runs": 0,
+    "retained_json_documents": 10,
+    "byte_exact_original_receipts": 9,
+    "central_memory_unchanged": true,
+    "owned_documentation_files": 11,
+    "git_diff_cached_check_exit_code": 0
+  },
+  "handoff": "Root reviews and merges the docs PR. Existing product owners retain their source scopes; no automatic promotion or restart of withdrawn proposals."
+}

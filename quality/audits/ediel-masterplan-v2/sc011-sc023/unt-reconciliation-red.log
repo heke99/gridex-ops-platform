@@ -1,0 +1,48 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc011-sc023
+
+ ❯ __tests__/ediel-permission-own-partition.test.ts (20 tests | 1 failed | 19 skipped) 13ms
+     × validates the actual SC-011 SQL source constructor through inbound envelope syntax 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-permission-own-partition.test.ts > permission consumers preserve the actual full native partition > validates the actual SC-011 SQL source constructor through inbound envelope syntax
+AssertionError: expected { ok: false, syntaxOk: false, …(3) } to match object { ok: true, syntaxOk: true, …(3) }
+
+- Expected
++ Received
+
+  {
+    "actualMessageSegmentCount": 21,
+-   "declaredUntCount": 21,
+-   "issues": [],
+-   "ok": true,
+-   "syntaxOk": true,
++   "declaredUntCount": 40,
++   "issues": [
++     {
++       "code": "unt_count_mismatch",
++       "message": "UNT/0074 ska vara ett positivt heltal och inkludera alla segment från UNH till UNT.",
++       "severity": "error",
++     },
++   ],
++   "ok": false,
++   "syntaxOk": false,
+  }
+
+ ❯ __tests__/ediel-permission-own-partition.test.ts:42:19
+     40|    const wire=construct('Z15',objects).replace('23-DDQ-PRODAT','23-DGI…
+     41|    const result=validateEdifactEnvelope(wire)
+     42|    expect(result).toMatchObject({ok:true,syntaxOk:true,issues:[],decla…
+       |                   ^
+     43|    expect(validateEdifactEnvelope(wire.replace(/UNT\+\d+\+M'/,"UNT+40+…
+     44|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 skipped (20)
+   Start at  17:51:48
+   Duration  4.19s (transform 3.17s, setup 18ms, import 4.03s, tests 13ms, environment 0ms)
+
