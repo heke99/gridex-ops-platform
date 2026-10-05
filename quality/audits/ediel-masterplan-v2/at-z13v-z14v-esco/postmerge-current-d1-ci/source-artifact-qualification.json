@@ -1,0 +1,21 @@
+{
+  "status": "NOT_QUALIFIED_TRANSFER_BLOCKED",
+  "runId": 37309637648,
+  "headSHA": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+  "tree": "7b95d8ae325b5a1ebc3d8ff6be4fa4feca2dd9ba",
+  "artifactId": 11345168100,
+  "artifactName": "ediel-source-37309637648-1",
+  "sizeBytes": 33678175,
+  "reportedZIPDigest": "sha256:2049d84900cc18fa8159bbcfa2115665172516af98df2b517d1cd8875a05da6d",
+  "actualZIPDigest": null,
+  "CRC": null,
+  "fileReferenceRetrieved": true,
+  "technicalFailures": [
+    "download_file transfer limit32MiB; actual ZIP exceeds by123743 bytes",
+    "Direct gh signed download403",
+    "Escalated gh signed download403",
+    "Connector hosted signed-file direct403",
+    "Fresh nonce/cache-control GitHub artifact redirect reaches executor proxy tunnel403"
+  ],
+  "boundary": "No archive bytes, CRC, tar digest or archive-to-candidate equality qualified. Independent native execution status is not changed by this transfer problem."
+}
