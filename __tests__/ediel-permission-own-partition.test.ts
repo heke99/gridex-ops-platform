@@ -1,5 +1,9 @@
-// masterplan: SC-011, SC-023
+// masterplan: SC-011
+// SC-023 companion SQL component diagnostics remain HELD, without a machine tag.
+import {readFileSync} from 'node:fs'
+import {runInNewContext} from 'node:vm'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {applyPermissionMarketSource, type PermissionObjectDisposition, type PermissionMarketTransitionResult} from '@/lib/ediel/permissions/permissionMarketTransition'
 import {applyInboundZ15PermissionState} from '@/lib/ediel/flows/prodatPermissionLifecycle'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -26,6 +30,21 @@ beforeEach(()=>{vi.clearAllMocks();io.rpc.mockResolvedValue({data:partition(),er
  io.from.mockImplementation((table:string)=>{const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:table==='ediel_messages'?source():{id:id(10),company_id:id(1),status:'partially_approved'},error:null})};return query})})
 
 describe('permission consumers preserve the actual full native partition',()=>{
+ it('validates the actual SC-011 SQL source constructor through inbound envelope syntax',()=>{
+  const sqlSource=readFileSync(new URL('../scripts/ediel-partial-permission-source-sql-regression.mjs',import.meta.url),'utf8')
+  const declaration=sqlSource.match(/^const raw=.*$/m)?.[0]
+  if(!declaration)throw new Error('actual_permission_source_constructor_missing')
+  const construct=runInNewContext(`${declaration};raw`) as (code:string,objects:Record<string,string>[])=>string
+  const own={point:'point-a',permission:'SC011-PERM',li:'SC011-LI',start:'202601010000',end:'202701010000',status:'A74',reason:'Z24',permissionEnd:'202601011200',endReason:'B77'}
+  for(const objects of [[own],[own,{...own,point:'point-b',li:'SC011-SIBLING'}]]){
+   const wire=construct('Z15',objects).replace('23-DDQ-PRODAT','23-DGI-PRODAT')
+   const result=validateEdifactEnvelope(wire)
+   expect(result).toMatchObject({ok:true,syntaxOk:true,issues:[],declaredUntCount:objects.length===1?21:37,actualMessageSegmentCount:objects.length===1?21:37})
+   expect(validateEdifactEnvelope(wire.replace(/UNT\+\d+\+M'/,"UNT+40+M'")).issues.map(issue=>issue.code)).toEqual(['unt_count_mismatch'])
+  }
+  // This proves the real service-envelope premise, not national admission or
+  // the separately declared canonical/legal/review/storage dependency ports.
+ })
  it('passes only actual source/tenant/execution actor and the selected expected owner',async()=>{
   const result=await applyPermissionMarketSource({actorUserId:id(2),message:source(),expectedPermissionId:id(10)})
   expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_permission_source_v1',{p_company_id:id(1),p_source_message_id:id(30),p_actor_user_id:id(2),p_expected_permission_id:id(10)})
