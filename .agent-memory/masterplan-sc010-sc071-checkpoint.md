@@ -20,6 +20,12 @@ Concrete coordinator request already published in READY5992694706 and confirmed 
 
 Preserved failures include missing-entry RED, missing SQL module/env, temporary-runner overlap (both invalidated), inherited decoder env, sandbox subprocess EPERM49PASS/1FAIL (not timeout/product denial), old-gh GraphQL metadata deprecation, and current canonical checksum admission failures. Supported unchanged runner recovered50PASS. Native Docker vfs/image-layer disk failure remains setupNOT_RUN. Independent reviewer owns wording corrections in its report. No production database, real customer/market communication or external activation occurred.
 
+## Latest main/gate custody — 2026-10-05 10:59 UTC
+
+Endpoint-test commit737252ad7e8683b2ecd0c808e5d4a85bc776cf70 is independently qualified; first main carryca85bf176fe19a17f4128d48e23301f109fe2750 preserves1c151dd0. Genuine complete mandatory tagged check exit0 on that exact composition:352IDs/207candidateapproved/227taggedgreen/0failing/125untagged, saved `evidence/export-current-main-tagged.log`. Actual new main85b6d6602ab0d060a86702847641156470f73234 now contains SC058/#549 and SC069/#550,91rules+118contracts=209distinct/352; non-destructive local merge7b6fb113e8ae535b4b86215b00607af2c0f2a559 preserves all352 ledger rows byte-exactly. These five later paths are two tests/checkpoints plus coverage only; app/lib/SQL/native/fixtures/helpers remain unchanged. The executed227green is not rewritten into a new229run. Existing owners retain their executed checks and exact-head CI.
+
+The sole capture owner also received a direct concrete request on #5035993037079; the one manifest row/migration hash is unchanged. Independent reviewer approves the bounded native-feedback design (proposal only), with genuine PostgREST schema-cache readiness and zero-skip discovery/custody required: reuse only #574's existing canonical BASE stack, then qualify this immutable forward on that same isolated stack, explicitly without asserting candidate canonical replay/schema/type/capture success. Native owner received concrete #5745993124044 proposal; `native-feedback-inputs.json` pins the six ephemeral overlays and sole runner-temp SQL input at824. No workflow or shared-file change is made here; agreement with the native owner precedes its caller edits. All final shared gates remain pending. Next own action remains source publication/native coordination and full SC010 proof, not a new implementation claim.
+
 ## Historical component scope and ownership
 
 Own NEW test: `__tests__/ediel-sc-010-071-grant-revalidation.test.ts`.

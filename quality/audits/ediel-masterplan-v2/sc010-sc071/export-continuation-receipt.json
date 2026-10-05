@@ -1,7 +1,7 @@
 {
   "recorded_utc": "2026-10-05T10:48:19Z",
   "product_and_native_source_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
-  "new_qualification_commit": "read the first later commit containing the exact changed SQL-test hash below; product/native remain byte-equal to824e5f53",
+  "new_qualification_commit": "737252ad7e8683b2ecd0c808e5d4a85bc776cf70",
   "actual_main": "1c151dd0bacc1add8e6795219c64c6716d48a455",
   "actual_main_counts": {
     "rules_verified": 91,
@@ -30,7 +30,18 @@
     "native": "4 SOURCE_REVIEWED cases, NOT_RUN; SC071 parallel proof belongs to #574 owner",
     "types_lint": "previous successful receipts reused: no TypeScript, product or migration delta",
     "unverified": "native/concurrency/schema/type/fingerprint capture; long-purpose full qualified SQL, result lifecycle/proof-change branches; no whole-scenario approval",
-    "frozen_integrity": "fresh continuation exit0;33 frozen files/121rules/231contracts, evidence-reference validity only"
+    "frozen_integrity": "fresh continuation exit0;33 frozen files/121rules/231contracts, evidence-reference validity only",
+    "new_full_tagged_gate": {
+      "result": "PASS",
+      "tested_composed_commit": "ca85bf176fe19a17f4128d48e23301f109fe2750",
+      "exit_code": 0,
+      "ids": 352,
+      "candidate_approved": 207,
+      "tagged_green": 227,
+      "tagged_failing": 0,
+      "untagged": 125,
+      "log": "evidence/export-current-main-tagged.log"
+    }
   },
   "ci_snapshot": {
     "headRefOid": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
@@ -276,7 +287,10 @@
     "confirmed_admission_blocker": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992842444",
     "shared_owner": "retained root/#503 owns checksum manifest/schema/generated types/fingerprint/native registration/capture/merge queue; no shared edits here",
     "sc071": "retained revocation-20261005/#574 implements parallel actual export/revocation using this sole producer",
-    "sql_dependency": "#572 actually merged63a34e1c; no reimport or duplicate component validator/harness"
+    "sql_dependency": "#572 actually merged63a34e1c; no reimport or duplicate component validator/harness",
+    "direct_existing_capture_owner_request": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5993037079",
+    "native_feedback_proposal": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993124044",
+    "native_feedback_inputs": "native-feedback-inputs.json; independently allowed bounded design, proposal only; no actual native execution or candidate gate promotion"
   },
   "merged": false,
   "coverage_promoted": false,
@@ -287,6 +301,19 @@
     "evidence/export-component-endpoint-green.log": "5d08062301bd44c0a4cd2172146acac87ca08cbe243d2e2cb50a7d728bf51795",
     "evidence/export-component-endpoint-junit.xml": "73c7285bee237a832fe3bc3cdadadf4f1d5ed199ecfdd4b3ee6f64ae8aba4e7c",
     "evidence/export-ci-clean-admission-failed.log": "0de2bb733d561e001a13d3d8009ba16d8bbc1f2b59bd8a721476f2769db0ea8f",
-    "evidence/export-continuation-spec.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+    "evidence/export-continuation-spec.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "evidence/export-current-main-tagged.log": "bec3351a451d66c46b8be63f2ee5b9883d7d640fe74a46a7ab09a96d6d206a84"
+  },
+  "later_main_carry": {
+    "actual_main": "85b6d6602ab0d060a86702847641156470f73234",
+    "main_counts": {
+      "rules_verified": 91,
+      "contracts_passed": 118,
+      "distinct_approved": 209
+    },
+    "local_merge_commit": "7b6fb113e8ae535b4b86215b00607af2c0f2a559",
+    "source_delta_from_tested_main": "only two independent test/checkpoint packets and their two coverage rows; no app/lib/SQL/native/helpers/fixtures changes",
+    "gate_claim": "actual full227 result belongs to ca85/207; do not relabel as fresh229 run",
+    "row_preservation": "all352 current-main rows byte-identical"
   }
 }
