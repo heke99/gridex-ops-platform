@@ -1,0 +1,134 @@
+{
+  "base": "507e8bfa20606be31933eea1582066267ff2577a",
+  "scope": "bounded scenario execution inputs, not an exhaustive static-import inventory; every preexisting tracked file remains equal to the complete base tree",
+  "inputs": [
+    {
+      "path": "__tests__/ediel-sc-015-pending-provider-request.test.ts",
+      "sha256": "1b4a86ecae165deeb449d24bc4a3c286c60d48c7e70b846012f68d0748e5034d"
+    },
+    {
+      "path": "__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+      "sha256": "b8bcdcd3e59e2d6acc7648682384fdb05d41647333de45da3bbd13f51edc515a"
+    },
+    {
+      "path": "scripts/ediel-sc-015-pending-request-sql-regression.mjs",
+      "sha256": "b080146369fb19b3b89d7b4c46d1677b03bce15aeead01d4e81b93fbb2f6806a"
+    },
+    {
+      "path": "scripts/ediel-sc-016-approved-object-sql-regression.mjs",
+      "sha256": "b83429800d1411c744a3838abfa17f77562501f3e876f9585912b9dc6d9517ce"
+    },
+    {
+      "path": "scripts/test-ediel-sc-015-016-permissions.cjs",
+      "sha256": "ee39cc26119f4802991bd21fdd7efde08f301fde25b578e8cedc939734e7d301"
+    },
+    {
+      "path": "scripts/ediel-service-request-timing-sql-regression.mjs",
+      "sha256": "b8b59a3eadd56faa3bb12236712581608d4d9dc807f2c245d2ba429d6fb169c4"
+    },
+    {
+      "path": "scripts/ediel-service-evidence-sql-regression.mjs",
+      "sha256": "d660ee99ed1020bc084f99fef505f3262cc6d51862e41b9a5c49148738c2a4ff"
+    },
+    {
+      "path": "scripts/ediel-positive-ack-service-scope-sql-regression.mjs",
+      "sha256": "a00e29e3e4e92cecee7417972e6ed75d33242cc4673ab2f73ab228e94551928a"
+    },
+    {
+      "path": "scripts/ediel-service-administration-sql-regression.mjs",
+      "sha256": "b8e6102285022d3a74a3954e313e70524dd1140c24032873562a50cd7e22c9ec"
+    },
+    {
+      "path": "scripts/ediel-partial-permission-source-sql-regression.mjs",
+      "sha256": "26660b53d3480c5b7b353a8e2e0f073c32ba344bff04b5dd84e1fa29f8b0066f"
+    },
+    {
+      "path": "lib/ediel/flows/prodatServicePermission.ts",
+      "sha256": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c"
+    },
+    {
+      "path": "lib/ediel/services/commands.ts",
+      "sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16"
+    },
+    {
+      "path": "lib/ediel/services/permissionOrigin.ts",
+      "sha256": "7b06e95ef84ef762d538cf7938bb60a019c210531701ff95f0af3cade31a5062"
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba"
+    },
+    {
+      "path": "lib/ediel/services/administration.ts",
+      "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8"
+    },
+    {
+      "path": "lib/ediel/services/limits.ts",
+      "sha256": "a0805d078d6c14be14df028903e0a0bbfc4e711e05be463b7a53340fc375da2e"
+    },
+    {
+      "path": "lib/ediel/permissions/permissionMarketTransition.ts",
+      "sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111"
+    },
+    {
+      "path": "lib/onboarding/inboundEdielLinking.ts",
+      "sha256": "b323a5027388b4d99c2687860415443f218c7289921adfbbe8e23888c70df8ee"
+    },
+    {
+      "path": "lib/onboarding/infoRequests.ts",
+      "sha256": "548fa81400b31a0e03abb6edfb226ca7377093e0345b09f597b509c9b7bc6f7a"
+    },
+    {
+      "path": "lib/ediel/intent/renderGateway.ts",
+      "sha256": "aaa06c9f2762eac28e4e7a53aba31dfeb93b8cbe549a2f2a675d728a84e1d59f"
+    },
+    {
+      "path": "lib/ediel/intent/renderers/servicePermission.ts",
+      "sha256": "f3d9532c6fc20bbbfff9a5116128272aa15c15f04da749465d9e413520ed7b29"
+    },
+    {
+      "path": "lib/ediel/intent/applicationReferencePolicy.ts",
+      "sha256": "ed146c86becb4ae0c5358bc7d1e580a6c1e9feeac2c59dcd75c0e2dea2db2c1f"
+    },
+    {
+      "path": "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+      "sha256": "f02c4a03e9da65d945516406d62611c0ab37dd3220418f961b662c3ea0449fa1"
+    },
+    {
+      "path": "supabase/migrations/20260930162005_ediel_service_permission_origination_v1.sql",
+      "sha256": "a6035a99da12ea91942896868971baa50c20ecf36974600c19206f8d9c49fa79"
+    },
+    {
+      "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "sha256": "c14ed560924522b748e879e1187b7e7793d95ea2ae69e9a97cda7b727f93a689"
+    },
+    {
+      "path": "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql",
+      "sha256": "43cee9e2fa33c3710b4d15291e4f384433c4b45ecfcb30fdff1955b2be24645f"
+    },
+    {
+      "path": "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql",
+      "sha256": "a29947c7e39e2cec87c59074ced5edcaccd7bd2ca0a44617066b9f766dcce7e9"
+    },
+    {
+      "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+      "sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece"
+    },
+    {
+      "path": "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+      "sha256": "842cf2a8342f4164dd61e7d7ca2e2eb577b7cbb844e978c49be141ad5720a3af"
+    },
+    {
+      "path": "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+      "sha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8"
+    },
+    {
+      "path": "package.json",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    }
+  ]
+}

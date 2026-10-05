@@ -1,0 +1,279 @@
+2026-10-05T14:02:13.7410250Z ##[group]Run npm run lint
+2026-10-05T14:02:13.7410671Z [36;1mnpm run lint[0m
+2026-10-05T14:02:13.7478561Z shell: /usr/bin/bash -e {0}
+2026-10-05T14:02:13.7478831Z env:
+2026-10-05T14:02:13.7479070Z   NODE_OPTIONS: --max-old-space-size=6144
+2026-10-05T14:02:13.7479370Z ##[endgroup]
+2026-10-05T14:02:13.8724967Z 
+2026-10-05T14:02:13.8725476Z > gridex-ops-platform@0.1.0 lint
+2026-10-05T14:02:13.8725999Z > eslint
+2026-10-05T14:02:13.8726154Z 
+2026-10-05T14:03:58.7803963Z [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/gridex-ops-platform/gridex-ops-platform/supabase/database.types.ts as it exceeds the max of 500KB.
+2026-10-05T14:03:59.4467169Z 
+2026-10-05T14:03:59.4468864Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/__tests__/ediel-onboarding-application-receipt.test.ts
+2026-10-05T14:03:59.4500576Z ##[warning]  1:22  warning  'describe' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4507269Z 
+2026-10-05T14:03:59.4507925Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/__tests__/ediel-received-context-reader.test.ts
+2026-10-05T14:03:59.4509462Z ##[warning]  3:9    warning  'receivedUtiltsOwnerFixture' is defined but never used   @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4511775Z ##[warning]  3:36   warning  'utiltsNamedOwnerWitness' is defined but never used      @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4513477Z ##[warning]  3:60   warning  'utiltsCanonicalOwnerRpc' is defined but never used      @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4515010Z ##[warning]  3:84   warning  'utiltsOwnerCompany' is defined but never used           @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4516506Z ##[warning]  3:103  warning  'resetUtiltsCanonicalOwnerIo' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4517398Z 
+2026-10-05T14:03:59.4517824Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/__tests__/helpers/supabaseMock.ts
+2026-10-05T14:03:59.4519281Z ##[warning]  119:6  warning  '_expression' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4520144Z 
+2026-10-05T14:03:59.4520589Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/customers/[id]/page.part-4.tsx
+2026-10-05T14:03:59.4522255Z ##[warning]  415:9  warning  'activeSites' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4523897Z ##[warning]  416:9  warning  'activeMeteringPoints' is assigned a value but never used         @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4525503Z ##[warning]  420:9  warning  'lifecycleSummary' is assigned a value but never used             @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4528033Z ##[warning]  502:9  warning  'hasUsablePowerOfAttorney' is assigned a value but never used     @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4530570Z ##[warning]  517:9  warning  'legalLooksAccepted' is assigned a value but never used           @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4533468Z ##[warning]  585:9  warning  'tenantCustomerView' is assigned a value but never used           @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4536459Z ##[warning]  596:9  warning  'hasSwitchData' is assigned a value but never used                @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4539491Z ##[warning]  633:9  warning  'primaryContact' is assigned a value but never used               @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4542818Z ##[warning]  687:9  warning  'openCustomerBlockers' is assigned a value but never used         @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4545931Z ##[warning]  701:9  warning  'pendingCustomerInfoRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4547675Z 
+2026-10-05T14:03:59.4548387Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/ediel/agt/actions.ts
+2026-10-05T14:03:59.4550740Z ##[warning]    7:3   warning  'requireAdminActionAccess' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4553857Z ##[warning]  293:16  warning  'getCurrentUserId' is defined but never used          @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4555475Z 
+2026-10-05T14:03:59.4556266Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/ediel/system-tests/page.tsx
+2026-10-05T14:03:59.4558114Z ##[warning]  324:10  warning  'statusTone' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4559644Z 
+2026-10-05T14:03:59.4560544Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/ediel/test-center/invoice-test/page.tsx
+2026-10-05T14:03:59.4563094Z ##[warning]  92:9  warning  'selectedCustomer' is assigned a value but never used        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4566073Z ##[warning]  94:9  warning  'selectedMeteringPoints' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4567841Z 
+2026-10-05T14:03:59.4568587Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/messages/[id]/page.tsx
+2026-10-05T14:03:59.4570528Z ##[warning]  8:15  warning  'EdielMessageRow' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4572484Z 
+2026-10-05T14:03:59.4573188Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/messages/page.tsx
+2026-10-05T14:03:59.4574892Z ##[warning]  56:6  warning  'UnifiedRow' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4576393Z 
+2026-10-05T14:03:59.4577262Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/operations/ready-to-execute/page.tsx
+2026-10-05T14:03:59.4579241Z ##[warning]  55:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4580999Z 
+2026-10-05T14:03:59.4581961Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/outbound/missing-billing-underlays/page.tsx
+2026-10-05T14:03:59.4584282Z ##[warning]  66:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4585813Z 
+2026-10-05T14:03:59.4586700Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/outbound/missing-meter-values/page.tsx
+2026-10-05T14:03:59.4588618Z ##[warning]  96:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4590112Z 
+2026-10-05T14:03:59.4591028Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/outbound/page.tsx
+2026-10-05T14:03:59.4592649Z ##[warning]  141:45  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4594113Z 
+2026-10-05T14:03:59.4594934Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/outbound/ready-switches/page.tsx
+2026-10-05T14:03:59.4596760Z ##[warning]  17:2   warning  '_' is defined but never used              @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4599249Z ##[warning]  30:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4600769Z 
+2026-10-05T14:03:59.4601806Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/outbound/unresolved/page.tsx
+2026-10-05T14:03:59.4603661Z ##[warning]  27:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4605171Z 
+2026-10-05T14:03:59.4605987Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/admin/platform/api-clients/actions.ts
+2026-10-05T14:03:59.4608193Z ##[warning]  11:10  warning  'recommendedPermissionGroups' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4611255Z ##[warning]  44:10  warning  'nullableDate' is defined but never used                 @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4612966Z 
+2026-10-05T14:03:59.4613741Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/app/api/public/energy-area/route.ts
+2026-10-05T14:03:59.4615897Z ##[warning]  7:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4617406Z 
+2026-10-05T14:03:59.4618373Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/components/admin/contracts/CommercialPricingEditor.tsx
+2026-10-05T14:03:59.4621739Z ##[warning]  238:6  warning  React Hook useEffect has a missing dependency: 'simpleDefaults'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-10-05T14:03:59.4623731Z 
+2026-10-05T14:03:59.4624706Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/components/admin/ediel/EdielOperationalBridgePanel.tsx
+2026-10-05T14:03:59.4626699Z ##[warning]  106:10  warning  'dataTone' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4628202Z 
+2026-10-05T14:03:59.4629011Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/e2e/browser/zero-admin-crawler.spec.mjs
+2026-10-05T14:03:59.4631115Z ##[warning]  95:41  warning  '_page' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4632614Z 
+2026-10-05T14:03:59.4633272Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/e2e/k6/platform-load.js
+2026-10-05T14:03:59.4635366Z ##[warning]  25:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+2026-10-05T14:03:59.4636974Z 
+2026-10-05T14:03:59.4637650Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/e2e/k6/platform-smoke.js
+2026-10-05T14:03:59.4639430Z ##[warning]  30:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+2026-10-05T14:03:59.4641284Z 
+2026-10-05T14:03:59.4641949Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/e2e/k6/platform-soak.js
+2026-10-05T14:03:59.4643715Z ##[warning]  22:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+2026-10-05T14:03:59.4645330Z 
+2026-10-05T14:03:59.4646185Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/e2e/k6/platform-spike.js
+2026-10-05T14:03:59.4647945Z ##[warning]  25:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+2026-10-05T14:03:59.4649530Z 
+2026-10-05T14:03:59.4650246Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/e2e/k6/public-contract-cache.js
+2026-10-05T14:03:59.4652353Z ##[warning]  52:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+2026-10-05T14:03:59.4653948Z 
+2026-10-05T14:03:59.4654654Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/billing/underlayEngine.ts
+2026-10-05T14:03:59.4656588Z ##[warning]  651:19   warning  '_id' is assigned a value but never used        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4659146Z ##[warning]  651:45   warning  '_underlay' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4662049Z ##[warning]  651:68   warning  '_company' is assigned a value but never used   @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4664670Z ##[warning]  651:90   warning  '_created' is assigned a value but never used   @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4667233Z ##[warning]  651:112  warning  '_updated' is assigned a value but never used   @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4668760Z 
+2026-10-05T14:03:59.4669422Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/customer-cases/db.ts
+2026-10-05T14:03:59.4671491Z ##[warning]  115:24  warning  '_customers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4673056Z 
+2026-10-05T14:03:59.4673909Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/customer-operations/automation.part-2.ts
+2026-10-05T14:03:59.4675808Z ##[warning]  28:187  warning  'priceArea' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4677295Z 
+2026-10-05T14:03:59.4678308Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/customer-operations/automation.part-3.ts
+2026-10-05T14:03:59.4680066Z ##[warning]  25:51  warning  'duplicate' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4681827Z 
+2026-10-05T14:03:59.4682423Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/ack.ts
+2026-10-05T14:03:59.4684426Z ##[warning]   83:10  warning  'swedishDateTimeFromEdifactUnb' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4687307Z ##[warning]  135:10  warning  'normalizeAperakErrors' is defined but never used          @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4690183Z ##[warning]  312:10  warning  'edielPartyCompositeFromUnb' is defined but never used     @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4693374Z ##[warning]  324:10  warning  'fallbackPartyComposite' is defined but never used         @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4695005Z 
+2026-10-05T14:03:59.4695738Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/actorTestingEngine.ts
+2026-10-05T14:03:59.4697601Z ##[warning]    8:3   warning  'getEdielMessageById' is defined but never used       @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4700340Z ##[warning]    9:3   warning  'listAckMessagesForSource' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4703349Z ##[warning]  104:10  warning  'isTerminalStatus' is defined but never used          @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4706052Z ##[warning]  108:10  warning  'asActorTestStatus' is defined but never used         @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4708734Z ##[warning]  132:10  warning  'isUtiltsErr' is defined but never used               @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4710304Z 
+2026-10-05T14:03:59.4711255Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/flows/prodatSwitch.ts
+2026-10-05T14:03:59.4713129Z ##[warning]  342:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4715774Z ##[warning]  345:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4718180Z ##[warning]  348:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4720569Z ##[warning]  351:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4723271Z ##[warning]  354:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4725655Z ##[warning]  357:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4728007Z ##[warning]  360:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4730384Z ##[warning]  363:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4733087Z ##[warning]  366:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4734617Z 
+2026-10-05T14:03:59.4735483Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/flows/utiltsSupplierRequest.ts
+2026-10-05T14:03:59.4806237Z ##[warning]  332:3  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4807240Z 
+2026-10-05T14:03:59.4807720Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/operations/controlTower.ts
+2026-10-05T14:03:59.4809066Z ##[warning]  297:5  warning  'queuedOutbound' is assigned a value but never used         @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4810727Z ##[warning]  309:5  warning  'disabledRouteProfiles' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4812016Z 
+2026-10-05T14:03:59.4812527Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/portal/parsePortalValidationReport.ts
+2026-10-05T14:03:59.4813898Z ##[warning]  29:10  warning  'normalizeUpper' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4814798Z 
+2026-10-05T14:03:59.4815215Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/prodat/compatAdapter.ts
+2026-10-05T14:03:59.4816497Z ##[warning]  183:10  warning  'preferredReferencePrefix' is defined but never used             @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4818116Z ##[warning]  196:10  warning  'statusSegmentForCode' is defined but never used                 @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4819684Z ##[warning]  251:10  warning  'portalNumberString' is defined but never used                   @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4821402Z ##[warning]  258:10  warning  'portalRegisters' is defined but never used                      @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4823009Z ##[warning]  265:10  warning  'portalBillingRecipient' is defined but never used               @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4824550Z ##[warning]  269:10  warning  'portalDate102' is defined but never used                        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4826088Z ##[warning]  313:10  warning  'date203AtStartOfDay' is defined but never used                  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4827694Z ##[warning]  320:10  warning  'normalizeProdatReasonForTransaction' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4829269Z ##[warning]  349:9   warning  'isAccessCode' is assigned a value but never used                @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4830153Z 
+2026-10-05T14:03:59.4830575Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/rulebook/validatorLegacy.ts
+2026-10-05T14:03:59.4831790Z ##[warning]  283:18  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4832610Z 
+2026-10-05T14:03:59.4833001Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/testing/selftest.ts
+2026-10-05T14:03:59.4834169Z ##[warning]  78:10  warning  'ymd' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4834975Z 
+2026-10-05T14:03:59.4835393Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/testing/tgtAutoMatcher.ts
+2026-10-05T14:03:59.4836446Z ##[warning]  626:10  warning  'normalizeExpectedValue' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4837316Z 
+2026-10-05T14:03:59.4837738Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/testing/tgtEdifact.part-2.ts
+2026-10-05T14:03:59.4838651Z ##[warning]  445:3  warning  'step' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4839430Z 
+2026-10-05T14:03:59.4839793Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/integrations/apiAuth.ts
+2026-10-05T14:03:59.4840982Z ##[warning]  119:10  warning  'hasRequiredScopes' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4842794Z ##[warning]  139:10  warning  'ipAllowed' is defined but never used          @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4844210Z ##[warning]  156:10  warning  'originAllowed' is defined but never used      @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4845032Z 
+2026-10-05T14:03:59.4845463Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/operations/supplierSwitchScheduler.ts
+2026-10-05T14:03:59.4846565Z ##[warning]  38:3  warning  '_legacyEnvironment' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4847393Z 
+2026-10-05T14:03:59.4847777Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/applicationReview.ts
+2026-10-05T14:03:59.4848890Z ##[warning]  729:11  warning  'verificationDetail' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4849762Z 
+2026-10-05T14:03:59.4850228Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/customerApplicationCommunication.ts
+2026-10-05T14:03:59.4851687Z ##[warning]  18:243  warning  'stage' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4852555Z 
+2026-10-05T14:03:59.4853010Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/customerApplicationLegal.ts
+2026-10-05T14:03:59.4853966Z ##[warning]  12:94  warning  'stage' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4854767Z 
+2026-10-05T14:03:59.4855227Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/customerApplicationOnboarding.ts
+2026-10-05T14:03:59.4856175Z ##[warning]  17:198  warning  'stage' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4856955Z 
+2026-10-05T14:03:59.4857417Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/customerApplicationPersistence.ts
+2026-10-05T14:03:59.4858538Z ##[warning]  9:35   warning  'calculatedEarliestStartDate' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4860051Z ##[warning]  9:137  warning  'errorMessage' is defined but never used                 @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4861711Z ##[warning]  9:218  warning  'stage' is defined but never used                        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4862556Z 
+2026-10-05T14:03:59.4862997Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/customerApplicationProcess.ts
+2026-10-05T14:03:59.4864141Z ##[warning]  26:79  warning  'calculatedEarliestStartDate' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4865032Z 
+2026-10-05T14:03:59.4865473Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/website/customerApplicationSchemas.ts
+2026-10-05T14:03:59.4866561Z ##[warning]  6:35  warning  'calculatedEarliestStartDate' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4868016Z ##[warning]  6:81  warning  'stage' is defined but never used                        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4869040Z 
+2026-10-05T14:03:59.4869694Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-a8-actor-import-probe.cjs
+2026-10-05T14:03:59.4872246Z ##[error]  1:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-10-05T14:03:59.4873822Z ##[error]  2:24  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-10-05T14:03:59.4875196Z ##[error]  3:22  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-10-05T14:03:59.4876544Z ##[error]  4:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-10-05T14:03:59.4877899Z ##[error]  7:46  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-10-05T14:03:59.4878721Z 
+2026-10-05T14:03:59.4879187Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-ai-purpose-sql-regression.mjs
+2026-10-05T14:03:59.4880321Z ##[warning]  36:115  warning  'hash' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4881634Z 
+2026-10-05T14:03:59.4882214Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-bilateral-prodat-own-supply-sql-regression.mjs
+2026-10-05T14:03:59.4883312Z ##[warning]  12:7  warning  'q' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4884162Z 
+2026-10-05T14:03:59.4884648Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-network-registry-sql-regression.mjs
+2026-10-05T14:03:59.4885664Z ##[warning]  36:115  warning  'hash' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4886512Z 
+2026-10-05T14:03:59.4887016Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-normal-switch-source-sql-regression.mjs
+2026-10-05T14:03:59.4888170Z ##[warning]  12:7  warning  'q' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4889023Z 
+2026-10-05T14:03:59.4889540Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-outbound-owner-witness-sql-regression.mjs
+2026-10-05T14:03:59.4890684Z ##[warning]  419:60  warning  'disposition' is assigned a value but never used        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4892606Z ##[warning]  419:72  warning  'reasons' is assigned a value but never used            @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4894123Z ##[warning]  424:21  warning  'unusedDisposition' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4895634Z ##[warning]  424:47  warning  'unusedReasons' is assigned a value but never used      @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4896515Z 
+2026-10-05T14:03:59.4897036Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-partial-supply-source-sql-regression.mjs
+2026-10-05T14:03:59.4898096Z ##[warning]  12:7  warning  'q' is assigned a value but never used         @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4899509Z ##[warning]  14:7  warning  'activate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4900366Z 
+2026-10-05T14:03:59.4901021Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-prodat-combined-v6-sql-regression.mjs
+2026-10-05T14:03:59.4902131Z ##[warning]  57:9   warning  'disposition' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4903599Z ##[warning]  57:21  warning  'reasons' is assigned a value but never used      @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4904453Z 
+2026-10-05T14:03:59.4904973Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-prodat-mixed-own-object-sql-regression.mjs
+2026-10-05T14:03:59.4905988Z ##[warning]  12:7   warning  'q' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4907525Z ##[warning]  87:17  warning  'wire' is defined but never used        @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4908342Z 
+2026-10-05T14:03:59.4908871Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-prodat-supply-final-response-composition.mjs
+2026-10-05T14:03:59.4909867Z ##[warning]  9:62  warning  'id' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4910658Z 
+2026-10-05T14:03:59.4911301Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-requested-change-sql-regression.mjs
+2026-10-05T14:03:59.4912439Z ##[warning]  209:97  warning  'bilateralPdfHash' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4913351Z 
+2026-10-05T14:03:59.4913828Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-supply-end-followup-composition.mjs
+2026-10-05T14:03:59.4914817Z ##[warning]  6:52  warning  'sourceId' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4915646Z 
+2026-10-05T14:03:59.4916176Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-utilts-err-ack-dispatcher-sql-regression.mjs
+2026-10-05T14:03:59.4917210Z ##[warning]  54:8  warning  'ack' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4918046Z 
+2026-10-05T14:03:59.4918508Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-utilts-err-gateway-native.test.ts
+2026-10-05T14:03:59.4919625Z ##[warning]  12:10  warning  'resolveCanonicalEdielPolicy' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4920534Z 
+2026-10-05T14:03:59.4921337Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-utilts-late-version-sql-regression.mjs
+2026-10-05T14:03:59.4922448Z ##[warning]  31:8  warning  'skip' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4923440Z 
+2026-10-05T14:03:59.4924108Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs
+2026-10-05T14:03:59.4925163Z ##[warning]  42:8  warning  'skip' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4926022Z 
+2026-10-05T14:03:59.4926454Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-z02-core-embedded-check.mjs
+2026-10-05T14:03:59.4927417Z ##[warning]  63:302  warning  'disposition' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4928262Z 
+2026-10-05T14:03:59.4928730Z /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/fixtures/ediel-service-evidence-native.ts
+2026-10-05T14:03:59.4929928Z ##[warning]   1:22  warning  'spawn' is defined but never used                                    @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4931879Z ##[warning]   4:9   warning  'supabaseService' is defined but never used                          @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4933605Z ##[warning]   6:9   warning  'projectEdielSeriesToBeneficiary' is defined but never used          @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4935342Z ##[warning]  24:9   warning  'assertUtiltsPositiveAckAuthorityForSend' is defined but never used  @typescript-eslint/no-unused-vars
+2026-10-05T14:03:59.4936332Z 
+2026-10-05T14:03:59.4936742Z ✖ 130 problems (5 errors, 125 warnings)
+2026-10-05T14:03:59.4936973Z 
+2026-10-05T14:03:59.7764467Z ##[error]Process completed with exit code 1.

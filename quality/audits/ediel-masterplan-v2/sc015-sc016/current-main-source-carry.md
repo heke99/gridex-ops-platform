@@ -1,0 +1,9 @@
+# SC015 / SC016 current main integration
+
+The complete SC016 administration probe now loads the actual authorization module and its actual failureDisposition dependency through the existing module loader. Current main `cfcee6877f57c4ff52265cafc6a8a1fa5692a714` changed two plain Error constructors to typed EdielExecutionFailure while retaining actor queries, predicates and messages. The original AST extractor omitted that new import; a tiny exact-body probe reproduces ReferenceError on the already asserted foreign-actor branch. The actual class binding preserves the expected denial. No assertion, SQL, production code or preload guard changed.
+
+The real current coupled caller/source/grant tests passed 10/10, 0 skips (SC015 seven; SC016 three, with ten new SQL groups and 61 inherited groups). Test types, scoped lint, frozen integrity, syntax and current owned adaptation diff checks exited0. Historical raw preload-failure log/XML whitespace is retained byte-exact; whole current-main PR diff whitespace is not asserted zero. All 7,676 foreign main paths are byte-exact, all 350 foreign ledger rows/evidence survive, and only SC015/016 add PASSED. Twenty-five selected SQL owner/dependency bodies are complete byte-exact original; 29 of 32 bounded execution inputs remain original, with only the previously qualified preload repair, this dependency binding and current main's typed actor failure differing.
+
+Original whole-code approval and all finite source/transport/legal ports remain bound to their actual evidence. Global schema/types/capture/migrations are exact current main; no new full native replay or external custody is asserted. Root owns independent final patch review, mandatory new-head CI and actual merge.
+
+Receipt SHA256 `2d9bdb4d4b102ea18a1b24227b98ccd590f9e4cc6ff9df5c1e9c801ab94b3ca0`.

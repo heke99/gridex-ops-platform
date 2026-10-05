@@ -1,0 +1,11 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc051-sc068
+
+ ✓ __tests__/ediel-sc-051-revision-treatment.test.ts (8 tests) 417ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  13:53:33
+   Duration  11.09s (transform 8.08s, setup 76ms, import 10.28s, tests 417ms, environment 0ms)
+
+JUNIT report written to /tmp/sc051-continuation-green-final.xml

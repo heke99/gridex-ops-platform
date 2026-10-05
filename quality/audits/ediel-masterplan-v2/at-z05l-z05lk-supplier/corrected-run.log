@@ -1,0 +1,385 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z05l-z05lk-supplier-20261005
+
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation 58ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field LIN with the actual matching diagnostic 12ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field DTM+93 with the actual matching diagnostic 19ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field RFF+LI with the actual matching diagnostic 14ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field RFF+Z05 with the actual matching diagnostic 8ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field NAD+UD with the actual matching diagnostic 11ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field NAD+IT with the actual matching diagnostic 12ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field NAD+Z02 with the actual matching diagnostic 10ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > holds a malformed end date and does not substitute the cached end date 9ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > holds a different IT object in the real field consumer 5ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects the ESCO DGI application profile in actual Z05 policy 2ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > refused native source leaves every app business table unchanged 4ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > outbound source cannot enter a native end mutation or create end tasks 2ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > actual facade uses only returned own ending-period scope and preserves finite history tables 4ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > plans each returned ending/ended scope without including an unrelated active period 2ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > idempotent native replay creates no extra final-value task and no new business reply 4ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > native authorization error propagates without app mutation 2ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > cached customer and point hints cannot replace the committed ending-period task scope 15ms
+   → expected { id: 'generated-5', …(16) } to match object { …(2) }
+(21 matching properties omitted from actual)
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable missing returned period cannot gain a task from cached hints 4ms
+   → expected [ { id: 'generated-6', …(16) } ] to deeply equal []
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable foreign-only returned period cannot gain a task from cached hints 2ms
+   → expected [ { id: 'generated-7', …(16) } ] to deeply equal []
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation 16ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field LIN with the actual matching diagnostic 4ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field DTM+93 with the actual matching diagnostic 7ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field RFF+LI with the actual matching diagnostic 7ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field RFF+Z05 with the actual matching diagnostic 10ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field NAD+UD with the actual matching diagnostic 6ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field NAD+IT with the actual matching diagnostic 6ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field NAD+Z02 with the actual matching diagnostic 7ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > holds a malformed end date and does not substitute the cached end date 10ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > holds a different IT object in the real field consumer 8ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects the ESCO DGI application profile in actual Z05 policy 1ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > refused native source leaves every app business table unchanged 2ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > outbound source cannot enter a native end mutation or create end tasks 1ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > actual facade uses only returned own ending-period scope and preserves finite history tables 2ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > plans each returned ending/ended scope without including an unrelated active period 3ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > idempotent native replay creates no extra final-value task and no new business reply 3ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > native authorization error propagates without app mutation 1ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > cached customer and point hints cannot replace the committed ending-period task scope 2ms
+   → expected { id: 'generated-12', …(16) } to match object { …(2) }
+(21 matching properties omitted from actual)
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable missing returned period cannot gain a task from cached hints 2ms
+   → expected [ { id: 'generated-13', …(16) } ] to deeply equal []
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable foreign-only returned period cannot gain a task from cached hints 2ms
+   → expected [ { id: 'generated-14', …(16) } ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > cached customer and point hints cannot replace the committed ending-period task scope
+AssertionError: expected { id: 'generated-5', …(16) } to match object { …(2) }
+(21 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "customer_id": "00000000-0000-4000-8000-000000000005",
+-   "metering_point_id": "00000000-0000-4000-8000-000000000006",
++   "customer_id": "00000000-0000-4000-8000-000000000091",
++   "metering_point_id": "00000000-0000-4000-8000-000000000092",
+  }
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:205:24
+    203|       customer_id: own.cachedCustomer, metering_point_id: own.cachedPo…
+    204|     expect(cases()).toHaveLength(1)
+    205|     expect(cases()[0]).toMatchObject({ customer_id: own.customer, mete…
+       |                        ^
+    206|     assertOnlyEndTasks()
+    207|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable missing returned period cannot gain a task from cached hints
+AssertionError: expected [ { id: 'generated-6', …(16) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "case_type": "other",
++     "company_id": "00000000-0000-4000-8000-000000000001",
++     "created_at": "2026-10-05T14:28:54.819Z",
++     "customer_id": "00000000-0000-4000-8000-000000000091",
++     "description": "Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.",
++     "id": "generated-6",
++     "metadata": {
++       "message_code": "Z05",
++       "message_family": "PRODAT",
++       "payload": {
++         "end_date": "1900-01-01",
++         "lineItemReference": "CACHED-OTHER-LI",
++         "supply_period_id": "00000000-0000-4000-8000-000000000099",
++       },
++       "process_next_action": {
++         "authorizesProviderEntry": false,
++         "blockers": [
++           "final_metering_and_billing",
++         ],
++         "candidateActions": [
++           "read_source",
++           "review_case",
++         ],
++         "cause": "final_metering_and_billing",
++         "responsibility": "tenant_operator",
++         "sourceMessageId": "00000000-0000-4000-8000-000000000003",
++         "summary": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++         "timeBasis": {
++           "admittedAt": "2026-10-05T12:00:00.000Z",
++           "anchor": "actual_inbound_admission",
++           "protocolDeadline": null,
++         },
++         "version": 1,
++       },
++       "review_intent": "final_metering_and_billing",
++       "source_ediel_message_id": "00000000-0000-4000-8000-000000000003",
++     },
++     "metering_point_id": "00000000-0000-4000-8000-000000000092",
++     "next_action": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++     "priority": "normal",
++     "reason_category": "final_metering_and_billing",
++     "site_id": null,
++     "source": "ediel_inbound_state_machine",
++     "status": "open",
++     "supplier_switch_request_id": null,
++     "title": "Leveransen upphör – slutför mätvärden och fakturering",
++     "updated_at": "2026-10-05T14:28:54.819Z",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:213:21
+    211|     await applyInboundBusinessStateMachine({ actorUserId: own.actor, m…
+    212|       customer_id: own.cachedCustomer, metering_point_id: own.cachedPo…
+    213|     expect(cases()).toEqual([])
+       |                     ^
+    214|     expect(changes()).toEqual([])
+    215|     assertOnlyEndTasks()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable foreign-only returned period cannot gain a task from cached hints
+AssertionError: expected [ { id: 'generated-7', …(16) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "case_type": "other",
++     "company_id": "00000000-0000-4000-8000-000000000001",
++     "created_at": "2026-10-05T14:28:54.822Z",
++     "customer_id": "00000000-0000-4000-8000-000000000091",
++     "description": "Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.",
++     "id": "generated-7",
++     "metadata": {
++       "message_code": "Z05",
++       "message_family": "PRODAT",
++       "payload": {
++         "end_date": "1900-01-01",
++         "lineItemReference": "CACHED-OTHER-LI",
++         "supply_period_id": "00000000-0000-4000-8000-000000000099",
++       },
++       "process_next_action": {
++         "authorizesProviderEntry": false,
++         "blockers": [
++           "final_metering_and_billing",
++         ],
++         "candidateActions": [
++           "read_source",
++           "review_case",
++         ],
++         "cause": "final_metering_and_billing",
++         "responsibility": "tenant_operator",
++         "sourceMessageId": "00000000-0000-4000-8000-000000000003",
++         "summary": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++         "timeBasis": {
++           "admittedAt": "2026-10-05T12:00:00.000Z",
++           "anchor": "actual_inbound_admission",
++           "protocolDeadline": null,
++         },
++         "version": 1,
++       },
++       "review_intent": "final_metering_and_billing",
++       "source_ediel_message_id": "00000000-0000-4000-8000-000000000003",
++     },
++     "metering_point_id": "00000000-0000-4000-8000-000000000092",
++     "next_action": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++     "priority": "normal",
++     "reason_category": "final_metering_and_billing",
++     "site_id": null,
++     "source": "ediel_inbound_state_machine",
++     "status": "open",
++     "supplier_switch_request_id": null,
++     "title": "Leveransen upphör – slutför mätvärden och fakturering",
++     "updated_at": "2026-10-05T14:28:54.822Z",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:213:21
+    211|     await applyInboundBusinessStateMachine({ actorUserId: own.actor, m…
+    212|       customer_id: own.cachedCustomer, metering_point_id: own.cachedPo…
+    213|     expect(cases()).toEqual([])
+       |                     ^
+    214|     expect(changes()).toEqual([])
+    215|     assertOnlyEndTasks()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > cached customer and point hints cannot replace the committed ending-period task scope
+AssertionError: expected { id: 'generated-12', …(16) } to match object { …(2) }
+(21 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "customer_id": "00000000-0000-4000-8000-000000000005",
+-   "metering_point_id": "00000000-0000-4000-8000-000000000006",
++   "customer_id": "00000000-0000-4000-8000-000000000091",
++   "metering_point_id": "00000000-0000-4000-8000-000000000092",
+  }
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:205:24
+    203|       customer_id: own.cachedCustomer, metering_point_id: own.cachedPo…
+    204|     expect(cases()).toHaveLength(1)
+    205|     expect(cases()[0]).toMatchObject({ customer_id: own.customer, mete…
+       |                        ^
+    206|     assertOnlyEndTasks()
+    207|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable missing returned period cannot gain a task from cached hints
+AssertionError: expected [ { id: 'generated-13', …(16) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "case_type": "other",
++     "company_id": "00000000-0000-4000-8000-000000000001",
++     "created_at": "2026-10-05T14:28:54.922Z",
++     "customer_id": "00000000-0000-4000-8000-000000000091",
++     "description": "Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.",
++     "id": "generated-13",
++     "metadata": {
++       "message_code": "Z05",
++       "message_family": "PRODAT",
++       "payload": {
++         "end_date": "1900-01-01",
++         "lineItemReference": "CACHED-OTHER-LI",
++         "supply_period_id": "00000000-0000-4000-8000-000000000099",
++       },
++       "process_next_action": {
++         "authorizesProviderEntry": false,
++         "blockers": [
++           "final_metering_and_billing",
++         ],
++         "candidateActions": [
++           "read_source",
++           "review_case",
++         ],
++         "cause": "final_metering_and_billing",
++         "responsibility": "tenant_operator",
++         "sourceMessageId": "00000000-0000-4000-8000-000000000003",
++         "summary": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++         "timeBasis": {
++           "admittedAt": "2026-10-05T12:00:00.000Z",
++           "anchor": "actual_inbound_admission",
++           "protocolDeadline": null,
++         },
++         "version": 1,
++       },
++       "review_intent": "final_metering_and_billing",
++       "source_ediel_message_id": "00000000-0000-4000-8000-000000000003",
++     },
++     "metering_point_id": "00000000-0000-4000-8000-000000000092",
++     "next_action": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++     "priority": "normal",
++     "reason_category": "final_metering_and_billing",
++     "site_id": null,
++     "source": "ediel_inbound_state_machine",
++     "status": "open",
++     "supplier_switch_request_id": null,
++     "title": "Leveransen upphör – slutför mätvärden och fakturering",
++     "updated_at": "2026-10-05T14:28:54.922Z",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:213:21
+    211|     await applyInboundBusinessStateMachine({ actorUserId: own.actor, m…
+    212|       customer_id: own.cachedCustomer, metering_point_id: own.cachedPo…
+    213|     expect(cases()).toEqual([])
+       |                     ^
+    214|     expect(changes()).toEqual([])
+    215|     assertOnlyEndTasks()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable foreign-only returned period cannot gain a task from cached hints
+AssertionError: expected [ { id: 'generated-14', …(16) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "case_type": "other",
++     "company_id": "00000000-0000-4000-8000-000000000001",
++     "created_at": "2026-10-05T14:28:54.925Z",
++     "customer_id": "00000000-0000-4000-8000-000000000091",
++     "description": "Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.",
++     "id": "generated-14",
++     "metadata": {
++       "message_code": "Z05",
++       "message_family": "PRODAT",
++       "payload": {
++         "end_date": "1900-01-01",
++         "lineItemReference": "CACHED-OTHER-LI",
++         "supply_period_id": "00000000-0000-4000-8000-000000000099",
++       },
++       "process_next_action": {
++         "authorizesProviderEntry": false,
++         "blockers": [
++           "final_metering_and_billing",
++         ],
++         "candidateActions": [
++           "read_source",
++           "review_case",
++         ],
++         "cause": "final_metering_and_billing",
++         "responsibility": "tenant_operator",
++         "sourceMessageId": "00000000-0000-4000-8000-000000000003",
++         "summary": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++         "timeBasis": {
++           "admittedAt": "2026-10-05T12:00:00.000Z",
++           "anchor": "actual_inbound_admission",
++           "protocolDeadline": null,
++         },
++         "version": 1,
++       },
++       "review_intent": "final_metering_and_billing",
++       "source_ediel_message_id": "00000000-0000-4000-8000-000000000003",
++     },
++     "metering_point_id": "00000000-0000-4000-8000-000000000092",
++     "next_action": "Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.",
++     "priority": "normal",
++     "reason_category": "final_metering_and_billing",
++     "site_id": null,
++     "source": "ediel_inbound_state_machine",
++     "status": "open",
++     "supplier_switch_request_id": null,
++     "title": "Leveransen upphör – slutför mätvärden och fakturering",
++     "updated_at": "2026-10-05T14:28:54.925Z",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:213:21
+    211|     await applyInboundBusinessStateMachine({ actorUserId: own.actor, m…
+    212|       customer_id: own.cachedCustomer, metering_point_id: own.cachedPo…
+    213|     expect(cases()).toEqual([])
+       |                     ^
+    214|     expect(changes()).toEqual([])
+    215|     assertOnlyEndTasks()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 34 passed (40)
+   Start at  14:28:51
+   Duration  3.32s (transform 2.11s, setup 33ms, import 2.75s, tests 304ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z05l-z05lk-supplier-20261005/quality/audits/ediel-masterplan-v2/at-z05l-z05lk-supplier/corrected-junit.xml
