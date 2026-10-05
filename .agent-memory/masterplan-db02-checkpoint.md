@@ -249,6 +249,45 @@ their genuine results before approval. Cancel only superseded own queued runs
 after replacement producers exist; do not cancel active native evidence or
 other owners' runs. #491 merge pause remains in force.
 
+## Native collection repair — 2026-10-05
+
+Independent authentic import review PASS on `5ab2b72e`, tree
+`92ca6b26dea687a614950db7cdabb9c1d98847c2`:
+[535/5985640571](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-5985640571).
+Final-head OPS run `37243974742` verify, quality and upgrade jobs are SUCCESS;
+its clean/native job remains pending qualification. Genuine old-source OPS run
+`37241338916`, clean job `111550506356`, artifact `11318761012`, ZIP SHA256
+`92b523a4cbfc6a36d372ea09f708f98b22466375de0610c44111649d51503e73`,
+records DB-02 collection ENOENT, so **none of the six own cases ran**. This
+cannot support a native PASS. Two other shared suite failures remain separately
+owned; no full native success or approval is inferred.
+
+The actual replay retains original SQL in HOLD and temporarily replaces the
+working-tree migration files with ledger markers. The own native fixture read
+the former paths during that phase. Root authorized only this native file and
+the own checkpoint; scope was published before editing:
+[491/5985860099](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985860099).
+The repair reuses the existing correction-context native contract: `git show`
+the exact current HEAD's original creation and forward SQL and verify both
+SHA256 values against that same HEAD's migration history manifest. Actual
+forward BEGIN/COMMIT and all six native assertion bodies remain byte-identical.
+No shared helper, replay/runner/config, SQL, schema, generated capture, unit
+test or coverage file changes.
+
+An outside-git throwaway checkout removes both working-tree original files.
+`vitest list` reproduces the original ENOENT and collects all six cases with
+the corrected fixture. This is collection proof only: no SQL, native session,
+hosted query or disposable bootstrap was executed. Script types, scoped lint,
+diff and explicit product/config/unit/coverage/generated/provenance byte
+equality PASS. Source input hashes are unchanged: creation
+`a30b8f1566d1368daad2b04e03bce094d32494104db0bf700c31aa0bb0185f9d`,
+forward
+`8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0`.
+The independently verified capture remains qualified for the identical SQL
+and capture inputs. Next: independent review of this two-file test-only delta,
+publish one new head and obtain genuine six-case native results plus mandatory
+actual-head gates. Own approvals remain unchanged; no local full-suite retry.
+
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
 inventory. Postgres best practices/testing activate for an authorized repair.

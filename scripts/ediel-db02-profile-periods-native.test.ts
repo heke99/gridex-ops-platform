@@ -1,15 +1,23 @@
 // masterplan: DB-02, AT-DB-02
 // Installed disposable Supabase/PG17 constraints and two real SQL sessions.
 // Synthetic profile/tenant data; no market, issuer, SMTP or hosted write proof.
-import {readFileSync} from 'node:fs'
-import {spawn} from 'node:child_process'
-import {randomUUID} from 'node:crypto'
+import {execFileSync,spawn} from 'node:child_process'
+import {createHash,randomUUID} from 'node:crypto'
 import {expect,it} from 'vitest'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 
 const connection='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-const migration=readFileSync('supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql','utf8')
-const creation=readFileSync('supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql','utf8').match(/create table if not exists public\.tenant_ediel_profiles \([\s\S]*?\n\);/)![0]
+// Replay temporarily replaces working-tree originals with ledger markers.
+// Read the same checkout's committed, checksum-bound SQL, never a marker.
+const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
+const history=JSON.parse(execFileSync('git',['show',`${revision}:scripts/migration-history-manifest.json`],{encoding:'utf8'})) as {files:Record<string,string>}
+function committedMigration(name:string){
+ const source=execFileSync('git',['show',`${revision}:supabase/migrations/${name}`],{encoding:'utf8'})
+ expect(createHash('sha256').update(source).digest('hex')).toBe(history.files[name])
+ return source
+}
+const migration=committedMigration('20261004223219_ediel_tenant_profile_interval_guard.sql')
+const creation=committedMigration('20260713100000_ediel_completion_and_platform_contract.sql').match(/create table if not exists public\.tenant_ediel_profiles \([\s\S]*?\n\);/)![0]
 const table='public.tenant_ediel_profiles'
 const row=(id:string,company:string,from:string,to:string|null=null,enabled=true,environment='production')=>
  `INSERT INTO ${table}(id,company_id,environment,is_enabled,valid_from,valid_to) VALUES(${literal(id)},${literal(company)},${literal(environment)},${enabled},${literal(from)},${literal(to)});`
