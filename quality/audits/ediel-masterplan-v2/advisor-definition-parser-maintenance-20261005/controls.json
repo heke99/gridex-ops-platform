@@ -1,0 +1,1614 @@
+{
+  "status": "SCOPED_IN_MEMORY_CONTROLS_PASS",
+  "startedUtc": "2026-10-05T20:54:54.301Z",
+  "finishedUtc": "2026-10-05T20:55:30.567Z",
+  "runtime": {
+    "executable": "/tmp/ediel-sc010-sc071-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "version": "v22.23.0",
+    "arguments": [
+      "-"
+    ],
+    "cwd": "/workspace/gridex-ediel-advisor-definition-parser-maintenance-20261005"
+  },
+  "frozenCommit": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "checkerPath": "/workspace/gridex-ediel-advisor-definition-parser-maintenance-20261005/scripts/gridex-supabase-advisors-hardening-regression.cjs",
+  "checkerSha256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654",
+  "proposalSha256": "80f483c2d25587ea2b233bfef69d3147784ad69161980301a53fde17cbb97049",
+  "planRows": 29,
+  "baselineRowsAlreadyCountedSeparately": 1,
+  "plannedOverlayRows": 28,
+  "executedOverlayRows": 28,
+  "passedOverlayRows": 28,
+  "negativeExpectedRows": 24,
+  "positiveExpectedRows": 4,
+  "fixtureVariants": {
+    "double-quoted-fake-pin": "Two matched origin/copy chains within one planned overlay execution: quoted identifier and doubled-quote identifier."
+  },
+  "rawPath": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-controls.raw.jsonl",
+  "rawSha256": "df3d4028f87d4d88bbd91024693682d532351d762a588c98dc053c2b4bfffdc3",
+  "inputBoundary": {
+    "inventory_path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-input-inventory.json",
+    "inventory_sha256": "1fb70844ad970b078998ba7a93cc196ab098673ef253f8594d36a3349d61eb30",
+    "fixed_read_count": 8,
+    "all_migrations": 1073,
+    "selected_new_migrations": 827,
+    "all_migration_path_blob_manifest_sha256": "9cdb13415b9cd84ddf0fc0dab1ec17de2cc5d27b6cb34f3f1c872a33547ccff9"
+  },
+  "actualDistinctUnderlyingReads": 1076,
+  "adapterSource": "function runSameChecker(control) {\n const stdout = [];\n const stderr = [];\n const reads = new Set();\n let exitCode = null;\n const inputs = new Map(Object.entries(control.overlays).map(([name, sql]) => [path.join(migrationDir, name), sql]));\n const adapter = {\n  readFileSync(file, encoding) {\n   const absolute = path.resolve(String(file));\n   reads.add(absolute);\n   if (!inputs.has(absolute) && !cachedInputs.has(absolute)) cachedInputs.set(absolute, fs.readFileSync(absolute, 'utf8'));\n   const content = inputs.get(absolute) ?? cachedInputs.get(absolute);\n   return encoding === 'utf8' ? content : Buffer.from(content);\n  },\n  readdirSync(directory) {\n   assert.equal(path.resolve(String(directory)), migrationDir);\n   return [...originalNames, ...Object.keys(control.overlays)].sort();\n  }\n };\n const context = {\n  require(name) { if (name === 'fs') return adapter; if (name === 'path') return path; throw Error('unexpected checker require: ' + name); },\n  process: { cwd: () => taskRoot, exit(code) { exitCode = code; } },\n  console: { log(...parts) { stdout.push(parts.join(' ')); }, error(...parts) { stderr.push(parts.join(' ')); } }\n };\n let runtimeError = null;\n try { vm.runInNewContext(checker, context, { filename: scriptPath, timeout: 10000 }); } catch (error) { runtimeError = String(error.stack ?? error); }\n return { exitCode, stdout, stderr, runtimeError, readCount: reads.size, readPaths: [...reads].sort() };\n}",
+  "noSQLOrFixtureDiskWrites": true,
+  "SQLNotExecuted": true,
+  "noCheckerMutation": true,
+  "results": [
+    {
+      "id": "plain-unpinned",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control(p_id uuid) RETURNS jsonb LANGUAGE sql AS $f$SELECT NULL::jsonb$f$;",
+          "sha256": "e21bf56181b474a439adcff024992a16690531dddc4f5f52acd2c54c8a4878ab",
+          "bytes": 105
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control(p_id uuid) RETURNS jsonb LANGUAGE sql...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "inline-positive",
+      "expectedExit": 0,
+      "expectedTokens": [],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control(p_id uuid) RETURNS jsonb LANGUAGE sql SET search_path=pg_catalog AS $f$SELECT NULL::jsonb$f$;",
+          "sha256": "29baeb339c7053b626d66828d692e9770848f29ff05b7ee9ac9c2899596bc945",
+          "bytes": 132
+        }
+      },
+      "exitCode": 0,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "OK: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter)",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "forward-positive",
+      "expectedExit": 0,
+      "expectedTokens": [],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control(p_id uuid) RETURNS jsonb LANGUAGE sql AS $f$SELECT NULL::jsonb$f$;\nALTER FUNCTION public.advisor_control(uuid) SET search_path=pg_catalog;",
+          "sha256": "43a3ee42ebd4a2c02fc4f224723446927ff7f0e90eb3a1250048681c4c9d8879",
+          "bytes": 177
+        }
+      },
+      "exitCode": 0,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "OK: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter)",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "quoted-execute-unpinned",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "DO $$BEGIN EXECUTE 'CREATE FUNCTION public.advisor_control() RETURNS void LANGUAGE sql AS $f$SELECT 1$f$';END$$;",
+          "sha256": "db39921d44e8e484252627d70f8850d648b6d76d834cdaeb14d827472b3e0e3d",
+          "bytes": 112
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control() RETURNS void LANGUAGE sql AS $f$SEL...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "quoted-execute-pinned",
+      "expectedExit": 0,
+      "expectedTokens": [],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "DO $$BEGIN EXECUTE 'CREATE FUNCTION public.advisor_control() RETURNS void LANGUAGE sql SET search_path=pg_catalog AS $f$SELECT 1$f$';END$$;",
+          "sha256": "9416f49d7874ea1e74d165a370b3ec335ce291eff3873dbf54955931a900f5cd",
+          "bytes": 139
+        }
+      },
+      "exitCode": 0,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "OK: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter)",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "opaque-concat",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "DO $$BEGIN EXECUTE 'CREATE FUNCTION public.advisor_control(' || unknown_parameters || ') RETURNS void LANGUAGE sql AS ...';END$$;",
+          "sha256": "1e54b8af6e1994c8c9145a7e150eb4f5126992e9cd85b5e9582289a3b75e5eee",
+          "bytes": 129
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control(' || unknown_parameters || ') RETURNS...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "nonreplacement-literal",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "SELECT 'CREATE OR REPLACE FUNCTION public.advisor_control(';",
+          "sha256": "6da94136f8451aeead9453cf2dc711a984a22ff9a6ffc666ea9ef7f660a0195d",
+          "bytes": 60
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control(';...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "unknown-getter",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "DO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "431c10c2aaba22455a42704dd590d1dbab5310ff9a9932f58089abebf3246b9b",
+          "bytes": 522
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "unknown-overload",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,text)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,text)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,text)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "3a45ccba057374f7bd023c7f86dfaab0f6d2bb9e6589d2695fc5b89369f6f57b",
+          "bytes": 737
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "old-prefix-mismatch",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_other(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "08d0c8de6ca752aa3af249e913fcff0bc21a937b4e80117288de51de20765aa9",
+          "bytes": 737
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_other(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "unpinned-template",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_template(p_",
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "71537f897f0034c0b72152b064fb655a22acf5e2e0a0bd12cc4f40939cd90700",
+          "bytes": 713
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(p_company_id uuid,p_actor_us... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "same-signature-replacement",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nCREATE OR REPLACE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "bcb4e461025a7265210acd7cba301b8ff5423fd7ce4ad9b1cb02c12e120258e1",
+          "bytes": 942
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(p_company_id uuid,p_actor_us... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "source-alter-reset",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nALTER FUNCTION public.advisor_control_template(uuid,uuid,jsonb) RESET search_path;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "b58a2840ff823b3fdf577ab40ec34bd5c4f0a55b93290bee5c8958bf96799c20",
+          "bytes": 823
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "rebind-assignment",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=unknown_definition;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "c883deac11b01842f528a62359fa9eb469b180d45c68fe19e2c168e2f3224365",
+          "bytes": 764
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "select-into-rebind",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n SELECT unknown_definition INTO d;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "2afd64db725438379769f1880c5a26e191dfaaa3f800e4457dcdb6770ec599d5",
+          "bytes": 775
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "wrong-scope",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n DECLARE nested text;BEGIN\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND;END $atomic$;",
+          "sha256": "4c0231a93a9a01457f17a9f7e9b730ab7c7eb41a18475c39f1ae6aba2fdc4de5",
+          "bytes": 771
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "fake-source",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "-- CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "e77c03073320c4cac14bb0bc5df5d4f08b0e1fc3e97cca311bff602571d15256",
+          "bytes": 743
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "fake-binding",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n -- d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n d:=unknown_definition;\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "78c8834cc04ca662674838649a5668c5b1971120c288287b0e969cf9637b13fc",
+          "bytes": 767
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "fake-pin",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER /* SET search_path=pg_catalog */ AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "71f5517569bf3954efb6343ed59f01e55efecdc2f63dc219faac7ba72cb9cfeb",
+          "bytes": 746
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "unsupported-signature",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb DEFAULT '{}'::jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "f9a08dda4c5ded474e1153be3a7e1415903243ba419e1f7e8c45484fe5a8d451",
+          "bytes": 760
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "qualified-prefix-positive",
+      "expectedExit": 0,
+      "expectedTokens": [],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "0b56b30d328a36859c7c6960aa2c59a8a06400c3c0c0273491fed728106ba09e",
+          "bytes": 740
+        }
+      },
+      "exitCode": 0,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "OK: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter)",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "implicit-call-out",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n PERFORM opaque_function(d);\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "de8993c66318dc24fa47ba1f27a81167cc1cdab1db80ea904ed3323c77530220",
+          "bytes": 769
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "wrong-consumer",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_other(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "ec020e673d50aac3db780d64cf2c090cdeb921fd2a3f7adb54883a14636605b5",
+          "bytes": 737
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "future-file-origin",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "DO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "431c10c2aaba22455a42704dd590d1dbab5310ff9a9932f58089abebf3246b9b",
+          "bytes": 522
+        },
+        "20261005190001_advisor_parser_control_origin.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;",
+          "sha256": "76b05c57ae893cf28b2033ee84f6a876af8bda06e1ec1f8e5158ebbc47498009",
+          "bytes": 217
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1078,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1078,
+        "sha256OfCompactJsonUtf8": "d7af97bbef55cdf57a3fd464d31b2000d72882a7f2e558653f19ca010d95d52e",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "future-same-file-origin",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "DO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;\nCREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;",
+          "sha256": "059eddc34e0a4c21b97c1b6b2d86f6a7f7a26bf7d43f07aa71356966a630411e",
+          "bytes": 740
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "double-quoted-fake-pin",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy(",
+        "public.public.advisor_control_copy_escaped("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS \"set search_path\" LANGUAGE plpgsql SECURITY DEFINER AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;\nCREATE FUNCTION public.advisor_control_template_escaped(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS \"escaped\"\"set search_path\" LANGUAGE plpgsql SECURITY DEFINER AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template_escaped(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template_escaped(uuid,uuid,jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template_escaped(','CREATE OR REPLACE FUNCTION public.advisor_control_copy_escaped(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template_escaped(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "963db3122bbdbbbce8211ee749870f4fa364936375748e4388fc09383eeb508f",
+          "bytes": 1508
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template_escaped(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy_escaped(');EXECUTE replace(d,(SE...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "two-word-out-mode",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(OUT jsonb) RETURNS jsonb LANGUAGE plpgsql SET search_path=pg_catalog AS $fn$BEGIN RETURN NULL;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(jsonb)'::regprocedure;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "b79c8dbffa7faad96c82518f56fcf70e70ab5c6e9d0bdb120c50f5f1c7f25a59",
+          "bytes": 643
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    },
+    {
+      "id": "quoted-variable-alias",
+      "expectedExit": 1,
+      "expectedTokens": [
+        "public.public.advisor_control_copy("
+      ],
+      "overlays": {
+        "20261005190000_advisor_parser_control.sql": {
+          "sql": "CREATE FUNCTION public.advisor_control_template(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$BEGIN RETURN '{}'::jsonb;END$fn$;\nDO $atomic$ DECLARE d text;b text;BEGIN\n d:=pg_get_functiondef('public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure);\n SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure;\n \"d\":=unknown_definition;\n d:=replace(d,'CREATE OR REPLACE FUNCTION public.advisor_control_template(','CREATE OR REPLACE FUNCTION public.advisor_control_copy(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.advisor_control_template(uuid,uuid,jsonb)'::regprocedure),b);\nEND $atomic$;",
+          "sha256": "d7bb842d20be67f7a8676c44622b7a97c740633f26fc2864a371612d41b0af2c",
+          "bytes": 766
+        }
+      },
+      "exitCode": 1,
+      "stdout": [
+        "OK: migration A pins search_path on all 25 flagged functions",
+        "OK: PostGIS function gets extensions in search_path; everything else public, pg_temp",
+        "OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)",
+        "OK: migration B covers all 29 privileged definer functions",
+        "OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant",
+        "OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration",
+        "OK: report documents the RLS-helper exceptions as accepted findings",
+        "OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking",
+        "OK: migration C covers all 24 flagged SECURITY DEFINER views",
+        "OK: views are converted in place (no drop/recreate; columns/comments preserved)",
+        "OK: service-only views are revoked from anon and authenticated",
+        "OK: migration D covers all 21 service-only tables",
+        "OK: no using(true)/with check(true) policies anywhere in the hardening batch",
+        "OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy",
+        "OK: customer_operation_jobs writes stay service-role only",
+        "OK: all hardening migrations set lock_timeout and statement_timeout",
+        "OK: all hardening migrations guard object existence (safe replay)",
+        "OK: leaked password protection documented as required manual production setting",
+        "OK: go-live cutover plan references the advisors hardening checklist",
+        "\nLive verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md"
+      ],
+      "stderr": [
+        "FAIL: new migrations (>= 20260709) pin search_path on created public functions (inline or via forward alter) (offenders: 20261005190000_advisor_parser_control.sql: public.public.advisor_control_template(','... | 20261005190000_advisor_parser_control.sql: public.public.advisor_control_copy(');EXECUTE replace(d,(SELECT pro...)"
+      ],
+      "runtimeError": null,
+      "readCount": 1077,
+      "checks": {
+        "noRuntimeError": true,
+        "exitMatches": true,
+        "original19Exact": true,
+        "actual20Assertions": true,
+        "targetOnlyFailure": true,
+        "specifiedOffenderIdentities": true
+      },
+      "pass": true,
+      "orderedReadPathTrace": {
+        "count": 1077,
+        "sha256OfCompactJsonUtf8": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48",
+        "fullTraceCustody": "Original outside results/raw artifact, hashes in verification.json; all other per-case fields preserved exactly."
+      }
+    }
+  ],
+  "publicationProjection": {
+    "originResultSha256": "ad667af0fcf19b3434f4c28f048762ae480904e07ef3b9f71246dfed0f1b0142",
+    "omittedField": "results[*].readPaths only",
+    "reason": "Avoid repeating the full repository read-path trace in every case; preserve exact ordered trace hashes/counts, every overlay, expected/actual outcome, stdout/stderr, checks and adapter source.",
+    "originalResultsBytes": 4951214,
+    "rawOutsideSha256": "df3d4028f87d4d88bbd91024693682d532351d762a588c98dc053c2b4bfffdc3"
+  }
+}

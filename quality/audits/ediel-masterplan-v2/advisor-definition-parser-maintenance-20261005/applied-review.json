@@ -1,0 +1,563 @@
+{
+  "result": "APPROVE",
+  "recordedAtUTC": "2026-10-05T21:05:04.779669+00:00",
+  "scope": "Independent applied-source/existing-checker execution and concrete metadata packet review; no rerun or global source/native/main qualification.",
+  "frozenCommit": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "frozenTree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+  "soleSourcePath": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+  "appliedPostimageSHA256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654",
+  "appliedGitBlob": "4eddbb25fb01d415aa058b2c8b7edd50d15a55ba",
+  "approvedPatchSHA256": "56b87c4abb2df41448067fff7520364e36cf091574d7299d48a3000d151bb58a",
+  "approvedV2PeerSHA256": "4462d07e04d10d9241bd384c74670c685722a5b464c63498ae2e882ca08235f5",
+  "executionReceiptSHA256": "a02b91e46527ab6a71c20935494fa22045e533823103662e3eaa7cc4eb5ed40d",
+  "sourceIdentityAndPreservation": {
+    "exactApprovedPostimage": true,
+    "onlyTrackedDiffIsExistingCJS": true,
+    "other19ExpectPrefixByteExact": true,
+    "all20AssertionsPresent": true,
+    "inheritedInlineAndForwardAcceptanceExact": true,
+    "final20thAssertionAndTerminalOutputExact": true,
+    "foreignBaseEntriesUnchanged": 8495,
+    "frozenIndexEquals8496BaseTuples": true,
+    "noCoverageSQLNativeProductWorkflowDocOrSharedMemoryChange": true,
+    "noFurtherSourceMutationAfterGreenReceipt": true
+  },
+  "actualRecordedExecutionsReviewed": {
+    "runtimeVersion": "v22.23.0",
+    "before": {
+      "existingCheckerCalls": 1,
+      "exit": 1,
+      "OK": 19,
+      "FAIL": 1,
+      "exactKnownTwoPrefixOffenders": true
+    },
+    "after": {
+      "existingCheckerCalls": 1,
+      "exit": 0,
+      "OK": 20,
+      "FAIL": 0,
+      "original19OutputLinesExact": true
+    },
+    "overlayCheckerCalls": 28,
+    "expectedNegativeFailures": 24,
+    "expectedPositiveSuccesses": 4,
+    "specifiedOffenderAndOther19AssertionsIndependentlyCheckedEach": true,
+    "allRecordedOverlayExpectationsSatisfied": true,
+    "baselinePlanRowCountedSeparately": true,
+    "planRows": 29,
+    "totalActualCheckerCalls": 30,
+    "VMAdapterUsesExactCheckerSourceReadOnlyFS": true,
+    "reviewerNewExecutions": 0
+  },
+  "inputCustody": {
+    "inventorySHA256": "1fb70844ad970b078998ba7a93cc196ab098673ef253f8594d36a3349d61eb30",
+    "fixedReadInputsExact": 8,
+    "frozenMigrations": 1073,
+    "selectedNewMigrations": 827,
+    "distinctUnderlyingControlReads": 1076,
+    "eachReadTraceEqualsFrozenInputsPlusOnlyItsExactVirtualOverlays": true,
+    "physicalVirtualSQLFilesPresent": 0,
+    "sourceChain2b01AndPeerD244ReusedOnly": true,
+    "parentActual296ApplicabilityKeptSeparate": true
+  },
+  "compactProjection": {
+    "controlsPublicSHA256": "f1cec64451d5e0e8c9de03d24fe18a29ba18382f5248e502367b62ed85bfbe80",
+    "controlsPublicBytes": 107578,
+    "originalResultsSHA256": "ad667af0fcf19b3434f4c28f048762ae480904e07ef3b9f71246dfed0f1b0142",
+    "originalResultsBytes": 4951214,
+    "rawJSONLSHA256": "df3d4028f87d4d88bbd91024693682d532351d762a588c98dc053c2b4bfffdc3",
+    "rawJSONLBytes": 4663474,
+    "raw28RowsEqualOriginalResults": true,
+    "onlyRepeatedReadPathsOmitted": true,
+    "allOtherGlobalPerCaseFieldsAndExactOverlaysStdoutStderrChecksAdapterPreserved": true,
+    "all28OrderedReadTraceHashCountsVerified": true,
+    "orderedTraceHashes": [
+      {
+        "id": "plain-unpinned",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "inline-positive",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "forward-positive",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "quoted-execute-unpinned",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "quoted-execute-pinned",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "opaque-concat",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "nonreplacement-literal",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "unknown-getter",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "unknown-overload",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "old-prefix-mismatch",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "unpinned-template",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "same-signature-replacement",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "source-alter-reset",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "rebind-assignment",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "select-into-rebind",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "wrong-scope",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "fake-source",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "fake-binding",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "fake-pin",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "unsupported-signature",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "qualified-prefix-positive",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "implicit-call-out",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "wrong-consumer",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "future-file-origin",
+        "count": 1078,
+        "sha256": "d7af97bbef55cdf57a3fd464d31b2000d72882a7f2e558653f19ca010d95d52e"
+      },
+      {
+        "id": "future-same-file-origin",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "double-quoted-fake-pin",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "two-word-out-mode",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      },
+      {
+        "id": "quoted-variable-alias",
+        "count": 1077,
+        "sha256": "148b88582aae9d5633ab5d5db588be099b79bee2c89479712fb1b982f46adb48"
+      }
+    ],
+    "outsideRawPreserved": true
+  },
+  "cases": [
+    {
+      "id": "plain-unpinned",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "inline-positive",
+      "expectedExit": 0,
+      "actualExit": 0,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "forward-positive",
+      "expectedExit": 0,
+      "actualExit": 0,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "quoted-execute-unpinned",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "quoted-execute-pinned",
+      "expectedExit": 0,
+      "actualExit": 0,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "opaque-concat",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "nonreplacement-literal",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "unknown-getter",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "unknown-overload",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "old-prefix-mismatch",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "unpinned-template",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "same-signature-replacement",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "source-alter-reset",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "rebind-assignment",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "select-into-rebind",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "wrong-scope",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "fake-source",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "fake-binding",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "fake-pin",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "unsupported-signature",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "qualified-prefix-positive",
+      "expectedExit": 0,
+      "actualExit": 0,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "implicit-call-out",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "wrong-consumer",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "future-file-origin",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1078
+    },
+    {
+      "id": "future-same-file-origin",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "double-quoted-fake-pin",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "two-word-out-mode",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    },
+    {
+      "id": "quoted-variable-alias",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "original19Exact": true,
+      "specificControlledOffendersVerified": true,
+      "runtimeError": null,
+      "readCount": 1077
+    }
+  ],
+  "artifactCustodyVerified": [
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-proposal-v2.patch",
+      "sha256": "56b87c4abb2df41448067fff7520364e36cf091574d7299d48a3000d151bb58a",
+      "bytes": 7094
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-proposal-v2.json",
+      "sha256": "80f483c2d25587ea2b233bfef69d3147784ad69161980301a53fde17cbb97049",
+      "bytes": 15236
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-proposal-v2-independent-review.json",
+      "sha256": "4462d07e04d10d9241bd384c74670c685722a5b464c63498ae2e882ca08235f5",
+      "bytes": 7165
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-input-inventory.json",
+      "sha256": "1fb70844ad970b078998ba7a93cc196ab098673ef253f8594d36a3349d61eb30",
+      "bytes": 74810
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-apply-receipt.json",
+      "sha256": "d919edabfb88029ae1f5ec07e50046df1dd626b278d866292d935ad2502e1191",
+      "bytes": 667
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-baseline.stdout.log",
+      "sha256": "037c4d086dc57b1e13e1e1ff43cf70275661fa27fc6a5ad79bae8f51634c136d",
+      "bytes": 1478
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-baseline.stderr.log",
+      "sha256": "f14ed05a62ede0907199ad6c21d47d455593c8def996d82a121f4effd9e0a44c",
+      "bytes": 428
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-after.stdout.log",
+      "sha256": "ca98395716e4434a686e60e72b1c772a9b15855a11e41f591e3e49606ffd8568",
+      "bytes": 1585
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-after.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-controls.raw.jsonl",
+      "sha256": "df3d4028f87d4d88bbd91024693682d532351d762a588c98dc053c2b4bfffdc3",
+      "bytes": 4663474
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-controls-results.json",
+      "sha256": "ad667af0fcf19b3434f4c28f048762ae480904e07ef3b9f71246dfed0f1b0142",
+      "bytes": 4951214
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-proposal.patch",
+      "sha256": "58b2787884abde01a0840f1988b94e90c765dc11fb0e8a44fbb38f478dfaa4d0",
+      "bytes": 6598
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-proposal.json",
+      "sha256": "993676b6195a2a8945daa48e57c447330df17161c621b84c9f2465c6b2144895",
+      "bytes": 11884
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/advisor-parser-maintenance-proposal-independent-review.json",
+      "sha256": "50ac3df7bc18ac6a78bb9e883c9bc4a00d92b73f39ef78841328de74e6f79c0f",
+      "bytes": 9592
+    }
+  ],
+  "metadataAssessment": {
+    "READMEAndCPRead": true,
+    "currentAppliedReviewAndPublicationCorrectlyPendingBeforeThisReceipt": true,
+    "noRuleCoverageNativeWholeCurrentMainGreenPromotion": true,
+    "rootNEXTIntakeAndGlobalCIOrCaptureOwnershipKeptSeparate": true,
+    "verificationAndProposalReviewAndFourStreamsByteExact": true,
+    "inputGuardScopeAndFrozenCountsConsistent": true,
+    "noPrivateDataCredentialsSignedURLsOrFullRepeatedForeignReadInventoryInPublicPacket": true,
+    "passiveFlags": [],
+    "plannedFinalAppliedPeerCopySHASumsAndTruthfulCPAppendAreRootMetadataActions": true
+  },
+  "blockingFindings": [],
+  "next": "Root copies this exact independent review, seals packet SHA256SUMS and may truthfully append this actual approval/publication custody. Sole root publishes through the already reserved NEXT source intake; ordinary source-admission/CI/main/capture/final-baseline steps remain retained owners.",
+  "limitations": [
+    "Only this new outside review receipt written by reviewer. No test/checker/control/source-chain/SQL/database/native/full/CI rerun, fetch/API/watch, source/fixture/index/ref/common-memory edit.",
+    "Evidence was consumed by bytes/JSON/log data/hash, not newly executed.",
+    "APPROVE covers this applied existing-checker correction and finite controls plus current root-owned packet only; not universal SQL parsing, live catalog/proconfig, replay, market/native/whole or main-green.",
+    "Later root-only applied-review copy/SHA256SUMS/CP append have not yet been staged/published by this peer."
+  ]
+}
