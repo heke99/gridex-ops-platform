@@ -1,0 +1,41 @@
+{
+  "kind": "READ_ONLY_DIAGNOSTIC_PROBE_NOT_APPROVAL",
+  "sourceBase": "fff486f822001d35970f163507b10e17c3692f58",
+  "boundary": "Actual existing canonical field validator and actual diagnostic consumer; finite independently declared synthetic request; network forbidden; no persistence/native/ACK delivery claim; not a new masterplan implementation/test harness/renderer.",
+  "observations": [
+    {
+      "name": "valid-control",
+      "issues": [],
+      "applicationErrors": [],
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      }
+    },
+    {
+      "name": "only-invalid217",
+      "issues": [
+        {
+          "scope": "prodat_dependent",
+          "severity": "error",
+          "blocking": true,
+          "code": "PRODAT_DEPENDENT_FIELD_FORMAT_INVALID",
+          "title": "PRODAT Z14 följer inte källregeln",
+          "fieldPath": "CCI++Z04/CAV",
+          "description": "Z14:217, P26.A §2.2 s.16–22 / §2.6: exakt ett korrekt CCI/CAV-par med värdet i rätt komponent krävs."
+        }
+      ],
+      "applicationErrors": [],
+      "disposition": {
+        "kind": "internal_review",
+        "reasons": [
+          {
+            "code": "PRODAT_DEPENDENT_FIELD_FORMAT_INVALID",
+            "sourceRule": "PRODAT:typed-diagnostic-invariant",
+            "reason": "Expected source-owned error metadata is absent or invalid"
+          }
+        ]
+      }
+    }
+  ]
+}

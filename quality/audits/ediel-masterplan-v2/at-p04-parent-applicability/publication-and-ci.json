@@ -1,0 +1,130 @@
+{
+  "recorded_at": "2026-10-05T13:35:27.476821+00:00",
+  "PR": "https://github.com/heke99/gridex-ops-platform/pull/591",
+  "head": "bbf89d53f62b495739097601133bea30007d5dfb",
+  "own_source_sha256": "6efc74bc2f5659d41965050763b27605e491ab3f49b3516b7346a88b18f96130",
+  "board_ready_comment": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995525959",
+  "current_main": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "current_main_approved": 213,
+  "foreign_changed_files_since_own_base": 72,
+  "changed_runtime_dependencies": [],
+  "merge_tree_preview": "2a94781acaf4278df56d53e2ae986975cd763018",
+  "merge_preview_conflicts": false,
+  "CI_status": "Current bbf89 completed applicable checks SUCCESS except ordinary clean/native retry QUEUED; not ready to merge.",
+  "CodeRabbit_status": "success",
+  "branch_protection_read": {
+    "status": 403,
+    "reason": "Resource not accessible by integration",
+    "conclusion": "Cannot infer configuredrequirednames; waitfor everyapplicablecurrenthead check to succeed, not just legacy statuscontexts."
+  },
+  "raw_console_receipts": "Raw diagnostic and baseline stdout have authentic finalblankline; fullgitdiff--check reports only those2EOFblanks. Source/coverage/checkpoint/review/verification/spec planning scoped gitdiff--check exit0. Preserve authenticraw receipts, do not relabelfullwhitespacecheckPASS.",
+  "main_integration": "NOT_MERGED",
+  "next_independent_work": "Scout+reviewer qualify complete unreserved acceptance/scenario consumer paths read-only; no newclaim/test/coveragechanges whilethisATactive.",
+  "retained_SC010": "Immutableproducer570/9b50genuineancestorof5035be; all7pins/twoadmissionsqualified, authenticcaptureZIP37a62/nativeZIPe246independentreviewFINALe990. WholeboundedSC010behaviorwitnessed; sole503postimport/composedcanonical/native/clean-upgrade/currentheadgatespending. Evidence-onlycheckpoint3e104be14823e207c8f8f9b3aeb11c0912da9e6d publishedexistingcheckpointref; source5709b50unchanged.",
+  "latest_main_recheck": {
+    "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "runtime_dependency_changes": [],
+    "P04_source_pin_changes": [],
+    "mergepreview_exit": 0,
+    "mergepreview_tree": "58d9d682e9e33e1b111b7bc596f13d5c7c9a757c",
+    "integration": "PENDINGcurrent-headCI",
+    "approved": 217
+  },
+  "updated_at": "2026-10-05T14:23:00Z",
+  "latest_completed_checks": {
+    "targeted-regressions": {
+      "job": 111787430533,
+      "conclusion": "success",
+      "actual_gate": "352IDs/214approved/235green/0fail/117untagged"
+    },
+    "verify": {
+      "job": 111787431831,
+      "conclusion": "success"
+    },
+    "upgrade-migration-replay": {
+      "job": 111787431647,
+      "conclusion": "success"
+    },
+    "quality-release-gates": {
+      "job": 111787432549,
+      "conclusion": "success"
+    },
+    "coverage": {
+      "job": 111787432211,
+      "conclusion": "success"
+    },
+    "smoke": {
+      "job": 111787432712,
+      "conclusion": "success"
+    },
+    "browser-public": {
+      "job": 111787431833,
+      "conclusion": "success"
+    },
+    "pr-certificate": {
+      "job": 111790118308,
+      "conclusion": "success"
+    }
+  },
+  "clean_migration_replay": {
+    "run": 37317382626,
+    "job": 111787432069,
+    "status": "CANCELLEDoriginalattempt; sameexistingjobRERUNrequested",
+    "triage": "Independent authentic terminal log review complete in next-preflight/clean-replay-triage.md; no migration/lock/stall defect confirmed.",
+    "correction": "Initialin-progressMCPprefixlogended13:33:38, butauthenticterminal2.7Mlogproves migrationCOMMIT13:33:38.5516392, clean_replay_complete13:34:05 andnativeownerscontinuouslyprogressingto13:55:32. No migrationstall/lockproven. Rootmistakenlycanceledownrun13:55:46; cancellationterminal13:56:12. Preservecancelledoriginal and rerunonlysameexistingjobonbbf, no workflow/gate/sourcechange.",
+    "authentic_terminal_stages": {
+      "migration64804commit": "2026-10-05T13:33:38.5516392Z",
+      "clean_replay_complete": "2026-10-05T13:34:05Z",
+      "artifacts_complete": "2026-10-05T13:34:17Z",
+      "sql_concurrency_complete": "2026-10-05T13:34:37Z",
+      "native_owners_start": "2026-10-05T13:34:38Z",
+      "native_document_reference40passed": "2026-10-05T13:55:32Z",
+      "whole_native_finish": "NOT_REACHEDbeforecancellation"
+    },
+    "root_action": "Mistakenoperationalcancellation corrected candidlytouser; sameexistingjob retry requested, earliercompletedchecksnorerun.",
+    "retry": {
+      "run": 37317382626,
+      "attempt": 2,
+      "job": 111799783499,
+      "status": "QUEUED observed14:10UTC",
+      "head": "bbf89d53f62b495739097601133bea30007d5dfb",
+      "scope": "Only existing cancelled clean/native job requested; no source/workflow/gate mutation."
+    },
+    "prefix_observation_only": {
+      "last_timestamp": "2026-10-05T13:33:38.5273576Z",
+      "last_migration": "20260930164804_ediel_prodat_retry_correction_authority.sql",
+      "last_statements": "BEGIN/CREATE TABLE/twoCREATE INDEX",
+      "scope": "Incomplete in-progress log; superseded by authentic terminal stages below, no progress/stall conclusion."
+    }
+  },
+  "post_merge_expected_approved": 218,
+  "next_card_handoff": {
+    "AT-P-01": "PARTIAL unchanged; actualnumeric217untypedmetadata gap safelyheldinternal, retainedsourceownerhandoff5305995744186; 311staticconcernseparate",
+    "otherSC": "Latest3dff main has37nonPASSED SC; all retained or concrete dependency-owned. Prior41-screen remains historical. Full106nonPASSED acceptance screen bounded."
+  },
+  "bounded_remaining_acceptance_preflight": {
+    "report": "next-preflight/remaining-acceptance-followup.md",
+    "sha256": "b81836992e58dbe9452c17e9d51c13486165e1255fffb3d1af97ba5cb7e9c58a",
+    "receipt": "next-preflight/remaining-artifact-receipt.json",
+    "receipt_sha256": "12ef8f05845b257790696b37b8d43088d948b6321e602ba0aa6039400d61cf8c",
+    "whole_literals": 106,
+    "rule_acceptances": 31,
+    "scenarios": 37,
+    "profiles": 38,
+    "open_PRs": 69,
+    "complete_paths": 5576,
+    "actual_ledgers": 55,
+    "historical_404": 14,
+    "decision": "Noqualifiednewfile-onlywholecard; concrete retained existingconsumer/observation handoffs. No further unboundedsearch/CLAIM/source/coverage/nativeproducer changes.",
+    "historical_pre_whitespace_normalization": {
+      "report_sha256": "3316db3a780e7721e0ada2e035ca5f48d9b3e78f436b8f00764c78d3aba3fe9e",
+      "receipt_sha256": "d049fe08ffd4abe04d7904851a1ff6386121f62b01a9ef3a255aca448bf87f25",
+      "scope": "Authoredreport3trailing spaces/oneblankEOF only; no literal semantics/rawsnapshotbyteschanged."
+    }
+  },
+  "SC010_qualified_handoff_comment": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996469621",
+  "documentation_whitespace_verification": {
+    "initial": "Cachedcheckexit2 fourauthoredMDwhitespacewarnings; soleauthorfixed onlythreeemptyEvidence trailing spaces/oneblankEOF, refrozehashes; rawsnapshots preserved.",
+    "final": "Fullnewcached diffcheckexit0; sourcePRbbfrawconsoleEOFwarnings remain separatelyhistorical."
+  }
+}

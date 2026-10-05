@@ -1,0 +1,52 @@
+{
+  "recorded_at": "2026-10-05T13:44:41.165670+00:00",
+  "kind": "OBSERVED_PURE_FIELDMETADATA_GAP_NOT_NEW_IMPLEMENTATION",
+  "probe_exit_code": 0,
+  "current_own_PR_head": "bbf89d53f62b495739097601133bea30007d5dfb",
+  "probe_script_sha256": "dc9407759fe9e6d8f4db3672792cd4361ae689e6d39c0b4fc2036ad94eba204c",
+  "observation_sha256": "b5f85ad1f7c44ed6576f5b392dd94588ae78750d57b1e6415150caf296c42539",
+  "probe_log_sha256": "c4fa93627758612f5aa174e4fb75247c290f5506e05c4b75012a8171ae5cca07",
+  "source_pins": [
+    {
+      "path": "lib/ediel/rulebook/prodatZ14Policy.ts",
+      "sha256": "a976167f6c85c71c0e8796f31d370c956e4bf376fa32823d075ca8d1b9349731",
+      "unchanged_baseline_and_a8": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "unchanged_baseline_and_a8": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+      "sha256": "7497a0a59cc0a2783c61f0fd57da7b87b0541890a96d48143388f45fe2702f1b",
+      "unchanged_baseline_and_a8": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatCharacteristicFields.ts",
+      "sha256": "15a0102f79eca1ec6ae5b27eef773ec5a15b45041ebac4e52b7ef80b191115c7",
+      "unchanged_baseline_and_a8": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-permission-ack.ts",
+      "sha256": "7fba884dbaeceefb2cf56f3fc0475c14bae7afed0d1fe1b075ccf72ea6dc9ce7",
+      "unchanged_baseline_and_a8": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-reporting-permission.ts",
+      "sha256": "3f1275f0597871f75d54b436745df483946a301d34da9d1f80de307b89ac1b08",
+      "unchanged_baseline_and_a8": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-register.ts",
+      "sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+      "unchanged_baseline_and_a8": true
+    }
+  ],
+  "source_conformance": "EntireP01AllaP fieldresult217 lacks mandated structurednumber/group/component/occurrence/sourcerule; parser/group actual217isrecognized. Safelyheldinternal, no guessednationalclassification/regexorwrongACK. WholeAT-P01 remainsPARTIAL untilretainedownerqualifies/fixesmetadataorprovidessourcebackedexception.",
+  "severity_scope": "Acceptance contract gap; no observed unsafeacceptance/tenantleak/wrongexternalcode.",
+  "runtime_boundary": "Actual completecanonicalfieldvalidator +actualdiagnosticconsumer. Fixed synthetic nonprivatecaller_selection, networkforbidden. No persistedgrant/transport/receivedACK/native claim.",
+  "retained_source_ownership": "ENV/PZ14 retainedowner; no own sourcefix or newcardCLAIM.",
+  "other_source_locator_concern": "311static only, needsoriginalT\u00a74.2/5.2 reconciliation; not an observed failure.",
+  "owner_handoff": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995744186"
+}

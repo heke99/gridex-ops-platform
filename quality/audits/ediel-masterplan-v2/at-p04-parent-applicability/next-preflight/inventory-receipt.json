@@ -1,0 +1,94 @@
+{
+  "time_utc": "2026-10-05T13:34:11.479946+00:00",
+  "actor": "/root/next_pair_ownership_scout",
+  "authority": "READ_ONLY_PREFLIGHT_ONLY; parentAT-P04claim5305994967989 remainsactive; no ownershiptransfer",
+  "main_a": "fff486f822001d35970f163507b10e17c3692f58",
+  "main_b": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "main_b_tree": "4acbd9b92cc689382aaa28e10468b609f6d135c4",
+  "counts": {
+    "530": {
+      "a": 224,
+      "b": 231,
+      "added_ids": [
+        5995320319,
+        5995325616,
+        5995335446,
+        5995389651,
+        5995413055,
+        5995430181,
+        5995461544
+      ],
+      "max_b_id": 5995461544
+    },
+    "491": {
+      "a": 454,
+      "b": 454,
+      "added_ids": [],
+      "max_b_id": 5994197574
+    },
+    "503": {
+      "a": 19,
+      "b": 20,
+      "added_ids": [
+        5995432180
+      ],
+      "max_b_id": 5995432180
+    },
+    "586": {
+      "a": 5,
+      "b": 5,
+      "added_ids": [],
+      "max_b_id": 5994719159
+    },
+    "570": {
+      "a": 6,
+      "b": 6,
+      "added_ids": [],
+      "max_b_id": 5994688422
+    }
+  },
+  "openPR_a": 71,
+  "openPR_b": 69,
+  "completeChangedPath_a_count": 5428,
+  "completeChangedPath_b_count": 5356,
+  "material_pins": 32,
+  "main_vs_fff_all_equal": true,
+  "local_material31_equal": true,
+  "local_coverage_diff_expected_parent_ATP04_only": true,
+  "no_claim": true,
+  "no_tests_or_imported_modules": true,
+  "no_source_test_coverage_shared_memory_changes": true,
+  "no_GH_mutations": true,
+  "no_subagents": true,
+  "semantic_screen_scope": "35 complete TEN/ESCO/ACKruleATpairs +wholeP01AT, P04explicitexclusion; all352statusrows enumerated but all352semanticqualification not claimed",
+  "final_frozen_main": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+  "final_frozen_tree": "779cc833d9f160a9892a33e598e8a828e38b209d",
+  "final_snapshot_note": "FFF/A8/CFCEE snapshots preserved separately. C inventory is finite frozen state, not latest-by-time promise.",
+  "final_boards": {
+    "530": 239,
+    "491": 454,
+    "503": 22,
+    "586": 5,
+    "570": 6
+  },
+  "final_open_PRs": 69,
+  "final_current_exacthead_ledgers": 55,
+  "historical_NOT_FOUND": 14,
+  "final_current_changed_path_entries": 5369,
+  "final_changedheads": {
+    "532": "857ca4075a3980b42834e4fa8f83b5cc6ae9e7f3",
+    "534": "b77125811deab1311dc9a5fe2ef4b7ee94a98268",
+    "591": "bbf89d53f62b495739097601133bea30007d5dfb"
+  },
+  "full_SC_screen": {
+    "count": 41,
+    "status": "no unreserved implementation established",
+    "exact_comment_hit_scenarios": 40,
+    "SC064_explicit_issue_body_reservation": true,
+    "complete_literal_and_rule_relations": true
+  },
+  "observed_P01_source_gap": "Parent actual existingcanonical217 probe; scout onlyread anddocumented. SeparatepeerP01wholeverdict ownsitsreport.",
+  "observed_P01_receipt_sha256": "b5f85ad1f7c44ed6576f5b392dd94588ae78750d57b1e6415150caf296c42539",
+  "observed_P01_probe_log_sha256": "c4fa93627758612f5aa174e4fb75247c290f5506e05c4b75012a8171ae5cca07",
+  "root503_current_ack_comment": 5995575147
+}

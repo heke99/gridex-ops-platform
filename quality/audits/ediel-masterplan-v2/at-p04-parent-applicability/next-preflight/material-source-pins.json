@@ -1,0 +1,322 @@
+[
+  {
+    "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+    "remote_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "local_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "frozen_fff_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/registers/rules.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+    "remote_sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+    "local_sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+    "frozen_fff_sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+    "remote_sha256": "802c6a5ffccb19a511db0e6b4c534d817412f6cf482b253965a261c082456a24",
+    "local_sha256": "17e85cc3670e784037d54fd65f2d084da95410b53d4a835e76c5b246d2e50df8",
+    "frozen_fff_sha256": "802c6a5ffccb19a511db0e6b4c534d817412f6cf482b253965a261c082456a24",
+    "equal_local": false,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "3a28cf23dd1de441803a90dbd96bc98de3a9f4e1",
+    "remote_sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+    "local_sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+    "frozen_fff_sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "2097cfbc52af3e4a20ed17ec21987f4ce75df941",
+    "remote_sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+    "local_sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+    "frozen_fff_sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/annex/prodat_field_matrix_source.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "af157ba57ed901d289d283c177eeacb9f73dbc48",
+    "remote_sha256": "4909fb87a170bb19af4a61cda196facc1fe139e74f89fccdfb534fea73353b46",
+    "local_sha256": "4909fb87a170bb19af4a61cda196facc1fe139e74f89fccdfb534fea73353b46",
+    "frozen_fff_sha256": "4909fb87a170bb19af4a61cda196facc1fe139e74f89fccdfb534fea73353b46",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/registers/prodat_fields.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "e7defb1949c41a5bc221cffbdc52775a996e43d4",
+    "remote_sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "local_sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "frozen_fff_sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "5f61cd75b6660f2ec00c8ae2d11b965c7ea0f3f1",
+    "remote_sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "local_sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "frozen_fff_sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "docs/ediel/masterplan-v2/registers/prodat_group_conditions.json",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "750950cd2b4080e33edb7788520b9d16ef9bd5f9",
+    "remote_sha256": "2a8e27f377f22adf475fea11a496b8105ce77802878361cbaaeb406cdc4fff93",
+    "local_sha256": "2a8e27f377f22adf475fea11a496b8105ce77802878361cbaaeb406cdc4fff93",
+    "frozen_fff_sha256": "2a8e27f377f22adf475fea11a496b8105ce77802878361cbaaeb406cdc4fff93",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "36d4a8074da29f231e0b1121e88267385154e99e",
+    "remote_sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+    "local_sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+    "frozen_fff_sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "a0b1fbc843244db56ff8ba723bd3539c3b5061af",
+    "remote_sha256": "0d6201c22e4f02953003dae853d5c0ae95332879c6e31dc758f6c41c0a218c15",
+    "local_sha256": "0d6201c22e4f02953003dae853d5c0ae95332879c6e31dc758f6c41c0a218c15",
+    "frozen_fff_sha256": "0d6201c22e4f02953003dae853d5c0ae95332879c6e31dc758f6c41c0a218c15",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "4985d526650d46cf0c83c01a070897d16605f734",
+    "remote_sha256": "7497a0a59cc0a2783c61f0fd57da7b87b0541890a96d48143388f45fe2702f1b",
+    "local_sha256": "7497a0a59cc0a2783c61f0fd57da7b87b0541890a96d48143388f45fe2702f1b",
+    "frozen_fff_sha256": "7497a0a59cc0a2783c61f0fd57da7b87b0541890a96d48143388f45fe2702f1b",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "2b1899a03418631224509bcd71c9fe2019de9191",
+    "remote_sha256": "32d81f9bd9efae753642c77e2f2726a06dfccf4ef05bee417266f1cddd1902a3",
+    "local_sha256": "32d81f9bd9efae753642c77e2f2726a06dfccf4ef05bee417266f1cddd1902a3",
+    "frozen_fff_sha256": "32d81f9bd9efae753642c77e2f2726a06dfccf4ef05bee417266f1cddd1902a3",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "536495dd2bedb6a5e9b5144c84aaa34d3067892e",
+    "remote_sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+    "local_sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+    "frozen_fff_sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "18a4b4359d40d9972e06b5b438a65e5f699815fa",
+    "remote_sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+    "local_sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+    "frozen_fff_sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "4bcaea5ab6c28496194cfb6e4b358ea8cfa88822",
+    "remote_sha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+    "local_sha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+    "frozen_fff_sha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "lib/ediel/rulebook/fieldMatrix.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "fc541d91021427f0daa7c2f681f4590c07850454",
+    "remote_sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+    "local_sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+    "frozen_fff_sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "e24c7fdf19a649708432834d095021b465aef14c",
+    "remote_sha256": "c2af437bc8dd07bde56b1c6138402c9217182b99bfae609196923bac59525476",
+    "local_sha256": "c2af437bc8dd07bde56b1c6138402c9217182b99bfae609196923bac59525476",
+    "frozen_fff_sha256": "c2af437bc8dd07bde56b1c6138402c9217182b99bfae609196923bac59525476",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-field-identity.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "1c3e77eeb2759b1e872716467d6de50c4e7827d3",
+    "remote_sha256": "cba9cd26d15f5afcbc821e6623cebbd49463a45e6bd104150b84a3ffece724fe",
+    "local_sha256": "cba9cd26d15f5afcbc821e6623cebbd49463a45e6bd104150b84a3ffece724fe",
+    "frozen_fff_sha256": "cba9cd26d15f5afcbc821e6623cebbd49463a45e6bd104150b84a3ffece724fe",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-field-identity-owners.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "82235a36fb6d6bc661a016ba339837c7f6f0c552",
+    "remote_sha256": "438609d1566b5fcdb359c554b2642a14c453f1de1d7966c99de59bb63e642c43",
+    "local_sha256": "438609d1566b5fcdb359c554b2642a14c453f1de1d7966c99de59bb63e642c43",
+    "frozen_fff_sha256": "438609d1566b5fcdb359c554b2642a14c453f1de1d7966c99de59bb63e642c43",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-field-identity-review-metadata.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "9979d928514963a6e7a755e310dc7c0a3c061d19",
+    "remote_sha256": "b5e226f38060291b7b915021f8a22a53acef12cae548ecc7da9b3a34022385ca",
+    "local_sha256": "b5e226f38060291b7b915021f8a22a53acef12cae548ecc7da9b3a34022385ca",
+    "frozen_fff_sha256": "b5e226f38060291b7b915021f8a22a53acef12cae548ecc7da9b3a34022385ca",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-field-identity-review-owners.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "3fc5096762ae42a75df2c11a2254ac4416fc6f74",
+    "remote_sha256": "b9eb82dfec20cbc45907d7e96335f51796bbf74e0739b0320a95525f4d92fb7a",
+    "local_sha256": "b9eb82dfec20cbc45907d7e96335f51796bbf74e0739b0320a95525f4d92fb7a",
+    "frozen_fff_sha256": "b9eb82dfec20cbc45907d7e96335f51796bbf74e0739b0320a95525f4d92fb7a",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-field-identity-inbound.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "4d1eb0487e401a59d3bcf0fa80fab9df764b8269",
+    "remote_sha256": "8b0e53b62184f50d58957564885f7b2b8e1ae385d96b377132edeb52b24816d8",
+    "local_sha256": "8b0e53b62184f50d58957564885f7b2b8e1ae385d96b377132edeb52b24816d8",
+    "frozen_fff_sha256": "8b0e53b62184f50d58957564885f7b2b8e1ae385d96b377132edeb52b24816d8",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-register-conditions.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "f44c93b970f80fff7682adf4e825bff8ed7d03f0",
+    "remote_sha256": "6c15b2e263a5776e897f718d365c1632dadbc154a578b0e86836fbc4758797ba",
+    "local_sha256": "6c15b2e263a5776e897f718d365c1632dadbc154a578b0e86836fbc4758797ba",
+    "frozen_fff_sha256": "6c15b2e263a5776e897f718d365c1632dadbc154a578b0e86836fbc4758797ba",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/prodat-dependent-condition-engine.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "e6cb894f9ba6441af6e0a4dabcb3497b70087005",
+    "remote_sha256": "acec12d7ff63a52ed8538fe213522d28eb365f0bed6891d5eea93602284646a0",
+    "local_sha256": "acec12d7ff63a52ed8538fe213522d28eb365f0bed6891d5eea93602284646a0",
+    "frozen_fff_sha256": "acec12d7ff63a52ed8538fe213522d28eb365f0bed6891d5eea93602284646a0",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-register-structure-guards.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "92486b059d6baedc406b950eab6811d63043643b",
+    "remote_sha256": "6278951964cf436d7052a5700969a127e463f50c7fec27a8c1a9805dfb8b496a",
+    "local_sha256": "6278951964cf436d7052a5700969a127e463f50c7fec27a8c1a9805dfb8b496a",
+    "frozen_fff_sha256": "6278951964cf436d7052a5700969a127e463f50c7fec27a8c1a9805dfb8b496a",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-register-validation-evidence.test.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "9725076cbfff0cb112fded3d27490238129f1382",
+    "remote_sha256": "5fbecf2b5f45ab752924788c259f39f9ff3fe0f04c2494b1ec212b17d0ccb59c",
+    "local_sha256": "5fbecf2b5f45ab752924788c259f39f9ff3fe0f04c2494b1ec212b17d0ccb59c",
+    "frozen_fff_sha256": "5fbecf2b5f45ab752924788c259f39f9ff3fe0f04c2494b1ec212b17d0ccb59c",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/fixtures/prodat-register.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "0c23e9e3729974714ba8da3cbabbd6bb03a251a9",
+    "remote_sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+    "local_sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+    "frozen_fff_sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/fixtures/prodat-identity.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "d787d8c5ced7c3ac40f4e10e2086e1bfd62ec07f",
+    "remote_sha256": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c",
+    "local_sha256": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c",
+    "frozen_fff_sha256": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "__tests__/fixtures/prodat-complete-register-wire.ts",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "032bd5c3daf262cb36733192bb5d134fa4c037de",
+    "remote_sha256": "31836f58b368e9e3b7d5c17b8f37a7fca29090446cd817a853e84b2a0b4ab7da",
+    "local_sha256": "31836f58b368e9e3b7d5c17b8f37a7fca29090446cd817a853e84b2a0b4ab7da",
+    "frozen_fff_sha256": "31836f58b368e9e3b7d5c17b8f37a7fca29090446cd817a853e84b2a0b4ab7da",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/protocol.md",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "208aab8e44908c2fabb1b97e9370108e1e42a7fb",
+    "remote_sha256": "aedb518b785d395cdd79f658f35bf7704d1254d83ebc3f3ca1f85d032cfb1342",
+    "local_sha256": "aedb518b785d395cdd79f658f35bf7704d1254d83ebc3f3ca1f85d032cfb1342",
+    "frozen_fff_sha256": "aedb518b785d395cdd79f658f35bf7704d1254d83ebc3f3ca1f85d032cfb1342",
+    "equal_local": true,
+    "equal_fff": true
+  },
+  {
+    "path": "quality/audits/ediel-masterplan-v2/remaining-d-plan.md",
+    "fresh_ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "github_blob": "cce99496b8af6ddebfb3ab276c901f47514bb2f4",
+    "remote_sha256": "a440c7ce7be50eef22c921878e29aaf13bc1da7608fed7dcd16dff9a1efd1fd9",
+    "local_sha256": "a440c7ce7be50eef22c921878e29aaf13bc1da7608fed7dcd16dff9a1efd1fd9",
+    "frozen_fff_sha256": "a440c7ce7be50eef22c921878e29aaf13bc1da7608fed7dcd16dff9a1efd1fd9",
+    "equal_local": true,
+    "equal_fff": true
+  }
+]

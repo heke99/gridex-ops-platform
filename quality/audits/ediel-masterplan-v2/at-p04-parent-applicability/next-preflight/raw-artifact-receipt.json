@@ -1,0 +1,342 @@
+{
+  "authority": "OWN READ_ONLY_SCOUT_ARTIFACTS ONLY; peerreport/parentprobe files excluded from mutation",
+  "frozen_time_utc": "2026-10-05T13:46:57.669656+00:00",
+  "compressed_raw": [
+    {
+      "original_filename": "main-a-b-compare.json",
+      "stored_filename": "main-a-b-compare.json.gz",
+      "original_bytes": 554848,
+      "stored_bytes": 118442,
+      "original_sha256": "1abd1a029a5bdd784b13fe2539f87f2a027765be1efb3172ad8c6cd018d00a03",
+      "stored_sha256": "a669f623bf3eb3a303cc919d16625aee2c9db7b2f0dcbd1280fe84fe15128632",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-530-snapshot-a.json",
+      "stored_filename": "comments-530-snapshot-a.json.gz",
+      "original_bytes": 1087177,
+      "stored_bytes": 172692,
+      "original_sha256": "1401af8a77d5939c3507ef794a717608d51bc846295002c0813c05e6b41d6b26",
+      "stored_sha256": "66513a05fad7eba1ac5676c383b82f1c8d94b3a31522f3f4e30e393bb6cf7361",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-491-snapshot-c.json",
+      "stored_filename": "comments-491-snapshot-c.json.gz",
+      "original_bytes": 1924371,
+      "stored_bytes": 310847,
+      "original_sha256": "3d8d6cba4fdcbbb2db2869e8a6d15f4f408e165d80e90a5509e84fe41f2dcdb9",
+      "stored_sha256": "94aa50edf88af5a4ff2eba97415c997160acedf00957a2dcd656d8c3387e2e80",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "open-prs-snapshot-a.json",
+      "stored_filename": "open-prs-snapshot-a.json.gz",
+      "original_bytes": 1306212,
+      "stored_bytes": 104049,
+      "original_sha256": "8b7c15b3b2b1b0282ede5f4d74634f27022a085d936fa4990c41e24e11ede16b",
+      "stored_sha256": "77683a31fa1b5339460a3cb42ab895888251c87452168a3579bf2d6be1704e93",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "main-snapshot-a.json",
+      "stored_filename": "main-snapshot-a.json.gz",
+      "original_bytes": 123111,
+      "stored_bytes": 37213,
+      "original_sha256": "1121d288c036b5185481278b8e834690fd30e63bbcc2d5f49af3736de14707d5",
+      "stored_sha256": "01009a214f7892994b15f3c21826ca8512a73b7c95eb3e4a932439357cab57fc",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-530-snapshot-b.json",
+      "stored_filename": "comments-530-snapshot-b.json.gz",
+      "original_bytes": 1122856,
+      "stored_bytes": 178591,
+      "original_sha256": "7f2df7536110a9c60b70f39c415232c96b36f83714f699f35185cfd512c48d94",
+      "stored_sha256": "a1fc416f960c4c1f5ba881f01d23d2ee7b969ae5de86197a9791389064891b7c",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "main-snapshot-b.json",
+      "stored_filename": "main-snapshot-b.json.gz",
+      "original_bytes": 313651,
+      "stored_bytes": 68954,
+      "original_sha256": "395873dea0112f92373847d1f549c3814a107bb74a9b3317579e472099cd9a11",
+      "stored_sha256": "cf10a2dd7dbab4fd7b48b7a5e810af52fd63b7116de2215570e46410a9ca6cb7",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "issue-491-snapshot-a.json",
+      "stored_filename": "issue-491-snapshot-a.json.gz",
+      "original_bytes": 1822,
+      "stored_bytes": 829,
+      "original_sha256": "8ba414f3dca188eb877e8c5a3b8dfbcb9d29edb13fa5e02a27bab6e42b71a3c8",
+      "stored_sha256": "df1360e1259a830e644261e5f6da3864ed02094e3fe970e86fd0b678f2e12aa6",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "main-materials-snapshot-b.json",
+      "stored_filename": "main-materials-snapshot-b.json.gz",
+      "original_bytes": 1159398,
+      "stored_bytes": 218474,
+      "original_sha256": "aa2dddc8cd5f148e8424484ec18944e49fd59a06018dfe78903b3212dbe9777a",
+      "stored_sha256": "0f3b81c1886c1d5a3dc6c3e61cc9be3b4d239e316fd4a086e4ccb8e7e3048887",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "issue-503-snapshot-a.json",
+      "stored_filename": "issue-503-snapshot-a.json.gz",
+      "original_bytes": 2134,
+      "stored_bytes": 924,
+      "original_sha256": "f340861d6b710db2190b41fa7a8796731dafbeff3fd1d8c1cc60b4347e78dfa4",
+      "stored_sha256": "68cdf0b003c8482faa54d72d382d4e9baada2d70a5f0cb0200e85731536b74c3",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "main-b-c-compare.json",
+      "stored_filename": "main-b-c-compare.json.gz",
+      "original_bytes": 101582,
+      "stored_bytes": 24841,
+      "original_sha256": "c4b41b06e7d2d7c0d78d07750f72c5e2c58fc6aaaaf7ac45497549ea3df868af",
+      "stored_sha256": "41fc9fd5739e69b496eac05ac425883f3919efac0ffa45446760f071f3a68931",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-570-snapshot-b.json",
+      "stored_filename": "comments-570-snapshot-b.json.gz",
+      "original_bytes": 23054,
+      "stored_bytes": 5268,
+      "original_sha256": "a5f0ff64d7639813478228e8cea7a9811184864f92d0374c8cbd55987517f6d7",
+      "stored_sha256": "357ad60cde5af471e0e960503fb43354d44314fe18f3466ecd814f9d9ecb7f27",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "issue-570-snapshot-a.json",
+      "stored_filename": "issue-570-snapshot-a.json.gz",
+      "original_bytes": 4793,
+      "stored_bytes": 2200,
+      "original_sha256": "c56b67e9a41bab0e6113787fbc465bbac0943b2982a2ccb15401dc2f4364daed",
+      "stored_sha256": "59a03dba7d5c900d1b0e672b4d2da1efa6da68b0cb7d39c0221eb50694862f39",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "scenario-ownership-screen.json",
+      "stored_filename": "scenario-ownership-screen.json.gz",
+      "original_bytes": 1657077,
+      "stored_bytes": 332053,
+      "original_sha256": "0394fde9d1b9395bbeec40541aa8ca34315a66cef3fdf31c6bfe9df4e18c53b0",
+      "stored_sha256": "35a9b5c6a30eb32841557209e8cd29a64e9e5e4860f137de598a15ab2a71db91",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "issue-586-snapshot-a.json",
+      "stored_filename": "issue-586-snapshot-a.json.gz",
+      "original_bytes": 4571,
+      "stored_bytes": 2096,
+      "original_sha256": "7f007480fedfcd581b4b9691a674f3ec3ee9df1df363db3aac92a56f08cca87b",
+      "stored_sha256": "6dcb93565094cb126f7059231096ac754527b2312fbb6151b260759a06879539",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "open-pr-exacthead-ledgers-snapshot-a.json",
+      "stored_filename": "open-pr-exacthead-ledgers-snapshot-a.json.gz",
+      "original_bytes": 4723811,
+      "stored_bytes": 377947,
+      "original_sha256": "47df05dd8aa093933645f6ef630932c4f5b33bafb1a154a42d69140aa3521ee7",
+      "stored_sha256": "f451de4e1db78f4503445dbc87dd19fea71f7366282366e1fb36e74c779abf46",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-491-snapshot-a.json",
+      "stored_filename": "comments-491-snapshot-a.json.gz",
+      "original_bytes": 1924371,
+      "stored_bytes": 310847,
+      "original_sha256": "3d8d6cba4fdcbbb2db2869e8a6d15f4f408e165d80e90a5509e84fe41f2dcdb9",
+      "stored_sha256": "94aa50edf88af5a4ff2eba97415c997160acedf00957a2dcd656d8c3387e2e80",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-586-snapshot-b.json",
+      "stored_filename": "comments-586-snapshot-b.json.gz",
+      "original_bytes": 25363,
+      "stored_bytes": 5850,
+      "original_sha256": "8281af4d9c3104ecad712be80fc3b12c482690f2eabbb4dca72e2aadb43dbe82",
+      "stored_sha256": "f6424586223f3ded3731ad96de9657089457d8e3d16bf47fdd26cc0c04075972",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "main-snapshot-c.json",
+      "stored_filename": "main-snapshot-c.json.gz",
+      "original_bytes": 76828,
+      "stored_bytes": 22729,
+      "original_sha256": "ed9a0e25a19780c918912d93e34df28b5b3dc7408fa6db6053f5e6435adf8da5",
+      "stored_sha256": "e962aaec592bbf17b1d91b9e92c3aed2e6db0e76546d6f516c7d78b2f27849cd",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "open-prs-snapshot-c.json",
+      "stored_filename": "open-prs-snapshot-c.json.gz",
+      "original_bytes": 1267842,
+      "stored_bytes": 100483,
+      "original_sha256": "d9574822c699d8a04badab91847eace58cd876853a2c7364df13971f690d184a",
+      "stored_sha256": "50d7e8364bb179b59050a11d39af3325cb3cd887480163ec2a3cbada95c4f373",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-503-snapshot-b.json",
+      "stored_filename": "comments-503-snapshot-b.json.gz",
+      "original_bytes": 105928,
+      "stored_bytes": 19570,
+      "original_sha256": "854b6188374f914119672eca2f3ef5b57cc42cee90b03dcaec4bf6105809990a",
+      "stored_sha256": "423005234f696dfa2ad9ae3397bff26975ad1e85d00d616ad047619ff123cf88",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "open-pr-additions-snapshot-c.json",
+      "stored_filename": "open-pr-additions-snapshot-c.json.gz",
+      "original_bytes": 354645,
+      "stored_bytes": 35963,
+      "original_sha256": "9f9f92ec3048577d2c83aa3abb85abf7948f9b54d19fd74b6bdbe0f3c1fa58c1",
+      "stored_sha256": "b71b6be4a5dd4747eaad40dbd8e03dcc8ef93c2d0a02f83d4f9eebc3b7d5c38d",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-570-snapshot-a.json",
+      "stored_filename": "comments-570-snapshot-a.json.gz",
+      "original_bytes": 23054,
+      "stored_bytes": 5268,
+      "original_sha256": "a5f0ff64d7639813478228e8cea7a9811184864f92d0374c8cbd55987517f6d7",
+      "stored_sha256": "357ad60cde5af471e0e960503fb43354d44314fe18f3466ecd814f9d9ecb7f27",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "ownership-target-hits-snapshot-a.json",
+      "stored_filename": "ownership-target-hits-snapshot-a.json.gz",
+      "original_bytes": 387744,
+      "stored_bytes": 134227,
+      "original_sha256": "a596bc6f1f1b13575cd42e405357cf8a877e9caf1194559759027d84cc5b8c3b",
+      "stored_sha256": "9ecb91f76385a271a3ada234628992bee6f7d31ba5c030fd570e3234635f5167",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-503-snapshot-a.json",
+      "stored_filename": "comments-503-snapshot-a.json.gz",
+      "original_bytes": 103246,
+      "stored_bytes": 19141,
+      "original_sha256": "c1d6493d5fa510ea4ef50cd17d3a4254f3910a6d2ef4adc63fbeaf3918fda76d",
+      "stored_sha256": "ea80c4526f31111832cfeac69ef6bd1afee74d4dd6ca4436a7bc23f6218ad0f8",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "main-materials-snapshot-c.json",
+      "stored_filename": "main-materials-snapshot-c.json.gz",
+      "original_bytes": 379929,
+      "stored_bytes": 64268,
+      "original_sha256": "c42ba21c6228410381cc3857e6eb9ee40a95f8ef8c40b18897558f401b03ac88",
+      "stored_sha256": "8c4bb7e312c2316481d23d9b6b6ef60c0a82cff5d673d21609b62049749f94c2",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-503-snapshot-c.json",
+      "stored_filename": "comments-503-snapshot-c.json.gz",
+      "original_bytes": 116000,
+      "stored_bytes": 21080,
+      "original_sha256": "d9cd1302d7d9ba0df91628c2876f4b518d22a510939f422405109d8fb23e7a02",
+      "stored_sha256": "8614f55a4840cfa0fb393c743626dd75444c37f9223b1800c616590302c5932b",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "open-prs-snapshot-b.json",
+      "stored_filename": "open-prs-snapshot-b.json.gz",
+      "original_bytes": 1268426,
+      "stored_bytes": 100638,
+      "original_sha256": "e94c0707f4cdaed6f14b8e31b515c337f67f9bdaff037a55ec7a965e322a118d",
+      "stored_sha256": "a029473f046835fc037c996b0b782300e09a490854871601465a4343f853fe04",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "open-pr-changed-paths-snapshot-a.json",
+      "stored_filename": "open-pr-changed-paths-snapshot-a.json.gz",
+      "original_bytes": 380708,
+      "stored_bytes": 53739,
+      "original_sha256": "97d9cde0d2b28705abd341cc277c7aff4c62b55e31ed17510e8c8f48c5616400",
+      "stored_sha256": "7ad69eb999dbf547d3eeccfdd86728587ebfeefdf80e8077ab0baefec0a15c73",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-491-snapshot-b.json",
+      "stored_filename": "comments-491-snapshot-b.json.gz",
+      "original_bytes": 1924371,
+      "stored_bytes": 310847,
+      "original_sha256": "3d8d6cba4fdcbbb2db2869e8a6d15f4f408e165d80e90a5509e84fe41f2dcdb9",
+      "stored_sha256": "94aa50edf88af5a4ff2eba97415c997160acedf00957a2dcd656d8c3387e2e80",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "issue-530-snapshot-a.json",
+      "stored_filename": "issue-530-snapshot-a.json.gz",
+      "original_bytes": 6410,
+      "stored_bytes": 2968,
+      "original_sha256": "1365bc5687b52e437e75c94ec1016a83a00d9f3fd4d3a16284cebf28f39ca1f9",
+      "stored_sha256": "e31aa2bbfba4e6345b8e29888b915c3cbdb31ab452c1c58c7d8dcf90705c30e7",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-586-snapshot-a.json",
+      "stored_filename": "comments-586-snapshot-a.json.gz",
+      "original_bytes": 25432,
+      "stored_bytes": 5869,
+      "original_sha256": "660b7dd8c40b7a906fb520d7fe7db8e5783c2206383b6bb11f38f5e2ce5eeb17",
+      "stored_sha256": "929cbbdcf6c70783f9db065b89c63ec99c601e7432453af142096e42e89b75ae",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    },
+    {
+      "original_filename": "comments-530-snapshot-c.json",
+      "stored_filename": "comments-530-snapshot-c.json.gz",
+      "original_bytes": 1166760,
+      "stored_bytes": 185042,
+      "original_sha256": "6a6527dc34467712a3977a5bd4bdc3fd3b56a5cbd480e264cf7a908cd55e3023",
+      "stored_sha256": "3d192c9ceac0558f2e0096428fdfb7abff4deabd05e44fb983f81bda3649e66a",
+      "compression": "gzip mtime0; exact original bytes reconstructible"
+    }
+  ],
+  "readable_receipts": [
+    {
+      "filename": "next-interface-freeze.md",
+      "bytes": 11227,
+      "sha256": "b97d82315a6415ba5d7b6a93ac38ddca3c553ac17eeeb069d47eb362def72ddb"
+    },
+    {
+      "filename": "scenario-followup.md",
+      "bytes": 6001,
+      "sha256": "42f7ed77658b523b723432ca52f5be6782364385c22eabd229dbbaa50b5f55a0"
+    },
+    {
+      "filename": "inventory-receipt.json",
+      "bytes": 3028,
+      "sha256": "b80a14f27077bd819e64494be0c21322f08c10e1022095cc6d03261f146f06be"
+    },
+    {
+      "filename": "literal-screen.json",
+      "bytes": 125700,
+      "sha256": "7b534089c3dd41618c441d2c8ca739b05ac2f863a1ce23271f21fb3a6c8abd40"
+    },
+    {
+      "filename": "p01-static-source-join.json",
+      "bytes": 260707,
+      "sha256": "b82564d76a35e2519550e40572dc5ed8d2bc1146047c630fba8aa2897c2f5765"
+    },
+    {
+      "filename": "material-source-pins.json",
+      "bytes": 16510,
+      "sha256": "f70a682cd6b1d7cb7e6ec9ad31caa5eb90117be608242f47cc00f48d7a15a314"
+    },
+    {
+      "filename": "open-pr-ledger-classification.json",
+      "bytes": 42644,
+      "sha256": "cab5f294d9b7d70fe6ec01652fc289317de45a15bbf43ed6a7a1f1bed202bd6b"
+    }
+  ],
+  "verification": "All stored gzip exact roundtrips and JSON parses; no tests/source modules imported, no GitHub mutations or git operations.",
+  "count": 33
+}

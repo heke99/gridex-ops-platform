@@ -1,0 +1,130 @@
+[
+  {
+    "path": "lib/ediel/flows/supplyMarketTransition.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "12eb1c04e2af1caf1c539107f2a948c034dba346",
+    "remote_sha256": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829",
+    "local_sha256": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829",
+    "equal_local": true
+  },
+  {
+    "path": "lib/ediel/flows/inboundBusinessStateMachine.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "1964e7157140e16d1591c6a4f89e5beae765e35a",
+    "remote_sha256": "d296385e2dcc5e8ad74eb8a9bf376d31fe0b5ca188331f5e6014a764eace80a6",
+    "local_sha256": "d296385e2dcc5e8ad74eb8a9bf376d31fe0b5ca188331f5e6014a764eace80a6",
+    "equal_local": true
+  },
+  {
+    "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "598e05fd47cf261572dc1e71793d5d7a6be01522",
+    "remote_sha256": "1d3e51de42176234867d4e1546447c36eae44222e8d0ae04bed6e2db36f5d3be",
+    "local_sha256": "1d3e51de42176234867d4e1546447c36eae44222e8d0ae04bed6e2db36f5d3be",
+    "equal_local": true
+  },
+  {
+    "path": "lib/ediel/flows/inboundProcessing.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5",
+    "remote_sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+    "local_sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+    "equal_local": true
+  },
+  {
+    "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "3338e7b097e37d3ab88818644ddfdb8ce526e1b7",
+    "remote_sha256": "a2ddbcc4e917e3bce8100241d48aec026ec56297d905eca9383bfe5a83873ed4",
+    "local_sha256": "a2ddbcc4e917e3bce8100241d48aec026ec56297d905eca9383bfe5a83873ed4",
+    "equal_local": true
+  },
+  {
+    "path": "lib/ediel/permissions/permissionMarketTransition.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "9d9a7fc2912706b8fd1db2a1ac45e7262d6455d4",
+    "remote_sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+    "local_sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+    "equal_local": true
+  },
+  {
+    "path": "lib/ediel/prodat/prodatPriorPermissionFlow.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "0eacc59f3d1da1184acc86ac2aa58d6502337713",
+    "remote_sha256": "291de4c0ba372d28359d1970ebac31a38d8bdd24e33caa108b945facfa827775",
+    "local_sha256": "291de4c0ba372d28359d1970ebac31a38d8bdd24e33caa108b945facfa827775",
+    "equal_local": true
+  },
+  {
+    "path": "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "1a6f1782c1803f30d2ff1d43de8d5bfbbbd50f14",
+    "remote_sha256": "0375ff5aa01b41b94b481100d1840332b15b92d20a9133daaea085989f0e965e",
+    "local_sha256": "0375ff5aa01b41b94b481100d1840332b15b92d20a9133daaea085989f0e965e",
+    "equal_local": true
+  },
+  {
+    "path": "__tests__/ediel-supply-market-consumers.test.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "900d0c8c17829f1ab16c00f0a771a88586ad3c2c",
+    "remote_sha256": "13fbf9d00f4458dd9892b286193208f2b2b2cca8b05a9124c69c7572e0c89ea2",
+    "local_sha256": "13fbf9d00f4458dd9892b286193208f2b2b2cca8b05a9124c69c7572e0c89ea2",
+    "equal_local": true
+  },
+  {
+    "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "e138f50cc1f30b16eced98b1668df2667af72788",
+    "remote_sha256": "b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc",
+    "local_sha256": "b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc",
+    "equal_local": true
+  },
+  {
+    "path": "scripts/ediel-source-owner-native.test.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "783087b6c479eb19b95bf11381da096b07246688",
+    "remote_sha256": "91842969f73d20c5d66095cef98cb99e4e47433d3d52d9d41c4ee07668e3814a",
+    "local_sha256": "91842969f73d20c5d66095cef98cb99e4e47433d3d52d9d41c4ee07668e3814a",
+    "equal_local": true
+  },
+  {
+    "path": "scripts/ediel-prodat-ack-raw-scope-native.test.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "21f02ae4981e8519b2e6a7e1d1492b888cde6ae9",
+    "remote_sha256": "7f5a0655a6e2b6164517dde9c60464b8acf2db3d469c5c20d5b743d6556dfdec",
+    "local_sha256": "7f5a0655a6e2b6164517dde9c60464b8acf2db3d469c5c20d5b743d6556dfdec",
+    "equal_local": true
+  },
+  {
+    "path": "scripts/ediel-normal-switch-source-sql-regression.mjs",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "b6d788a89644d9a351653f5761c581af9880d34b",
+    "remote_sha256": "3740a7c8cb28abd3c4c46188cca992d88eae7b49f4762723202cbc111e20c6e6",
+    "local_sha256": "3740a7c8cb28abd3c4c46188cca992d88eae7b49f4762723202cbc111e20c6e6",
+    "equal_local": true
+  },
+  {
+    "path": "scripts/ediel-prodat-supply-final-response-composition.mjs",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "f5fc06a9041d96f782d228ea26a3bfc4e00515d4",
+    "remote_sha256": "c132a3d2dc0d849a59e35e83b4c2b0c92c5748a9d4066f526d02b06c3764c4cc",
+    "local_sha256": "c132a3d2dc0d849a59e35e83b4c2b0c92c5748a9d4066f526d02b06c3764c4cc",
+    "equal_local": true
+  },
+  {
+    "path": "__tests__/ediel-prodat-permission-ack-inbound.test.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "c62ba705b75b5525d47d461fd67e6e458a90d8ad",
+    "remote_sha256": "55d0f716a8b6eda5314703c77b1009f46c6f3b05097b12f0a4f971882a07a410",
+    "local_sha256": "55d0f716a8b6eda5314703c77b1009f46c6f3b05097b12f0a4f971882a07a410",
+    "equal_local": true
+  },
+  {
+    "path": "__tests__/helpers/prodatInboundSourceFixture.ts",
+    "ref": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "github_blob": "f5fab7be8613065efebb45af268edb1880a92ca9",
+    "remote_sha256": "d3511b00699147c05baf0ff725c8289ce541cf0819ea4c633f0b64a038ab3878",
+    "local_sha256": "d3511b00699147c05baf0ff725c8289ce541cf0819ea4c633f0b64a038ab3878",
+    "equal_local": true
+  }
+]

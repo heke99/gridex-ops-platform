@@ -1,0 +1,2844 @@
+{
+  "fresh_main": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "status_counts": {
+    "rules": {
+      "NOT_VERIFIED": 24,
+      "VERIFIED": 92,
+      "PARTIAL": 5
+    },
+    "acceptance_contracts": {
+      "NOT_EXECUTED": 93,
+      "PASSED": 121,
+      "PARTIAL": 17
+    }
+  },
+  "screen_scope": "All121rule/231acceptance status rows;35priority TEN/ESCO/ACK complete ruleAT pairs; wholeP01/AT andP04 exclusion. Semantic qualification of all352 is NOT claimed.",
+  "priority": [
+    {
+      "rule": {
+        "id": "TEN-01",
+        "area": "Tenant och aktör",
+        "kind": "Intern arkitektur",
+        "applies_to": "Alla affärsoperationer",
+        "trigger": "Command skapas eller meddelande attribueras",
+        "condition": "Tenant, juridisk aktör, operativ roll och teknisk identitet är olika typer.",
+        "on_pass": "Skapa verifierat execution context före kundmutation.",
+        "on_failure": "Tenantens namn/domän/mejl får inte ersätta marknadsidentitet.",
+        "callsite_owner": "authorizeEdielContext (föreslaget lager)",
+        "source": "SYS; T §5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-01"
+      },
+      "acceptance": {
+        "id": "AT-TEN-01",
+        "name": "Regelkontrakt: TEN-01",
+        "given": "Alla affärsoperationer",
+        "when": "Command skapas eller meddelande attribueras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Tenant, juridisk aktör, operativ roll och teknisk identitet är olika typer. → Skapa verifierat execution context före kundmutation.",
+        "prohibited": "Tenantens namn/domän/mejl får inte ersätta marknadsidentitet.",
+        "rule_ids": [
+          "TEN-01"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-01",
+        "acceptance_id": "AT-TEN-01",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/core/kernel.ts",
+          "lib/ediel/core/outboundExecutionContext.ts",
+          "lib/ediel/core/actorRegistry.ts",
+          "lib/ediel/tenant/tenantEdielIdentity.ts",
+          "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+          "__tests__/ediel-outbound-execution-context.test.ts",
+          "__tests__/ediel-actor-role-profiles.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-01",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/core/kernel.ts",
+          "lib/ediel/core/outboundExecutionContext.ts",
+          "lib/ediel/core/actorRegistry.ts",
+          "lib/ediel/tenant/tenantEdielIdentity.ts",
+          "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+          "__tests__/ediel-outbound-execution-context.test.ts",
+          "__tests__/ediel-actor-role-profiles.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-02",
+        "area": "Egen marknadsidentitet",
+        "kind": "Intern arkitektur",
+        "applies_to": "Tenant med egen leverantör/ESCO",
+        "trigger": "Utgående/inkommande trafik",
+        "condition": "Tenantens verifierade juridiska Ediel-id används; gemensam brevlåda är en transportegenskap.",
+        "on_pass": "Bevara befintligt beslut om egna Ediel-id; separata aktörsprofiler för DDQ/DGI.",
+        "on_failure": "Byt inte alla till Gridex-id eller registrera tekniskt ombud automatiskt.",
+        "callsite_owner": "tenant actor registry / route resolver",
+        "source": "Användarbeslut; T §5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-02"
+      },
+      "acceptance": {
+        "id": "AT-TEN-02",
+        "name": "Regelkontrakt: TEN-02",
+        "given": "Tenant med egen leverantör/ESCO",
+        "when": "Utgående/inkommande trafik – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Tenantens verifierade juridiska Ediel-id används; gemensam brevlåda är en transportegenskap. → Bevara befintligt beslut om egna Ediel-id; separata aktörsprofiler för DDQ/DGI.",
+        "prohibited": "Byt inte alla till Gridex-id eller registrera tekniskt ombud automatiskt.",
+        "rule_ids": [
+          "TEN-02"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-02",
+        "acceptance_id": "AT-TEN-02",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/core/kernel.ts",
+          "lib/ediel/core/outboundExecutionContext.ts",
+          "lib/ediel/core/actorRegistry.ts",
+          "lib/ediel/tenant/tenantEdielIdentity.ts",
+          "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+          "__tests__/ediel-outbound-execution-context.test.ts",
+          "__tests__/ediel-actor-role-profiles.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-02",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/core/kernel.ts",
+          "lib/ediel/core/outboundExecutionContext.ts",
+          "lib/ediel/core/actorRegistry.ts",
+          "lib/ediel/tenant/tenantEdielIdentity.ts",
+          "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+          "__tests__/ediel-outbound-execution-context.test.ts",
+          "__tests__/ediel-actor-role-profiles.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-03",
+        "area": "ESCO för andra tenants",
+        "kind": "Intern arkitektur",
+        "applies_to": "Gridex är legal ESCO åt beneficiary tenant",
+        "trigger": "Z13 beställs av annan tenant",
+        "condition": "Operating tenant/actor=ESCO-leverantören; beneficiary tenant uttrycklig; kund- och DSO-avtal ger marknadsgrund.",
+        "on_pass": "Z13 sänds i den verkliga ESCO-aktörens DGI-roll, utan interna tenant-id i EDIFACT.",
+        "on_failure": "SaaS-avtal/ägande av plattformen ger inte mätvärdestillstånd.",
+        "callsite_owner": "service_assignment + permission command",
+        "source": "HB kap.11; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-03"
+      },
+      "acceptance": {
+        "id": "AT-TEN-03",
+        "name": "Regelkontrakt: TEN-03",
+        "given": "Gridex är legal ESCO åt beneficiary tenant",
+        "when": "Z13 beställs av annan tenant – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Operating tenant/actor=ESCO-leverantören; beneficiary tenant uttrycklig; kund- och DSO-avtal ger marknadsgrund. → Z13 sänds i den verkliga ESCO-aktörens DGI-roll, utan interna tenant-id i EDIFACT.",
+        "prohibited": "SaaS-avtal/ägande av plattformen ger inte mätvärdestillstånd.",
+        "rule_ids": [
+          "TEN-03"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-03",
+        "acceptance_id": "AT-TEN-03",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/flows/prodatServicePermission.ts",
+          "lib/ediel/services/permissionOrigin.ts",
+          "__tests__/ediel-service-permission-origin.test.ts",
+          "__tests__/ediel-source-producer-reference.test.ts",
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-03",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-service-permission-origin.test.ts",
+          "__tests__/ediel-source-producer-reference.test.ts",
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-04",
+        "area": "Tekniskt ombud",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Verkligt registrerat ombudsförhållande",
+        "trigger": "Adressmatchning",
+        "condition": "InterchangePartyId och juridisk PartyId bevaras var för sig; stöd endast uttryckligen dokumenterad relation.",
+        "on_pass": "Routa tekniskt via ombud utan att byta juridisk aktör.",
+        "on_failure": "Tvinga inte teknisk==juridisk; anta inte att delad SMTP betyder ombudsmandat.",
+        "callsite_owner": "registry importer / route resolver",
+        "source": "T §5; companies.xml",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-04"
+      },
+      "acceptance": {
+        "id": "AT-TEN-04",
+        "name": "Regelkontrakt: TEN-04",
+        "given": "Verkligt registrerat ombudsförhållande",
+        "when": "Adressmatchning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "InterchangePartyId och juridisk PartyId bevaras var för sig; stöd endast uttryckligen dokumenterad relation. → Routa tekniskt via ombud utan att byta juridisk aktör.",
+        "prohibited": "Tvinga inte teknisk==juridisk; anta inte att delad SMTP betyder ombudsmandat.",
+        "rule_ids": [
+          "TEN-04"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-04",
+        "acceptance_id": "AT-TEN-04",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/tenant/tenantEdielIdentity.ts",
+          "lib/ediel/tenant/resolveInboundTenant.ts",
+          "__tests__/tenant-ediel-identity-evidence.test.ts",
+          "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-04",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/tenant-ediel-identity-evidence.test.ts",
+          "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-05",
+        "area": "Separata verksamhetsroller",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Aktör både DDQ och DGI",
+        "trigger": "Varje affärshändelse",
+        "condition": "Roll bestäms av affärsprocess, inte globalt standardfält.",
+        "on_pass": "23-DDQ-PRODAT för leverantörsprocess;23-DGI-PRODAT för tillståndsprocess.",
+        "on_failure": "Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+        "callsite_owner": "policy context / prodat application reference",
+        "source": "T §5.2.3; P §2.1; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-05"
+      },
+      "acceptance": {
+        "id": "AT-TEN-05",
+        "name": "Regelkontrakt: TEN-05",
+        "given": "Aktör både DDQ och DGI",
+        "when": "Varje affärshändelse – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Roll bestäms av affärsprocess, inte globalt standardfält. → 23-DDQ-PRODAT för leverantörsprocess;23-DGI-PRODAT för tillståndsprocess.",
+        "prohibited": "Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+        "rule_ids": [
+          "TEN-05"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-05",
+        "acceptance_id": "AT-TEN-05",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/core/marketRole.ts",
+          "lib/ediel/rulebook/prodatApplicationReference.ts",
+          "lib/ediel/rulebook/prodatRulebook.ts",
+          "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+          "lib/ediel/permissions/permissionMarketTransition.ts",
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-05",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-06",
+        "area": "Delad brevlåda",
+        "kind": "Intern arkitektur",
+        "applies_to": "Inkommande EDIFACT",
+        "trigger": "Efter säker MIME-/syntaxklassificering",
+        "condition": "Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns.",
+        "on_pass": "Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+        "on_failure": "Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+        "callsite_owner": "inbound actor resolver",
+        "source": "T §5; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-06"
+      },
+      "acceptance": {
+        "id": "AT-TEN-06",
+        "name": "Regelkontrakt: TEN-06",
+        "given": "Inkommande EDIFACT",
+        "when": "Efter säker MIME-/syntaxklassificering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns. → Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+        "prohibited": "Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+        "rule_ids": [
+          "TEN-06"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-06",
+        "acceptance_id": "AT-TEN-06",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/tenant/resolveInboundTenant.ts",
+          "lib/inbound-mail/inboundTenantResolver.ts",
+          "lib/ediel/core/tenantResolver.ts",
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+          "__tests__/ediel-inbound-mail-legal-receiver.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-06",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-07",
+        "area": "Transaktionsvis åtkomst",
+        "kind": "Intern arkitektur",
+        "applies_to": "Flera objekt/meddelanden i fil",
+        "trigger": "Efter juridisk mottagarattribution",
+        "condition": "Varje nyttig datadel matchas mot tillstånd och serviceuppdrag; transportkuvert och affärsgrants är inte samma omfattning.",
+        "on_pass": "Ägaraktören behåller råfil; beneficiaries ser bara tillåtna objekt/perioder/fält.",
+        "on_failure": "Ge inte hela EML/filen till en tenant som bara har rätt till en transaktion.",
+        "callsite_owner": "inbox → access projections",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-07"
+      },
+      "acceptance": {
+        "id": "AT-TEN-07",
+        "name": "Regelkontrakt: TEN-07",
+        "given": "Flera objekt/meddelanden i fil",
+        "when": "Efter juridisk mottagarattribution – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Varje nyttig datadel matchas mot tillstånd och serviceuppdrag; transportkuvert och affärsgrants är inte samma omfattning. → Ägaraktören behåller råfil; beneficiaries ser bara tillåtna objekt/perioder/fält.",
+        "prohibited": "Ge inte hela EML/filen till en tenant som bara har rätt till en transaktion.",
+        "rule_ids": [
+          "TEN-07"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-07",
+        "acceptance_id": "AT-TEN-07",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/services/projection.ts",
+          "lib/ediel/services/projectionRequest.ts",
+          "lib/ediel/db.ts",
+          "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+          "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+          "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+          "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+          "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+          "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+          "scripts/test-ediel-ten-07-scoped-projection.cjs",
+          "scripts/ediel-transport-copy-sql-regression.mjs",
+          "__tests__/ediel-ten-07-owner-original.test.ts",
+          "__tests__/ediel-beneficiary-projection-api.test.ts",
+          "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+          "__tests__/ediel-transport-copy-api.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-07",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/services/projection.ts",
+          "lib/ediel/services/projectionRequest.ts",
+          "lib/ediel/db.ts",
+          "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+          "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+          "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+          "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+          "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+          "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+          "scripts/test-ediel-ten-07-scoped-projection.cjs",
+          "scripts/ediel-transport-copy-sql-regression.mjs",
+          "__tests__/ediel-ten-07-owner-original.test.ts",
+          "__tests__/ediel-beneficiary-projection-api.test.ts",
+          "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+          "__tests__/ediel-transport-copy-api.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-08",
+        "area": "Grantstyrd fan-out",
+        "kind": "Intern arkitektur",
+        "applies_to": "En ESCO-mätserie har flera giltiga mottagartenants",
+        "trigger": "Efter accepterad lagring",
+        "condition": "Separata data_access_grants för varje beneficiary, ändamål, objekt, produkt och tidsintervall.",
+        "on_pass": "En marknadsmottagning och kvittens; därefter separat intern distribution per giltigt grant.",
+        "on_failure": "Ingen automatisk kopiering till alla tenants med samma GSRN.",
+        "callsite_owner": "grant evaluator / projections",
+        "source": "HB kap.11; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-08"
+      },
+      "acceptance": {
+        "id": "AT-TEN-08",
+        "name": "Regelkontrakt: TEN-08",
+        "given": "En ESCO-mätserie har flera giltiga mottagartenants",
+        "when": "Efter accepterad lagring – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Separata data_access_grants för varje beneficiary, ändamål, objekt, produkt och tidsintervall. → En marknadsmottagning och kvittens; därefter separat intern distribution per giltigt grant.",
+        "prohibited": "Ingen automatisk kopiering till alla tenants med samma GSRN.",
+        "rule_ids": [
+          "TEN-08"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-08",
+        "acceptance_id": "AT-TEN-08",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+          "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+          "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+          "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
+          "scripts/test-ediel-ten-08-10-grants.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-08",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-ten-08-10-grants.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-09",
+        "area": "Överlappande ESCO-uppdrag",
+        "kind": "Intern arkitektur",
+        "applies_to": "Samma legal ESCO/kund/DSO",
+        "trigger": "Ny begäran eller uppsägning",
+        "condition": "Koordinera market_permission över serviceuppdrag; beneficiary-id är inte en ny marknadsaktör.",
+        "on_pass": "Återanvänd enbart rättsligt och semantiskt kompatibelt tillstånd; håll uppdragsgrants separata.",
+        "on_failure": "En tenant får inte starta dubblett-Z13 eller avsluta delat tillstånd för andra.",
+        "callsite_owner": "ESCO coordinator",
+        "source": "HB kap.11; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-09"
+      },
+      "acceptance": {
+        "id": "AT-TEN-09",
+        "name": "Regelkontrakt: TEN-09",
+        "given": "Samma legal ESCO/kund/DSO",
+        "when": "Ny begäran eller uppsägning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Koordinera market_permission över serviceuppdrag; beneficiary-id är inte en ny marknadsaktör. → Återanvänd enbart rättsligt och semantiskt kompatibelt tillstånd; håll uppdragsgrants separata.",
+        "prohibited": "En tenant får inte starta dubblett-Z13 eller avsluta delat tillstånd för andra.",
+        "rule_ids": [
+          "TEN-09"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-09",
+        "acceptance_id": "AT-TEN-09",
+        "status": "PARTIAL",
+        "evidence": [
+          "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+          "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
+          "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+          "scripts/test-ediel-esco-06-request-coordination.cjs",
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+          "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+          "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
+          "scripts/test-ediel-ten-09-resolve-timing.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-09",
+        "status": "PARTIAL",
+        "evidence": [
+          "scripts/test-ediel-esco-06-request-coordination.cjs",
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+          "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+          "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
+          "scripts/test-ediel-ten-09-resolve-timing.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-10",
+        "area": "Återkallelse",
+        "kind": "Intern arkitektur",
+        "applies_to": "Market permission eller internt grant ändras",
+        "trigger": "API-läsning, export och jobbverkställighet",
+        "condition": "Åtkomst prövas mot aktuella grantversioner; marknadsslut och intern tenantåterkallelse olika händelser.",
+        "on_pass": "Stoppa framtida otillåten användning; bevara tillåten historik/audit enligt lagringspolicy.",
+        "on_failure": "Ingen återaktivering av återkallat beneficiary-grant bara för att Z15C återställer marknadstillstånd.",
+        "callsite_owner": "RLS/RPC/access service",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-10"
+      },
+      "acceptance": {
+        "id": "AT-TEN-10",
+        "name": "Regelkontrakt: TEN-10",
+        "given": "Market permission eller internt grant ändras",
+        "when": "API-läsning, export och jobbverkställighet – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Åtkomst prövas mot aktuella grantversioner; marknadsslut och intern tenantåterkallelse olika händelser. → Stoppa framtida otillåten användning; bevara tillåten historik/audit enligt lagringspolicy.",
+        "prohibited": "Ingen återaktivering av återkallat beneficiary-grant bara för att Z15C återställer marknadstillstånd.",
+        "rule_ids": [
+          "TEN-10"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-10",
+        "acceptance_id": "AT-TEN-10",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+          "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+          "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+          "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
+          "scripts/test-ediel-ten-08-10-grants.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-10",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-ten-08-10-grants.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-11",
+        "area": "Inga fabricerade protokollfel",
+        "kind": "Intern arkitektur",
+        "applies_to": "Okänd lokal entitlement",
+        "trigger": "Inkommande giltig marknadstrafik",
+        "condition": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel.",
+        "on_pass": "Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+        "on_failure": "Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+        "callsite_owner": "decision/error classifier",
+        "source": "U bilaga1–2; T §2; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-11"
+      },
+      "acceptance": {
+        "id": "AT-TEN-11",
+        "name": "Regelkontrakt: TEN-11",
+        "given": "Okänd lokal entitlement",
+        "when": "Inkommande giltig marknadstrafik – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel. → Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+        "prohibited": "Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+        "rule_ids": [
+          "TEN-11"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-11",
+        "acceptance_id": "AT-TEN-11",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/inbound-mail/inboundStatusUpdater.ts",
+          "lib/ediel/flows/inboundProcessing.ts",
+          "lib/ediel/tenant/resolveInboundTenant.ts",
+          "__tests__/ediel-ten-11-no-fabricated-protocol-error.test.ts",
+          "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-11",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ten-11-no-fabricated-protocol-error.test.ts",
+          "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-12",
+        "area": "Isolering",
+        "kind": "Intern arkitektur",
+        "applies_to": "DB/API/job/cache",
+        "trigger": "Varje åtkomst",
+        "condition": "Sammansatta tenant-referenser, explicit delegation och grantfilter; service credentials inte synonymt med global behörighet.",
+        "on_pass": "RLS/RPC verifierar actor/role/tenant även i bakgrundsjobb; isolera cache/sök/export.",
+        "on_failure": "Ingen OR-villkorsbaserad superadminläcka till beneficiaries.",
+        "callsite_owner": "DB grants / API guards",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-12"
+      },
+      "acceptance": {
+        "id": "AT-TEN-12",
+        "name": "Regelkontrakt: TEN-12",
+        "given": "DB/API/job/cache",
+        "when": "Varje åtkomst – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Sammansatta tenant-referenser, explicit delegation och grantfilter; service credentials inte synonymt med global behörighet. → RLS/RPC verifierar actor/role/tenant även i bakgrundsjobb; isolera cache/sök/export.",
+        "prohibited": "Ingen OR-villkorsbaserad superadminläcka till beneficiaries.",
+        "rule_ids": [
+          "TEN-12"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-12",
+        "acceptance_id": "AT-TEN-12",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+          "lib/ediel/ack/committedInboundAck.ts",
+          "__tests__/ediel-committed-inbound-ack.test.ts",
+          "__tests__/ediel-fresh-business-incident.test.ts",
+          "scripts/test-ediel-ten-08-10-grants.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-12",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-committed-inbound-ack.test.ts",
+          "__tests__/ediel-fresh-business-incident.test.ts",
+          "scripts/test-ediel-ten-08-10-grants.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-13",
+        "area": "Identifierarutrymme",
+        "kind": "Normkrav + intern verkställighet",
+        "applies_to": "BGM/UNB/IDE/tillstånd",
+        "trigger": "Allokering och korrelation",
+        "condition": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.",
+        "on_pass": "Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+        "on_failure": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+        "callsite_owner": "identity allocator / correlator",
+        "source": "P §2.2,3; U §3.9,5.5; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-13"
+      },
+      "acceptance": {
+        "id": "AT-TEN-13",
+        "name": "Regelkontrakt: TEN-13",
+        "given": "BGM/UNB/IDE/tillstånd",
+        "when": "Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+        "prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+        "rule_ids": [
+          "TEN-13"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-13",
+        "acceptance_id": "AT-TEN-13",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/ack/sourceCorrelation.ts",
+          "lib/ediel/core/referenceGenerator.ts",
+          "__tests__/ediel-ack-source-correlation.test.ts",
+          "__tests__/ediel-source-producer-reference.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-13",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-source-correlation.test.ts",
+          "__tests__/ediel-source-producer-reference.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "TEN-14",
+        "area": "Avtal och dataansvar",
+        "kind": "Intern arkitektur",
+        "applies_to": "Cross-tenant ESCO",
+        "trigger": "Uppdrag aktiveras",
+        "condition": "Fastställ vem som är ESCO, berättigad mottagare, avtalspart och tillåten intern mottagare; dokumentera dataskyddsroller.",
+        "on_pass": "Tillåt avgränsad aktivering efter evidens.",
+        "on_failure": "Lämna uppdrag spärrat tills konkreta rättigheter finns; rollnamn är inte juridiskt bevis.",
+        "callsite_owner": "assignment approval",
+        "source": "HB kap.11; rättslig verifiering G04",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-14"
+      },
+      "acceptance": {
+        "id": "AT-TEN-14",
+        "name": "Regelkontrakt: TEN-14",
+        "given": "Cross-tenant ESCO",
+        "when": "Uppdrag aktiveras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Fastställ vem som är ESCO, berättigad mottagare, avtalspart och tillåten intern mottagare; dokumentera dataskyddsroller. → Tillåt avgränsad aktivering efter evidens.",
+        "prohibited": "Lämna uppdrag spärrat tills konkreta rättigheter finns; rollnamn är inte juridiskt bevis.",
+        "rule_ids": [
+          "TEN-14"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "TEN-14",
+        "acceptance_id": "AT-TEN-14",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+          "scripts/ediel-esco-01-02-request-basis-sql-regression.mjs",
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-14",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-01",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z13",
+        "trigger": "Ny rättighetsbegäran",
+        "condition": "Verifiera legal DGI-aktör, slutkundsavtal, DSO-avtal och avsedd omfattning av objekt, period, produkter och ändamål.",
+        "on_pass": "Skapa väntande begäran, knyt service_assignment och skicka rätt V/VH.",
+        "on_failure": "Ett avtal med beneficiary-tenant ger inte ensamt rätt till kundens mätvärden.",
+        "callsite_owner": "ESCO command service",
+        "source": "P §2.1,bilaga4; HB kap.11",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-01"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-01",
+        "name": "Regelkontrakt: ESCO-01",
+        "given": "Z13",
+        "when": "Ny rättighetsbegäran – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Verifiera legal DGI-aktör, slutkundsavtal, DSO-avtal och avsedd omfattning av objekt, period, produkter och ändamål. → Skapa väntande begäran, knyt service_assignment och skicka rätt V/VH.",
+        "prohibited": "Ett avtal med beneficiary-tenant ger inte ensamt rätt till kundens mätvärden.",
+        "rule_ids": [
+          "ESCO-01"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-01",
+        "acceptance_id": "AT-ESCO-01",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+          "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+          "lib/ediel/flows/prodatServicePermission.ts",
+          "scripts/ediel-esco-01-02-request-basis-sql-regression.mjs",
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-01",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-02",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z13V respektive Z13VH",
+        "trigger": "Rapportperiod väljs",
+        "condition": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum.",
+        "on_pass": "Behåll separata processer, timers och samordning av rättigheter.",
+        "on_failure": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+        "callsite_owner": "ESCO permission state machine",
+        "source": "HB kap.11; P §2.2",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-02"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-02",
+        "name": "Regelkontrakt: ESCO-02",
+        "given": "Z13V respektive Z13VH",
+        "when": "Rapportperiod väljs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum. → Behåll separata processer, timers och samordning av rättigheter.",
+        "prohibited": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+        "rule_ids": [
+          "ESCO-02"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-02",
+        "acceptance_id": "AT-ESCO-02",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+          "scripts/ediel-service-request-timing-sql-regression.mjs",
+          "scripts/ediel-esco-01-02-request-basis-sql-regression.mjs",
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-02",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-01-02-request-basis.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-03",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Positiv APERAK på Z13",
+        "trigger": "Kvittens tas emot",
+        "condition": "Kvittensen godkänner att begäran behandlas, inte slutkundens medgivande.",
+        "on_pass": "Sätt awaiting_customer_decision och bevaka Z14/Z14N.",
+        "on_failure": "Skapa varken market_permission eller aktiv elleverans enbart från APERAK.",
+        "callsite_owner": "ACK→ESCO reducer",
+        "source": "HB kap.11",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-03"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-03",
+        "name": "Regelkontrakt: ESCO-03",
+        "given": "Positiv APERAK på Z13",
+        "when": "Kvittens tas emot – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Kvittensen godkänner att begäran behandlas, inte slutkundens medgivande. → Sätt awaiting_customer_decision och bevaka Z14/Z14N.",
+        "prohibited": "Skapa varken market_permission eller aktiv elleverans enbart från APERAK.",
+        "rule_ids": [
+          "ESCO-03"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-03",
+        "acceptance_id": "AT-ESCO-03",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/permissions/permissionEngine.ts",
+          "lib/ediel/permissions/permissionStateMachine.ts",
+          "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+          "lib/ediel/permissions/permissionMarketTransition.ts",
+          "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-03",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-04",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z14V/Z14VH",
+        "trigger": "Positivt affärssvar",
+        "condition": "A74 och rätt LI, aktör och kund. Föreskrivna objekt-, adress-, tillstånds- och perioduppgifter ska stämma. Bara godkända objekt omfattas.",
+        "on_pass": "Skapa avgränsat market_permission; anslut därefter separat godkänd intern distribution.",
+        "on_failure": "Bredda inte till samtliga kundens anläggningar eller andra tenants från ett godkänt objekt.",
+        "callsite_owner": "ESCO reducer / grant gate",
+        "source": "P §2.2; HB kap.11",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-04"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-04",
+        "name": "Regelkontrakt: ESCO-04",
+        "given": "Z14V/Z14VH",
+        "when": "Positivt affärssvar – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "A74 och rätt LI, aktör och kund. Föreskrivna objekt-, adress-, tillstånds- och perioduppgifter ska stämma. Bara godkända objekt omfattas. → Skapa avgränsat market_permission; anslut därefter separat godkänd intern distribution.",
+        "prohibited": "Bredda inte till samtliga kundens anläggningar eller andra tenants från ett godkänt objekt.",
+        "rule_ids": [
+          "ESCO-04"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-04",
+        "acceptance_id": "AT-ESCO-04",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+          "lib/ediel/permissions/permissionMarketTransition.ts",
+          "scripts/ediel-partial-permission-source-sql-regression.mjs",
+          "scripts/ediel-esco-04-07-permission-sql-regression.mjs",
+          "scripts/test-ediel-esco-04-07-permissions.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-04",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-04-07-permissions.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-05",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z14N",
+        "trigger": "Aktivt eller passivt nekande",
+        "condition": "A13 anger aktivt och A76 passivt nekande. Ett korrekt negativt affärssvar är inte ett protokollfel.",
+        "on_pass": "Neka berörd begäran och informera ansvarig utan att exponera andra tenants.",
+        "on_failure": "Skapa inte tillstånd eller negativ APERAK enbart för att nätägaren nekar begäran.",
+        "callsite_owner": "ESCO reducer",
+        "source": "P §2.6; HB kap.11",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-05"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-05",
+        "name": "Regelkontrakt: ESCO-05",
+        "given": "Z14N",
+        "when": "Aktivt eller passivt nekande – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "A13 anger aktivt och A76 passivt nekande. Ett korrekt negativt affärssvar är inte ett protokollfel. → Neka berörd begäran och informera ansvarig utan att exponera andra tenants.",
+        "prohibited": "Skapa inte tillstånd eller negativ APERAK enbart för att nätägaren nekar begäran.",
+        "rule_ids": [
+          "ESCO-05"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-05",
+        "acceptance_id": "AT-ESCO-05",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/permissions/z14HandleResponse.ts",
+          "lib/ediel/permissions/permissionStateMachine.ts",
+          "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+          "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+          "scripts/ediel-esco-04-07-permission-sql-regression.mjs",
+          "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-05",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-06",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Nya objekt under pågående Z13-begäran",
+        "trigger": "Ny Z13 önskas",
+        "condition": "Koordinera samma aktör, kund och DSO. Tillkommande objekt kan kräva ny begäran; upprepning bedöms enligt Handboken, inte ett universellt negativt APERAK.",
+        "on_pass": "Tillåt en relevant ny begäran med spårbar koppling till tidigare förlopp.",
+        "on_failure": "Inför inte ett generellt förbud mot varje ny Z13 före 21 dagar och kringgå inte reglerna genom ett nytt internt tenant-id.",
+        "callsite_owner": "ESCO coordinator",
+        "source": "P ändringslogg; HB kap.11",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-06"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-06",
+        "name": "Regelkontrakt: ESCO-06",
+        "given": "Nya objekt under pågående Z13-begäran",
+        "when": "Ny Z13 önskas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Koordinera samma aktör, kund och DSO. Tillkommande objekt kan kräva ny begäran; upprepning bedöms enligt Handboken, inte ett universellt negativt APERAK. → Tillåt en relevant ny begäran med spårbar koppling till tidigare förlopp.",
+        "prohibited": "Inför inte ett generellt förbud mot varje ny Z13 före 21 dagar och kringgå inte reglerna genom ett nytt internt tenant-id.",
+        "rule_ids": [
+          "ESCO-06"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-06",
+        "acceptance_id": "AT-ESCO-06",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+          "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+          "lib/ediel/flows/prodatServicePermission.ts",
+          "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
+          "scripts/test-ediel-esco-06-request-coordination.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-06",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-06-request-coordination.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-07",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z15V/Z15VH",
+        "trigger": "Upphörande eller historikslut",
+        "condition": "Tillstånd, orsak, tidpunkt och process ska vara kända och överensstämmande.",
+        "on_pass": "Avsluta bara berört marknadstillstånd eller historikjobb; bevara andra separata rättigheter.",
+        "on_failure": "Historikslut får inte upphäva ett separat V-tillstånd. DDQ-leverans ska vara oförändrad.",
+        "callsite_owner": "ESCO reducer",
+        "source": "P §2.2; HB kap.11",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-07"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-07",
+        "name": "Regelkontrakt: ESCO-07",
+        "given": "Z15V/Z15VH",
+        "when": "Upphörande eller historikslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Tillstånd, orsak, tidpunkt och process ska vara kända och överensstämmande. → Avsluta bara berört marknadstillstånd eller historikjobb; bevara andra separata rättigheter.",
+        "prohibited": "Historikslut får inte upphäva ett separat V-tillstånd. DDQ-leverans ska vara oförändrad.",
+        "rule_ids": [
+          "ESCO-07"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-07",
+        "acceptance_id": "AT-ESCO-07",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+          "lib/ediel/permissions/permissionMarketTransition.ts",
+          "scripts/ediel-partial-permission-source-sql-regression.mjs",
+          "scripts/ediel-esco-04-07-permission-sql-regression.mjs",
+          "scripts/test-ediel-esco-04-07-permissions.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-07",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-04-07-permissions.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-08",
+        "area": "Tillstånd",
+        "kind": "Normkrav + intern verkställighet",
+        "applies_to": "Z18V",
+        "trigger": "Begäran om avslut",
+        "condition": "Behörig aktör ska avse rätt market_permission. Samordna beroenden från flera beneficiary-uppdrag.",
+        "on_pass": "Skicka fält 327/324/325 och bevaka Z15. Begränsa intern åtkomst enligt aktuellt mandat.",
+        "on_failure": "Säg inte upp ett gemensamt tillstånd på ett enskilt UI-klick utan kontroll av andra giltiga uppdrag.",
+        "callsite_owner": "ESCO termination coordinator",
+        "source": "P §2.2; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-08"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-08",
+        "name": "Regelkontrakt: ESCO-08",
+        "given": "Z18V",
+        "when": "Begäran om avslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Behörig aktör ska avse rätt market_permission. Samordna beroenden från flera beneficiary-uppdrag. → Skicka fält 327/324/325 och bevaka Z15. Begränsa intern åtkomst enligt aktuellt mandat.",
+        "prohibited": "Säg inte upp ett gemensamt tillstånd på ett enskilt UI-klick utan kontroll av andra giltiga uppdrag.",
+        "rule_ids": [
+          "ESCO-08"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-08",
+        "acceptance_id": "AT-ESCO-08",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+          "lib/ediel/flows/prodatServicePermission.ts",
+          "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+          "lib/ediel/permissions/permissionEngine.ts",
+          "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+          "__tests__/ediel-esco-08-z18-fields.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-08",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+          "__tests__/ediel-esco-08-z18-fields.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-09",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z15C",
+        "trigger": "Tidigare upphörande återtas",
+        "condition": "Kontrollera rätt ursprung och källstödda återställningsvillkor.",
+        "on_pass": "Återställ marknadsrelationen; ompröva varje downstream-grant självständigt.",
+        "on_failure": "Återuppliva inte utgångna kundavtal eller uttryckligen återkallade tenantbehörigheter.",
+        "callsite_owner": "ESCO reducer / access grants",
+        "source": "P Z15C; HB kap.11; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-09"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-09",
+        "name": "Regelkontrakt: ESCO-09",
+        "given": "Z15C",
+        "when": "Tidigare upphörande återtas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Kontrollera rätt ursprung och källstödda återställningsvillkor. → Återställ marknadsrelationen; ompröva varje downstream-grant självständigt.",
+        "prohibited": "Återuppliva inte utgångna kundavtal eller uttryckligen återkallade tenantbehörigheter.",
+        "rule_ids": [
+          "ESCO-09"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-09",
+        "acceptance_id": "AT-ESCO-09",
+        "status": "VERIFIED",
+        "evidence": [
+          "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+          "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+          "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+          "scripts/ediel-partial-permission-source-sql-regression.mjs",
+          "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-09",
+        "status": "PASSED",
+        "evidence": [
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-10",
+        "area": "Datadistribution",
+        "kind": "Ediel/Handbok",
+        "applies_to": "E66 i DGI-rollen",
+        "trigger": "Mätvärden tas emot",
+        "condition": "E66 kan sakna direkt tillstånds-id. Matcha juridisk relation, objekt, produkt, period och giltig tillstånds-/grantkoppling.",
+        "on_pass": "Lagra mottagningsbevis och distribuera endast till uttryckligen berättigade tenants.",
+        "on_failure": "Kräv inte ett påhittat permission-fält i E66. Matcha inte enbart på GSRN eller SMTP-adress.",
+        "callsite_owner": "UTILTS resolver / grants",
+        "source": "U §3.7–3.9; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-10"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-10",
+        "name": "Regelkontrakt: ESCO-10",
+        "given": "E66 i DGI-rollen",
+        "when": "Mätvärden tas emot – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "E66 kan sakna direkt tillstånds-id. Matcha juridisk relation, objekt, produkt, period och giltig tillstånds-/grantkoppling. → Lagra mottagningsbevis och distribuera endast till uttryckligen berättigade tenants.",
+        "prohibited": "Kräv inte ett påhittat permission-fält i E66. Matcha inte enbart på GSRN eller SMTP-adress.",
+        "rule_ids": [
+          "ESCO-10"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-10",
+        "acceptance_id": "AT-ESCO-10",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/services/projection.ts",
+          "scripts/ediel-esco-10-11-projection-native.test.ts",
+          "scripts/ediel-service-evidence-native.test.ts",
+          "__tests__/ediel-beneficiary-projection-api.test.ts",
+          "scripts/test-ediel-ten-07-scoped-projection.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-10",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/services/projection.ts",
+          "scripts/ediel-esco-10-11-projection-native.test.ts",
+          "scripts/ediel-service-evidence-native.test.ts",
+          "__tests__/ediel-beneficiary-projection-api.test.ts",
+          "scripts/test-ediel-ten-07-scoped-projection.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ESCO-11",
+        "area": "Datadistribution",
+        "kind": "Intern arkitektur",
+        "applies_to": "Intern vidareanvändning av E66-DGI",
+        "trigger": "Data används i annan tjänst",
+        "condition": "Tillåtet ändamål, rättslig/datamässig grund och processtillämplighet ska verifieras uttryckligen.",
+        "on_pass": "Bevara originalets DGI-roll, avsändare, kvalitet och syfte i varje härledd projektion.",
+        "on_failure": "Skriv inte om DGI till DDQ och skapa inte en falsk E66 från nätägaren för att passa faktureringen.",
+        "callsite_owner": "data usage policy",
+        "source": "HB kap.11; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-11"
+      },
+      "acceptance": {
+        "id": "AT-ESCO-11",
+        "name": "Regelkontrakt: ESCO-11",
+        "given": "Intern vidareanvändning av E66-DGI",
+        "when": "Data används i annan tjänst – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Tillåtet ändamål, rättslig/datamässig grund och processtillämplighet ska verifieras uttryckligen. → Bevara originalets DGI-roll, avsändare, kvalitet och syfte i varje härledd projektion.",
+        "prohibited": "Skriv inte om DGI till DDQ och skapa inte en falsk E66 från nätägaren för att passa faktureringen.",
+        "rule_ids": [
+          "ESCO-11"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ESCO-11",
+        "acceptance_id": "AT-ESCO-11",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/services/projection.ts",
+          "scripts/ediel-esco-10-11-projection-native.test.ts",
+          "scripts/ediel-service-evidence-native.test.ts",
+          "__tests__/ediel-beneficiary-projection-api.test.ts",
+          "scripts/test-ediel-ten-07-scoped-projection.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ESCO-11",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/services/projection.ts",
+          "scripts/ediel-esco-10-11-projection-native.test.ts",
+          "scripts/ediel-service-evidence-native.test.ts",
+          "__tests__/ediel-beneficiary-projection-api.test.ts",
+          "scripts/test-ediel-ten-07-scoped-projection.cjs"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-01",
+        "area": "CONTRL",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Alla inkommande EDIFACT utom CONTRL",
+        "trigger": "Syntaxresultat finns",
+        "condition": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå.",
+        "on_pass": "Larma vid negativt resultat och undvik kvittensloop.",
+        "on_failure": "Lägg inte nationell APERAK-kontroll i CONTRL.",
+        "callsite_owner": "canonicalAckEngine / syntax engine",
+        "source": "T §2.1",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-01"
+      },
+      "acceptance": {
+        "id": "AT-ACK-01",
+        "name": "Regelkontrakt: ACK-01",
+        "given": "Alla inkommande EDIFACT utom CONTRL",
+        "when": "Syntaxresultat finns – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
+        "prohibited": "Lägg inte nationell APERAK-kontroll i CONTRL.",
+        "rule_ids": [
+          "ACK-01"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-01",
+        "acceptance_id": "AT-ACK-01",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/ack.ts",
+          "lib/ediel/ack/inboundAckOutcome.ts",
+          "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+          "__tests__/ediel-ack-01-contrl.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-01",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-01-contrl.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-02",
+        "area": "P-APERAK",
+        "kind": "Ediel/Handbok",
+        "applies_to": "APERAK på PRODAT",
+        "trigger": "Applikationsresultat finns",
+        "condition": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.",
+        "on_pass": "Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+        "on_failure": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+        "callsite_owner": "P acknowledgement builder",
+        "source": "P §3.3–3.5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-02"
+      },
+      "acceptance": {
+        "id": "AT-ACK-02",
+        "name": "Regelkontrakt: ACK-02",
+        "given": "APERAK på PRODAT",
+        "when": "Applikationsresultat finns – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+        "prohibited": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+        "rule_ids": [
+          "ACK-02"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-02",
+        "acceptance_id": "AT-ACK-02",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/ack.ts",
+          "lib/ediel/aperakEngine.ts",
+          "lib/ediel/prodat/prodatAckMessageFunction.ts",
+          "lib/ediel/ack/prodatCommonHeaderNegativeAckRoute.ts",
+          "__tests__/ediel-ack-02-prodat-aperak.test.ts",
+          "__tests__/ediel-prodat-common-header-rejection.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-02",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-02-prodat-aperak.test.ts",
+          "__tests__/ediel-prodat-common-header-rejection.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-03",
+        "area": "U-APERAK",
+        "kind": "Ediel/Handbok",
+        "applies_to": "APERAK på UTILTS",
+        "trigger": "Anvisnings-/funktionsutfall finns",
+        "condition": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
+        "on_pass": "Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
+        "on_failure": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
+        "callsite_owner": "U acknowledgement builder",
+        "source": "U §5.3–5.5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-03"
+      },
+      "acceptance": {
+        "id": "AT-ACK-03",
+        "name": "Regelkontrakt: ACK-03",
+        "given": "APERAK på UTILTS",
+        "when": "Anvisnings-/funktionsutfall finns – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
+        "prohibited": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
+        "rule_ids": [
+          "ACK-03"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-03",
+        "acceptance_id": "AT-ACK-03",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/rulebook/ackGuidePolicy.ts",
+          "lib/ediel/aperakEngine.ts",
+          "lib/ediel/core/receivedUtiltsHeaderValidation.ts",
+          "__tests__/ediel-ack-03-10-aperak-structure.test.ts",
+          "__tests__/ediel-received-utilts-header-validation.test.ts",
+          "quality/audits/ediel-masterplan-v2/protocol.md",
+          "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-03",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-03-10-aperak-structure.test.ts",
+          "__tests__/ediel-received-utilts-header-validation.test.ts",
+          "quality/audits/ediel-masterplan-v2/protocol.md",
+          "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-04",
+        "area": "U-APERAK",
+        "kind": "Ediel/Handbok",
+        "applies_to": "UTILTS-APERAK ERC/FTX",
+        "trigger": "Svar byggs",
+        "condition": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42.",
+        "on_pass": "Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
+        "on_failure": "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
+        "callsite_owner": "error mapper",
+        "source": "U s.117–119",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-04"
+      },
+      "acceptance": {
+        "id": "AT-ACK-04",
+        "name": "Regelkontrakt: ACK-04",
+        "given": "UTILTS-APERAK ERC/FTX",
+        "when": "Svar byggs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
+        "prohibited": "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
+        "rule_ids": [
+          "ACK-04"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-04",
+        "acceptance_id": "AT-ACK-04",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/rulebook/ackGuidePolicy.ts",
+          "lib/ediel/ack.ts",
+          "__tests__/ediel-ack-04-05-utilts-ack.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-04",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-04-05-utilts-ack.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-05",
+        "area": "UTILTS-ERR",
+        "kind": "Ediel/Handbok",
+        "applies_to": "UTILTS-ERR",
+        "trigger": "Godkänd anvisningskontroll men funktionsfel",
+        "condition": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.",
+        "on_pass": "Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
+        "on_failure": "Skapa inte ERR på ERR eller APERAK på APERAK.",
+        "callsite_owner": "UTILTS ERR builder / ACK graph",
+        "source": "U §3.4,4,5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-05"
+      },
+      "acceptance": {
+        "id": "AT-ACK-05",
+        "name": "Regelkontrakt: ACK-05",
+        "given": "UTILTS-ERR",
+        "when": "Godkänd anvisningskontroll men funktionsfel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
+        "prohibited": "Skapa inte ERR på ERR eller APERAK på APERAK.",
+        "rule_ids": [
+          "ACK-05"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-05",
+        "acceptance_id": "AT-ACK-05",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/ack.ts",
+          "lib/ediel/rulebook/ackGuidePolicy.ts",
+          "__tests__/ediel-ack-04-05-utilts-ack.test.ts",
+          "__tests__/ediel-utilts-err-canonical-guide.test.ts",
+          "quality/audits/ediel-masterplan-v2/protocol.md"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-05",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-04-05-utilts-ack.test.ts",
+          "__tests__/ediel-utilts-err-canonical-guide.test.ts",
+          "quality/audits/ediel-masterplan-v2/protocol.md"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-06",
+        "area": "Korrelation",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Mottagna kvittenser",
+        "trigger": "CONTRL/APERAK tas emot",
+        "condition": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj.",
+        "on_pass": "Uppdatera endast rätt kvitterade delar och deras delstatus.",
+        "on_failure": "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
+        "callsite_owner": "ACK correlator",
+        "source": "T §5.5; P §3; U §5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-06"
+      },
+      "acceptance": {
+        "id": "AT-ACK-06",
+        "name": "Regelkontrakt: ACK-06",
+        "given": "Mottagna kvittenser",
+        "when": "CONTRL/APERAK tas emot – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
+        "prohibited": "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
+        "rule_ids": [
+          "ACK-06"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-06",
+        "acceptance_id": "AT-ACK-06",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/ack/sourceCorrelation.ts",
+          "lib/inbound-mail/inboundMatcher.ts",
+          "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+          "scripts/ediel-ack-source-sql-regression.mjs",
+          "__tests__/ediel-ack-06-family-binding.test.ts",
+          "__tests__/ediel-ack-source-correlation.test.ts",
+          "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-06",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-ack-06-family-binding.test.ts",
+          "__tests__/ediel-ack-source-correlation.test.ts",
+          "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-07",
+        "area": "Kvittenssanning",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Redan kvitterat objekt/transaktion",
+        "trigger": "Senare kontroll upptäcker annat fel",
+        "condition": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.",
+        "on_pass": "Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+        "on_failure": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+        "callsite_owner": "ACK ledger / incidents",
+        "source": "P §3.2; U §5.2; T §2",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-07"
+      },
+      "acceptance": {
+        "id": "AT-ACK-07",
+        "name": "Regelkontrakt: ACK-07",
+        "given": "Redan kvitterat objekt/transaktion",
+        "when": "Senare kontroll upptäcker annat fel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+        "prohibited": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+        "rule_ids": [
+          "ACK-07"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-07",
+        "acceptance_id": "AT-ACK-07",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/core/ackDraftSource.ts",
+          "lib/ediel/ack/prepareSourceAckDraft.ts",
+          "supabase/migrations/20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql",
+          "__tests__/ediel-outbound-ack-protected-replay.test.ts",
+          "__tests__/ediel-prodat-structural-ack-retained-first.test.ts",
+          "__tests__/ediel-ack-outbox-retry-safety.test.ts",
+          "__tests__/ediel-fresh-business-incident.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-07",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-outbound-ack-protected-replay.test.ts",
+          "__tests__/ediel-prodat-structural-ack-retained-first.test.ts",
+          "__tests__/ediel-ack-outbox-retry-safety.test.ts",
+          "__tests__/ediel-fresh-business-incident.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-08",
+        "area": "Delutfall",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Flera objekt/transaktioner",
+        "trigger": "En del är fel",
+        "condition": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+        "on_pass": "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+        "on_failure": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+        "callsite_owner": "runtimeDecision / utiltsEngine",
+        "source": "P §3; U §5.2",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-08"
+      },
+      "acceptance": {
+        "id": "AT-ACK-08",
+        "name": "Regelkontrakt: ACK-08",
+        "given": "Flera objekt/transaktioner",
+        "when": "En del är fel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+        "prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+        "rule_ids": [
+          "ACK-08"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-08",
+        "acceptance_id": "AT-ACK-08",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/utiltsEngine.part-1.ts",
+          "lib/ediel/aperakEngine.ts",
+          "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+          "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
+          "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+          "__tests__/ediel-utilts-transaction-disposition.test.ts",
+          "__tests__/ediel-utilts-aperak-physical-scope.test.ts",
+          "__tests__/ediel-received-utilts-global-functional-validation.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-08",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/utiltsEngine.part-1.ts",
+          "lib/ediel/aperakEngine.ts",
+          "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+          "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
+          "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+          "__tests__/ediel-utilts-transaction-disposition.test.ts",
+          "__tests__/ediel-utilts-aperak-physical-scope.test.ts",
+          "__tests__/ediel-received-utilts-global-functional-validation.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-09",
+        "area": "Dubbletter",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Återleverans och dubbletter",
+        "trigger": "Inkommande identitet finns redan",
+        "condition": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett.",
+        "on_pass": "Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
+        "on_failure": "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
+        "callsite_owner": "inbox identity / ACK ledger",
+        "source": "T §2.1; P §3.2; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-09"
+      },
+      "acceptance": {
+        "id": "AT-ACK-09",
+        "name": "Regelkontrakt: ACK-09",
+        "given": "Återleverans och dubbletter",
+        "when": "Inkommande identitet finns redan – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
+        "prohibited": "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
+        "rule_ids": [
+          "ACK-09"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-09",
+        "acceptance_id": "AT-ACK-09",
+        "status": "VERIFIED",
+        "evidence": [
+          "__tests__/ediel-genuine-duplicate-103-response.test.ts",
+          "__tests__/ediel-duplicate-103-orchestrator.test.ts",
+          "__tests__/ediel-inbound-duplicate-scope.test.ts",
+          "__tests__/ediel-committed-inbound-ack.test.ts",
+          "__tests__/ediel-utilts-decision-reuse.test.ts",
+          "scripts/ediel-duplicate-103-owner-sql-regression.mjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-09",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-genuine-duplicate-103-response.test.ts",
+          "__tests__/ediel-duplicate-103-orchestrator.test.ts",
+          "__tests__/ediel-inbound-duplicate-scope.test.ts",
+          "__tests__/ediel-committed-inbound-ack.test.ts",
+          "__tests__/ediel-utilts-decision-reuse.test.ts"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "ACK-10",
+        "area": "P-APERAK BGM",
+        "kind": "Ediel/Handbok",
+        "applies_to": "APERAK på PRODAT",
+        "trigger": "Byggare/korrelation",
+        "condition": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34.",
+        "on_pass": "Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+        "on_failure": "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+        "callsite_owner": "P acknowledgement builder",
+        "source": "P s.98–100",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ACK-10"
+      },
+      "acceptance": {
+        "id": "AT-ACK-10",
+        "name": "Regelkontrakt: ACK-10",
+        "given": "APERAK på PRODAT",
+        "when": "Byggare/korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+        "prohibited": "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+        "rule_ids": [
+          "ACK-10"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "ACK-10",
+        "acceptance_id": "AT-ACK-10",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/aperakEngine.ts",
+          "lib/ediel/prodat/prodatAckMessageFunction.ts",
+          "lib/ediel/rulebook/ackGuidePolicy.ts",
+          "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+          "__tests__/ediel-prodat-aperak-acw-match.test.ts",
+          "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+          "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+          "lib/ediel/ack.ts",
+          "__tests__/ediel-ack-03-10-aperak-structure.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-ACK-10",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/aperakEngine.ts",
+          "lib/ediel/prodat/prodatAckMessageFunction.ts",
+          "lib/ediel/rulebook/ackGuidePolicy.ts",
+          "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+          "__tests__/ediel-prodat-aperak-acw-match.test.ts",
+          "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+          "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+          "__tests__/ediel-ack-03-10-aperak-structure.test.ts"
+        ]
+      }
+    }
+  ],
+  "unapproved_rules": [
+    {
+      "literal": {
+        "id": "GOV-01",
+        "area": "Källstyrning",
+        "kind": "Intern arkitektur",
+        "applies_to": "Alla profiler",
+        "trigger": "Publicering av regelpaket",
+        "condition": "Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning.",
+        "on_pass": "Publicera immutabel regelversion med granskningsspår.",
+        "on_failure": "Ej styrkt regel ska inte generera nya externa meddelanden eller påhittade felkoder.",
+        "callsite_owner": "guideRegistry / canonicalRulePackRegistry",
+        "source": "T §1.2,1.4; P §1.3",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-GOV-01"
+      },
+      "rule_coverage": {
+        "id": "GOV-01",
+        "acceptance_id": "AT-GOV-01",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-GOV-01",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "GOV-04",
+        "area": "Versioner",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Utgående meddelande och omsändning",
+        "trigger": "Före varje extern sändning",
+        "condition": "Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter.",
+        "on_pass": "Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik.",
+        "on_failure": "Skicka inte gammal köpayload med ny versionsetikett.",
+        "callsite_owner": "pre-send policy gate",
+        "source": "T §1.4 s.4",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-GOV-04"
+      },
+      "rule_coverage": {
+        "id": "GOV-04",
+        "acceptance_id": "AT-GOV-04",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-GOV-04",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "GOV-05",
+        "area": "Versioner",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Mottagning",
+        "trigger": "Ny anvisning börjar gälla",
+        "condition": "Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler.",
+        "on_pass": "Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning.",
+        "on_failure": "Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis.",
+        "callsite_owner": "guideRegistry / runtimeDecision",
+        "source": "T §1.4; U/UE omslag",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-GOV-05"
+      },
+      "rule_coverage": {
+        "id": "GOV-05",
+        "acceptance_id": "AT-GOV-05",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-GOV-05",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "GOV-06",
+        "area": "Versioner",
+        "kind": "Intern arkitektur",
+        "applies_to": "UTILTS",
+        "trigger": "Gemensam runtimevalidering",
+        "condition": "Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär.",
+        "on_pass": "För explicit versionsbeslut till utiltsEngine; inget nytt implicit now().",
+        "on_failure": "Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod.",
+        "callsite_owner": "runtimeDecision → utiltsEngine",
+        "source": "CODE canonicalEdielPolicy/runtimeDecision; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-GOV-06"
+      },
+      "rule_coverage": {
+        "id": "GOV-06",
+        "acceptance_id": "AT-GOV-06",
+        "status": "PARTIAL",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/context.md"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-GOV-06",
+        "status": "PARTIAL",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/context.md"
+        ]
+      }
+    },
+    {
+      "literal": {
+        "id": "GOV-08",
+        "area": "Testdata",
+        "kind": "Intern arkitektur",
+        "applies_to": "Referenser och TGT",
+        "trigger": "Inför acceptanstest",
+        "condition": "Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat.",
+        "on_pass": "Bevara negativa referenser som negativa; dokumentera konflikt.",
+        "on_failure": "Ändra inte referensen för att passa egen renderer.",
+        "callsite_owner": "test fixtures / source inventory",
+        "source": "P §1.3; U §1.5; TGT lista",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-GOV-08"
+      },
+      "rule_coverage": {
+        "id": "GOV-08",
+        "acceptance_id": "AT-GOV-08",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-GOV-08",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "TEN-09",
+        "area": "Överlappande ESCO-uppdrag",
+        "kind": "Intern arkitektur",
+        "applies_to": "Samma legal ESCO/kund/DSO",
+        "trigger": "Ny begäran eller uppsägning",
+        "condition": "Koordinera market_permission över serviceuppdrag; beneficiary-id är inte en ny marknadsaktör.",
+        "on_pass": "Återanvänd enbart rättsligt och semantiskt kompatibelt tillstånd; håll uppdragsgrants separata.",
+        "on_failure": "En tenant får inte starta dubblett-Z13 eller avsluta delat tillstånd för andra.",
+        "callsite_owner": "ESCO coordinator",
+        "source": "HB kap.11; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-09"
+      },
+      "rule_coverage": {
+        "id": "TEN-09",
+        "acceptance_id": "AT-TEN-09",
+        "status": "PARTIAL",
+        "evidence": [
+          "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+          "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
+          "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+          "scripts/test-ediel-esco-06-request-coordination.cjs",
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+          "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+          "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
+          "scripts/test-ediel-ten-09-resolve-timing.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TEN-09",
+        "status": "PARTIAL",
+        "evidence": [
+          "scripts/test-ediel-esco-06-request-coordination.cjs",
+          "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+          "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+          "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
+          "scripts/test-ediel-ten-09-resolve-timing.cjs"
+        ]
+      }
+    },
+    {
+      "literal": {
+        "id": "IMP-01",
+        "area": "Registerimport",
+        "kind": "Intern arkitektur",
+        "applies_to": "XML/TXT",
+        "trigger": "Fil läses",
+        "condition": "Officiell struktur: Market/Company/Identifiers/Key Type/EDIFACTDetails; TXT har egna familjeblock och kan innehålla radbrytningar.",
+        "on_pass": "En importerande kärna med separata formatadaptrar och gemensam typad utdata.",
+        "on_failure": "Avvisa oläsbar post med diagnos; acceptera inte0routes som framgång.",
+        "callsite_owner": "parseActorRegistryXml / import adapters",
+        "source": "companies.xml/companies.txt; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-IMP-01"
+      },
+      "rule_coverage": {
+        "id": "IMP-01",
+        "acceptance_id": "AT-IMP-01",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-IMP-01",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "IMP-02",
+        "area": "Registerimport",
+        "kind": "Ediel/Handbok",
+        "applies_to": "EL/GAS och roller",
+        "trigger": "Normalisering",
+        "condition": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp.",
+        "on_pass": "Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+        "on_failure": "Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
+        "callsite_owner": "registry normalizer",
+        "source": "T §5; companies.xml",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-IMP-02"
+      },
+      "rule_coverage": {
+        "id": "IMP-02",
+        "acceptance_id": "AT-IMP-02",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-IMP-02",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "IMP-03",
+        "area": "Registerimport",
+        "kind": "Intern arkitektur",
+        "applies_to": "Ruttändring",
+        "trigger": "Preview/apply",
+        "condition": "Diff mot giltig snapshot; separation av registeruppgift, granskning och autosändningsberedskap.",
+        "on_pass": "Atomär/idempotent import med kvarstående konflikter och ny ruttversion.",
+        "on_failure": "Importerad adress betyder inte giltigt certifikat eller klar produktion.",
+        "callsite_owner": "importActorRegistry / readiness",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-IMP-03"
+      },
+      "rule_coverage": {
+        "id": "IMP-03",
+        "acceptance_id": "AT-IMP-03",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-IMP-03",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "IMP-05",
+        "area": "Registerimport",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Certifikat-/SMTP-byte",
+        "trigger": "Ny ruttversion",
+        "condition": "Säkerhetsidentitet och registrerad adress verifieras tillsammans; bevara gammal version för historik.",
+        "on_pass": "Invalidate berörda aktörers/tenants readiness och verifiera returväg.",
+        "on_failure": "Skicka inte med nytt mejlmål och gammalt obestämt certifikatscope.",
+        "callsite_owner": "routeMaterializer / certificate resolver",
+        "source": "T bilagaA; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-IMP-05"
+      },
+      "rule_coverage": {
+        "id": "IMP-05",
+        "acceptance_id": "AT-IMP-05",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-IMP-05",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "ENV-02",
+        "area": "Kuvert",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Alla EDIFACT",
+        "trigger": "Parse/render",
+        "condition": "Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd.",
+        "on_pass": "Positionsstabilt AST med span/segmentgrupp/objekt/register.",
+        "on_failure": "Ingen split/filter(Boolean) som flyttar CAV-komponenter.",
+        "callsite_owner": "edifactTokenizer / canonicalEdifactAst",
+        "source": "T §4.1,6,7.5",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-02"
+      },
+      "rule_coverage": {
+        "id": "ENV-02",
+        "acceptance_id": "AT-ENV-02",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-ENV-02",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "ENV-05",
+        "area": "Miljö",
+        "kind": "Ediel/Handbok",
+        "applies_to": "UNB testflagga",
+        "trigger": "Parse/render",
+        "condition": "0035=1 för test; produktion utelämnar flaggan.",
+        "on_pass": "Separata identiteter, routing, dedupe och transportspärrar för test/replay/produktion.",
+        "on_failure": "Sätt inte0 som ersättning; kör aldrig TGTreferens som produktionsaffär.",
+        "callsite_owner": "envelope / environment gate",
+        "source": "T §4.2; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-05"
+      },
+      "rule_coverage": {
+        "id": "ENV-05",
+        "acceptance_id": "AT-ENV-05",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-ENV-05",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "ENV-06",
+        "area": "Meddelandeprofil",
+        "kind": "Ediel/Handbok",
+        "applies_to": "PRODAT",
+        "trigger": "BGM/CCI byggs",
+        "condition": "BGM bär Z-funktion utan suffix; CCI Z13/CAV bär treteckenskod för undertyp.",
+        "on_pass": "Z03 + Z22 betyder Z03L, inte BGM+Z03L.",
+        "on_failure": "Avvisa fel kombination på rätt kontrollnivå.",
+        "callsite_owner": "profileRenderer / subtypeRegistry",
+        "source": "P §2.1,2.6",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-06"
+      },
+      "rule_coverage": {
+        "id": "ENV-06",
+        "acceptance_id": "AT-ENV-06",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-ENV-06",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "ENV-07",
+        "area": "Paketering",
+        "kind": "Ediel/Handbok",
+        "applies_to": "PRODAT",
+        "trigger": "Batchning",
+        "condition": "Blanda inte olika PRODAT-funktioner i samma UNB–UNZ.",
+        "on_pass": "Batcha kompatibla objekt med gemensam aktör/profil/roll; tenantseparation som extra internt skydd.",
+        "on_failure": "Dela batchen; inte generisk multi-message-blandning.",
+        "callsite_owner": "outbox batch planner",
+        "source": "P s.14; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-07"
+      },
+      "rule_coverage": {
+        "id": "ENV-07",
+        "acceptance_id": "AT-ENV-07",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-ENV-07",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "ENV-08",
+        "area": "Tid",
+        "kind": "Ediel/Handbok",
+        "applies_to": "PRODAT/UTILTS och UNB",
+        "trigger": "Datumkodning",
+        "condition": "Payload fast normaltid: P DTMZZZ=1:805, U DTM735=+0100:406; UNB lokal tid enligt regeln.",
+        "on_pass": "Lagra UTC plus originaloffset/format och affärsdatum; konvertera uttryckligt.",
+        "on_failure": "Använd inte sommartid för varje payloadperiod eller92/100 kvartar per fast-CET-dygn.",
+        "callsite_owner": "time codec / timer policy",
+        "source": "T §4.2,7.9; P206; U §3.6.1,3.9",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-08"
+      },
+      "rule_coverage": {
+        "id": "ENV-08",
+        "acceptance_id": "AT-ENV-08",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-ENV-08",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "P-08",
+        "area": "Avtal",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z09D",
+        "trigger": "Start eller slut produktionsavtal",
+        "condition": "210 XOR211; inte216 i stället.",
+        "on_pass": "Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+        "on_failure": "Båda: P-APERAK40/109; ingen generell157.",
+        "callsite_owner": "profileRenderer / lifecycle",
+        "source": "P §2.2,3.3",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-P-08"
+      },
+      "rule_coverage": {
+        "id": "P-08",
+        "acceptance_id": "AT-P-08",
+        "status": "PARTIAL",
+        "evidence": [
+          "__tests__/ediel-prodat-date-boundaries.test.ts",
+          "__tests__/ediel-prodat-field-identity.test.ts",
+          "__tests__/ediel-prodat-date-events.test.ts",
+          "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
+          "__tests__/ediel-prodat-date-fields.test.ts",
+          "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+          "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
+          "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-P-08",
+        "status": "PARTIAL",
+        "evidence": [
+          "__tests__/ediel-prodat-date-boundaries.test.ts",
+          "__tests__/ediel-prodat-field-identity.test.ts",
+          "__tests__/ediel-prodat-date-events.test.ts",
+          "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
+          "__tests__/ediel-prodat-date-fields.test.ts",
+          "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+          "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
+          "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
+        ]
+      }
+    },
+    {
+      "literal": {
+        "id": "TR-05",
+        "area": "Omsändning",
+        "kind": "Ediel/Handbok",
+        "applies_to": "PRODAT-omsändning/rättelse",
+        "trigger": "Fel eller timeout",
+        "condition": "Omsändning tillåts vid verifierad överföringsförlust. Negativ CONTRL medför rättelse av hela meddelandet; negativ APERAK följer särskild rättelse med nytt BGM-id.",
+        "on_pass": "Bevara lineage och pröva aktuell anvisning på nytt.",
+        "on_failure": "En utgången timer ensam är inget tillstånd till automatisk ny sändning.",
+        "callsite_owner": "retry coordinator",
+        "source": "P §4.1 s.107–108; §3.2; T §1.4",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TR-05"
+      },
+      "rule_coverage": {
+        "id": "TR-05",
+        "acceptance_id": "AT-TR-05",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-TR-05",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "TR-08",
+        "area": "TLS/SPF",
+        "kind": "Ediel/Handbok",
+        "applies_to": "SMTP-reläer",
+        "trigger": "Kommunikation",
+        "condition": "Verifiera relä-TLS och SPF. TLS till första servern bevisar inte nästa serverhopp.",
+        "on_pass": "Kontrollera providerpolicy och verkligt leveransspår.",
+        "on_failure": "Deklarera inte hela transporten verifierad bara för att port465 kan nås.",
+        "callsite_owner": "transport security readiness",
+        "source": "T §3.1,bilagaA",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TR-08"
+      },
+      "rule_coverage": {
+        "id": "TR-08",
+        "acceptance_id": "AT-TR-08",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-TR-08",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "TR-09",
+        "area": "Reservförfarande",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Tillfälligt krypterings-/CRLproblem",
+        "trigger": "Reservförfarande prövas",
+        "condition": "Endast uttryckligen specificerade undantagsfall i T får användas med respektive villkor/larm och fortsatt obligatorisk TLS.",
+        "on_pass": "Skapa separat avvikelsejournal och avgränsad driftåtgärd.",
+        "on_failure": "Ingen generell switch för oskyddad trafik och inga påhittade undantag.",
+        "callsite_owner": "transport exception policy",
+        "source": "T §3.1,bilagaA",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TR-09"
+      },
+      "rule_coverage": {
+        "id": "TR-09",
+        "acceptance_id": "AT-TR-09",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-TR-09",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "TR-10",
+        "area": "Köochkrasch",
+        "kind": "Intern arkitektur",
+        "applies_to": "Köjobb och krasch",
+        "trigger": "Jobbstart, timeout eller leasebyte",
+        "condition": "SMTP och DB är inte atomiska. Använd lease/fencing och särskilt unknown_after_submission.",
+        "on_pass": "Försök igen endast när det säkert inte skickats eller föreskrivet beslut finns; spåra okända utfall.",
+        "on_failure": "Lova inte exakt-en-gång över SMTP och gör inte rekursiva blind-retries.",
+        "callsite_owner": "outbox worker",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TR-10"
+      },
+      "rule_coverage": {
+        "id": "TR-10",
+        "acceptance_id": "AT-TR-10",
+        "status": "PARTIAL",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/transport.md"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-TR-10",
+        "status": "PARTIAL",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/transport.md"
+        ]
+      }
+    },
+    {
+      "literal": {
+        "id": "DB-01",
+        "area": "Datamodell",
+        "kind": "Intern arkitektur",
+        "applies_to": "Affärsdata och protokolljournal",
+        "trigger": "Schema ändras",
+        "condition": "Identifiera befintlig auktoritativ tabell för varje uppgift innan något nytt skapas.",
+        "on_pass": "Utöka med expand, backfill, validate och först därefter contract.",
+        "on_failure": "Skapa inte parallella kund-, regel- eller ruttauktoriteter.",
+        "callsite_owner": "migration design",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-01"
+      },
+      "rule_coverage": {
+        "id": "DB-01",
+        "acceptance_id": "AT-DB-01",
+        "status": "PARTIAL",
+        "evidence": [
+          "app/admin/ediel/actors/actions.ts",
+          "app/admin/ediel/actors/page.tsx",
+          "lib/ediel/partyRegistry.ts",
+          "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-DB-01",
+        "status": "PARTIAL",
+        "evidence": [
+          "app/admin/ediel/actors/actions.ts",
+          "app/admin/ediel/actors/page.tsx",
+          "lib/ediel/partyRegistry.ts",
+          "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        ]
+      }
+    },
+    {
+      "literal": {
+        "id": "DB-02",
+        "area": "Referensintegritet",
+        "kind": "Intern arkitektur",
+        "applies_to": "Tenantägda relationer",
+        "trigger": "Insert/update",
+        "condition": "Verifiera tenant+id-referenser, unika idempotensnycklar och tillämpliga datum-/aktörsrelationer.",
+        "on_pass": "Förhindra korskoppling och motstridiga aktiva perioder med constraints/RPC.",
+        "on_failure": "Frontendvalidering och ett UUID utan kontroll av parent räcker inte.",
+        "callsite_owner": "DB constraints / RPC",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-02"
+      },
+      "rule_coverage": {
+        "id": "DB-02",
+        "acceptance_id": "AT-DB-02",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-DB-02",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "DB-03",
+        "area": "Lagring",
+        "kind": "Normkrav + intern verkställighet",
+        "applies_to": "Mät- och strukturrättelser",
+        "trigger": "Godkänd ändring lagras",
+        "condition": "Bevara giltighetsperiod, registreringstid, mottagningstid och källmeddelande/IDE/regelbeslut.",
+        "on_pass": "Skapa ny version och daterad projektion.",
+        "on_failure": "Förlora inte historiken eller ändra fastställt fakturaunderlag osynligt.",
+        "callsite_owner": "history / measurement storage",
+        "source": "U §3.6.14; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-03"
+      },
+      "rule_coverage": {
+        "id": "DB-03",
+        "acceptance_id": "AT-DB-03",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-DB-03",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "DB-04",
+        "area": "Index",
+        "kind": "Intern arkitektur",
+        "applies_to": "Index och frågor",
+        "trigger": "Migration/prestandaprov",
+        "condition": "Utgå från faktiska urval för tenant/aktör, status/tidsfrist, referenser, objekt/period/version och foreign keys.",
+        "on_pass": "Verifiera planer och belastning med EXPLAIN och representativ data.",
+        "on_failure": "Index på alla kolumner ersätter inte en mätt prestandaplan.",
+        "callsite_owner": "DB migration / CI",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-04"
+      },
+      "rule_coverage": {
+        "id": "DB-04",
+        "acceptance_id": "AT-DB-04",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-DB-04",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "DB-05",
+        "area": "Radering",
+        "kind": "Intern arkitektur",
+        "applies_to": "Kund, tenant eller uppdrag avslutas",
+        "trigger": "Raderingsbegäran",
+        "condition": "Skilj operativ avveckling, åtkomstrevoke, persondatagallring och skyldighet att bevara journal/avräkningsunderlag.",
+        "on_pass": "Använd en beslutad workflow per retentionklass och behörigt underlag.",
+        "on_failure": "Radera inte all historik med CASCADE och spara inte allt för alltid utan rättslig grund.",
+        "callsite_owner": "data lifecycle service",
+        "source": "SYS; juridiskretentionG04",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-05"
+      },
+      "rule_coverage": {
+        "id": "DB-05",
+        "acceptance_id": "AT-DB-05",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-DB-05",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "DB-06",
+        "area": "Fakturaunderlag",
+        "kind": "Intern arkitektur",
+        "applies_to": "Fakturaunderlag i leverantörsrollen",
+        "trigger": "Underlag fastställs",
+        "condition": "Verifiera kvantitetstyp, produkt, period, leveransrelation, dataversion, prisversion och kvalitet.",
+        "on_pass": "Lås spårbart underlag och skapa särskild rättelsejournal vid nya data.",
+        "on_failure": "S02-prognos, E31-aggregat eller DGI-leverans blir inte automatiskt individuell faktura.",
+        "callsite_owner": "billing input assembler",
+        "source": "U §3.1–3.2; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-06"
+      },
+      "rule_coverage": {
+        "id": "DB-06",
+        "acceptance_id": "AT-DB-06",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-DB-06",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "OPS-03",
+        "area": "Certifiering",
+        "kind": "Normkrav + intern verkställighet",
+        "applies_to": "Releasegodkännande",
+        "trigger": "Tester sammanställs",
+        "condition": "Håll dokumenttäckning, enhetstest, integration, tenant-E2E, transport och TGT som separata bevis.",
+        "on_pass": "Lås release till exakt head och testa flera tenants, DDQ, DGI och cross-tenantuppdrag.",
+        "on_failure": "Specifikations-JSON som validerar är inte produktions-E2E eller formellt Edielgodkännande.",
+        "callsite_owner": "CI / release manifest",
+        "source": "P §1.3; U §1.5; TGT; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-OPS-03"
+      },
+      "rule_coverage": {
+        "id": "OPS-03",
+        "acceptance_id": "AT-OPS-03",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-OPS-03",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "OPS-04",
+        "area": "Begränsadliveverifiering",
+        "kind": "Intern arkitektur",
+        "applies_to": "Kontrollerad produktionstest",
+        "trigger": "Efter rättelse",
+        "condition": "Verifiera incidentspår, rutt, certifikat, profil och tenantkontext samt ett överenskommet motpartsprov.",
+        "on_pass": "Genomför ett kontrollerat verkligt förlopp i rätt miljö.",
+        "on_failure": "Massimport av referenser eller blinda omsändningar är inte en teststrategi.",
+        "callsite_owner": "release runbook",
+        "source": "TGT; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-OPS-04"
+      },
+      "rule_coverage": {
+        "id": "OPS-04",
+        "acceptance_id": "AT-OPS-04",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-OPS-04",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    },
+    {
+      "literal": {
+        "id": "ENV-10",
+        "area": "Positionsnamn",
+        "kind": "Ediel/Handbok",
+        "applies_to": "PRODAT CCI kontra UTILTS CCI",
+        "trigger": "Fältlokalisering",
+        "condition": "PRODAT använder SG14/CCI/C502/6313 för Z-egenskapen. UTILTS använder normalt C240/7037. Samma segmentnamn betyder inte samma elementlayout.",
+        "on_pass": "Bind till familjens/releasens fulla segmentdefinition.",
+        "on_failure": "Använd inte en gemensam CCI-position som flyttar PRODAT-egenskaper.",
+        "callsite_owner": "field locator compiler",
+        "source": "P §2.6; U §3.9",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-10"
+      },
+      "rule_coverage": {
+        "id": "ENV-10",
+        "acceptance_id": "AT-ENV-10",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "acceptance_coverage": {
+        "id": "AT-ENV-10",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    }
+  ],
+  "unapproved_rule_ATs_with_approved_rule": [
+    {
+      "rule": {
+        "id": "P-01",
+        "area": "PRODAT-fält",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Alla P",
+        "trigger": "Fältkontroll",
+        "condition": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt.",
+        "on_pass": "Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+        "on_failure": "Inget fältnummer från regex över DTM/RFF-text.",
+        "callsite_owner": "fieldMatrix / canonicalPolicyFieldValidator",
+        "source": "P §2.2,2.6,3.3",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-P-01"
+      },
+      "acceptance": {
+        "id": "AT-P-01",
+        "name": "Regelkontrakt: P-01",
+        "given": "Alla P",
+        "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt. → Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+        "prohibited": "Inget fältnummer från regex över DTM/RFF-text.",
+        "rule_ids": [
+          "P-01"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "P-01",
+        "acceptance_id": "AT-P-01",
+        "status": "VERIFIED",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+          "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+          "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+          "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+          "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+          "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+          "__tests__/ediel-prodat-field-identity.test.ts",
+          "__tests__/ediel-prodat-register-conditions.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-P-01",
+        "status": "PARTIAL",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/protocol.md"
+        ]
+      }
+    },
+    {
+      "rule": {
+        "id": "P-04",
+        "area": "Parentgrupper",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z14N/NAD",
+        "trigger": "Fältkontroll",
+        "condition": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR.",
+        "on_pass": "Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+        "on_failure": "Kräv inte land316 ellerIT233/234 utan grupp.",
+        "callsite_owner": "field profile compiler",
+        "source": "P §2.2 s.20–22",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-P-04"
+      },
+      "acceptance": {
+        "id": "AT-P-04",
+        "name": "Regelkontrakt: P-04",
+        "given": "Z14N/NAD",
+        "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR. → Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+        "prohibited": "Kräv inte land316 ellerIT233/234 utan grupp.",
+        "rule_ids": [
+          "P-04"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "rule_coverage": {
+        "id": "P-04",
+        "acceptance_id": "AT-P-04",
+        "status": "VERIFIED",
+        "evidence": [
+          "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+          "lib/ediel/prodat/prodatParentApplicability.ts",
+          "lib/ediel/rulebook/prodatZ14Policy.ts",
+          "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+          "__tests__/ediel-prodat-dependent-z14.test.ts",
+          "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+          "__tests__/ediel-prodat-z14-negative-context.test.ts"
+        ]
+      },
+      "acceptance_coverage": {
+        "id": "AT-P-04",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    }
+  ]
+}
