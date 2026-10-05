@@ -62,3 +62,23 @@ steps; the enclosing run and other seven jobs remained queued at20:11. The cause
 and actual runner start are UNKNOWN, not a source/test failure. Sole observer keeps
 all-nine HOLD; no rerun/cancel/log/fixture action is performed by root. Canonical
 ENV07 first-admission/serial queue remains with610's original owner.
+
+Actual #608 is now delivered as main2964415a/tree20ac0963, merged20:17:37.
+The GitHub commit API and real Git object both authenticate ONE parent5cde8094;
+the ledger records this actual squash shape rather than inventing a source parent.
+Source537fd71d and prior production/UI author qualification remain retained.
+There are37 unique ACTUAL markers, with all36 earlier lines/receipt bytes intact.
+This is the first actually delivered ENV07 postimage; all earlier next610 routing
+is historical. Later610/Staff variants must reconcile to actual608 and keep their
+original owners. All1073 SQL and eight generator inputs remain exact5cde.
+
+Next checker intake source genuinely carries actual296. Of60 direct-read inputs,
+58 remain exact and only billing's two reached UI files change; the SAME billing
+author owns their source boundary and one necessary current-base direct CJS check.
+Original38/5c finite results and guards stay immutable within their old scopes.
+The old612c34 ordinary attempt is SETTLED: eight CANCELLED jobs with empty steps,
+one failed certificate, zeroSUCCESS. Missing smoke artifact, abandoned contexts
+and actual certificate exit1 are recorded by one own log reader; cancellation
+causes/actual starts remain UNKNOWN and no product defect is inferred. Sole
+observer is idle awaiting the new announced published head; no old-CI polling,
+rerun/cancel, broad artifact/private-log export or duplicate fixture repair.
