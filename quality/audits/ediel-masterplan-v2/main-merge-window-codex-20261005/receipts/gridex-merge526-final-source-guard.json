@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-05T16:50:33.053066+00:00",
+  "pr": 526,
+  "head": "44ac89975d2671c6d0ae3520185ae5dc36b0cb36",
+  "actual_main_before": "7a016db1c174ee1fedaeba1dfdb32b2ebe5155d7",
+  "expected_merge_tree": "3339f3942427ce745754e5c3c315f5a22e2c4997",
+  "coverage_changed_only": [
+    "IMP-03",
+    "AT-IMP-03"
+  ],
+  "all_other_350_rows_metadata_order_preserved": true,
+  "scope_paths": [
+    ".agent-memory/masterplan-imp03-05-checkpoint.md",
+    "__tests__/ediel-registry-snapshot-diff.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "reviewed_test_exact": "d4406406",
+  "whole_approval_comment": 5984923804,
+  "tests_repeated": false
+}

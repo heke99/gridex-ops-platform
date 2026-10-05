@@ -1,4 +1,4 @@
-// masterplan: AI-05, AT-AI-05, SC-067, AI-04, AT-AI-04
+// masterplan: AI-05, AT-AI-05, SC-067, AI-04, AT-AI-04, SC-066
 import {beforeEach,expect,it,vi} from 'vitest'
 import {approveAiBiDiscrepancy} from '@/lib/ediel/aiBiReconciliation'
 import {importAiBiListCsv} from '@/lib/ediel/aiBiImportEngine'
@@ -35,6 +35,18 @@ it('denies discrepancy decisions from an unaccepted actor before any write',asyn
  io.actor.mockRejectedValue(new Error('ediel_tenant_actor_forbidden'))
  await expect(approveAiBiDiscrepancy({companyId,actorUserId,discrepancyId:'00000000-0000-4000-8000-000000000003',decision:'accepted'})).rejects.toThrow('ediel_tenant_actor_forbidden')
  expect(io.from).not.toHaveBeenCalled()
+})
+it.each(['accepted','rejected','accepted_manual_apply'] as const)('records an explicit %s investigation decision in its own tenant with audit, without applying masterdata',async decision=>{
+ const discrepancyId='00000000-0000-4000-8000-000000000003',update=vi.fn(),filters:unknown[][]=[]
+ const query={update:(value:unknown)=>{update(value);return query},eq:(...args:unknown[])=>{filters.push(args);return filters.length===2?Promise.resolve({error:null}):query}}
+ io.from.mockReturnValue(query)
+ expect(await approveAiBiDiscrepancy({companyId,actorUserId,discrepancyId,decision,note:'Declared operator investigation'})).toEqual({ok:true,discrepancyId,decision})
+ expect(io.actor).toHaveBeenCalledWith({companyId,actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+ expect(io.from.mock.calls).toEqual([['ai_list_discrepancies']])
+ expect(filters).toEqual([['company_id',companyId],['id',discrepancyId]])
+ expect(update).toHaveBeenCalledWith({status:decision==='rejected'?'rejected':'resolved',resolution:decision,resolution_note:'Declared operator investigation',resolved_by:actorUserId,resolved_at:expect.any(String)})
+ expect(Number.isFinite(Date.parse(update.mock.calls[0][0].resolved_at))).toBe(true)
+ expect(io.rpc).not.toHaveBeenCalled()
 })
 it('uses only a sealed source/hash atomic RPC without caller matching, filename or retention authority',async()=>{
  const importId='00000000-0000-4000-8000-000000000005'

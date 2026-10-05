@@ -5,6 +5,7 @@ import {
   PRODAT_26A_MESSAGE_CODES,
   assertCanonicalProdat26AMatrixComplete,
   canonicalProdat26AFieldRules,
+  prodatRegisterFieldScope,
 } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
 describe('PRODAT 26.A immutable field matrix', () => {
@@ -32,5 +33,63 @@ describe('PRODAT 26.A immutable field matrix', () => {
     expect(z13.find((rule) => rule.fieldNumber === '506')?.requirement).toBe('required')
     expect(z13.find((rule) => rule.fieldNumber === '261')?.requirement).toBe('required')
     expect(z14.find((rule) => rule.fieldNumber === '322')?.requirement).toBe('required')
+  })
+
+  it('keeps the published Z01 requirement after an attempted nested-array change', () => {
+    const row = PRODAT_26A_FIELD_MATRIX.find((candidate) => candidate.fieldNumber === '311')!
+    const original = row.requirements[0]
+    const changed = Reflect.set(row.requirements, '0', '-')
+    try {
+      expect(canonicalProdat26AFieldRules('Z01').find((rule) => rule.fieldNumber === '311')?.requirement).toBe('required')
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(row.requirements, '0', original)
+    }
+  })
+
+  it('keeps Z01 selectable after an attempted published function-order change', () => {
+    const original = PRODAT_26A_MESSAGE_CODES[0]
+    const changed = Reflect.set(PRODAT_26A_MESSAGE_CODES, '0', 'Z99')
+    try {
+      expect(canonicalProdat26AFieldRules('Z01')).toHaveLength(77)
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(PRODAT_26A_MESSAGE_CODES, '0', original)
+    }
+  })
+
+  it('keeps the source field selected after an attempted published row replacement', () => {
+    const original = PRODAT_26A_FIELD_MATRIX[0]
+    const changed = Reflect.set(PRODAT_26A_FIELD_MATRIX, '0', { ...original, fieldNumber: '999' })
+    try {
+      expect(canonicalProdat26AFieldRules('Z01')[0]).toMatchObject({ fieldNumber: '311', requirement: 'required' })
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(PRODAT_26A_FIELD_MATRIX, '0', original)
+    }
+  })
+
+  it('keeps the published header scope after an attempted row-metadata change', () => {
+    const row = PRODAT_26A_FIELD_MATRIX.find((candidate) => candidate.fieldNumber === '311')!
+    const original = row.registerScope
+    const changed = Reflect.set(row, 'registerScope', 'local')
+    try {
+      expect(prodatRegisterFieldScope('311')).toBe('header')
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(row, 'registerScope', original)
+    }
+  })
+
+  it('keeps the published message-function allowlist after an attempted value change', () => {
+    const row = PRODAT_26A_FIELD_MATRIX.find((candidate) => candidate.fieldNumber === '204')!
+    const original = row.allowedValues![0]
+    const changed = Reflect.set(row.allowedValues!, '0', '99')
+    try {
+      expect(canonicalProdat26AFieldRules('Z01').find((rule) => rule.fieldNumber === '204')?.allowedValues).toEqual(['9', '5'])
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(row.allowedValues!, '0', original)
+    }
   })
 })

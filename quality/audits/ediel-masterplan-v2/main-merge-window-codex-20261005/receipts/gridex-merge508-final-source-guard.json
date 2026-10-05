@@ -1,0 +1,23 @@
+{
+  "created_utc": "2026-10-05T16:36:59.042791+00:00",
+  "pr": 508,
+  "head": "6688c5e17e781861b6006e9ce188ad6e27eb0c2d",
+  "actual_main_before": "c65aacf80169b8f25720e76916290d20b43e7355",
+  "expected_merge_tree": "11829a51d300c2cb5a3b8f5ab4bd7746baaf40d0",
+  "reviewed_product_test_three_paths_byte_exact": "10ff12bb97238e25032dee758e437f0f4bd29929",
+  "all_other_350_rows_metadata_order_preserved": true,
+  "coverage_changed_only": [
+    "ENV-02",
+    "AT-ENV-02"
+  ],
+  "scope_paths": [
+    ".agent-memory/masterplan-env02-checkpoint.md",
+    "__tests__/ediel-env02-positional-ast.test.ts",
+    "lib/ediel/core/canonicalEdifactAst.ts",
+    "lib/ediel/core/canonicalMessage.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "tests_repeated": false,
+  "whole_approval": 5983841501,
+  "verdict": "SOURCE_LEDGER_QUALIFIED"
+}

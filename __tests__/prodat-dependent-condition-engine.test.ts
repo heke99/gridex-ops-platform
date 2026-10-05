@@ -1,5 +1,6 @@
 // masterplan: P-03, AT-P-03, SC-032
 import { describe, expect, it } from 'vitest'
+import { vi } from 'vitest'
 
 import {
   PRODAT_26A_FIELD_MATRIX,
@@ -27,6 +28,64 @@ function matrixDependentCellIds(): string[] {
 }
 
 describe('PRODAT 26-A dependent-condition engine', () => {
+  it('keeps the actual canonical legacy D229 hint after an attempted source-predicate change', async () => {
+    vi.resetModules()
+    const { PRODAT_26A_DEPENDENT_CONDITION_REGISTRY } = await import('@/lib/ediel/prodat/prodatDependentConditionEngine')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const source = PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.find(row => row.messageCode === 'Z01' && row.fieldNumber === '229')!
+    const original = source.predicate
+    const changed = Reflect.set(source, 'predicate', () => true)
+    try {
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z01', subtypeOrReasonCode: 'L',
+        direction: 'outbound', referenceDate: '2026-10-15', prodatDependentFacts: { endUserAddressAvailable: false }, mode: 'catalog_evidence' })
+      expect(policy.prodatDependentConditions.find(row => row.fieldNumber === '229')).toMatchObject({
+        status: 'not_required', decisionPhase: 'legacy_pre_wire_address_hint',
+      })
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(source, 'predicate', original)
+      vi.resetModules()
+    }
+  })
+
+  it('retains the published D-cell source record in the actual canonical projection', async () => {
+    vi.resetModules()
+    const { PRODAT_26A_DEPENDENT_CONDITION_REGISTRY } = await import('@/lib/ediel/prodat/prodatDependentConditionEngine')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const source = PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.find(row => row.messageCode === 'Z01' && row.fieldNumber === '229')!.source
+    const original = { ...source }
+    const changed = Reflect.set(source, 'section', 'unqualified locator')
+    try {
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z01', subtypeOrReasonCode: 'L',
+        direction: 'outbound', referenceDate: '2026-10-15', prodatDependentFacts: { endUserAddressAvailable: false }, mode: 'catalog_evidence' })
+      expect(policy.prodatDependentConditions.find(row => row.fieldNumber === '229')?.source).toEqual(original)
+      expect(changed).toBe(false)
+    } finally {
+      vi.resetModules()
+    }
+  })
+
+  it('keeps the canonical legacy D229 hint after an attempted backing-registry row replacement', async () => {
+    vi.resetModules()
+    const { PRODAT_26A_DEPENDENT_CONDITION_REGISTRY } = await import('@/lib/ediel/prodat/prodatDependentConditionEngine')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const registry = PRODAT_26A_DEPENDENT_CONDITION_REGISTRY
+    const index = registry.findIndex(row => row.messageCode === 'Z01' && row.fieldNumber === '229')
+    const original = registry[index]
+    const changed = Reflect.set(registry, String(index), { ...original, predicate: () => true })
+    try {
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z01', subtypeOrReasonCode: 'L',
+        direction: 'outbound', referenceDate: '2026-10-15', prodatDependentFacts: { endUserAddressAvailable: false }, mode: 'catalog_evidence' })
+      expect(policy.prodatDependentConditions.find(row => row.fieldNumber === '229')).toMatchObject({
+        status: 'not_required', decisionPhase: 'legacy_pre_wire_address_hint',
+      })
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(registry, String(index), original)
+      vi.resetModules()
+    }
+  })
+
   it('has exact executable coverage for every official D cell', () => {
     const official = matrixDependentCellIds()
     const executable = PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => entry.id).sort()
