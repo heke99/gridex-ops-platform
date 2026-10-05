@@ -1,9 +1,9 @@
 {
-  "scope": "SC-071 bounded native projection/revocation test preparation; no whole-contract approval",
-  "recorded_at_utc": "2026-10-05T09:27:43.121662+00:00",
-  "branch": "codex/ediel-sc010-sc071-revocation-20261005",
+  "scope": "SC071 merged native3 component and separately prepared bounded export feedback; no whole-contract approval",
+  "recorded_at_utc": "2026-10-05T11:42:23.902798+00:00",
+  "branch": "codex/ediel-sc071-export-feedback-20261005",
   "worktree": "/workspace/gridex-ediel-sc010-sc071-20261005",
-  "current_main_base": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "current_main_base": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
   "earlier_reviewed_base": "985724f58ef15e222cf4d3b2e1c643c674852106",
   "source_carry": {
     "changed_paths": [
@@ -17,8 +17,8 @@
   },
   "current_main_counts": {
     "rules_verified": 91,
-    "acceptance_contracts_passed": 113,
-    "distinct_approved": 204
+    "acceptance_contracts_passed": 122,
+    "distinct_approved": 213
   },
   "coverage_edited": false,
   "node_version": "v22.23.0",
@@ -77,18 +77,8 @@
   },
   "independent_review": {
     "bounded_static_component": "APPROVE",
-    "native_execution": "NOT_RUN",
+    "native_execution": "PASS_QUALIFIED_COMPONENT_ONLY",
     "whole_sc071": "UNAPPROVED"
-  },
-  "native": {
-    "test_cases": 3,
-    "setup": "FAILED_BEFORE_DATABASE_REPLAY",
-    "execution": "NOT_RUN",
-    "reason": "Docker layer registration: no space left on device",
-    "canonical_setup": "source scripts/gridex-aud-003-clean-replay.sh",
-    "raw_redacted_setup_log_sha256": "c26be948f14c0a849c9a8878523ac330ea15f73bb3160da25f81b2627fb9da6d",
-    "cleanup": "canonical EXIT restoration, only five new unused images removed",
-    "shared_suite_include": "PENDING_COORDINATOR_CLEARANCE"
   },
   "failed_checks": [
     {
@@ -98,6 +88,22 @@
     {
       "check": "gh pr view 570 with baseRefOid",
       "outcome": "FAILED: installed gh does not support this JSON field; corrected query confirmed exact head7a894c3b and draft/open state"
+    },
+    {
+      "check": "gh pr checks --json",
+      "outcome": "installed gh does not support --json; recovered with exact-head REST check-runs/status APIs"
+    },
+    {
+      "check": "first gh artifact download",
+      "outcome": "blob download403; recovered through existing artifact connector and qualified exact ZIP/API digest"
+    },
+    {
+      "check": "receipt extraction split tab fields",
+      "outcome": "format mismatch; corrected JSON substring parsing, artifact bytes independently confirmed"
+    },
+    {
+      "check": "local combined tagged gate in default subprocess sandbox",
+      "outcome": "FAILED: no Vitest JSON report; diagnostic canonical subprocess results contain EPERM. Minimal node --version subprocess comparison reproduces EPERM in default and normal output without error under additional-permissions execution. Unmodified supported gate then PASS; failed log retained separately."
     }
   ],
   "withdrawn_component": {
@@ -109,20 +115,20 @@
   },
   "blocked_next_actions": [
     {
-      "owner": "retained coordinator/native owner",
-      "action": "run selected config on the authentic canonical stack; clear shared include ownership if required"
+      "owner": "SC071 sole native workflow owner",
+      "action": "finish independent caller review, publish bounded BASE-then-forward caller and qualify actual ten native cases"
     },
     {
-      "owner": "retained service/export source owner",
-      "action": "identify the existing queued/leased export consumer or explicitly assign missing first producer architecture/files; qualify current authority at read/send boundary"
+      "owner": "retained coordinator/#503 with sole SC010 source owner/#570",
+      "action": "carry exact producer canonical admission, authentic schema/type capture and final candidate clean/upgrade/current-head gates; no shared handoff yet"
     }
   ],
-  "candidate_ci": "NOT_YET_QUALIFIED",
-  "main_merge": "NOT_DONE",
+  "candidate_ci": "PR574 c08 all9 required+native SUCCESS; new export-feedback candidate NOT_RUN",
+  "main_merge": "MERGED_COMPONENT_ONLY 7b9218da2c7f71f4373bcc9189715c0043a8cb31",
   "external_market_verification": "NOT_RUN",
   "technical_freeze_commit": "b42fdc7a27064a286720fcbdaa66c97e4f7ed2b1",
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/574",
-  "publication_status": "DRAFT_UNDER_REVIEW",
+  "publication_status": "PR574 component merged; new bounded export-feedback caller in preparation",
   "prepublication_owned_path_check": {
     "paths": 13,
     "all_new_owned_paths": true,
@@ -175,5 +181,149 @@
     "sole_exporter_owner_claim": 5992097869,
     "exporter_dependency": "IMPLEMENTATION_PENDING",
     "coverage_edited": false
-  }
+  },
+  "native_attempt_history": [
+    {
+      "scope": "original local preflight",
+      "result": {
+        "test_cases": 3,
+        "setup": "FAILED_BEFORE_DATABASE_REPLAY",
+        "execution": "NOT_RUN",
+        "reason": "Docker layer registration: no space left on device",
+        "canonical_setup": "source scripts/gridex-aud-003-clean-replay.sh",
+        "raw_redacted_setup_log_sha256": "c26be948f14c0a849c9a8878523ac330ea15f73bb3160da25f81b2627fb9da6d",
+        "cleanup": "canonical EXIT restoration, only five new unused images removed",
+        "shared_suite_include": "PENDING_COORDINATOR_CLEARANCE"
+      }
+    },
+    {
+      "scope": "first actual CI custody failure",
+      "result": {
+        "run": 37293845384,
+        "job": 111710327615,
+        "head": "f75cdd7d7c785a4ee28351d5819a82cae849a05e",
+        "result": "FAILED_CREDENTIAL_REFUSAL",
+        "artifacts": 0,
+        "native_counts": "NOT_QUALIFIED"
+      }
+    }
+  ],
+  "native": {
+    "execution": "PASS_QUALIFIED_COMPONENT_ONLY",
+    "exact_head": "c08a2354bec8dbbe399e36b4157b8a7968b2470c",
+    "run": 37295735640,
+    "job": 111716379670,
+    "artifact": 11338083870,
+    "artifact_zip_sha256": "6a76936f2ad3552a221220471a7e18dd3bd0cd6935cdd13e8f64481782f5fb03",
+    "zip_digest_matches_github_api": true,
+    "cases": 3,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "canonical_replay": "PASS",
+    "official_ledger_rows": 48,
+    "schema_fingerprint": "9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b",
+    "custody": "PASS; five ZIP members, no raw status, retained credential-pattern refusal; actual job-log/receipt equality",
+    "independent_review": "QUALIFIED native-feedback-review.md; exact16 current+immutable source hashes and JUnit",
+    "local_artifact_download": "CLI blob403; recovered using existing GitHub artifact download connector, no network-policy change",
+    "raw_redacted_evidence": {
+      "native-executed.log": "0fa407be344e883a7290e2bd13468159ca6eb8f32ba9859bfb3d0728023f44ac",
+      "native-executed-junit.xml": "e81a94c73970f570cea39f009bed039f1364a9043e2ddfc2b5efa0a82478a23e",
+      "native-executed-source-receipt.json": "fa18c47d64e902fc1622352f4fe7897d37367f87eb18f98ef15b890d7a73c5fb"
+    },
+    "replay_log_sha256": "7b2c09cbd000ff5ab625ba9839230de3b65a099c6bd647e14f44f0e17c7d412c",
+    "job_log_sha256": "7d160219307b822a75d7416eb474d6bcc91b1744fc402c85467c4350b03132de",
+    "whole_sc071": "UNAPPROVED",
+    "leased_export_consumer": "NOT_PROVEN",
+    "external_market_verification": "NOT_RUN"
+  },
+  "final_composition": {
+    "main": "60b2c7a7d511c2b5f1b234da3851e1bf719b70f8",
+    "local_adoption": "9ae5e3b94cba58ae43e3af734bb1fbbf77dccce3",
+    "tree": "f03ec10bec420c9013848be526595c5fbb0242b7",
+    "actual_main_ledger": {
+      "rules_verified": 91,
+      "contracts_passed": 122,
+      "distinct": 213
+    },
+    "sixteen_executed_inputs_unchanged": true,
+    "later_runtime_authorization_delta": "independent static positive-path review; no new current-main native claim",
+    "coverage_edited": false,
+    "ordinary_candidate_ci": "c08 all9required+supplemental native SUCCESS",
+    "main_merge": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "merge_parents": [
+      "60b2c7a7d511c2b5f1b234da3851e1bf719b70f8",
+      "c08a2354bec8dbbe399e36b4157b8a7968b2470c"
+    ],
+    "actual_merged_tree_matches_qualified_composition": true,
+    "supported_tagged_gate": {
+      "node": "v22.23.0",
+      "exit_code": 0,
+      "ids": 352,
+      "approved_main_ledger": 213,
+      "tagged_green": 232,
+      "tagged_failing": 0,
+      "untagged": 120,
+      "log": "merge-main-tagged-coverage.log"
+    }
+  },
+  "sole_exporter": {
+    "head": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
+    "handoff_comment": 5992694706,
+    "accepted_comment": 5992836327,
+    "canonical_admission": "BLOCKED missing manifest row; source owner5992842444",
+    "shared_owner": "retained coordinator/#503",
+    "migration_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "new_sc071_parallel_cases": "3 prepared separately against actual ports; NOT_RUN",
+    "source_duplicated_or_edited": false,
+    "bounded_native_feedback": {
+      "owner_proposal": 5993124044,
+      "accepted": 5993523187,
+      "inputs": "export-feedback-inputs.json",
+      "base": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+      "new_sc071_cases": 3,
+      "own_total": 6,
+      "owner_total": 4,
+      "native_execution": "NOT_RUN",
+      "shared_admission_or_capture_changed": false,
+      "post_forward_schema": "UNQUALIFIED_FOR_FINAL_CAPTURE"
+    }
+  },
+  "composition_history": [
+    {
+      "main": "4ac9c6412ff4a84ea4dd65833b5d4897172f278c",
+      "local_adoption": "bb128549cc93272cd94d8351a9f5bbc98adf2029",
+      "actual_main_ledger": {
+        "rules_verified": 91,
+        "contracts_passed": 116,
+        "distinct": 207
+      },
+      "relevant_source_sql_replay_fixture_config_helper_hashes_unchanged": true,
+      "coverage_edited": false,
+      "ordinary_candidate_ci": "AWAITING_FINAL_PUBLICATION",
+      "main_merge": "NOT_DONE",
+      "supported_tagged_gate": {
+        "node": "v22.23.0",
+        "exit_code": 0,
+        "ids": 352,
+        "approved_main_ledger": 207,
+        "tagged_green": 227,
+        "tagged_failing": 0,
+        "log": "current-main-tagged-coverage.log",
+        "untagged": 125
+      }
+    }
+  ],
+  "bounded_feedback_static_checks": {
+    "actionlint": "PASS",
+    "bash_and_embedded_python": "PASS",
+    "selected_types": "PASS",
+    "selected_lint": "PASS",
+    "actual_immutable_overlay_layout": "PASS",
+    "finite_qualifier_controls": 7,
+    "native": "NOT_RUN",
+    "first_independent_caller_finding": "P2 optional partial JSON receipt aborted feedback; fixed explicit parse-error diagnostics; empty-ledger/malformed-receipt controls PASS",
+    "review": "APPROVE export-feedback-review.md; workflow24a53b10 only, native NOT_RUN"
+  },
+  "file_sha256_scope": "historical initial three-case preparation; current experimental inputs are separately pinned in export-feedback-inputs.json"
 }

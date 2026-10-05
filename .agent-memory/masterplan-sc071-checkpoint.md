@@ -183,3 +183,94 @@ config/helpers remain unchanged. Current actual-main counts91 VERIFIED rules
 plus114 PASSED contracts =205 distinct/352. No own coverage row is promoted.
 Next: push the reviewed custody correction and qualify its actual new-head
 native run/artifact. SC010 sole exporter implementation remains pending.
+
+## Qualified executed component and current composition
+
+Actual run37295735640/job111716379670 on c08a2354 SUCCESS; three real native
+cases PASS/0FAIL/0ERROR/0SKIP. Artifact11338083870 ZIP SHA2566a76936f2ad3552a221220471a7e18dd3bd0cd6935cdd13e8f64481782f5fb03
+matches GitHub API digest. Exact five-member custody, actual job-log/receipt
+equality,16 immutable/current source hashes and JUnit independently qualified.
+Canonical replay records48official ledger rows, fingerprint9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b
+and final PASS. Raw redacted selected log/JUnit/source receipt are now retained
+in own packet. First failed custody/local attempts remain historical failures.
+CLI artifact blob403 was recovered with the existing GitHub artifact connector.
+Installed gh lacks checks --json; exact-head REST APIs supplied the snapshots.
+
+PR574 is ready for review at unchanged c08. Its clean/upgrade/quality gates
+are still running; all-green/main merge is NOT claimed. Board5305992647078
+records qualified component and retained sole exporter dependency. Bounded
+independent evidence review QUALIFIED; wholeSC071 remains unapproved.
+
+Actual main4ac9c6412ff4a84ea4dd65833b5d4897172f278c (#567/#572/#569) was merged
+cleanly at bb128549cc93272cd94d8351a9f5bbc98adf2029. All relevant production,
+SQL, canonical replay, fixture/helper/config inputs remain unchanged. Foreign
+tests/evidence and91VERIFIED+116PASSED=207/352 ledger entries are preserved;
+these are main's recorded statuses, not new independent whole-card approvals.
+Only own new paths differ against current main. Next: publish the final
+qualified packet, follow its exact-head review/ordinary CI, and integrate the
+bounded component when green under the existing independent-packet clearance.
+Then continue SC071's actual export/revoke proof against exporter5992097869.
+
+## Actual exporter handoff and prepared parallel cases
+
+Sole SC010 producer824e5f53/sourcehandoff5992694706 is accepted5992836327.
+Its actual queue/claim/execute/read ports and migrationd0e4ec... are unchanged;
+three new parallel cases are implemented in export-races.patch (SHA256a45ee4b477f23fee35446132c9cf93a3fd00d4de673a4c00b68eac100eb71948),
+with full proposed source33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4.
+Static peer APPROVE/export-races-review.md; corrected-layout exact-source
+overlay types and stdin ESLint PASS. Original flat overlay helper imports
+FAILED and remain recorded. Registered published3-case bytes stay6407877;
+new3cases are NOT_RUN. Combined own6 + retained SC0104 must qualify exactly
+10actual cases on the sole workflow after canonical admission; no second
+worker, validator, fixture or stack is created.
+
+Supported composed352-ID tag gate PASS207mainapproved/227taggreen/0failing.
+Initial default-sandbox run FAILED emptyJSON; exact subprocess diagnostics
+showEPERM, reproduced by a minimal node--version child. Additional-permissions
+execution removes that observed failure and the unchanged gate PASS is kept
+separately. No product/test/config assertion or coverage status was changed.
+
+Peer qualified native review is now exact-head COMMENT5413363678 on c08;
+this truthfully records independent work without a self-approved GitHub state.
+The unchanged publishedc08 clean CI still runs; other9project checks/native
+are green. Local qualification/checkpoint follow-ups are saved separately,
+so no status-only push restarts that qualified running candidate.
+
+Sourceowner5992842444 and direct503comment5993037079 preserve genuine new
+producer CI failures at missing manifest admission, before native. Shared
+manifest/schema/typegen ownership remains retained. An asynchronous explicit
+USER clarification is pending for one bounded export-admission/generated-
+evidence window under the contract's required clear handoff; no response or
+elapsed time is treated as approval. Unaffected SC071 review/CI continues.
+
+## Verified component merge; bounded export feedback active
+
+PR574 merged7b9218da at2026-10-05T11:31:56Z, parents60b2c7a7+c08a2354,
+actualtreef03ec10b equals reviewedunion9ae5e3b9. Exactc08 all9mandatory
+CI+native3SUCCESS. Final unchanged352-ID gate213approved/232taggedgreen/0fail
+(merge-main-tagged-coverage.log); foreign coverage byte-identical. MERGED board
+5993590827 requests sole common handover line from retained coordinator.
+
+Current isolated branchcodex/ediel-sc071-export-feedback-20261005. Sourceowner
+proposal5993124044 accepted5993523187, owned scope5993553663. Sole workflow now
+uses detached pinnedBASE7b9218da through canonical EXIT; then6 unchanged824
+overlays, TEMP-only d0e4 forward, real4RPC witness, same-stack6own+4owner
+native invocation and unchanged48ledger. Registered3-case640 file unchanged;
+ownpatcha45 supplies effective6-case33b7 only after completed BASE replay.
+Actionlint/shell/Python/types/lint and five finite wrapper controls PASS;
+actual ten-case native NOT_RUN, independent final caller review underway.
+No candidate producer admission/schema/types/fingerprint/coverage edits.
+WholeSC071/SC010 remain UNAPPROVED; post-forward schema unqualified for final
+capture. Pending user ownership question concerns later shared admission only;
+accepted bounded experiment has independent authorization. Next: publish
+reviewed sole caller, execute actual10cases, retain/diagnose first failure.
+
+Callerreview found P2: partial/empty optional JSON could abort failure receipt
+before redaction. Fixed owned reader to preserve explicit parse-error diagnostics
+and deny qualification. Seven finite controls PASS including empty ledger and
+malformed base receipt; workflow24a53b10, descriptor5f361eb8. No native result
+is inferred. Final independent caller review pending, then actual run.
+
+Final caller static peer APPROVE export-feedback-review.md, workflow24a53b10.
+Adopted main505e2063 seventeen foreign documentation-only paths unchanged;
+authentic runtime BASE remains7b9218da. Next actual ten-case execution.

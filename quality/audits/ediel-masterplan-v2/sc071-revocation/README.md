@@ -1,45 +1,56 @@
-# SC-071 native projection/revocation component
+# SC-071 native revocation evidence
 
-Three new native cases exercise real grant revocation against the existing
-beneficiary projection, including both transaction orders and rollback. The
-current independent review approves the static component. **Native
-NOT_QUALIFIED; whole SC-071 remains unapproved.** The first local setup failed
-before database replay. Actual CI run37293845384 on f75cdd7d then refused
-artifact publication because credential redaction was incomplete; no native
-counts were qualified. Both failed attempts remain recorded.
+PR574's projection/revocation component merged at
+`7b9218da2c7f71f4373bcc9189715c0043a8cb31`. Exact c08a2354 passed
+all nine required checks and **3 native cases, zero failures/errors/skips**
+in run37295735640. Artifact11338083870, ZIP digest, all16 recorded inputs,
+JUnit and canonical replay were independently qualified. The local stack
+and first CI credential-refusal failures remain recorded. Actual raw redacted
+evidence: native-executed.log, native-executed-junit.xml and
+native-executed-source-receipt.json. Final merge-tree/coverage verification is
+in verification-receipt.json and merge-main-tagged-coverage.log.
 
-The new `.github/workflows/ediel-sc071-native.yml` invokes the unchanged
-canonical replay and this selected config on the exact PR head. It requires
-three cases with no failures/errors/skips and publishes only redacted feedback,
-including a stage receipt if replay fails. Its initial static review finding
-and correction are retained in `native-feedback-review.md`; finite workflow
-control probes do not establish database or native behavior. Actual CI native
-execution remains pending until its artifact is qualified. The correction
-passes the CLI SECRET_KEY format to the unchanged canonical scrubber; the
-credential refusal remains in place. Static review and finite format controls
-pass, but cannot qualify the next real native run.
+**Whole SC071 and SC010 remain unapproved.** The three component cases do not
+establish the frozen SC071 requirement to run actual export and rights change
+in parallel. The sole SC010 producer stays with
+[PR570](https://github.com/heke99/gridex-ops-platform/pull/570), immutable
+source824e5f53c9a115e3f423d3e2e5ba13b41001bdb9; handoff5992694706 accepted5992836327.
+No second exporter, lease worker, native fixture, lock helper or redactor exists.
 
-SC-010 remains with [PR #570](https://github.com/heke99/gridex-ops-platform/pull/570)
-at `7a894c3b7938daf9bbbab7680f71ca5911aefc9c`; its finite HTTP component is
-reused by reference. Ownership handoff: #530 comment5991386261, accepted5991584319.
+The follow-up `export-races.patch` provides three independently reviewed actual
+export/revoke cases in addition to the original three. Registered source6407877
+remains unchanged; the effective six-case source is33b7d52a, explicitly
+applied only to the disposable runtime checkout. Types/lint and bounded static
+review passed; **the new native cases are NOT_RUN**. Original flat temporary
+layout type failure remains documented. Source-owner four sequential/expiry
+cases remain separately owned and byte-identical.
 
-The retained coordinator can run the selected native cases in the already
-qualified canonical local/CI stack:
+The owner's bounded native-feedback proposal5993124044 is accepted5993523187.
+The same sole `.github/workflows/ediel-sc071-native.yml` now:
 
-```sh
-GRIDEX_NATIVE_STATUS="$existing_owned_status_path" npx vitest run \
-  --config quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts \
-  --reporter=default --reporter=junit --outputFile=sc071-native-junit.xml
-```
+1. Completes the unchanged canonical replay on explicitly pinned main BASE7b9218da,
+   with source tree/hash, fingerprint and48-entry ledger evidence attributed
+   only to BASE. BASE remains the CLI CWD through the original EXIT cleanup.
+2. Verifies six immutable824 producer inputs, the owned patch/config and sole
+   migrationd0e4ec. That migration is applied from RUNNER_TEMP directly to the
+   same disposable database after BASE replay; it is never added to replay
+   migrations or the official ledger.
+3. Reloads real PostgREST schema and witnesses all four actual RPCs, then invokes
+   exactly six SC071 and four SC010 cases using existing native owners. Discovery,
+   unique file/name, zero errors/failures/skips, effective-input hashes and
+   unchanged official ledger are all required for a qualified result.
+4. Preserves both success and failure evidence through the existing canonical
+   redactor, CLI SECRET_KEY format input and unchanged leftover-token refusal.
 
-The selected config imports the existing canonical guards, aliases, fixture
-setup and deadlines. No shared include, source, SQL, helper, schema, migration,
-manifest, generated artifact or coverage row changes are made. A shared-suite
-include still needs the coordinator's cleared ownership window.
+Exact inputs: export-feedback-inputs.json. Actionlint, shell/Python syntax,
+selected types/lint and seven finite qualifier controls PASS; these controls
+are not database/native evidence. Independent caller review precedes execution.
+The earlier export-native-invoker.patch is a superseded direct-admission proposal
+and is not applied by this workflow.
 
-Whole approval additionally needs the actual queued/leased export/distribution
-consumer and its current grant check before disclosure. The SC010 source owner
-has claimed the sole first production exporter in #530 comment5992097869;
-its implementation, exact RPCs and coordinator schema admission remain pending.
-SC071 will exercise that same real producer. SQL transaction locks alone do not
-prove a later export/send boundary.
+Experimental post-forward schema is **UNQUALIFIED_FOR_FINAL_CAPTURE**. This
+workflow does not establish producer candidate clean/upgrade parity, canonical
+admission, generated schema/types or whole-card approval. Retained coordinator
+#503 owns those shared final gates; its missing-manifest failure remains visible.
+Ordinary candidate checks are mandatory. Finite issuer/legal, SMTP and route
+session-selection ports do not establish authentic market qualification.
