@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-10-05T14:40:52.702988+00:00",
+  "head": "815307d0866da38e63439dd6fb116d25ffd23e89",
+  "main": "2579fa93b8008eb72ca2a77d074b551828d0be58",
+  "expected_merge_tree": "a32ecc7e8760c056581385b233bd84c56f82d476",
+  "verdict": "CURRENT_MAIN_SOURCE_LEDGER_CARRY_APPROVE",
+  "retained_independent_review": "sc057-sc059-815307-current-main-carry-20261005.json",
+  "latest_main_delta": "589/590 NEW bounded paths and independently whole-approved551 asserting packet/own records only. The two script paths are the actual551 qualified scoped-projection assertion harnesses; no app/lib/schema/migration/replay/config/workflow delta. Allforeignnew/changed main files preserve actualmain bytes.",
+  "foreign_coverage_rows": 350,
+  "metadata_exact": true,
+  "main_stored_approvals": 219,
+  "composed_stored_approvals": 221,
+  "guard_correction": "Initial source-like script ban correctly paused; inspected exact two changed script paths and qualified their already independently approved551 test-only roles. No source gate was disabled.",
+  "limits": "No broad/native re-execution or source/history relabel; current nine815 checks plus CodeRabbit verified separately."
+}

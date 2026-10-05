@@ -1,13 +1,13 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-05T14:28:37.623186+00:00",
+  "updated_at": "2026-10-05T14:45:48.577940+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-tr05-recovery-20261004",
   "active_pr": 503,
-  "base_head_sha": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "base_head_sha": "36e873fbac87695f9d3522086f721961824e29f9",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 420,
+  "last_merged_pr": 562,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
   "active_item": "Masterplan v2 coordinator: authentic composed capture import/current mandatory gates and guarded main integration",
@@ -1530,12 +1530,14 @@
     "coordination_issue": 530,
     "published_head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
     "pre_import_consumer": "d2f820ebf7eeeccef3d86f01e2536c1b9ddd53e2",
-    "stored_main_approvals": 217,
+    "stored_main_approvals": 221,
     "capture_run": 37319901610,
     "capture_job": 111796010070,
     "capture_artifact": 11351030885,
     "capture_status": "SUCCESS_AUTHENTIC_RAW_IMPORT_INDEPENDENTLY_APPROVED",
-    "current_candidate_gate_status": "PENDING",
-    "sole_local_work": "Reviewed import/current checks staged for same503 publication; priorcheckpointd2 public."
+    "current_candidate_gate_status": "PENDING_NEW_PUBLICATION",
+    "sole_local_work": "Independently reviewed current source/import/adoption and four unique real merge handovers publishing now.",
+    "pre_publication_source_head": "7c6ecae3ca4bae3a9bc4574c034a71f8224b4888",
+    "blocked_external_analysis": "IMP05 new technical analysis: explicit user permission pending; omitted."
   }
 }

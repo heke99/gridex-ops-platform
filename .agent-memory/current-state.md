@@ -1,3 +1,11 @@
+## Current publication — 2026-10-05T14:45:48.577940+00:00
+
+Actual main36e873fb has221 stored approvals after green independent #551 SC004/006 and #562 SC057/059 merges; actual trees/parents equal qualified unions. Root genuinely adopted both source-safe packets into7c6ecae3; raw captured producer remains5be, current exact schema/types/fingerprint and8 reviewed capture inputs unchanged. Six root-owned rows preserve all346 foreign rows/evidence; composed register227. Four unique actual589/590/551/562 handover lines appended.
+
+Authentic import and TR04 adapter independent approvals/current5PASS/type/lint/frozen checks are recorded; remaining current-head native/clean/upgrade/browser/ordinary checks are required after this same503 publication. Original raw provenance/history/failed attempts are retained. Current newownerheads5444e6b/54899af/559234/56116e7 have independent code/source proof and separate pending gates. OPS03reader interface handoff is posted5945996580453; shared scanner waits for the sole reader owner. Next IMP05 source admission remains held, detailed new-analysis GitHub publication has an explicit user approval request pending after automatic rejection. No blocked private analysis is included in this publication. F/G helper proposal is reviewed only within accepted-input compatibility; its native/25-cell/source qualification stays held with its owner.
+
+Next: publish independently reviewed current503 import/source/memory without force; read the new actual-head required gates, fix only real failures and continue qualified scenario mergers while distinct owners work. No repeat of already qualified native/full suites solely for these source-safe memory/test packets.
+
 ## Authentic composed capture import reviewed — 2026-10-05T14:28:37.623186+00:00
 
 Authentic capture37319901610/artifact11351030885 is imported byte-exact; independent custody/import APPROVE (7c08MD/6b18JSON). Actual generated baseline/migration1073-976/frozen33-121-231/appTypes pass. TR04's declared new read-port adapter independently APPROVED (530dMD/4d13JSON), original assertions preserved and focused5PASS0skip/lint0. Raw checks/old public CI excerpt archived in own quality. No new whole promotion; raw capture execution flags remain NOT_RUN. Current new-head mandatory gates remain next.
