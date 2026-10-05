@@ -57,7 +57,7 @@ const treeSnapshot = { ...currentTree, stdout: currentTree.stdout.split('\0').ma
   ? record.replace(/[0-9a-f]{40}\t/, modeledLedgerBlob + '\t') : record).join('\0') }
 const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex')
 type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'run' | 'attempt' | 'job' | 'job_failed'
-  | 'artifact' | 'artifact_head' | 'artifact_run' | 'expired' | 'digest' | 'artifact_attempt' | 'source'
+  | 'artifact' | 'artifact_head' | 'artifact_run' | 'expired' | 'digest' | 'artifact_attempt' | 'source' | 'native_config_source'
   | 'duplicate' | 'skip' | 'failure' | 'error' | 'missing' | 'wrong_case' | 'wrong_file' | 'xml_entity' | 'duplicate_zip' | 'latest_cancelled'
   | 'setup_input' | 'transitive_input' | 'missing_input' | 'extra_input' | 'mode_input' | 'symlink_input' | 'untracked_input' | 'ignored_input'
 type CoverageFault = 'document_missing' | 'document_conformance' | 'mime_missing' | 'guard_missing' | 'tgt_missing' | 'tgt_skipped'
@@ -238,6 +238,7 @@ function consume(options: Options = {}) {
         const bytes = readFileSync(path.resolve(file))
         const changed = options.fault === 'source' && file === caseFile || options.coverageFault === 'source' && file === tgtFile
           || options.coverageFault === 'workflow_source' && file === '.github/workflows/full-e2e.yml'
+          || options.fault === 'native_config_source' && file === 'scripts/ediel-source-owner-native.config.ts'
         return good(changed ? Buffer.concat([bytes, Buffer.from('\n// changed reviewed source')]) : bytes)
       }
       if (args[0] === 'config') return good(`https://github.com/${repository}.git`)
@@ -377,6 +378,25 @@ it('coverage authenticates six separate code evidence classes and aggregate nati
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/git/commits/${head}`)).toHaveLength(1)
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/actions/runs?head_sha=${head}&per_page=100`)).toHaveLength(1)
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/actions/runs/12345/attempts/2/jobs?per_page=100`)).toHaveLength(1)
+})
+it('refuses changed native-config bytes while retaining distinct coverage classes and authenticated CI', () => {
+  // Change only git-show bytes; modeled tree, source cases, API and JUnit stay valid.
+  const result = consume({ coverage: true, fault: 'native_config_source' })
+  expect(result.exit).toBe(0); expect(result.verdict).toBe('GREEN')
+  expect(dgi(result.evidence)).toBeUndefined(); expect(ddq(result.evidence)).toBeUndefined()
+  for (const level of ['integration', 'tenant_e2e']) expect(result.evidence.levels[level].status).toBe('missing')
+  for (const level of ['document', 'unit', 'transport', 'TGT']) expect(result.evidence.levels[level].status).toBe('qualified')
+  expect(result.evidence.caseEvidence?.filter(row => row.id.startsWith('coverage_')).map(row => row.id)).toEqual([
+    'coverage_mime_code', 'coverage_send_guard_code', 'coverage_tgt_code', 'coverage_document_integrity',
+  ])
+  expect(result.evidence.scopeMatrix).toMatchObject({ DDQ: false, DGI: false, crossTenantAssignments: false })
+  expect(result.evidence.scopeMatrix.tenantCountLowerBound ?? 0).toBe(0)
+  expect(result.evidence.blockers).toContain('case_artifact_missing_or_unqualified:native')
+  expect(result.evidence.blockers).not.toContain('case_execution_inputs_changed')
+  expect(result.evidence.blockers).not.toContain('case_source_missing_or_unqualified')
+  expect(result.evidence.blockers).not.toContain('authenticated_ci_not_passed')
+  expect(result.evidence.codeEvidence).toBe('incomplete')
+  expect(result.evidence.fullCardVerification).toBe('NOT_VERIFIED')
 })
 it('coverage nightly reuses the latest successful PR/push producer on the same immutable head instead of a second coverage invocation', () => {
   const result = consume({ coverage: true, nightly: true })
