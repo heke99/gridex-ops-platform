@@ -752,6 +752,32 @@ it('real downstream writers consume database-derived stored values and retry ide
   expect((await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
+// masterplan: SC-046, U-04
+// SC-046: a newer accepted version (own field 512 later) is processed first; the
+// older version arrives last. It gets a positive APERAK and no UTILTS-ERR, the
+// newer version stays current, and arrival order alone causes no re-billing.
+it('SC-046 late older E66 version: positive APERAK, newer stays current, no re-metering or re-billing', async () => {
+  const f = await seed()
+  await realSinks()
+  const olderRaw = f.original.raw_payload!
+  expect(olderRaw).toContain('DTM+597:202607010020:203')
+  const newer = await f.insertSource(ownIdentity(olderRaw.replace('DTM+597:202607010020:203', 'DTM+597:202607010050:203').replace('QTY+136:500', 'QTY+136:700')))
+  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: newer.id })
+  const consumed = () => sql(`SELECT jsonb_build_object('meter',(SELECT jsonb_agg(value_kwh ORDER BY id) FROM public.metering_values WHERE company_id=${lit(f.ids.company)}),
+    'billing',(SELECT jsonb_agg(jsonb_build_object('id',id,'kwh',total_kwh) ORDER BY id) FROM public.billing_underlays WHERE company_id=${lit(f.ids.company)}))`)
+  const afterNewer = consumed()
+  expect(afterNewer).toMatchObject({ meter: [700], billing: [{ kwh: 700 }] })
+  const late = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
+  const lateAcks = effects.ack.mock.calls.map(([call]) => call).filter(call => call.sourceMessage.id === f.original.id)
+  expect(lateAcks.filter(call => call.ackFamily === 'APERAK').map(call => call.outcome)).toEqual(['positive'])
+  expect(lateAcks.some(call => call.ackFamily === 'UTILTS_ERR')).toBe(false)
+  expect(sql(`SELECT jsonb_agg(source_ediel_message_id) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)} AND is_current`)).toEqual([newer.id])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)} AND source_ediel_message_id=${lit(f.original.id)} AND NOT is_current`)).toBe(1)
+  expect(consumed()).toEqual(afterNewer)
+  expect(late.billingUnderlayId ?? null).toBeNull()
+  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
+  expect(consumed()).toEqual(afterNewer)
+})
 it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('full processor rejects changed billing %s after insert before completion', async field => {
   const f = await seed()
   await realSinks()
