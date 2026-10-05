@@ -1156,3 +1156,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-05 #556: SC rows → PARTIAL; #556 now carries rule cards + fixes only.
 - 2026-10-05 #556: U-19 caller fix 531e32b4 independently approved (review 5988350281); SC-043 and SC-044 restored to PASSED after independent qualification of their complete code effects.
 - 2026-10-05 SC-050 PASSED: fixture now a full +0100 winter day (2026-01-15), 88/96 with equal energy sum → E87 + UTILTS-ERR planned; complete day → no codes.
+- 2026-10-05 SC-048 PASSED: E50 source finalized through createUtiltsRuntimeAcks → one physical UTILTS ERR with E50 on RFF+TN OWN-E50, no E10, no master-data rows; valid-time contrast gives no codes.
