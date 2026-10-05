@@ -1,11 +1,11 @@
 # SC-014 intake qualification — 2026-10-05
 
-Status: FROZEN — four actual intake/admission qualification cases PASS. Bounded held-source result, not whole-scenario approval or a confirmed normative violation. No tag, coverage row, production change, commit, push, native/full execution or traffic.
+Status: FROZEN — six-case current configured-CONTRL-route authority qualification is complete. The original four-case qualification is committed and preserved below; this extension is not whole-scenario approval or a confirmed normative violation. No tag, coverage row or production change; no agent commit, push, native/full execution or traffic.
 
 ## Isolation and ownership
 
 - Branch: `codex/ediel-sc014-intake-qualification-20261005`.
-- Exact base/HEAD: `9dc4a783a0c5e926596e3054a958c64e43efd490`.
+- Exact base: `9dc4a783a0c5e926596e3054a958c64e43efd490`; current HEAD preserving the original receipt: `f61de38711b5ee07cdea9d24fb3320db810d3bc3`.
 - Worktree: `/workspace/gridex-masterplan-sc014`; existing node_modules linked from SC022. Parent explicitly requested this new isolation.
 - Parent owns coordination/promotion/publication. SC014 qualification is reserved in #530 comment5986591063; SC055 is the other technical lane. Existing intake/P/SQL owners are retained.
 - Current authorization: this checkpoint and, only after a genuine schema/trigger/admission path is identified, new `__tests__/ediel-sc-014-unattributed-reception.test.ts`. No existing product, SQL, helper or owner test edits.
@@ -81,7 +81,7 @@ Frozen inputs SHA256:
 | `20260930184410_ediel_protected_technical_contrl_source_basis.sql` | `c20ebe2fbc913c12ac3e007b99e575915ca1b61718c144f33aab03578445639b` |
 | `20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql` | `7ef393bb1a39f9d8378b27e26801f2e871a640a3608e5d64af48fcdbf334dce0` |
 
-## Actual execution and effect/authority matrix
+## Original four-case execution and effect/authority matrix
 
 New owned file: `__tests__/ediel-sc-014-unattributed-reception.test.ts`, SHA256 `661bc59c2888b857f4582a5f13d09ca016ceaddc93a6c0d5ea8e779e933aa638`.
 
@@ -113,7 +113,7 @@ All seven decisive executed function definitions are byte-identical to published
 | `public.ediel_read_technical_source_endpoint_v2` | `c5ae48f49a997da3a74f1c8145dfdad84dace1a6abc33e14654176e698a316c8` |
 | `gridex_utilts_binding.wire_tokens_v1` | `515e76d92c3e50875c6ee6b06c22a6b2d32a46a4dc5f3037eb0a52da85985270` |
 
-## Commands, results, false positives and exact next action
+## Original four-case commands, results and bounded verdict
 
 - Created only the requested isolated worktree/branch from9dc and symlinked dependencies; initial status clean. Final status has exactly own new test/checkpoint.
 - GitHub read: `gh api repos/heke99/gridex-ops-platform/commits/8490c349`→422; comments and paginated491 history→owner reply above. First default-network read failed; permitted network read succeeded. No external post/mutation.
@@ -129,4 +129,52 @@ Bounded verdict: **current source is technically held by the genuine canonical a
 
 If that review establishes prescribed ACK is safely possible here, the causal boundary is `createUnresolvedInboundEdielMessage` input/environment/source identity plus `gridex_validate_ediel_message_contract` null-company admission BEFORE actual `capture_source`; V2 reader/source selector can only consume an admitted source. The owner8490 receipt grants SC014 qualification outside their one mailbox-ID hunk, but does not authorize duplicating their unpublished line or bypassing the contract. **Do not set company_id from mailbox as legal/business attribution and do not synthesize a receivedProdatContext or ACK admission.** No safe one-line repair is approved; any exact protected admission correction still needs parent's normative/source-owner reconciliation.
 
-Next action: parent independently reviews this frozen two-file qualification and literal/authority distinction. No SC014 mutations unless precise feedback arrives. Once requested, perform independent SC055 literal/current caller/finite-native-port cross-review without duplicating SQL/native execution.
+The original next action was parent review and independent SC055 cross-review; both were completed. The separately authorized narrow extension below now supplies the missing current route/guide qualification.
+
+## Authorized narrow extension after original publication
+
+- Parent committed the exact original two-file qualification as `f61de38711b5ee07cdea9d24fb3320db810d3bc3`, tree `c9900c5e` (parent receipt); original base9dc, test SHA661bc59c and checkpoint SHA bf0bb9d10faa6fa75bcd8ccb4fa93d321893fb5aa343b597b38b3a827f91e48f remain preserved by that commit. Parent's independent immutable four-case run PASS, log prefix3af30233; this agent does not invent the unprovided full parent log hash.
+- Parent approved independent read-only SC055 code-contract review; this agent read the complete literal/current consumer and immutable owner4+18 receipt without executing those tests/SQL. No SC055 files changed.
+- New authorized evidence is ONLY current configured exact-one CONTRL route/profile/SMTP binding and actual current actor communication.write preparation checks for the same technical UNB tuple, with meaningful missing/ambiguous/mismatched contrasts. Reuse this owned suite's current-schema loader and existing actual technical functions. No new resolver/harness, null-company admission, dummy source ID, fabricated reply/syntax/guide verdict or source edit.
+- Current `read_route_v1` calls `require_source_v1` (actual admitted message + protected sources + replies), then production `gridex_negative_fixtures.assert_actor_v1(...,'communication.write')`, then `select_configured_reply_route_v2`. Selector also rechecks current endpoint, locks actual configured route/profile/transport-profile tables and requires precisely one matching current SMTP/from/host/port, original reversed UNB/subaddresses/application/environment and active ediel_ack route.
+- A real reply basis requires actual syntax facet + `capture_reply_before_native_ack_guide_v1`; current public capture_v2 additionally invokes `capture_reply_v1` → current ACK guide bind_source/registered-basis/projection. The extension executes this complete current guide path, not a substituted guide verdict or route-only positive. It does not claim native execution.
+- The concrete extension preserved the zero attempted-business-access ledger and every original f61 assertion. No whole SC014 approval or product repair is inferred from the additional component qualification.
+- Reviewer confirmed current `require_registered_basis_v1` immediately returns for technical kind. Bounded full capture is feasible using the existing schema extractor: load exact committed latest projection INSERT from `20261001034855_ediel_prodat_aperak_unused_document_fields.sql` (sourceVersion `a30473a34535076e12e46386563adb3fa36431a0e7a245fc1be666c5737e8708`), current immutable guide/extension/binding table definitions and current bind/projection functions. Install edition before actual source birth; record syntax from actual validator through V2 actor-bound producer, capture through full current V2+guide wrapper, then current public route reader. Add configured-route positive, missing/ambiguous/SMTP mismatch and current-actor contrasts. No guide stub, fabricated source ID, accepted null-company row or pre-guide-only approval. This paragraph records exact new evidence before editing the owned test.
+
+## Final six-case extension receipt and exact next action
+
+Final owned test SHA256: `89e0c161165319f1e64fd10378a19f72beb6a1177d0d052b3dd7f1db1f4a86f3`.
+
+| Additional effect or contrast | Executed current producer/consumer and assertion | Boundary |
+| --- | --- | --- |
+| Actual syntax and immutable guide provenance | Actual syntax validator accepts the legitimate known-company production source; current V2 syntax writer records its real verdict. Full current V2 capture calls the current guide wrapper, immutable edition selection, registered-basis and original projection functions. Actual source binding retains exact captured original basis and sourceVersion `a30473a3…708`. | Edition installed before real canonical source birth. Exact committed edition INSERT; no guide, syntax or reply verdict replaced. Technical registered-basis early return means no national role/rulepack is invented for CONTRL. |
+| Current exact-one configured route | Actual public route reader → `read_route_v1` → current actor/endpoint guard → `select_configured_reply_route_v2` returns the exact route/profile IDs, production, reversed original UNB IDs/qualifiers, null subaddresses, application, SMTP/from/to and source hash. | Actual current permission checks with only the explicitly finite permission service: communication.write true, communication.send false. Actual SMTP-readiness parser consumes finite configuration; no SMTP connection. |
+| Qualified positive shares unresolved original's technical tuple | Actual captured original UNB equals the SQL-decoded unknown-legal wire, including production environment. | Legal NAD differs; this equality does not attribute the unknown legal party or manufacture an admitted unknown source. |
+| Real refusal contrasts | Disabled profile → route_count:0; duplicate exact profile → route_count:2; independently changed SMTP from/host/port → route_count:0; absent current actor →42501 ediel_negative_fixture_actor_not_authorized. Restored route qualifies again. | Each contrast is caused by the intended configured authority boundary after actual source/syntax/guide capture. |
+| Actual raw-mail ID remains outside protected reply admission | The original unresolved mailbox case now additionally calls the actual current route reader with its real stored raw-mail UUID; it fails ediel_historical_technical_ack_basis_unavailable before configured-route selection. Original23502 company rejection, zero canonical source/ACK rows and zero attempted business accesses remain asserted. | No dummy ID, accepted null-company row, alternate source selector or fabricated ACK admission. |
+
+The extension reuses the owned current-schema extractor for actual additional table/type/function definitions. Only the original SHA256 digest and named permission service remain SQL function ports. Route/profile rows and actor/technical identifier inputs are finite declared current-schema inputs. The actual current guide binding, syntax capture, route count and actor verdicts execute unmodified. Existing native triggers/FKs/RLS/full schema, ACK kernel/atomic writer, certificate/provider send guards, SMTP and business mutation remain outside this qualification; existing OPS05 evidence is not copied or rerun.
+
+Additional exact source SHA256: guide migration `20261001034855_ediel_prodat_aperak_unused_document_fields.sql`=`39f17d689e9facffd7ff92e7aef75d8f74f690f164404f16b2768226e813a555`; `lib/ediel/mailReadiness.ts`=`6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453`. Both complete files and the following executed definitions are byte-identical at published primary0796a571:
+
+| Additional executed definition | Extracted byte SHA256 |
+| --- | --- |
+| `gridex_ediel_technical_ack.read_route_v1` | `09494ea1f9f2582ea3f05cb27f668badf1cec7e43d96c8667ae5e5e08c4ef2e0` |
+| `gridex_ediel_technical_ack.select_configured_reply_route_v2` | `3aaf4967bf8e7056736cb6b47b6bd8a359c6980beab17d5d4dd7d9dcaeb79e78` |
+| `gridex_ediel_technical_ack.capture_reply_v1` | `c2d35960ca2c2b0fe477574bc23f5bde73684742b09f8786a7bc84804a37ca2a` |
+| `gridex_ediel_technical_ack.capture_reply_before_native_ack_guide_v1` | `30a477101d0334e27eb0b5c9a359f33b71b7701078fcba9814b6d164229eff86` |
+| `public.ediel_record_technical_syntax_facet_v2` | `bbf8ee0a31c6fd768bcb5547522e7606894e2121eda879bbba322e124fcba4fb` |
+| `public.ediel_capture_technical_syntax_ack_basis_v2` | `83b775959490113eeabc26f91835823286366da95245c24e1183327de6ffc81a` |
+| `gridex_ediel_ack_guide.bind_source_v1` | `faa04421e8c14045026918cad7c7f4a2bbb3499b390df7ec1b7f40fc750b601b` |
+| `gridex_ediel_ack_guide.projection_for_original_v1` | `7599c790dd6dca429f3e68d7af6449818ed7158522ac7e7f1f94c7d3822f1bab` |
+| `gridex_ediel_ack_guide.require_registered_basis_v1` | `1bcde8a6af56738cae089c4e00bd8a6e67b7ce6c5fcb97ee7adcd1cbf2d6b6a0` |
+
+- First extended run:6/6 PASS,6.64s, `/tmp/masterplan-sc014-route-first.log`, SHA256 `5173afd44e8d8e42c74ea9a51417b9cc5d3ce2b14e2e5ad226f378ec7c35eb52`. A meaningful raw-mail route-reader refusal assertion was then added; no production change or product RED.
+- Final exact command is the Node22/CI-preload behavior command recorded above; final6/6 PASS, exit0,6.82s, `/tmp/masterplan-sc014-route-final.log`, SHA256 `a9e04cdfc5812e40d94a7c8ab1f6a937d9b090dbd73c984e16fb895228ddd154`.
+- Final exact-byte tests types: Node22/max-old-space-size6144 `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json`, exit0, `/tmp/masterplan-sc014-route-types-final.log` empty.
+- Final exact-byte scoped lint: Node22 `node node_modules/eslint/bin/eslint.js __tests__/ediel-sc-014-unattributed-reception.test.ts`, exit0, `/tmp/masterplan-sc014-route-lint-final.log` empty. Both empty-log SHA256=`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- Only own two files changed from f61. `git diff --check` exit0. No production, SQL, helper, tag, coverage, shared-memory, commit or external mutation; no native/full/traffic run.
+
+Bounded conclusion: under these explicit finite current inputs, configured route, current actor permission, technical endpoint, actual syntax and immutable guide provenance are available for the legitimate admitted control. They are not another demonstrated reason to hold this physical transport tuple. The actual unknown-legal raw original retains matching technical UNB/environment/current endpoint facts, but company:null is refused BEFORE canonical birth and therefore lacks the protected source identity through which actual syntax/guide/reply authority is consumed. That is a causal source-admission hypothesis, not an automatic whole-card violation or approval. It does not prove that a raw-mail ID itself has current protected send authority.
+
+Next action: parent independently reviews the final six-case packet against full TEN11/source-supported "where safely possible" and coordinates the existing intake/P owner before any repair. If prescribed ACK is established as safely possible, the minimal conditional boundary is the real unresolved producer/caller's source identity/environment/actor plus a forward protected technical-only admission witness preserving null legal attribution. Do not substitute mailbox company as legal/business owner, fabricate receivedProdatContext, relax the generic company guard, or rewrite ACK/kernel logic. Existing owner8490 one-line mailbox-ID scope remains retained. No further owned-file mutation, whole-scenario promotion or source fix until precise parent feedback.
