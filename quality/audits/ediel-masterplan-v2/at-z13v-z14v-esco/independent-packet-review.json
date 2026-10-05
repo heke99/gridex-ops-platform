@@ -23,5 +23,18 @@
     "selectedSkipped": 0
   },
   "probeChecks": "Fresh observations byte-match retained raw outputs; omissions target only the expected DTM693 or CCI/CAV pair and correct UNT. Normative preservation exit1, cleanup reached.",
-  "boundaries": "Approval is bounded. Whole cards remain PARTIAL/NOT_EXECUTED; no complete ACK joins, native Z15VH or complete forbidden-input persisted-effects approval. Source PDF qualification occurred afterwards and has separate independent source review; final documentation delta review is pending."
+  "boundaries": "Approval is bounded. Whole cards remain PARTIAL/NOT_EXECUTED; no complete ACK joins, native Z15VH or complete forbidden-input persisted-effects approval. Source PDF qualification occurred afterwards and has separate independent source review; final documentation delta review is pending.",
+  "documentationDeltaReview": {
+    "candidateCommit": "d5d90f3fdfc21da95e6f86c24fe3a448093d70ae",
+    "candidateTree": "4168558328fcd9f74e66d64e7c8a4caf2b3be3d1",
+    "verdict": "APPROVE with one minor correction",
+    "verifiedHashes": {
+      "inputs": 28,
+      "receipts": 22,
+      "ownedTechnical": 3
+    },
+    "sourceQualification": "Exact PDF140pages/3083488bytes/frozenSHA plus5 rendered hashes and vector positive controls independently match; target rows white; pages52/63 confirm applicability.",
+    "minor": "Incorrect final-response path/symbol in handoff; corrected to current core path and actual applied/committed effect receipt consumer chain.",
+    "remaining": "Final current-gate and durable whole-card report delta requires its own read-only review; no runtime rerun."
+  }
 }

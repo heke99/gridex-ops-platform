@@ -24,7 +24,7 @@
   ],
   "finalAckBoundary": {
     "consumer": "lib/ediel/flows/inboundProcessing.ts",
-    "guard": "positive permission APERAK requires committed permissionSourceEffectsAccepted; lib/ediel/flows/receivedProdatFinalResponsePlan.ts also gates final positive response by actual effects. Pure provisional positive response is not final emitted ACK."
+    "guard": "inboundProcessing defers provisional positive Z14 APERAK; applied permission results call createCommittedDomainAcks -> createReceivedProdatCommittedEffectAcks -> readReceivedProdatFinalResponsePlan in lib/ediel/core/receivedProdatFinalResponsePlan.ts. Its protected read requires actual effect scopes and valid effect receipts before a positive response plan. Pure provisional positive response is not final emitted ACK."
   },
   "coordination": "Ask retained Claude P/TEN/ESCO and sole current native/source integrator through existing530/491 board; current ownership must be confirmed before any existing test/fixture/config edit. No second workflow/harness/validator/shared schema/capture producer.",
   "sourceEvidence": "original-source-qualification.json; exact frozen original makes222/326 applicable D for S17/V, white receiver rows; no specific ERC inferred."

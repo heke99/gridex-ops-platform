@@ -29,6 +29,19 @@
       "taggedFailing": 0,
       "untagged": 123,
       "rawLog": "supported-tagged-gate.log"
+    },
+    "currentSupportedTaggedGate": {
+      "exit": 0,
+      "executedBase": "85b6d6602ab0d060a86702847641156470f73234",
+      "ownedTechnicalCommit": "1a65e3d741c232f3927dfee4d0d131d43e8c50d7",
+      "ids": 352,
+      "approved": 209,
+      "taggedGreen": 231,
+      "taggedFailing": 0,
+      "untagged": 121,
+      "rawLog": "current-supported-tagged-gate.log",
+      "prerequisite": "current-supported-gate-prerequisite.json",
+      "wholeProfilesApproved": false
     }
   },
   "failures": [
@@ -55,6 +68,15 @@
     {
       "step": "initial artifact fetch",
       "result": "403; zero bytes; connector retrieval later qualified true bytes"
+    },
+    {
+      "step": "initial current supported gate",
+      "exit": 1,
+      "cause": "Default sandbox subprocess diagnostic reports spawnSync npx EPERM, empty stdout; existing gate cannot parse Vitest JSON. Not a semantic test failure/approval. Exact unchanged gate rerun succeeds after authorized subprocess/network prerequisite.",
+      "raw": [
+        "current-supported-tagged-gate-initial-unqualified.log",
+        "current-supported-gate-prerequisite.json"
+      ]
     }
   ],
   "wholeCardReviews": {
@@ -65,7 +87,8 @@
         "Frozen begäran-after-Z14 wording conflicts with ST-E01 pending request.",
         "Joined received Z13 CONTRL/APERAK, native Z14N/no-supply and full forbidden-input snapshots."
       ],
-      "reusedNative": "native-reuse.json"
+      "reusedNative": "native-reuse.json",
+      "fullReport": "independent-at-z13v-review.md"
     },
     "AT-Z14V-ESCO": {
       "verdict": "PARTIAL",
@@ -76,7 +99,8 @@
         "Complete missingR/D and other prohibited-input durable no-effect receipts."
       ],
       "finiteObservation": "Independent code KEEP and exact-original source KEEP confirm pure complete application acceptance when required222/326 are absent. White original rows are outside the grey-field waiver; genuine incoming admission/native effects are unproved.",
-      "reusedNative": "native-reuse.json"
+      "reusedNative": "native-reuse.json",
+      "fullReport": "independent-at-z14v-review.md"
     }
   },
   "inputSHA256": {
@@ -130,8 +154,13 @@
     "canonical-observation/observations.json": "4961c31da4cf0669d87981e4fe43255bf624c5b3115c7023c98d96038506786b",
     "canonical-observation/missing222.edi": "3411f06cec08c7b455c81cd268b47e290dbb4bdb54d357fe562fe6fab4728300",
     "original-source-qualification.json": "7baf0c743e1fb3619633af040fa0e2aacbdf82df05863658ea8df64ebc708010",
-    "independent-packet-review.json": "13a6a40d0eb2790b6a1ec4f356dc1e8ebe6e0f23ec076542a96d168011025db8",
-    "existing-owner-native-handoff.json": "6343cb19bda67a8233f6fd701936da3b00e5ceb34ab8422af2a20762713d4689"
+    "independent-packet-review.json": "d75b1447d42f5a7b872fc15c6fef91b4a849af208c2299d81302b379c00b619f",
+    "existing-owner-native-handoff.json": "8da1e86ca4b41f29bc8dcc2d9c61be6acb45a8c6583bdea29efe7be7ac5ed7ac",
+    "current-supported-tagged-gate.log": "a502c41d16ae13d3eb725ccba9eb13e0efe127b92fda0e9db16657d4c25c7c9a",
+    "current-supported-tagged-gate-initial-unqualified.log": "2b869e5841bfb3692eb3cca62ee034383bed2518d473dfa35e93cf4f67d95fcb",
+    "current-supported-gate-prerequisite.json": "85a0c527258d02699973244f531d990ab3713575bbc297cd581c23403ae84483",
+    "independent-at-z13v-review.md": "9cdbe264c11fd1923ad6a8fee295000c6eff1695255ef12c560d340610da0b8c",
+    "independent-at-z14v-review.md": "5f218d7ce1e6db2d09bcbeb58b1355597823578d1d12b981ea373d0cb5226ed3"
   },
   "mainAdoption": {
     "commit": "85b6d6602ab0d060a86702847641156470f73234",
