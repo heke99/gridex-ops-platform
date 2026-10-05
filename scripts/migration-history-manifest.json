@@ -834,7 +834,7 @@
     "20261004170000_ediel_service_resolve_permission_request_timing.sql": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8",
     "20261004175536_ediel_dsn_encoded_source_identity.sql": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985",
     "20261005020000_ediel_production_contract_ack_confirmation.sql": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1",
-    "20261005130000_hard_delete_guard_companies_customers.sql": "317a71f3aa4f33e74403dc97f352b7dcb33479e713b9229e631c18de9703070a",
+    "20261005130000_hard_delete_guard_companies_customers.sql": "ed92e54ee5c21c781d1e06260e5e7b0a1569ec2896f9e7af0b95f61f3dc5bc3d",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

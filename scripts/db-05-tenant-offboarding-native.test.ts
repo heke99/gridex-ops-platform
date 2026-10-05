@@ -12,7 +12,7 @@ const psql = (sql: string) => execFileSync('psql', ['postgresql://postgres:postg
 
 it('closes a tenant by winding down and revoking access while keeping history, and refuses while billing is unsettled', () => {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
-  const [company, admin, outsider, member, customer, underlay] = Array.from({ length: 6 }, () => randomUUID())
+  const [company, admin, outsider, member, customer, underlay, realTenant, realCustomer] = Array.from({ length: 8 }, () => randomUUID())
   const counts = `json_build_object(
       'status',(SELECT status FROM public.companies WHERE id='${company}'),
       'apiClient',(SELECT status FROM public.integration_api_clients WHERE company_id='${company}'),
@@ -49,6 +49,19 @@ it('closes a tenant by winding down and revoking access while keeping history, a
     SET LOCAL ROLE service_role;
     SELECT json_build_object('hardDeleteAfterClose',pg_temp.try($q$DELETE FROM public.companies WHERE id='${company}' RETURNING 'deleted'$q$));
     RESET ROLE;
+    INSERT INTO public.companies(id,name,status) VALUES ('${realTenant}','Synthetic real tenant','active');
+    INSERT INTO public.customers(id,company_id,is_test_data) VALUES ('${realCustomer}','${realTenant}',false);
+    INSERT INTO public.customer_events(company_id,customer_id,event_type) VALUES ('${realTenant}','${realCustomer}','customer.created');
+    INSERT INTO public.canonical_audit_events(company_id,event_type,aggregate_type,aggregate_id,idempotency_key) VALUES ('${realTenant}','db05.seed','company','${realTenant}','db05-real');
+    SELECT json_build_object('toPendingDeletion',pg_temp.try($q$SELECT public.canonical_transition_tenant_lifecycle('${realTenant}','pending_deletion',(SELECT lifecycle_state_version FROM public.companies WHERE id='${realTenant}'),'db05','${admin}','db05-real-pending')::text$q$));
+    SELECT json_build_object('toDisposable',pg_temp.try($q$SELECT public.canonical_transition_tenant_lifecycle('${realTenant}','deleted_test_only',(SELECT lifecycle_state_version FROM public.companies WHERE id='${realTenant}'),'db05','${admin}','db05-real-disposable')::text$q$));
+    SET LOCAL ROLE service_role;
+    SELECT json_build_object('realHardDelete',pg_temp.try($q$DELETE FROM public.companies WHERE id='${realTenant}' RETURNING 'deleted'$q$));
+    RESET ROLE;
+    SELECT json_build_object('realAfter',json_build_object('status',(SELECT status FROM public.companies WHERE id='${realTenant}'),
+      'customers',(SELECT count(*) FROM public.customers WHERE company_id='${realTenant}'),
+      'customerEvents',(SELECT count(*) FROM public.customer_events WHERE company_id='${realTenant}'),
+      'seededAudit',(SELECT count(*) FROM public.canonical_audit_events WHERE company_id='${realTenant}' AND idempotency_key='db05-real')));
     ROLLBACK;`)
   const r = Object.assign({}, ...out.split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l)))
   console.log(JSON.stringify({ kind: 'db05_tenant_offboarding_native', ...r }))
@@ -70,4 +83,9 @@ it('closes a tenant by winding down and revoking access while keeping history, a
   expect(r.afterClosed.transitionAudit).toBeGreaterThan(r.before.transitionAudit)
   // A closed tenant still cannot be hard-deleted with its history (F-DB-05-01 guard).
   expect(r.hardDeleteAfterClose).toMatch(/^ERR 23001:company_hard_delete_blocked/)
+  // Review finding: the canonical pending_deletion -> deleted_test_only path must not turn a real tenant disposable.
+  expect(parse(r.toPendingDeletion)).toMatchObject({ changed: true })
+  expect(r.toDisposable).toMatch(/^ERR 23001:company_disposable_retained_history/)
+  expect(r.realHardDelete).toMatch(/^ERR 23001:company_hard_delete_blocked/)
+  expect(r.realAfter).toEqual({ status: 'pending_deletion', customers: 1, customerEvents: 1, seededAudit: 1 })
 }, 120000)

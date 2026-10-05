@@ -16,16 +16,51 @@
 --     commands) may move a company into 'deleted_test_only';
 --   * TRUNCATE skips row triggers: a statement guard refuses TRUNCATE by
 --     non-owner roles on companies, customers and every table referencing them.
+--   * the canonical lifecycle allows pending_deletion -> deleted_test_only; no
+--     role (owner/SECURITY DEFINER included) may mark or hard-delete a tenant as
+--     disposable while it holds retained history (real customers, contracts,
+--     invoices, settlement or charge ledgers).
 -- Forward-only; retention-class purge workflows remain separate.
+
+create or replace function public.gridex_company_retained_history_v1(p_company_id uuid)
+returns text[]
+language sql
+stable
+set search_path to 'public', 'pg_temp'
+as $function$
+  select array_remove(array[
+    case when exists (select 1 from public.customers c where c.company_id = p_company_id
+      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,
+    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,
+    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,
+    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,
+    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,
+    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end
+  ], null)
+$function$;
+
+-- Invoker rights on purpose: guards call it as the acting role, and it only sees rows that role can read.
 
 create or replace function public.gridex_guard_company_hard_delete_v1()
 returns trigger
 language plpgsql
 set search_path to 'public', 'pg_temp'
 as $function$
+declare
+  v_retained text[];
 begin
-  if current_user in ('postgres', 'supabase_admin') or old.status = 'deleted_test_only' then
+  if current_user in ('postgres', 'supabase_admin') then
     return old;
+  end if;
+  if old.status = 'deleted_test_only' then
+    v_retained := public.gridex_company_retained_history_v1(old.id);
+    if cardinality(v_retained) = 0 then
+      return old;
+    end if;
+    raise exception using
+      errcode = '23001',
+      message = 'company_hard_delete_blocked',
+      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');
   end if;
   raise exception using
     errcode = '23001',
@@ -68,14 +103,24 @@ returns trigger
 language plpgsql
 set search_path to 'public', 'pg_temp'
 as $function$
+declare
+  v_retained text[];
 begin
-  if new.status = 'deleted_test_only'
-     and old.status is distinct from 'deleted_test_only'
-     and current_user not in ('postgres', 'supabase_admin') then
-    raise exception using
-      errcode = '23001',
-      message = 'company_disposable_status_blocked',
-      detail = 'Only the canonical lifecycle command may mark a tenant disposable.';
+  if new.status = 'deleted_test_only' and old.status is distinct from 'deleted_test_only' then
+    if current_user not in ('postgres', 'supabase_admin') then
+      raise exception using
+        errcode = '23001',
+        message = 'company_disposable_status_blocked',
+        detail = 'Only the canonical lifecycle command may mark a tenant disposable.';
+    end if;
+    -- Applies to every role, including the SECURITY DEFINER lifecycle command.
+    v_retained := public.gridex_company_retained_history_v1(new.id);
+    if cardinality(v_retained) > 0 then
+      raise exception using
+        errcode = '23001',
+        message = 'company_disposable_retained_history',
+        detail = 'Tenant holds retained history: ' || array_to_string(v_retained, ',');
+    end if;
   end if;
   return new;
 end

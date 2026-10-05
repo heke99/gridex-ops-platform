@@ -10,6 +10,8 @@ import { beforeAll, describe, expect, it } from 'vitest'
 const A = '11111111-1111-1111-1111-111111111111'
 const B = '22222222-2222-2222-2222-222222222222'
 const CUSTOMER = '33333333-3333-3333-3333-333333333333'
+const C = '66666666-6666-6666-6666-666666666666'
+const C_CUSTOMER = '77777777-7777-7777-7777-777777777777'
 let db: PGlite
 
 const count = async (table: string, where = 'true') =>
@@ -34,9 +36,12 @@ beforeAll(async () => {
   for (const chunk of src.split(/\n(?=--\n-- Name: )/)) { try { await db.exec(chunk) } catch { /* PostGIS/extension objects */ } }
   await db.exec(`alter table public.companies disable trigger user; alter table public.customers disable trigger user;
     alter table public.canonical_audit_events disable trigger user; alter table public.customer_events disable trigger user;
+    alter table public.customers disable trigger user;
     grant all on all tables in schema public to service_role, authenticated, anon;`)
   await db.exec(`insert into public.companies(id,name,status) values ('${A}','Synthetic A','active'),('${B}','Synthetic B','deleted_test_only');
     insert into public.customers(id,company_id) values ('${CUSTOMER}','${A}');
+    insert into public.companies(id,name,status) values ('${C}','Synthetic C (disposable, real history)','deleted_test_only');
+    insert into public.customers(id,company_id,is_test_data) values ('${C_CUSTOMER}','${C}',false);
     insert into public.canonical_audit_events(company_id,event_type,aggregate_type,aggregate_id,idempotency_key) values ('${A}','x','y','${A}','a1'),('${B}','x','y','${B}','b1');
     insert into public.customer_events(company_id,customer_id,event_type) values ('${A}','${CUSTOMER}','customer.created');`)
   // Guard installed last so the seeding step above cannot disable it.
@@ -85,9 +90,25 @@ describe('DB-05 hard-delete guard (F-DB-05-01)', () => {
     const error = await code('service_role', sql)
     expect(codes).toContain(error?.code)
     if (error?.code === '23001') expect(error?.message).toContain('history_truncate_blocked')
-    expect(await count('companies', `id in ('${A}','${B}')`)).toBe(2)
+    expect(await count('companies', `id in ('${A}','${B}','${C}')`)).toBe(3)
     expect(await count('customer_events', `company_id='${A}'`)).toBe(1)
     expect(await count('canonical_audit_events')).toBe(2)
+  })
+
+  it('refuses marking a tenant with real history disposable even for the owner role the canonical lifecycle runs as', async () => {
+    let error: { code?: string; message: string } | null = null
+    try { await db.exec(`update public.companies set status='deleted_test_only' where id='${A}'`) } catch (e) { error = e as { code?: string; message: string } }
+    expect(error?.code).toBe('23001')
+    expect(error?.message).toContain('company_disposable_retained_history')
+    expect(((await db.query(`select status from public.companies where id='${A}'`)).rows[0] as { status: string }).status).toBe('active')
+  })
+
+  it('refuses hard-deleting a disposable-marked tenant that still holds a real customer', async () => {
+    const error = await code('service_role', `delete from public.companies where id='${C}'`)
+    expect(error?.code).toBe('23001')
+    expect(error?.message).toContain('company_hard_delete_blocked')
+    expect(await count('companies', `id='${C}'`)).toBe(1)
+    expect(await count('customers', `id='${C_CUSTOMER}'`)).toBe(1)
   })
 
   it('does not let one tenant status or another tenant disposable status authorise the delete', async () => {
