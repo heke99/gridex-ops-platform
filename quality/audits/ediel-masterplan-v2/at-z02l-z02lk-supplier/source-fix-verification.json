@@ -1,0 +1,140 @@
+{
+  "recorded_at": "2026-10-05T14:16:47.349580+00:00",
+  "baseline_commit": "bc2b60cfa0cc8ff1037846f0763045f4e58c8369",
+  "current_main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "source": {
+    "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+    "sha256": "9d0146c91d56a547083394f6a39ccb2d73905b54e48aa1bbb604a725d1eabf06",
+    "scope": [
+      "remove redundant Z02 cached-hint request overwrite",
+      "remove sole now-unused private strictUpdate helper"
+    ],
+    "claims": [
+      5996039657,
+      5996102432
+    ],
+    "other_executable_slices": "byte-identical per independent differential reconstruction"
+  },
+  "test": {
+    "path": "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+    "sha256": "b2278560af93c1779c3630daa2b47e2a89886d7688f08906b0b9647e1ef8149e",
+    "unchanged": true,
+    "own_cases": 54
+  },
+  "result": {
+    "unique": 71,
+    "passed": 71,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "exit": 0
+  },
+  "environment": {
+    "node": "22.23.0",
+    "vitest": "4.1.9",
+    "package_lock": "unchanged"
+  },
+  "commands": {
+    "suite": {
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts __tests__/ediel-prodat-lifecycle.test.ts __tests__/z02-raw-receipt-before-verification.test.ts __tests__/z02-atomic-worker-convergence.test.ts __tests__/ediel-customer-response-projection.test.ts __tests__/ediel-inbound-route-business-response.test.ts --reporter=verbose --reporter=junit --outputFile=quality/audits/ediel-masterplan-v2/at-z02l-z02lk-supplier/repaired-final-junit.xml",
+      "exit": 0
+    },
+    "types": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p quality/audits/ediel-masterplan-v2/at-z02l-z02lk-supplier/tsconfig.component.json",
+      "actual_session": 36677,
+      "exit": 0
+    },
+    "lint": {
+      "command": "node node_modules/eslint/bin/eslint.js __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "actual_session": 47831,
+      "exit": 0,
+      "warnings": 0
+    },
+    "extra_supplier_static": {
+      "command": "node scripts/gridex-supplier-remaining-business-regression.cjs",
+      "exit": 1,
+      "unchanged_baseline_predicate": false,
+      "later_assertions": "NOT_EXECUTED",
+      "owner_handoff": 5996143168
+    }
+  },
+  "independent_review": {
+    "path": "source-fix-review.md",
+    "sha256": "ceb469c3125a5e92d120316ec6736015de39f0f0b38b4d6ce2c673bd67fa3f68",
+    "verdict": "APPROVE exact bounded app repair only"
+  },
+  "historical_red": {
+    "receipt": "verification-receipt.json",
+    "own_result": "54 unique / 50 PASS / 4 FAIL / 0 ERROR / 0 SKIP",
+    "unaltered": true
+  },
+  "raw_files": {
+    "repaired-final-run.log": {
+      "sha256": "990b5a840a13871769d7cf1f464da3f917896c94787c162270b61055b3e1ca9f",
+      "bytes": 12288
+    },
+    "repaired-final-junit.xml": {
+      "sha256": "43158671b7dc9a950d264d29a3591d678c4e7b2113a51f4f0d11a61f5a5854a2",
+      "bytes": 19290
+    },
+    "source-fix-result-qualification.json": {
+      "sha256": "be714fcb5d062d835c48382c4dfc00b31199ea86e7d05075530e99730112c0a5",
+      "bytes": 449
+    },
+    "lint-repaired-final.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "typecheck-repaired-final.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "source-fix-review.md": {
+      "sha256": "ceb469c3125a5e92d120316ec6736015de39f0f0b38b4d6ce2c673bd67fa3f68",
+      "bytes": 7139
+    },
+    "supplier-business-regression.log": {
+      "sha256": "181b4b97809ca458ed59616dc82e580cdb0319149a240071544343918f1e1cea",
+      "bytes": 1504
+    },
+    "supplier-business-existing-failure.json": {
+      "sha256": "561a0a00d496e835c9c0c0b70cca26bda0317201be0c9d1f08e894bb66d60f7d",
+      "bytes": 743
+    },
+    "original-source-supplement.md": {
+      "sha256": "3c61fc3ce8d991a08a448ae290e70bfd11794fba9a118bbade98dc102dfca82a",
+      "bytes": 3195
+    },
+    "repaired-run.log": {
+      "sha256": "72b88d5ee0544f33a5dad9ab486d951d77afabdfa05a78b717e6c2c9ba7bbade",
+      "bytes": 12289
+    },
+    "repaired-junit.xml": {
+      "sha256": "960c1a3156c68ede3dce47776a8da6c1a997e939ce2df53f908648ef0677de30",
+      "bytes": 19296
+    },
+    "repaired-first-qualification.json": {
+      "sha256": "e05df43c9d5a93831ea1581cb9a150e42b9b4cbf9cf18de7cbf5034076522698",
+      "bytes": 370
+    },
+    "lint-repaired.log": {
+      "sha256": "1414dc53270543dfdf0bdeb25c62a04706181233d3153da9398980edf70b0336",
+      "bytes": 242
+    },
+    "typecheck-repaired.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "coverage_modified": false,
+  "accepted_outer_native_ack_whole_proof": "NOT_EXECUTED",
+  "required_ci": "pending new fixed candidate publication",
+  "raw_diff_limit": "Historical EOF-only raw diagnostic whitespace retained; scoped source/doc check separate",
+  "production_input_preservation": {
+    "baseline": "bc2b60cfa0cc8ff1037846f0763045f4e58c8369",
+    "changed_existing_paths": [
+      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+    ],
+    "other_lib_supabase_scripts_package_lock_coverage": "unchanged"
+  }
+}

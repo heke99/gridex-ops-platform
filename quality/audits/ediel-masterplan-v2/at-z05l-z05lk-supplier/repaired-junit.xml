@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="89" failures="0" errors="0" time="0.430293783">
+    <testsuite name="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" timestamp="2026-10-05T14:38:14.632Z" hostname="7547c6d9e08f" tests="40" failures="0" errors="0" skipped="0" time="0.322413887">
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation" time="0.065286246">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field LIN with the actual matching diagnostic" time="0.014688356">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field DTM+93 with the actual matching diagnostic" time="0.021771807">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field RFF+LI with the actual matching diagnostic" time="0.017086372">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field RFF+Z05 with the actual matching diagnostic" time="0.010153056">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field NAD+UD with the actual matching diagnostic" time="0.014191563">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field NAD+IT with the actual matching diagnostic" time="0.01273564">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing R-field NAD+Z02 with the actual matching diagnostic" time="0.01466229">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds a malformed end date and does not substitute the cached end date" time="0.008523151">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds a different IT object in the real field consumer" time="0.00824486">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects the ESCO DGI application profile in actual Z05 policy" time="0.00238565">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; refused native source leaves every app business table unchanged" time="0.004850502">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; outbound source cannot enter a native end mutation or create end tasks" time="0.001321352">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; actual facade uses only returned own ending-period scope and preserves finite history tables" time="0.003830066">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; plans each returned ending/ended scope without including an unrelated active period" time="0.001696465">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; idempotent native replay creates no extra final-value task and no new business reply" time="0.002170361">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; native authorization error propagates without app mutation" time="0.003996776">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; cached customer and point hints cannot replace the committed ending-period task scope" time="0.001372572">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; an unresolvable missing returned period cannot gain a task from cached hints" time="0.001577479">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; an unresolvable foreign-only returned period cannot gain a task from cached hints" time="0.00080758">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation" time="0.020907019">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field LIN with the actual matching diagnostic" time="0.006857981">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field DTM+93 with the actual matching diagnostic" time="0.007189515">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field RFF+LI with the actual matching diagnostic" time="0.006635348">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field RFF+Z05 with the actual matching diagnostic" time="0.010064051">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field NAD+UD with the actual matching diagnostic" time="0.011161104">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field NAD+IT with the actual matching diagnostic" time="0.007396732">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing R-field NAD+Z02 with the actual matching diagnostic" time="0.008150666">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds a malformed end date and does not substitute the cached end date" time="0.006280001">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds a different IT object in the real field consumer" time="0.00883832">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects the ESCO DGI application profile in actual Z05 policy" time="0.000441812">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; refused native source leaves every app business table unchanged" time="0.001327581">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; outbound source cannot enter a native end mutation or create end tasks" time="0.000652918">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; actual facade uses only returned own ending-period scope and preserves finite history tables" time="0.002865065">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; plans each returned ending/ended scope without including an unrelated active period" time="0.001934441">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; idempotent native replay creates no extra final-value task and no new business reply" time="0.002670401">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; native authorization error propagates without app mutation" time="0.001102432">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; cached customer and point hints cannot replace the committed ending-period task scope" time="0.00092349">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; an unresolvable missing returned period cannot gain a task from cached hints" time="0.000606733">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts" name="AT-Z05 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; an unresolvable foreign-only returned period cannot gain a task from cached hints" time="0.0005969">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-bilateral-prodat-supply-consumer.test.ts" timestamp="2026-10-05T14:38:14.642Z" hostname="7547c6d9e08f" tests="4" failures="0" errors="0" skipped="0" time="0.022200995">
+        <testcase classname="__tests__/ediel-bilateral-prodat-supply-consumer.test.ts" name="real H start consumer waits for exact external native commit and publishes only its committed scope once" time="0.011675192">
+        </testcase>
+        <testcase classname="__tests__/ediel-bilateral-prodat-supply-consumer.test.ts" name="caller bilateral marker cannot create H success when the actual native owner holds" time="0.001566257">
+        </testcase>
+        <testcase classname="__tests__/ediel-bilateral-prodat-supply-consumer.test.ts" name="real H end consumer creates final-work task only after its exact native period end" time="0.003209442">
+        </testcase>
+        <testcase classname="__tests__/ediel-bilateral-prodat-supply-consumer.test.ts" name="failed native H commit propagates before any positive consumer scope or case" time="0.003144322">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-closure-legacy-case.test.ts" timestamp="2026-10-05T14:38:14.643Z" hostname="7547c6d9e08f" tests="11" failures="0" errors="0" skipped="0" time="0.026281051">
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="consumes declared native L closure result into a schema-valid own final-work case" time="0.010956347">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="consumes declared native LK closure result into a schema-valid own final-work case" time="0.001671695">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="still propagates a failed supply write before creating a review case" time="0.002208222">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="does not hide a failed case write after the persisted legacy end" time="0.001478326">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="holds C continuation when the native owner has no own cancellation original" time="0.001218127">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="persists schema-valid E64/Z06 review with distinct intent and no unauthorized mutation" time="0.000871462">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="persists schema-valid M/Z10 review with distinct intent and no unauthorized mutation" time="0.000663885">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="persists schema-valid H/Z08 review with distinct intent and no unauthorized mutation" time="0.001742128">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="preserves supported APERAK rejection case category" time="0.001137995">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="preserves supported CONTRL rejection case category" time="0.000971948">
+        </testcase>
+        <testcase classname="__tests__/ediel-closure-legacy-case.test.ts" name="preserves supported UTILTS_ERR rejection case category" time="0.000576592">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-prodat-lifecycle.test.ts" timestamp="2026-10-05T14:38:14.645Z" hostname="7547c6d9e08f" tests="5" failures="0" errors="0" skipped="0" time="0.016763695">
+        <testcase classname="__tests__/ediel-prodat-lifecycle.test.ts" name="PRODAT exact profiles and state machines &gt; does not create a supply period for Z04C" time="0.004510875">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-lifecycle.test.ts" name="PRODAT exact profiles and state machines &gt; creates supply only for accepted Z04L" time="0.00071">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-lifecycle.test.ts" name="PRODAT exact profiles and state machines &gt; creates supply only for accepted Z04LK" time="0.000228251">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-lifecycle.test.ts" name="PRODAT exact profiles and state machines &gt; requires explicit Z08H end date and closure reason" time="0.002256413">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-lifecycle.test.ts" name="PRODAT exact profiles and state machines &gt; classifies the dated inbound Z06G review without supply mutation" time="0.006160806">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-supply-end-followup.test.ts" timestamp="2026-10-05T14:38:14.646Z" hostname="7547c6d9e08f" tests="11" failures="0" errors="0" skipped="0" time="0.018427306">
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; passes only actual executor and receipt identity, never proposed customer/period facts" time="0.006985093">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; preserves an existing closed operational outcome as the native result" time="0.001772882">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; does not invent a case for a non-end or genuinely superseded end" time="0.001071292">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects unqualified identity selectors { effectReceiptId: &apos;hint&apos; }" time="0.003063718">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects unqualified identity selectors { actorUserId: &apos;&apos; }" time="0.000479732">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects unqualified identity selectors { companyId: &apos;other&apos; }" time="0.000478265">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects mismatched or truncated native results { effectReceiptId: &apos;00000000-0000-0000-0000-000000000009&apos; }" time="0.00039643">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects mismatched or truncated native results { sourceMessageId: &apos;hint&apos; }" time="0.000222476">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects mismatched or truncated native results { caseId: null }" time="0.000513752">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; rejects mismatched or truncated native results { status: &apos;applied&apos; }" time="0.000314189">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-end-followup.test.ts" name="source-owned end operational projection &gt; propagates native authorization/qualification errors without making an operational case" time="0.000429126">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-supply-market-consumers.test.ts" timestamp="2026-10-05T14:38:14.648Z" hostname="7547c6d9e08f" tests="18" failures="0" errors="0" skipped="0" time="0.024206849">
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; dispatches only immutable source owner and actor, never proposed mutable period or dates" time="0.004595676">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds unrelated/unassigned source before mutation { company_id: null }" time="0.000937976">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds unrelated/unassigned source before mutation { direction: &apos;outbound&apos; }" time="0.000291185">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds unrelated/unassigned source before mutation { message_family: &apos;UTILTS&apos; }" time="0.000344881">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds unrelated/unassigned source before mutation { message_code: &apos;Z08&apos; }" time="0.000303991">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; a durable missing legal ground remains held without ordinary switch fallback" time="0.001184153">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; bounds due-source projection and does not create retry or send commands" time="0.00057402">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; registers an actual assigned supply without ordinary Z03 and without announcing consumer activation" time="0.001844392">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; keeps a future end pending and replay avoids duplicated final-billing task" time="0.001202945">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; does not reaccept an ordinary start already cancelled by the exact source ledger" time="0.002458951">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; uses every native confirmed scope and cannot turn a parsed start date or correlation hint into activation" time="0.002177263">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; rejects a truncated native commit response instead of silently accepting a partial composition" time="0.002095491">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; projects real own effects separately from held siblings and whole-source completion" time="0.001523941">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; preserves an established legacy result without inventing own effect receipts" time="0.000628057">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds malformed native partition: same-register" time="0.000576639">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds malformed native partition: missing-register-fields" time="0.00024993">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds malformed native partition: receipt-mismatch" time="0.000381529">
+        </testcase>
+        <testcase classname="__tests__/ediel-supply-market-consumers.test.ts" name="source-bound supply consumer execution &gt; holds malformed native partition: unknown-disposition" time="0.000555224">
+        </testcase>
+    </testsuite>
+</testsuites>

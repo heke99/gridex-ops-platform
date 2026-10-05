@@ -9,7 +9,7 @@ import {literal, sql} from './correctionContextNative'
  * receiver and a fresh empty CRL, published through the dedicated external
  * certificate-authority owner role (the only publisher the authority accepts).
  * No real CA, CRL, legal register or Ediel certificate is involved. */
-export function publishSyntheticRecipientTrust(input:{companyId:string;actorUserId:string;environment:'test'|'production';receiverEdielId:string}){
+export function publishSyntheticRecipientTrust(input:{companyId:string;actorUserId:string;environment:'test'|'production';receiverEdielId:string;recipientEmail:string}){
  const dir=mkdtempSync(join(tmpdir(),'synthetic-ediel-pki-'))
  const openssl=(args:string[])=>execFileSync('openssl',args,{cwd:dir,stdio:['ignore','pipe','pipe']})
  try{
@@ -19,7 +19,7 @@ export function publishSyntheticRecipientTrust(input:{companyId:string;actorUser
    'certificate=$dir/ca.pem','private_key=$dir/ca.key','default_md=sha256','default_crl_days=7',
    '[ca_ext]','basicConstraints=critical,CA:true','keyUsage=critical,keyCertSign,cRLSign','subjectKeyIdentifier=hash',
    '[leaf_ext]','basicConstraints=critical,CA:false','keyUsage=critical,keyEncipherment,digitalSignature','extendedKeyUsage=emailProtection',
-   'subjectKeyIdentifier=hash','authorityKeyIdentifier=keyid,issuer',''].join('\n'))
+   `subjectAltName=email:${input.recipientEmail}`,'subjectKeyIdentifier=hash','authorityKeyIdentifier=keyid,issuer',''].join('\n'))
   openssl(['req','-x509','-newkey','rsa:2048','-nodes','-keyout','ca.key','-out','ca.pem','-days','30','-subj','/CN=SYNTHETIC Ediel test CA','-config','ca.cnf','-extensions','ca_ext'])
   openssl(['req','-newkey','rsa:2048','-nodes','-keyout','leaf.key','-out','leaf.csr','-subj',`/CN=${input.receiverEdielId}`])
   openssl(['x509','-req','-in','leaf.csr','-CA','ca.pem','-CAkey','ca.key','-set_serial','4660','-days','30','-out','leaf.pem','-extfile','ca.cnf','-extensions','leaf_ext'])

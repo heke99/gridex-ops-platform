@@ -1,3 +1,4 @@
+// masterplan: ACK-09, AT-ACK-09
 import { expectOwnReferencePair } from './helpers/p16bHold'
 // Finite external native-owner responses model IO only. The actual opaque
 // source-read capability, envelope, complete UNSM and national preflight run.

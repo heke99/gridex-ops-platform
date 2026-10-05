@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="14" failures="0" errors="0" time="0.399169325">
+    <testsuite name="__tests__/ediel-sc-051-revision-treatment.test.ts" timestamp="2026-10-05T04:43:39.071Z" hostname="c8313f035683" tests="7" failures="0" errors="0" skipped="0" time="0.277123193">
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 actual receipt 2026-09-30 carries one 25-A-3 through final owner, consumption and ACK" time="0.131274588">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 actual receipt 2026-10-01 carries one 25-A-4 through final owner, consumption and ACK" time="0.038065622">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 October field209 enforcement is not activated early at receipt 2026-09-30" time="0.031967436">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 October field209 enforcement is not activated early at receipt 2026-10-15" time="0.025038425">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 an asynchronous clock rollover cannot reselect the receipt guide in downstream billing" time="0.034653417">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 the real pre-send consumer captures its own fresh boundary before asynchronous registry IO" time="0.011880172">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 replay trace time preserves a stored receipt selection and original E5SE5A bytes" time="0.001911853">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" timestamp="2026-10-05T04:43:39.074Z" hostname="c8313f035683" tests="7" failures="0" errors="0" skipped="0" time="0.122046132">
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;sender_ediel_id&quot;:&quot;91100&quot;} before any new authority/provider" time="0.00655878">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;receiver_ediel_id&quot;:&quot;91109&quot;} before any new authority/provider" time="0.001494685">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;application_reference&quot;:&quot;23-TGT-PRODAT&quot;} before any new authority/provider" time="0.000816245">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer" time="0.082654681">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer" time="0.026998389">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual historical accepted-original repair cannot re-enter the provider after today changes to a test identity" time="0.001406367">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 historical sent status without an actual accepted journal never creates new production traffic" time="0.000630634">
+        </testcase>
+    </testsuite>
+</testsuites>

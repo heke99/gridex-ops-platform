@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="48" failures="3" errors="0" time="0.159428348">
+    <testsuite name="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" timestamp="2026-10-05T15:17:34.914Z" hostname="7547c6d9e08f" tests="48" failures="3" errors="0" skipped="0" time="0.159428348">
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; returns the initial source HOLD before route, intent, request or finalization" time="0.005994533">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request" time="0.005893294">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; keeps first reservation HOLD before renderer/version or finalizer" time="0.002184566">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance" time="0.066065423">
+            <failure message="expected [ …(16) ] to include &apos;BGM+Z09+31C920F3C17B5C+9&apos;" type="AssertionError">
+AssertionError: expected [ …(16) ] to include &apos;BGM+Z09+31C920F3C17B5C+9&apos;
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts:180:18
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects company drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.002916684">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects event drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.00103667">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects family drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.001336635">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects code drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.00083151">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects canonical route company drift before intent/request creation" time="0.001201347">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects canonical route environment drift before intent/request creation" time="0.001041312">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects canonical route legalActor drift before intent/request creation" time="0.000847444">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects canonical route legalSender drift before intent/request creation" time="0.00066632">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects canonical route recipient drift before intent/request creation" time="0.001009271">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; rejects canonical route supplierRole drift before intent/request creation" time="0.000898124">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; uses actual intent validation to hold mutated application-reference metadata before fresh source" time="0.001003094">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual B preparer → gateway HOLD coupling &gt; propagates a fresh source RPC error without rendering or queueing" time="0.002133119">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; returns the initial source HOLD before route, intent, request or finalization" time="0.000994732">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request" time="0.001699791">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; keeps first reservation HOLD before renderer/version or finalizer" time="0.001516344">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance" time="0.023891348">
+            <failure message="expected [ …(16) ] to include &apos;BGM+Z09+58928FEF0FBBCC+9&apos;" type="AssertionError">
+AssertionError: expected [ …(16) ] to include &apos;BGM+Z09+58928FEF0FBBCC+9&apos;
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts:180:18
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects company drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000931269">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects event drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000733144">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects family drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000774418">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects code drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000715834">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects canonical route company drift before intent/request creation" time="0.000820944">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects canonical route environment drift before intent/request creation" time="0.000654994">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects canonical route legalActor drift before intent/request creation" time="0.0007151">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects canonical route legalSender drift before intent/request creation" time="0.000649217">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects canonical route recipient drift before intent/request creation" time="0.000402729">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; rejects canonical route supplierRole drift before intent/request creation" time="0.000573522">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; uses actual intent validation to hold mutated application-reference metadata before fresh source" time="0.000715378">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D signed preparer → gateway HOLD coupling &gt; propagates a fresh source RPC error without rendering or queueing" time="0.00169928">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; returns the initial source HOLD before route, intent, request or finalization" time="0.000444426">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request" time="0.001154344">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; keeps first reservation HOLD before renderer/version or finalizer" time="0.000964955">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance" time="0.014235823">
+            <failure message="expected [ …(16) ] to include &apos;BGM+Z09+E5DE2E414E5C06+9&apos;" type="AssertionError">
+AssertionError: expected [ …(16) ] to include &apos;BGM+Z09+E5DE2E414E5C06+9&apos;
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts:180:18
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects company drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000772404">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects event drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000587987">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects family drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000461536">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects code drift in the intent fetched by the actual gateway before fresh source/reservation" time="0.000426492">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects canonical route company drift before intent/request creation" time="0.000528387">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects canonical route environment drift before intent/request creation" time="0.000736981">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects canonical route legalActor drift before intent/request creation" time="0.00042149">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects canonical route legalSender drift before intent/request creation" time="0.000394445">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects canonical route recipient drift before intent/request creation" time="0.000338497">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; rejects canonical route supplierRole drift before intent/request creation" time="0.000451134">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; uses actual intent validation to hold mutated application-reference metadata before fresh source" time="0.000417874">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts" name="actual D ceased preparer → gateway HOLD coupling &gt; propagates a fresh source RPC error without rendering or queueing" time="0.001438674">
+        </testcase>
+    </testsuite>
+</testsuites>

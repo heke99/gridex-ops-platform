@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "reviewer": "root503_final_source_review",
+  "pr": 561,
+  "head": "f6bf50569de7f16042fbe3485195b744c99b9f95",
+  "technical_head": "b644c74cf803bfa370ffd9e5d83c49e21d416398",
+  "tree": "f25ac45b26eea80f03b71322e2bfeda1ca0aa00a",
+  "owner_base": "f957653066f36bdcf749dd2cfae68694b6a4a009",
+  "qualified_main": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "packet_verdict": "APPROVE_BOUNDED_TRUTHFUL_EVIDENCE",
+  "whole_card_verdicts": {"SC-051": "HOLD_RESEND_CALLER_WITNESS", "SC-068": "HOLD_PRODUCTION_CUSTOMER_EFFECT_DENIAL_WITNESS"},
+  "new_operational_mode_required": false,
+  "production_defect_reproduced": false,
+  "owned_changed_paths": 8,
+  "receipt_input_hashes_verified": 36,
+  "owner_committed_junit": {"tests": 14, "failures": 0, "errors": 0, "skipped": 0},
+  "fresh_reviewer_test_execution": false,
+  "native_or_full_execution_repeated": false,
+  "coverage_unchanged_from_owner_base": true,
+  "scope": "Frozen literal criteria, actual producers and effect consumers; bounded source/evidence review, no blanket upstream marker approval",
+  "existing_authority_boundaries": [
+    "Actual runtime factory resolves its own parse policy",
+    "WeakMap binds initial UTILTS source, policy identity and full decision hash; final runtime has a separate opaque owner",
+    "Public SMTP accepts no diagnostic policy and obtains fresh send admission plus original witness",
+    "Catalogue resolver inside static comparison does not mint an original/profile or transport operation",
+    "Latest received-ERR derive wrapper delegates ordinary sources to the immutable UNB0035/environment predecessor"
+  ],
+  "minimum_owner_proof_tasks": [
+    {"scenario": "SC-051", "task": "One actual queued-worker/send reconsideration of an unchanged pre-October E5SE5A original after October, asserting fresh admission and original/history preservation; a justified hold is acceptable", "no_substitutes": ["gate called twice", "accepted projection repair", "PRODAT-only recovery queue"]},
+    {"scenario": "SC-068", "task": "One attempted production inbound/customer-effect treatment of unchanged test reference through real admission and actual effect consumer, asserting genuine denial and no production customer/business sinks", "no_substitutes": ["no SMTP alone", "copied diagnostic denial in TEST only", "mocked qualified production receipt for a TEST wire"]}
+  ],
+  "input_inventory": "sc051-sc068-f6bf-independent-source-inputs.json",
+  "narrative_record": "sc051-sc068-f6bf-independent-whole-review.md",
+  "mutations": "Own readonly-review records only; no owner files, shared memory, coverage, source, workflows, GitHub comments, push or merge"
+}
