@@ -9,6 +9,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
+import { FacilityLookupPostCommitError } from '@/lib/facility/facilityLookupWorkflow'
 
 type JsonRecord = Record<string, unknown>
 
@@ -295,6 +296,29 @@ export async function applyManualFacilityResponse(input: {
     }
     nextStepDecision = completion.supplierSwitchResult?.decision ?? completion.intakeDecision?.state ?? null
   } catch (error) {
+    if (error instanceof FacilityLookupPostCommitError
+      && error.companyId === input.companyId
+      && error.requestId === requestId
+      && error.completion.requestId === requestId
+      && error.completion.ok === true
+      && error.completion.status === 'completed') {
+      await emitCustomerOperationEvent({
+        companyId: input.companyId,
+        customerId: error.completion.customerId,
+        customerSiteId: error.completion.customerSiteId,
+        actorUserId: input.actorUserId ?? null,
+        eventType: 'manual_facility_request.continuation_failed',
+        title: 'Nästa steg behöver granskas',
+        message: 'Anläggningsuppgifterna är sparade men nästa steg kunde inte slutföras automatiskt.',
+        status: 'needs_review',
+        severity: 'warning',
+        actionRequired: true,
+        source: input.source ?? 'manual_facility_response_parser',
+        payload: { request_id: requestId, facility_completed: true },
+        idempotencyKey: `manual_facility_request.continuation_failed:${requestId}:${clean(input.rawPayload?.provider_message_id) ?? now}`,
+      })
+      return { outcome: 'needs_review', confidence: effectiveConfidence, extracted: input.extracted, reasons: ['continuation_failed'] }
+    }
     // Completion failed (e.g. request/site linkage issue): fall back to
     // needs_review so an operator can finish manually — never half-applied.
     const failedUpdate = await supabaseService

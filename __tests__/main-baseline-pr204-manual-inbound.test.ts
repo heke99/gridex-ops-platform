@@ -9,13 +9,16 @@ type Result = { data: Row[] | Row | null; error: { code: string; message: string
 const io = vi.hoisted(() => ({
   from: vi.fn(), rpc: vi.fn(), completionOk: true, completionCount: 0,
   tables: {} as Record<string, Row[]>, deniedRequestUpdate: false,
+  deniedWebsiteUpdate: false, revalidationError: null as Error | null,
+  rpcError: null as { code: string; message: string } | null, rpcThrown: null as unknown,
+  meteringPointRecordId: null as string | null, intakeCalls: 0,
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
-vi.mock('next/cache', () => ({ revalidatePath: () => undefined }))
+vi.mock('next/cache', () => ({ revalidatePath: () => { if (io.revalidationError) throw io.revalidationError } }))
 vi.mock('@/lib/events/domainEvents', () => ({ emitDomainEvent: async () => null }))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator', () => ({ enqueueCustomerLifecycleNotification: async () => undefined }))
 vi.mock('@/lib/customer-operations/customerIntakeOrchestrator', () => ({
-  evaluateCustomerIntake: async () => { throw new Error('unexpected downstream intake evaluation') },
+  evaluateCustomerIntake: async () => { io.intakeCalls++; throw new Error('downstream intake unavailable') },
 }))
 vi.mock('@/lib/customer-operations/customerProcessNextStepEngine', () => ({
   evaluateAndRunNextCustomerStep: async () => { throw new Error('unexpected downstream supplier-switch evaluation') },
@@ -25,6 +28,7 @@ import { resolveManualInboundCorrelation } from '@/lib/inbound-mail/manualInboun
 import { ingestManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
 import { applyManualFacilityResponse } from '@/lib/customer-operations/manualFacilityResponseParser'
 import { POST } from '@/app/api/webhooks/manual-inbound/route'
+import { completeFacilityLookup } from '@/lib/facility/facilityLookupWorkflow'
 
 const COMPANY = '11111111-1111-4111-8111-111111111111'
 const OTHER_COMPANY = '22222222-2222-4222-8222-222222222222'
@@ -79,6 +83,9 @@ class Query implements PromiseLike<Result> {
     if (this.operation === 'update' && this.table === 'grid_owner_information_requests' && io.deniedRequestUpdate) {
       return { data: null, error: { code: '42501', message: 'request update denied' } }
     }
+    if (this.operation === 'update' && this.table === 'website_customer_applications' && io.deniedWebsiteUpdate) {
+      return { data: null, error: { code: '42501', message: 'website projection update denied' } }
+    }
     let rows = table.filter(row => this.filters.every(filter => filter(row))).slice(0, this.maximum)
     if (this.operation === 'insert') {
       const row = { id: `insert-${table.length + 1}`, ...this.values }
@@ -121,6 +128,8 @@ const parserInput = () => ({ companyId: COMPANY, request: io.tables.grid_owner_i
 
 beforeEach(() => {
   io.from.mockReset(); io.rpc.mockReset(); io.completionOk = true; io.completionCount = 0; io.deniedRequestUpdate = false
+  io.deniedWebsiteUpdate = false; io.revalidationError = null; io.rpcError = null; io.rpcThrown = null
+  io.meteringPointRecordId = null; io.intakeCalls = 0
   io.tables = {
     grid_owner_information_requests: [requestRow()],
     customer_sites: [{ id: SITE, company_id: COMPANY, customer_id: CUSTOMER, grid_owner_id: OWNER,
@@ -131,11 +140,14 @@ beforeEach(() => {
     grid_owner_contact_channels: [], manual_email_outbox: [], communication_log_events: [],
     metering_points: [], customers: [], manual_inbound_messages: [], inbound_operation_events: [],
     customer_operation_events: [], manual_communication_mailboxes: [],
+    website_customer_applications: [],
   }
   io.from.mockImplementation(table => new Query(table))
   io.rpc.mockImplementation(async (name, args: Row) => {
     if (name !== 'gridex_complete_facility_response') throw new Error(`undeclared RPC: ${name}`)
     io.completionCount++
+    if (io.rpcThrown) throw io.rpcThrown
+    if (io.rpcError) return { data: null, error: io.rpcError }
     const request = io.tables.grid_owner_information_requests.find(row => row.id === args.p_request_id && row.company_id === args.p_company_id)
     if (!request) return { data: null, error: { code: '42501', message: 'wrong company' } }
     if (io.completionOk) {
@@ -144,7 +156,8 @@ beforeEach(() => {
       site.facility_id = args.p_facility_id
     }
     return { error: null, data: { ok: io.completionOk, code: io.completionOk ? null : 'facility_data_conflict',
-      requestId: REQUEST, customerId: CUSTOMER, customerSiteId: SITE, meteringPointRecordId: null,
+      requestId: request.id, customerId: request.customer_id, customerSiteId: request.customer_site_id,
+      meteringPointRecordId: io.meteringPointRecordId,
       facilityId: FACILITY, gridAreaCode: 'ABC', priceAreaCode: 'SE3', operationId: null } }
   })
 })
@@ -168,6 +181,13 @@ describe('manual inbound sender and tenant boundaries', () => {
     const result = await resolveManualInboundCorrelation({ email: email({ inReplyTo: REPLY }), caseReference: CASE, normalizedText: '', extracted: {} })
     expect(result.resolutionStatus).toBe('ambiguous')
     expect(result.senderCredible).toBe(false)
+  })
+  it('rejects conflicting reply and case request ids even within the same company', async () => {
+    verifiedContact()
+    io.tables.grid_owner_information_requests.push(requestRow({ id: 'other-request', case_reference: 'GX-FIR-11223344' }))
+    outgoingReply('other-request')
+    const result = await resolveManualInboundCorrelation({ email: email({ inReplyTo: REPLY }), caseReference: CASE, normalizedText: '', extracted: {} })
+    expect(result).toMatchObject({ resolutionStatus: 'ambiguous', senderCredible: false })
   })
   it('preserves same-company and global verified contact paths without reply headers', async () => {
     verifiedContact(null)
@@ -234,6 +254,66 @@ describe('manual facility response canonical completion', () => {
     await expect(applyManualFacilityResponse(parserInput())).rejects.toMatchObject({ code: '42501' })
     expect(io.completionCount).toBe(0)
     expect(io.tables.grid_owner_information_requests[0].status).toBe('waiting_manual_response')
+  })
+  it('keeps committed facility data completed while reviewing a failed website projection', async () => {
+    verifiedContact()
+    io.tables.grid_owner_information_requests[0].customer_application_id = 'website-application'
+    io.tables.website_customer_applications.push({ id: 'website-application', company_id: COMPANY })
+    io.deniedWebsiteUpdate = true
+    const result = await ingestManualInboundEmail(email())
+    expect(io.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'completed', parsed_payload: { applied: true } })
+    expect(result).toMatchObject({ processingState: 'needs_review', parse: { outcome: 'needs_review', reasons: ['continuation_failed'] } })
+    expect(io.tables.customer_sites[0].facility_id).toBe(FACILITY)
+    expect(io.tables.manual_inbound_messages[0].processing_state).toBe('needs_review')
+    expect(io.tables.inbound_operation_events[0].processing_state).toBe('needs_review')
+    expect(io.tables.customer_operation_events.map(row => row.event_code)).toContain('manual_facility_request.continuation_failed')
+  })
+  it('carries the actual committed completion and original cache failure out of the canonical adapter', async () => {
+    io.revalidationError = new Error('cache continuation unavailable')
+    let failure: unknown
+    try {
+      await completeFacilityLookup({ companyId: COMPANY, requestId: REQUEST, source: 'system', facilityId: FACILITY, triggerNextStep: false })
+    } catch (error) { failure = error }
+    expect(failure).toMatchObject({ name: 'FacilityLookupPostCommitError', companyId: COMPANY, requestId: REQUEST,
+      completion: { ok: true, status: 'completed', requestId: REQUEST, customerId: CUSTOMER, customerSiteId: SITE, facilityId: FACILITY },
+      cause: io.revalidationError })
+    expect(io.tables.grid_owner_information_requests[0].status).toBe('completed')
+  })
+  it('preserves completed data when the actual metering continuation reaches a failed intake port', async () => {
+    io.meteringPointRecordId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const result = await applyManualFacilityResponse(parserInput())
+    expect(io.intakeCalls).toBe(1)
+    expect(io.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'completed', parsed_payload: { applied: true } })
+    expect(result).toMatchObject({ outcome: 'needs_review', reasons: ['continuation_failed'] })
+    expect(io.tables.customer_sites[0].facility_id).toBe(FACILITY)
+  })
+  it('keeps an ordinary precommit RPC denial in review without committed facility data', async () => {
+    io.rpcError = { code: '42501', message: 'canonical RPC denied' }
+    const result = await applyManualFacilityResponse(parserInput())
+    expect(result).toMatchObject({ outcome: 'needs_review', reasons: ['completion_failed'] })
+    expect(io.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'needs_review', parsed_payload: { applied: false } })
+    expect(io.tables.customer_sites[0].facility_id).toBeNull()
+    expect(io.tables.customer_operation_events.map(row => row.event_code)).not.toContain('manual_facility_request.continuation_failed')
+  })
+  it.each([COMPANY, OTHER_COMPANY])('does not borrow a genuine postcommit failure marker from another request in company %s', async (foreignCompany) => {
+    const foreignRequest = '77777777-7777-4777-8777-777777777777'
+    const foreignSite = '88888888-8888-4888-8888-888888888888'
+    const foreignCustomer = '99999999-9999-4999-8999-999999999999'
+    io.tables.grid_owner_information_requests.push(requestRow({ id: foreignRequest, company_id: foreignCompany,
+      customer_id: foreignCustomer, customer_site_id: foreignSite }))
+    io.tables.customer_sites.push({ id: foreignSite, company_id: foreignCompany, customer_id: foreignCustomer, facility_id: null })
+    io.revalidationError = new Error('foreign continuation unavailable')
+    let foreignFailure: unknown
+    try {
+      await completeFacilityLookup({ companyId: foreignCompany, requestId: foreignRequest, source: 'system', facilityId: FACILITY, triggerNextStep: false })
+    } catch (error) { foreignFailure = error }
+    expect(foreignFailure).toMatchObject({ name: 'FacilityLookupPostCommitError', companyId: foreignCompany, requestId: foreignRequest })
+    io.revalidationError = null
+    io.rpcThrown = foreignFailure
+    const result = await applyManualFacilityResponse(parserInput())
+    expect(result).toMatchObject({ outcome: 'needs_review', reasons: ['completion_failed'] })
+    expect(io.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'needs_review', parsed_payload: { applied: false } })
+    expect(io.tables.customer_sites[0].facility_id).toBeNull()
   })
 })
 
