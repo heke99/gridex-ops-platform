@@ -1,3 +1,4 @@
+// masterplan: P-06, AT-P-06
 import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -41,6 +42,8 @@ describe('saved switch compatibility respects operational direction',()=>{
   expect(draft).toMatchObject({direction:'outbound',messageCode:'Z03',environment:'test',status:'draft',testFlag:1,switchRequestId:'switch',customerId:'customer',siteId:'site',meteringPointId:'meter'})
   expect(io.getCustomerExportContext).toHaveBeenCalledWith({companyId:'company',customerId:'customer',siteId:'site',meteringPointId:'meter',actorUserId:'actor',environment:'test',requireCustomerMasterdata:true,asOf:'2026-09-30T23:00:00.000Z'})
   expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source Customer')
+  // P-06/E012: only the end-user identity agency is 260; the legitimate field 206 DTM+ZZZ is kept, not rewritten globally.
+  expect(draft.rawPayload).toContain("DTM+ZZZ:1:805'");expect(draft.rawPayload).not.toContain('DTM+260')
   expect(draft.rawPayload).not.toContain('USER:')
   expect(draft.rawPayload).toContain("CCI++Z04'CAV+Z04'")
   expect(draft.rawPayload).toContain('NAD+Z02+11111:160:SVK')

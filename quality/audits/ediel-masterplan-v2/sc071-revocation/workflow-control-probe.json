@@ -1,0 +1,120 @@
+{
+  "previous_three_case_controls": {
+    "scope": "Finite workflow orchestration/credential controls ONLY; commands/credentials are synthetic, not native evidence",
+    "workflow_sha256": "a92013e90ef1e2c8030625b100e5a9e278792d9f4cbb18705d87ea2707d44038",
+    "results": [
+      {
+        "finite_wrapper_control": "replay_failure",
+        "exit_code": 1,
+        "cleanup_observed": true,
+        "errexit_preserved": true,
+        "redacted_failure_feedback_preserved": true,
+        "legacy_and_sb_secret_format_control": "PASS",
+        "real_database_or_native_test_executed": false
+      },
+      {
+        "finite_wrapper_control": "native_failure",
+        "exit_code": 1,
+        "cleanup_observed": true,
+        "errexit_preserved": true,
+        "redacted_failure_feedback_preserved": true,
+        "legacy_and_sb_secret_format_control": "PASS",
+        "real_database_or_native_test_executed": false
+      },
+      {
+        "finite_wrapper_control": "complete_native_wrapper_control",
+        "exit_code": 0,
+        "cleanup_observed": true,
+        "errexit_preserved": true,
+        "redacted_failure_feedback_preserved": true,
+        "legacy_and_sb_secret_format_control": "PASS",
+        "real_database_or_native_test_executed": false
+      }
+    ],
+    "native_proof": "NOT_PROVIDED",
+    "historical_before_secret_format_fix": {
+      "scope": "Finite workflow orchestration controls ONLY; subprocess status/replay/test commands are synthetic, not native evidence",
+      "workflow_sha256": "415504aba370073521c904b3d397b7d1106276f30d23b307d935bf1967a663c3",
+      "results": [
+        {
+          "finite_wrapper_control": "replay_failure",
+          "exit_code": 1,
+          "cleanup_observed": true,
+          "errexit_preserved": true,
+          "redacted_feedback_preserved": true,
+          "real_database_or_native_test_executed": false
+        },
+        {
+          "finite_wrapper_control": "native_failure",
+          "exit_code": 1,
+          "cleanup_observed": true,
+          "errexit_preserved": true,
+          "redacted_feedback_preserved": true,
+          "real_database_or_native_test_executed": false
+        },
+        {
+          "finite_wrapper_control": "complete_native_wrapper_control",
+          "exit_code": 0,
+          "cleanup_observed": true,
+          "errexit_preserved": true,
+          "redacted_feedback_preserved": true,
+          "real_database_or_native_test_executed": false
+        }
+      ],
+      "native_proof": "NOT_PROVIDED"
+    }
+  },
+  "bounded_export_feedback": {
+    "scope": "FINITE_WRAPPER_CONTROLS_ONLY; no native/DB/whole-contract proof",
+    "workflow_sha256": "6e30b3f00f9ab6660eaf61327d881c6336e9e7b6d45e487cd3b888e143640f0b",
+    "descriptor_sha256": "ed96171e58321ca8623bb1b5b30a11a3f506739ca5811d21939a3d6cb0c124a3",
+    "producer_extraction_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "native_extraction_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "product_baseline_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
+    "actual_source_overlay_on_detached_layout": "PASS; exact six selected sources+TEMPforward+ownpatch produce33b7",
+    "controls": [
+      {
+        "scenario": "complete",
+        "qualified_flag": true,
+        "expected": true,
+        "result": "PASS"
+      },
+      {
+        "scenario": "early_forward_failure",
+        "qualified_flag": false,
+        "expected": false,
+        "result": "PASS"
+      },
+      {
+        "scenario": "wrong_discovery",
+        "qualified_flag": false,
+        "expected": false,
+        "result": "PASS"
+      },
+      {
+        "scenario": "skipped",
+        "qualified_flag": false,
+        "expected": false,
+        "result": "PASS"
+      },
+      {
+        "scenario": "ledger_changed",
+        "qualified_flag": false,
+        "expected": false,
+        "result": "PASS"
+      },
+      {
+        "scenario": "empty_post_ledger",
+        "qualified_flag": false,
+        "expected": false,
+        "result": "PASS"
+      },
+      {
+        "scenario": "malformed_base_receipt",
+        "qualified_flag": false,
+        "expected": false,
+        "result": "PASS"
+      }
+    ]
+  }
+}

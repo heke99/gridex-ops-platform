@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-04T08:08:30.390607Z",
+  "updated_at": "2026-10-04T23:00:00Z",
   "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
   "paused": true,
-  "branch": "claude/zealous-rubin-6axb91",
-  "active_pr": 426,
+  "branch": "claude/cool-tesla-2pmyua",
+  "active_pr": 491,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Handover: #426 green; split stack #483-#489 published (draft); next agent: approve TEN/U candidates two rules at a time, production migration dry-run, open defects",
+  "active_item": "#491: TEN/ESCO/ACK klart; driv CI grön",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Continue native clusters: z04-ack CONTRL technical reception, service-evidence held authorization, z06f unconfirmed, document-reference storage, object-batch psql, err-gateway technical reception; then remaining consumption; regenerate supabase/schema.sql at freeze.",
+  "next_action": "Läs #491 CI på senaste head och åtgärda rött; nästa kluster enligt resterande kort efter claim på #491.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1470,7 +1470,7 @@
     "top_equals_green_tree": true,
     "note": "merge in order; lower PRs not independently green"
   },
-  "approved_ids": 55,
+  "approved_ids": 59,
   "candidate_review": "quality/audits/ediel-masterplan-v2/pr426-rule-review/candidates-2026-10-04.md",
   "production": {
     "project": "piidsfebjqjmnepdpnas",
@@ -1492,5 +1492,37 @@
     "U-1 TEN-04 mandate",
     "U-2 end_assignment LIMIT 1",
     "TR-09/E6 needs source T §3.1"
-  ]
+  ],
+  "ediel_masterplan_v2_env03_imp04": {
+    "date": "2026-10-04",
+    "branch": "claude/env-03-imp-04",
+    "status": "VERIFIED",
+    "verification": "vitest 760/9881 PASS; typecheck app+tests PASS; coverage --check exit 0"
+  },
+  "ediel_masterplan_v2_ops_02": {
+    "date": "2026-10-04",
+    "branch": "claude/ops-02-process-next-action",
+    "status": "VERIFIED",
+    "remaining": [],
+    "verification": "vitest 760 files/9881 tests PASS; typecheck app+tests PASS; coverage --check exit 0"
+  },
+  "ediel_masterplan_v2_latest": {
+    "date": "2026-10-04",
+    "branch": "claude/dazzling-dijkstra-vyyw0g",
+    "approved": [
+      "GOV-03",
+      "AT-GOV-03"
+    ],
+    "approved_total": 57,
+    "verification": "vitest 756 files/9842 tests PASS; typecheck app+tests PASS; ediel:masterplan-v2:test-coverage --check exit 0",
+    "next_action": "F-OPS-02 (OPS-02) or fp-check ENV-02/ENV-03; check open PRs and handover first",
+    "handed_over": {
+      "ENV-01": "#504"
+    }
+  },
+  "reserved_by_session": {
+    "TEN-07": "codex",
+    "ESCO-10": "codex",
+    "ESCO-11": "codex"
+  }
 }

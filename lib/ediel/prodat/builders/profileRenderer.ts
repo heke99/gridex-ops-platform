@@ -1,3 +1,4 @@
+import { assertEdifactUnocText } from '@/lib/ediel/core/edifactEncoding'
 import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {evaluateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {projectDeathStatus,isDeathStatusField} from '@/lib/ediel/prodat/prodatDeathStatus'
@@ -98,6 +99,7 @@ function portalPartyText(portalData: ProdatEnginePortalSnapshot, key: string): s
   const value = portalData?.[key]
   if (value == null) return null
   if (typeof value !== 'string') throw new Error('prodat_party_snapshot_invalid')
+  assertEdifactUnocText(value)
   return value.trim() // An explicitly empty party field must not borrow a fallback.
 }
 
