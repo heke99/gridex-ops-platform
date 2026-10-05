@@ -1,0 +1,169 @@
+{
+  "scope": "Immutable writer/reviewer source proofs and exact focused logs; finite SQL ports are not native acceptance",
+  "source_composition_head": "105b8b87af0b1f02a8f82b869495703fb5ec8d5a",
+  "source_composition_tree": "1aa8738a7c0db47a4ee5754e02f78060c3bb45fe",
+  "genuinely_adopted_main": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+  "genuinely_adopted_f3_writer_head": "10f4e393ab63d51cf4c2460f1558f29c4cca9094",
+  "stored_352_status_counts": {
+    "NOT_VERIFIED": 18,
+    "VERIFIED": 99,
+    "PARTIAL": 19,
+    "PASSED": 148,
+    "NOT_EXECUTED": 68
+  },
+  "current_head_mandatory_native_clean_upgrade_browser_status": "PENDING_PUBLICATION_AND_CURRENT_CI",
+  "original_capture_flags": "Native/browser/schema comparison/upgrade NOT_RUN, unchanged; separate genuine CI has separate custody",
+  "old_c5_f3_rows": "19 individual identities UNKNOWN; no claim that the new current native job has passed",
+  "archive_sha256": "74586a483268f8c29b15fa6ab56f31d012a00c84b9aaa97166243dd2c55385f4",
+  "byte_exact_members": [
+    {
+      "name": "root503-f3-proposal-10f4e393.md",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-proposal-10f4e393.md",
+      "bytes": 2376,
+      "sha256": "758b343fc7ee9b7ad22efae36ec7663b3923fed0721a60fdd0c25cc2b6afcdf0"
+    },
+    {
+      "name": "root503-f3-proposal-10f4e393.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-proposal-10f4e393.json",
+      "bytes": 16900,
+      "sha256": "c46e140e444bc74691749969dff7a86a002ce104379628977069598a548e8358"
+    },
+    {
+      "name": "root503-f3-10f4-independent-source-effect-review.md",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-10f4-independent-source-effect-review.md",
+      "bytes": 4527,
+      "sha256": "76ffa58e502bb0b49e3aec2211395c0e4e3bb18cfb60c4fde9a44f2abcf865d2"
+    },
+    {
+      "name": "root503-f3-10f4-independent-source-effect-review.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-10f4-independent-source-effect-review.json",
+      "bytes": 12279,
+      "sha256": "6dd3b0c4d204fc626592c59c12f4074b4f590f8d626bc52544fc7860cf447215"
+    },
+    {
+      "name": "root503-593-focused-parser-source-carry.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-593-focused-parser-source-carry.json",
+      "bytes": 814,
+      "sha256": "9198bb8dd6d8dbe0eaf5a4d3634fa690997108cbee3508bd3c66daf4eefa6042"
+    },
+    {
+      "name": "root503-105-composed-f3-verification.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-105-composed-f3-verification.json",
+      "bytes": 652,
+      "sha256": "30ca6d7f2ff75663aa4cd4ea352bc521a4edaa82b4bf77361199a06c2695bdfc"
+    },
+    {
+      "name": "root503-preview6ed-maina248-current-carry.md",
+      "source_path": "/workspace/agent-review-checkpoints/root503-preview6ed-maina248-current-carry.md",
+      "bytes": 2791,
+      "sha256": "500b6f56406d543882918d521cb4b04fc37c7b3812182e41851342b8400ddb87"
+    },
+    {
+      "name": "root503-preview6ed-maina248-current-carry.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-preview6ed-maina248-current-carry.json",
+      "bytes": 8711,
+      "sha256": "fd381bbc16183013ba5bacac42001aaef993bad8c2518a8403780cdecf45fa34"
+    },
+    {
+      "name": "root503-main-parser-focused-20261005.xml",
+      "source_path": "/tmp/root503-main-parser-focused-20261005.xml",
+      "bytes": 25005,
+      "sha256": "31c04d5b9e986074549967ff263eba39e56b3890bf9288aa571062f5a3764b6c"
+    },
+    {
+      "name": "root503-main-parser-focused-20261005.log",
+      "source_path": "/tmp/root503-main-parser-focused-20261005.log",
+      "bytes": 70,
+      "sha256": "e21eefb1d2adb331951aa7569b0d18e44c3a958f77232b88dfffb3109f237ef2"
+    },
+    {
+      "name": "root503-composed-f3-20261005.xml",
+      "source_path": "/tmp/root503-composed-f3-20261005.xml",
+      "bytes": 15105,
+      "sha256": "fda84ef5baaa59d3337e20f59f7dd52b79d404c424a1453ab903d7e69f45d078"
+    },
+    {
+      "name": "root503-composed-f3-20261005.log",
+      "source_path": "/tmp/root503-composed-f3-20261005.log",
+      "bytes": 11090,
+      "sha256": "7316a6c344b813ffbb74c336c9ae3af14a5059211bc1fe99e91c07fb84e342cd"
+    },
+    {
+      "name": "root503-current-integrity-20261005.log",
+      "source_path": "/tmp/root503-current-integrity-20261005.log",
+      "bytes": 197,
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+    },
+    {
+      "name": "root503-current-migrations-20261005.log",
+      "source_path": "/tmp/root503-current-migrations-20261005.log",
+      "bytes": 87,
+      "sha256": "8171d886c8ae014b13eb0c89334d8119c9aa0d608a5dc66045b3f5e8deb152f5"
+    },
+    {
+      "name": "root503-f3-finite-before.log",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-finite-before.log",
+      "bytes": 15737,
+      "sha256": "6bb2927b09bb39a2799ff1cbe5f5fe20a41ac22e0e91a2d001bce03a6154d901"
+    },
+    {
+      "name": "root503-f3-finite-before-behavior.log",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-finite-before-behavior.log",
+      "bytes": 24759,
+      "sha256": "b21a974ab4b57d680edc08830e9ec6a15bbdbc9de8b4ddeae56113a25bb668f3"
+    },
+    {
+      "name": "root503-f3-finite-baseline-red.log",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-finite-baseline-red.log",
+      "bytes": 39975,
+      "sha256": "3a5d61f000d8c947d0385d3b90db4c46c53b923d0b3026f8f9f1009eaa361a5b"
+    },
+    {
+      "name": "root503-f3-finite-after.log",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-finite-after.log",
+      "bytes": 11021,
+      "sha256": "ac39ac461d76744f331c1140dc62ba20c10636059b5b66b0af3a0f3a5c59bf3f"
+    },
+    {
+      "name": "root503-f3-scoped-eslint.log",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-scoped-eslint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "root503-f3-scoped-types.log",
+      "source_path": "/workspace/agent-review-checkpoints/root503-f3-scoped-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "root503-actual105-main826-current-carry.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-actual105-main826-current-carry.json",
+      "bytes": 5138,
+      "sha256": "1aa02e8d92cc542ee0fca7ba502ec66a6c5662bccc5eb8a04e2a6ded61140fef"
+    },
+    {
+      "name": "root503-actual105-main826-current-carry.md",
+      "source_path": "/workspace/agent-review-checkpoints/root503-actual105-main826-current-carry.md",
+      "bytes": 2418,
+      "sha256": "d784733532e82167c906c20c4f19aba0d933af99305aabbfb96847db80b7fde7"
+    },
+    {
+      "name": "root503-ediel-native-test-trigger-one-line-review.json",
+      "source_path": "/workspace/agent-review-checkpoints/root503-ediel-native-test-trigger-one-line-review.json",
+      "bytes": 2337,
+      "sha256": "d35e1e05c89cba89b615fb7598b8db10b3bdfe9836cac627b8f7e7b6e93aa0b5"
+    },
+    {
+      "name": "root503-ediel-native-test-trigger-one-line-review.md",
+      "source_path": "/workspace/agent-review-checkpoints/root503-ediel-native-test-trigger-one-line-review.md",
+      "bytes": 1713,
+      "sha256": "ad0b4d1eb7739f9e3cce0bd6401e410d9e5a1ed55ca269129c6a6af2751e2798"
+    }
+  ],
+  "excluded": [
+    "Unapproved private IMP05 analysis",
+    "Full private job logs",
+    "Secrets"
+  ]
+}

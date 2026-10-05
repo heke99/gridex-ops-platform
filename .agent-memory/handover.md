@@ -1,3 +1,7 @@
+## Actual root503 source adoption — 2026-10-05T17:14:00Z
+
+Actual local source composition `105b8b87af0b1f02a8f82b869495703fb5ec8d5a`, tree `1aa8738a7c0db47a4ee5754e02f78060c3bb45fe`, parents332065bf + main826779dd; retains genuine reviewed F3 writer10f4 and checkpoint062. All346 foreign rows retained; candidate247 stored approvals. Same PR503 publication/current CI remains next; no actual503 main merge or final baseline claim. This is the single root503 source-adoption handover; foreign main merge receipts remain with their assigned serial operators/common baseline writer.
+
 ## Aktuell arbetsgren — 2026-10-02 (gäller före allt nedan)
 
 Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426 mot main, HEAD `0f61f08f57aedc6c0cc6a442829e16cc75064e67`. main (#425/#427/#428/#429) är inmergad i grenen (257eacbc). Användaren beslutade: EN PR, inga omskrivna migrationer, merga #426 när CI är grön och fortsätt sedan masterplan v2. Före faktisk merge: bekräfta deploy-migrationsordning (grenens migrationer har tidsstämplar före main:s 20261001210000 → `db push` kräver --include-all) och att merge inte kör produktionsmigration utan separat tillstånd.
