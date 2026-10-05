@@ -1,0 +1,12 @@
+{
+  "source_sha256": "65d982c5ce22dff4ffa12575872ac4b260fd32d0325c4328a974334d3081badf",
+  "test_sha256": "b2278560af93c1779c3630daa2b47e2a89886d7688f08906b0b9647e1ef8149e",
+  "all_tests": 71,
+  "own_tests": 54,
+  "passed": 71,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "exit": 0,
+  "lint": "exit0/one newly unused private strictUpdate warning; cleanup pending"
+}

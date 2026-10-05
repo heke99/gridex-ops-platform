@@ -5,7 +5,7 @@
   "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
   "latest_migration": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
   "latest_migration_schema_effect": "Authentic PostgreSQL17 capture of three company-scoped invitation uniqueness constraints and tenant classifications. Exact dump delta is three preserved-name UNIQUE keys; other schema sections/functions/ACLs unchanged. Raw3 copied byte-for-byte; no native acceptance inferred.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-05T16:39:08.546217+00:00",
@@ -106,7 +106,7 @@
     "receipt": "quality/staff-api/tenant-classification-evidence-20261005/authentic-capture-receipt-a315.json",
     "input_hash_scope": "All eight inputs bind exact a315 pre-import source. Genuine raw output import changes generated/provenance files; final native/upgrade acceptance is separate."
   },
-  "composition_note": "The current authentic capture is exact a315 source with the additive company-scoped invitation-key/classification forward. Complete prior manifests and capture/composition scopes remain immutable history. Final composed-source native/upgrade/API/required CI is independently qualified.",
+  "composition_note": "Concrete generated-schema/provenance conflict with main f88e88fb required composition. Raw3 deliberately retain the authentic dc2/a315 baseline pending fresh PostgreSQL17 capture of the immutable union; they are not represented as generated from the new union. Complete dc2 and main f88 manifests and source/capture scopes are retained unchanged.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -314,7 +314,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "Completed authentic capture37341406566 of exacta315f2f96f4d0ed249e0b8621289c5d8aba275d4/tree0da2e5b25028f4f5b1136718697fd2323005c115, latest20261005160940_classify_tenant_staff_external_identity_tables.sql f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d; genuine raw3 imported from artifact11358368604. Native/browser/comparison/upgrade were NOT_RUN in this producer; final exact-source clean/upgrade/required CI remains mandatory.",
+  "composition_capture_pending_scope": "Capture and import raw3 from the exact forthcoming composed pilot source, preserving all prior checksum/source/artifact history; require separate exact-final-head native clean/true-ancestor upgrade/parity plus all mandatory CI after import. Prior dc2/main runs do not qualify this composition.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -768,5 +768,22 @@
   "preimport_complete_manifest_preserved": {
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
+  },
+  "source_latest_migration": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
+  "main_f88_composition_history": {
+    "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+    "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+    "common_baseline": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+    "previous_complete_manifest": {
+      "path": "quality/staff-api/main-f88-composition-20261005/previous-complete-dc2-types-manifest.json",
+      "sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e"
+    },
+    "main_complete_manifest": {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-complete-types-manifest.json",
+      "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd"
+    },
+    "raw3_before_capture": "Unmodified previous authentic dc2/a315 raw3; NOT a generated union snapshot.",
+    "capture_status": "PENDING_AUTHENTIC_COMPOSED_SOURCE_CAPTURE",
+    "final_required_native_and_ci_status": "PENDING_FRESH_FINAL_HEAD_QUALIFICATION"
   }
 }

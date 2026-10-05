@@ -1,0 +1,116 @@
+{
+  "qualified_source_commit": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "inputs": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "9f1b78b4b99a7b1dfad26649ced506fd72667d5f619b113cac354b8ccad0fa96",
+      "bytes": 12853
+    },
+    {
+      "path": "package.json",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "bytes": 40763
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "bytes": 290422
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "5745fb70262f40a2a1a6b00223cf112f2696c7253c9387ef5a641b3c2790ae64",
+      "bytes": 967
+    },
+    {
+      "path": "__tests__/setup.ts",
+      "sha256": "fc769bc7346b5eb2e8297c444e2698e7f2343849c290142246b5a950da44bec1",
+      "bytes": 405
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "bytes": 91487
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "bytes": 150753
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "3de65e633a5df55e017d0f60abf8887a2d08afaf11821fb5be07595a625c1042",
+      "bytes": 103237
+    },
+    {
+      "path": "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+      "sha256": "820e3872046e1202a82bf8409deb06d5428323d08d9a4a9737c9183e09872474",
+      "bytes": 1886
+    },
+    {
+      "path": "lib/ediel/services/projection.ts",
+      "sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+      "bytes": 4002
+    },
+    {
+      "path": "lib/ediel/services/projectionRequest.ts",
+      "sha256": "0af66fe087f22a45e98317f46a645dc5c83876bf90a446d7b9dc47150f8ce4b0",
+      "bytes": 4685
+    },
+    {
+      "path": "lib/ediel/services/types.ts",
+      "sha256": "7679a6e4dd94f5ace7f83464eb55e1d5359f4bb6995c27e2d7d22e79f597271b",
+      "bytes": 1747
+    },
+    {
+      "path": "lib/ediel/services/administration.ts",
+      "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+      "bytes": 6003
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "bytes": 3232
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+      "bytes": 75361
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "bytes": 4105
+    },
+    {
+      "path": "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
+      "sha256": "c6c982999a340f45298814c052b8d1f6181d069ed0bcbd6fa06790b4f7548104",
+      "bytes": 7080
+    },
+    {
+      "path": "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+      "sha256": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
+      "bytes": 40092
+    },
+    {
+      "path": "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+      "sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+      "bytes": 6355
+    },
+    {
+      "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+      "sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece",
+      "bytes": 40769
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-api.test.ts",
+      "sha256": "4cf24f91394597257e77c6a2cd431eb65f811058c07e27c4318b54daf90f9393",
+      "bytes": 6119
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "sha256": "07b330061f98122e677eeeb016b3e765845bbdde92eaf3a926c5098473849282",
+      "bytes": 4412
+    }
+  ],
+  "all_inputs_equal_base": true
+}

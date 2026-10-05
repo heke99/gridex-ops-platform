@@ -1,0 +1,14 @@
+{
+  "verified_at": "2026-10-05T14:34:06.020403+00:00",
+  "owner_head": "f3adf926990cd77162d9366477d35e1c20b343b9",
+  "main": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+  "expected_merge_tree": "d05a67b8e566720e0579e59287262e426c0c7584",
+  "verdict": "CURRENT_MAIN_SOURCE_LEDGER_CARRY_APPROVE",
+  "retained_independent_source_review": "sc004-sc006-f3-main3dff-final-carry.json",
+  "prior_main_delta": "48 new bounded589/590 packet paths only, no existing production/schema/replay/coverage/config/workflow change; independently qualified root main carry.",
+  "foreign_coverage_rows": 350,
+  "metadata_preserved": true,
+  "source_scope": "Original f3 whole approval and independent3dff SQL/source/effect qualification retained; new foreign48 paths preserved byte-exact. No native/full execution or false current candidate proof.",
+  "current_head_checks_required": 9,
+  "coderabbit_required": "SUCCESS"
+}

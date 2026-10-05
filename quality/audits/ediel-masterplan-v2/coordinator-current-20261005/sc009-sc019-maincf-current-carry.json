@@ -1,0 +1,34 @@
+{
+  "schema": "gridex-sc009-sc019-minimum-maincf-extension/v1",
+  "verdict": "APPROVE_FRESH_MAIN_SOURCE_AND_350_ROW_UNION",
+  "created_at": "2026-10-05T15:17:31.208307+00:00",
+  "pr": 544,
+  "head": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+  "main": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+  "main_tree": "80d5b295ceae1c65b57b924a42e259897b5412cd",
+  "actual_main_genuine_parents": [
+    "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "99af21336aac95c7df6ab9e788ae42d0c6e92dea"
+  ],
+  "expected_conflict_free_union_tree": "5a2e90a343dbd417014d4710104eafa19319d86b",
+  "prior_receipt": "sc009-sc019-mainaa-current-carry.json",
+  "prior_receipt_sha256": "98c5bf162bed5a2d404f090537b27706d72fe05f49e681f741111649377de4de",
+  "delta_scope": "Source-safe whole-approved SC013/SC020 #548: existing six ordinary/finite consumers, tag/mock unions, two own rows and own records. No production/schema/migration/workflow/capture input delta.",
+  "selected29_source_pins_and23_SQL_complete_definitions_retained": true,
+  "three_owned_asserting_suites_exact_published_head": true,
+  "eight_capture_inputs_and_raw_generated_bytes_unchanged": true,
+  "coverage": {
+    "all352_ids_ordered": true,
+    "foreign350_rows_and_ordered_evidence_exact": true,
+    "current_main_metadata_exact": true,
+    "only_pair_rows_differ": [
+      "SC-009",
+      "SC-019"
+    ],
+    "main_approved": 224,
+    "candidate_approved": 226
+  },
+  "all_foreign_main_paths_exact": 7797,
+  "finite_boundary": "Prior whole-literal32/DB06 finite/native and held-DGI/no-DDQ/no-positive-invoice limitations retained; no new native/whole-source/custody or runtime claim.",
+  "limits": "Tiny fresh-main carry only; no tests/SQL/native/full/tagger/capture reruns, owner edit/push/merge. Root owns actual9checks/CodeRabbit/publication and guarded merge."
+}

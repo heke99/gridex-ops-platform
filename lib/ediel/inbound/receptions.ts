@@ -1,4 +1,90 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { createHash } from 'node:crypto'
+
+/** Transport custody only: this never grants legal or business authority. */
+export type UnattributedTechnicalIntake = {
+  kind: 'unattributed_technical_intake'
+  version: 1
+  disposition: 'technical_only_unattributed'
+  sourceMessageId: string
+  inboundEmailMessageId: string
+  parseResultId: string
+  companyId: null
+  resolvedCompanyId: null
+  technicalCompanyId: string
+  environment: 'test' | 'production'
+  sourcePayloadHash: string
+  receivedAt: string
+  executionActorUserId: string
+  authorizesBusinessEffect: false
+}
+
+const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
+
+function technicalIntake(value: unknown, input: {
+  actorUserId: string | null
+  inboundEmailMessageId?: string
+  sourceMessageId?: string
+  parseResultId?: string
+  sourcePayloadHash?: string
+  environment?: string
+}): UnattributedTechnicalIntake {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('ediel_technical_intake_receipt_invalid')
+  const r = value as UnattributedTechnicalIntake
+  if (r.kind !== 'unattributed_technical_intake' || r.version !== 1 || r.disposition !== 'technical_only_unattributed' ||
+    ![r.sourceMessageId, r.inboundEmailMessageId, r.parseResultId, r.technicalCompanyId]
+      .every(id => typeof id === 'string' && uuid.test(id)) ||
+    r.companyId !== null || r.resolvedCompanyId !== null || r.authorizesBusinessEffect !== false ||
+    !input.actorUserId || r.executionActorUserId !== input.actorUserId ||
+    typeof r.environment !== 'string' || !['test', 'production'].includes(r.environment) ||
+    typeof r.sourcePayloadHash !== 'string' || !/^[a-f0-9]{64}$/.test(r.sourcePayloadHash) ||
+    typeof r.receivedAt !== 'string' || !Number.isFinite(Date.parse(r.receivedAt)) ||
+    (input.inboundEmailMessageId !== undefined && r.inboundEmailMessageId !== input.inboundEmailMessageId) ||
+    (input.sourceMessageId !== undefined && r.sourceMessageId !== input.sourceMessageId) ||
+    (input.parseResultId !== undefined && r.parseResultId !== input.parseResultId) ||
+    (input.sourcePayloadHash !== undefined && r.sourcePayloadHash !== input.sourcePayloadHash) ||
+    (input.environment !== undefined && r.environment !== input.environment)) throw new Error('ediel_technical_intake_receipt_invalid')
+  return Object.freeze(r)
+}
+
+export async function admitUnattributedTechnicalSource(input: {
+  actorUserId: string
+  inboundEmailMessageId: string
+  parseResultId: string
+  rawPayload: string
+  environment: string
+}): Promise<UnattributedTechnicalIntake> {
+  if (!input.actorUserId || !uuid.test(input.inboundEmailMessageId) || !uuid.test(input.parseResultId)) {
+    throw new Error('ediel_technical_intake_actor_and_source_required')
+  }
+  const sourcePayloadHash = createHash('sha256').update(input.rawPayload, 'utf8').digest('hex')
+  const { data, error } = await supabaseService.rpc('ediel_admit_unattributed_technical_source_v1', {
+    p_inbound_email_message_id: input.inboundEmailMessageId,
+    p_parse_result_id: input.parseResultId,
+    p_actor_user_id: input.actorUserId,
+    p_expected_payload_hash: sourcePayloadHash,
+    p_expected_environment: input.environment,
+  })
+  if (error) throw error
+  return technicalIntake(data, { ...input, sourcePayloadHash })
+}
+
+export async function readUnattributedTechnicalIntake(input: {
+  actorUserId: string | null
+  inboundEmailMessageId?: string
+  sourceMessageId?: string
+  sourcePayloadHash?: string
+  environment?: string
+}): Promise<UnattributedTechnicalIntake | null> {
+  if (Boolean(input.inboundEmailMessageId) === Boolean(input.sourceMessageId)) throw new Error('ediel_technical_intake_exact_selector_required')
+  const { data, error } = await supabaseService.rpc('ediel_read_unattributed_technical_intake_v1', {
+    p_inbound_email_message_id: input.inboundEmailMessageId ?? null,
+    p_source_message_id: input.sourceMessageId ?? null,
+    p_actor_user_id: input.actorUserId,
+  })
+  if (error) throw error
+  return data === null ? null : technicalIntake(data, input)
+}
 
 export type InboundReception = {
   companyId: string

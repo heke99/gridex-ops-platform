@@ -1,0 +1,85 @@
+{
+  "kind": "actual-reviewed-main-merge",
+  "pr": 548,
+  "head": "99af21336aac95c7df6ab9e788ae42d0c6e92dea",
+  "merge": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+  "parents": [
+    "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "99af21336aac95c7df6ab9e788ae42d0c6e92dea"
+  ],
+  "tree": "80d5b295ceae1c65b57b924a42e259897b5412cd",
+  "direct_commit_api_verified": true,
+  "expected_tree_exact": true,
+  "before_approvals": 222,
+  "after_approvals": 224,
+  "required_checks": [
+    {
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111804848662,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322499171/job/111804848662"
+    },
+    {
+      "name": "quality-release-gates",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111804848248,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322499171/job/111804848248"
+    },
+    {
+      "name": "clean-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111804848632,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322499171/job/111804848632"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111804848957,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322499171/job/111804848957"
+    },
+    {
+      "name": "targeted-regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111804842261,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322499009/job/111804842261"
+    },
+    {
+      "name": "browser-public",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111804857963,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322498969/job/111804857963"
+    },
+    {
+      "name": "smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111816195629,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322498942/job/111816195629"
+    },
+    {
+      "name": "coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111816195356,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322498942/job/111816195356"
+    },
+    {
+      "name": "pr-certificate",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111821965672,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322498942/job/111821965672"
+    }
+  ],
+  "note": "Historical15:06snapshot pendingclean/cert fields are preserved; actual premerge all nine check-runs SUCCESS fetched15:09:36. Current final exact IDs/URLs recorded separately.",
+  "coderabbit": "success",
+  "required_checks_observed_at": "2026-10-05T15:09:36Z",
+  "foreign_rows_exact": 350,
+  "foreign_paths_exact": 7788
+}

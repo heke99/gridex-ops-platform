@@ -1,0 +1,13 @@
+
+ RUN  v4.1.9 /workspace/gridex-sc010-sc071
+
+ ✓ __tests__/ediel-beneficiary-projection-provenance.test.ts (10 tests) 16ms
+ ✓ __tests__/ediel-sc-010-071-grant-revalidation.test.ts (10 tests) 26ms
+ ✓ __tests__/ediel-beneficiary-projection-api.test.ts (18 tests) 32ms
+
+ Test Files  3 passed (3)
+      Tests  38 passed (38)
+   Start at  08:59:34
+   Duration  461ms (transform 369ms, setup 74ms, import 512ms, tests 74ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-sc010-sc071/quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/component-junit.xml

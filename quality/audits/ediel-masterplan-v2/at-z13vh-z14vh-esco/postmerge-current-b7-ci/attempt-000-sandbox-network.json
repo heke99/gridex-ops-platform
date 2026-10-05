@@ -1,0 +1,6 @@
+{
+  "scope": "read-only PR589/current-head Actions metadata",
+  "exit_code": 1,
+  "error": "default-sandbox socket operation not permitted",
+  "retry_scope": "GitHub connector read-only metadata"
+}

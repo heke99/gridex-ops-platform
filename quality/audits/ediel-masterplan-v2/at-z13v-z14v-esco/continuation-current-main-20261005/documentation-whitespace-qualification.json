@@ -1,0 +1,44 @@
+{
+  "atUTC": "2026-10-05T15:26:09.212873+00:00",
+  "originalRawCheckExit": 2,
+  "originalRawCheckMeaning": "Only byte-exact retained scout EOF, original diff-context blank whitespace and selected native SQL diagnostic log/header whitespace. Original failure retained; not relabeled PASS.",
+  "filteredGeneratedDocumentationCheckCommand": [
+    "git",
+    "diff",
+    "--cached",
+    "--check",
+    "--",
+    ".",
+    ":(exclude)quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/ownership-scout.md",
+    ":(exclude)quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/v3-d104-other-native-root.delta",
+    ":(exclude)quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/job-111782546601-selected-excerpts.log",
+    ":(exclude)quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/raw-postmerge-doc-whitespace-check.log",
+    ":(exclude)quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/raw-current-doc-whitespace-check.log"
+  ],
+  "filteredExit": 0,
+  "filteredStdout": "",
+  "filteredStderr": "",
+  "explicitRawExclusions": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/ownership-scout.md",
+      "sha256": "9387d63e646fb8091658273b0cd090eff20024f32cb3440ae548efcb6afc393a"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/v3-d104-other-native-root.delta",
+      "sha256": "286479cdb5098ac352150f5d5c2f13f0f001c6f731c6137dedb6d0313d10e6d0"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/job-111782546601-selected-excerpts.log",
+      "sha256": "07fb0bbb3cba627292d97e2612faa9b6ff55a29c74f0722674996b99b81d3f03"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/raw-postmerge-doc-whitespace-check.log",
+      "sha256": "c4b029565bed2ea272d2ed4521379037677663bcdfa1c1a04cd5fdee05748b85"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/raw-current-doc-whitespace-check.log",
+      "sha256": "ceb35e0cb3bb7f7f00b641b097166871d9f8a7bd1da7ca3e3253b562546421b0"
+    }
+  ],
+  "runtimeTypeNativeCIOrBaselineRerun": "NOT_RUN"
+}

@@ -1,0 +1,549 @@
+{
+  "status": "PASS_READ_ONLY_COMPOSITION_PREFLIGHT_CAPTURE_FINAL_CI_PENDING",
+  "created_at_utc": "2026-10-05T18:55:28.649393+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "sources": {
+    "base": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+    "staff": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+    "main": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af"
+  },
+  "trees": {
+    "base": "0a1f2e65b1de79503f814cc4de2a823c6940adfa",
+    "staff": "5e506545d67615cf14d67ceefc7b011508b3fd63",
+    "main": "14729bfdbe56f67149d51e227e25d7274aa4025e"
+  },
+  "authenticated_merge_base": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+  "counts": {
+    "historical_entries_preserved_on_both": 1066,
+    "new_main_forwards": 7,
+    "new_staff_forwards": 3,
+    "combined_unique_sql_files": 1076,
+    "all_combined_blob_sha256_verified": 1076,
+    "combined_primary": 822,
+    "combined_additional": 262,
+    "combined_runtime": 128,
+    "identical_duplicates": 136,
+    "conflicts": 0
+  },
+  "branch_manifests": {
+    "base": {
+      "files": [
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "entries": 814,
+          "sha256": "b19e0e57bba7ae6e1bd5c52086e9eaebf2f7e0f986745a1d2d59403ee3d34ae6"
+        },
+        {
+          "path": "scripts/migration-history-manifest.additions.json",
+          "entries": 262,
+          "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1"
+        },
+        {
+          "path": "scripts/migration-history-manifest.runtime.additions.json",
+          "entries": 126,
+          "sha256": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65"
+        }
+      ],
+      "unique_files": 1066,
+      "identical_duplicates": 136
+    },
+    "staff": {
+      "files": [
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "entries": 817,
+          "sha256": "386264c17fe465c6327133ed45b23a0b93355d231a454261d242b446ab338c47"
+        },
+        {
+          "path": "scripts/migration-history-manifest.additions.json",
+          "entries": 262,
+          "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1"
+        },
+        {
+          "path": "scripts/migration-history-manifest.runtime.additions.json",
+          "entries": 126,
+          "sha256": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65"
+        }
+      ],
+      "unique_files": 1069,
+      "identical_duplicates": 136
+    },
+    "main": {
+      "files": [
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "entries": 819,
+          "sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30"
+        },
+        {
+          "path": "scripts/migration-history-manifest.additions.json",
+          "entries": 262,
+          "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1"
+        },
+        {
+          "path": "scripts/migration-history-manifest.runtime.additions.json",
+          "entries": 128,
+          "sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134"
+        }
+      ],
+      "unique_files": 1073,
+      "identical_duplicates": 136
+    }
+  },
+  "current_composed_manifests": [
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "sha256": "0b15e290c942d458161574f09d6b1cfec90f7a28429e12f05363ea6adffbe28e",
+      "entries": 822
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "entries": 262
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+      "entries": 128
+    }
+  ],
+  "new_main_forwards": [
+    {
+      "name": "20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+      "sha256": "35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1",
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "name": "20261004204256_ediel_worker_lease_current_provider_entry.sql",
+      "sha256": "888d1c2dc890647e69105a3077b0b6b902f27a1afea09e03c74987c275e756e4",
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "name": "20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+      "sha256": "61beb70a0b8b4837d0356dfe86c2c1a9a4798f74dc549b0292af63f79cde2cb8",
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "name": "20261004214144_ediel_received_ack_validation_private_original_read.sql",
+      "sha256": "ed925604abf81ebab51a778797ce040a290c8d05aefcd23a156e4004eb765f6b",
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "name": "20261004220429_ediel_switch_original_guard_private_owner.sql",
+      "sha256": "2fa019efcbf3df9f687595ce057ab2e58f4427b424611c0943006f13811766ad",
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "name": "20261005043923_ediel_unattributed_technical_intake.sql",
+      "sha256": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+      "registered_in": [
+        "scripts/migration-history-manifest.runtime.additions.json"
+      ]
+    },
+    {
+      "name": "20261005101500_ediel_beneficiary_export_jobs.sql",
+      "sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "registered_in": [
+        "scripts/migration-history-manifest.runtime.additions.json"
+      ]
+    }
+  ],
+  "staff_forwards_preserved": [
+    {
+      "name": "20261005101527_staff_independent_onboarding_authority.sql",
+      "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492"
+    },
+    {
+      "name": "20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3"
+    },
+    {
+      "name": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
+      "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d"
+    }
+  ],
+  "chronological_latest": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
+  "actual_changed_staff_runtime_app_lib_superset": [
+    {
+      "path": "app/admin/customer-cases/[caseId]/attachments/[reference]/route.ts",
+      "sha256": "032f1147381bd7338fb9614552aa86ba21937ce7599dffbe720064e9b7e4dbbd",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "app/admin/customer-cases/[caseId]/page.tsx",
+      "sha256": "f724be76ddff63abbd65e7ccc5cb09e1a5e13f1b2f6c029feddfb50c95c5a1a3",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "app/admin/customer-cases/page.tsx",
+      "sha256": "55a1988139fcb9b111e7527880cc76f69e7c82c8dbf12f1ce69fb4f4540290e0",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "app/api/v1/openapi/staff-onboarding-v1.json/route.ts",
+      "sha256": "1e6fb75442a3b186ec25a0d3564dfd39443a0f3eaec5f55b649bd43d50ada273",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "app/api/v1/staff-onboarding/identity/resolve/route.ts",
+      "sha256": "fe3f61035ae998beff8ccc51b21ba95696f4c8d4f00871570a8e56e0daaaac19",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "app/api/v1/staff-onboarding/invitations/accept/route.ts",
+      "sha256": "957604a9c5fac1fb6ffd029d8bd683b1d656c35b0dc32c1329f68abce0e883d9",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/admin/accessModel.ts",
+      "sha256": "dafd2f60b5b1ba6b7a2b9e274c5cc2d4df337302149360b5d545144ee450caf4",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/admin/navigation.ts",
+      "sha256": "725a7e164aa3e67adb6d9296994bdc0ae93577c571f9da6e912e9cdde4aee87b",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/api/publicRouteRegistry.ts",
+      "sha256": "83191a3dba8b6aab25dd44bb3685a9e2d5d6e4afc2bc026e7a8fbcf6633dbdb0",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/auth/companyInvitationFlow.ts",
+      "sha256": "f54ad468ff651ec2aca0d324e5562d8937785d5be76a8f9ea183644233b268d4",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/auth/staffInvitationRouting.ts",
+      "sha256": "9bea35beb513a397fd6dd2a04e6fef9f716dee257706eed56d02f606148b28e9",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/auth/tenantStaffDelivery.ts",
+      "sha256": "0d99671c63840d1cf02d142c7eca68084f5d8bf31bfe3dbac730f5742dbde1ae",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/customer-service/supportConversation.ts",
+      "sha256": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/context.ts",
+      "sha256": "226fcaf7991727337b0ef93cb942e34fee4a43cdac209ae8b50817c9e8e771bd",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/http.ts",
+      "sha256": "90b6ce4dfa0e547608ff50e545f014c0d8f6e5afb3bdbd1f0224004580bf1788",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/identityAuthority.ts",
+      "sha256": "c694cd3502d64d3d6651b3d7965fe3e8ff634f681aebca362f12b5971ff2cf7e",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/identityResolution.ts",
+      "sha256": "c5563950dfa7948291e66e9dfe83247fd890a36a52c9f23f81e3e41fde386f16",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/onboarding.ts",
+      "sha256": "9b9f00805eaf4735b27e581c220cddce534f350bce3703b1ec5b212d664d9989",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/onboardingContract.ts",
+      "sha256": "ad7a444d70713557457804653ea30b37466114cc48acaaf534501c0b1e1fb3e6",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/storageTarget.ts",
+      "sha256": "cb980a914308802b0b93f0b68c3cbee1b793c7bb9b2388e7fa4162b23f2bf811",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/staff-api/tenantAuth.ts",
+      "sha256": "a405c684c8626997d14a7b5e01c8a6faed8c94624fdeeeeb1d567a41949c502c",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/supabase/service.ts",
+      "sha256": "1acad0fb34158f405fba9cd554cd075776a441395be389769fe0b4c70827fe98",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    },
+    {
+      "path": "lib/tenant/provisioningWorker.ts",
+      "sha256": "eac96d9d762025a09b0efc909309d3c495659f7d8c6f35b87f4d64ae41a3dd98",
+      "current_equals_dc2": true,
+      "main_changed_this_path": false
+    }
+  ],
+  "root_thirteen_pins": {
+    "receipt": "/tmp/gridex-staff-review/final-tenant-code-qualification-dc2-20261005.json",
+    "sha256": "9a958a47127a3fe4954e64cc4e33ab83cd6486d01bab5f0e95567ea1edcb8b8b",
+    "all_pins_match": true,
+    "sources": [
+      {
+        "path": "__tests__/staff-identity-version-conflict-sql.test.ts",
+        "sha256": "79cf8e3635d87bf2da7dc37cc1b6b12fb42f6b35913b3154680e3c3792b41a4e",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "__tests__/staff-invitation-domain-columns.test.ts",
+        "sha256": "ba42489d917099aa1a9c0601a9739b2d78d5bb12150d2a9f26b2a7ab4c2813b8",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "__tests__/staff-user-role-id-nullability.test.ts",
+        "sha256": "02440f7a0714f8f641660020c24a729728651fd2af2b9ce6c24606b576b7a9f2",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "__tests__/fixtures/staff-captured-identity-authority.ts",
+        "sha256": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "lib/customer-service/supportConversation.ts",
+        "sha256": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "__tests__/support-detail-openapi-schema.test.ts",
+        "sha256": "82916af528bc1bc24c157dad81e31d2aa632f440b2080a6d84f68cd4d2663e37",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "scripts/staff-external-identity-binding-regression.sql",
+        "sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "scripts/lib/staff-external-identity-sql-fixture.cjs",
+        "sha256": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+        "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "__tests__/staff-external-identity-classification-sql.test.ts",
+        "sha256": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "scripts/ediel-utilts-consumption-native.test.ts",
+        "sha256": "c689f3db90e7840217b51dcdc5b31a88bb71410e22a6ba5fd99a60ca69d78df8",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "scripts/helpers/utiltsConsumptionBoundParties.ts",
+        "sha256": "25a568f64005a4f912d45ea74ba5e59199cb89c1b923278ded1d6b569fbbcfbd",
+        "current_matches_dc2_pin": true
+      },
+      {
+        "path": "__tests__/utilts-native-bound-parties.test.ts",
+        "sha256": "93da672fe78125de283e456e754829a4b1f634abbaa5116ad062330737b85e29",
+        "current_matches_dc2_pin": true
+      }
+    ]
+  },
+  "sixteen_staff_clarification": "16 means historical native Staff cases, not16 source files; no new native acceptance is inferred by this source review.",
+  "protected_eight_capture_inputs": [
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "current_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "dc2_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "main_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "changed_from_dc2": false
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "current_sha256": "0b15e290c942d458161574f09d6b1cfec90f7a28429e12f05363ea6adffbe28e",
+      "dc2_sha256": "386264c17fe465c6327133ed45b23a0b93355d231a454261d242b446ab338c47",
+      "main_sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
+      "changed_from_dc2": true
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "current_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "dc2_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "main_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "changed_from_dc2": false
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "current_sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+      "dc2_sha256": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+      "main_sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+      "changed_from_dc2": true
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "current_sha256": "f8d3ebcc4cce79d1e7925c99cfe4d9b123b12d92af3be779cd59a1266735ad3b",
+      "dc2_sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e",
+      "main_sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+      "changed_from_dc2": true
+    },
+    {
+      "path": "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "current_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "dc2_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "main_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "changed_from_dc2": false
+    },
+    {
+      "path": "scripts/gridex-schema-snapshot.cjs",
+      "current_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "dc2_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "main_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "changed_from_dc2": false
+    },
+    {
+      "path": "supabase/config.toml",
+      "current_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "dc2_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "main_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "changed_from_dc2": false
+    }
+  ],
+  "changed_capture_inputs_exactly_three": [
+    "scripts/migration-history-manifest.json",
+    "scripts/migration-history-manifest.runtime.additions.json",
+    "scripts/supabase-types-manifest.json"
+  ],
+  "raw_generated_baseline": {
+    "scope": "Unmodified authentic dc2/a315 prior baseline, never relabeled as a new union output.",
+    "files": [
+      {
+        "path": "supabase/database.types.ts",
+        "current_sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+        "current_equal_authentic_dc2_baseline": true,
+        "main_sha256": "88cf7de264a01c68ba51d6b57f69aac451068cabc0f20f88362d748793ce7b5e"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "current_sha256": "3b962356454ec5abd66f1bd155c7076f1d52522d27060c0d5d43c424b2d14f30",
+        "current_equal_authentic_dc2_baseline": true,
+        "main_sha256": "0d733d1ebe663805028817315f66e0e4f6c6740f832a988133c12596e2bd0857"
+      },
+      {
+        "path": "supabase/schema.fingerprint.json",
+        "current_sha256": "4ab388cd791565a5a4a415f394b7f8bc9fb53c3a19dadaf3ccdc805446d75f48",
+        "current_equal_authentic_dc2_baseline": true,
+        "main_sha256": "fee88a983a91dd6e222d14dec461332521ad99065c773412e701d8039c7912bc"
+      }
+    ]
+  },
+  "pending_provenance": {
+    "manifest_sha256": "f8d3ebcc4cce79d1e7925c99cfe4d9b123b12d92af3be779cd59a1266735ad3b",
+    "composition_capture_pending": true,
+    "capture_object_exactly_historical_dc2": true,
+    "historical_checkout": "a315f2f96f4d0ed249e0b8621289c5d8aba275d4",
+    "full_history_preserved": [
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/previous-complete-dc2-types-manifest.json",
+        "source": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+        "git_blob": "d6c42eea7a64764de183413cf81f9e8ea2a2e597",
+        "sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e",
+        "complete_original_bytes_preserved": true
+      },
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/main-f88-complete-types-manifest.json",
+        "source": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+        "git_blob": "e64eaf5b82f41b24bd12c240172ff8224ea9d030",
+        "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+        "complete_original_bytes_preserved": true
+      }
+    ],
+    "composition_history": {
+      "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+      "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+      "common_baseline": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+      "previous_complete_manifest": {
+        "path": "quality/staff-api/main-f88-composition-20261005/previous-complete-dc2-types-manifest.json",
+        "sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e"
+      },
+      "main_complete_manifest": {
+        "path": "quality/staff-api/main-f88-composition-20261005/main-f88-complete-types-manifest.json",
+        "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd"
+      },
+      "raw3_before_capture": "Unmodified previous authentic dc2/a315 raw3; NOT a generated union snapshot.",
+      "capture_status": "PENDING_AUTHENTIC_COMPOSED_SOURCE_CAPTURE",
+      "final_required_native_and_ci_status": "PENDING_FRESH_FINAL_HEAD_QUALIFICATION"
+    },
+    "requirements": [
+      "New authentic capture must bind exact composed commit/tree and all8 current source hashes, whole1076 union, latestf103.",
+      "No synthetic generated raw3 merge or historical capture relabel.",
+      "Keep exact pending preimport manifest and both complete old manifests on import; new captured/input identity remains producer source, not later import commit.",
+      "New raw3/codegen bytes determine final types/schema/fingerprint; import byte-for-byte and update origin honestly.",
+      "Source capture stays separate from fresh exact-final-head required native/browser/true-ancestor upgrade/type-schema/CI qualification."
+    ]
+  },
+  "inherited_main_gate": {
+    "sha256": "2473435005349dce1af3be72f8b9efae6c5c7e59e366ba96ecc649675df50421",
+    "current_bytes_exact_main": true,
+    "delta": "Only F3 adds private is_birth_v1 protected technical-original/diagnostic recognition. The three Staff tables still take generic NULL rejection; F6/F8 logic and private Staff ACL/RLS remain unchanged.",
+    "single_in_memory_readonly_parser_check": "Missing private authority to_regprocedure expression returned NULL; no migration replay or suite executed.",
+    "whole_gate_native_acceptance": "NOT_RUN"
+  },
+  "unchanged_main_capture_workflow_controls": [
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "main_unchanged_from_base": true,
+      "sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261"
+    },
+    {
+      "path": "scripts/sql/gridex-supabase-compatible-bootstrap.sql",
+      "main_unchanged_from_base": true,
+      "sha256": "50980b20aab477f9fe7300072729274094df3e5a8591f07d6fad5f9d7b228839"
+    }
+  ],
+  "scope_limits": {
+    "root_owned_pending_index_reviewed": true,
+    "new_composition_commit_not_created_by_reviewer": true,
+    "repository_or_index_edits": 0,
+    "suites": 0,
+    "migration_replays": 0,
+    "artifact_downloads": 0,
+    "network_or_hosted_calls": 0,
+    "not_release_or_live_qualification": true
+  }
+}

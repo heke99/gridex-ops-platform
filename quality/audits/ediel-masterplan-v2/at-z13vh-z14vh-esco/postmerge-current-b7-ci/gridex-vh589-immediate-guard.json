@@ -1,0 +1,65 @@
+{
+  "atUTC": "2026-10-05T14:24:47.203943+00:00",
+  "guard": "PASS",
+  "actualMain": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "PRHead": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+  "historicalPRBaseSnapshot": "fff486f822001d35970f163507b10e17c3692f58",
+  "expectedCompositionTree": "f49ae22d0deb1d41ab0f6695a370067f6ed663cd",
+  "required": [
+    {
+      "name": "browser-public",
+      "id": 111782539215,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "smoke",
+      "id": 111782539655,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "coverage",
+      "id": 111782539806,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 111782539683,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "verify",
+      "id": 111782546766,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 111782546558,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 111782546601,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 111782546353,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "pr-certificate",
+      "id": 111785066225,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "mode": "ordinary expected-head merge/no admin/no waiver"
+}

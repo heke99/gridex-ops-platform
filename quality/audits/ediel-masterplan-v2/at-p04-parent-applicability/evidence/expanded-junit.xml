@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="42" failures="21" errors="0" time="1.409490417">
+    <testsuite name="__tests__/ediel-at-p04-parent-applicability.test.ts" timestamp="2026-10-05T13:19:30.935Z" hostname="64e5d94c31a4" tests="42" failures="21" errors="0" skipped="0" time="1.409490417">
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.087064084">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.076797169">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 316 while its parent remains present" time="0.059684933">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 233 while its parent remains present" time="0.035552943">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 234 while its parent remains present" time="0.031948231">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 316 while its parent remains present" time="0.035892854">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 233 while its parent remains present" time="0.03794411">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 234 while its parent remains present" time="0.059866191">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses empty UD without requiring its absent children" time="0.005697934">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses populated UD without requiring its absent children" time="0.002975217">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses empty IT without requiring its absent children" time="0.002427741">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses populated IT without requiring its absent children" time="0.003029315">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.058559094">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:128:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; a second complete message cannot supply the first message parent children" time="0.111845223">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.040082742">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.039440517">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 316 while its parent remains present" time="0.035756985">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 233 while its parent remains present" time="0.029581164">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 234 while its parent remains present" time="0.026449273">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 316 while its parent remains present" time="0.028277322">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 233 while its parent remains present" time="0.032957094">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 234 while its parent remains present" time="0.040732675">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses empty UD without requiring its absent children" time="0.002262433">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses populated UD without requiring its absent children" time="0.002359758">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses empty IT without requiring its absent children" time="0.001842457">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses populated IT without requiring its absent children" time="0.002260965">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.038381977">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:128:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; a second complete message cannot supply the first message parent children" time="0.092620042">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.029550917">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.031462622">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 316 while its parent remains present" time="0.028471987">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 233 while its parent remains present" time="0.028862526">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 234 while its parent remains present" time="0.032377229">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 316 while its parent remains present" time="0.030475632">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 233 while its parent remains present" time="0.03157787">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 234 while its parent remains present" time="0.029320774">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses empty UD without requiring its absent children" time="0.00257516">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses populated UD without requiring its absent children" time="0.002367131">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses empty IT without requiring its absent children" time="0.002223625">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses populated IT without requiring its absent children" time="0.001811245">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.054214804">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:128:83
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; a second complete message cannot supply the first message parent children" time="0.077264732">
+        </testcase>
+    </testsuite>
+</testsuites>

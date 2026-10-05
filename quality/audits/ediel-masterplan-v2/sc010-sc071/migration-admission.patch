@@ -1,0 +1,11 @@
+--- a/scripts/migration-history-manifest.runtime.additions.json
++++ b/scripts/migration-history-manifest.runtime.additions.json
+@@ -125,6 +125,7 @@
+     "20261004205603_staff_customer_retention_read_prerequisite.sql": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
+     "20261004205816_support_attachment_quarantine_carrier.sql": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594",
+     "20261005004623_customer_contact_version_conflict_http409.sql": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+-    "20261005010327_customer_identity_version_conflict_http409.sql": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
++    "20261005010327_customer_identity_version_conflict_http409.sql": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
++    "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+   }
+ }

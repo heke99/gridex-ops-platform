@@ -1,0 +1,32 @@
+HTTP/1.1 200 OK
+date: Mon, 05 Oct 2026 14:34:41 GMT
+server: envoy
+
+HTTP/2 200 
+cache-control: max-age=300
+content-security-policy: default-src 'none'; style-src 'unsafe-inline'; sandbox
+content-type: text/plain; charset=utf-8
+etag: "e0bac652cc2fc692c467fbdb4b7418f9f838223804bfbd06ea1520f1b44ba5a1"
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-frame-options: deny
+x-xss-protection: 1; mode=block
+x-github-request-id: 8E32:134F97:98292:13D875:6AC3B581
+x-github-edge-region: iad
+accept-ranges: bytes
+date: Mon, 05 Oct 2026 14:34:42 GMT
+via: 1.1 varnish
+x-served-by: cache-msp11824-MSP
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1791210882.474267,VS0,VE150
+vary: Authorization,Accept-Encoding
+access-control-allow-origin: *
+cross-origin-resource-policy: cross-origin
+x-fastly-request-id: 33fca2826af4ccc6457b773f5980b6f1ce2203b3
+expires: Mon, 05 Oct 2026 14:39:42 GMT
+source-age: 0
+content-length: 13007
+x-envoy-upstream-service-time: 233
+server: envoy
+

@@ -1,0 +1,15 @@
+
+ RUN  v4.1.9 /workspace/gridex-sc010-sc071
+
+ ✓ __tests__/ediel-sc-010-071-grant-revalidation.test.ts (10 tests) 36ms
+ ✓ __tests__/ediel-beneficiary-projection-api.test.ts (18 tests) 43ms
+ ✓ __tests__/ediel-beneficiary-projection-provenance.test.ts (10 tests) 13ms
+ ✓ __tests__/ediel-sc-010-beneficiary-export.test.ts (12 tests) 3471ms
+     ✓ executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness  3446ms
+
+ Test Files  4 passed (4)
+      Tests  50 passed (50)
+   Start at  10:21:31
+   Duration  3.96s (transform 403ms, setup 83ms, import 767ms, tests 3.56s, environment 0ms)
+
+JUNIT report written to /workspace/gridex-sc010-sc071/quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-component-junit.xml

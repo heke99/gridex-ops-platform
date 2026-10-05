@@ -1,0 +1,22 @@
+{
+  "scope": "memory-only lossless marker removal during genuine proof-checkpoint merge",
+  "merge_first_parent": "d784eef3e5dcedc0b7d6611ff349bd720f573a60",
+  "checkpoint_parent": "06237314fc9dd840e3e56ca0b2b8e2b891a19263",
+  "removed_conflict_marker_lines": 3,
+  "all_other_bytes_preserved_in_order": true,
+  "parent_line_checks": [
+    {
+      "parent": "d784eef3e5dcedc0b7d6611ff349bd720f573a60",
+      "handover_sha256": "13a78929ae596a590b94bc725b1d34d558524f0f4049cdf79c39d4ea6c4f9b2e",
+      "all_nonempty_original_lines_retained": true
+    },
+    {
+      "parent": "06237314fc9dd840e3e56ca0b2b8e2b891a19263",
+      "handover_sha256": "72c41666157942748d01457d2c79e06805f7f8c4565308d8efae9dd6809023ce",
+      "all_nonempty_original_lines_retained": true
+    }
+  ],
+  "resolved_handover_sha256": "c5f4cd061b4a2fa0aceec1d63a39d5d00f2f5e6f0dad8317a17713d1c18873ca",
+  "source_generated_migration_workflow_coverage_edits": 0,
+  "native_full_behavior_runs": 0
+}
