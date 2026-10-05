@@ -1,0 +1,89 @@
+{
+  "claim": 5991659194,
+  "owner_handoff": 5991719119,
+  "main": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "main_tree": "cc0b6412e13c04f6baa3413957c7b609aeba74be",
+  "qualified_ci_head": "445bf50942818495f7edc09f52a2288be81ad176",
+  "run": 37281693425,
+  "quality_job": 111671247914,
+  "artifact": 11334955859,
+  "artifact_sha256": "33b1207eb2efda48feebfaa7c048bc6e1f0f7a7ea9f863e36aed79bd10b0f597",
+  "unchanged_main_and_ci_blobs": [
+    {
+      "path": "scripts/test-ediel-utilts-series-and-err-ack.cjs",
+      "sha": "ac0be108ea35cefdce7388c82f3664de485ee4cb"
+    },
+    {
+      "path": "scripts/ediel-utilts-late-version-sql-regression.mjs",
+      "sha": "1295faff119bf48aa09580dc2a335da98a568a08"
+    },
+    {
+      "path": "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
+      "sha": "84459833028312cd73a6fb924ab45cb9b6326229"
+    },
+    {
+      "path": "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+      "sha": "73b587392d510cd0d08bbf6792676c6196cb1ec9"
+    },
+    {
+      "path": "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
+      "sha": "c777f06b72c903d2ee39d10a9d9926d1088f516d"
+    },
+    {
+      "path": "lib/ediel/matching.ts",
+      "sha": "9c4e597f3d28bf4a3761fd1d77d8d841326a6c68"
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionSinks.ts",
+      "sha": "a02499646425d830ee9a3d5b67837c0bf456b29a"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "sha": "4f8cafb51ef8070d2a401475ec0b950d7fa9cd3e"
+    },
+    {
+      "path": "scripts/ediel-utilts-consumption-native.test.ts",
+      "sha": "3fea9bff6ce3ba221ae73d8167cfb4ed583608c6"
+    }
+  ],
+  "scope": "bounded source qualification, existing unit/native evidence only; no new behavior run or scenario approval",
+  "findings": [
+    {
+      "id": "SC-046",
+      "result": "PARTIAL",
+      "confirmed_product_defect": false,
+      "open": [
+        "independent512-only vs532-only newer-then-lateolder behaviors",
+        "actual positive APERAK and no UTILTS_ERR",
+        "unchanged current data and actual downstream billing/underlay effect boundary on late receipt/replay"
+      ]
+    },
+    {
+      "id": "SC-047",
+      "result": "PARTIAL",
+      "confirmed_product_defect": false,
+      "open": [
+        "genuinely established own legal receiver/role and syntax/guide pass",
+        "actual own matching\u2192runtime\u2192ERR-E10/TN chain",
+        "foreign-only same external ID is not used; no own/foreign object creation/mutation"
+      ]
+    }
+  ],
+  "local_behavior": "NOT_RUN: workspace has no PGlite/Vitest; inherited proxy unavailable, canonicalNode22 not installed. Existing qualified receipts are reused within exact source/scope.",
+  "local_integrity": "PASS 33/121/231, no application-conformance claim",
+  "local_syntax": "PASS two focused SQL runner scripts",
+  "selected_native_cases": [
+    {
+      "classname": "scripts/ediel-utilts-consumption-native.test.ts",
+      "name": "native E66 persists SG5 field 512 as the DTM+735 UTC instant and preserves it on exact retry",
+      "time": "0.685227487"
+    },
+    {
+      "classname": "scripts/ediel-utilts-consumption-native.test.ts",
+      "name": "native accepted S01 persists only SG5 field 532 and no individual consumption effect on retry",
+      "time": "0.853336479"
+    }
+  ],
+  "selected_native_scope": "Individual field parsing/persistence and exact retry, not late-arrival/SC046 approval",
+  "raw_native_junit_sha256": "ca5fc23a667f91a8e538c53a85bf6386a08f91f9f6dd554891d7802256b02ec1"
+}
