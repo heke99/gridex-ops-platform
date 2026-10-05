@@ -75,7 +75,7 @@
         "Native Z15VH history termination.",
         "Complete missingR/D and other prohibited-input durable no-effect receipts."
       ],
-      "finiteObservation": "Independent code KEEP / spec NARROW confirms pure application acceptance when222/326 absent. Genuine registry/native effects and original grey-field exception still require source-owner qualification.",
+      "finiteObservation": "Independent code KEEP and exact-original source KEEP confirm pure complete application acceptance when required222/326 are absent. White original rows are outside the grey-field waiver; genuine incoming admission/native effects are unproved.",
       "reusedNative": "native-reuse.json"
     }
   },
@@ -128,7 +128,10 @@
     "canonical-observation/missing326.edi": "ac9ce39c01cf815724dd1d1e2482371f116bfe5bae8913e5a323b74946d6d93b",
     "canonical-observation/baseline.edi": "cccbbd48b553db3c40c50055cfd4f16e918dd99424519e5b13fb1ba9b8879124",
     "canonical-observation/observations.json": "4961c31da4cf0669d87981e4fe43255bf624c5b3115c7023c98d96038506786b",
-    "canonical-observation/missing222.edi": "3411f06cec08c7b455c81cd268b47e290dbb4bdb54d357fe562fe6fab4728300"
+    "canonical-observation/missing222.edi": "3411f06cec08c7b455c81cd268b47e290dbb4bdb54d357fe562fe6fab4728300",
+    "original-source-qualification.json": "7baf0c743e1fb3619633af040fa0e2aacbdf82df05863658ea8df64ebc708010",
+    "independent-packet-review.json": "13a6a40d0eb2790b6a1ec4f356dc1e8ebe6e0f23ec076542a96d168011025db8",
+    "existing-owner-native-handoff.json": "6343cb19bda67a8233f6fd701936da3b00e5ceb34ab8422af2a20762713d4689"
   },
   "mainAdoption": {
     "commit": "85b6d6602ab0d060a86702847641156470f73234",
@@ -143,7 +146,7 @@
     "normativePreservationExit": 1,
     "rawFailure": "canonical-preservation-RED.log",
     "independentCodeRefutation": "KEEP finite canonical complete application acceptance only; synthetic no-network registry holds/no owner. No admitted or durable effect demonstrated.",
-    "independentSpecRefutation": "NARROW; frozen D/subtype!=N requirements support the contrast; original grey-field shading unavailable. No specific national ERC/negative ACK obligation or native effect asserted."
+    "independentSpecRefutation": "KEEP exact-original source claim; original326/222 rows are white and required D for subtype!=N. No specific national ERC/final ACK or native effect asserted."
   },
   "codeRefutation": {
     "verdict": "KEEP finite only",
@@ -152,14 +155,17 @@
     "limit": "No opaque application owner; no-network registry returns manual_review/CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE and no positive APERAK. Genuine admission, effect and final ACK unproved."
   },
   "specRefutation": {
-    "verdict": "NARROW",
+    "verdict": "KEEP source claim",
     "reviewer": "z14_missing_fields_refute_spec",
     "source": "P26.A matrix:556–577/845–866 and conditional cells:171–180/303–312 make subtype!=N required; capturedP122:1515–1521 maps S17→V. Fields326/222 placements exact.",
-    "limit": "P119:1463–1464 grey-field receiver exception; text/tables lose original shading and PDF/image unavailable. No unconditional national negative APERAK or native-effect claim."
+    "limit": "Original PDF exact frozen hash independently inspected; grey waiver does not apply to222/326. Genuine incoming admission, final ACK/ERC and native durable effect remain unproved.",
+    "originalQualification": "original-source-qualification.json"
   },
   "ownedTechnicalSHA256": {
     "__tests__/ediel-at-z13v-esco-profile.test.ts": "4f62d397e48c12b4d5bfc7abe7946fa7f72380813be156a7189e7562c2e06217",
     "__tests__/ediel-at-z14v-esco-profile.test.ts": "ec6b80c737676ce2a262f84ebb195ace38a7cee4a9bd183b26fc029e1ef445e5",
     "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/canonical-missing-fields-probe.mjs": "9795f5d52c325c20835735c1bfd03efb28f9b98d23ef2f994f1920e71da7c475"
-  }
+  },
+  "independentPacketReview": "independent-packet-review.json",
+  "existingOwnerNativeHandoff": "existing-owner-native-handoff.json"
 }

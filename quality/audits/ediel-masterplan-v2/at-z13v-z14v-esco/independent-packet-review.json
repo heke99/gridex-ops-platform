@@ -1,0 +1,27 @@
+{
+  "reviewer": "at_z13v_z14v_packet_review",
+  "candidateCommit": "1a65e3d741c232f3927dfee4d0d131d43e8c50d7",
+  "candidateTree": "8ec778a3eec9f58954ddc055ba274ff11331c209",
+  "verdict": "APPROVE bounded evidence packet",
+  "critical": [],
+  "important": [],
+  "minor": [],
+  "freshTests": {
+    "passed": 24,
+    "skipped": 0
+  },
+  "verifiedHashes": {
+    "inputs": 28,
+    "receipts": 19,
+    "ownedTechnical": 3
+  },
+  "nativeChecks": {
+    "zipMembersCRCValid": 57,
+    "executionInventory": 3059,
+    "generatedOutputs": 3,
+    "selectedPassed": 33,
+    "selectedSkipped": 0
+  },
+  "probeChecks": "Fresh observations byte-match retained raw outputs; omissions target only the expected DTM693 or CCI/CAV pair and correct UNT. Normative preservation exit1, cleanup reached.",
+  "boundaries": "Approval is bounded. Whole cards remain PARTIAL/NOT_EXECUTED; no complete ACK joins, native Z15VH or complete forbidden-input persisted-effects approval. Source PDF qualification occurred afterwards and has separate independent source review; final documentation delta review is pending."
+}
