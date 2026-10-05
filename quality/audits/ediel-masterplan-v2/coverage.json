@@ -776,7 +776,7 @@
     {
       "id": "TR-09",
       "acceptance_id": "AT-TR-09",
-      "status": "VERIFIED",
+      "status": "PARTIAL",
       "evidence": [
         "lib/ediel/transport/exception/productionEncryption.ts",
         "lib/ediel/transport/index.part-2.ts",
@@ -2123,7 +2123,7 @@
     },
     {
       "id": "AT-TR-09",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "lib/ediel/transport/exception/productionEncryption.ts",
         "lib/ediel/transport/index.part-2.ts",
