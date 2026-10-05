@@ -2,6 +2,8 @@ import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CustomerBulkImportPanel from "@/components/admin/customers/CustomerBulkImportPanel";
 import CustomerIntakeForm from "@/components/admin/customers/CustomerIntakeForm";
+import CustomerIntakeWorkspace from "@/components/admin/customers/CustomerIntakeWorkspace";
+import CustomerActionsMenu from "@/components/admin/customers/CustomerActionsMenu";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminPageAccess } from "@/lib/admin/guards";
 import {
@@ -34,7 +36,8 @@ async function safeLoad<T>(
   }
 }
 
-export default async function CustomerIntakePage() {
+export default async function CustomerIntakePage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+  const mode = (await searchParams).mode === "bulk" ? "bulk" : "manual";
   const access = await requireAdminPageAccess({
     anyOf: ["customers.write", "masterdata.read"],
   });
@@ -107,235 +110,44 @@ export default async function CustomerIntakePage() {
 
   return (
     <div className="min-h-screen">
-      <AdminHeader
-        title="Kundintag"
-        subtitle="Skapa kund, avtal, dokument och fullmakt utan att ofullständig data stoppar intaget."
-        userEmail={user?.email ?? null}
-      />
-
-      <div className="space-y-6 p-8">
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/admin/customers"
-            className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
-          >
-            Till kundlistan
-          </Link>
-
-          <Link
-            href="/admin/contracts"
-            className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 "
-          >
-            Hantera avtalskatalog
-          </Link>
+      <AdminHeader title="Kundintag" subtitle="Registrera en kund eller importera flera kunder." userEmail={user?.email ?? null} />
+      <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/admin/customers" className="text-sm font-semibold text-slate-700 hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">← Kundregister</Link>
+          <CustomerActionsMenu ariaLabel="Fler vyer från kundintag"><Link href="/admin/contracts">Hantera avtalskatalog</Link></CustomerActionsMenu>
         </div>
-
-        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm ">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">
-            Operativt bolag
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950 ">
-            {companyScope.companyName ?? "Bolagskoppling saknas"}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-700 ">
-            Kundintag sparar kund, anläggning, mätpunkt, avtal, dokument och
-            fullmakt i detta bolag.
-          </p>
-          {companyScope.message ? (
-            <p className="mt-3 text-sm font-semibold text-amber-700 ">
-              {companyScope.message}
-            </p>
-          ) : null}
-        </section>
-
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          Registrerar i <span className="font-semibold text-slate-950">{companyScope.companyName ?? "Bolagskoppling saknas"}</span>
+          {companyScope.message ? <p className="mt-1 font-medium text-amber-800">{companyScope.message}</p> : null}
+        </div>
         {loadWarnings.length > 0 ? (
-          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm">
-            <h2 className="font-semibold text-amber-950">
-              Kundintag laddades med begränsad masterdata
-            </h2>
-            <ul className="mt-3 list-disc space-y-2 pl-5">
-              {loadWarnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
+          <section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <h2 className="font-semibold">Kundintag laddades med begränsad masterdata</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-5">{loadWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
           </section>
         ) : null}
-
-        <section className="grid gap-4 md:grid-cols-5">
-          {[
-            [
-              "1",
-              "Kund",
-              "Privat/företag, identitet, kontakt och fakturaadress.",
-            ],
-            [
-              "2",
-              "Anläggning",
-              "Anläggnings-id, nätägare, elområde och startdatum.",
-            ],
-            ["3", "Avtal", "Prisplan, kampanj, fullmakt och startvillkor."],
-            [
-              "4",
-              "Fullmakt/Ediel",
-              "Plattformen avgör fullmakt, leverantörsbyte, inflytt, uppsägning och mätdataflöde.",
-            ],
-            [
-              "5",
-              "Sammanfattning",
-              "Visa blockerare, nästa steg och om kunden är redo för fakturering.",
-            ],
-          ].map(([step, title, body]) => (
-            <div
-              key={step}
-              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">
-                {step}
-              </div>
-              <h2 className="mt-4 text-base font-semibold text-slate-950">
-                {title}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-700">{body}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="rounded-3xl border border-sky-200 bg-sky-50 p-6 text-sm leading-6 text-sky-950 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">
-                Automatiskt nätägar- och Ediel-flöde
-              </h2>
-              <p className="mt-2">
-                Kundintag ska inte skapa egna tekniska routes eller
-                receiver-värden. Systemet använder verifierad masterdata,
-                tenantens Ediel-ID och go-live route-profiler för att avgöra
-                nästa steg.
-              </p>
-              <p className="mt-2">
-                Om anläggnings-id, mätpunkts-id eller nätägare saknas sparas
-                kunden med blockerare och uppgiftsbegäran i stället för att
-                skicka felaktig PRODAT.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-bold text-sky-900">
-              EDIFACT-status:{" "}
-              {goLiveSummary?.status === "ready"
-                ? "Redo"
-                : goLiveSummary?.status === "manual_review_required"
-                  ? "Kräver granskning"
-                  : "Blockerad/saknas"}
-            </div>
-          </div>
-          {goLiveSummary ? (
-            <div className="mt-4 grid gap-3 md:grid-cols-4">
-              <div className="rounded-2xl bg-white p-4">
-                <div className="text-xs font-bold uppercase text-slate-500">
-                  Ediel-ID
-                </div>
-                <div className="mt-1 font-mono text-sm font-bold text-slate-950">
-                  {goLiveSummary.edielId ?? "–"}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-4">
-                <div className="text-xs font-bold uppercase text-slate-500">
-                  Receiver
-                </div>
-                <div className="mt-1 text-sm font-bold text-slate-950">
-                  {goLiveSummary.routeResolutionMode === "automatic"
-                    ? "Automatiskt"
-                    : "Granska"}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-4">
-                <div className="text-xs font-bold uppercase text-slate-500">
-                  PRODAT produktion
-                </div>
-                <div className="mt-1 text-sm font-bold text-slate-950">
-                  {goLiveSummary.hasProdatRoute ? "Klar" : "Inte aktiverad"}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-4">
-                <div className="text-xs font-bold uppercase text-slate-500">
-                  Juridik
-                </div>
-                <div className="mt-1 text-sm font-bold text-slate-950">
-                  {goLiveSummary.legal.terms &&
-                  goLiveSummary.legal.privacy_policy &&
-                  goLiveSummary.legal.withdrawal &&
-                  goLiveSummary.legal.power_of_attorney
-                    ? "Klar"
-                    : "Inte aktiverad"}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <CustomerIntakeForm
-            gridOwners={gridOwners.map((owner) => ({
-              id: owner.id,
-              name: owner.name,
-            }))}
-            electricitySuppliers={electricitySuppliers.map((supplier) => ({
-              id: supplier.id,
-              name: supplier.name,
-              org_number: supplier.org_number,
-              ediel_id: supplier.ediel_id,
-              email: supplier.email,
-            }))}
-            priceAreas={priceAreas.map((area) => ({
-              code: area.code,
-              name: area.name,
-            }))}
+        <details className={`rounded-2xl border p-4 text-sm ${goLiveSummary?.status === "ready" ? "border-slate-200 bg-white text-slate-700" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
+          <summary className="cursor-pointer font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+            Automatiska utskick: {goLiveSummary?.status === "ready" ? "Redo" : goLiveSummary?.status === "manual_review_required" ? "Kräver granskning" : "Blockerade / inställningar saknas"}
+          </summary>
+          <p className="mt-3 leading-6">Kunden sparas även om uppgifter saknas. Blockerare stoppar senare uppgiftsbegäran, leverantörsbyte eller export tills uppgifterna är kompletta.</p>
+          {goLiveSummary ? <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-4">
+            <div><dt>Ediel-ID</dt><dd className="mt-1 font-semibold">{goLiveSummary.edielId ?? "–"}</dd></div>
+            <div><dt>Mottagare</dt><dd className="mt-1 font-semibold">{goLiveSummary.routeResolutionMode === "automatic" ? "Automatiskt" : "Granska"}</dd></div>
+            <div><dt>PRODAT produktion</dt><dd className="mt-1 font-semibold">{goLiveSummary.hasProdatRoute ? "Klar" : "Inte aktiverad"}</dd></div>
+            <div><dt>Juridik</dt><dd className="mt-1 font-semibold">{goLiveSummary.legal.terms && goLiveSummary.legal.privacy_policy && goLiveSummary.legal.withdrawal && goLiveSummary.legal.power_of_attorney ? "Klar" : "Inte aktiverad"}</dd></div>
+          </dl> : null}
+        </details>
+        <CustomerIntakeWorkspace
+          mode={mode}
+          manual={<CustomerIntakeForm
+            gridOwners={gridOwners.map((owner) => ({ id: owner.id, name: owner.name }))}
+            electricitySuppliers={electricitySuppliers.map((supplier) => ({ id: supplier.id, name: supplier.name, org_number: supplier.org_number, ediel_id: supplier.ediel_id, email: supplier.email }))}
+            priceAreas={priceAreas.map((area) => ({ code: area.code, name: area.name }))}
             contractOffers={serializedOffers}
-          />
-
-          <div className="space-y-6">
-            <CustomerBulkImportPanel
-              example={bulkExample}
-              contractOffers={serializedOffers.map((offer) => ({
-                id: offer.id,
-                name: offer.name,
-                campaign_name: offer.campaign_name,
-              }))}
-            />
-
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
-              <h2 className="text-lg font-semibold text-slate-950 ">
-                Kundintag med blockerare
-              </h2>
-              <div className="mt-4 space-y-3 text-sm text-slate-700 ">
-                <p>
-                  Servern sparar kunden även när driftdata saknas och skapar
-                  blockerare i stället för att kasta bort intaget.
-                </p>
-                <p>
-                  Land sparas som ISO-kod, till exempel SE, medan gränssnittet
-                  visar Sverige.
-                </p>
-                <p>
-                  Möjliga dubbletter sparas som granskning och blockerare, inte
-                  som ett skrivfält på kundraden.
-                </p>
-                <p>
-                  Signerade avtal och signerade fullmakter kan laddas upp direkt
-                  och kopplas till kund, anläggning, mätpunkt och avtal.
-                </p>
-                <p>
-                  Blockerare används för att stoppa rätt senare steg:
-                  uppgiftsbegäran, leverantörsbyte, faktureringsunderlag eller
-                  export.
-                </p>
-                <p>
-                  Alla rader skapas med operativt company_id och samma
-                  servervalidering som manuellt kundintag.
-                </p>
-              </div>
-            </section>
-          </div>
-        </section>
+          />}
+          bulk={<CustomerBulkImportPanel example={bulkExample} contractOffers={serializedOffers.map((offer) => ({ id: offer.id, name: offer.name, campaign_name: offer.campaign_name }))} />}
+        />
       </div>
     </div>
   );

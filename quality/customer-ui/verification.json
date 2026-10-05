@@ -1,0 +1,188 @@
+{
+  "date": "2026-10-05",
+  "baseline": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+  "runtime": {
+    "node": "22.23.3",
+    "next": "16.3.8",
+    "react": "19.2.4"
+  },
+  "root_verification": {
+    "typecheck": {
+      "exit": 0,
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json"
+    },
+    "vitest": {
+      "exit": 0,
+      "files": 21,
+      "tests": 155,
+      "max_workers": 2,
+      "test_timeout_ms": 15000
+    },
+    "eslint": {
+      "exit": 0,
+      "files": 29,
+      "errors": 0,
+      "existing_unused_warnings": 10,
+      "final_changed_subset_exit": 0
+    },
+    "git_diff_check": {
+      "exit": 0
+    },
+    "browser": {
+      "registry_navigation_scenarios": 5,
+      "intake_scenarios": 5,
+      "contract_control_scenarios": 8,
+      "uncaught_exceptions": 0,
+      "axe_wcag_violations": 0,
+      "shared_navigation_scenarios": 6,
+      "admin_interaction_scenarios": 14,
+      "layout_states": 56,
+      "layout_widths": [
+        320,
+        390,
+        1024,
+        1280
+      ],
+      "horizontal_overflow_cases": 0,
+      "admin_axe_states": 32,
+      "customer_axe_views": 4
+    }
+  },
+  "limitations": [
+    "Actual server page trees use mocked loaders and synthetic data; real client menu/disclosure components render in browser. Routing/server actions are stubbed; form actions capture FormData without writes. CompanyUserInviteForm is a fixture placeholder.",
+    "Authenticated tenant journeys, production builds and deployment were not run. No configured tenant credentials.",
+    "Some 5-second test runs timed out during support imports; final consolidated check passes unchanged assertions with two workers and a 15-second CLI timeout.",
+    "UI work covers the listed daily areas and shared navigation, not every technical or platform page."
+  ],
+  "existing_smoke_failures": [
+    {
+      "script": "gridex-actor-registry-intake-hardening-regression.cjs",
+      "cause": "Missing autosend copy in unchanged actor actions facade."
+    },
+    {
+      "script": "gridex-tenant-ui-simplified-status-regression.cjs",
+      "cause": "Source-copy assertion searches unchanged customers/page.tsx facade instead of implementation modules."
+    },
+    {
+      "script": "gridex-superadmin-diagnostics-ui-regression.cjs",
+      "cause": "Source-copy assertions search unchanged customer detail facade instead of implementation modules."
+    },
+    {
+      "script": "gridex-batch-2-3-4-6-regression.cjs",
+      "cause": "External customer ID copy absent in unchanged portal/website facades; fails before intake assertion."
+    }
+  ],
+  "delivery": {
+    "committed": false,
+    "published": false
+  },
+  "extension": {
+    "pages": [
+      "dashboard",
+      "work queue",
+      "support",
+      "website applications",
+      "billing",
+      "supplier switches",
+      "company settings"
+    ],
+    "shared_navigation": true,
+    "presentation_scope_comparison": "admin-presentation-scope-proof.json",
+    "source_sha256": "admin-final-source-sha256.json",
+    "report": "admin-extension-verification-2026-10-05.md"
+  },
+  "remaining_operational_views": {
+    "status": "VERIFIED_LOCAL",
+    "pages": [
+      "customer-info-requests",
+      "facility-requests",
+      "metering",
+      "outbound",
+      "messages",
+      "events",
+      "pricing",
+      "pricing/campaigns",
+      "users",
+      "billing/integrations"
+    ],
+    "checks": {
+      "typecheck": {
+        "exit": 0,
+        "project": "tsconfig.app.json"
+      },
+      "vitest": {
+        "exit": 0,
+        "files": 40,
+        "tests": 403,
+        "max_workers": 2,
+        "test_timeout_ms": 15000
+      },
+      "eslint": {
+        "exit": 0,
+        "files": 44,
+        "errors": 0,
+        "inherited_unused_warnings": 12
+      },
+      "browser": {
+        "interactions": 42,
+        "synthetic_form_submissions": 30,
+        "uncaught_exceptions": 0,
+        "layout_states": 112,
+        "widths": [
+          320,
+          390,
+          1024,
+          1280
+        ],
+        "document_overflow": 0,
+        "axe_states": 56,
+        "wcag_violations": 0
+      },
+      "isolated_provider_sql": {
+        "checks": 10,
+        "engine": "PGlite",
+        "live_mutations": 0
+      },
+      "git_diff_check": {
+        "exit": 0
+      }
+    },
+    "database_evidence": "database-verification-2026-10-05.json",
+    "confirmed_fixes": [
+      "CIS-01",
+      "CIS-02",
+      "UI-01",
+      "UI-02",
+      "UI-03",
+      "DB-01"
+    ],
+    "report": "remaining-admin-verification-2026-10-05.md",
+    "source_sha256": "remaining-final-source-sha256.json",
+    "limits": [
+      "Synthetic browser uses actual server-page trees, client menus/disclosures and native forms; action submissions are captured, not sent.",
+      "Actual exported-action tests use isolated dependency adapters. No authenticated live browser journeys or production writes/sends.",
+      "Read-only role checks sample an active member and a no-membership subject, not every user or tenant.",
+      "No production build, full migration replay, whole-system audit or deployment."
+    ]
+  },
+  "merge_verification": {
+    "source_base_for_full_local_suite": "25c0a12f",
+    "composed_main": "8451f013",
+    "full_suite_passed": 10972,
+    "full_suite_skipped": 17,
+    "full_suite_failed": 0,
+    "files": 849,
+    "typechecks": {
+      "app": 0,
+      "tests": 0,
+      "scripts": 0
+    },
+    "build": 0,
+    "lint": 0,
+    "lint_warnings": 125,
+    "contract_gates_passed": 9,
+    "rbac_followup_tests_passed": 29,
+    "status": "PENDING_PUBLISHED_HEAD_CI",
+    "report": "merge-verification-2026-10-05.md"
+  }
+}

@@ -1,3 +1,5 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu";
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
@@ -126,13 +128,13 @@ export default async function AdminUsersPage({
         userEmail={context.email}
       />
 
-      <div className="space-y-6 p-8">
+      <div className="min-w-0 space-y-4 p-4 lg:p-6 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full [&_label]:min-w-0 [&_label]:grid-cols-1">
         <ActionBanner success={actionSuccess} error={actionError} />
 
-        <section className="grid gap-4 xl:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-sm font-medium text-slate-700">Interna konton</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">
+            <p className="mt-1 text-2xl font-semibold text-slate-950">
               {userCount}
             </p>
             <p className="mt-2 text-sm text-slate-700">
@@ -140,11 +142,11 @@ export default async function AdminUsersPage({
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-sm font-medium text-slate-700">
               Admin / super admin
             </p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">
+            <p className="mt-1 text-2xl font-semibold text-slate-950">
               {privilegedCount}
             </p>
             <p className="mt-2 text-sm text-slate-700">
@@ -152,7 +154,7 @@ export default async function AdminUsersPage({
             </p>
           </div>
 
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+          <div className="col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 xl:col-span-1">
             <p className="text-sm font-medium text-amber-700">Kundrollen</p>
             <p className="mt-2 text-lg font-semibold text-amber-950">
               Inte för intern admin
@@ -166,11 +168,8 @@ export default async function AdminUsersPage({
 
         {canWriteUsers ? (
           <section className="grid gap-6 xl:grid-cols-2">
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <AdminDisclosurePanel id="users-invite" title="Bjud in användare via e-post" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
               <div className="border-b border-slate-200 px-6 py-5">
-                <h2 className="text-lg font-semibold text-slate-950">
-                  Bjud in användare
-                </h2>
                 <p className="mt-1 text-sm text-slate-700">
                   Skicka e-postinbjudan. Välj startroll direkt om du också har
                   rätt att hantera roller.
@@ -179,7 +178,7 @@ export default async function AdminUsersPage({
 
               <form
                 action={inviteUserFormAction}
-                className="grid gap-4 px-6 py-6 md:grid-cols-3"
+                className="grid min-w-0 grid-cols-1 gap-3 py-3 lg:grid-cols-3"
               >
                 <label className="grid gap-2 md:col-span-1">
                   <span className="text-sm font-medium text-slate-700">
@@ -200,6 +199,7 @@ export default async function AdminUsersPage({
                   </span>
                   <select
                     name="roleId"
+                    aria-label="Startroll"
                     defaultValue=""
                     disabled={!canManageRoles}
                     className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700 disabled:bg-slate-100 disabled:text-slate-700"
@@ -222,13 +222,10 @@ export default async function AdminUsersPage({
                   </button>
                 </div>
               </form>
-            </section>
+            </AdminDisclosurePanel>
 
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <AdminDisclosurePanel id="users-create" title="Skapa användare manuellt" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
               <div className="border-b border-slate-200 px-6 py-5">
-                <h2 className="text-lg font-semibold text-slate-950">
-                  Skapa konto direkt
-                </h2>
                 <p className="mt-1 text-sm text-slate-700">
                   För intern personal när du vill skapa användaren direkt med
                   lösenord.
@@ -237,7 +234,7 @@ export default async function AdminUsersPage({
 
               <form
                 action={createUserFormAction}
-                className="grid gap-4 px-6 py-6 md:grid-cols-2"
+                className="grid min-w-0 grid-cols-1 gap-3 py-3 md:grid-cols-2"
               >
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-slate-700">
@@ -284,6 +281,7 @@ export default async function AdminUsersPage({
                   </span>
                   <select
                     name="roleId"
+                    aria-label="Startroll"
                     defaultValue=""
                     disabled={!canManageRoles}
                     className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-700 disabled:bg-slate-100 disabled:text-slate-700"
@@ -300,7 +298,7 @@ export default async function AdminUsersPage({
                   </select>
                 </label>
 
-                <div className="md:col-span-2 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm text-slate-700">
                     Skapa konto kräver <code>users.write</code>. Att sätta roll
                     direkt kräver också <code>roles.manage</code>.
@@ -310,7 +308,7 @@ export default async function AdminUsersPage({
                   </button>
                 </div>
               </form>
-            </section>
+            </AdminDisclosurePanel>
           </section>
         ) : (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
@@ -343,9 +341,9 @@ export default async function AdminUsersPage({
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50">
+          <div className="min-w-0">
+            <table className="w-full table-fixed text-sm [&_td]:min-w-0 [&_td]:break-words max-xl:[&_tbody_tr]:grid max-xl:[&_tbody_tr]:grid-cols-1 max-xl:[&_td]:px-4 max-xl:[&_td]:py-2 max-xl:[&_tbody_tr]:p-2">
+              <thead className="sr-only bg-slate-50 xl:not-sr-only xl:table-header-group">
                 <tr className="border-b border-slate-200">
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">
                     E-post
@@ -375,7 +373,7 @@ export default async function AdminUsersPage({
                         <p className="font-medium text-slate-900">
                           {row.email ?? "Saknar e-post"}
                         </p>
-                        <p className="mt-1 text-xs text-slate-700">{row.id}</p>
+                        <details className="mt-1 text-xs text-slate-600"><summary className="cursor-pointer">Användar-id</summary><p className="mt-1 break-all">{row.id}</p></details>
                       </div>
                     </td>
 
@@ -436,7 +434,7 @@ export default async function AdminUsersPage({
                           Öppna
                         </Link>
                         {canWriteUsers && row.email ? (
-                          <>
+                          <AdminActionsMenu ariaLabel={`E-poståtgärder för ${row.email}`}>
                             <form action={sendPasswordResetFormAction}>
                               <input
                                 type="hidden"
@@ -459,15 +457,15 @@ export default async function AdminUsersPage({
                                 </button>
                               </form>
                             ) : null}
-                          </>
+                          </AdminActionsMenu>
                         ) : null}
                         {canWriteUsers ? (
-                          <form action={deleteUserCompletelyFormAction}>
+                          <details className="rounded-xl border border-red-200 px-3 py-2 text-sm text-red-700"><summary className="cursor-pointer font-medium">Radera</summary><form action={deleteUserCompletelyFormAction}>
                             <input type="hidden" name="user_id" value={row.id} />
                             <button className="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 font-medium text-red-700 transition hover:bg-red-100">
                               Radera användare
                             </button>
-                          </form>
+                          </form></details>
                         ) : null}
                       </div>
                     </td>

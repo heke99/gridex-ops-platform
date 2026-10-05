@@ -1,3 +1,4 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -115,9 +116,9 @@ function statusTone(status: FacilityWorkQueueStatus): string {
 
 function StatCard({ label, value, description }: { label: string; value: number; description: string }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-3xl border border-slate-200 bg-white p-3">
       <div className="text-sm font-bold text-slate-700">{label}</div>
-      <div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>
+      <div className="mt-1 text-2xl font-black tracking-tight text-slate-950">{value}</div>
       <p className="mt-2 text-xs leading-5 text-slate-600">{description}</p>
     </div>
   )
@@ -149,11 +150,11 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
   })
 
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <article className="rounded-3xl border border-slate-200 bg-white p-3">
+      <div className="min-w-0 space-y-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-black text-slate-950">{customerName(request)}</h3>
+            <h3 className="text-base font-black text-slate-950">{request.customer_id ? <Link href={`/admin/customers/${request.customer_id}?tab=data-requests`} className="hover:underline">{customerName(request)}</Link> : customerName(request)}</h3>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">{operationalStatusLabel(request.status)}</span>
             <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800">{channelLabel(request.channel)}</span>
             {request.poa_id
@@ -177,30 +178,28 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
           <p className="mt-3 text-xs text-slate-500">Uppdaterad {formatDate(request.updated_at ?? request.created_at)}</p>
         </div>
 
-        <div className="grid w-full gap-3 xl:w-[520px]">
-          <form action={markFacilityLookupSentManuallyAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
+          <AdminDisclosurePanel id={`facility-mark-sent-${request.id}`} title="Markera skickad manuellt" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={markFacilityLookupSentManuallyAction} className="min-w-0">
             <input type="hidden" name="request_id" value={request.id} />
-            <div className="text-sm font-bold text-slate-950">Markera skickad manuellt</div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[140px_1fr]">
-              <select name="manual_channel" defaultValue="portal" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+              <select name="manual_channel" aria-label="Manuell kanal" defaultValue="portal" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="portal">Portal</option>
                 <option value="email">E-post</option>
                 <option value="phone">Telefon</option>
                 <option value="other">Annat</option>
               </select>
-              <input name="note" placeholder="Kort notering" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+              <input name="note" aria-label="Notering" placeholder="Kort notering" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
             </div>
             <button className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Markera skickad</button>
-          </form>
+          </form></AdminDisclosurePanel>
 
-          <form action={completeFacilityLookupAction} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <AdminDisclosurePanel id={`facility-register-reply-${request.id}`} title="Registrera svar från nätägare" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={completeFacilityLookupAction} className="min-w-0">
             <input type="hidden" name="request_id" value={request.id} />
-            <div className="text-sm font-bold text-emerald-950">Registrera svar från nätägare</div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <input name="facility_id" defaultValue={request.facility_id ?? ''} placeholder="Anläggnings-ID" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
-              <input name="metering_point_id" defaultValue={request.metering_point_id ?? ''} placeholder="Mätpunkts-ID" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
-              <input name="grid_area_code" defaultValue={request.grid_area_code ?? ''} placeholder="Nätområde, t.ex. LKA" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
-              <select name="price_area_code" defaultValue={request.price_area ?? ''} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">
+              <input name="facility_id" aria-label="Anläggnings-ID" defaultValue={request.facility_id ?? ''} placeholder="Anläggnings-ID" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+              <input name="metering_point_id" aria-label="Mätpunkts-ID" defaultValue={request.metering_point_id ?? ''} placeholder="Mätpunkts-ID" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+              <input name="grid_area_code" aria-label="Nätområde" defaultValue={request.grid_area_code ?? ''} placeholder="Nätområde, t.ex. LKA" className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+              <select name="price_area_code" aria-label="Elområde" defaultValue={request.price_area ?? ''} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">
                 <option value="">Elområde</option>
                 <option value="SE1">SE1</option>
                 <option value="SE2">SE2</option>
@@ -208,14 +207,13 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
                 <option value="SE4">SE4</option>
               </select>
             </div>
-            <input name="note" placeholder="Kommentar" className="mt-2 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+            <input name="note" aria-label="Notering" placeholder="Kommentar" className="mt-2 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
             <div className="mt-3 flex flex-wrap gap-2">
               <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Spara uppgifter</button>
-              {request.customer_id ? <Link href={`/admin/customers/${request.customer_id}?tab=data-requests`} className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Öppna kund</Link> : null}
               {/* Route readiness är en plattformsteknisk vy — visas aldrig för tenantoperatörer. */}
               {showTechnicalLinks ? <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Route readiness</Link> : null}
             </div>
-          </form>
+          </form></AdminDisclosurePanel>
         </div>
       </div>
     </article>
@@ -288,7 +286,7 @@ export default async function FacilityRequestsPage() {
 
   let facilityRequestsQuery = supabase
     .from('grid_owner_information_requests')
-    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at, customer:customers(customer_number,full_name,first_name,last_name,company_name,email), site:customer_sites(street,postal_code,city,site_name), grid_owner:grid_owners(name,ediel_id,owner_code)')
+    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at, customer:customers!grid_owner_information_requests_customer_id_fkey(customer_number,full_name,first_name,last_name,company_name,email), site:customer_sites!grid_owner_information_requests_customer_site_id_fkey(street,postal_code,city,site_name)')
     .in('request_type', ACTIVE_FACILITY_REQUEST_TYPES)
     .in('status', ACTIVE_FACILITY_STATUSES)
     .order('updated_at', { ascending: false })
@@ -313,6 +311,21 @@ export default async function FacilityRequestsPage() {
   }
 
   const facilityRequests = (facilityRequestsData ?? []) as unknown as FacilityLookupRequestRow[]
+  // Multiple customer/site foreign keys need explicit relationship hints above.
+  // grid_owner_id has no PostgREST relationship, so load its display data in bulk.
+  const gridOwnerIds = [...new Set(facilityRequests.flatMap((request) => request.grid_owner_id ? [request.grid_owner_id] : []))]
+  if (gridOwnerIds.length > 0) {
+    const { data: gridOwners, error: gridOwnersError } = await supabase
+      .from('grid_owners')
+      .select('id,name,ediel_id,owner_code')
+      .in('id', gridOwnerIds)
+    if (!gridOwnersError) {
+      const gridOwnerById = new Map((gridOwners ?? []).map((owner) => [owner.id, owner]))
+      for (const request of facilityRequests) {
+        request.grid_owner = request.grid_owner_id ? gridOwnerById.get(request.grid_owner_id) ?? null : null
+      }
+    }
+  }
 
   const missingAuthorization = queue.filter((item) => item.status === 'missing_authorization').length
   const needsFacilityData = queue.filter((item) => item.status === 'needs_facility_data').length
@@ -330,7 +343,7 @@ export default async function FacilityRequestsPage() {
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
       />
 
-      <main className="space-y-6 p-6 lg:p-8">
+      <main className="space-y-4 p-4 lg:p-6">
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm">
           <div className="font-bold">Affärsregel</div>
           <p className="mt-1 leading-6">
@@ -338,7 +351,7 @@ export default async function FacilityRequestsPage() {
           </p>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid grid-cols-2 gap-2 xl:grid-cols-5">
           <StatCard label="Saknar fullmakt" value={missingAuthorization} description="Utskick stoppas tills signerad fullmakt finns." />
           <StatCard label="Saknar uppgifter" value={needsFacilityData} description="Anläggnings-ID, mätpunkt eller elområde saknas." />
           <StatCard label="Nätägare behöver verifieras" value={needsGridOwnerReview} description="Resolver-förslag räcker inte för switch." />
@@ -374,9 +387,9 @@ export default async function FacilityRequestsPage() {
           {queue.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+            <div className="min-w-0">
+              <table className="w-full table-fixed divide-y divide-slate-200 text-sm [&_td]:min-w-0 [&_td]:break-words max-xl:[&_tbody_tr]:grid max-xl:[&_tbody_tr]:grid-cols-1 max-xl:[&_td]:px-4 max-xl:[&_td]:py-2 max-xl:[&_tbody_tr]:p-2">
+                <thead className="sr-only bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.14em] text-slate-600 xl:not-sr-only xl:table-header-group">
                   <tr>
                     <th className="px-6 py-4">Kund</th>
                     <th className="px-6 py-4">Anläggning</th>

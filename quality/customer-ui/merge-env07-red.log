@@ -1,0 +1,73 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/ediel-env07-outbox-separation.test.ts (3 tests | 3 failed) 76ms
+     × dispatches incompatible functions and tenants as separate immutable interchanges even with identical wire actors 64ms
+     × refuses foreign tenant returned by a row-read port before any final transport submission 6ms
+     × refuses foreign environment returned by a row-read port before any final transport submission 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-env07-outbox-separation.test.ts > ENV-07 actual queue-message separation > dispatches incompatible functions and tenants as separate immutable interchanges even with identical wire actors
+AssertionError: expected { processed: 3, sent: +0, …(4) } to match object { processed: 3, sent: 3, failed: +0 }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "failed": 0,
+    "processed": 3,
+-   "sent": 3,
++   "sent": 0,
+  }
+
+ ❯ __tests__/ediel-env07-outbox-separation.test.ts:84:82
+     82|     enqueue('A', 'tenant-A', 'Z03'); enqueue('B', 'tenant-A', 'Z08'); …
+     83|     const originals = [...port.messages.values()].map(row => row.raw_p…
+     84|     expect(await processEdielOutbox({ actorUserId: 'worker-actor', lim…
+       |                                                                                  ^
+     85|     expect(port.submitted).toEqual([
+     86|       { company: 'tenant-A', raw: originals[0] }, { company: 'tenant-A…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  __tests__/ediel-env07-outbox-separation.test.ts > ENV-07 actual queue-message separation > refuses foreign tenant returned by a row-read port before any final transport submission
+ FAIL  __tests__/ediel-env07-outbox-separation.test.ts > ENV-07 actual queue-message separation > refuses foreign environment returned by a row-read port before any final transport submission
+AssertionError: expected { processed: 1, sent: +0, …(4) } to match object { processed: 1, sent: +0, …(2) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "failed": 1,
++   "failed": 0,
+    "processed": 1,
+    "results": [
+      {
+-       "error": "ediel_outbox_message_scope_mismatch",
++       "error": "ediel_outbox_worker_lease_expired",
+        "id": "A",
+-       "status": "failed",
++       "status": "blocked",
+      },
+    ],
+    "sent": 0,
+  }
+
+ ❯ __tests__/ediel-env07-outbox-separation.test.ts:102:115
+    100|   ] as const)('refuses %s returned by a row-read port before any final…
+    101|     enqueue('A', 'tenant-A', 'Z03', patch)
+    102|     expect(await processEdielOutbox({ actorUserId: 'worker-actor', com…
+       |                                                                                                                   ^
+    103|       results: [{ id: 'A', status: 'failed', error: 'ediel_outbox_mess…
+    104|     expect(port.submitted).toEqual([])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  18:53:27
+   Duration  768ms (transform 329ms, setup 62ms, import 349ms, tests 76ms, environment 0ms)

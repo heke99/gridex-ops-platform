@@ -1,3 +1,4 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import Link from 'next/link'
 import { readManualServicePermissionOptions, type ManualServicePermissionOption } from '@/lib/ediel/services/manualPermissionOptions'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -85,7 +86,7 @@ function ProcessNextActionDetails({ decision }: { decision: EdielProcessNextActi
 
 function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<{ id: string; label: string; sublabel: string | null }>; name?: string }) {
   return (
-    <select name={name} required className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+    <select name={name} aria-label="Kund" required className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
       <option value="">Välj kund</option>
       {customers.map((customer) => (
         <option key={customer.id} value={customer.id}>
@@ -99,7 +100,7 @@ function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<
 
 function SelectSite({ sites }: { sites: Array<{ id: string; customerId: string; label: string; sublabel: string | null }> }) {
   return (
-    <select name="site_id" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+    <select name="site_id" aria-label="Anläggning" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
       <option value="">Välj anläggning för Z01/Z02</option>
       {sites.map((site) => (
         <option key={site.id} value={site.id}>
@@ -112,7 +113,7 @@ function SelectSite({ sites }: { sites: Array<{ id: string; customerId: string; 
 
 function SelectMeteringPoint({ meteringPoints }: { meteringPoints: Array<{ id: string; label: string; sublabel: string | null }> }) {
   return (
-    <select name="metering_point_id" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+    <select name="metering_point_id" aria-label="Mätpunkt" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
       <option value="">Välj mätpunkt för Z01/Z02</option>
       {meteringPoints.map((point) => (
         <option key={point.id} value={point.id}>
@@ -125,7 +126,7 @@ function SelectMeteringPoint({ meteringPoints }: { meteringPoints: Array<{ id: s
 
 function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label: string; sublabel: string | null }> }) {
   return (
-    <select name="grid_owner_id" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+    <select name="grid_owner_id" aria-label="Nätägare" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
       <option value="">Välj nätägare</option>
       {gridOwners.map((owner) => (
         <option key={owner.id} value={owner.id}>
@@ -194,42 +195,42 @@ export default async function CustomerInfoRequestsPage() {
         userEmail={admin.email}
       />
 
-      <div className="space-y-6 p-8">
+      <div className="min-w-0 space-y-4 p-4 lg:p-6 [&_input:not([type=checkbox])]:min-w-0 [&_input:not([type=checkbox])]:w-full [&_select]:min-w-0 [&_select]:w-full [&_textarea]:min-w-0 [&_textarea]:w-full">
         {!companyId ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
             Kontot saknar aktiv bolagskoppling. Koppla användaren till ett bolag innan uppgiftsbegäran kan skapas.
           </section>
         ) : null}
 
-        <section className="grid gap-4 lg:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-sm font-medium text-slate-700">Uppgiftsbegäran</div>
-            <div className="mt-2 text-3xl font-semibold text-slate-950">{requests.length}</div>
+        <section className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="min-w-0 break-words rounded-3xl border border-slate-200 bg-white p-3">
+            <div className="min-w-0 break-words text-sm font-medium text-slate-700">Uppgiftsbegäran</div>
+            <div className="mt-1 text-2xl font-semibold text-slate-950">{requests.length}</div>
             <p className="mt-2 text-xs text-slate-600">Z01/Z02, manuell bindningskontroll och kund-/anläggningsdata.</p>
           </div>
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-            <div className="text-sm font-medium text-emerald-800">Aktiva fullmaktsomfattningar</div>
-            <div className="mt-2 text-3xl font-semibold text-slate-950">{activeScopes.length}</div>
+          <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva fullmaktsomfattningar</div>
+            <div className="mt-1 text-2xl font-semibold text-slate-950">{activeScopes.length}</div>
             <p className="mt-2 text-xs text-emerald-900">Kontrolleras innan data begärs.</p>
           </div>
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-            <div className="text-sm font-medium text-emerald-800">Aktiva mätvärdestillstånd</div>
-            <div className="mt-2 text-3xl font-semibold text-slate-950">{activePermissions.length}</div>
+          <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva mätvärdestillstånd</div>
+            <div className="mt-1 text-2xl font-semibold text-slate-950">{activePermissions.length}</div>
             <p className="mt-2 text-xs text-emerald-900">Z14-godkända anläggningar.</p>
           </div>
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm">
-            <div className="text-sm font-medium text-red-800">Blockerade ärenden</div>
-            <div className="mt-2 text-3xl font-semibold text-slate-950">{blockedRequests.length}</div>
+          <div className="min-w-0 break-words rounded-3xl border border-red-200 bg-red-50 p-3">
+            <div className="min-w-0 break-words text-sm font-medium text-red-800">Blockerade ärenden</div>
+            <div className="mt-1 text-2xl font-semibold text-slate-950">{blockedRequests.length}</div>
             <p className="mt-2 text-xs text-red-900">Kräver manuell åtgärd.</p>
           </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-3">
-          <form action={createCustomerInfoRequestAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <AdminDisclosurePanel id="create-info-request" title="Skapa uppgiftsbegäran" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+          <form action={createCustomerInfoRequestAction} className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Z01/Z02 och avtalsdata</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Skapa uppgiftsbegäran</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
-            <div className="mt-5 grid gap-4">
+            <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <SelectCustomer customers={customers} />
               <SelectSite sites={resourceOptions.sites} />
               <SelectMeteringPoint meteringPoints={resourceOptions.meteringPoints} />
@@ -237,18 +238,18 @@ export default async function CustomerInfoRequestsPage() {
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
                 För Z01/Z02 ska anläggning, mätpunkt och nätägare vara valda eller kunna härledas från kundens data. Annars blockeras begäran med tydlig åtgärd.
               </div>
-              <select name="request_type" defaultValue="z01_customer_masterdata" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+              <select name="request_type" aria-label="Begärans typ" defaultValue="z01_customer_masterdata" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
                 <option value="z01_customer_masterdata">Z01/Z02 - kund och anläggningskontroll</option>
                 <option value="current_supplier_contract_check">Bindning/uppsägning hos nuvarande elhandlare</option>
                 <option value="manual_customer_document_check">Manuell kunddokumentation</option>
               </select>
-              <select name="target_party_type" defaultValue="grid_owner" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+              <select name="target_party_type" aria-label="Motpartstyp" defaultValue="grid_owner" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
                 <option value="grid_owner">Nätägare</option>
                 <option value="current_supplier">Nuvarande elhandlare</option>
                 <option value="customer">Kund</option>
               </select>
-              <input name="target_party_name" placeholder="Motpart, t.ex. nätägare eller nuvarande elhandlare" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
-              <input name="current_supplier_name" placeholder="Nuvarande elhandlare, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+              <input name="target_party_name" aria-label="Motpart" placeholder="Motpart, t.ex. nätägare eller nuvarande elhandlare" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+              <input name="current_supplier_name" aria-label="Nuvarande elhandlare" placeholder="Nuvarande elhandlare, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <div className="font-semibold text-slate-950">Uppgifter som ska kontrolleras</div>
                 <div className="mt-3 grid gap-2">
@@ -269,18 +270,19 @@ export default async function CustomerInfoRequestsPage() {
                   ))}
                 </div>
               </div>
-              <textarea name="notes" rows={3} placeholder="Intern notering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <textarea name="notes" aria-label="Intern notering" rows={3} placeholder="Intern notering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <button disabled={!currentWritable||!admin.permissions.includes('customers.write')} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa uppgiftsbegäran</button>
             </div>
           </form>
+          </AdminDisclosurePanel>
 
-          <form action={createAuthorizationScopeAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <AdminDisclosurePanel id="create-authorization-scope" title="Dokumentera fullmaktsomfattning" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+          <form action={createAuthorizationScopeAction} className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Fullmaktsmotor</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Dokumentera omfattning</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">Fullmakten ska visa vad bolaget får begära och mot vem. Den här posten används som blockerare innan Z01/Z13-flöden körs.</p>
-            <div className="mt-5 grid gap-4">
+            <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <SelectCustomer customers={customers} />
-              <select name="scope_type" defaultValue="customer_onboarding" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+              <select name="scope_type" aria-label="Fullmaktsomfattning" defaultValue="customer_onboarding" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
                 <option value="customer_onboarding">Kundonboarding</option>
                 <option value="metering_data_access">Mätvärdesåtkomst</option>
                 <option value="supplier_contract_check">Kontroll hos nuvarande elhandlare</option>
@@ -294,26 +296,27 @@ export default async function CustomerInfoRequestsPage() {
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <input name="valid_from" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
-                <input name="valid_to" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+                <input name="valid_from" aria-label="Giltig från" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+                <input name="valid_to" aria-label="Giltig till" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               </div>
-              <textarea name="evidence_note" rows={3} placeholder="Signeringsmetod, bilaga, muntlig fullmakt eller bevisnotering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+              <textarea name="evidence_note" aria-label="Bevisnotering" rows={3} placeholder="Signeringsmetod, bilaga, muntlig fullmakt eller bevisnotering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
               <button disabled={!currentWritable||!admin.permissions.some(value=>['poa.write','customers.write'].includes(value))} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Spara omfattning</button>
             </div>
           </form>
+          </AdminDisclosurePanel>
 
-          <form action={createMeteringPermissionDraftAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <AdminDisclosurePanel id="create-metering-permission" title="Förbered mätvärdestillstånd" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+          <form action={createMeteringPermissionDraftAction} className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Z13/Z14</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-950">Förbered mätvärdestillstånd</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">Skapar ett kontrollerat tillståndsutkast. Mätvärden ska bara kopplas till anläggningar som senare godkänns i Z14.</p>
-            <div className="mt-5 grid gap-4">
+            <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <SelectCustomer customers={customers} />
-              <input name="site_id" placeholder="Anläggning/site-id, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
-              <input name="metering_point_id" placeholder="Mätpunkt-id, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
-              <input name="case_reference" placeholder="Ärendereferens/RFF+LI, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+              <input name="site_id" aria-label="Anläggning" placeholder="Anläggning/site-id, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+              <input name="metering_point_id" aria-label="Mätpunkt" placeholder="Mätpunkt-id, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+              <input name="case_reference" aria-label="Ärendereferens" placeholder="Ärendereferens/RFF+LI, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               <div className="grid gap-3 md:grid-cols-2">
-                <input name="requested_start_date" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
-                <input name="requested_end_date" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+                <input name="requested_start_date" aria-label="Begärd startdag" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+                <input name="requested_end_date" aria-label="Begärd slutdag" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               </div>
               <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <input type="checkbox" name="authorization_confirmed" className="mt-1" />
@@ -322,6 +325,7 @@ export default async function CustomerInfoRequestsPage() {
               <button disabled={!currentWritable||!admin.permissions.some(value=>['metering.write','customers.write'].includes(value))} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa tillståndsutkast</button>
             </div>
           </form>
+          </AdminDisclosurePanel>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-3">

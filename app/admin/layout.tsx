@@ -64,9 +64,10 @@ export default async function AdminLayout({
 
  return (
  <div className="admin-saas-shell min-h-screen bg-[#f7fbf8] text-slate-900">
- <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[300px_1fr]">
- <div className="hidden lg:block">
- <Suspense fallback={<div className="h-screen border-r border-emerald-100 bg-white" />}>
+ <a href="#admin-main" className="sr-only z-50 rounded-xl bg-white p-3 font-semibold text-emerald-900 focus:not-sr-only focus:absolute focus:left-3 focus:top-3">Hoppa till innehållet</a>
+ <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]">
+ <div className="min-w-0">
+ <Suspense fallback={<div className="h-32 border-b border-emerald-100 bg-white lg:h-screen lg:border-b-0 lg:border-r" />}>
  <AdminSidebar
  permissions={admin.permissions}
  roles={admin.roles}
@@ -81,23 +82,8 @@ companyOptions={companyOptions}
  </Suspense>
  </div>
 
- <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_28%),linear-gradient(180deg,#f7fbf8_0%,#ffffff_42%,#f7fbf8_100%)]">
- <div className="border-b border-emerald-100/80 bg-white/92 backdrop-blur-xl lg:hidden">
- <div className="flex items-center justify-between px-5 py-4">
- <div className="min-w-0">
- <p className="truncate text-sm font-semibold text-slate-950">{workspaceName}</p>
- <p className="text-xs text-slate-700">{isPlatformAdmin ? 'Plattform' : 'Bolagsyta'}</p>
- </div>
-
- <form action={logoutAction}>
- <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">
- Logga ut
- </button>
- </form>
- </div>
- </div>
-
- <main className="admin-saas-content flex-1">{children}</main>
+ <div className="flex min-h-screen min-w-0 flex-col bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_28%),linear-gradient(180deg,#f7fbf8_0%,#ffffff_42%,#f7fbf8_100%)]">
+ <main id="admin-main" tabIndex={-1} className="admin-saas-content min-w-0 flex-1">{children}</main>
 
  <div className="border-t border-emerald-100/80 bg-white/88 px-6 py-4 backdrop-blur-xl">
  <div className="flex flex-col items-start justify-between gap-3 text-sm text-slate-700 sm:flex-row sm:items-center">
