@@ -415,13 +415,16 @@ describe('SC014 actual intake/admission qualification', () => {
     // staged raw/parse UUIDs and the mailbox's transport company are not one.
     const ids = await listEdielMessageIdsForInboundEmails([stored.id])
     expect(ids).toHaveLength(1)
-    const source = (await rows('ediel_messages')).find(row => row.id === ids[0]) as unknown as EdielMessageRow
+    const sourceRow = (await rows('ediel_messages')).find(row => row.id === ids[0])
+    if (!sourceRow) throw Error('Protected source must be persisted')
+    const source = sourceRow as unknown as EdielMessageRow
     expect(source).toMatchObject({ company_id: null, resolved_company_id: null, environment: 'production', direction: 'inbound', raw_payload: unknownLegalWire,
       inbound_email_message_id: stored.id, customer_id: null, site_id: null, metering_point_id: null })
     expect(source.execution_context_snapshot).not.toHaveProperty('receivedProdatContext')
     expect(await endpoint(source.id)).toMatchObject({ companyId: OWNER.company, sourceMessageId: source.id })
     const facts = JSON.stringify({ version: 1, owner: 'canonical-runtime-syntax-v1', syntaxDecision: 'accepted', reasonCodes: [] })
-    await asService(() => port.db!.query('select public.ediel_record_technical_syntax_facet_v2($1,$2,$3,$4,$5,$6)', [OWNER.company, source.id, source.immutable_payload_hash, facts, actor, 'prepare']))
+    expect(sourceRow.immutable_payload_hash).toBe(createHash('sha256').update(unknownLegalWire, 'utf8').digest('hex'))
+    await asService(() => port.db!.query('select public.ediel_record_technical_syntax_facet_v2($1,$2,$3,$4,$5,$6)', [OWNER.company, source.id, sourceRow.immutable_payload_hash, facts, actor, 'prepare']))
     await asService(() => port.db!.query('select public.ediel_capture_technical_syntax_ack_basis_v2($1,$2,$3,$4)', [OWNER.company, source.id, actor, 'prepare']))
     await installCurrentAtomicCustody()
     const beforeSource = structuredClone(source)
