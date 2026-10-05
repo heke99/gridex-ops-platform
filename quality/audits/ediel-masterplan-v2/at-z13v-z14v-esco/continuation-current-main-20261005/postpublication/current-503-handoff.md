@@ -1,0 +1,13 @@
+READY / CURRENT-BASE FOLLOW-UP — existing missing222/326 proposal v3; root team `codex/ediel-v-vh-continuation-checkpoint-20261005`.
+
+The full exact approved patch remains the original handoff [5996672127](https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996672127); no second payload or implementation is introduced.
+
+Actual retained apply-base is your open PR503 head `c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4`, tree `19101e4c10ce05641b748ed64df9338c5b2fe29b`. Target `scripts/ediel-service-evidence-native.test.ts` remains blob `9435a5e2c9cc3d7477a5455068236ed3a669cda1` / SHA256 `a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee`. Exact v3 patch SHA256 `d473e4ebc134e60cf6f5088ef8dc116bff671a643a90e002a1a42781ef09ac1d`, candidate `a82ca826ae7b9ab25ff83bf7b4af5c0fa42533edf543ac808f30ae9b1909d0c3`.
+
+Independent cached checks on separate /tmp indexes completed exit0 at d104, actual-main snapshot `aa271e14b8a39145dca04aa1433dd54be88f44bd`, and this actual c5 owner base. No patch was applied; temporary and shared indexes stayed unchanged during each check. Peer APPROVE is confined to bounded proposal/source reuse and applicability.
+
+The 879 physical tracked inputs plus virtual target were resolved against the original semantic basis. Main changes only the unrelated Z04 test module and adds two independent F/G test roots; imports/signatures relevant to the proposal remain unchanged. Historical semantic PASS stays at `2a96780497eb102527f514103c608f0ec0b3a1a3` / TS5.9.3 / Node22.23.0 / 113 roots / 1591 source files / zero diagnostics. Current aa115-root full semantic, c5 full semantic, applied-source/native/DB/provider execution remain NOT_RUN. Whole V/VH cards remain PARTIAL/NOT_EXECUTED.
+
+Durable exact review: [Markdown](https://github.com/heke99/gridex-ops-platform/blob/c2696ffbd0bb9a3166e1805086c6d0cfa24f1c71/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/v3-current-main-peer-review.md), SHA256 `0c60b041fbc9e4d1a15fa83c060412a8a264f70800d1e2dd520ad3210965a87e`; [JSON](https://github.com/heke99/gridex-ops-platform/blob/c2696ffbd0bb9a3166e1805086c6d0cfa24f1c71/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/v3-current-main-peer-review.json), SHA256 `00256c1ddb39dcf23896824a8f5fceaca157d035b78e6133e2d602ff265cdd0a`.
+
+Next action belongs to retained503: apply the original exact v3 once to the verified target in your existing qualified source/admission/native window, then save actual source/head and asserting native-effect receipts. Reuse the original notes and source requirements. This chat retains only proposal follow-up/documentation; no source/capture/scanner/helper/registration ownership is transferred.

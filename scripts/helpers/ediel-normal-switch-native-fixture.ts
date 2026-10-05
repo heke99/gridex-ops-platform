@@ -17,8 +17,10 @@ import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
-// Unique Luhn-valid Swedish organisation number per disposable company. The
-// canonical schema enforces one company per normalized organisation number.
+import {syntheticSwedishOrganizationNumber} from '../../e2e/production/helpers/swedish-organization-number.mjs'
+import {nativeFixtureCompanyIdentitySql} from './native-fixture-company-identity'
+// Legacy random Luhn candidate; it does not reserve database uniqueness.
+// Normal-switch fixtures use the atomic company allocation below instead.
 export function fixtureOrganizationNumber(){
  const body='55'+String(Math.floor(Math.random()*1e7)).padStart(7,'0')
  const sum=[...body].reduce((total,digit,index)=>{const value=Number(digit)*(index%2===0?2:1);return total+(value>9?value-9:value)},0)
@@ -62,7 +64,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  if(input.initialSubtype!==undefined&&!['L','H'].includes(input.initialSubtype))throw Error('native_switch_initial_subtype_unsupported')
  const companyId=randomUUID(),actorUserId=randomUUID(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID(),contractId=randomUUID(),gridId=randomUUID(),switchId=randomUUID(),routeId=randomUUID(),routeProfileId=randomUUID(),marketActor=randomUUID()
  const external=input.external??fixtureGsrn(),requestedStartDate=input.requestedStartDate??'2026-10-01'
- const customerIdentity='199001011234',organizationNumber=fixtureOrganizationNumber(),brpEdielId='99876',marker={test_center:{kind:'invoice_test_customer'}}
+ const customerIdentity='199001011234',brpEdielId='99876',marker={test_center:{kind:'invoice_test_customer'}}
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic normal switch native','active');
  INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES('00000000-0000-0000-0000-000000000000','','','','',${literal(actorUserId)},'authenticated','authenticated',${literal(`${actorUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(actorUserId)},${literal(`${actorUserId}@example.invalid`)},'Synthetic normal switch actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
@@ -99,10 +101,8 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,
   default_notice_months:1,automatic_renewal:true,automatic_renewal_term_months:12,
   power_of_attorney_required:true,valid_from:'2026-09-24'}
- sql(`UPDATE public.companies SET legal_name='Synthetic Archive AB',org_number=${literal(organizationNumber)},
-   address_line_1='Testgatan 1',postal_code='123 45',city='Teststad',country_code='SE',
-   support_email='service@example.invalid',phone='0101234567',website='https://example.invalid'
-  WHERE id=${literal(companyId)};`)
+ const organizationNumber=sql<string>(nativeFixtureCompanyIdentitySql(companyId,
+  Array.from({length:32},(_,attempt)=>syntheticSwedishOrganizationNumber(`normal-switch:${companyId}:${attempt}`))))
  const {data:created,error:createError}=await supabaseService.rpc('gridex_upsert_internal_contract_offer_v2',{
   p_company_id:companyId,p_offer_id:null,p_payload:offer,p_pricing_snapshot:pricing,p_actor_user_id:actorUserId,
  })

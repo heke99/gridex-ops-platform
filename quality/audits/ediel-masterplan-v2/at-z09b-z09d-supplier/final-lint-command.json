@@ -1,0 +1,11 @@
+{
+  "executed_at": "2026-10-05T15:21:44.503360+00:00",
+  "command": [
+    "node",
+    "node_modules/eslint/bin/eslint.js",
+    "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
+    "--max-warnings=0"
+  ],
+  "exit_code": 0,
+  "test_sha256": "b553d8541af9e7987e566dc9c315f26e9e6b05512743d889deccfd4b986ef422"
+}

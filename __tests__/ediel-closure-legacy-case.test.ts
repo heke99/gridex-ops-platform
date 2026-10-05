@@ -22,7 +22,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
  return {data:{applied:true,idempotent:false,periods:[{id:'supply',status:'ended'}],commits:[]},error:null}
 },from:(table:string)=>{
  let values:Record<string,unknown>|null=null
- const q={select:()=>q,eq:()=>q,is:()=>q,order:()=>q,limit:()=>q,
+ const q={select:()=>q,eq:()=>q,in:()=>q,is:()=>q,order:()=>q,limit:()=>q,
   update:(row:Record<string,unknown>)=>{values=row;io.writes.push({table,row});return q},
   insert:(row:Record<string,unknown>)=>{values=row;io.writes.push({table,row});return q},
   maybeSingle:async()=>({data:{id:'supply'},error:null}),
@@ -37,7 +37,7 @@ vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCus
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 function message(subtype='L'){const row={id:'source',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:'Z05',direction:'inbound',raw_payload:closureFixture({reason:subtype==='LK'?'Z23':subtype==='C'?'Z24':'Z22',minute:'202610150000'}).wire,parsed_payload:{subtype,end_date:'2026-10-15'}} as unknown as EdielMessageRow;io.source=structuredClone(row);return row}
-beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[];io.source=null;io.nativeCalls=[];io.committed=false})
+beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[{id:'supply',customer_id:'customer',metering_point_id:'point'}];io.source=null;io.nativeCalls=[];io.committed=false})
 it.each(['L','LK'])('consumes declared native %s closure result into a schema-valid own final-work case',async subtype=>{
  const result=await applyInboundBusinessStateMachine({message:message(subtype),actorUserId:'actor'})
  expect(result).toMatchObject({outcome:'supply_terminated',updated:['customer_supply_periods','customer_cases']})

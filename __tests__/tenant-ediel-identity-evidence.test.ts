@@ -1,3 +1,4 @@
+// masterplan: TEN-04, AT-TEN-04
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const io = vi.hoisted(() => ({ rows: {} as Record<string, Record<string, unknown>[]>, calls: [] as string[], advanceClock: false }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {

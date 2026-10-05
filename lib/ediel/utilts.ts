@@ -14,6 +14,7 @@ import {
 } from '@/lib/ediel/classify'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
 import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {utiltsDefaultAlphabetSegment} from '@/lib/ediel/utilts/errSourceCopy'
@@ -215,23 +216,10 @@ function sanitize(value?: string | null): string {
   return (value ?? '').replace(/['+]/g, ' ').trim()
 }
 
-function normalizeDate(value?: string | null): string | null {
-  if (!value) return null
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}T00:00`
-  }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
-    return trimmed
-  }
-  return trimmed
-}
-
 function formatDateTime203(value?: string | null): string | null {
-  const normalized = normalizeDate(value)
-  if (!normalized) return null
-  return normalized.replace(/[-:T]/g, '').replace(/Z$/, '').slice(0, 12)
+  // U §3.6.1 uses the same fixed UTC+1 wall clock as PRODAT. Explicit
+  // instants must be converted; offset-free market dates stay literal.
+  return prodatDate203(value)
 }
 
 function formatPeriod719(start?: string | null, end?: string | null): string | null {
@@ -526,8 +514,10 @@ export async function buildUtiltsOutboundDraft(
 
   const senderEdielId = requireOutboundEdielId(input.senderEdielId, 'sender')
   const receiverEdielId = requireOutboundEdielId(input.receiverEdielId, 'receiver')
-  const senderSubAddress = input.senderSubAddress ?? 'UTILTS'
-  const receiverSubAddress = input.receiverSubAddress ?? 'UTILTS'
+  // IMP-04: UTILTS uses no sub-address. An empty registered value stays empty;
+  // an exactly registered value is preserved, and none is ever invented.
+  const senderSubAddress = input.senderSubAddress ?? null
+  const receiverSubAddress = input.receiverSubAddress ?? null
 
   const applicationReference =
     input.applicationReference ??

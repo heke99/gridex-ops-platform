@@ -1,0 +1,44 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc051-sc068
+
+ ❯ __tests__/ediel-sc-051-revision-treatment.test.ts (8 tests | 1 failed) 418ms
+   ✓ SC-051 actual receipt 2026-09-30 carries one 25-A-3 through final owner, consumption and ACK 173ms
+   ✓ SC-051 actual receipt 2026-10-01 carries one 25-A-4 through final owner, consumption and ACK 64ms
+   ✓ SC-051 October field209 enforcement is not activated early at receipt 2026-09-30 45ms
+   ✓ SC-051 October field209 enforcement is not activated early at receipt 2026-10-15 33ms
+   ✓ SC-051 an asynchronous clock rollover cannot reselect the receipt guide in downstream billing 46ms
+   ✓ SC-051 the real pre-send consumer captures its own fresh boundary before asynchronous registry IO 16ms
+   ✓ SC-051 replay trace time preserves a stored receipt selection and original E5SE5A bytes 2ms
+   × SC-051 the actual queued worker reconsiders the unchanged September E5SE5A original with October admission and holds before provider entry 36ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-051-revision-treatment.test.ts > SC-051 the actual queued worker reconsiders the unchanged September E5SE5A original with October admission and holds before provider entry
+AssertionError: expected undefined to match object { admissionDate: '2026-10-15', …(1) }
+
+- Expected:
+{
+  "admissionDate": "2026-10-15",
+  "admissionSource": "pre_send",
+}
+
++ Received:
+undefined
+
+ ❯ __tests__/ediel-sc-051-revision-treatment.test.ts:232:58
+    230|   expect(currentAdmission?.canonicalPolicy?.guide.guideRevision).toBe(…
+    231|   expect(currentAdmission?.rulePackSnapshot?.version).toBe('25-A-4:r4')
+    232|   expect(currentAdmission?.canonicalPolicy?.timeAnchors).toMatchObject…
+       |                                                          ^
+    233|   expect(io.rpc.mock.calls.filter(([name]) => name === 'resolve_canoni…
+    234|     .map(([, args]) => args.p_business_date)).toEqual(['2026-09-30', '…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  13:49:16
+   Duration  6.31s (transform 4.38s, setup 24ms, import 5.57s, tests 418ms, environment 1ms)
+
+JUNIT report written to /tmp/sc051-continuation-final.xml

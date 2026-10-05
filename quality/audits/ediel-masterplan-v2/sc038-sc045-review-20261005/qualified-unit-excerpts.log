@@ -1,0 +1,8 @@
+2026-10-05T08:11:42.1778522Z  Test Files  2 passed (2)
+2026-10-05T08:11:42.1779799Z       Tests  45 passed (45)
+2026-10-05T08:11:49.2130149Z  ✓ __tests__/ediel-utilts-err-gateway.test.ts (22 tests) 1012ms
+2026-10-05T08:13:04.3934652Z  ✓ __tests__/ediel-supply-market-consumers.test.ts (18 tests) 17ms
+2026-10-05T08:14:35.6570741Z  ✓ __tests__/ediel-received-utilts-header-validation.test.ts (3 tests) 149ms
+2026-10-05T08:15:00.8905258Z  ✓ __tests__/ediel-sc-045-048-utilts-scenarios.test.ts (2 tests) 137ms
+2026-10-05T08:15:25.9006413Z  Test Files  807 passed (807)
+2026-10-05T08:15:25.9053787Z       Tests  10304 passed (10304)

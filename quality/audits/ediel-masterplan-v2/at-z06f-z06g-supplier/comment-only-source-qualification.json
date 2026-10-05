@@ -1,0 +1,20 @@
+{
+  "typescript_version": "5.9.3",
+  "parser_diagnostics": 0,
+  "files": [
+    {
+      "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+      "original_sha256": "48d5df1dc0d75514f5d7a99ded9890f3db47ba291f1f290b8301a45df46b0455",
+      "current_sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef",
+      "comments_removed_TS_printer_sha256": "bfeb6f350a9a9285eab2bf37a57f425c44884df06459aac86e23e5028e08da76",
+      "executable_syntax_unchanged": true
+    },
+    {
+      "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+      "original_sha256": "42dc82d2f003c3631cb6509b7a4811ee5f54a73d270789a5f1551187bc1b833b",
+      "current_sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881",
+      "comments_removed_TS_printer_sha256": "054d466f527b8a6895be36788f6924efb737e3ebd5239b0176671c214552d424",
+      "executable_syntax_unchanged": true
+    }
+  ]
+}

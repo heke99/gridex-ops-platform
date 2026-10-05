@@ -1,4 +1,7 @@
+// masterplan: IMP-02, AT-IMP-02
 import {beforeEach,describe,expect,it,vi} from 'vitest'
+import {parseActorRegistryXml} from '@/lib/actor-registry/parseActorRegistryXml'
+import {parseActorRegistryTxt} from '@/lib/actor-registry/parseActorRegistryTxt'
 const rpc=vi.hoisted(()=>vi.fn())
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc}}))
 import {readRegistryRouteSource,requireRegistryDispatchSource,verifyElRegistryActor} from '@/lib/actor-registry/registryMarketSource'
@@ -9,6 +12,32 @@ const scope={companyId:id(1),communicationRouteId:id(2),routeProfileId:id(3),env
 const source=()=>({status:'source_qualified',routeId:id(4),actorId:id(5),market:'EL',sourceSha256:'a'.repeat(64),sourceRecordSha256:'b'.repeat(64),countryCode:'SE',legalEdielId:'LEGAL-ACTOR',roles:['grid_owner'],wire:{actorId:id(5),market:'EL',family:'PRODAT',environment:'production',subaddress:null,applicationReference:'SOURCE-APP',address:'source@example.invalid',transport:'smtp',partyId:'LEGAL-ACTOR',interchangePartyId:'TECHNICAL-AGENT'}})
 describe('actual typed registry market/source dispatch contract',()=>{
  beforeEach(()=>rpc.mockReset())
+ it('retains qualified XML families and their original source identities without converting them to bare families',()=>{
+  const [actor]=parseActorRegistryXml('<Market Code="EL" CountryCode="FI"><Company><Name>Synthetic qualified actor</Name><Identifiers><Key Type="EdielId">21660</Key><Key Type="OrgNo">556000-0000</Key></Identifiers><Role>ESCO</Role><EDIFACTDetails Type="Prodat_Z03"><SubAddress>Own-Sub</SubAddress><CommunicationAddress Type="SMTP">prodat@example.invalid</CommunicationAddress><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId></EDIFACTDetails><EDIFACTDetails Type="UTILTS_E66"><CommunicationAddress Type="SMTP">utilts@example.invalid</CommunicationAddress><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId></EDIFACTDetails></Company></Market>')
+  expect(actor).toMatchObject({market:'EL',countryCode:'FI',edielId:'21660',orgNumber:'5560000000',roles:['energy_service_company'],raw:{originalMarket:'EL',originalCountry:'FI',originalRoles:['ESCO']}})
+  expect(actor.raw.sourceFragment).toContain('<Key Type="OrgNo">556000-0000</Key>')
+  expect(actor.routes).toMatchObject([{messageFamily:'PRODAT_Z03',market:'EL',subaddress:'Own-Sub',communicationType:'SMTP',communicationAddress:'prodat@example.invalid',partyId:'21660',interchangePartyId:'99888',metadata:{originalFamily:'Prodat_Z03'}},{messageFamily:'UTILTS_E66',market:'EL',subaddress:null,communicationType:'SMTP',communicationAddress:'utilts@example.invalid',partyId:'21660',interchangePartyId:'99888',metadata:{originalFamily:'UTILTS_E66'}}])
+ })
+ it('retains qualified TXT blocks, source codes and absent roles as held reference facts',()=>{
+  const header='Market;CompanyName;SvkId;EdielId;Address1;Address2;PostCode;Place;CountryCode;WebSiteAddress;Type PRODAT;SubAddress;CommunicationAddress;InterchangePartyId;PartyId;Type UTILTS;SubAddress;CommunicationAddress;InterchangePartyId;PartyId'
+  const row='EL;Synthetic qualified actor;SYN;21660;Street;;12345;Town;FI;;PRODAT_Z03;Own-Sub;prodat@example.invalid;99888;21660;UTILTS_E66;;utilts@example.invalid;99888;21660'
+  const [actor]=parseActorRegistryTxt(header+'\n'+row)
+  expect(actor).toMatchObject({market:'EL',countryCode:'FI',svkId:'SYN',edielId:'21660',orgNumber:null,roles:[],raw:{sourceFragment:row,originalMarket:'EL',originalCountry:'FI',originalRoles:[]}})
+  expect(actor.routes).toMatchObject([{messageFamily:'PRODAT_Z03',market:'EL',subaddress:'Own-Sub',communicationType:'smtp',communicationAddress:'prodat@example.invalid',partyId:'21660',interchangePartyId:'99888',status:'blocked',isVerified:false,metadata:{originalFamily:'PRODAT_Z03'}},{messageFamily:'UTILTS_E66',market:'EL',subaddress:null,communicationType:'smtp',communicationAddress:'utilts@example.invalid',partyId:'21660',interchangePartyId:'99888',status:'blocked',isVerified:false,metadata:{originalFamily:'UTILTS_E66'}}])
+ })
+ it('reads a GAS reference but refuses it at the actual EL dispatch boundary',async()=>{
+  const gas={...source(),market:'GAS',wire:{...source().wire,market:'GAS'}}
+  rpc.mockImplementation(async(name:string)=>({data:name==='ediel_registry_dispatch_source_v1'?{...gas,...scope,selectedApplicationReference:scope.applicationReference}:gas,error:null}))
+  expect(await readRegistryRouteSource(id(4))).toMatchObject({market:'GAS',wire:{market:'GAS',family:'PRODAT'}})
+  await expect(requireRegistryDispatchSource(scope)).rejects.toThrow('dispatch_result_invalid')
+  expect(rpc.mock.calls.map(call=>call[0])).toEqual(['ediel_registry_route_source_v1','ediel_registry_dispatch_source_v1','ediel_registry_route_source_v1'])
+ })
+ it('does not use a qualified family source as a bare-family dispatch match',async()=>{
+  const qualified={...source(),wire:{...source().wire,family:'PRODAT_Z03'}}
+  rpc.mockImplementation(async(name:string)=>({data:name==='ediel_registry_dispatch_source_v1'?{...qualified,...scope,selectedApplicationReference:scope.applicationReference}:qualified,error:null}))
+  await expect(requireRegistryDispatchSource(scope)).rejects.toThrow('dispatch_result_invalid')
+  expect(rpc.mock.calls.map(call=>call[0])).toEqual(['ediel_registry_dispatch_source_v1','ediel_registry_route_source_v1'])
+ })
  it('keeps sourced legal party separate from technical transport party',async()=>{
   rpc.mockResolvedValue({data:source(),error:null})
   const result=await readRegistryRouteSource(id(4))

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="7" failures="0" errors="0" time="0.075719363">
+    <testsuite name="__tests__/ediel-sc-015-pending-provider-request.test.ts" timestamp="2026-10-05T02:36:44.303Z" hostname="c8313f035683" tests="7" failures="0" errors="0" skipped="0" time="0.075719363">
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; a same-object K2 request reuses the pending source without a new wire" time="0.005226018">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; a new internal mission identifier still obeys the selected pending original resolver" time="0.002311493">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; explicitly selecting the same permission cannot bypass pending coordination into the renderer" time="0.000750899">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; a relevant new-object decision passes the real DGI gateway and scoped renderer immediately" time="0.062959079">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; a current timing hold prevents all origin, route, intent and wire effects" time="0.000579333">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; fails closed when reuse asserts beneficiary access instead of the protected no-access result" time="0.0016087">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-015-pending-provider-request.test.ts" name="SC015 pending P/customer/DSO permission coordination reaches the real command caller &gt; preserves exact source-owner denial without retry or a fabricated replacement request" time="0.000747977">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,0 +1,12 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc013-sc020-integration
+
+ ✓ __tests__/ediel-ack-source-correlation.test.ts (17 tests) 100ms
+ ✓ __tests__/ediel-tenant-qualified-ack-routing.test.ts (6 tests) 98ms
+ ✓ __tests__/ediel-permission-process-order.test.ts (16 tests) 13ms
+ ✓ __tests__/ediel-permission-market-consumers.test.ts (14 tests) 55ms
+
+ Test Files  4 passed (4)
+      Tests  53 passed (53)
+   Start at  14:01:00
+   Duration  7.73s (transform 6.84s, setup 84ms, import 8.39s, tests 266ms, environment 1ms)

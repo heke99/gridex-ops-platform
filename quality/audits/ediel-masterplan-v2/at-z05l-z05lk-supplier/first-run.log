@@ -1,0 +1,198 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z05l-z05lk-supplier-20261005
+
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation 67ms
+   → expected '202610150000' to contain '2026-10-15'
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field LIN with the actual matching diagnostic 9ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field DTM+93 with the actual matching diagnostic 14ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field RFF+LI with the actual matching diagnostic 16ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field RFF+Z05 with the actual matching diagnostic 10ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field NAD+UD with the actual matching diagnostic 11ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field NAD+IT with the actual matching diagnostic 142ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects missing R-field NAD+Z02 with the actual matching diagnostic 14ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > holds a malformed end date and does not substitute the cached end date 8ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > holds a different IT object in the real field consumer 11ms
+   → expected [] to deep equally contain ObjectContaining{…}
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > rejects the ESCO DGI application profile in actual Z05 policy 1ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > refused native source leaves every app business table unchanged 4ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > outbound source cannot enter a native end mutation or create end tasks 1ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > actual facade uses only returned own ending-period scope and preserves finite history tables 4ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > plans each returned ending/ended scope without including an unrelated active period 2ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > idempotent native replay creates no extra final-value task and no new business reply 2ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > native authorization error propagates without app mutation 2ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > cached customer and point hints cannot replace the committed ending-period task scope 1ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable missing returned period cannot gain a task from cached hints 2ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable foreign-only returned period cannot gain a task from cached hints 2ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation 20ms
+   → expected '202610150000' to contain '2026-10-15'
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field LIN with the actual matching diagnostic 11ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field DTM+93 with the actual matching diagnostic 38ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field RFF+LI with the actual matching diagnostic 24ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field RFF+Z05 with the actual matching diagnostic 6ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field NAD+UD with the actual matching diagnostic 13ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field NAD+IT with the actual matching diagnostic 8ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects missing R-field NAD+Z02 with the actual matching diagnostic 6ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > holds a malformed end date and does not substitute the cached end date 26ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > holds a different IT object in the real field consumer 10ms
+   → expected [] to deep equally contain ObjectContaining{…}
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > rejects the ESCO DGI application profile in actual Z05 policy 0ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > refused native source leaves every app business table unchanged 1ms
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > outbound source cannot enter a native end mutation or create end tasks 1ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > actual facade uses only returned own ending-period scope and preserves finite history tables 3ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > plans each returned ending/ended scope without including an unrelated active period 1ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > idempotent native replay creates no extra final-value task and no new business reply 2ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ ✓ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > native authorization error propagates without app mutation 1ms
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > cached customer and point hints cannot replace the committed ending-period task scope 1ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable missing returned period cannot gain a task from cached hints 1ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+ × __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable foreign-only returned period cannot gain a task from cached hints 1ms
+   → supabaseService.from(...).insert(...).select(...).single is not a function
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > validates complete own DDQ wire and projects ending, never a Z09E answer or supply activation
+AssertionError: expected '202610150000' to contain '2026-10-15'
+
+Expected: "2026-10-15"
+Received: "202610150000"
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:102:49
+    100|       lineItemReference: 'OWN-END-LI', gridAreaId: 'NET', reasonForTra…
+    101|       endUserId: '199001011234', balanceResponsibleId: '11111' })
+    102|     expect(parsed.lineItems[0].contractEndDate).toContain('2026-10-15')
+       |                                                 ^
+    103|     expect(decideProdatLifecycle(row)).toMatchObject({ subtype: profil…
+    104|       createSupplyPeriod: false, endSupplyPeriod: true })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > holds a different IT object in the real field consumer
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > holds a different IT object in the real field consumer
+AssertionError: expected [] to deep equally contain ObjectContaining{…}
+
+- Expected:
+ObjectContaining {
+  "blocking": true,
+  "prodatDiagnostic": ObjectContaining {
+    "fieldNumber": "233",
+  },
+}
+
++ Received:
+[]
+
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:122:8
+    120|   it('holds a different IT object in the real field consumer', () => {
+    121|     expect(fieldIssues(profile, wire => wire.replace(`NAD+IT+${CLOSURE…
+    122|       .toContainEqual(expect.objectContaining({ blocking: true, prodat…
+       |        ^
+    123|   })
+    124|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > actual facade uses only returned own ending-period scope and preserves finite history tables
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > actual facade uses only returned own ending-period scope and preserves finite history tables
+TypeError: supabaseService.from(...).insert(...).select(...).single is not a function
+ ❯ strictInsert lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:68:89
+     66|
+     67| async function strictInsert(table: string, values: Record<string, unkn…
+     68|   const { data, error } = await supabaseService.from(table).insert(val…
+       |                                                                                         ^
+     69|   if (error) throw error
+     70|   const id = text((data as { id?: string } | null)?.id)
+ ❯ createReviewCase lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:117:10
+ ❯ applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:296:30
+ ❯ Module.applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachine.ts:183:18
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:153:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > plans each returned ending/ended scope without including an unrelated active period
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > plans each returned ending/ended scope without including an unrelated active period
+TypeError: supabaseService.from(...).insert(...).select(...).single is not a function
+ ❯ strictInsert lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:68:89
+     66|
+     67| async function strictInsert(table: string, values: Record<string, unkn…
+     68|   const { data, error } = await supabaseService.from(table).insert(val…
+       |                                                                                         ^
+     69|   if (error) throw error
+     70|   const id = text((data as { id?: string } | null)?.id)
+ ❯ createReviewCase lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:117:10
+ ❯ applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:296:30
+ ❯ Module.applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachine.ts:183:18
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:170:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > idempotent native replay creates no extra final-value task and no new business reply
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > idempotent native replay creates no extra final-value task and no new business reply
+TypeError: supabaseService.from(...).insert(...).select(...).single is not a function
+ ❯ strictInsert lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:68:89
+     66|
+     67| async function strictInsert(table: string, values: Record<string, unkn…
+     68|   const { data, error } = await supabaseService.from(table).insert(val…
+       |                                                                                         ^
+     69|   if (error) throw error
+     70|   const id = text((data as { id?: string } | null)?.id)
+ ❯ createReviewCase lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:117:10
+ ❯ applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:296:30
+ ❯ Module.applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachine.ts:183:18
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:177:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > cached customer and point hints cannot replace the committed ending-period task scope
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > cached customer and point hints cannot replace the committed ending-period task scope
+TypeError: supabaseService.from(...).insert(...).select(...).single is not a function
+ ❯ strictInsert lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:68:89
+     66|
+     67| async function strictInsert(table: string, values: Record<string, unkn…
+     68|   const { data, error } = await supabaseService.from(table).insert(val…
+       |                                                                                         ^
+     69|   if (error) throw error
+     70|   const id = text((data as { id?: string } | null)?.id)
+ ❯ createReviewCase lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:117:10
+ ❯ applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:296:30
+ ❯ Module.applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachine.ts:183:18
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:195:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable missing returned period cannot gain a task from cached hints
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'L' supplier ('Z22') > an unresolvable foreign-only returned period cannot gain a task from cached hints
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable missing returned period cannot gain a task from cached hints
+ FAIL  __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts > AT-Z05 'LK' supplier ('Z23') > an unresolvable foreign-only returned period cannot gain a task from cached hints
+TypeError: supabaseService.from(...).insert(...).select(...).single is not a function
+ ❯ strictInsert lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:68:89
+     66|
+     67| async function strictInsert(table: string, values: Record<string, unkn…
+     68|   const { data, error } = await supabaseService.from(table).insert(val…
+       |                                                                                         ^
+     69|   if (error) throw error
+     70|   const id = text((data as { id?: string } | null)?.id)
+ ❯ createReviewCase lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:117:10
+ ❯ applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:296:30
+ ❯ Module.applyInboundBusinessStateMachine lib/ediel/flows/inboundBusinessStateMachine.ts:183:18
+ ❯ __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts:204:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 24 passed (40)
+   Start at  14:26:57
+   Duration  3.67s (transform 2.50s, setup 50ms, import 2.88s, tests 512ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z05l-z05lk-supplier-20261005/quality/audits/ediel-masterplan-v2/at-z05l-z05lk-supplier/first-junit.xml

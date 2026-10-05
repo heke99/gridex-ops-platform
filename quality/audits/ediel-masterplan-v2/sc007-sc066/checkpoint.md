@@ -113,3 +113,9 @@ Next: mark the published PR ready and inventory the latest full ownership boards
 open PR paths and published coverage before selecting/reserving the next two
 unowned scenarios. Root owns current mandatory CI, actual-main composition and
 merge window; readiness and code-behavior approval do not imply merge.
+
+## Current parent integration, 2026-10-05
+
+This branch genuinely merges retained reviewed head `2c2883812e8422f8155d036c9b0400ac3ec33f2f` with updated parent #541 head `4f96cb99e11660ca8c8faa000b139ce2860be0aa`. The complete parent calendar correction, current TEN-07 wrapper body, shared SC-068 time-context fixture and all foreign coverage rows are retained. Only SC-007 and SC-066 receive the previously reviewed PASSED rows.
+
+The seven asserting inputs, fifteen current AI production/migration inputs and eight actual AI SQL function bodies are checked against their retained review receipt. The parent wrapper body is authoritative and tags form a union; no asserting body is weakened. Existing independent review and executed wrapper log remain exact historical records. No test, native producer, artifact download or capture is repeated for this source integration. Previous selected native evidence remains limited historical evidence; ordinary CI must pass on the final published head. Root owns exact-head gates and main merge after parent #541 is merged.
