@@ -3,8 +3,9 @@ import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 import { acceptCompanyInvitationAccess } from '@/lib/auth/companyUserAccess'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { loadInvitationCommandBinding, loadRegisteredStaffInvitationClient, registeredStaffOnboardingOrigin, staffInvitationAcceptUrl, staffInvitationCallbackOrigin } from '@/lib/auth/staffInvitationRouting'
+import { isIndependentStaffInvitation, loadInvitationCommandBinding, loadRegisteredStaffInvitationClient, registeredStaffOnboardingOrigin, staffInvitationAcceptUrl, staffInvitationCallbackOrigin } from '@/lib/auth/staffInvitationRouting'
 import { ApiInputError } from '@/lib/api/strictRequest'
+import { deliverRegisteredStaffInvitation, loadStaffOnboardingAuthority, requireStaffTenantOnboardingReady, staffAuthorityCommand } from '@/lib/auth/tenantStaffDelivery'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -67,6 +68,31 @@ export function hashCompanyInvitationToken(token: string) {
 
 function buildAcceptUrl(token: string) {
   return `${getBaseAppUrl()}/auth/company-invite?token=${encodeURIComponent(token)}`
+}
+
+function pendingInvitationResult(data: unknown, email: string, portalOrigin: string | null): CompanyInviteProvisionResult {
+  const intent = data as { invitation_id?: string | null; token?: string | null } | null
+  if (!intent?.invitation_id || !intent.token) throw new Error('Canonical tenantinbjudan returnerade inte ett komplett durable intent.')
+  return { userId: null, email, wasCreated: false, invitationToken: intent.token,
+    acceptUrl: portalOrigin ? staffInvitationAcceptUrl(portalOrigin, intent.token) : buildAcceptUrl(intent.token), emailSent: false, emailError: null }
+}
+
+/** Trusted OPS-admin adapter only; the native wrapper checks actor/ceiling and canonical intent. */
+export async function provisionExternalStaffBootstrapInvitation(input: {
+  companyId: string; apiClientId: string; actorUserId: string; email: string;
+  fullName?: string | null; roleKey: string; idempotencyKey: string;
+}): Promise<CompanyInviteProvisionResult> {
+  const authority = await loadStaffOnboardingAuthority(input.companyId, input.apiClientId)
+  await requireStaffTenantOnboardingReady(authority)
+  const email = normalizeEmail(input.email)
+  if (!email || !input.actorUserId || !input.idempotencyKey) throw new Error('Verifierad aktör, mottagare och stabil kommandonyckel krävs.')
+  const nativeBootstrap = supabaseService as unknown as { rpc(name: 'gridex_create_external_staff_invitation_v1', args: { p_command: Record<string, unknown> }): Promise<{ data: unknown; error: unknown }> }
+  const { data, error } = await nativeBootstrap.rpc('gridex_create_external_staff_invitation_v1', { p_command: {
+    ...staffAuthorityCommand(authority), actor_user_id: input.actorUserId, email, full_name: input.fullName ?? null,
+    role_key: input.roleKey, idempotency_key: input.idempotencyKey,
+  } })
+  if (error) throw error
+  return pendingInvitationResult(data, email, authority.tenantAuth.origin)
 }
 
 async function safeRecordAuthEmailEvent(input: Parameters<typeof recordAuthEmailEvent>[0]) {
@@ -160,9 +186,19 @@ export async function deliverCompanyInvitationIntent(input: {
   staffOperation?: 'invite'
   channel?: 'ops' | 'staff_api'
   apiClientId?: string | null
+  provisioningJobId?: string
+  provisioningLeaseToken?: string
 }) {
   // Resolve the immutable originating client before any Auth/email/profile write.
   const portalOrigin = await staffInvitationCallbackOrigin(input.companyId, input.invitationId)
+  if (portalOrigin) {
+    if (!input.provisioningJobId || !input.provisioningLeaseToken) {
+      throw new ApiInputError('The leased invitation delivery is unavailable.', 'staff_tenant_delivery_not_ready', 503)
+    }
+    const binding = await loadInvitationCommandBinding(input.companyId, input.invitationId)
+    return deliverRegisteredStaffInvitation({ companyId: input.companyId, invitationId: input.invitationId,
+      clientId: String(binding.api_client_id), provisioningJobId: input.provisioningJobId, provisioningLeaseToken: input.provisioningLeaseToken })
+  }
   const acceptUrl = portalOrigin ? staffInvitationAcceptUrl(portalOrigin, input.token) : buildAcceptUrl(input.token)
   const authRedirectTo = portalOrigin ? acceptUrl : `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(input.token)}`)}`
   try {
@@ -261,6 +297,10 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
   const portalClient = input.channel === 'staff_api'
     ? await loadRegisteredStaffInvitationClient(input.companyId, input.apiClientId ?? '') : null
   const portalOrigin = portalClient ? registeredStaffOnboardingOrigin(portalClient, input.companyId, input.apiClientId ?? '') : null
+  if (portalClient) {
+    const authority = await loadStaffOnboardingAuthority(input.companyId, input.apiClientId ?? '')
+    await requireStaffTenantOnboardingReady(authority)
+  }
 
   const idempotencyKey = input.idempotencyKey || `tenant-invitation:${input.companyId}:${hashCompanyInvitationToken(`${email}:${input.roleKey}`)}`
   const { data, error } = await supabaseService.rpc('canonical_create_tenant_invitation', {
@@ -277,28 +317,10 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     },
   })
   if (error) throw error
-  const intent = data as {
-    invitation_id?: string | null
-    company_id?: string | null
-    token?: string | null
-    status?: string | null
-  } | null
-  if (!intent?.invitation_id || !intent.token) {
-    throw new Error('Canonical tenantinbjudan returnerade inte ett komplett durable intent.')
-  }
-
   // Provider delivery is owned exclusively by the leased provisioning worker.
   // Returning after the durable intent commits removes the race where the
   // request and cron worker could send competing, non-idempotent Auth emails.
-  return {
-    userId: null,
-    email,
-    wasCreated: false,
-    invitationToken: intent.token,
-    acceptUrl: portalOrigin ? staffInvitationAcceptUrl(portalOrigin, intent.token) : buildAcceptUrl(intent.token),
-    emailSent: false,
-    emailError: null,
-  }
+  return pendingInvitationResult(data, email, portalOrigin)
 }
 
 export async function getCompanyInvitationByToken(token: string): Promise<CompanyInvitationRow | null> {
@@ -338,7 +360,7 @@ export async function acceptCompanyInvitationByToken(token: string) {
   const invitation = await getCompanyInvitationByToken(token)
   if (!invitation) throw new Error('Inbjudningslänken är ogiltig eller saknar aktiv token.')
   const binding = await loadInvitationCommandBinding(invitation.company_id, invitation.id)
-  if (binding.channel === 'staff_api') {
+  if (isIndependentStaffInvitation(binding)) {
     throw new ApiInputError('Den här personalinbjudan måste accepteras i den egna supportportalen.', 'staff_invitation_requires_independent_portal', 403)
   }
 

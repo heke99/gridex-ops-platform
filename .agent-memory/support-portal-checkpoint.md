@@ -1,11 +1,32 @@
 # Independent support123 checkpoint — 2026-10-05
 
-Active user decision: support123 is an independent company support application,
-with its own login and navigation, using the shared Personal API. Gridex is one
-company; the API serves all companies. All persistent data MUST be in named
-`gridex-prod`, Supabase ref `ayiuxjlfazkjmmtlvhsl`, account link
-`link_6abfe8a022548191be4c4495dee62966`. Do not use or relabel `gridex-ops-dev`
-(`piidsfebjqjmnepdpnas`) as this target.
+AUTHORITATIVE USER CORRECTION 2026-10-05: Gridex web and named `gridex-prod`
+are one ordinary TENANT of the independent OPS platform. gridex.se owns customer
+pages; support123.gridex.se owns an internal staff login and application. Tenant
+Auth and delivery state belong in `gridex-prod` (ayiuxjlfazkjmmtlvhsl). Central
+customers/cases/staff actors/membership/RBAC/audit remain in OPS and are accessed
+through company-scoped APIs. Do NOT move the OPS schema/runtime to the tenant DB.
+The previous interpretation requiring ALL central OPS data in gridex-prod is
+SUPERSEDED, including the Prod dependency migration/enrollment plan below.
+
+Active source correction: explicit registered tenant Auth issuer/local subject
+to central actor binding; normal Staff JWT sub stays the central actor. Own Auth
+getUser + fresh identity-resolution API precedes every privileged portal request.
+Single existing invitation worker delegates Staff delivery to the tenant-owned
+bridge; no OPS Auth invitation/OTP fallback. Native service-only binding RPCs
+reuse the canonical membership/RBAC engine. Both PR578 and PR45 are DRAFT again
+until corrected-source verification passes. Prior green CI is historical only.
+Root owns WEB API client/config/session/tests/docs; identity agent owns OPS
+resolver/context/registration; onboarding agent owns existing worker + tenant
+bridge and local delivery migration; security agent owns new OPS forward/native
+regressions. No overlapping file editing. All hosted writes remain ZERO.
+
+## Historical record below (superseded architecture interpretation)
+
+The following earlier inventory/qualification notes remain as historical
+evidence. Their Prod-as-OPS activation instructions and old pending company
+mapping question are superseded by the authoritative correction above. They
+must not be treated as a current plan or current-source qualification.
 
 Sources: OPS worktree /workspace/gridex-support-portal-ops, branch
 codex/support-portal-ops, base 985724f58; web worktree
@@ -110,3 +131,26 @@ previous manifest origins are preserved. Final API remains draft until required
 CI is green. Portal source54b406d remains green in remote support/verify/contract
 CI. All new-task hosted writes are still zero and Gridex/admin information is
 still required for any enrollment.
+
+## Current continuation — corrected independent tenant split
+
+Portal source now uses own tenant getUser, bearer-only getSession, explicit fresh
+identity resolution, central actor sub + four binding claims, and separately
+configured central OPS project attestation. The API resolver and ordinary Staff
+context use registered public tenant Auth and current native exact bindings.
+The tenant bridge/private durability registry and original worker are implemented;
+bootstrap uses explicitly trusted OPS-admin canonical invitation intent. Native
+owner is finalizing key-rotation lifecycle and no-login anchor compatibility.
+New source tests/type/lint,17offlineChromium/0errors and production12route build
+PASS; full corrected native replay/schema capture/CI still pending. Historical
+4fd/54b green checks are NOT qualification of this uncommitted correction.
+Hosted writes remain ZERO; one read-only central OPS catalog query found
+postgres TRIGGER privilege on GoTrue Auth relations and no user-defined triggers.
+No central OPS migrations may be applied to tenant gridex-prod.
+
+
+## Corrected tenant split: source frozen for genuine capture
+
+All four owners and independent reviewer have frozen their source. No Critical/Important source blocker remains. WEB75 tests,17 local browser checks and both builds/types pass. OPS123 resolver/context/SDK tests,84 invitation/delivery tests and7 whole-source embedded SQL cases pass; suite counts overlap. New OPS migration20261005124901 has SHA c6bf00b7; new tenant-only delivery migration20261005125326 has SHA9fbe18d5. All1067 prior OPS SQL hashes and38 prior WEB SQL hashes remain unchanged.
+
+WEB corrected source is being published on PR45; OPS PR578 next publishes the genuine capture pilot. Types/schema provenance deliberately remains capture-pending. Required final native clean/upgrade/type/schema parity must run after authentic raw artifact import. New evidence folder quality/staff-api/tenant-split-evidence-20261005 preserves this source qualification separately. All hosted writes remain ZERO.

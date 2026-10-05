@@ -5,7 +5,7 @@
   "sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
   "latest_migration": "20261005101527_staff_independent_onboarding_authority.sql",
   "latest_migration_schema_effect": "Authentic PostgreSQL17 capture of exact46ec source adds only the service-only independent invitation wrapper and the two intended machine-auth body edits. Nonfunction schema sections are unchanged; raw types/schema/fingerprint are copied without edits. Capture is not native acceptance; final full clean/upgrade/type/schema parity remains mandatory.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-05T10:53:50.672579+00:00",
@@ -308,7 +308,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "Independent invitation source capture completed; final acceptance/CI is still pending.",
+  "composition_capture_pending_scope": "External tenant staff identity migration20261005124901 requires authentic disposablePG17 type/schema capture; previous generated files remain unchanged. Historical captures do not include this forward.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -466,5 +466,12 @@
     "git_blob": "b7a41a8ca489cd8823cc9f71720a78e3415c3724",
     "sha256": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
     "scope": "Immutable previous complete manifest and all inherited capture origins remain reachable in Git."
+  },
+  "external_identity_previous_manifest": {
+    "source_commit": "4fd1b0447400bcfaa0381524c575383eba966297",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "f700f064ff1f054407d60d6853a34469c70164f3",
+    "sha256": "b626d291a0b9c9c759ac227e2d06d606e94da5c05750ee0f591e20500dcf4325",
+    "scope": "Historical complete generated manifest remains reachable in Git; prior capture/source evidence is preserved."
   }
 }

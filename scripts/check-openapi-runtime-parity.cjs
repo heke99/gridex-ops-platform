@@ -40,7 +40,7 @@ while ((match = routeRe.exec(registrySource))) {
     rateLimitClass: /rateLimitClass: '(read|write|expensive)'/.exec(line)?.[1],
     idempotencyRequired: line.includes('idempotencyRequired: true'),
     cachePolicy: match[2].includes('/openapi/') ? match[2].includes('/2026-') ? 'public-immutable' : 'private-revalidate' : 'no-store',
-    publicIdPolicy: match[2].includes('/openapi/') ? 'none' : match[2].startsWith('/api/v1/staff/') ? 'staff-identities-and-opaque-references' : 'opaque-references',
+    publicIdPolicy: match[2].includes('/openapi/') ? 'none' : match[2].startsWith('/api/v1/staff/') || match[2] === '/api/v1/staff-onboarding/identity/resolve' ? 'staff-identities-and-opaque-references' : 'opaque-references',
   })
 }
 

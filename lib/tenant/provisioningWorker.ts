@@ -151,6 +151,8 @@ async function processClaimedJob(job: ClaimedProvisioningJob) {
       membershipRole: invitation.membership_role ?? 'member',
       roleKey: invitation.role_key ?? 'member',
       sendEmail: true,
+      provisioningJobId: job.id,
+      provisioningLeaseToken: job.lease_token,
     })
     await complete({ job, succeeded: true })
     return { outcome: 'completed' as const }

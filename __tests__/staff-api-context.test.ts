@@ -3,7 +3,8 @@ import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase/tenantQuery', () => ({ tenantSelect: vi.fn(), tenantInsert: vi.fn() }))
 vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: vi.fn() }))
-vi.mock('@/lib/integrations/apiAuth', () => ({ requireIntegrationApiAccess: vi.fn() }))
+vi.mock('@/lib/integrations/apiAuth', async importOriginal => ({ ...await importOriginal<Record<string, unknown>>(), requireIntegrationApiAccess: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ SUPABASE_SERVICE_URL: 'https://piidsfebjqjmnepdpnas.supabase.co', supabaseService: {} }))
 import { createStaffApiContextResolver, staffPermissions, type StaffContextDependencies } from '@/lib/staff-api/context'
 import { ALLOWED_INTEGRATION_API_SCOPE_VALUES, INTEGRATION_API_PERMISSION_GROUPS, recommendedPermissionGroups, scopesForPermissionGroups, STAFF_API_SCOPES } from '@/lib/integrations/apiClientScopes'
 import type { CustomerIdentityProvider } from '@/lib/customer-portal/customerAssertion'
@@ -32,13 +33,39 @@ function setup(scopes = ['staff_customers.read']) {
     loadMembership: vi.fn(async () => ({ user_id: actor, role_key: 'customer_service_agent', membership_role: 'support', status: 'active', is_active: true })),
     loadOverrides: vi.fn(async () => []),
     consumeJti: vi.fn(async (_company, jti) => { if (seen.has(jti)) return false; seen.add(jti); return true }),
+    validateBinding: vi.fn(async () => null),
   }
   const resolve = createStaffApiContextResolver(ports)
-  const call = (proof?: string, permission = 'customers.read') => resolve(new NextRequest('https://app.gridex.se/api/v1/staff/customers', { headers: proof ? { 'x-gridex-staff-assertion': proof } : {} }), { scopes: ['staff_customers.read'], permission })
+  const call = (proof?: string, permission = 'customers.read') => resolve(new NextRequest('https://app.gridex.se/api/v1/staff/customers', { headers: proof ? { 'x-gridex-staff-assertion': proof, authorization: 'Bearer synthetic-api-key' } : {} }), { scopes: ['staff_customers.read'], permission })
   return { ports, call }
 }
 
 describe('staff API trust boundary', () => {
+  it.each(['staff_identity_resolution', 'staff_invitation_acceptance', 'unrecognized_purpose'])('refuses signed %s proof on ordinary Staff routes before membership', async token_use => {
+    const { call, ports } = setup()
+    await expect(call(token({ token_use }))).rejects.toMatchObject({ status: 401, code: 'staff_assertion_purpose_invalid' })
+    expect(ports.loadMembership).not.toHaveBeenCalled()
+  })
+  it('requires an explicit current local-to-central binding for independent registered clients and preserves the central actor sub', async () => {
+    const { call, ports } = setup()
+    const initial = await ports.apiAccess(new NextRequest('https://app.gridex.se/api/v1/staff/customers'), [])
+    if (!initial.ok) throw new Error('Missing synthetic API fixture')
+    const local = '33333333-3333-4333-8333-333333333333', binding = '44444444-4444-4444-8444-444444444444'
+    const client = { ...initial.client, name: 'Synthetic tenant', key_prefix: 'synthetic', secret_hash: '', rate_limit_per_minute: 60, allowed_ips: [], status: 'active', expires_at: null,
+      allowed_origins: ['https://support123.gridex.se'], metadata: { staff_onboarding_origin: 'https://support123.gridex.se', staff_tenant_auth: { url: 'https://ayiuxjlfazkjmmtlvhsl.supabase.co', public_key: 'sb_publishable_synthetic_public_key_1234567890' } } }
+    vi.mocked(ports.apiAccess).mockResolvedValue({ ...initial, client })
+    await expect(call(token())).rejects.toMatchObject({ status: 401, code: 'staff_identity_binding_invalid' })
+    expect(ports.loadMembership).not.toHaveBeenCalled()
+    vi.mocked(ports.validateBinding).mockResolvedValue({ actor_user_id: actor, binding_id: binding, binding_version: 1 })
+    const claims = { token_use: 'staff_access', company_id: company, staff_binding_id: binding, staff_binding_version: 1, local_auth_subject: local, local_auth_issuer: 'https://ayiuxjlfazkjmmtlvhsl.supabase.co/auth/v1' }
+    expect(await call(token(claims))).toMatchObject({ actorUserId: actor, companyId: company })
+    expect(ports.validateBinding).toHaveBeenCalledWith(expect.objectContaining({ company_id: company, actor_user_id: actor, local_user_id: local, binding_id: binding, binding_version: 1,
+      local_auth_issuer: claims.local_auth_issuer, verified_client: expect.objectContaining({ staff_tenant_auth: client.metadata.staff_tenant_auth }) }))
+    vi.mocked(ports.loadMembership).mockClear()
+    vi.mocked(ports.validateBinding).mockResolvedValue(null)
+    await expect(call(token(claims))).rejects.toMatchObject({ status: 403, code: 'staff_identity_binding_invalid' })
+    expect(ports.loadMembership).not.toHaveBeenCalled()
+  })
   it('requires explicit staff scope and never expands wildcard/customer/website grants', async () => {
     for (const scopes of [['*'], ['customer_portal.read'], ['website_contracts.read']]) {
       const { call, ports } = setup(scopes)

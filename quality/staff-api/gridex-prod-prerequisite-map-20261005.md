@@ -1,3 +1,10 @@
+> SUPERSEDED ACTIVATION PLAN — User correction 2026-10-05: gridex-prod is an
+> ordinary tenant database. Central OPS customers/cases/membership/RBAC remain
+> in OPS. The read-only catalog facts below are historical; absence of central
+> Staff tables/functions in tenant Prod is expected, not an instruction to copy
+> OPS migrations there. Register the tenant Auth issuer and explicit staff actor
+> bindings through the independent API. Preserve original evidence and targets.
+
 # Staff API prerequisite map for named gridex-prod — 2026-10-05
 
 **SOURCE/CATALOG MAP ONLY — production alignment and activation are NOT RUN.**

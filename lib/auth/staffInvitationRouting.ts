@@ -1,21 +1,16 @@
 import { isIP } from 'node:net'
 import { ApiInputError } from '@/lib/api/strictRequest'
 import { tenantSelect } from '@/lib/supabase/tenantQuery'
-import { staffStorageProjectRef } from '@/lib/staff-api/storageTarget'
-
-export const STAFF_ONBOARDING_PROJECT_REF = 'ayiuxjlfazkjmmtlvhsl'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 export type StaffInvitationClient = {
   id: string; company_id: string; status: string; scopes: string[]; expires_at: string | null;
   allowed_origins?: string[] | null; metadata?: Record<string, unknown> | null;
   revoked_at?: string | null; deleted_at?: string | null;
+  secret_hash?: string;
 }
-export type InvitationCommandBinding = { channel?: unknown; api_client_id?: unknown; company_id?: unknown; staff_operation?: unknown }
-
-export function requireStaffOnboardingProject(): void {
-  if (staffStorageProjectRef() !== STAFF_ONBOARDING_PROJECT_REF) {
-    throw new ApiInputError('Staff onboarding requires the configured production project.', 'storage_project_mismatch', 412)
-  }
+export type InvitationCommandBinding = { channel?: unknown; api_client_id?: unknown; company_id?: unknown; staff_operation?: unknown; external_staff_identity?: unknown }
+export function isIndependentStaffInvitation(binding: InvitationCommandBinding): boolean {
+  return binding.channel === 'staff_api' || (binding.channel === 'ops' && binding.external_staff_identity === true)
 }
 
 /** Registration is an operator-owned client setting, never an invitation/browser URL. */
@@ -35,9 +30,8 @@ export function registeredStaffOnboardingOrigin(client: StaffInvitationClient | 
 }
 
 export async function loadRegisteredStaffInvitationClient(companyId: string, clientId: string): Promise<StaffInvitationClient> {
-  requireStaffOnboardingProject()
   const { data, error } = await tenantSelect(companyId, 'integration_api_clients',
-    'id,company_id,status,scopes,expires_at,allowed_origins,metadata,revoked_at,deleted_at').eq('id', clientId).maybeSingle()
+    'id,company_id,status,scopes,expires_at,allowed_origins,metadata,revoked_at,deleted_at,secret_hash').eq('id', clientId).maybeSingle()
   if (error) throw error
   const client = data as StaffInvitationClient | null
   registeredStaffOnboardingOrigin(client, companyId, clientId)
@@ -55,7 +49,7 @@ export async function loadInvitationCommandBinding(companyId: string, invitation
 
 export async function staffInvitationCallbackOrigin(companyId: string, invitationId: string): Promise<string | null> {
   const binding = await loadInvitationCommandBinding(companyId, invitationId)
-  if (binding.channel !== 'staff_api') {
+  if (!isIndependentStaffInvitation(binding)) {
     if (binding.api_client_id || (binding.channel !== undefined && binding.channel !== 'ops')) {
       throw new ApiInputError('The durable invitation binding is invalid.', 'staff_invitation_binding_missing', 403)
     }
