@@ -1,0 +1,127 @@
+{
+  "run": {
+    "id": 37289047220,
+    "head_sha": "7cf4524428868b99a342cd6fc2b0d062b234e47d",
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-05T09:17:22Z",
+    "updated_at": "2026-10-05T10:04:58Z"
+  },
+  "job": 111694842956,
+  "jobConclusion": "SUCCESS",
+  "artifact": {
+    "id": 11337920957,
+    "name": "gridex-rem-002-clean-replay",
+    "size_in_bytes": 16103930,
+    "expired": false,
+    "digest": "sha256:bc3a826ca0fe5a36ba717111e44da45a0390322436d25d4e0ab7744732defb69"
+  },
+  "actualZipSHA256": "bc3a826ca0fe5a36ba717111e44da45a0390322436d25d4e0ab7744732defb69",
+  "crcValidMembers": 57,
+  "nativeXmlSHA256": "fbf82187719cc49dcdb7494fe4794a527141d88a9d39f7614d0cd075a407a8e4",
+  "currentBase": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+  "qualification": {
+    "sourceCommit": "7cf4524428868b99a342cd6fc2b0d062b234e47d",
+    "unchangedTreesAndPaths": [
+      "lib",
+      "app",
+      "supabase",
+      "scripts/helpers",
+      "scripts/fixtures",
+      "scripts/ediel-source-owner-native.config.ts",
+      "scripts/ediel-sc-003-005-service-native.test.ts",
+      "scripts/ediel-esco-10-11-projection-native.test.ts",
+      "scripts/ediel-service-evidence-native.test.ts",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ops-hardening.yml",
+      "scripts/gridex-aud-003-clean-replay.sh",
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json",
+      "scripts/supabase-types-manifest.json"
+    ],
+    "matchedTrackedFiles": 3059,
+    "matchedGitInventorySHA256": "287d68e924bcf0b303ec8c1d246a6f88c8d0a06c141f0b82e6f0129af23f8c5e",
+    "generatedOutputs": [
+      {
+        "member": "rem002-schema-snapshot/schema.sql",
+        "currentPath": "supabase/schema.sql",
+        "sha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+        "byteIdentical": true
+      },
+      {
+        "member": "rem002-schema-snapshot/schema.fingerprint.json",
+        "currentPath": "supabase/schema.fingerprint.json",
+        "sha256": "10a1a07a4678506462e037be4f23c8f2dab729dc560addb219892ef57830dac7",
+        "byteIdentical": true
+      },
+      {
+        "member": "rem002-database.types.ts",
+        "currentPath": "supabase/database.types.ts",
+        "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+        "byteIdentical": true
+      }
+    ]
+  },
+  "selectedSuites": [
+    {
+      "path": "scripts/ediel-esco-10-11-projection-native.test.ts",
+      "tests": 3,
+      "names": [
+        "ESCO-10 stores an exact reception receipt without a permission field and distributes only through the current grant",
+        "ESCO-11 rechecks authentic current downstream_use basis while preserving original DGI and prior receipts",
+        "ESCO-11 rechecks authentic current privacy_roles basis while preserving original DGI and prior receipts"
+      ]
+    },
+    {
+      "path": "scripts/ediel-sc-003-005-service-native.test.ts",
+      "tests": 1,
+      "names": [
+        "SC003/SC005 legal provider DGI uses one permission and one E66 storage/disposition/physical ACK for two independently valid scoped missions"
+      ]
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "tests": 29,
+      "names": [
+        "ESCO02 native archive refuses DSO network-period terms on another actual contract kind before any artifact or business effect",
+        "native issuer archive and separate review reject legacy_nine_terms without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject legacy_eleven_terms without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject staged_agreement without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject staged_method without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject staged_network_period without source/request/grant/storage/ACK effects",
+        "ESCO02 native current archive/review holds before_three_years before any permission/request/source/storage/ACK effects",
+        "ESCO02 native current archive/review holds before_network_start before any permission/request/source/storage/ACK effects",
+        "ESCO02 native current archive/review holds historical_today before any permission/request/source/storage/ACK effects",
+        "ESCO02 native current archive/review holds continuous_past_end before any permission/request/source/storage/ACK effects",
+        "ESCO02 native first request captures the actual server day and DSO period once; current replay attempts no permission/link/receipt insert",
+        "ESCO02 native pending metering actor DENY wins before the fresh timing/permission transaction",
+        "ESCO02 native last timing receipt failure rolls back permission/link/request-owner creation",
+        "genuine archived/reviewed V scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+        "genuine archived/reviewed VH scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+        "real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects",
+        "retained actual ESCO ACK and storage deny current reviewer revocation without effects",
+        "retained actual ESCO ACK and storage deny current role revocation without effects",
+        "retained actual ESCO ACK and storage deny current issuer_representation revocation without effects",
+        "retained actual ESCO ACK and storage deny current issuer_key revocation without effects",
+        "pending real own_actor DENY insertion wins before any ACK/storage effects under the same graph order",
+        "pending real global_reviewer DENY insertion wins before any ACK/storage effects under the same graph order",
+        "a genuine already accepted ACK transport journal replays after issuer revocation without a second SMTP call or fresh scope approval",
+        "actual native resolver preserves positive rights and exact OID/ACL while current own/global direct/override denies remain tenant/time scoped",
+        "SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries",
+        "SC071 pending company beneficiary DENY wins before real projection and leaks zero rows/effects",
+        "SC071 pending global beneficiary DENY wins before real projection and leaks zero rows/effects",
+        "literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18",
+        "ESCO11 native filtered derivatives retain the original DGI source and private contract across separate missions; exact current replay attempts no insert"
+      ]
+    }
+  ],
+  "boundaries": [
+    "Actual current source reuse; the workflow ran on sourceCommit, not currentBase.",
+    "Synthetic upstream issuer/legal/registry/customer inputs and SMTP substitution remain declared by the unchanged fixtures.",
+    "These include E66 ACKs; they do not establish Z13-received or Z14-emitted ACK pair, full malformed-input no-effect proof, or native Z15VH."
+  ],
+  "retrievalFailure": "Initial gh redirected artifact download returned403 and zero bytes. Authorized GitHub connector returned the actual artifact; ZIP digest/CRC and raw XML were then verified."
+}
