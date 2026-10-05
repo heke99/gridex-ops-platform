@@ -65,6 +65,31 @@ describe('DB-05 hard-delete guard (F-DB-05-01)', () => {
     expect(await count('customer_events', `customer_id='${CUSTOMER}'`)).toBe(1)
   })
 
+  it('refuses the status shortcut: service_role cannot mark a live company disposable and then delete it', async () => {
+    const error = await code('service_role', `update public.companies set status='deleted_test_only' where id='${A}'`)
+    expect(error?.code).toBe('23001')
+    expect(error?.message).toContain('company_disposable_status_blocked')
+    expect(((await db.query(`select status from public.companies where id='${A}'`)).rows[0] as { status: string }).status).toBe('active')
+    expect((await code('service_role', `delete from public.companies where id='${A}'`))?.code).toBe('23001')
+    expect(await count('canonical_audit_events', `company_id='${A}'`)).toBe(1)
+  })
+
+  // Direct TRUNCATE of a history table reaches the statement guard (23001). A CASCADE from companies/customers is
+  // refused either by that guard or earlier by missing privilege on a cascaded private table (42501); both keep rows.
+  it.each([
+    ['truncate public.companies cascade', ['23001', '42501']],
+    ['truncate public.customers cascade', ['23001', '42501']],
+    ['truncate public.canonical_audit_events', ['23001']],
+    ['truncate public.customer_events', ['23001']],
+  ])('refuses service_role %s and keeps every row', async (sql, codes) => {
+    const error = await code('service_role', sql)
+    expect(codes).toContain(error?.code)
+    if (error?.code === '23001') expect(error?.message).toContain('history_truncate_blocked')
+    expect(await count('companies', `id in ('${A}','${B}')`)).toBe(2)
+    expect(await count('customer_events', `company_id='${A}'`)).toBe(1)
+    expect(await count('canonical_audit_events')).toBe(2)
+  })
+
   it('does not let one tenant status or another tenant disposable status authorise the delete', async () => {
     expect((await code('service_role', `delete from public.companies where id in ('${A}','${B}')`))?.code).toBe('23001')
     expect(await count('companies', `id in ('${A}','${B}')`)).toBe(2)

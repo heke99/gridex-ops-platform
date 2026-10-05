@@ -9,6 +9,7 @@ on:
       - 'quality/audits/ediel-masterplan-v2/db04-query-plan/**'
       - 'scripts/db-05-hard-delete-guard-native.test.ts'
       - 'scripts/db-05-tenant-offboarding-native.test.ts'
+      - 'scripts/ediel-customer-retention-native.test.ts'
       - 'supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql'
       - '.github/workflows/ediel-db04-native.yml'
   pull_request:
@@ -17,6 +18,7 @@ on:
       - 'quality/audits/ediel-masterplan-v2/db04-query-plan/**'
       - 'scripts/db-05-hard-delete-guard-native.test.ts'
       - 'scripts/db-05-tenant-offboarding-native.test.ts'
+      - 'scripts/ediel-customer-retention-native.test.ts'
       - 'supabase/migrations/**'
       - '.github/workflows/ediel-db04-native.yml'
 

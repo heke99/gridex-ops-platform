@@ -7,6 +7,6 @@ export default defineConfig({
   ...canonical,
   test: {
     ...canonical.test,
-    include: ['scripts/ediel-transport-data-query-plan-native.test.ts', 'scripts/db-05-hard-delete-guard-native.test.ts', 'scripts/db-05-tenant-offboarding-native.test.ts'],
+    include: ['scripts/ediel-transport-data-query-plan-native.test.ts', 'scripts/db-05-hard-delete-guard-native.test.ts', 'scripts/db-05-tenant-offboarding-native.test.ts', 'scripts/ediel-customer-retention-native.test.ts'],
   },
 })
