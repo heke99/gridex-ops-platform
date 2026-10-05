@@ -20,13 +20,12 @@ beforeEach(()=>{io.inserts=[]})
 
 describe('TEN-11 a local tenant-selection problem is not a sender protocol error',()=>{
  for(const tenantStatus of ['unassigned','ambiguous'] as const){
-  it(`${tenantStatus} routing is held for manual review as received, never as syntax failure or negative ACK`,async()=>{
-   await createUnresolvedInboundEdielMessage({inboundEmailMessageId:'mail',parsed,tenantStatus,reasons:['local'],candidates:[]})
+  it(`unqualified ${tenantStatus} routing is held without a canonical source or negative ACK`,async()=>{
+   // No current actor, parse identity or environment means no safe source custody.
+   expect(await createUnresolvedInboundEdielMessage({inboundEmailMessageId:'mail',parsed,tenantStatus,reasons:['local'],candidates:[]})).toBeNull()
    const messages=io.inserts.filter(i=>i.table==='ediel_messages')
-   expect(messages).toHaveLength(1)
-   const {row}=messages[0]
-   expect(row).toMatchObject({direction:'inbound',message_family:'PRODAT',status:'received',business_match_status:'blocked',failure_reason:null,company_id:null})
-   expect(row.validation_report).toMatchObject({status:'routing_unresolved_manual_review',syntaxDecision:'not_checked'})
+   expect(messages).toHaveLength(0)
+   expect(io.inserts).toEqual([])
    // No outbound CONTRL/APERAK (E10, ERC 42/209) is created for our own routing problem.
    expect(io.inserts.some(i=>['CONTRL','APERAK','UTILTS_ERR'].includes(String(i.row.message_family))||i.row.direction==='outbound')).toBe(false)
   })

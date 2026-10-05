@@ -1,0 +1,46 @@
+{
+  "kind": "exact-independent-readonly-records",
+  "records": [
+    {
+      "member": "sc013-sc020-mainaa-current-carry.json",
+      "sha256": "dafe875f94077238959bfd215db9615dcd0b64f3991137912a8023a9e9991b78",
+      "bytes": 9763
+    },
+    {
+      "member": "sc013-sc020-mainaa-current-carry.md",
+      "sha256": "28532d59ab7a6ffba582655e466acc4a521ba4dafb1f2911381d116a19b95693",
+      "bytes": 2007
+    },
+    {
+      "member": "sc009-sc019-mainaa-current-carry.json",
+      "sha256": "98c5bf162bed5a2d404f090537b27706d72fe05f49e681f741111649377de4de",
+      "bytes": 10650
+    },
+    {
+      "member": "sc009-sc019-mainaa-current-carry.md",
+      "sha256": "5edc74dde5011ab0f7411dd74849a4b3651c596084cd3bc90f3fc45c346349c3",
+      "bytes": 1865
+    },
+    {
+      "member": "env06-env10-duplicate-resolution.json",
+      "sha256": "4f16aec889b1ac4f99423923f577d30edca56b070f07a4cd70f4602f4cd221a3",
+      "bytes": 39706
+    },
+    {
+      "member": "env06-env10-duplicate-resolution.md",
+      "sha256": "77758ecfc7ee77600392736e96f7b467b09a1ace299240e13d8b9ecf30d460fd",
+      "bytes": 5888
+    },
+    {
+      "member": "next-free-pair-scout-20261005.json",
+      "sha256": "11c8beba5d08014290a970330cbb5b78a930dc38f972706f51b937f47099bdfb",
+      "bytes": 14231
+    },
+    {
+      "member": "next-free-pair-scout-20261005.md",
+      "sha256": "1b1d7ebb3bd92f35ca33e92a6b41d0f245b9db0e7d1afbe03ea227bd967b9b61",
+      "bytes": 3195
+    }
+  ],
+  "zip_sha256": "b575d8e0a28bf8c51dd4d255f26a47f74b36f95e78d13637a3d43e90d9017093"
+}

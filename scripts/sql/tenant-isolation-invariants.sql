@@ -4,7 +4,7 @@
 -- database: npm run tenant:invariants
 --
 --   F-6   every table classified; every client-reachable tenant table guarded; RLS on
---   F-3   no row in a tenant-classified table without a tenant
+--   F-3   no unattributed tenant row except a protected technical original/diagnostic
 --   F-8/10/11  unique business keys on tenant tables include company_id
 --   F-13  every view runs as the invoker
 --   F-14  no policy targets roles that cannot reach the table
@@ -20,6 +20,7 @@ declare
   v_failures text[] := '{}';
   v_row record;
   v_count bigint;
+  v_technical_originals uuid[] := '{}';
 begin
   ------------------------------------------------------------------
   -- F-6: every public table is classified.
@@ -89,7 +90,18 @@ begin
   -- F-3: no row in a tenant-classified table without a tenant. Tables that
   -- legitimately hold platform rows are classified "mixed" and must declare what
   -- NULL means (enforced by a check constraint on the classification table).
+  -- Protected technical intake deliberately keeps legal attribution NULL. Only
+  -- its existing private birth predicate proves that subtype; raw/legacy rows,
+  -- public flags and unrelated children do not. Recognize retained provenance,
+  -- not current actor/endpoint permission, without granting any business effect.
   ------------------------------------------------------------------
+  if to_regprocedure('gridex_unattributed_intake.is_birth_v1(public.ediel_messages,boolean)') is not null then
+    execute 'select coalesce(array_agg(m.id), ''{}''::uuid[])
+      from public.ediel_messages m where m.company_id is null
+        and gridex_unattributed_intake.is_birth_v1(m, false) is true'
+      into v_technical_originals;
+  end if;
+  -- Before that authority exists, the empty set retains strict NULL rejection.
   for v_row in
     select c.relname
     from public.platform_table_classification t
@@ -102,8 +114,29 @@ begin
           and a.attnum > 0 and not a.attisdropped
       )
   loop
-    execute format('select count(*) from public.%I where company_id is null', v_row.relname)
-      into v_count;
+    if v_row.relname = 'ediel_messages' then
+      execute 'select count(*) from public.ediel_messages
+        where company_id is null and not (id = any($1))'
+        into v_count using v_technical_originals;
+    elsif v_row.relname = 'ediel_message_events' then
+      execute 'select count(*) from public.ediel_message_events e
+        where e.company_id is null and not exists (
+          select 1 from public.ediel_messages m
+          where m.id = e.ediel_message_id and m.company_id is null
+            and m.id = any($1))'
+        into v_count using v_technical_originals;
+    elsif v_row.relname = 'ediel_unresolved_items' then
+      execute 'select count(*) from public.ediel_unresolved_items u
+        where u.company_id is null and not exists (
+          select 1 from public.ediel_messages m
+          where m.id = u.source_message_id and m.company_id is null
+            and m.id = any($1)
+            and u.environment is not distinct from m.environment)'
+        into v_count using v_technical_originals;
+    else
+      execute format('select count(*) from public.%I where company_id is null', v_row.relname)
+        into v_count;
+    end if;
     if v_count > 0 then
       v_failures := v_failures || format(
         'F-3: tenant table %I holds %s row(s) with no company_id', v_row.relname, v_count);

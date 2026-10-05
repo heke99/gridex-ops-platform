@@ -1,0 +1,103 @@
+{
+  "run": {
+    "id": 37260943445,
+    "head_sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "head_tree": "c1a15c0597cb32995b81a8a621d865afc3eeb96e",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+    "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37260943445"
+  },
+  "artifact": {
+    "id": 11325200901,
+    "name": "staff-schema-capture-329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "size_in_bytes": 1619708,
+    "digest": "sha256:9353629de11059586e05caf1957d35e31d6e382a22f8b704d21feac380cfb657",
+    "expired": false,
+    "workflow_run": {
+      "id": 37260943445,
+      "repository_id": 1190539955,
+      "head_repository_id": 1190539955,
+      "head_branch": "codex/ediel-tr05-recovery-20261004",
+      "head_sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c"
+    }
+  },
+  "job": {
+    "id": 111607846726,
+    "name": "Capture disposable clean-replay types and schema",
+    "head_sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "status": "completed",
+    "conclusion": "success",
+    "run_id": 37260943445,
+    "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37260943445/job/111607846726",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Run actions/checkout@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Run actions/setup-node@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Run npm ci",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4
+      },
+      {
+        "name": "Run supabase/setup-cli@v1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Install the matching PostgreSQL 17 client",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6
+      },
+      {
+        "name": "Capture authentic artifacts from the sourced clean replay",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7
+      },
+      {
+        "name": "Upload capture-only artifacts",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8
+      },
+      {
+        "name": "Post Run actions/setup-node@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15
+      },
+      {
+        "name": "Post Run actions/checkout@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 16
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 17
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="5" failures="0" errors="0" time="0.017857925">
+    <testsuite name="__tests__/ediel-tr-04-attributed-dsn.test.ts" timestamp="2026-10-05T14:19:14.378Z" hostname="c8313f035683" tests="5" failures="0" errors="0" skipped="0" time="0.017857925">
+        <testcase classname="__tests__/ediel-tr-04-attributed-dsn.test.ts" name="quarantines valid attributed raw_email through actual parser/candidate/source/status owners" time="0.009359684">
+        </testcase>
+        <testcase classname="__tests__/ediel-tr-04-attributed-dsn.test.ts" name="quarantines valid attributed body_text through actual parser/candidate/source/status owners" time="0.001911781">
+        </testcase>
+        <testcase classname="__tests__/ediel-tr-04-attributed-dsn.test.ts" name="quarantines valid attributed attachment through actual parser/candidate/source/status owners" time="0.001460111">
+        </testcase>
+        <testcase classname="__tests__/ediel-tr-04-attributed-dsn.test.ts" name="keeps transport quarantine when the candidate port fails" time="0.001395635">
+        </testcase>
+        <testcase classname="__tests__/ediel-tr-04-attributed-dsn.test.ts" name="keeps transport quarantine when the observation port fails" time="0.00154511">
+        </testcase>
+    </testsuite>
+</testsuites>

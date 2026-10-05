@@ -1,0 +1,11 @@
+{
+  "reviewer": "root independent of adaptation author",
+  "decision": "APPROVE_NARROW_SC016_CURRENT_AUTHORIZATION_MODULE_BINDING",
+  "head": "cdeeee07036da027ea840123f4f951ab32690395",
+  "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "scope": "Four-line existing moduleConsumers binding executes complete real authorization module and actual failureDisposition module. Existing SDK fixture retained; no copied class, changed SQL, assertion, source or authority predicate. Current preload guard unchanged.",
+  "actual_prior_red_green": "Exact-body isolated probe old source yields intended denial, current unbound class yields ReferenceError, binding real class restores same denial/security_quarantine. Existing newly published coupled10 PASS0skip plus types/lint checked.",
+  "limits": "Reader source/merge carry and existing actual focused result only; new required current-head CI remains mandatory before merge. Historical native evidence not relabelled.",
+  "script_sha256": "d7cb69a18b09e7d3aa122e5cbf307602d71378cf81191956aab2e0cf1a044858",
+  "expected_current_merge_tree": "f55e9e4bba199225fc907f47a19ef1f00a469794"
+}

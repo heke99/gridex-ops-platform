@@ -1,0 +1,15 @@
+{
+  "archive": "current-owner-carry-and-interface-reviews-raw.zip",
+  "sha256": "440fec7fa127c760c72c65ab0efe09c37ae6fc9784dd65c3487bd93d53481be8",
+  "raw_members": {
+    "sc009-sc019-final-carry.md": "0efc1f5c1945b59a027c82657591de178c5b937b8d402b9dfde5028d22595b5a",
+    "sc013-sc020-99af-final-carry.md": "07a64c657bad73fb46e59441bd64dfe68fa22db3a4cfc49df38f95141a1fe64a",
+    "sc015-sc016-234-current-main-carry.md": "7e68f154e536708cdb264f6c9c38e8d19029f9870d7d48be814936a32924d23e",
+    "sc057-sc059-815307-current-main-carry-20261005.md": "d8f4ef494be0d0c96dd038598eca2db26074afc90f4d3e6ec9847e458ae92283",
+    "root503-main7b-current-carry.md": "b6691f2e62ebec4be9b8359442e68751ed19b9ae5013279174487cb4fd274857",
+    "root503-main2579-current-carry.md": "f9dd816b16c2631cd1057b865f6e9ffdbde04380e17ba6d51b571b46f3fee919",
+    "ops03-f458-native-reader-interface.md": "f58ed3796b1bbd5f257df12f4e5d1b92d89242b111a5913e0e03e7e904dce871",
+    "fg-helper-proposal-b7053909-review.md": "be663b144ad3d9732371604e4786a1e6ba332612768c5443bd4d953fcd78ea6e"
+  },
+  "scope": "Exact independent owner/source/interface records, no duplicate implementation or runtime execution. IMP05 blocked private analysis is excluded."
+}

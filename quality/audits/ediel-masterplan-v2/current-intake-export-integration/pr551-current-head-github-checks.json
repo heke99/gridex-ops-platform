@@ -1,0 +1,87 @@
+{
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 551,
+  "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+  "required_checks": [
+    {
+      "name": "pr-certificate",
+      "id": 111795736575,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891451/job/111795736575"
+    },
+    {
+      "name": "coverage",
+      "id": 111792593208,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891451/job/111792593208"
+    },
+    {
+      "name": "smoke",
+      "id": 111792593135,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891451/job/111792593135"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 111792579796,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891284/job/111792579796"
+    },
+    {
+      "name": "verify",
+      "id": 111792579681,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891284/job/111792579681"
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 111792579664,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891581/job/111792579664"
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 111792579624,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891284/job/111792579624"
+    },
+    {
+      "name": "browser-public",
+      "id": 111792579456,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891286/job/111792579456"
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 111792579240,
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37318891284/job/111792579240"
+    }
+  ],
+  "statuses": [
+    {
+      "context": "CodeRabbit",
+      "state": "success",
+      "target_url": null
+    }
+  ],
+  "source": "Direct GitHub check-runs/status at exact qualified current owner head, fetched before actual merge."
+}

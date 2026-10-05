@@ -1,0 +1,26 @@
+{
+  "kind": "exact-current-main-carry-records",
+  "records": [
+    {
+      "member": "sc009-sc019-maincf-current-carry.json",
+      "sha256": "a079e95ce1a8af834dbec067fc5b1ad1b6b8dbabe6e6ff68621656e0db8ae5d1",
+      "bytes": 1818
+    },
+    {
+      "member": "sc009-sc019-maincf-current-carry.md",
+      "sha256": "6d4613bb7818437da06224d11fd912fb57124d1862bf313be84a1cabdff2338e",
+      "bytes": 984
+    },
+    {
+      "member": "sc015-sc016-sc051-sc068-cf-current-main-carry.json",
+      "sha256": "031456637673bdd4c11232b23703ab58282bb7e4830b1b3ab0ba9d1e07f5fcdc",
+      "bytes": 9764
+    },
+    {
+      "member": "sc015-sc016-sc051-sc068-cf-current-main-carry.md",
+      "sha256": "9dfec92758990f3f5c4b98142df18312b7ab53e1f9304c636db1fac957375975",
+      "bytes": 2151
+    }
+  ],
+  "zip_sha256": "c8f1190d4b9291c74ddfc824250c50dc02efc39741220986d3814f4574c2f4ef"
+}

@@ -1,0 +1,18 @@
+{
+  "pr": 562,
+  "owner_head": "815307d0866da38e63439dd6fb116d25ffd23e89",
+  "actual_merge_sha": "36e873fbac87695f9d3522086f721961824e29f9",
+  "actual_tree": "a32ecc7e8760c056581385b233bd84c56f82d476",
+  "actual_parents": [
+    "2579fa93b8008eb72ca2a77d074b551828d0be58",
+    "815307d0866da38e63439dd6fb116d25ffd23e89"
+  ],
+  "required_head_checks": "All9SUCCESS, CodeRabbitSUCCESS; authoritative raw checkpoint retained separately.",
+  "foreign_rows_preserved": 350,
+  "owned_approved_ids": [
+    "SC-057",
+    "SC-059"
+  ],
+  "independent_whole_and_source_carry": "APPROVED_AT_EXPLICIT_FINITE_PORTS",
+  "no_rerun_or_source_relabel": true
+}

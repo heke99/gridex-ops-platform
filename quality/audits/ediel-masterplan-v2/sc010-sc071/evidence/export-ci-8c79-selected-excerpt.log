@@ -1,0 +1,10 @@
+Selected exact decoded GitHub job excerpts only, not a complete raw job log.
+Candidate head: 8c79ab436279991b47eb717b1816cde32b0d2191
+Targeted job: 111731851114 / run37300512616
+Verify job: 111731852182 / run37300512628
+2026-10-05T11:06:17.2662656Z Masterplan IDs: 352; approved 209; tagged green 229; tagged failing 0; untagged 123
+2026-10-05T11:06:17.2674486Z   SC-010  __tests__/ediel-sc-010-071-current-grant.test.ts, __tests__/ediel-sc-010-071-grant-revalidation.test.ts, __tests__/ediel-sc-010-beneficiary-export.test.ts
+2026-10-05T11:06:17.2700549Z   SC-071  __tests__/ediel-sc-010-071-current-grant.test.ts, __tests__/ediel-sc-010-071-grant-revalidation.test.ts
+2026-10-05T11:04:08.4919297Z Migration integrity check failed (1 issue(s)):
+2026-10-05T11:04:08.4920636Z - Migration is missing from checksum manifest: 20261005101500_ediel_beneficiary_export_jobs.sql (sha256=d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596)
+2026-10-05T11:04:08.5086240Z ##[error]Process completed with exit code 1.

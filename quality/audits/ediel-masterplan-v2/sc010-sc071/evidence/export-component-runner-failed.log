@@ -1,0 +1,57 @@
+
+ RUN  v4.1.9 /workspace/gridex-sc010-sc071
+
+ ✓ __tests__/ediel-sc-010-071-grant-revalidation.test.ts (10 tests) 28ms
+ ✓ __tests__/ediel-beneficiary-projection-api.test.ts (18 tests) 44ms
+ ✓ __tests__/ediel-beneficiary-projection-provenance.test.ts (10 tests) 16ms
+ ❯ __tests__/ediel-sc-010-beneficiary-export.test.ts (12 tests | 1 failed) 5135ms
+     × executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness 5107ms
+     ✓ queues the trusted selected tenant/actor and exact captured scope without putting values in the response 15ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {"idempotencyKey":"00000000-0000-4000-8000-000000000005","actorUserId":"00000000-0000-4000-8000-000000000020"} 2ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {"idempotencyKey":"00000000-0000-4000-8000-000000000005","companyId":"00000000-0000-4000-8000-000000000020"} 1ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {} 1ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {"idempotencyKey":"old-cache"} 1ms
+     ✓ executes each real claimed token once and returns statuses without retaining a payload or silently upgrading a version 1ms
+     ✓ does not execute stale data returned together with a failed claim 1ms
+     ✓ stops on an execution error without retrying or marking the job completed 1ms
+     ✓ authenticates every result read and rejects an old result alongside a current RPC denial 2ms
+     ✓ uses the newly selected tenant/user for the next result read 1ms
+     ✓ never claims jobs without a selected authorized company 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-010-beneficiary-export.test.ts > SC010 reachable internal beneficiary export consumer > executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness
+AssertionError: expected Error: spawnSync /tmp/gridex-sc010-sc071-… { …(5) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+Error {
+  "message": "spawnSync /tmp/gridex-sc010-sc071-node22/node_modules/node/bin/node EPERM",
+  "errno": -1,
+  "code": "EPERM",
+  "syscall": "spawnSync /tmp/gridex-sc010-sc071-node22/node_modules/node/bin/node",
+  "path": "/tmp/gridex-sc010-sc071-node22/node_modules/node/bin/node",
+  "spawnargs": [
+    "/workspace/gridex-sc010-sc071/scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+  ],
+}
+
+ ❯ __tests__/ediel-sc-010-beneficiary-export.test.ts:38:29
+     36|       env: { ...process.env, EDIEL_PGLITE_MODULE: require.resolve('@el…
+     37|     })
+     38|     expect(execution.error).toBeUndefined()
+       |                             ^
+     39|     expect(execution.status, execution.stderr?.slice(-3000)).toBe(0)
+     40|     expect(execution.stdout).toContain('Beneficiary export SQL: 9 PASS…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 49 passed (50)
+   Start at  10:15:34
+   Duration  5.68s (transform 500ms, setup 76ms, import 906ms, tests 5.22s, environment 1ms)
+
+JUNIT report written to /workspace/gridex-sc010-sc071/quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-component-junit.xml
