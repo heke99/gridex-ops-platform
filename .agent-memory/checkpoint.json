@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-04T23:00:00Z",
-  "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
-  "paused": true,
-  "branch": "claude/cool-tesla-2pmyua",
-  "active_pr": 491,
-  "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "updated_at": "2026-10-05T14:28:37.623186+00:00",
+  "status": "IN_PROGRESS",
+  "paused": false,
+  "branch": "codex/ediel-tr05-recovery-20261004",
+  "active_pr": 503,
+  "base_head_sha": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "#491: TEN/ESCO/ACK klart; driv CI grön",
+  "active_item": "Masterplan v2 coordinator: authentic composed capture import/current mandatory gates and guarded main integration",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Läs #491 CI på senaste head och åtgärda rött; nästa kluster enligt resterande kort efter claim på #491.",
+  "next_action": "Adopt latest actual main with exact source/replay/evidence carry, publish independently reviewed authentic capture + finite TR04 adapter, require new-head gates; merge independently complete green scenario packets concurrently.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1524,5 +1524,18 @@
     "TEN-07": "codex",
     "ESCO-10": "codex",
     "ESCO-11": "codex"
+  },
+  "masterplan_coordinator_current": {
+    "owner": "/root",
+    "coordination_issue": 530,
+    "published_head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "pre_import_consumer": "d2f820ebf7eeeccef3d86f01e2536c1b9ddd53e2",
+    "stored_main_approvals": 217,
+    "capture_run": 37319901610,
+    "capture_job": 111796010070,
+    "capture_artifact": 11351030885,
+    "capture_status": "SUCCESS_AUTHENTIC_RAW_IMPORT_INDEPENDENTLY_APPROVED",
+    "current_candidate_gate_status": "PENDING",
+    "sole_local_work": "Reviewed import/current checks staged for same503 publication; priorcheckpointd2 public."
   }
 }

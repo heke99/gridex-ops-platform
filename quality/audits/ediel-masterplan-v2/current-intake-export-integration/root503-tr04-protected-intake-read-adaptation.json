@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "reviewer": "sc051_sc068_final_review",
+  "created_utc": "2026-10-05T14:26:01.691729+00:00",
+  "pr": 503,
+  "verdict": "APPROVE_FINITE_FIXTURE_DEPENDENCY_ADAPTATION",
+  "prechange_head": "d2f820ebf7eeeccef3d86f01e2536c1b9ddd53e2",
+  "unchanged_production_source_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "owned_test": "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+  "test_sha256": "c90c93c9bebe584513398be886a6b7cd9f1a7603a3c604647e994f7e84870472",
+  "baseline_test_sha256": "213f02436eb868a2882eba8e8a4ed48ab708d27fc0c0257be11540f394153410",
+  "baseline_git_blob": "c30a9f89125d13d96734b76bd303d691465353f6",
+  "added_lines": 8,
+  "removed_lines": 0,
+  "all_original_bytes_reconstructed_exact": true,
+  "retained_unexpected_business_ACK_AI_port_denial": true,
+  "new_finite_port": {
+    "RPC": "ediel_read_unattributed_technical_intake_v1",
+    "response": {
+      "data": null,
+      "error": null
+    },
+    "basis": "No private protected birth in attributed legacy fixture; real SQL receipt helper returns NULL",
+    "observed_separately": true,
+    "exact_actor_inbound_and_NULL_source_asserted_cases": 5,
+    "no_private_authority_seed": true
+  },
+  "original_CI_failure": {
+    "job_id": 111796015423,
+    "failed_cases": 5,
+    "passed_tests": 10624,
+    "passed_files": 829,
+    "actual_cause": "Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1",
+    "stack": [
+      "old fixture RPC line33",
+      "readUnattributedTechnicalIntake receptions.ts80",
+      "processInboundEmailMessage edielInboundProcessor.ts90"
+    ],
+    "public_excerpt_path": "/tmp/root503-5be-quality-failure-excerpt.log",
+    "sha256": "c0fc115d3f9a82702ec2cdc6ac3155fdedee194ec80b50570329684c27b0e1e7"
+  },
+  "owner_raw_run": {
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "timestamp": "2026-10-05T14:19:14.378Z",
+    "exit_code": 0,
+    "exit_code_custody": "owner confirmed existing completed session98042; reviewer independently checked raw log/JUnit",
+    "log_path": "/tmp/root503-tr04-intake-read-test.log",
+    "log_sha256": "21de3e172c31a91e6b33eab6be1256dcf156576f10693aa6eb356f7f1c486e0f",
+    "JUnit_path": "/tmp/root503-tr04-intake-read-junit.xml",
+    "JUnit_sha256": "339d28d31d799674876bbf4acb6c30ac078012851297c16fd53a63a74bfb514c"
+  },
+  "source_inputs_byte_equal_5be_and_d2": {
+    "lib/inbound-mail/edielInboundProcessor.ts": "a3a6fa3a421b2c0b81b9fe7d0bb1ffb4aa328fc5e4847e991154a03da273ad9e",
+    "lib/ediel/inbound/receptions.ts": "1e5647867da934101244bee7f8c982573eccdae1077b641cfe86f74b7f42e167",
+    "lib/inbound-mail/dsnClassifier.ts": "d4e77cd8c7ba8effdaa93e996aed1ab539df6fcbee7c92ff788833c676ffa664",
+    "lib/inbound-mail/mimeStructure.ts": "fd28790fcd32106a7889183b1d6f54b619fab261ba68d6dfedddcccc36489365",
+    "lib/inbound-mail/dsnDisposition.ts": "fc50fd41fd38e5229f7376f9cf4ca5ee6f484ab7dfc976ee4539eeaff3300b7c",
+    "lib/inbound-mail/dsnTransportCandidates.ts": "908376830d118b4c24883cca83ef4648d097f0fbefc64bd79bc96da71e935887",
+    "lib/inbound-mail/dsnSourceObservations.ts": "d0aab5545b9952c19eb879bab5324d2ad29b448ed0183f6f418968d37e784480",
+    "lib/ediel/transport/outboundAttempt.ts": "3a3505ded65fa001f8b71a7a3bbdffc8a8948a97f7c5295ac2e1ed7c1ccfc1ff",
+    "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+    "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985",
+    "docs/ediel/masterplan-v2/registers/rules.json": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+    "docs/ediel/masterplan-v2/registers/acceptance_tests.json": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "quality/audits/ediel-masterplan-v2/coverage.json": "4e0b17ad2168b83e7f685199d5159a5544a56ee3d18a2d5dd9d2f8be86a9795f"
+  },
+  "capture_inputs_and_generated_outputs_remain_approved_unchanged": true,
+  "diff_check": "PASS",
+  "production_source_fix": false,
+  "new_coverage_promotion": false,
+  "new_native_or_full_suite_approval": false,
+  "reviewer_test_or_native_execution": false,
+  "whole_current_head_CI": "PENDING_ROOT_GATE",
+  "reviewer_mutations": "Own independent MD/JSON only; no owner/source/GitHub writes",
+  "narrative_sha256": "530d0d8992c498f47c7fdb79e81f5a43f38a67336cc3c91adc4429337e9ea46f"
+}

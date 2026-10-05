@@ -1,3 +1,19 @@
+## Authentic composed capture import reviewed — 2026-10-05T14:28:37.623186+00:00
+
+Authentic capture37319901610/artifact11351030885 is imported byte-exact; independent custody/import APPROVE (7c08MD/6b18JSON). Actual generated baseline/migration1073-976/frozen33-121-231/appTypes pass. TR04's declared new read-port adapter independently APPROVED (530dMD/4d13JSON), original assertions preserved and focused5PASS0skip/lint0. Raw checks/old public CI excerpt archived in own quality. No new whole promotion; raw capture execution flags remain NOT_RUN. Current new-head mandatory gates remain next.
+
+Current-main carry refresh is read-only against new actual589/590 integrations. Root source/import will preserve their foreign paths/evidence before publication; the captured producer remains5be. #561 complete two-row packet16e7 is published, #5444e6b/#54899af have original whole proofs/current narrow carry, #559234 has equivalent diagnostic lint repair. Sole CI readers/merge coordinator remain explicit; pending checks are not green. Next IMP05 admission is held for retained composition/source review; F/G helper and OPS03 native-reader handshakes progress with their existing owners.
+
+## Current coordinator continuation — 2026-10-05T14:15:44.542224+00:00
+
+Root owns existing #503 authentic capture/import/current gates and main integration; GitHub #530 is the shared reservation board. Earlier snapshots below remain history.
+
+Actual main3dff03dd has217 stored approvals. Complete #557 SC001/002 and #560 SC018/056 are merged with verified trees/parents. #551 and #562 have independent current-main approval and8/9 current mandatory checks; clean replay is still running. #559's new lint failure is an archived CJS diagnostic; its sole writer is converting only that diagnostic to equivalent ESM, preserving the original bytes/output. #56150005ee8 now has independent WHOLE CODE APPROVE for SC051/068; owner publishes only their two rows and then current CI is required. #544/#548 separate carry writers preserve foreign evidence and original assertions; independent cross-review is assigned.
+
+Authentic #503 capture37319901610/job111796010070/artifact11351030885 SUCCESS at actual5be3a902/tree5c3e101c. Staged raw types88cf7de2/schema0d733d1e/fingerprint-filefee88a98 exactly match authenticated ZIP37a62b7a and all8 producer/consumer inputs. Canonical sections9e2db4c7, immutable migration tree400fe39e, latest101500. Exact old root329/staff origins are retained. Independent raw import review is active; capture native/browser/comparison/upgrade flags remain NOT_RUN and current required gates remain mandatory.
+
+Next: import independent raw-byte review, verify generated baseline/app types, publish same #503 branch without force; read actual new-head native/clean/upgrade/browser/ordinary results and fix only real failures. Merge independently complete green scenario packets with fresh main/head/tree guards during CI. Next reviewed IMP05 forward is under separate read-only admission review, not yet admitted. Z02 #593 has its sole reserved legacy-slice writer; scoped direct-consumer defect is confirmed, accepted/native/persisted impact unproven. F/G helper and native-result scanner handshakes retain their named owners. No second producer, broad/native rerun or external market action.
+
 ## Sparad överlämning — 2026-10-01 (aktuell)
 
 Användaren bad om commit/sammanfogning/publicering och ny chatt. Runtime/integrationsversion `d396c2284f692a84dc961ee04935acb40a69c908`, tree `f20f8d843042f8b725c417c4e55670bf4d2227ad`, branch `codex/ediel-composed-rules-20261001`; senare dokument-HEAD läses från Git. P15, OPS/ACK134500 och H142000 med terminal expression-materialization är färdiga och real-mergade. Slutkandidat inte fryst, qualifiedCodeSha=NULL och heavy/final qualification NOT_RUN. Main/#310/#418/#422 orörda; ingen ny PR.
