@@ -457,8 +457,22 @@
     {
       "id": "ENV-06",
       "acceptance_id": "AT-ENV-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatTransactionReason.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/decisionEngine.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        ".agent-memory/masterplan-env06-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-07",
@@ -2761,8 +2775,22 @@
     },
     {
       "id": "AT-ENV-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatTransactionReason.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/decisionEngine.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        ".agent-memory/masterplan-env06-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-07",
