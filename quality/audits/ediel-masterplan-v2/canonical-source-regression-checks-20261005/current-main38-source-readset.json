@@ -1,0 +1,37 @@
+{
+  "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "component_sources": [
+    "7c8c10484fd602743fa281b30cc5091fd1c67004",
+    "3887873eee088b224c55d608de153d16cf7bd4cc"
+  ],
+  "component_source_bytes_exact": true,
+  "all_read_inputs_exact_qualified_sources": {
+    "lib/customer-operations/businessProcesses.ts": "75a1dcd9bb33d7ca13f7e61a7b9f1149922d28294c86053b694148bce5e4975d",
+    "lib/customer-operations/customerBusinessActions.ts": "f0fe5a837ad7f5dc9a00014c619e39237928e4ca33899cd91e68ae710efac643",
+    "lib/ediel/flows/inboundBusinessStateMachine.ts": "d296385e2dcc5e8ad74eb8a9bf376d31fe0b5ca188331f5e6014a764eace80a6",
+    "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts": "e9ff9d52b3efc52d3deefa1f2d8e9185ea9d145ba91bbe9897e52c2e759e0f3b",
+    "lib/ediel/flows/supplyMarketTransition.ts": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829",
+    "lib/ediel/flows/inboundAckProcessing.ts": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+    "lib/ediel/ack/committedInboundAck.ts": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+    "lib/ediel/stateMachines/prodatLifecycle.ts": "93ce2fbb1196b97a0148edcf9b20cf49d2bac6b9eefa1176fffbf5c5abb56887",
+    "lib/ediel/flows/inboundProcessing.ts": "7a2c731a6e5acc15f923a5cbeeea64233d581fc435a69a1d2b31323659f794fa",
+    "components/admin/customers/CustomerBusinessActionsCard.tsx": "3b4e1baad55a4dd58d786f28e0fc7686e543972ce244336fd5773b1915b582eb",
+    "app/admin/customers/[id]/switch-create-actions.ts": "3b1b1503329d65418768d433142839bea47f7c2699ca9a5b54cba62fd340c0fa",
+    "supabase/migrations/20260624130000_gridex_supplier_remaining_business_state_machine.sql": "132f8f18eaaf51e7baae1d421d0e66616a2cd85ad04420e0749fb29f24d953f7",
+    "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+    "lib/ediel/intent/noPlaceholderGuard.ts": "33a5f8b0a4a040ca5911557659036939c64ce0d3649c4457a85de73fdcb0daab",
+    "lib/ediel/prodat/builders/profileRenderer.ts": "7d5eff3c51ecb817a1378d55e5821dc437017e41849bb256671d15db16471c95",
+    "lib/ediel/prodat.ts": "a8278f7ccbe759608fa8ea33fc1951ce62b3e916adab9b1e4f7ba9c88bafcfd1",
+    "lib/customer-operations/facilityLookupEdifactDispatch.ts": "484c00d044a07000919aad6e5f2782980dc9e6f6881ab98023f9ca44d092fa4e",
+    "lib/ediel/intent/renderers/facilityLookupZ01.ts": "b34b9794a17590812f11a3647da022cc1a2d3f3de3097d44ac72b5491a172a1b",
+    "lib/ediel/intent/intentEngine.ts": "b56e03cb0fc92835fbfd49812224015bdd7d27348b84a2bfa178965276c02829",
+    "lib/ediel/intent/tenantStatusTranslator.ts": "82cd6d5fc29063f0994fc1b9ba132df806f950081f874f633c4de0c3dc559bac"
+  },
+  "validation_reused_scope": "supplier35PASS/5staticnegatives; Z01 18PASS/6VitestPASS/6SKIP/1commented-hold negative",
+  "no_repeat_runs": true,
+  "production_SQL_coverage_generated_workflow_native_source_changed": false,
+  "source_carry_head": "ca3a493b7cb0a8dd6c406008263052e09f42dacc",
+  "source_carry_tree": "d2204909608f7aa3e65a675658be6633766cd09b",
+  "prior_publication_review_sha256": "0ef96487a6edcdf0dd0ecc1bde933d48bb789f42d77ac136dc155dd756ee9347",
+  "current_main_foreign_blobs_exact_except_owned_delta": true
+}
