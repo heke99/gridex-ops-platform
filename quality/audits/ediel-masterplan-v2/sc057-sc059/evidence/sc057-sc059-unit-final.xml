@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="22" failures="0" errors="0" time="2.552636689">
+    <testsuite name="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" timestamp="2026-10-05T04:52:36.329Z" hostname="c8313f035683" tests="9" failures="0" errors="0" skipped="0" time="2.396260977">
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; previews the actual XML without changing actor/role/market/route/source state" time="0.001102185">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; imports identical bytes twice without duplicating any of17 public/private relations" time="0.01062443">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; previews all three later contradictory PRODAT addresses as explicit route changes" time="0.00040376">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; keeps all old/new routes and history, markets and roles, holding both sides of each contradiction" time="0.000434465">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; ends the actual controlled apply with terminal status and held readiness" time="0.000330981">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; records blocking terminal zero-route preview and denies apply without source or masterdata effects" time="0.000278555">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; rolls back an interrupted real owner after transient running and earlier mutations, leaving no unattended run" time="0.000169673">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; requires explicit controlled-apply confirmation before any RPC or mutation" time="0.0003455">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; denies unauthorized apply and executes four exact current captured owner bodies" time="0.001035454">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-sc-059-registered-subaddress.test.ts" timestamp="2026-10-05T04:52:36.335Z" hostname="c8313f035683" tests="13" failures="0" errors="0" skipped="0" time="0.156375712">
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 21660 Gridex EL AB PRODAT preserves the exact registered null through actual materialization/context/UNB" time="0.050910044">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 21660 Gridex EL AB UTILTS preserves the exact registered null through actual materialization/context/UNB" time="0.012798619">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 27700 Mjölby Kraftnät AB PRODAT preserves the exact registered PRODAT through actual materialization/context/UNB" time="0.008669942">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 27700 Mjölby Kraftnät AB UTILTS preserves the exact registered null through actual materialization/context/UNB" time="0.009177457">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies invented GRIDEX for the registered empty Gridex PRODAT before rendering or additional writes" time="0.015268342">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies invented SCH for the registered empty Gridex PRODAT before rendering or additional writes" time="0.007288051">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changing named Mjölby PRODAT to null without changed source before rendering or additional writes" time="0.007436191">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changing named Mjölby PRODAT to GRIDEX without changed source before rendering or additional writes" time="0.005499983">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changing named Mjölby PRODAT to SCH without changed source before rendering or additional writes" time="0.007147818">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; holds absent current source before any operational write despite declared public verification flags" time="0.00699834">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies a different source actor before any operational write" time="0.00583357">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies foreign_company at actual dispatch revalidation before rendering or additional writes" time="0.011333306">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changed_current_source at actual dispatch revalidation before rendering or additional writes" time="0.005933751">
+        </testcase>
+    </testsuite>
+</testsuites>
