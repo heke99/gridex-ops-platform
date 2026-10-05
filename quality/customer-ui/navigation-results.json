@@ -1,0 +1,29 @@
+{
+  "scenarios": [
+    {
+      "name": "desktop active destination is singular and opens the customer group",
+      "passed": true
+    },
+    {
+      "name": "desktop collapsed groups remain keyboard accessible",
+      "passed": true
+    },
+    {
+      "name": "mobile page selector includes all visible grouped destinations without overflow",
+      "passed": true
+    },
+    {
+      "name": "mobile platform mode retains the existing action payload",
+      "passed": true
+    },
+    {
+      "name": "mobile company selection retains the server action and selected company",
+      "passed": true
+    },
+    {
+      "name": "tenant mobile navigation excludes platform and unavailable live destinations",
+      "passed": true
+    }
+  ],
+  "uncaughtErrors": []
+}

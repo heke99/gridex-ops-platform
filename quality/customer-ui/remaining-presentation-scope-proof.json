@@ -1,0 +1,68 @@
+[
+  {
+    "path": "app/admin/customer-info-requests/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/facility-requests/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/metering/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/metering/_components.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/outbound/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/messages/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/events/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/pricing/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/pricing/campaigns/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/users/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  },
+  {
+    "path": "app/admin/billing/integrations/page.tsx",
+    "field_names_unchanged": true,
+    "action_bindings_unchanged": true,
+    "guard_calls_unchanged": true
+  }
+]

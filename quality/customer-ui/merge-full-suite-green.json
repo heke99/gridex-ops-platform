@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "numTotalTests": 10989,
+  "numPassedTests": 10989,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "files": 849,
+  "scope": "Full suite with two workers,15s timeout and loopback-only unit preload",
+  "source_base": "25c0a12f78e650d456a62c789be8f814b595783e"
+}

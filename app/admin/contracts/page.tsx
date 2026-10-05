@@ -33,6 +33,7 @@ import {
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import { toSafeContractError } from "@/lib/errors/safeActionErrors";
 import ContractOfferAdminForm from "@/components/admin/contracts/ContractOfferAdminForm";
+import CustomerDisclosurePanel from "@/components/admin/customers/CustomerDisclosurePanel";
 import ContractDeleteControl from "@/components/admin/contracts/ContractDeleteControl";
 import ContractChannelControl from "@/components/admin/contracts/ContractChannelControl";
 import { contractLifecycleAllows } from "@/lib/contracts/lifecycle";
@@ -214,7 +215,7 @@ async function TenantCustomerContracts({
         subtitle={`Samma låsta avtalsversion används internt, på hemsidan och när kunden tecknar hos ${companyName ?? "det valda bolaget"}.`}
         userEmail={userEmail}
       />
-      <div className="space-y-8 p-8">
+      <div className="space-y-4 p-4 sm:p-6">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
             Avtalsutbud
@@ -280,7 +281,10 @@ async function TenantCustomerContracts({
                         publiceras.
                       </p>
                     ) : null}
-                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <p className="mt-3 text-xs text-slate-600">Internt: {formatStatusLabel(internal?.status ?? "paused")} · Hemsida: {formatStatusLabel(website?.status ?? "paused")}</p>
+                    <details className="mt-3 rounded-xl border border-slate-200 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Hantera försäljningskanaler</summary>
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
                       {[
                         {
                           channel: "internal",
@@ -321,6 +325,7 @@ async function TenantCustomerContracts({
                             </strong>
                             <select
                               name="status"
+                              aria-label={`${entry.label}: status`}
                               defaultValue={entry.row?.status ?? "paused"}
                               disabled={!entry.allowed}
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -342,6 +347,7 @@ async function TenantCustomerContracts({
                         </form>
                       ))}
                     </div>
+                    </details>
                   </article>
                 );
               })
@@ -954,26 +960,26 @@ export default async function AdminContractsPage({
       <div className="grid min-w-0 gap-6 overflow-x-hidden p-4 sm:p-8 xl:grid-cols-2">
         <nav
           aria-label="Avtalstyper"
-          className="grid gap-3 xl:col-span-2 md:grid-cols-4"
+          className="flex flex-wrap items-center gap-2 xl:col-span-2"
         >
-          <span className="rounded-2xl bg-slate-950 p-4 text-sm font-bold text-white">
+          <span className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white">
             1. Interna avtalsprodukter
           </span>
           <a
             href="#create-contract"
-            className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
           >
             2. Skapa avtal
           </a>
           <a
             href="#contract-offers"
-            className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
           >
             3. Befintliga avtal (tenant och webb)
           </a>
           <Link
             href="/admin/platform/contract-trace"
-            className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
           >
             4. Kundavtal och kedjespårning
           </Link>
@@ -1093,22 +1099,10 @@ export default async function AdminContractsPage({
             )}
           </section>
         ) : null}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 ">
-            Avtalsmodell
-          </p>
-          <h2 className="mt-2 text-xl font-black text-slate-950 ">
-            Prisversion + juridik + snapshot
-          </h2>
-          <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-700 ">
-            Prisversion är den exakta prisuppsättning kunden signerar mot, till
-            exempel “Rörligt elpris 2026-06”. Avtal ska publiceras med
-            prisversion, juridiskt paket och snapshot så kundens signerade
-            villkor aldrig ändras retroaktivt. Om tenant saknar egna juridiska
-            texter används Gridex standardpaket tills platform admin publicerar
-            tenantens egna versioner.
-          </p>
-        </section>
+        <details className="rounded-2xl border border-slate-200 bg-white p-4 xl:col-span-2">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Om prisversion, juridik och snapshot</summary>
+          <p className="mt-3 text-sm leading-6 text-slate-600">Kunden signerar en låst prisversion och ett juridiskt paket. Senare katalogändringar ändrar aldrig redan signerade kundvillkor. Saknas egna juridiska texter används Gridex standardpaket tills en egen version är publicerad.</p>
+        </details>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
@@ -1163,10 +1157,7 @@ export default async function AdminContractsPage({
             </p>
           ) : null}
         </section>
-        <section id="create-contract" className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
-          <h2 className="text-lg font-semibold text-slate-950 ">
-            Skapa utkast eller ny immutable avtalsversion
-          </h2>
+        <CustomerDisclosurePanel id="create-contract" title={editOffer ? "Redigera utkast eller skapa ny avtalsversion" : "Skapa avtal"} defaultOpen={Boolean(editOffer)} className="min-w-0 scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
           <p className="mt-1 text-sm text-slate-700 ">
             Ett avtal får en permanent produktserie. Utkast kan redigeras;
             publicerade och historiska versioner skapar alltid en ny version.
@@ -1184,7 +1175,7 @@ export default async function AdminContractsPage({
               Välj ett bolag innan du skapar avtal.
             </p>
           )}
-        </section>
+        </CustomerDisclosurePanel>
 
         <section id="contract-offers" className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
           <div className="border-b border-slate-200 px-6 py-5 ">

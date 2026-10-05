@@ -1,0 +1,89 @@
+COMMAND ["npm", "run", "db:migrations:check"]
+
+> gridex-ops-platform@0.1.0 db:migrations:check
+> npm run db:migrations:integrity && npm run db:public-contract-legal-migration:check && npm run db:contract-hardening && npm run db:types:check
+
+
+> gridex-ops-platform@0.1.0 db:migrations:integrity
+> node scripts/check-migration-versions.cjs
+
+Migration integrity check passed (1066 files; 969 version groups; checksums verified).
+
+> gridex-ops-platform@0.1.0 db:public-contract-legal-migration:check
+> node scripts/check-public-contract-legal-migration.cjs
+
+Public-contract legal migration check passed.
+
+> gridex-ops-platform@0.1.0 db:contract-hardening
+> node scripts/check-database-contract-hardening.cjs
+
+Database contract hardening migration checks passed.
+
+> gridex-ops-platform@0.1.0 db:types:check
+> node scripts/check-supabase-generated-types.cjs
+
+Supabase generated types verified (3679044 bytes; 20261005020000_ediel_production_contract_ack_confirmation.sql; 4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4).
+COMMAND ["/tmp/gridex-ui-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node", "scripts/check-agent-memory-git-state.cjs"]
+{
+  "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
+  "campaign_complete": false,
+  "checked_out_sha": "25c0a12f78e650d456a62c789be8f814b595783e",
+  "declared_verified_sha": null
+}
+COMMAND ["npm", "run", "tenant:service-role-ratchet"]
+
+> gridex-ops-platform@0.1.0 tenant:service-role-ratchet
+> node scripts/check-service-role-tenant-ratchet.cjs
+
+Service-role ratchet: 2243 call sites, down from 2353. Run with --update to lock in the improvement.
+COMMAND ["/tmp/gridex-ui-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node", "scripts/ops-hardening-regression.cjs"]
+OPS hardening regression passed (18 checks).
+COMMAND ["/tmp/gridex-ui-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node", "scripts/ops-hardening-behavior-regression.cjs"]
+OPS behavior regression passed (6 Swedish address cases).
+OPS behavior regression passed (address parsing and SSRF allowlist).
+OPS behavior regression passed (UUID normalization).
+OPS behavior regression passed (Ediel outbox claim is RPC-only and fail-closed).
+COMMAND ["/tmp/gridex-ui-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node", "scripts/ops-final-contract-regression.cjs"]
+ops final contract regression passed
+COMMAND ["bash", "quality/mechanical/verify.sh"]
+{
+  "checked_master_points": 75,
+  "checked_requirements": 12,
+  "checked_operation_ids": 109,
+  "errors": []
+}
+{
+  "pattern_requirements": 12,
+  "cells": 100,
+  "absent_cells": 67,
+  "bug_covered_cells": 55,
+  "downgraded_cells": 12,
+  "missing_cells": [],
+  "invalid_downgrades": []
+}
+COMMAND ["npm", "run", "quality:large-file-budget"]
+
+> gridex-ops-platform@0.1.0 quality:large-file-budget
+> node scripts/check-large-source-file-budget.cjs
+
+Large source file budget passed: 0 grandfathered files cannot grow and new source files are capped at 1800 lines.
+COMMAND ["npm", "run", "quality:performance"]
+
+> gridex-ops-platform@0.1.0 quality:performance
+> npm run api:performance-tenant-gates && npm run quality:n-plus-one && npm run quality:slo-contract
+
+
+> gridex-ops-platform@0.1.0 api:performance-tenant-gates
+> node scripts/check-api-performance-tenant-gates.cjs
+
+API performance/tenant gates OK.
+
+> gridex-ops-platform@0.1.0 quality:n-plus-one
+> node scripts/check-n-plus-one-query-budget.cjs
+
+N+1 query budget passed: 0 awaited database calls inside loops across app/api/v1, lib/customer-portal, lib/pricing, lib/website.
+
+> gridex-ops-platform@0.1.0 quality:slo-contract
+> node scripts/check-performance-slo-contract.cjs
+
+Performance SLO contract passed for smoke, load, spike, soak and ETag full/304 profiles.

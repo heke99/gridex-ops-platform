@@ -33,6 +33,10 @@ checkpoint in `customer-portfolio-checkpoint.md` and its evidence in
 
 ## Update rules
 
+Customer and daily admin UI simplification (user-approved 2026-10-05) keeps its checkpoint in
+`customer-ui-checkpoint.md` and local verification evidence in
+`quality/customer-ui/`, preserving the Ediel campaign's global progress files.
+
 - Maintain exactly one active work item and subtask.
 - Update the checkpoint after implementation, verification, failure or blocker.
 - Put only actually verified work in `completed-work.md`.

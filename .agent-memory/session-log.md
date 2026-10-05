@@ -670,3 +670,9 @@ Side track, separate from the Ediel campaign.
 - #474 merged (squash `b1c79ae`): Kundportfölj, forecast, read-only white-label overview, superadmin-only white-label assignment, one supply-period customer definition. Migrations applied to `piidsfebjqjmnepdpnas` and verified read-only.
 - Performance pass on `claude/portfolio-market-whitelabel-r8rn05`: monthly consumption rollup and set-based analytics month (`20261003150000`).
 - 2026-10-04 session: #426 grön (f32e40b5); F-SRC-01 rättad (20261003150300); sex SQL/Python-regressioner uppdaterade; split #483–#489; kandidatgranskning (0 nya godkännanden); överlämning.
+
+## 2026-10-05 — Customer UI extended to daily admin views
+User requested other system areas too. Existing UI agent handled seven page areas; root fixed shared mobile/desktop navigation, independently reviewed scope/forms and verified. Presentation-only: loaders, permissions, actions and field names retained. VERIFIED locally; no commit/publication/production write. Resume/release from .agent-memory/customer-ui-checkpoint.md; preserve unrelated Ediel current task.
+
+## 2026-10-05 — Remaining admin UI and button/database verification
+All seven requested groups implemented and VERIFIED locally. Root fixed reproduced customer-follow-up/audit binding and actual facility REST relation errors; existing UI agent independently reviewed.40 files/403 tests PASS,42 browser interactions,112 layouts and56 axe states PASS;actual OPS production read-only RLS/constraint/ownership checks plus10 isolated provider-SQL checks. No business writes/sends/schema change/publication. Scope and limits: quality/customer-ui/remaining-admin-verification-2026-10-05.md; resume only from customer-ui-checkpoint.md.

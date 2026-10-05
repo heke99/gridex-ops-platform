@@ -146,28 +146,28 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
       />
 
-      <main className="space-y-6 p-6 lg:p-8">
+      <main className="space-y-4 p-4 lg:p-6">
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950 shadow-sm">
           En rad beskriver ett faktiskt steg i kundens operativa kedja. Arbetskön visar bara sådant som kräver åtgärd; den här vyn visar även pågående och klara steg.
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           <StatCard label="Visade händelser" value={rows.length} />
           <StatCard label="Kräver åtgärd" value={actionCount} tone={actionCount ? 'warning' : 'ok'} />
           <StatCard label="Väntar på svar" value={waitingCount} tone={waitingCount ? 'info' : 'ok'} />
           <StatCard label="Svar mottaget" value={receivedCount} tone={receivedCount ? 'ok' : 'neutral'} />
         </section>
 
-        <form className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-6">
-          <label className="grid gap-1 lg:col-span-2">
+        <form className="grid min-w-0 grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 lg:grid-cols-6">
+          <label className="grid min-w-0 grid-cols-1 gap-1 lg:col-span-2">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Sök</span>
-            <input name="q" defaultValue={params.q ?? ''} placeholder="Kund, kundnummer, e-post, adress, anläggning, mätpunkt eller nätägare" className="rounded-2xl border border-slate-300 px-3 py-2.5 text-sm" />
+            <input name="q" defaultValue={params.q ?? ''} placeholder="Kund, kundnummer, e-post, adress, anläggning, mätpunkt eller nätägare" className="min-w-0 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" />
           </label>
           <SelectFilter label="Status" name="status" value={params.status} options={STATUS_OPTIONS} />
           <SelectFilter label="Område" name="group" value={params.group} options={GROUP_OPTIONS} />
-          <label className="grid gap-1"><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Från</span><input type="date" name="from" defaultValue={params.from ?? ''} className="rounded-2xl border border-slate-300 px-3 py-2.5 text-sm" /></label>
-          <label className="grid gap-1"><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Till</span><input type="date" name="to" defaultValue={params.to ?? ''} className="rounded-2xl border border-slate-300 px-3 py-2.5 text-sm" /></label>
-          <div className="flex items-end gap-2 lg:col-span-6">
+          <label className="grid min-w-0 grid-cols-1 gap-1"><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Från</span><input type="date" name="from" defaultValue={params.from ?? ''} className="min-w-0 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></label>
+          <label className="grid min-w-0 grid-cols-1 gap-1"><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Till</span><input type="date" name="to" defaultValue={params.to ?? ''} className="min-w-0 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></label>
+          <div className="flex flex-wrap items-end gap-2 lg:col-span-6">
             <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800"><input type="checkbox" name="action" value="required" defaultChecked={params.action === 'required'} /> Endast kräver åtgärd</label>
             <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Filtrera</button>
             <Link href="/admin/events" className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-50">Rensa</Link>
@@ -178,18 +178,18 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
           {rows.length === 0 ? (
             <div className="p-10 text-center"><h2 className="text-lg font-semibold text-slate-950">Inga händelser matchar urvalet</h2><p className="mt-2 text-sm text-slate-600">När automatiska kontroller, svar eller manuella steg sker visas de här.</p></div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-5 py-3">Tid</th><th className="px-5 py-3">Kund</th><th className="px-5 py-3">Anläggning</th><th className="px-5 py-3">Händelse</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Nästa steg</th></tr></thead>
+            <div className="min-w-0">
+              <table className="w-full table-fixed text-left text-sm [&_td]:min-w-0 [&_td]:break-words max-xl:[&_tbody_tr]:grid max-xl:[&_tbody_tr]:grid-cols-1 max-xl:[&_td]:px-4 max-xl:[&_td]:py-2 max-xl:[&_tbody_tr]:p-2">
+                <thead className="sr-only bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-600 xl:not-sr-only xl:table-header-group"><tr><th className="px-5 py-3">Tid</th><th className="px-5 py-3">Kund</th><th className="px-5 py-3">Anläggning</th><th className="px-5 py-3">Händelse</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Nästa steg</th></tr></thead>
                 <tbody className="divide-y divide-slate-100">
                   {rows.map((row) => (
                     <tr key={row.id} className="align-top hover:bg-slate-50/70">
                       <td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.occurredAt)}</td>
                       <td className="px-5 py-4"><Link href={`/admin/customers/${row.customerId}`} className="font-semibold text-slate-950 hover:text-emerald-800">{row.customerName}</Link><div className="mt-1 font-mono text-xs text-slate-500">{row.customerNumber ?? row.customerEmail ?? '—'}</div></td>
                       <td className="max-w-xs px-5 py-4 text-slate-700">{eventLocation(row)}{row.gridOwnerName ? <div className="mt-1 text-xs text-slate-500">Nätägare: {row.gridOwnerName}</div> : null}</td>
-                      <td className="max-w-md px-5 py-4"><div className="font-semibold text-slate-950">{row.title}</div><div className="mt-1 leading-5 text-slate-600">{row.message}</div>{isPlatformAdmin ? <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><div className="mt-2 space-y-1 rounded-xl bg-slate-950 p-3 font-mono text-[11px] text-slate-100"><div>operation: {row.operationId ?? '—'}</div><div>jobb: {row.customerOperationJobId ?? '—'} {row.jobType ? `(${row.jobType}/${row.jobStatus ?? '—'})` : ''}</div><div>källa: {row.source} · {row.eventCode}</div><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap border-t border-slate-700 pt-2 text-[10px]">{JSON.stringify(row.payload, null, 2)}</pre></div></details> : null}</td>
+                      <td className="max-w-md px-5 py-4"><div className="font-semibold text-slate-950">{row.title}</div><div className="mt-1 leading-5 text-slate-600">{row.message}</div>{isPlatformAdmin ? <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><div className="mt-2 space-y-1 rounded-xl bg-slate-50 p-3 font-mono text-[11px] text-slate-700"><div>operation: {row.operationId ?? '—'}</div><div>jobb: {row.customerOperationJobId ?? '—'} {row.jobType ? `(${row.jobType}/${row.jobStatus ?? '—'})` : ''}</div><div>källa: {row.source} · {row.eventCode}</div><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap border-t border-slate-700 pt-2 text-[10px]">{JSON.stringify(row.payload, null, 2)}</pre></div></details> : null}</td>
                       <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusTone(row.status)}`}>{statusLabel(row.status)}</span></td>
-                      <td className="min-w-56 px-5 py-4 text-slate-700"><div>{nextStep(row)}</div><Link href={safeActionHref(row.actionUrl, row.customerId)} className="mt-2 inline-flex text-xs font-bold text-emerald-800 hover:text-emerald-950">Öppna kundkort →</Link></td>
+                      <td className="px-5 py-4 text-slate-700"><div>{nextStep(row)}</div><Link href={safeActionHref(row.actionUrl, row.customerId)} className="mt-2 inline-flex text-xs font-bold text-emerald-800 hover:text-emerald-950">Öppna kundkort →</Link></td>
                     </tr>
                   ))}
                 </tbody>
@@ -205,10 +205,10 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
 }
 
 function SelectFilter({ label, name, value, options }: { label: string; name: string; value?: string; options: ReadonlyArray<readonly [string, string]> }) {
-  return <label className="grid gap-1"><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{label}</span><select name={name} defaultValue={value ?? ''} className="rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>
+  return <label className="grid min-w-0 grid-cols-1 gap-1"><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{label}</span><select name={name} aria-label={label} defaultValue={value ?? ''} className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>
 }
 
 function StatCard({ label, value, tone = 'neutral' }: { label: string; value: number; tone?: 'neutral' | 'ok' | 'warning' | 'info' }) {
   const classes = tone === 'warning' ? 'border-amber-200 bg-amber-50' : tone === 'info' ? 'border-sky-200 bg-sky-50' : tone === 'ok' ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'
-  return <div className={`rounded-3xl border p-5 shadow-sm ${classes}`}><div className="text-sm font-bold text-slate-700">{label}</div><div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div></div>
+  return <div className={`rounded-3xl border p-3 ${classes}`}><div className="text-sm font-bold text-slate-700">{label}</div><div className="mt-1 text-2xl font-black tracking-tight text-slate-950">{value}</div></div>
 }
