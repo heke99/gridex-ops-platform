@@ -289,8 +289,18 @@
       "error": 0,
       "skip": 0,
       "exitCode": 0,
-      "rawLogPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
-      "rawLogSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef"
+      "rawOriginalLogSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef",
+      "committedLogNormalization": "Terminal blank lines removed; original raw stdout kept separately and hash-bound. All53 case results and counts unchanged.",
+      "committedLogSha256": "3026f3b169c6587e42ed0f6e36488df32af48030fecfeedee86b62bf53739cf3",
+      "committedLogPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+      "originalRawLogArchive": {
+        "path": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip",
+        "sha256": "4996a6e622604939bb8e91d68eae1eee0bb05893ed62f998dd263831c86062a7",
+        "members": 1,
+        "crcValid": true,
+        "memberSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef",
+        "meaning": "Actual ordinary Vitest stdout only; not native or GitHub artifact custody."
+      }
     },
     "types": {
       "command": "Node22 tsc --noEmit -p tsconfig.tests.json --max-old-space-size=4096",
