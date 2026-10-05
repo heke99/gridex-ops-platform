@@ -423,13 +423,12 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     ...(parsed?.errors ?? []).map((description) => issue({ severity: 'error', code: 'PARSER_ERROR', title: 'Parserfel', description })),
     ...(parsed?.warnings ?? []).map((description) => issue({ severity: 'warning', code: 'PARSER_WARNING', title: 'Parser-varning', description })),
   ]
-  // The actual raw admission path uses the same source-owned 0062 bound as
-  // the codec and envelope validator. This does not select a guide or grant
-  // acceptance to other syntax/profile defects.
+  // Raw admission shares the source-owned0062 bound and0035 test marker
+  // with envelope validation. These service diagnostics never select a guide.
   if (input.rawPayload && parsed?.rawSegments.some(segment => segment.startsWith('UNH'))) {
     parserIssues.push(...validateEdifactEnvelope(input.rawPayload).issues
-      .filter(entry => entry.code === 'message_reference_length_invalid')
-      .map(entry => issue({ severity: entry.severity, code: entry.code, title: 'EDIFACT-meddelandereferens', description: entry.message })))
+      .filter(entry => entry.code === 'message_reference_length_invalid' || entry.code === 'unb_test_indicator_invalid')
+      .map(entry => issue({ severity: entry.severity, code: entry.code, title: entry.code === 'unb_test_indicator_invalid' ? 'EDIFACT-testindikator' : 'EDIFACT-meddelandereferens', description: entry.message })))
   }
 
   if (!parsed) {
