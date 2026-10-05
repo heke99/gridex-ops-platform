@@ -17,6 +17,7 @@ import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {validateProdatMeterChange} from './prodatMeterChangePolicy'
+import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
@@ -479,6 +480,8 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     }
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
+    const transactionReasonIssues=family==='PRODAT'
+      ? evaluateProdatTransactionReason({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload)}).issues : []
     // Missing/invalid root policy metadata must not hide source-derived D
     // defects behind the legacy intentional-invalid-test escape hatch.
     const protectedDependentIssues = family === 'PRODAT' && input.mode === 'send'
@@ -506,7 +509,7 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
       }
     }
     const authorityIssue=reportingAuthorityIssue(error)??prodatDateEventAuthorityIssue(error)
-    const issues = [...parserIssues, ...gasIssues, ...deathIssues, ...protectedDependentIssues, ...protectedRegisterIssues, ...(authorityIssue?[authorityIssue]:[]), issue({
+    const issues = [...parserIssues, ...transactionReasonIssues, ...gasIssues, ...deathIssues, ...protectedDependentIssues, ...protectedRegisterIssues, ...(authorityIssue?[authorityIssue]:[]), issue({
       severity: 'error',
       code: description.startsWith('prodat_register_evidence_') ? 'PRODAT_REGISTER_EVIDENCE_INVALID' : 'CANONICAL_POLICY_VALIDATION_FAILED',
       ...(description.startsWith('prodat_register_evidence_') ? {scope:'prodat_register' as const} : {}),

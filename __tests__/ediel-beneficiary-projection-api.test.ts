@@ -1,4 +1,4 @@
-// masterplan: TEN-07, AT-TEN-07, SC-008
+// masterplan: TEN-07, AT-TEN-07, SC-008, SC-007
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import { createEdielProjectionCursor, parseEdielProjectionRequest } from '@/lib/ediel/services/projectionRequest'
@@ -59,7 +59,9 @@ describe('beneficiary series API', () => {
     mocks.project.mockRejectedValue(new Error('secret owner raw source'))
     const response = await GET(req(), ctx)
     expect(response.status).toBe(403)
-    expect(JSON.stringify(await response.json())).not.toContain('secret')
+    const body = await response.json()
+    expect(body).toEqual({ error: 'Projekteringen kunde inte auktoriseras eller läsas.' })
+    expect(JSON.stringify(body)).not.toContain('secret')
   })
   it.each(['2026-02-29T00:00:00Z', '2026-09-31T00:00:00Z', '2026-09-01T24:00:00Z', '2026-09-01T00:00:60Z'])('rejects a normalized invalid calendar timestamp (%s) before reading any source', async value => {
     const values = query(); values.set('start', value)
