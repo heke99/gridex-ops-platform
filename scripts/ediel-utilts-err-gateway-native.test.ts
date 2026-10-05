@@ -1,4 +1,5 @@
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import { requireEdielInboundLegalContext } from '@/lib/ediel/tenant/sourceLegalContext'
 import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority} from '@/lib/ediel/core/runtimeDecision'
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
@@ -187,6 +188,74 @@ it('actual canonical consumer persists two independent same-code E87 ERRs, no fo
     .rejects.toThrow('utilts_positive_ack_storage_unavailable')
 
   expect(sinks.meter).toHaveBeenCalledWith(expect.objectContaining({ companyId: f.ids.company, quantityKwh: '500' }))
+})
+
+it('SC-047 real inbound admission rejects a foreign-only object with E10 on its TN and accepts the own-tenant contrast without creating master data', async () => {
+  // Removing the company filter, bypassing legal receiver/role admission or
+  // creating a replacement customer/point must break this joined oracle.
+  const foreign = await seed('54349', [{ reference: 'SC047-FOREIGN-SEED', outcome: 'accepted' }])
+  const own = await seed('54348', [{ reference: 'SC047-OWN-SEED', outcome: 'accepted' }])
+  const foreignIdentifier = '735999260731000007', ownIdentifier = '735999260731000014'
+  // Prepare the two tenants before receiving either source under test. Only
+  // the foreign tenant keeps the physical LOC+172 used by the rejected IDE.
+  sql(`UPDATE public.metering_points SET metering_point_id=${literal(ownIdentifier)},meter_point_id=${literal(ownIdentifier)} WHERE id=${literal(own.ids.point)} AND company_id=${literal(own.ids.company)};
+    UPDATE public.customer_sites SET facility_id=${literal(ownIdentifier)} WHERE id=${literal(own.ids.site)} AND company_id=${literal(own.ids.company)};`)
+  const unknown = await own.insertSource([{ reference: 'SC047-FOREIGN-ONLY', outcome: 'accepted' }])
+  const positive = await own.insertSource([{ reference: 'SC047-OWN-POSITIVE', outcome: 'accepted' }], raw => raw.replaceAll(foreignIdentifier, ownIdentifier))
+  const masterData = () => sql(`SELECT jsonb_build_object(
+    'customers',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]') FROM public.customers c WHERE c.company_id IN(${literal(own.ids.company)},${literal(foreign.ids.company)})),
+    'sites',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.customer_sites s WHERE s.company_id IN(${literal(own.ids.company)},${literal(foreign.ids.company)})),
+    'points',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.metering_points p WHERE p.company_id IN(${literal(own.ids.company)},${literal(foreign.ids.company)})))`)
+  const before = masterData(), foreignBefore = snapshot(foreign.source.id)
+  expect(sql(`SELECT jsonb_build_object('own',(SELECT count(*) FROM public.metering_points WHERE company_id=${literal(own.ids.company)} AND metering_point_id=${literal(foreignIdentifier)}),
+    'foreign',(SELECT count(*) FROM public.metering_points WHERE company_id=${literal(foreign.ids.company)} AND metering_point_id=${literal(foreignIdentifier)}))`)).toEqual({ own: 0, foreign: 1 })
+
+  for (const source of [unknown, positive]) {
+    expect(validateEdifactSyntax(source).ok).toBe(true)
+    await processInboundEdielMessage({ actorUserId: own.ids.actor, edielMessageId: source.id })
+    const saved = await database.getEdielMessageById(source.id)
+    expect(saved).toMatchObject({ company_id: own.ids.company, tenant_resolution_status: 'tenant_resolved',
+      parsed_payload: { tenantResolution: { status: 'resolved', companyId: own.ids.company, source: 'verified_legal_identity',
+        evidence: expect.arrayContaining([expect.objectContaining({ companyId: own.ids.company, source: 'verified_legal_identity',
+          details: expect.objectContaining({ legalActorId: own.ids.actor, legalEdielId: source.receiver_ediel_id,
+            transportEdielId: source.receiver_ediel_id, roleCodes: expect.arrayContaining(['electricity_supplier']) }) })]) } } })
+    await expect(requireEdielInboundLegalContext(own.ids.company, source.id)).resolves.toMatchObject({
+      companyId: own.ids.company, environment: 'test', direction: 'inbound', legalActorId: own.ids.actor,
+      legalEdielId: source.receiver_ediel_id, actorRole: 'electricity_supplier', transportEdielId: source.receiver_ediel_id })
+    expect(saved?.validation_report).toMatchObject({ utiltsRuntime: { validation: { syntaxOk: true } } })
+    const state = snapshot(source.id)
+    if (source.id === unknown.id) {
+      // Passing technical syntax alone is insufficient: the national guide
+      // must have no blocking findings before this object's functional E10.
+      expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages m CROSS JOIN LATERAL jsonb_array_elements(m.validation_report#>'{utiltsRuntime,validation,issues}') issue
+        WHERE m.id=${literal(source.id)} AND issue->>'severity'='error' AND issue->>'kind'<>'functional'`)).toBe(0)
+      expect(saved?.validation_report).toMatchObject({ utiltsRuntime: { validation: {
+        classification: 'functional_rejected', issues: expect.arrayContaining([expect.objectContaining({ kind: 'functional', utiltsErrCode: 'E10' })]) } } })
+      const errs = state.acks.filter(row => row.family === 'UTILTS_ERR')
+      expect(errs).toHaveLength(1)
+      expect(errs[0]).toMatchObject({ company: own.ids.company, outcome: 'negative', reference: 'SC047-FOREIGN-ONLY', process: 'functional_rejection' })
+      const wire = tokenizeEdifact(errs[0].wire)
+      expect(wire.segments.filter(row => row.tag === 'STS').map(row => segmentComposite(row, 3, wire.una)[0])).toEqual(['E10'])
+      expect(wire.segments.filter(row => row.tag === 'RFF').map(row => segmentComposite(row, 1, wire.una)).filter(row => row[0] === 'TN')).toEqual([['TN', 'SC047-FOREIGN-ONLY']])
+      expect(state.reservations).toMatchObject([{ transaction: 'SC047-FOREIGN-ONLY', disposition: 'processability_rejected', plan: 'utilts_err', final: 'utilts_err', ack: errs[0].id, series: null }])
+      expect(state.series).toEqual([]); expect(state.contracts).toEqual([])
+      expect(state.acks.filter(row => row.family === 'APERAK')).toEqual([])
+      expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
+    } else {
+      expect(saved?.validation_report).toMatchObject({ utiltsRuntime: { validation: { classification: 'accepted', functionalOk: true } } })
+      expect(state.acks.filter(row => row.family === 'UTILTS_ERR')).toEqual([])
+      expect(state.acks.filter(row => row.family === 'APERAK')).toMatchObject([{ company: own.ids.company, outcome: 'positive', reference: 'SC047-OWN-POSITIVE' }])
+      expect(state.reservations).toMatchObject([{ transaction: 'SC047-OWN-POSITIVE', disposition: 'accepted', final: 'positive_aperak' }])
+      expect(state.series).toEqual([{ transaction: 'SC047-OWN-POSITIVE', kind: 'actual' }])
+      expect(state.contracts).toMatchObject([{ company_id: own.ids.company }])
+    }
+    expect(state.acks.filter(row => row.family === 'CONTRL')).toMatchObject([{ company: own.ids.company, outcome: 'positive' }])
+    expect(state.acks.every(row => row.company === own.ids.company)).toBe(true)
+    expect(masterData()).toEqual(before); expect(snapshot(foreign.source.id)).toEqual(foreignBefore)
+    await processInboundEdielMessage({ actorUserId: own.ids.actor, edielMessageId: source.id })
+    expect(snapshot(source.id)).toEqual(state)
+    expect(masterData()).toEqual(before); expect(snapshot(foreign.source.id)).toEqual(foreignBefore)
+  }
 })
 
 it('actual mixed consumer keeps positive, guide-negative and two E87 ERR reservations and ACK wire scopes separate', async () => {
