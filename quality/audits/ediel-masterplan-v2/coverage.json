@@ -1428,8 +1428,14 @@
     },
     {
       "id": "SC-012",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-012-dual-role-state-isolation.test.ts",
+        "scripts/ediel-sc-012-dual-role-state-sql-regression.mjs",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts"
+      ]
     },
     {
       "id": "SC-013",
