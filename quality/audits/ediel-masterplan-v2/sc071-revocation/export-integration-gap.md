@@ -49,5 +49,14 @@ receipts/state, separating legitimate revoke/version/history writes from
 forbidden export effects. Reuse the current native fixture/locks and SC010570
 caller receipt; do not invent issuer/legal authority or another DB harness.
 
-Current status: source/architecture/file assignment PENDING. Native projection
-feedback is an independently executable component; whole SC071 stays unapproved.
+Historical assignment question above is SUPERSEDED by the retained SC010
+source owner's concrete claim5305992097869. That owner builds the sole first
+production exporter with durable scope/version-only jobs, bounded rotating
+leases, execution through the existing projection authority and an atomic
+private internal result commit. No competing worker or validator is assigned.
+The coordinator retains shared replay/schema/manifest/generated integration.
+
+Current status: IMPLEMENTATION_PENDING. Exact producer commit, RPC/status
+interface and coordinator schema admission must be published before the actual
+SC071 parallel export/revoke tests can be qualified. Native projection feedback
+remains independently executable; whole SC071 stays unapproved.

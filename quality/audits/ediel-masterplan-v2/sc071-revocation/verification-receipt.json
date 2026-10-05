@@ -145,5 +145,35 @@
     "whole_sc071": "UNAPPROVED",
     "shared_files_edited": false,
     "reviewed_test_config_hashes_unchanged": true
+  },
+  "custody_correction": {
+    "recorded_at_utc": "2026-10-05T10:17:20.975351+00:00",
+    "current_main_base": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+    "main_adoption_commit": "3d31bf6785a0a40f88c0f57b51155c6bba0ab53f",
+    "current_main_counts": {
+      "rules_verified": 91,
+      "acceptance_contracts_passed": 114,
+      "distinct_approved": 205
+    },
+    "first_actual_run": {
+      "run": 37293845384,
+      "job": 111710327615,
+      "head": "f75cdd7d7c785a4ee28351d5819a82cae849a05e",
+      "result": "FAILED_CREDENTIAL_REFUSAL",
+      "artifacts": 0,
+      "native_counts": "NOT_QUALIFIED"
+    },
+    "workflow_sha256": "a92013e90ef1e2c8030625b100e5a9e278792d9f4cbb18705d87ea2707d44038",
+    "correction": "provide CLI SECRET_KEY format bytes through unchanged canonical scrub secrets input; retained credential refusal",
+    "canonical_redactor_edited": false,
+    "native_test_config_changed": false,
+    "actionlint_shell_python": "PASS",
+    "finite_wrapper_control": "3 PASS; synthetic ports, no database/native execution",
+    "independent_static_review": "APPROVE; 3 finite format controls PASS, no native proof",
+    "next_actual_native_run": "AWAITING_PUBLICATION",
+    "whole_sc071": "UNAPPROVED",
+    "sole_exporter_owner_claim": 5992097869,
+    "exporter_dependency": "IMPLEMENTATION_PENDING",
+    "coverage_edited": false
   }
 }

@@ -117,3 +117,47 @@ test/source qualification. Parent-reported actionlint/syntax checks and finite
 wrapper-control probe are not independent native evidence. Native/CI feedback
 is still pending actual execution; whole SC071 stays unapproved. Only this
 review file was updated.
+
+## Format-input correction after actual credential refusal — 2026-10-05
+
+Owner-reported actual run `37293845384`, job `111710327615`, on
+`f75cdd7d7c785a4ee28351d5819a82cae849a05e` failed the retained credential refusal.
+Zero artifacts were published; native counts remain unqualified. The earlier
+static review is historical and does not turn that failed execution into PASS.
+
+**APPROVE the new bounded credential-input correction statically.** Current
+workflow SHA-256 is `a92013e90ef1e2c8030625b100e5a9e278792d9f4cbb18705d87ea2707d44038`;
+HEAD is still the exact failed-run source above. The sole reviewed workflow
+diff (lines 153–166) imports the unchanged canonical redactor and passes detected
+`sb_secret_` format bytes through its existing `scrub(data, secrets=...)` input.
+The canonical CLI's legacy SENSITIVE key-name list does not include SECRET_KEY;
+providing literal extra-secret bytes covers that omitted local output format.
+This supplies an existing input port; it does not create a second scrubbing
+algorithm or mutate the shared redactor/status/native authority.
+
+The existing CLI redaction still precedes the additional input. The same
+leftover JWT/`sb_secret_` refusal remains unchanged before directory promotion,
+artifact upload or printing. Missing/malformed status and import/scrub/refusal
+errors remain fail closed. Only the known top-level working log/XML/JSON files
+are processed; no native status file enters that directory. No actual token
+was read, printed or copied into this review's artifacts.
+
+Independently verified unchanged hashes: canonical redactor
+`db285c16dc62542028d497e805a5d8315ed6183ead8d9564982ea1a80164fb74`, native test
+`6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0`, selected
+config `dfd7ae4e5b278d0c86904cda781ae4b8c1232d2aa1033022f4bb075d11853d1b`.
+Relevant shared replay/config/fixture/helper/native diffs against `f75cdd7d` are
+empty. No checkout/index/HEAD or implementation changes were made by reviewer.
+
+Independent `python3 -B` finite in-memory input check: **3 formats PASS**
+(plaintext, JSON SECRET_KEY and XML), using declared synthetic format bytes
+only. The existing scrub with extra-secret inputs removes both legacy JWT and
+`sb_secret_` bytes while preserving stage/count/failure diagnostics. No files
+were written; no live credentials, native database or native tests were used.
+Parent wrapper/actionlint checks are separate verification, not native proof.
+
+The corrected workflow has no actual CI/native result yet. Whole SC071 remains
+unapproved, with native counts unqualified until new-head real feedback passes.
+The reported sole exporter claim on #530 assigns future production work; it
+does not itself qualify that producer or authorize a competing implementation.
+Only this existing review file was updated by this reviewer.

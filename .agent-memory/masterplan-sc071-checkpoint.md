@@ -137,3 +137,49 @@ it cannot qualify the upcoming workflow publication head. Next action: publish
 the reviewed new workflow and follow its actual setup/test/artifact outcome;
 correct any first evidenced failure in own scope and retain external/shared
 failures for their owner. No coverage or shared artifact is promoted.
+
+## Active native run and first producer dependency
+
+Exact published native-feedback candidate: f75cdd7d7c785a4ee28351d5819a82cae849a05e.
+Own clean worktree/remote confirmed after push. Actual supplemental run
+37293845384 started; stage/results/artifact qualification remains IN_PROGRESS.
+Publication/ownership handoff5305992281152 links that run and exact head.
+An old-gh GraphQL Projects-classic error blocked gh pr edit; the structured
+GitHub REST update tool replaced the PR body successfully without source edits.
+
+SC010 source owner grant-revalidation-20261005 now explicitly owns the sole
+first production export integration in5305992097869; its owned new lib/API/
+forwardmigration and sequential native probe stay theirs. Our earlier general
+first-producer assignment question is superseded by that concrete claim.
+SC071 uses that same real durable enqueue/lease/execute/private-result consumer
+when exact producer RPC/status/schema-admission commit is published. No second
+worker, projection or validator will be built here. Source integration/replay
+manifest/schema/typegen/fingerprint/capture remains solely with the coordinator.
+The remaining export dependency is now IMPLEMENTATION_PENDING, not missing
+assignment. My next step remains qualifying the running native component, then
+adding actual parallel export/revoke witnesses against that sole producer.
+
+## First actual CI custody failure and reviewed correction
+
+Actual run37293845384/job111710327615 on f75cdd7d failed the retained credential
+refusal after canonical redaction. Zero artifacts were uploaded, so native
+counts remain NOT_QUALIFIED. native-feedback-first-failure.json preserves that
+execution separately from the original local Docker/pre-replay failure.
+Finite reproduction found CLI2.101 SECRET_KEY outside the canonical redactor's
+legacy sensitive key-name list; no real credential was used or printed.
+
+Own workflow a92013e90ef1e2c8030625b100e5a9e278792d9f4cbb18705d87ea2707d44038
+now supplies the detected sb_secret format bytes to the unchanged canonical
+scrub(data, secrets=...) input. The same post-redaction refusal remains before
+artifact promotion. Independent static review APPROVE and three independent
+finite format checks PASS; own actionlint/syntax and three finite wrapper
+failure/success controls PASS. These are orchestration/custody checks only.
+Shared redactor, native test/config, fixture, helpers and source are unchanged.
+
+Actual main0dab92006d2ce17db21774e17d983b9a407b1a47 was merged cleanly at
+3d31bf6785a0a40f88c0f57b51155c6bba0ab53f. Its five changed paths carry SC036
+tests/replay and shared memory/coverage; relevant product SQL/fixture/native
+config/helpers remain unchanged. Current actual-main counts91 VERIFIED rules
+plus114 PASSED contracts =205 distinct/352. No own coverage row is promoted.
+Next: push the reviewed custody correction and qualify its actual new-head
+native run/artifact. SC010 sole exporter implementation remains pending.

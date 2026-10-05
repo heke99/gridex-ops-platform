@@ -150,7 +150,20 @@ jobs:
           python3 scripts/gridex-redact-native-evidence.py \
             --local-secrets "$GRIDEX_NATIVE_STATUS" --root sc071-native-working
           python3 - <<'PY'
-          import pathlib, re
+          import importlib.util, pathlib, re
+          # CLI2.101 also emits sb_secret keys under SECRET_KEY, outside the
+          # existing redactor's legacy key-name list. Feed that finite format
+          # to the same canonical scrub function; never alter native status,
+          # the shared redactor, or the post-redaction refusal below.
+          spec = importlib.util.spec_from_file_location('canonical_redactor', 'scripts/gridex-redact-native-evidence.py')
+          redactor = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(redactor)
+          for p in pathlib.Path('sc071-native-working').iterdir():
+              if p.is_file():
+                  data = p.read_bytes()
+                  extra = re.findall(rb'\bsb_secret_[A-Za-z0-9_-]+\b', data)
+                  if extra:
+                      p.write_bytes(redactor.scrub(data, secrets=extra))
           remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+)\b')
           if any(remaining.search(p.read_bytes()) for p in pathlib.Path('sc071-native-working').iterdir() if p.is_file()):
               raise SystemExit('sc071_redaction_incomplete_no_artifact_published')
