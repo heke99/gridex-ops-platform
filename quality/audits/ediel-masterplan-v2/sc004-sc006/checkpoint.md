@@ -61,7 +61,10 @@ No assertion was weakened and no broad/full/native run was repeated. Coverage
 is byte-identical to base for all352 rows. Existing541/547 tags are retained,
 SC004/SC006 are discoverable in ordinary supported test inputs.
 
-Next: push this technical packet and create a draft PR against main; send exact
-head/tree/input hashes to root for independent entire-scenario review. Promote
+Published draft [PR #551](https://github.com/heke99/gridex-ops-platform/pull/551)
+against actual main9dc at first published head3be7ce7f/tree01c9ef4b. This final
+publication-only update changes no technical input/source/coverage byte. Next:
+send the exact final head/tree/input hashes to root for independent entire-scenario
+review. Promote
 only these two rows after independent approval. Root owns current mandatory
 gates, main composition and merge; this packet is not a release approval.

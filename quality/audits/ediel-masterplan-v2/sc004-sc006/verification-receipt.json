@@ -1028,7 +1028,15 @@
     }
   ],
   "environment_note": "Initial wrapper child spawn EPERM under default process restrictions; same unchanged wrapper passes with authorized child/network permission. No assertion was weakened. Node24.19.0; no broad/full/native rerun.",
-  "publication": "Push-ready on owned branch; draft PR against main; independent whole-scenario review and root mandatory current-head gates pending. Exact final Git head is reported externally to avoid self-referential receipt hashing.",
+  "publication": {
+    "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/551",
+    "draft": true,
+    "first_published_head": "3be7ce7f6d357bc0f6fdfbe2bde2ccbb1b12d3b5",
+    "first_published_tree": "01c9ef4b646250f11103ae38630036e1fe7d98e0",
+    "independent_review": "PENDING entire SC004/SC006; root assigns existing independent reviewer",
+    "current_gates_merge": "Root-owned; no release or merge claim",
+    "final_doc_head": "Reported externally; only publication metadata changes from first published head, technical inputs/source/coverage unchanged"
+  },
   "technical_freeze_sha": "9c730fe0b08315a3cdf4ac22f875d550f8580cf8",
   "technical_freeze_tree": "1263d6ae769ad0fada94d06985dd0af59d3092d5"
 }
