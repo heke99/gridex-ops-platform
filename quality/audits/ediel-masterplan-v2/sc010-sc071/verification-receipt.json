@@ -1,0 +1,99 @@
+{
+  "baseCommit": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "branch": "codex/ediel-sc010-sc071-revocation-evidence-20261005",
+  "createdAtUtc": "2026-10-05T09:09:38.521907+00:00",
+  "claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991275815",
+  "wholeScenarios": {
+    "SC-010": "NOT_APPROVED",
+    "SC-071": "NOT_APPROVED"
+  },
+  "coverageUnchanged": true,
+  "node": "22.23.0",
+  "focusedVitest": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newSqlGroups": 9,
+  "inheritedSqlGroups": {
+    "positiveAckScope": 23,
+    "grantSet": 21,
+    "provenance": 11,
+    "replay": 4,
+    "administration": 48
+  },
+  "limits": [
+    "PGlite has no genuinely concurrent native connections",
+    "Inherited source/actor/issuer/permission/accepted-storage dependencies are finite labelled fixtures",
+    "No leased export worker or external delivery consumer is exercised",
+    "No authentic market/legal/production verification"
+  ],
+  "remaining": {
+    "SC-010": [
+      "Identify real queued export and lease/fencing consumer or obtain exact product ownership handoff",
+      "Prove current-version recheck before its actual read and external distribution, zero forbidden output after revocation"
+    ],
+    "SC-071": [
+      "Exercise genuine two-session own data_access_grant revocation versus actual E66 beneficiary distribution",
+      "Observe blocked transaction, commit revocation, assert no rows/receipts/output; retain unaffected beneficiary positive control"
+    ]
+  },
+  "unchangedInputHashes": {
+    "docs/ediel/masterplan-v2/registers/rules.json": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+    "docs/ediel/masterplan-v2/registers/acceptance_tests.json": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+    "quality/audits/ediel-masterplan-v2/coverage.json": "3de65e633a5df55e017d0f60abf8887a2d08afaf11821fb5be07595a625c1042",
+    "lib/ediel/services/projection.ts": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+    "app/api/ediel/beneficiary/series/[seriesId]/route.ts": "820e3872046e1202a82bf8409deb06d5428323d08d9a4a9737c9183e09872474",
+    "scripts/ediel-beneficiary-projection-replay-sql-regression.mjs": "62725a25d5fb15719e47725b92b3d0d102e1b0edc7c4e79d29a6cad73bdcadc8",
+    "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs": "9ebd3baab79413cf05c87b800fb215fd5616a21efc44de8f2aa890f25696f2fe",
+    "scripts/ediel-service-grant-set-sql-regression.mjs": "69ea70ab89fe9bc1dfe29fab29856b7f270aa205d901113fc66cd7063224ca01",
+    "scripts/ediel-positive-ack-service-scope-sql-regression.mjs": "a00e29e3e4e92cecee7417972e6ed75d33242cc4673ab2f73ab228e94551928a",
+    "scripts/ediel-service-administration-sql-regression.mjs": "b8e6102285022d3a74a3954e313e70524dd1140c24032873562a50cd7e22c9ec",
+    "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql": "f02c4a03e9da65d945516406d62611c0ab37dd3220418f961b662c3ea0449fa1",
+    "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql": "c14ed560924522b748e879e1187b7e7793d95ea2ae69e9a97cda7b727f93a689",
+    "supabase/migrations/20260930231958_ediel_atomic_ack_owner_persistence.sql": "8cdd3bb9cdc6e8b08a68f5e6335e21fe752b82c2cfbd890a9ac5b2f07437ead9",
+    "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
+    "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+    "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+    "scripts/ediel-service-evidence-native.test.ts": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee"
+  },
+  "newTechnicalHashes": {
+    "__tests__/ediel-sc-010-071-current-grant.test.ts": "b8bb0e58533910959530dbfd413cb5ee969ada5f3580a03ed084d47b82a4be0e",
+    "scripts/ediel-sc-010-071-current-grant-sql-regression.mjs": "98561d15d74f41ec02f8c15c8652b13ab3df76a4950c15b0c6f48a512e0dd165"
+  },
+  "artifactHashes": {
+    "final-scoped-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frozen-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "final-focused-node22.log": "99265b240f75eeea493eed45c4ba71f6a07c897abf4c7c4793a10e1173cfb9b5",
+    "qualification-sql.log": "3c842c6dcf837906e2befe1114624ea15d9538947ab123db12ae9f2f0e3d3b59",
+    "final-junit.xml": "1c67ff3b940d53e90ec55e9a637f4f533200b44237abdda721e596947e71cbd5",
+    "tests-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "previousFailures": [
+    {
+      "scope": "setup",
+      "reason": "default npm cache outside writable roots returned ENOENT; retry in /tmp succeeded"
+    },
+    {
+      "scope": "new proof runner",
+      "reason": "outer/inner temporary-name collision and snapshot after expected SQL error corrected by distinct entry name and SAVEPOINT"
+    },
+    {
+      "scope": "new test oracle",
+      "reason": "revocation legitimately changes own updated_at and appends immutable history; oracle now proves exact before/after grant plus exactly one own journal and command append"
+    },
+    {
+      "scope": "independent review",
+      "reason": "expiry initially also changed version; corrected to submit freshly read current version for expiry and revoked-state controls"
+    },
+    {
+      "scope": "inherited fixture setup",
+      "reason": "EDIEL_SQL_REPOSITORY required by retained bounded decoder; wrapper now passes actual repository path"
+    },
+    {
+      "scope": "execution environment",
+      "reason": "restricted runner returned spawnSync EPERM despite subprocess completion; allowed network/socket execution boundary produced canonical focused pass without changing assertions"
+    }
+  ]
+}

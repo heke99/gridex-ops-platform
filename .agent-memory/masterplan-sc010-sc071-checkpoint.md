@@ -1,0 +1,24 @@
+# SC-010 / SC-071 — Codex session revocation-evidence-20261005
+
+Status: PARTIAL, locally verified bounded evidence; whole scenarios NOT_APPROVED. Coverage unchanged. Updated 2026-10-05.
+
+- Branch: `codex/ediel-sc010-sc071-revocation-evidence-20261005`.
+- Worktree: `/workspace/gridex-ediel-sc010-sc071-20261005`.
+- Base: `985724f58ef15e222cf4d3b2e1c643c674852106`, actual main checked 2026-10-05.
+- Ownership: #530 comment5991275815; SC-010/SC-071 only. Complete inventories: 90 board comments, 453 primary comments, 69 open PR file lists, 47 current masterplan PR-head coverage files.
+- Own files: new scenario test, new SQL regression, this checkpoint and `quality/audits/ediel-masterplan-v2/sc010-sc071/`.
+- Retained owners: all existing TEN/ESCO/grant/projection producers and common integration/capture/coverage remain with their announced owners. No production, migration, helper, old test or shared memory edits.
+
+Implemented and verified: nine additive SQL groups execute the existing current grant/provenance consumer, with full finite-fixture row snapshots. Actual administration revocation advances only the own grant version/status/timestamps, appends exactly one own immutable journal transition and one own command result. Replay preserves all rows. Previous-version and current-version revoked reads are denied; expiry is tested with the actual current version. Membership and evidence withdrawal produce no read effects. The independent beneficiary retains the same quality-only page/receipt. All 107 inherited SQL groups also pass.
+
+Limits: actor permission, original custody, source, issuer, accepted storage and review dependencies remain the existing explicitly finite fixtures. PGlite is not multi-connection native PostgreSQL. Retained-page tests do not prove cache/export invalidation outside the called SQL consumer. No leased export worker was identified in the initial service/projection caller inventory; no worker has been invented.
+
+Skill routing: cloud-environment-runtime (runtime/network); using-superpowers and using-git-worktrees (isolation); spec-to-code-compliance (literal requirements and independent review); Supabase (database/privileged boundary); requesting-code-review (independent reviewer); verification-before-completion (fresh checks). Conditional systematic-debugging/fp-check/TDD apply if a genuine product RED is found; UI/performance/static-security/tool-authoring groups have no trigger in this new-only evidence scope.
+
+Verification: canonical Node22.23.0 focused Vitest 1 PASS/0 FAIL/0 SKIP; direct SQL 9 new +107 inherited groups PASS; test TypeScript and scoped lint/script syntax PASS; frozen integrity validates 33 originals, 121 rules, 231 contracts. Raw transcripts, JUnit, unchanged source hashes and explicit failed attempts are in `quality/audits/ediel-masterplan-v2/sc010-sc071/verification-receipt.json`. Supported full tagged gate is running, not yet claimed green. No native/full clean or upgrade, whole-system, CI or main acceptance is inferred.
+
+Failed checks preserved: default npm cache outside writable roots returned ENOENT (retry in /tmp succeeded); initial entry/inner temporary names collided (now disjoint); snapshots after intended SQL errors needed SAVEPOINT rollback; initial revoke oracle incorrectly held legitimate own audit/updated_at effects constant (now exact before/after and append assertions); independent review exposed an expiry/version confound (now current-version expiry and revocation controls); retained decoder required `EDIEL_SQL_REPOSITORY` (now passed by wrapper). Restricted execution returned spawnSync EPERM despite subprocess completion; the supported socket/network execution boundary allowed the unchanged assertions to pass. Earlier results are failures, not retrospectively counted as green.
+
+Independent source review: current source/projection/read/admin consumers exist. No leased beneficiary export worker was found among their callers. Historical native pending-DENY-versus-projection and grant-revocation-versus-storage probes are different predicates; retained 20261001 packets include seed/qualification failures and cannot approve current SC-071. Current graph locking/static source order is a seam, not a concurrent execution receipt.
+
+Next: finish the supported tag gate; freeze/publish this bounded packet and record independent final review/actual candidate CI. Keep SC-010/SC-071 unapproved. Retained TEN/grant/projection owner and coordinator must identify or explicitly hand off the real queued export/lease/distribution path, and qualify a genuinely concurrent own-grant-revocation/beneficiary-page test on the current native stack. No new worker/access authority or peer-owned file may be introduced from unanswered coordination. Preserve this package while those dependent effects are blocked.
