@@ -53,6 +53,13 @@ export const UTILTS_CANONICAL_MARKET_PROFILES: readonly UtiltsMarketProfile[] = 
   { code: 'ERR', senderRoles: [SUPPLIER, GRID, BRP, IMBALANCE_SETTLEMENT_RESPONSIBLE, ESCO, PRODUCER, CUSTOMER, COLLECTOR, SYSTEM_OPERATOR], receiverRoles: [SUPPLIER, GRID, BRP, IMBALANCE_SETTLEMENT_RESPONSIBLE, ESCO, PRODUCER, CUSTOMER, COLLECTOR, SYSTEM_OPERATOR], bilateralRequired: false, supplierSupport: 'ack_only', businessMeaning: 'UTILTS funktions-/processbarhetsfel.' },
 ] as const
 
+for (const profile of UTILTS_CANONICAL_MARKET_PROFILES) {
+  Object.freeze(profile.senderRoles)
+  Object.freeze(profile.receiverRoles)
+  Object.freeze(profile)
+}
+Object.freeze(UTILTS_CANONICAL_MARKET_PROFILES)
+
 export function getCanonicalUtiltsMarketProfile(code: string | null | undefined): UtiltsMarketProfile | null {
   const normalized = String(code ?? '').trim().toUpperCase()
   return UTILTS_CANONICAL_MARKET_PROFILES.find((profile) => profile.code === normalized) ?? null

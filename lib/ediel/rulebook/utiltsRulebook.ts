@@ -255,6 +255,15 @@ export const UTILTS_CANONICAL_PROFILES: readonly UtiltsCanonicalProfile[] = [
   profile({ profileKey: 'utilts_err', messageCode: 'ERR', phase: 'metering', scope: 'error', requiredSignals: ['UNB', 'UNH', 'BGM', 'ERC'], requiresTransaction: false, supportsCorrections: false, validatesDst: false, agtCases: ['UE1', 'UE2'] }),
 ] as const
 
+for (const profile of UTILTS_CANONICAL_PROFILES) {
+  Object.freeze(profile.requiredSignals)
+  Object.freeze(profile.agtCases)
+  Object.freeze(profile.allowedSenderRoles)
+  Object.freeze(profile.allowedReceiverRoles)
+  Object.freeze(profile)
+}
+Object.freeze(UTILTS_CANONICAL_PROFILES)
+
 export function getCanonicalUtiltsProfile(messageCode: string | null | undefined): UtiltsCanonicalProfile | null {
   const code = String(messageCode ?? '').toUpperCase()
   return UTILTS_CANONICAL_PROFILES.find((entry) => entry.messageCode === code) ?? null
