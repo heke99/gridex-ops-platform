@@ -1,0 +1,31 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/ediel-sc-068-reference-authority-boundary.test.ts (8 tests | 2 failed) 3245ms
+   × SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer 97ms
+   × SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer 30ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-068-reference-authority-boundary.test.ts > SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer
+ FAIL  __tests__/ediel-sc-068-reference-authority-boundary.test.ts > SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer
+AssertionError: expected [Function] to throw error including 'ediel_initial_utilts_owner_unavailable' but got 'utilts_runtime_policy_time_context_mi…'
+
+Expected: "ediel_initial_utilts_owner_unavailable"
+Received: "utilts_runtime_policy_time_context_mismatch"
+
+ ❯ __tests__/ediel-sc-068-reference-authority-boundary.test.ts:88:81
+     86|     io.rpc.mockClear()
+     87|     await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorU…
+     88|       canonicalDecision: copiedDiagnostic, canonicalPolicy: diagnostic…
+       |                                                                                 ^
+     89|     expect(io.rpc.mock.calls.some(([name]) => ['gridex_record_utilts_s…
+     90|     expectNoProductionEffect(); expect(message).toEqual(original)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  18:07:07
+   Duration  11.33s (transform 6.21s, setup 34ms, import 7.85s, tests 3.25s, environment 0ms)

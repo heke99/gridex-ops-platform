@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-10-05T20:58:48.558682+00:00",
+  "source": "https://www.githubstatus.com/api/v2/summary.json",
+  "page_updated_at": "2026-10-05T20:47:22.579Z",
+  "actions_components": [
+    {
+      "name": "Actions",
+      "status": "major_outage",
+      "updated_at": "2026-10-05T20:47:22.515Z"
+    }
+  ],
+  "active_incidents": [
+    {
+      "id": "3q1yb5m7ltvb",
+      "name": "Incident with Actions",
+      "status": "investigating",
+      "updated_at": "2026-10-05T20:47:22.560Z",
+      "shortlink": "https://stspg.io/c11dc9nb1zdq",
+      "latest_update": "Actions is experiencing degraded availability. We are continuing to investigate."
+    }
+  ]
+}

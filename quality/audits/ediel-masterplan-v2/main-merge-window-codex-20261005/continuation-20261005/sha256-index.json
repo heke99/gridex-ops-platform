@@ -1,12 +1,14 @@
 {
   "algorithm": "SHA256",
-  "snapshot_main_commit": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
-  "scope": "Additive continuation and unchanged original records; index intentionally excludes itself.",
+  "snapshot_main_commit": "2964415adec9e36932583e95f8506437d262c507",
+  "scope": "Final local own documentation union. Current main source preserved; all prior original/published/prepared records and four bounded status-custody records retained. Index intentionally excludes itself.",
+  "previous_published_index_sha256": "5031f5885e330fe2f0d71eca0d52074f3f78476445ca7d03850995e70d1a453f",
+  "previous_prepared_index_sha256": "71aaf59899fc6cfda8480a31606fd05cbf94b2bd8a176b606caeff2fe312dbf3",
   "files": [
     {
       "path": ".agent-memory/masterplan-codex-main-merge-window-20261005.md",
-      "bytes": 5340,
-      "sha256": "2b348691029e46350d680ca0a1c0736a5d64da23eb6d7aa9cb3f1b6ac23615c8",
+      "bytes": 6649,
+      "sha256": "9daaee4fd8ed86369b58db12f9238f7e61ade405fd028b78a84d6d3bc42eea8c",
       "kind": "appended_own_memory"
     },
     {
@@ -71,111 +73,183 @@
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/README.md",
-      "bytes": 3890,
-      "sha256": "21990526537439b7182b146a736c5cb0627a567ee8c64595903e0783a1fdcab0",
-      "kind": "new_continuation"
+      "bytes": 5216,
+      "sha256": "16cc3c5538b37f9459779fa7bd63271e08700cf304e5b9e2110b40430d1aea01",
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/continuation-proof.json",
+      "bytes": 46987,
+      "sha256": "69c6b103618b8f48a4915a9a2a92e86376031146069ed58db1bbf26a37705b3b",
+      "kind": "continuation"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/b6fcf2e4/README.md",
+      "bytes": 3890,
+      "sha256": "21990526537439b7182b146a736c5cb0627a567ee8c64595903e0783a1fdcab0",
+      "kind": "immutable_history"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/b6fcf2e4/continuation-proof.json",
       "bytes": 28974,
       "sha256": "e74829b21a310ef51b0b4ae4b96719371863c8dc4efe8593a6b9cb6cdb5460dd",
-      "kind": "new_continuation"
+      "kind": "immutable_history"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/b6fcf2e4/sha256-index.json",
+      "bytes": 8800,
+      "sha256": "5031f5885e330fe2f0d71eca0d52074f3f78476445ca7d03850995e70d1a453f",
+      "kind": "immutable_history"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/prepared-564-main296/README.md",
+      "bytes": 5023,
+      "sha256": "4199cf4112bbd000e20d0c147bde14c2476f17295da49bddbcff3f5a2112a952",
+      "kind": "immutable_history"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/prepared-564-main296/continuation-proof.json",
+      "bytes": 33877,
+      "sha256": "4315a231c0cb29d2fecaea188d0d6eb3acf6f026d3ba63afd728a71c7948586e",
+      "kind": "immutable_history"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/prepared-564-main296/sha256-index.json",
+      "bytes": 10393,
+      "sha256": "71aaf59899fc6cfda8480a31606fd05cbf94b2bd8a176b606caeff2fe312dbf3",
+      "kind": "immutable_history"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge515-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "01dee2fbe28d7e9208b5dd8c0dd255c4b90240d4ff82813d7912cc6f21cb530b",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge515-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "189efbca2ab8c6af8a259e1987e26fc979f308acb1b164146d3d41dffc642ece",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge517-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "04fc4586159d927dbbdb5ae62f01620375636817d7745be1ad0554aac4dfc055",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge517-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "ddf9611f152de2b999be8df200a0eadd6f2bdf78cc85c8b182e74cd25425a605",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge531-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "ab5885ddd7fc9982e2f19461ae87043537c42240d5160fff8fdd3ec99603a81e",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge531-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "4c80f3fed87bba68b560f97fdba849f19df9f3ac96d167aa49bb690e396653a0",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge541-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "d3427fed9da854e3d0b0cb47e6e50935701d14d41736b3f4524ec061b003eb60",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge541-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "3550352baec3e0e6ed61938568154aa1d9cd8eec707cd854d17722dc95f0f7aa",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge547-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "279f34fc624de6a057ee6cca80e3b5a736d2cae9888d33e8e16edead13b4337a",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge547-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "7a95688917ddc3510ec51579bc0cc18457f26367df61d941bc11eb5cf2903cdc",
-      "kind": "new_continuation"
+      "kind": "continuation"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge564-final-delivery-receipt.json",
+      "bytes": 5898,
+      "sha256": "7365e76a6b41fc23b04aa446fd00f674eb0d6efc1ed9370de4716a3db93d008f",
+      "kind": "continuation"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge564-final-gate-receipt.json",
+      "bytes": 5630,
+      "sha256": "1cdb51fd9fc0d6cc95bad308ac2f76585b9b2546639d588d19a209d8a523dfbe",
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge603-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "fdd206b0386dca668ccb8a2048d7289fa512f20e97b5bca4edb4be1f69f682d5",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge603-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "4ea20f5bdd3ba0d78998253b3aaac2785c86f9e7b5d5c55334d2c64afb9d3df2",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge607-final-delivery-receipt.json",
       "bytes": 2219,
       "sha256": "b58b6bfc67ce8f4cb4958d86cc57027aaecf53747c1860ee24305b2aa5ed5366",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge607-final-gate-receipt.json",
       "bytes": 2000,
       "sha256": "037e9037c178d4d5de6ac16d7e7f2d6d5868c30c20d4e1f7642640a88dd77d28",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge609-final-delivery-receipt.json",
       "bytes": 2290,
       "sha256": "0df2ddf54e467a07cf112d0ada9550e2b24cce07c91c8460dc74214700c4f7a7",
-      "kind": "new_continuation"
+      "kind": "continuation"
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge609-final-gate-receipt.json",
       "bytes": 2022,
       "sha256": "081c6eb316c3a29bcf21b5e62cf8b63315d01f28c4725d8722e59e73b5a44744",
-      "kind": "new_continuation"
+      "kind": "continuation"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-github-actions-service-status-20261005.json",
+      "bytes": 662,
+      "sha256": "9d479406f6e5b04cfb7006823a79a99f2471c22d9a158839f269d749b52a9540",
+      "kind": "bounded_status_custody"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-pr520-main296-publication-receipt.json",
+      "bytes": 611,
+      "sha256": "f791521dc9a950968fc43c8474e49609c29e1d92abc6e48ed36884c6d7cc2767",
+      "kind": "bounded_status_custody"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-retired-ci-terminal-postcheck-20261005T203616Z.json",
+      "bytes": 70605,
+      "sha256": "27c9c1493b113239f02d493bebb7ee46328432fa6fb53c75e7b64025238d9b9f",
+      "kind": "bounded_status_custody"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-root-retired-ci-cancellation-receipt.json",
+      "bytes": 1361,
+      "sha256": "2ecf4bfe6203b5ed7f0b3d097589f27c505f08ac11e3dfd39ce12f0b37b604a0",
+      "kind": "bounded_status_custody"
     }
   ]
 }

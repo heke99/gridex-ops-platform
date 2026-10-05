@@ -1,0 +1,23 @@
+{
+  "scope": "Anonymous limit=0 schema-parser check; expected permission denial, not authenticated end-to-end proof",
+  "results": [
+    {
+      "table": "grid_owner_information_requests",
+      "select": "id,company_id,customer_id,customer_site_id,grid_owner_id,grid_area_code,price_area,status,channel,requires_poa,facility_id,metering_point_id,requested_fields,case_reference,recipient_email,poa_id,sent_at,created_at,updated_at, customer:customers!grid_owner_information_requests_customer_id_fkey(customer_number,full_name,first_name,last_name,company_name,email), site:customer_sites!grid_owner_information_requests_customer_site_id_fkey(street,postal_code,city,site_name)",
+      "limit": 0,
+      "status": 401,
+      "code": "42501",
+      "message": "permission denied for table grid_owner_information_requests",
+      "rows_read": 0
+    },
+    {
+      "table": "grid_owners",
+      "select": "id,name,ediel_id,owner_code",
+      "limit": 0,
+      "status": 401,
+      "code": "42501",
+      "message": "permission denied for table grid_owners",
+      "rows_read": 0
+    }
+  ]
+}

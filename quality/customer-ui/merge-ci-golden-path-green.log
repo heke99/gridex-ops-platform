@@ -1,0 +1,234 @@
+Gridex canonical architecture regression passed (57/57 controls)
+GRIDEX post-#108 health residuals static regression passed.
+Migration: 20260811155851_post_108_health_security_residuals.sql
+Generated-types tip: 20261005020000_ediel_production_contract_ack_confirmation.sql
+Checksum: 8f77c78368506a1e83aa13a136c5b713e674c6781137e26c023ec901cb0b02c5
+Canonical production hardening regression passed (permissions, tenant scope, evidence, lifecycle, workers, migrations).
+OK: website_customer_applications loads before external_contract_intakes
+OK: external intake mirror is merged into canonical website row instead of replacing it
+OK: admin rows carry explicit source_table for safe UI/action handling
+OK: single application admin loader exists for detail page
+OK: external intake uses ensureCustomerForIntake instead of blind customer insert
+OK: external intake deduplicates by normalized email, personnummer, and orgnummer
+OK: external intake does not write pending_signature into customers.status
+OK: external intake writes a valid draft customer status
+OK: external intake replays failed/needs_review idempotent rows instead of returning a dead duplicate
+OK: list UI blocks website actions for external-only fallback rows
+OK: list UI exposes a detail route for every intake row
+OK: detail page renders full operational chain from application to customer/site/contract/requests
+OK: server actions safely return to and revalidate the application detail view
+OK: migration repairs legacy customer status and adds chain indexes
+
+Website application ops chain regression passed.
+OK: atomic commit creates the canonical continuation job
+OK: migration drops the prior OUT-row signature before changing the return type
+OK: provisioning saga records commit and queued continuation
+OK: canonical job claim is atomic
+OK: workflow transitions have a unique idempotency identity
+OK: repeated workflow transitions do not increment state twice
+OK: Z01/Z02 wait has a non-replayable workflow state
+OK: continuation commit validates the canonical POA validity columns
+OK: API commits before handing off to continuation
+OK: initial e-mail dispatch lives in the durable continuation worker
+OK: API fails closed when the continuation migration is missing
+OK: old inline grid-owner continuation path is removed
+OK: old inline supplier-switch continuation path is removed
+OK: initial legal e-mails are queued sequentially
+OK: initial legal e-mails are not queued in parallel
+OK: customer-operation worker executes continuation jobs
+OK: continuation and notification jobs bypass stale site-snapshot rejection until the selected downstream step
+OK: TypeScript workflow contract matches SQL wait state
+OK: reconciliation scans stalled active transitions
+OK: reconciliation does not replay legitimate Z02/ACK waiting
+OK: customer-operation cron runs continuation reconciliation
+OK: event-rule seeding preserves existing tenant configuration
+OK: template seeding preserves existing tenant customization
+OK: supplier-switch start is mapped to customer notification
+OK: supplier-switch confirmation is mapped to customer notification
+OK: active supply is mapped to the welcome notification
+OK: lifecycle notification jobs have permanent idempotency
+OK: lifecycle mail creation is protected by a durable queue job
+OK: customer-operation worker dispatches lifecycle notifications durably
+OK: customer operation events enqueue lifecycle notifications
+OK: Ediel business outcomes enqueue lifecycle notifications behind the canonical inbound facade
+OK: missing POA notification creation fails the continuation job for retry
+OK: admin application view exposes workflow transitions and jobs
+OK: admin can safely requeue the canonical continuation row
+OK: canonical developer guide documents structured externally-sendable POA
+OK: canonical developer guide documents the application status endpoint
+OK: legacy website guide delegates details to the canonical public guide without internal queue terminology
+OK: OpenAPI exposes the organization-scoped status endpoint
+OK: status endpoint route exists
+OK: downstream facility/Ediel outcomes correlate back to the original workflow
+
+Customer application continuation regression passed.
+OK: address-only website applications are not rejected with 422
+OK: website application response uses readiness status
+OK: initial application only triggers received email
+OK: website submit does not trigger switch confirmation email
+OK: readiness model separates agreement confirmation guard
+OK: requested/confirmed/actual start dates are separated
+OK: admin UI exposes customer application work queue and readiness check
+OK: admin actions can complete metering/fullmakt data in one transaction
+OK: migration allows customer application lifecycle statuses
+OK: hardening migration remaps old invalid customer intake statuses before recreating constraint
+OK: customer intake status is mapped to production-safe customer statuses
+OK: runtime no longer writes website lifecycle statuses into customers.intake_status
+OK: customer intake update has a precise error stage
+OK: failed application logging preserves missing fields and technical blocking reason
+OK: admin UI sanitizes raw database errors and treats failed rows as blocking
+OK: migrations fix customer_contracts metadata/start-date mismatch
+OK: contract source migration accepts website applications and adds retry lookup index
+OK: contract status migration normalizes pending to pending_signature and keeps canonical DB statuses
+OK: website API contract creation uses canonical atomic onboarding, canonical idempotency and website source type
+OK: admin review retry reuses existing website application contracts
+OK: admin review no longer inserts review-only contract source_type
+OK: migration keeps legacy email_event_rules is_active compatible
+OK: Resend webhook handles sent state explicitly
+OK: SQL checks use live communication_logs recipient_email column
+OK: SQL checks use live grid_owners table, not missing market_actors
+OK: SQL checks verify customer contract source/status constraints and created contracts
+OK: readiness warns when placeholder grid_owner_id is not a verified UUID
+OK: contract source-type errors are reported as clean operational messages
+OK: website API uses canonical pending_signature contract status instead of invalid pending
+OK: admin review retry uses canonical pending_signature contract status instead of invalid pending
+OK: contract status constraint errors are classified separately from source_type errors
+Customer application review regression checks passed.
+Canonical contract/legal/pricing/PDF/tenant finalization regression passed.
+OK: ErrorStage includes power_of_attorney
+OK: ErrorStage includes facility_information_lookup
+OK: ErrorStage includes email_dispatch
+OK: intake defines power_of_attorney_missing
+OK: intake keeps idempotent_application_missing_poa as repair fallback code
+OK: canonical graph persists POA atomically and idempotent repair remains under the power_of_attorney stage
+OK: intake derives powerOfAttorneyRequired from published legal versions
+OK: intake requires accepted structured POA when contract requires it
+OK: idempotent replay attempts inline repair when prior result has no power_of_attorney_id
+OK: idempotent missing POA repair is persisted and audited inline
+OK: idempotent-missing-poa remains a fallback only when inline repair cannot complete
+OK: intake tracks the created application row id
+OK: application row id is captured after creation
+OK: markApplicationFailed helper exists
+OK: catch updates the existing row via markApplicationFailed when present
+OK: failed application logging updates existing idempotency row instead of crashing on duplicate key
+OK: failed application response clears power_of_attorney_id
+OK: mid-pipeline failure uses partial status
+OK: repairWebsiteCustomerApplication helper exists
+OK: admin repair action exists
+OK: admin action calls the repair helper
+OK: admin repair action is guarded (platform or company-scoped)
+OK: route builds the standard error body
+OK: route returns a nested error object
+OK: error contract exposes code
+OK: error contract exposes message
+OK: error contract exposes stage
+OK: error contract exposes field
+OK: error contract exposes request_id
+OK: route generates a request_id
+OK: shared normalizeCustomerType module exists
+OK: normalizeCustomerType is exported
+OK: normalizeCustomerIdentityType is exported
+OK: private alias private present
+OK: private alias privat present
+OK: private alias consumer present
+OK: private alias person present
+OK: private alias privatperson present
+OK: private alias individual present
+OK: business alias business present
+OK: business alias company present
+OK: business alias foretag present
+OK: business alias företag present
+OK: business alias corporate present
+OK: business alias organization present
+OK: business alias organisation present
+OK: business alias enterprise present
+OK: business alias b2b present
+OK: website intake imports the strict external customer-type normalizer
+OK: public-contracts imports the shared normalizer
+OK: customerTypeAllowed normalizes the inbound customer_type
+OK: admin import uses normalizeCustomerIdentityType
+OK: external intake uses isBusinessCustomerType
+OK: missing facility is routed to the manual grid-owner intake before Ediel operations
+OK: Z01 or supplier-switch evaluation only runs after the missing-facility branch returns
+OK: missing-facility path calls the manual orchestrator
+OK: Ediel creator checks for an open manual request
+OK: Ediel creator skips when a manual request is open
+OK: markLinkedRequestFailed helper exists
+OK: failed outbox moves request to needs_review
+OK: failed outbox sets dispatch_status failed
+OK: partial/repaired status migration exists
+OK: status migration adds partial and repaired
+OK: customer_type canonicalization migration exists
+OK: migration adds customers_customer_type_check
+OK: customer_type CHECK allows private/business/association
+OK: app/api/internal/manual-email/outbox/process/route.ts exists
+OK: app/api/internal/manual-email/outbox/process/route.ts requires a cron secret
+OK: app/api/internal/customer-operations/cron/route.ts exists
+OK: app/api/internal/customer-operations/cron/route.ts requires a cron secret
+
+All OPS continuation hardening regression checks passed.
+OK: legacy consent still creates an internal legal POA acceptance
+OK: legacy consent + customer identity is not externally sendable
+OK: legacy consent does not persist signer/method from customer fallback
+OK: weak POA + missing facility does not queue manual outbox and returns poa_not_externally_sendable
+OK: complete structured POA is externally sendable
+OK: complete structured POA + missing facility can queue manual outbox
+OK: structured accepted POA missing signer identity/method is rejected with validation behavior
+OK: website API defines a structured PowerOfAttorneySchema
+OK: application schema accepts powerOfAttorney (camel + snake)
+OK: structured POA carries signer/scope/method/textVersionId
+OK: website API normalizes the structured POA object
+OK: application schema accepts a legalAcceptances list
+OK: website API loads legal text version by id
+OK: website API rejects non-UUID powerOfAttorney.textVersionId before querying legal_text_versions
+OK: POA binds to referenced legal version, falling back to published version
+OK: POA row persists signer + method
+OK: POA row persists evidence payload
+OK: POA row records website_api source
+OK: POA scope includes facility_information_lookup
+OK: POA writes created + accepted events
+OK: POA generates + links an immutable document snapshot
+OK: accepted response exposes automatic_processing while OPS owns downstream work
+OK: continuation status exposes the missing-POA completion action
+OK: orchestrator nextAction covers contact-required + facility-requested states
+OK: continuation status includes canonical facility-request references from the orchestrator
+OK: response includes a power_of_attorney status block
+OK: ops API doc separates structured POA input from canonical public response
+OK: external integration guide documents structured POA
+OK: legacy Website API guide documents structured POA and asynchronous next-step semantics
+OK: normalization accepts identity alias personal_identity_number
+OK: normalization accepts identity alias personalIdentityNumber
+OK: normalization accepts identity alias identity_number
+OK: normalization accepts identity alias personnummer
+OK: normalization accepts identity alias organization_number
+OK: normalization accepts identity alias organisation_number
+OK: normalization accepts identity alias organisationsnummer
+OK: normalization accepts identity alias orgnr
+OK: existing customers get identity written to canonical columns on update
+OK: POA no longer uses customer identity/name as signer fallback for website legacy consent
+OK: response marks weak POA as not externally sendable via structured POA policy
+OK: JSON snapshot uses snapshot_created (not pdf_generated)
+OK: internal JSON snapshot document id is tracked distinctly
+OK: weak POA is stopped before facility dispatch and exposed as a completion requirement
+OK: missing facility is resolved by the manual intake branch before Z01/supplier-switch evaluation
+OK: website intake treats PostgREST schema-cache mismatches as repairable
+OK: website site/metering creation is delegated to the canonical onboarding transaction
+OK: canonical onboarding returns an explicit migration/RPC mismatch code
+OK: website intake no longer owns a direct site/metering fallback writer
+OK: website partial/schema failures are recorded as pending_review for repair/retry
+OK: findValidPowerOfAttorney selects signer/method/legal/accepted fields
+OK: ops API doc documents personal_identity_number
+OK: ops API doc documents poa_not_externally_sendable
+OK: ops API doc documents missing_customer_identity
+OK: ops API doc documents externally_sendable
+OK: external guide documents POA sendability and transitional identity aliases
+OK: package script exposes regression command
+OK: canonical onboarding records cross-tenant facility presence without reading another tenant into the website flow
+OK: website intake no longer throws cross_tenant_facility_conflict during site creation
+OK: canonical onboarding blocks same-tenant facility ownership conflicts with an explicit code
+OK: canonical onboarding persists cross-tenant facility signal as platform-only metadata
+OK: cross-tenant facility catalog is neutral and platform-review oriented
+OK: website application review stores neutral cross-tenant facility signal
+OK: website application review does not classify cross-tenant facility as a hard customer-intake blocker
+Website API power of attorney regression passed
+GRIDEX REMAINING MASTERPOINTS GOLDEN PATH: PASS

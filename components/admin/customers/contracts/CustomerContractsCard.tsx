@@ -1,5 +1,6 @@
 //components/admin/customers/contracts/CustomerContractsCard.tsx
 import Link from 'next/link'
+import CustomerContractCreatePanel from '../CustomerContractCreatePanel'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listOutboundRequestsByCustomerId } from '@/lib/cis/db'
 import {
@@ -185,7 +186,7 @@ export default async function CustomerContractsCard({
  : []
 
  return (
- <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+ <section className="space-y-4">
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-900 ">
@@ -232,45 +233,12 @@ export default async function CustomerContractsCard({
  </span>
  </div>
 
- <div className="mt-3 grid gap-2 text-xs text-slate-700 md:grid-cols-2 xl:grid-cols-4">
- <span className="rounded-2xl bg-slate-50 px-3 py-2">Kampanj: {valueOrDash(currentContract.campaign_name)}</span>
- <span className="rounded-2xl bg-slate-50 px-3 py-2">Kampanjversion: {valueOrDash(currentContract.campaign_version)}</span>
- <span className="rounded-2xl bg-slate-50 px-3 py-2">Prisversion: {valueOrDash(currentContract.price_version)}</span>
- <span className="rounded-2xl bg-slate-50 px-3 py-2">Villkor: {valueOrDash(currentContract.terms_version)}</span>
- </div>
+
  </div>
 
- <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">
- Aktiva / relevanta avtal
- </div>
- <div className="mt-1 text-xl font-semibold text-slate-950 ">
- {contracts.length}
- </div>
+ <p className="text-xs text-slate-600">{contracts.length} avtal · Uppdaterat {formatDateTime(currentContract.updated_at)}</p>
  </div>
 
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Väntar / signerat</div>
- <div className="mt-1 text-xl font-semibold text-slate-950 ">
- {
- contracts.filter(
- (contract) =>
- contract.status === 'pending_signature' ||
- contract.status === 'signed'
- ).length
- }
- </div>
- </div>
-
- <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Senaste uppdatering</div>
- <div className="mt-1 text-sm font-semibold text-slate-950 ">
- {formatDateTime(currentContract.updated_at)}
- </div>
- </div>
- </div>
- </div>
 
  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 ">
  <div className="text-xs uppercase tracking-[0.12em] text-slate-700 ">
@@ -285,6 +253,14 @@ export default async function CustomerContractsCard({
  {currentSituation?.description}
  </div>
 
+ <details className="mt-3">
+ <summary className="cursor-pointer text-sm font-medium text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Period, villkor och prisversion</summary>
+ <div className="mt-3 grid gap-2 text-xs text-slate-700 md:grid-cols-2 xl:grid-cols-4">
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Kampanj: {valueOrDash(currentContract.campaign_name)}</span>
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Kampanjversion: {valueOrDash(currentContract.campaign_version)}</span>
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Prisversion: {valueOrDash(currentContract.price_version)}</span>
+ <span className="rounded-2xl bg-slate-50 px-3 py-2">Villkor: {valueOrDash(currentContract.terms_version)}</span>
+ </div>
  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
  <ContractLifecyclePill
  label="Bindningstid"
@@ -330,6 +306,7 @@ export default async function CustomerContractsCard({
  tone={currentContract.auto_renew_enabled ? 'success' : 'neutral'}
  />
  </div>
+ </details>
  </div>
 
  {canEdit && currentRecommendations.length > 0 ? (
@@ -360,7 +337,7 @@ export default async function CustomerContractsCard({
  <div className="p-10 text-center text-sm text-slate-700 ">
  <div className="text-base font-semibold text-slate-900">Inget avtal är registrerat ännu</div>
  <div className="mx-auto mt-2 max-w-xl">Skapa ett avtal för att koppla kunden till kampanj, prisversion, startdatum och nästa steg i leverantörsbytet.</div>
- <div className="mt-4 text-xs text-slate-600">Du kan skapa avtal från en aktiv avtalsmall eller registrera ett manuellt avtal i panelen till höger.</div>
+ <div className="mt-4 text-xs text-slate-600">Du kan skapa avtal från en aktiv avtalsmall eller registrera ett manuellt avtal under Skapa avtal nedan.</div>
  </div>
  ) : (
  <div className="divide-y divide-slate-200 ">
@@ -375,10 +352,10 @@ export default async function CustomerContractsCard({
  const archivedDocument = documentsByContractId.get(contract.id) ?? null
 
  return (
- <article key={contract.id} className="p-6">
- <div className="flex flex-wrap items-start justify-between gap-4">
- <div>
- <div className="font-medium text-slate-900 ">
+ <details key={contract.id} className="group p-4">
+ <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+ <div className="min-w-0 flex-1">
+ <div className="break-words font-medium text-slate-900 ">
  {contract.contract_name}
  </div>
 
@@ -390,6 +367,11 @@ export default async function CustomerContractsCard({
  <div className="mt-2 text-xs font-medium text-slate-700 ">
  {situation.title}
  </div>
+
+ <p className="mt-1 text-xs text-slate-600">Start {formatDateTime(contract.starts_at)} · Slut {formatDateTime(lifecycle.effectiveEndDate)}</p>
+ {contract.signed_at && !archivedDocument?.storage_path ? (
+ <p className="mt-1 text-xs font-medium text-amber-800">Arkiverad avtals-PDF saknas</p>
+ ) : null}
 
  {contract.override_reason ? (
  <div className="mt-2 text-xs text-amber-700 ">
@@ -405,7 +387,8 @@ export default async function CustomerContractsCard({
  >
  {statusLabel(contract.status)}
  </span>
- </div>
+ <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-800">Detaljer <span aria-hidden="true" className="transition-transform group-open:rotate-180">⌄</span></span>
+ </summary>
 
  <div className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2 xl:grid-cols-4">
  <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
@@ -546,42 +529,28 @@ export default async function CustomerContractsCard({
  outboundRequests={outboundRequests}
  />
  ) : null}
- </article>
+ </details>
  )
  })}
  </div>
  )}
  </div>
 
- <div className="space-y-6">
+ <div className="space-y-4">
  {canEdit ? (
- <>
- <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ">
- <div className="text-sm font-semibold text-slate-900 ">
- Skapa från aktiv avtalsmall
- </div>
-
- <div className="mt-4 space-y-4">
- {activeOffers.length === 0 ? (
- <div className="text-sm text-slate-700 ">
- Inga aktiva avtalsmallar hittades.
- </div>
- ) : (
- activeOffers.map((offer) => (
- <CreateFromOfferForm
- key={offer.id}
- customerId={customerId}
- offer={offer}
- siteOptions={siteOptions}
- meteringPointOptions={meteringPointOptions}
+ <details open={contracts.length === 0} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <summary className="cursor-pointer text-sm font-semibold text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Skapa avtal</summary>
+ <div className="mt-4">
+ <CustomerContractCreatePanel
+ offers={activeOffers.map((offer) => ({
+ id: offer.id,
+ name: offer.name,
+ form: <CreateFromOfferForm customerId={customerId} offer={offer} siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />,
+ }))}
+ manual={<CreateManualContractForm customerId={customerId} siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />}
  />
- ))
- )}
  </div>
- </div>
-
- <CreateManualContractForm customerId={customerId} siteOptions={siteOptions} meteringPointOptions={meteringPointOptions} />
- </>
+ </details>
  ) : (
  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
  Du har läsbehörighet till kundens avtal. Du behöver utökad behörighet för att ändra avtalen.

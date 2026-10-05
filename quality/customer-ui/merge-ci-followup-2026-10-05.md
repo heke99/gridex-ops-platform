@@ -1,0 +1,11 @@
+# PR #608 CI follow-up — 2026-10-05
+
+Initial published head c5b102a1449eadea5c3704813aef0426cac52226 did not pass CI. No merge occurred. OPS verify failed at the website intake detail-route source assertion; coverage failed two SC-068 copied-diagnostic-policy cases after main's required time-context guard was composed into the branch.
+
+The website row now assigns its unchanged destination to `detailHref` and binds both customer name and primary open link to it. The old source regex expected an inline template. It was reproduced red; the gate now verifies the exact ID/source/default template and its Link binding. A new test renders the actual page with canonical, external-only and legacy synthetic rows: both links preserve their own ID/source, the fallback source is correct, external-only rows have no write form, canonical forms retain their ID, and loading retains company scope.
+
+SC-068's real catalogue resolver returns semantics without time anchors. Its copied-policy fixture now retains `initial.policy.timeAnchors` from the actual initial resolver so it reaches the intended opaque-ownership boundary. The same `ediel_initial_utilts_owner_unavailable` rejection and all no-production-effects assertions remain. Red:2 failures/6 pass. Green:27 cases covering SC-068, processor owner reuse and version/time-anchor guards; all8 time-context mismatch cases and missing-context refusal pass. No runtime, grant, migration, security threshold or masterplan approval changed.
+
+Root rerun:4 targeted files/28 tests PASS, integrated remaining-masterpoints golden path PASS, tests TypeScript exit0, scoped ESLint exit0, diff check0. The existing UI agent independently read-reviewed the website gate/test; root reviewed the fixture against `initialCanonicalUtiltsDecision` and `finalizeCanonicalUtiltsRuntimeDecision`. No blocker. Full local pre-composition suite/build evidence is retained separately; all final-head GitHub checks must pass before authorized merge.
+
+Logs: `merge-ci-detail-link-red.log`, `merge-ci-golden-path-green.log`, `merge-ci-targeted-green.log`, `merge-ci-sc068-red.log`, `merge-ci-sc068-green.log`, `merge-ci-tests-types.log`, `merge-ci-tests-lint.log`. These contain synthetic test data only. PR: https://github.com/heke99/gridex-ops-platform/pull/608.

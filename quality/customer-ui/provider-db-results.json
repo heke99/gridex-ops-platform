@@ -1,0 +1,46 @@
+{
+  "engine": "PGlite PostgreSQL",
+  "scope": "actual migration SQL and actual replacement RPC; minimal isolated predecessor tables, no production writes or transport",
+  "results": [
+    {
+      "name": "rejects Nordfin without mutations",
+      "status": "PASS"
+    },
+    {
+      "name": "rejects invalid environment",
+      "status": "PASS"
+    },
+    {
+      "name": "selects Capway test, creates incomplete connection, logs the scoped actor",
+      "status": "PASS"
+    },
+    {
+      "name": "refuses dispatch until connection is ready",
+      "status": "PASS"
+    },
+    {
+      "name": "enables tested connection and preserves enabled state on repeated same selection",
+      "status": "PASS"
+    },
+    {
+      "name": "blocks provider/environment switch while an export is open",
+      "status": "PASS"
+    },
+    {
+      "name": "file provider becomes ready and switching disables dispatch",
+      "status": "PASS"
+    },
+    {
+      "name": "leaves the other company unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "RPCs cannot be executed by anonymous or authenticated clients",
+      "status": "PASS"
+    },
+    {
+      "name": "audit failure rolls back provider and connection changes atomically",
+      "status": "PASS"
+    }
+  ]
+}

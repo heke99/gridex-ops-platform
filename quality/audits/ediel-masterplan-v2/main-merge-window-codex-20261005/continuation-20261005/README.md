@@ -1,6 +1,20 @@
 # Main merge window continuation — 2026-10-05
 
-This additive packet records eight later actual deliveries. Fixed main is 38aa73454b724040f6aaf4339e7feab226ce3ecd, tree 64c93f935436a0c30db27fb86b5451d414984116. The original seven-delivery document and all original quality records remain exact; its older snapshot is historical.
+This metadata packet records **16 actual root deliveries: original seven + eight later deliveries + #564**. Its genuine incoming-main baseline is 2964415adec9e36932583e95f8506437d262c507, tree 20ac0963cf989a08e5aebaa7bb8df405d34d5eba. #564 source d057d3e76427a0407dc8b6670be9f91c41067bc0 merged as 5cde80940ee213612fde3ba6b3461429dd615a7f with eight applicable successful gates; targeted is **excluded, not PASSED**.
+
+The unchanged frozen specification has **33 original files and 352 IDs: 121 rules + 231 acceptance contracts**. These specification/integrity records remain historical and source-qualified; this documentation performs no fresh specification or behavior test. Stored baseline counts are **108 VERIFIED / 10 NOT_VERIFIED / 3 PARTIAL rules** and **163 PASSED / 54 NOT_EXECUTED / 14 PARTIAL acceptance contracts**. They are not whole-plan, full-main GREEN or production-readiness claims.
+
+#520 head 17c37e1d3e11748a16d9f5ab15e76de7fd1962e6 is public and [source-approved](https://github.com/heke99/gridex-ops-platform/pull/520#issuecomment-6002508886). The [sole observer's statement, updated in place at 21:05:49 UTC](https://github.com/heke99/gridex-ops-platform/pull/520#issuecomment-6002840428), records all nine jobs: **2 SUCCESS** (smoke and upgrade), **6 CANCELLED**, and certificate **QUEUED**. Coverage alone has the exact hosted-runner annotation: “The job was not acquired by Runner of type hosted even after multiple attempts.” Its cause is now qualified as runner-not-acquired; other individual cancellation causes remain UNKNOWN. Final gates are **NOT_VERIFIED** and merge is **HOLD**. The earlier 20:59:34 UNKNOWN observation is retained explicitly as historical in the proof. No final #520 delivery or merge receipt is inferred.
+
+External #608 supplied the first admitted incoming-main fixture correction and is preserved as actual main. #610 was author-closed unmerged. Neither is counted as our root delivery or own GREEN. The separate official status receipt checked at 20:58:48 UTC reports Actions **major_outage / investigating**; that incident does not establish an individual job's cause.
+
+Four byte-exact existing records in status-custody/ preserve retired-run cancellation, terminal postcheck, #520 publication and official service status. No new CI, log, artifact, native, capture or test execution occurred. #594 retains [NO_MUTATION](https://github.com/heke99/gridex-ops-platform/pull/594#issuecomment-6002735541); #533/#535 joint capture and #599 hold remain with their retained owners.
+
+The 18 original gate/delivery receipts, six historical metadata archive files, original seven-delivery memory prefix and prior hashes remain exact. continuation-proof.json records source and preservation fields; sha256-index.json seals the current files and immutable history, excluding itself. **Common-main adoption remains pending**: root performs one independent guard and normal publication to the existing adoption writer. This worker performs no push or new PR; publication of this truthful pending-status documentation does not assert #520 GREEN.
+
+## Historical eight-delivery snapshot — main 38aa7345
+
+The following table belongs to fixed historical main 38aa73454b724040f6aaf4339e7feab226ce3ecd, tree 64c93f935436a0c30db27fb86b5451d414984116. Its recorded gates apply to each listed source head, not a fresh execution of combined main.
 
 | PR | Qualified source head | Actual merge commit | Recorded gates |
 | --- | --- | --- | --- |
@@ -13,12 +27,4 @@ This additive packet records eight later actual deliveries. Fixed main is 38aa73
 | [#517](https://github.com/heke99/gridex-ops-platform/pull/517) | cd93fac133c240f56f208ad43dab1ec4075433fc | 3658404d21e76bdabc5b61d91cf43a5c6683b93a | 9 retained success bindings |
 | [#547](https://github.com/heke99/gridex-ops-platform/pull/547) | da2f27f9f889622fb037e9c3965a7078232585c1 | 38aa73454b724040f6aaf4339e7feab226ce3ecd | 9 retained success bindings |
 
-The 16 files in receipts/ are byte-exact original final gate/delivery JSON receipts. Fresh local metadata validation checks actual Git parents, trees and ancestry, pair consistency, and all nine job/run/workflow records per source head. Root already qualified those CI bindings; this worker did not query CI, logs or artifacts again. The records prove these PR deliveries, not a new successful test run of the final combined main.
-
-The actual fixed-main ledger contains **108 VERIFIED / 10 NOT_VERIFIED / 3 PARTIAL rules** and **163 PASSED / 54 NOT_EXECUTED / 14 PARTIAL acceptance contracts**. Within acceptance contracts, scenarios are **56 PASSED / 6 NOT_EXECUTED / 10 PARTIAL**, and rule acceptance tests are **107 PASSED / 48 NOT_EXECUTED / 4 PARTIAL**. These are stored implementation statuses derived from unchanged coverage bytes, not approval of all 121 rules, production readiness or a full-main GREEN certificate.
-
-#520 remains held; the externally published #610 test-only ENV-07 correction is pending root/retained-owner qualification. #533 and #535 retain their existing source-qualified reviews while joint current-main capture and final gates remain pending with the sole writer. #599 remains held with its retained owner. This packet does not change any of those statuses or borrow future proof.
-
-continuation-proof.json contains exact source, real parents/trees, recorded check bindings, ledger derivation and preservation fields. sha256-index.json seals every copied receipt, this readme, the proof, appended own memory and unchanged original quality records. The index excludes itself to avoid a self-referential digest. Private logs, credentials and payloads are excluded.
-
-Root performs independent review and publication to one metadata ref, then the retained common writer adopts it. No competing PR, tag, common handover, coverage, source, test, SQL, generated artifact or workflow changes are included. No tests, native runs, capture or artifact downloads were performed.
+Older snapshots and superseded pending/publication instructions remain only in the byte-exact [published b6fcf2e4 README](history/b6fcf2e4/README.md) and [prepared main296 README](history/prepared-564-main296/README.md).

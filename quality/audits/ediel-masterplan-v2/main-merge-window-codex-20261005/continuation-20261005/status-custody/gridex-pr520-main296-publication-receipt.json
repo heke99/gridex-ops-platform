@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-05T20:40:55.957391+00:00",
+  "pr": 520,
+  "previous_head": "38fbe47f0c1ecba02b8e464bfaa560c30179efa0",
+  "published_head": "17c37e1d3e11748a16d9f5ab15e76de7fd1962e6",
+  "tree": "b4c7f5d626df36ca39806e7f1d7367e2f1641096",
+  "actual_parents": [
+    "38fbe47f0c1ecba02b8e464bfaa560c30179efa0",
+    "2964415adec9e36932583e95f8506437d262c507"
+  ],
+  "normal_push_once": true,
+  "initial_PR_metadata_was_eventually_consistent_no_second_push": true,
+  "body_verified": true,
+  "source_receipt_sha256": "378275b902f5617836efa744b4bf6c5966f8a13d9a4e85054b473a1648e4a935",
+  "CI": "REQUIRED_PENDING"
+}
