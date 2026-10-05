@@ -1,0 +1,156 @@
+{
+  "baseline": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "node": "v24.19.0",
+  "scope": "actual syntax + inbound matrix + exact register-wrapper call; no database/case/ACK/provider execution",
+  "outputs": [
+    {
+      "extra": false,
+      "syntax": {
+        "ok": true,
+        "issues": [],
+        "declaredUntCount": 15,
+        "actualMessageSegmentCount": 15,
+        "grammarQualification": "qualified",
+        "grammarSources": [
+          {
+            "messageIndex": 1,
+            "key": "PRODAT:D:97A:UN",
+            "archiveSha256": "4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8",
+            "members": [
+              {
+                "archiveMember": "EDIFACT/D97ADISK/EDMD.ZIP!EDIFACT/DIRECTOR/TRMD/PRODAT_D.97A",
+                "sha256": "f6d6258573235c642889c2d7404774d1fc642db4cb70c46ef7bb93a1c95f6cf9"
+              },
+              {
+                "archiveMember": "EDIFACT/D97ADISK/EDSD.ZIP!EDIFACT/DIRECTOR/TRSD/EDSD.97A",
+                "sha256": "f8e67ec915604e16768b153cd6b837ab47e0fb31265e4cfc154db246bf6d7c11"
+              },
+              {
+                "archiveMember": "EDIFACT/D97ADISK/EDCD.ZIP!EDIFACT/DIRECTOR/TRCD/EDCD.97A",
+                "sha256": "545aba5d4df750784d023633685835385b2fdbb49853769b2c79bbd1b7ccf2c1"
+              }
+            ]
+          }
+        ]
+      },
+      "inbound": [],
+      "ignored": [],
+      "caller": []
+    },
+    {
+      "extra": true,
+      "syntax": {
+        "ok": true,
+        "issues": [],
+        "declaredUntCount": 16,
+        "actualMessageSegmentCount": 16,
+        "grammarQualification": "qualified",
+        "grammarSources": [
+          {
+            "messageIndex": 1,
+            "key": "PRODAT:D:97A:UN",
+            "archiveSha256": "4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8",
+            "members": [
+              {
+                "archiveMember": "EDIFACT/D97ADISK/EDMD.ZIP!EDIFACT/DIRECTOR/TRMD/PRODAT_D.97A",
+                "sha256": "f6d6258573235c642889c2d7404774d1fc642db4cb70c46ef7bb93a1c95f6cf9"
+              },
+              {
+                "archiveMember": "EDIFACT/D97ADISK/EDSD.ZIP!EDIFACT/DIRECTOR/TRSD/EDSD.97A",
+                "sha256": "f8e67ec915604e16768b153cd6b837ab47e0fb31265e4cfc154db246bf6d7c11"
+              },
+              {
+                "archiveMember": "EDIFACT/D97ADISK/EDCD.ZIP!EDIFACT/DIRECTOR/TRCD/EDCD.97A",
+                "sha256": "545aba5d4df750784d023633685835385b2fdbb49853769b2c79bbd1b7ccf2c1"
+              }
+            ]
+          }
+        ]
+      },
+      "inbound": [],
+      "ignored": [
+        {
+          "fieldNumber": "213",
+          "sourceRule": "PRODAT26A:P119",
+          "occurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "735123456789012345"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "CASE-A"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "001"
+              }
+            },
+            "scope": "register",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "735123456789012345",
+            "identityAgency": "9",
+            "lineItemReference": "CASE-A"
+          }
+        }
+      ],
+      "caller": [
+        {
+          "severity": "error",
+          "code": "FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT",
+          "title": "estimated_annual_volume får inte skickas",
+          "description": "QTY+31 är markerat som - för PRODAT Z01 och blockeras.",
+          "fieldPath": "QTY+31",
+          "prodatDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "213",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:§2.2:Z01:213",
+            "segmentPath": "QTY+31",
+            "group": "SG8/SG12",
+            "component": {
+              "locator": "QTY+31",
+              "valueElement": "C186/6060"
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "735123456789012345"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "CASE-A"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "001"
+                }
+              },
+              "scope": "register",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "735123456789012345",
+              "identityAgency": "9",
+              "lineItemReference": "CASE-A"
+            },
+            "failureEvidence": [
+              {
+                "raw": "QTY+31:777:KWH",
+                "locator": "QTY+31",
+                "content": "31:777:KWH"
+              }
+            ]
+          },
+          "blocking": true
+        }
+      ]
+    }
+  ]
+}
