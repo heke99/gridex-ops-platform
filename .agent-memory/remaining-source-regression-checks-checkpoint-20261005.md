@@ -48,3 +48,24 @@ Next: publish this qualified preparation ref, consume the original reviewed
 advisor packet once, then publish one necessary current-base source revision
 through existing PR612. Root retains final source publication/guarded merge,
 one observer and exact first-admitted fixture; no second source PR is created.
+
+
+Current final five-checker source genuinely consumes original released advisor15a
+once at bd9f9ca5, then actual606 mainb83 at source0c354644/tree2d3549a0.
+Every original advisor13-path packet entry is exact; all60 prior four-component
+read inputs remain exact currentmain, and actual606 changes no SQL/advisor read
+path. No unchanged finite run is repeated. Current-source receipt records the
+actual11 changed paths, prior152a guard, original126d advisor peer/control scope
+and retained original advisor input-proof reader6003281607. Foreign production,
+SQL/generated/native/workflow/test/coverage comes from actualmain unchanged.
+
+FIVE existing checker repairs are the final same#612source scope. The unaccepted
+optional offer to carry Staff's two oracle hunks through612 is retired only as
+root intake offer (5306003678385/5786003681367); the same original Staff author
+retains its implementation/admission. No second writer or oracle variant. The
+five packets do not claim full73-source acceptance or resolve retained twoinbound
+semantic obligations. Oldc34's terminal8CANCELLED+certificateFAILURE/0SUCCESS stays
+historical. Next: independent final publication guard, one normal fast-forward of
+existing612branch, sole observer on actualnewhead, actualall9 plus freshmain/source
+expected-head normal merge. Genuine currentwhole-main/capture/baseline remains
+with existing owners and is not inferred from source-only preparation.
