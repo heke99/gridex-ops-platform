@@ -953,7 +953,9 @@
         "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
         "__tests__/ediel-u-10-interval-count.test.ts",
         "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
-        "lib/ediel/utilts/resolution.ts"
+        "lib/ediel/utilts/resolution.ts",
+        "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts"
       ]
     },
     {
@@ -2523,7 +2525,9 @@
         "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
         "__tests__/ediel-u-10-interval-count.test.ts",
         "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
-        "lib/ediel/utilts/resolution.ts"
+        "lib/ediel/utilts/resolution.ts",
+        "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts"
       ]
     },
     {
