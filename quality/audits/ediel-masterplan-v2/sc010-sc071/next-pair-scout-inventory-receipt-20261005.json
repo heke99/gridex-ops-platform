@@ -1,0 +1,164 @@
+{
+  "status": "READ_ONLY_SCOUT_COMPLETE_NO_CLAIM",
+  "captured_at": "2026-10-05T12:48:19.105838+00:00",
+  "main_498": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+  "main_current_frozen": "fff486f822001d35970f163507b10e17c3692f58",
+  "main_tree": "82fec813af9a2184259e419a0adbaf4563c2ffe8",
+  "board530_initial_complete": 201,
+  "board530_refreshed_complete": 203,
+  "board491_complete": 454,
+  "open_prs_initial": 69,
+  "initial_paths": 5378,
+  "open_prs_final": 68,
+  "final_paths": 5368,
+  "final_before_after_heads_equal": true,
+  "final_pr587_filename_refresh": 4,
+  "selected_source_pin_count": 21,
+  "selected_pins_working_equal_main": true,
+  "approved_rules": 92,
+  "approved_acceptance_contracts": 121,
+  "approved_distinct_total": 213,
+  "scope": 352,
+  "proposed_path_collisions": [],
+  "conditional_pair": [
+    "AT-Z09B-SUPPLIER",
+    "AT-Z09D-SUPPLIER"
+  ],
+  "claim_performed": false,
+  "runtime_tests_executed": false,
+  "shared_mutations": false,
+  "raw": [
+    {
+      "file": "next-pair-scout-board491-comments-20261005.raw.gz",
+      "uncompressed_sha256": "ecee72fae763a233b535cf27337ea35798a501f458e2090d625d1ed749cd8c4f",
+      "gzip_sha256": "8bb86f8847989d299f0b32e7eb51fd4747067a565021c8a768e3894ec9476cd3",
+      "uncompressed_bytes": 2148187,
+      "gzip_bytes": 297835
+    },
+    {
+      "file": "next-pair-scout-board491-comments-20261005.json.gz",
+      "uncompressed_sha256": "61852b7d5d4ed615ee9712a2a671258e99e7852ca5a5eb354d3ed7a30b2905e7",
+      "gzip_sha256": "bd013d819777d053ea7f4285087c6b6f097843eef0b8740c32433329a87b9562",
+      "uncompressed_bytes": 2542827,
+      "gzip_bytes": 312507
+    },
+    {
+      "file": "next-pair-scout-board530-comments-20261005.raw.gz",
+      "uncompressed_sha256": "6e9871f2cb7660e05afa56f6c907ac63a694c17d228dc34d6dd63d15820e063f",
+      "gzip_sha256": "e440ad2a939320d96058cb8cd69bd2269507b7f7786b3a1197288b510ee9aab5",
+      "uncompressed_bytes": 499739,
+      "gzip_bytes": 76034
+    },
+    {
+      "file": "next-pair-scout-board530-comments-20261005.json.gz",
+      "uncompressed_sha256": "f7c000da1d2fef99444f21050d87795bbec2e4364d801f4ec26b639beabd9553",
+      "gzip_sha256": "b0f915b9f83385cd1f3bc433c308b2d2b35835d6f070e4d244e27ee73ed63787",
+      "uncompressed_bytes": 971131,
+      "gzip_bytes": 154794
+    },
+    {
+      "file": "next-pair-scout-board530-comments-refresh-20261005.json.gz",
+      "uncompressed_sha256": "b6aa70f71fc44162171ac8c1e0c221c1f42c0831961331855d2c7544f0c9840e",
+      "gzip_sha256": "6238f958bb5c6d2948d5b05f5a9e38bbf94a84a021688e63687c0130f2ca57d7",
+      "uncompressed_bytes": 981839,
+      "gzip_bytes": 156194
+    },
+    {
+      "file": "next-pair-scout-open-prs-20261005.raw.gz",
+      "uncompressed_sha256": "9b641edf2f431a6c68b4d312ae40dca495b65ece8caebf2d7a3c1b3e77c6b8cd",
+      "gzip_sha256": "d7cf8bd3db8e8b5e52aed24d6e04de7664b0c722894cb36e33bd836e2f645af9",
+      "uncompressed_bytes": 1273162,
+      "gzip_bytes": 102642
+    },
+    {
+      "file": "next-pair-scout-open-prs-refresh-20261005.raw.gz",
+      "uncompressed_sha256": "cbe1a76150d833c6f3954a509b5338a9f5d5a79b514190ee1c94d8c3850c8bd2",
+      "gzip_sha256": "712c9aab659fe987cd1c220b00ef8505d13f3697413f971be09d96e35905c417",
+      "uncompressed_bytes": 1255094,
+      "gzip_bytes": 101051
+    },
+    {
+      "file": "next-pair-scout-open-prs-final-before-20261005.raw.gz",
+      "uncompressed_sha256": "cbe1a76150d833c6f3954a509b5338a9f5d5a79b514190ee1c94d8c3850c8bd2",
+      "gzip_sha256": "712c9aab659fe987cd1c220b00ef8505d13f3697413f971be09d96e35905c417",
+      "uncompressed_bytes": 1255094,
+      "gzip_bytes": 101051
+    },
+    {
+      "file": "next-pair-scout-open-prs-final-after-20261005.raw.gz",
+      "uncompressed_sha256": "139fdad4e5efe1429a6c4978e4e41b8abc24ee0f56bba6de78f450788f776433",
+      "gzip_sha256": "011bbb0ebe5e5492c718c8d913339c65fbd7fc07f92d54588455d8b8c283675c",
+      "uncompressed_bytes": 1255094,
+      "gzip_bytes": 101052
+    },
+    {
+      "file": "next-pair-scout-open-pr-files-20261005.json.gz",
+      "uncompressed_sha256": "a8b2e4dc419bd6bc596d12dc4cc3122387f548026c35823c984b341e8ecbca47",
+      "gzip_sha256": "d6e02b6561547ad4c3c9686e12a2e385a423d4cf39c68ca4a0911af4e5d2ba1d",
+      "uncompressed_bytes": 357976,
+      "gzip_bytes": 50280
+    },
+    {
+      "file": "next-pair-scout-filelists-final-20261005.json.gz",
+      "uncompressed_sha256": "fcf48cf44e86232f35597b0b87db5e62922eeb108baedb410e772d9e8d29b0f5",
+      "gzip_sha256": "8907e9791f59716da946bab52b2b4287f3fd1119b36e995fbcfc8a8563b67350",
+      "uncompressed_bytes": 344504,
+      "gzip_bytes": 49809
+    }
+  ],
+  "failed_reads": [
+    {
+      "stage": "initial board530 gh read",
+      "outcome": "NOT_EXECUTED",
+      "reason": "automatic approval review model capacity; same authorized read retried"
+    },
+    {
+      "stage": "retried board530 gh paginated comments",
+      "outcome": "PARTIAL_READ_FAILED",
+      "reason": "HTTP401 Bad credentials during pagination; exact failed raw gzip preserved; complete MCP read201 and refresh203 substituted as read-only inventory"
+    }
+  ],
+  "credential_patterns_scanned": [
+    "sb_secret",
+    "sb_publishable",
+    "github_token",
+    "jwt",
+    "signed_url"
+  ],
+  "credential_matches": 0,
+  "next_action_owner": "root; finish existing SC010/native integration first; only then obtain retained P08/BRP and503/native file/interface clearance and fresh-race-check claim if chosen",
+  "p04_followup": {
+    "captured_at": "2026-10-05T12:57:34.659373+00:00",
+    "board530_complete": 211,
+    "board491_complete": 454,
+    "open_prs": 68,
+    "heads_stable": true,
+    "candidate": "AT-P-04",
+    "claim_performed": false,
+    "source_inputs": 20,
+    "selected_main_equal": true,
+    "raw": [
+      {
+        "file": "next-pair-scout-p04-board530-comments-20261005.json.gz",
+        "uncompressed_sha256": "ee80d495d5f93cab98a966d6f020663afe3f1bf2c8c85536d05df6b8f43b71f7",
+        "gzip_sha256": "9487fc5dbfa492ca4d1501a300072ec0dab424039b752c71477b2d34c13177ab",
+        "uncompressed_bytes": 1018502,
+        "gzip_bytes": 161934
+      },
+      {
+        "file": "next-pair-scout-p04-open-prs-before-20261005.raw.gz",
+        "uncompressed_sha256": "73e984bd68f4f6cac08681ac9dd7f916f3e5b1876ce134f197af07632f835f30",
+        "gzip_sha256": "51f9b559ef8b3ddc50efb90031932539112fd9f8f07db362f5d7c4a7c4b20d84",
+        "uncompressed_bytes": 1255093,
+        "gzip_bytes": 101071
+      },
+      {
+        "file": "next-pair-scout-p04-open-prs-after-20261005.raw.gz",
+        "uncompressed_sha256": "f0e01cb392b3d24f08258f7e3a4f05afcd999dddef41b270f7976fe66d583f9f",
+        "gzip_sha256": "b89340910fccabcca94870af2017b40c90b48c710d9f52aa738bc742e294d37d",
+        "uncompressed_bytes": 1256001,
+        "gzip_bytes": 101467
+      }
+    ]
+  }
+}
