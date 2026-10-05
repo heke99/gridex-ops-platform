@@ -1,3 +1,4 @@
+// masterplan: U-03, AT-U-03, U-11, AT-U-11
 import { describe, expect, it } from 'vitest'
 
 import { runUtiltsRuntimeForMessage as runActualUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -736,6 +737,26 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     expect(current.ackPlan.utiltsErrCodes).not.toContain(error)
   })
 
+  it('U-11 keeps the October E98 energy-value control for an aggregate (regulating object) while an individual point loses it', () => {
+    const source = energyHandoffMessage('2026-09-30')
+    const negative = {...source, raw_payload:source.raw_payload!.replace("QTY+136:500'","QTY+136:-500'")}
+    const aggregate = {...negative, raw_payload:negative.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')}
+    expect(aggregate.raw_payload).toContain('LOC+175+735999260731000007::9')
+    expect(runUtiltsRuntimeForMessage(negative,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).not.toContain('E98')
+    expect(runUtiltsRuntimeForMessage(aggregate,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).toContain('E98')
+  })
+  it('U-11 keeps E87 after the E19 cutoff: an incomplete quarter series is still rejected', () => {
+    const source = energyHandoffMessage('2026-10-01')
+    // The period now spans two quarters but only one observation is supplied.
+    const raw_payload = source.raw_payload!.replace('202607010000202607010015:719','202607010000202607010030:719')
+    expect(raw_payload).not.toBe(source.raw_payload)
+    const october = runOctoberGuide({...source, raw_payload})
+    expect(october.ackPlan.utiltsErrCodes).toContain('E87')
+    expect(october.ackPlan.utiltsErrCodes).not.toContain('E19')
+    // The complete control series raises neither.
+    const control = runOctoberGuide(source)
+    expect(control.ackPlan.utiltsErrCodes).not.toContain('E87')
+  })
 })
 
 it('shared October grace admits a complete prior guide without blending new identity diagnostics', () => {
