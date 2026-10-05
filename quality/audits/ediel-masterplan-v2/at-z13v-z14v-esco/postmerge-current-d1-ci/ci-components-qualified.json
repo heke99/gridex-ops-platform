@@ -1,0 +1,67 @@
+{
+  "executingHead": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+  "executingTree": "7b95d8ae325b5a1ebc3d8ff6be4fa4feca2dd9ba",
+  "components": {
+    "targeted": {
+      "run": 37309637648,
+      "job": 111761602426,
+      "status": "SUCCESS",
+      "gate": {
+        "ids": 352,
+        "storedApproved": 213,
+        "taggedGreen": 234,
+        "taggedFailing": 0,
+        "untagged": 118
+      },
+      "warning": "213 is the stored approval count, includes disputedSC036; neither card is approved."
+    },
+    "coverage": {
+      "run": 37309637603,
+      "job": 111761601212,
+      "status": "SUCCESS",
+      "filesPassed": 821,
+      "testsPassed": 10471,
+      "actualSuites": {
+        "ediel-recipient-address-binding.test.ts": 24,
+        "ediel-ops-03-release-evidence.test.ts": 37,
+        "ediel-prodat-z04-persisted-ack.test.ts": 34,
+        "ediel-at-z13v-esco-profile.test.ts": 13,
+        "ediel-at-z14v-esco-profile.test.ts": 11
+      }
+    },
+    "prCertificate": {
+      "run": 37309637603,
+      "attempt": 1,
+      "job": 111763926289,
+      "status": "SUCCESS",
+      "artifact": 11344904439,
+      "actualZIP_SHA256": "a5a01c942f050d454256435cc182a968decda0cf8f88080de50de17165b50567",
+      "crcValidMembers": 1,
+      "smokeArtifact": 11345960522,
+      "smokeZIP_SHA256": "65a00228896a5fd252f4829b6f3f05240b49b291301193f3b6098d2cd6f92964",
+      "smokeCRCValidMembers": 22,
+      "boundPayloadAndFilesMatched": 18,
+      "actualCheckoutClean": true,
+      "actualSourceUnchanged": true,
+      "codeEvidence": "incomplete",
+      "fullCardVerification": "NOT_VERIFIED",
+      "formalEdielApproval": false,
+      "liveCounterpartyVerified": false
+    }
+  },
+  "receiptSHA256": {
+    "targeted-regressions.log": "a660b00db6bafed74fade1c9b606faa6284e009e9ee8858023900cace927dde2",
+    "coverage.log": "d7193ae970576ff16e602e22c5b16b408f8dd5c29b15257867cb4aacc070a6dd",
+    "pr-certificate.log": "fa96be2376296fc157efd845d956aa7e0cdaf85b04ca3b4d4e40c4729de8be04",
+    "smoke.log": "9641749b7071f5897449315ef85f412ac06ba9a6920720772c4b7ad9604096c1",
+    "pr-release-certificate.json": "cb041990fb3586aa06b45bcca33c84455fc11d4d69eb199263b2ba91ae755118",
+    "gridex-executed-evidence.json": "d259e2d411fbdf8592d43401f691b5194e751791193ed4a89f5a9b0110da9066",
+    "candidate-native-input-git-inventory.txt": "f96a30559a9eb575aeb88fcaadcb47c4166fbd890e4e093d9de7230b3e368c4d",
+    "candidate-full-git-inventory.txt": "29e3c465566326730a638a6eb55af17daaab4e39c4d88d34a53e04f20c63a792",
+    "source-artifact-qualification.json": "f1db7281e8245d13ea4fad4410c798e48f1f10f645f8d268d0b65907ef0658d3",
+    "commit-d1.json": "0bafc624bef5ce48173e8b9b1973df2b50572c40c5762db5bb5b2c4022e95fc4"
+  },
+  "nativeStatus": "QUALIFIED_CURRENT_RUN_SELECTED33",
+  "wholeCards": "BothPARTIAL/NOT_EXECUTED",
+  "nativeReceipt": "current-native-qualified-observations.json"
+}

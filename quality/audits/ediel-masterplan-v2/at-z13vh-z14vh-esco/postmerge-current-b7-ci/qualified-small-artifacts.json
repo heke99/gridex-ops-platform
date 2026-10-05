@@ -1,0 +1,291 @@
+[
+  {
+    "artifact_id": 11347334548,
+    "path": "/tmp/gridex-vh-589-current-head-ci/vh589-11347334548.zip",
+    "sha256": "65520a93657be2f3bc3f0c88001c33fdbd249f078f6422267f1fa31c9e97a784",
+    "metadata_digest_match": true,
+    "all_crc_valid": true,
+    "members": [
+      "pr-release-certificate.json"
+    ],
+    "certificate": {
+      "schema_version": 1,
+      "smoke": "success",
+      "coverage": "success",
+      "verdict": "GREEN",
+      "edielReleaseEvidence": {
+        "candidateSha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+        "candidateTree": "6aed10be3004362471444db2590d36784b852c23",
+        "checkoutClean": true,
+        "eventSha": "ff750412c175033419ff53c9c7eb5ea6ee94cf30",
+        "runId": "37315927245",
+        "runAttempt": "1",
+        "sourceAuthentication": "same_workflow_artifact_channel",
+        "codeEvidence": "incomplete",
+        "fullCardVerification": "NOT_VERIFIED",
+        "formalEdielApproval": false,
+        "liveCounterpartyVerified": false,
+        "levels": {
+          "document": {
+            "status": "missing",
+            "qualification": "not_established_by_runner_step_results"
+          },
+          "unit": {
+            "status": "missing",
+            "qualification": "not_established_by_runner_step_results"
+          },
+          "integration": {
+            "status": "missing",
+            "qualification": "not_established_by_runner_step_results"
+          },
+          "tenant_e2e": {
+            "status": "missing",
+            "qualification": "not_established_by_runner_step_results"
+          },
+          "transport": {
+            "status": "missing",
+            "qualification": "not_established_by_runner_step_results"
+          },
+          "TGT": {
+            "status": "missing",
+            "qualification": "not_established_by_runner_step_results"
+          }
+        },
+        "scopeMatrix": {
+          "tenantIds": [],
+          "DDQ": false,
+          "DGI": false,
+          "crossTenantAssignments": false
+        },
+        "executions": [
+          {
+            "mode": "smoke",
+            "status": "qualified",
+            "qualification": "runner_step_exit_status",
+            "sourceReference": "e2e-artifacts/inputs/smoke/gridex-executed-evidence.json",
+            "payloadSha256": "91ed8a86dd5daedfbe8c99f4668b61edeccb5db79621ac305660a153fde65d68",
+            "files": [
+              {
+                "path": "gridex-e2e-report.json",
+                "sha256": "ad56cfdaa21f66adb737692d31dd9712cbef719ef4e44db3bb59b47341d03882"
+              },
+              {
+                "path": "gridex-e2e-junit.xml",
+                "sha256": "d779a4303422483a6d31df7ebd0d8484854ead26d02ba66515928738b2f3b8b1"
+              },
+              {
+                "path": "logs/01-whole-project-coverage.log",
+                "sha256": "3f29f7087f97620601cfc41d326704fe2c1e969803bc6e9e4a9e356d05e19f68"
+              },
+              {
+                "path": "logs/02-tenant-platform-contract.log",
+                "sha256": "e4758e7794122c6d5c5b597f46b8e5174f3e1f3b8a1c8a7bd41d4bc4fba6284f"
+              },
+              {
+                "path": "logs/03-migrations.log",
+                "sha256": "6a707c4e28c708eeadbc0af2759f58e9a2e574c92b4a97dcdc8134f8c0ce79f8"
+              },
+              {
+                "path": "logs/04-tenant-model.log",
+                "sha256": "1934cee894cd1babed9f8e9f1dc34ef39a686dc968b5ff421890b5788bfeb2ed"
+              },
+              {
+                "path": "logs/05-tenant-source-of-truth.log",
+                "sha256": "baa717b08fb84273401a5dbfefbeca636e585bf6def855c4bebb9d75015e51d9"
+              },
+              {
+                "path": "logs/06-test-production-separation.log",
+                "sha256": "73f0d419443857ac66306591fb0471582c5373d1d783d1f9afe73c350cf59683"
+              },
+              {
+                "path": "logs/07-website-intake.log",
+                "sha256": "355f032afd021a27eed0eaf7d25a2b22d1b33d30fd11931f381152c744289602"
+              },
+              {
+                "path": "logs/08-route-readiness.log",
+                "sha256": "a55acb5e62f0f7f3d022edc09bc97c6f5d15017782c233fa16e441ed3caf9357"
+              },
+              {
+                "path": "logs/09-edifact-customer-flow.log",
+                "sha256": "cc2695b9b6af4084810edd27febd344b2198a84a5aead5c85dd11b1d27cdf88c"
+              },
+              {
+                "path": "logs/10-metering.log",
+                "sha256": "befaaddc10b4b90706ac49fffbf85f37ca4b0685831d7b6eba26405e743e55a1"
+              },
+              {
+                "path": "logs/11-billing.log",
+                "sha256": "5768ee641946a3966c7e1069bf13f765d9cd9703c143927c2124118f69a0ee96"
+              },
+              {
+                "path": "logs/12-portal-api.log",
+                "sha256": "6cbcca9cb44a5f68aa73fed554d652bccf92ef2a68484a8fe03e9ec554a19b28"
+              },
+              {
+                "path": "logs/13-rbac.log",
+                "sha256": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d"
+              },
+              {
+                "path": "logs/14-api-boundaries.log",
+                "sha256": "2dc890feea388a2ba9c2486df464e04c60ee91711e7689cf400332acd5d8b4cc"
+              },
+              {
+                "path": "logs/15-typecheck.log",
+                "sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc"
+              }
+            ],
+            "stepCount": 15,
+            "steps": [
+              {
+                "id": "whole-project-coverage",
+                "kind": "node",
+                "command": "scripts/gridex-whole-project-e2e-coverage.cjs",
+                "status": "passed"
+              },
+              {
+                "id": "tenant-platform-contract",
+                "kind": "node",
+                "command": "scripts/gridex-tenant-platform-e2e-contract-regression.cjs",
+                "status": "passed"
+              },
+              {
+                "id": "migrations",
+                "kind": "npm",
+                "command": "db:migrations:check",
+                "status": "passed"
+              },
+              {
+                "id": "tenant-model",
+                "kind": "npm",
+                "command": "tenant:multitenant:static",
+                "status": "passed"
+              },
+              {
+                "id": "tenant-source-of-truth",
+                "kind": "npm",
+                "command": "gridex:tenant-source-of-truth-regression",
+                "status": "passed"
+              },
+              {
+                "id": "test-production-separation",
+                "kind": "npm",
+                "command": "gridex:test-production-separation-regression",
+                "status": "passed"
+              },
+              {
+                "id": "website-intake",
+                "kind": "npm",
+                "command": "gridex:multitenant-website-application-flow-regression",
+                "status": "passed"
+              },
+              {
+                "id": "route-readiness",
+                "kind": "npm",
+                "command": "gridex:production-route-readiness-regression",
+                "status": "passed"
+              },
+              {
+                "id": "edifact-customer-flow",
+                "kind": "npm",
+                "command": "gridex:tenant-customer-edifact-completion-regression",
+                "status": "passed"
+              },
+              {
+                "id": "metering",
+                "kind": "npm",
+                "command": "gridex:multi-metering-values-regression",
+                "status": "passed"
+              },
+              {
+                "id": "billing",
+                "kind": "npm",
+                "command": "gridex:multi-site-billing-underlay-regression",
+                "status": "passed"
+              },
+              {
+                "id": "portal-api",
+                "kind": "npm",
+                "command": "gridex:customer-portal-multi-site-api-regression",
+                "status": "passed"
+              },
+              {
+                "id": "rbac",
+                "kind": "npm",
+                "command": "security:rbac",
+                "status": "passed"
+              },
+              {
+                "id": "api-boundaries",
+                "kind": "npm",
+                "command": "api:error-boundaries",
+                "status": "passed"
+              },
+              {
+                "id": "typecheck",
+                "kind": "npm",
+                "command": "typecheck",
+                "status": "passed"
+              }
+            ],
+            "limits": [
+              "JUnit records orchestrator steps, not individual test cases.",
+              "Successful commands do not qualify test ports, tenant roles, DDQ/DGI assignments, transport or TGT."
+            ]
+          }
+        ],
+        "blockers": [
+          "evidence_level_missing_or_unqualified:document",
+          "evidence_level_missing_or_unqualified:unit",
+          "evidence_level_missing_or_unqualified:integration",
+          "evidence_level_missing_or_unqualified:tenant_e2e",
+          "evidence_level_missing_or_unqualified:transport",
+          "evidence_level_missing_or_unqualified:TGT",
+          "scope_matrix_incomplete"
+        ]
+      }
+    }
+  },
+  {
+    "artifact_id": 11347304308,
+    "path": "/tmp/gridex-vh-589-current-head-ci/vh589-11347304308.zip",
+    "sha256": "4fff6d67166740e3a4c99a02b42e29f3be632a898f20f5baddcb2050507e2ec1",
+    "metadata_digest_match": true,
+    "all_crc_valid": true,
+    "members": [
+      "coverage-summary.json",
+      "lcov.info"
+    ],
+    "coverage_total": {
+      "lines": {
+        "total": 58724,
+        "covered": 34315,
+        "skipped": 0,
+        "pct": 58.43
+      },
+      "statements": {
+        "total": 74157,
+        "covered": 42696,
+        "skipped": 0,
+        "pct": 57.57
+      },
+      "functions": {
+        "total": 12660,
+        "covered": 8211,
+        "skipped": 0,
+        "pct": 64.85
+      },
+      "branches": {
+        "total": 96057,
+        "covered": 49227,
+        "skipped": 0,
+        "pct": 51.24
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  }
+]

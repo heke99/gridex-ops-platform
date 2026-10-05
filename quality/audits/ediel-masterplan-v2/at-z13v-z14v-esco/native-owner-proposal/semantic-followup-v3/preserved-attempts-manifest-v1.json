@@ -1,0 +1,92 @@
+[
+  {
+    "path": "attempt1-node24/attempt-summary.json",
+    "sha256": "726e72b78612977d2b688449eb32dce237c7facb94e5525db3bc709a4fd2130b",
+    "bytes": 377
+  },
+  {
+    "path": "attempt1-node24/check-overlay.cjs",
+    "sha256": "056f5b6150be4e192b7d67d77f1bbbd74b793b28cda40e001dec52c10f75825f",
+    "bytes": 7013
+  },
+  {
+    "path": "attempt1-node24/stdout-stderr.txt",
+    "sha256": "97993e006e1df4c8ae9a34286dcde0886375188b49d0be18f5fa317386c63a1f",
+    "bytes": 1092
+  },
+  {
+    "path": "attempt1-node24/tool-result.json",
+    "sha256": "2da406443bd2f2e3e72bf572ad3c8bc3d8deaef19ca8aa1b3872ffa5c5e41e8f",
+    "bytes": 1251
+  },
+  {
+    "path": "attempt2-node22/check-overlay.cjs",
+    "sha256": "7acb64d984861b6ead67caa415cff48ef00ae88205864f8e2e05f02f8236887f",
+    "bytes": 7489
+  },
+  {
+    "path": "attempt2-node22/command.json",
+    "sha256": "a3afa9d182933f34d0054e565050c999cf978673b797f287d2337444a2d58c79",
+    "bytes": 450
+  },
+  {
+    "path": "attempt2-node22/compiler-options.json",
+    "sha256": "078d7889e05e19ba9fbc98ccf53fac21738083c92363dfcf8d38b3d52f0ea54a",
+    "bytes": 636
+  },
+  {
+    "path": "attempt2-node22/diagnostics.json",
+    "sha256": "2e4158232b280a8eeea43cb1a4638c1a61beac04a497531fdbf7e43c8a45ccdd",
+    "bytes": 2805
+  },
+  {
+    "path": "attempt2-node22/diagnostics.txt",
+    "sha256": "460f4bbecf4083ee4efdeff57ad26ddde4fd24db918cc9850e3e93510e7e1392",
+    "bytes": 1324
+  },
+  {
+    "path": "attempt2-node22/published-v2-candidate.ts",
+    "sha256": "b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f",
+    "bytes": 84198
+  },
+  {
+    "path": "attempt2-node22/published-v2.patch",
+    "sha256": "f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238",
+    "bytes": 13007
+  },
+  {
+    "path": "attempt2-node22/receipt.json",
+    "sha256": "1c3be125580442ff42643b9165640d2d937d06e5ae4412c5d955eced721778c9",
+    "bytes": 21417
+  },
+  {
+    "path": "attempt2-node22/semantic-result.json",
+    "sha256": "c466d22523083933fa0bbd670f333c94b0754e25a3ffdbb93bf9a27c0e4d06ca",
+    "bytes": 332
+  },
+  {
+    "path": "attempt2-node22/source-input-manifest.json",
+    "sha256": "6a4f07d4a4ae81ed8785e4ae4a5308c25fd2a9f04a53293ee951baa9869d0e7b",
+    "bytes": 387536
+  },
+  {
+    "path": "attempt2-node22/stdout.txt",
+    "sha256": "a13b5687f682489e5827f4c98a7138e5aa89d94dcdde2f8a9cde36768c1ecca1",
+    "bytes": 1562
+  },
+  {
+    "path": "check-overlay.cjs",
+    "sha256": "7acb64d984861b6ead67caa415cff48ef00ae88205864f8e2e05f02f8236887f",
+    "bytes": 7489
+  },
+  {
+    "path": "first-semantic-finding.md",
+    "sha256": "efb260f657e49167d60a7a3a90d56d2c7351d0c50fce90bae1ecf43deb3121df",
+    "bytes": 2370
+  },
+  {
+    "path": "git-provenance-before.json",
+    "sha256": "781614b64dc817fd9d1739d657b9c1733f8fce3a369ddc63f7b54c4830e97b87",
+    "bytes": 1057
+  }
+]

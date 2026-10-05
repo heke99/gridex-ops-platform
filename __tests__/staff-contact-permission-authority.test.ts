@@ -8,6 +8,7 @@ const contact = original.slice(original.indexOf('CREATE OR REPLACE FUNCTION publ
 const policy = readFileSync('supabase/migrations/20261004083640_staff_user_commands.sql', 'utf8')
 const strictGuard = readFileSync('supabase/migrations/20261004093111_staff_write_actor_guard.sql', 'utf8')
 const forward = readFileSync('supabase/migrations/20261004114944_staff_contact_profile_authority.sql', 'utf8')
+const conflictForward = readFileSync('supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql', 'utf8')
 const capturedSchema = readFileSync('supabase/schema.sql', 'utf8')
 const company = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const foreignCompany = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
@@ -22,6 +23,8 @@ let beforeMetadata: unknown
 let afterMetadata: unknown
 let beforeBody: string
 let afterBody: string
+let conflictMetadata: unknown
+let conflictBody: string
 
 function capturedFunction(name: string) {
   const start = capturedSchema.indexOf(`CREATE FUNCTION public.${name}(`)
@@ -66,6 +69,9 @@ beforeAll(async () => {
   await db.exec(forward)
   afterMetadata = (await metadata()).rows[0]
   afterBody = (await db.query<{ prosrc: string }>(`SELECT prosrc FROM pg_proc WHERE oid='public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)'::regprocedure`)).rows[0].prosrc
+  await db.exec(conflictForward)
+  conflictMetadata = (await metadata()).rows[0]
+  conflictBody = (await installedContact()).body
 }, 20_000)
 afterAll(async () => { await db?.close() })
 beforeEach(async () => {
@@ -84,6 +90,24 @@ afterEach(async () => { await db.exec('ROLLBACK') })
 function metadata() {
   return db.query(`SELECT to_jsonb(p)-'prosrc' AS metadata FROM pg_proc p
     WHERE p.oid='public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)'::regprocedure`)
+}
+
+async function installedContact() {
+  return (await db.query<{ body: string; definition: string; metadata: unknown }>(`SELECT
+    p.prosrc AS body, pg_get_functiondef(p.oid) AS definition, to_jsonb(p)-'prosrc' AS metadata
+    FROM pg_proc p
+    WHERE p.oid='public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)'::regprocedure`)).rows[0]
+}
+
+async function applyConflictForwardWithinFixture() {
+  await db.exec('SAVEPOINT contact_conflict_forward')
+  try {
+    await db.exec(conflictForward)
+    await db.exec('RELEASE SAVEPOINT contact_conflict_forward')
+  } catch (error) {
+    await db.exec('ROLLBACK TO SAVEPOINT contact_conflict_forward; RELEASE SAVEPOINT contact_conflict_forward')
+    throw error
+  }
 }
 
 async function applyForwardWithinFixture() {
@@ -133,6 +157,16 @@ async function countWrites() {
     (SELECT email FROM customers WHERE id='${customer}') AS email`)).rows[0]
 }
 
+async function contactWriteState() {
+  return (await db.query<{ state: unknown }>(`SELECT jsonb_build_object(
+    'customers', (SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]'::jsonb) FROM customers c),
+    'contacts', (SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]'::jsonb) FROM customer_contacts c),
+    'audit', (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY id),'[]'::jsonb) FROM audit_logs a),
+    'events', (SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY id),'[]'::jsonb) FROM domain_events d),
+    'outbox', (SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]'::jsonb) FROM event_outbox e)
+  ) AS state`)).rows[0].state
+}
+
 async function allowLegacy() {
   await db.exec(`INSERT INTO permissions VALUES('${permission}','masterdata.write','Master data',true);
     INSERT INTO user_permissions(company_id,user_id,permission_id,effect,status,is_active)
@@ -140,6 +174,33 @@ async function allowLegacy() {
 }
 
 describe('staff API contact authority uses its fresh company role profile instead of the legacy resolver', () => {
+  it.each([
+    ['staff_api', 'staff'],
+    ['ops', 'staff'],
+    ['phone', 'staff'],
+    ['customer_api', 'customer_portal'],
+  ])('returns a nonretryable stale-version conflict without changing any contact transaction effects for %s', async (channel, kind) => {
+    if (channel === 'ops' || channel === 'phone') await allowLegacy()
+    const before = await contactWriteState()
+    const error = await write({ channel, kind, expectedVersion: '2000-01-01T00:00:00Z' }).then(
+      () => null, error => error,
+    )
+    expect(await contactWriteState()).toEqual(before)
+    expect(error).toMatchObject({ code: 'PT409', message: 'contact_change_version_conflict' })
+  })
+
+  it('rejects an old version after a successful write while retaining the original replay and all effects', async () => {
+    await expect(write()).resolves.toMatchObject({ changed: true, replayed: false })
+    const completed = await contactWriteState()
+    const error = await write({ key: 'stale-after-completed-write', expectedVersion: version }).then(
+      () => null, error => error,
+    )
+    expect(await contactWriteState()).toEqual(completed)
+    expect(error).toMatchObject({ code: 'PT409', message: 'contact_change_version_conflict' })
+    await expect(write()).resolves.toMatchObject({ replayed: true })
+    expect(await contactWriteState()).toEqual(completed)
+  })
+
   it('reproduces the historical full contact SQL rejecting a valid profile-only staff actor', async () => {
     await db.exec(contact)
     expect(await legacyAllowed()).toBe(false)
@@ -209,7 +270,7 @@ describe('staff API contact authority uses its fresh company role profile instea
   it('cannot bypass company/customer ownership, optimistic versions or staff actor-kind validation', async () => {
     await expect(write({ companyId: foreignCompany })).rejects.toMatchObject({ message: 'staff_api_actor_inactive' })
     await expect(write({ customerId: foreignCustomer })).rejects.toMatchObject({ code: 'P0002', message: 'customer_not_found_in_scope' })
-    await expect(write({ expectedVersion: '2000-01-01T00:00:00Z' })).rejects.toMatchObject({ code: '40001', message: 'contact_change_version_conflict' })
+    await expect(write({ expectedVersion: '2000-01-01T00:00:00Z' })).rejects.toMatchObject({ code: 'PT409', message: 'contact_change_version_conflict' })
     await expect(write({ kind: 'customer_portal' })).rejects.toMatchObject({ message: 'contact_change_staff_api_actor_invalid' })
     expect((await countWrites()).audit).toBe(0)
   })
@@ -276,5 +337,47 @@ describe('staff API contact authority uses its fresh company role profile instea
     const guardBlock = contact.slice(guardStart, guardEnd)
     await db.exec(contact.replace(guardBlock, '').replace('  SELECT * INTO v_customer', guardBlock + '  SELECT * INTO v_customer'))
     await expect(applyForwardWithinFixture()).rejects.toMatchObject({ message: 'staff_contact_profile_guard_predecessor_mismatch' })
+  })
+})
+
+describe('the optimistic conflict forward changes only the nonretryable business error', () => {
+  it('preserves function identity, owner, invoker mode, configuration and ACL while changing only the conflict state', () => {
+    expect(conflictMetadata).toEqual(afterMetadata)
+    expect(conflictBody).toBe(afterBody.replace(
+      "ERRCODE='40001', MESSAGE='contact_change_version_conflict'",
+      "ERRCODE='PT409', MESSAGE='contact_change_version_conflict'",
+    ))
+  })
+
+  it('can reapply the exact entire source without changing the function or completed transaction effects', async () => {
+    await write()
+    const functionBefore = await installedContact()
+    const effectsBefore = await contactWriteState()
+    await applyConflictForwardWithinFixture()
+    expect(await installedContact()).toEqual(functionBefore)
+    expect(await contactWriteState()).toEqual(effectsBefore)
+    await expect(write()).resolves.toMatchObject({ replayed: true })
+    expect(await contactWriteState()).toEqual(effectsBefore)
+  })
+
+  it.each([
+    ["MESSAGE='contact_change_version_conflict'", "MESSAGE='unrecognized_contact_conflict'"],
+    ["p_api_client_id,'masterdata.write');", "p_api_client_id,'customers.write');"],
+    ["AND p_channel <> 'staff_api'", "AND p_channel <> 'customer_api'"],
+  ])('refuses an incompatible installed body without altering it: %s', async (needle, replacement) => {
+    const installed = await installedContact()
+    await db.exec(installed.definition.replace(installed.body, installed.body.replace(needle, replacement)))
+    const unexpected = await installedContact()
+    await expect(applyConflictForwardWithinFixture()).rejects.toMatchObject({ message: 'contact_version_conflict_predecessor_mismatch' })
+    expect(await installedContact()).toEqual(unexpected)
+  })
+
+  it('refuses a definer function even when its body is the exact qualified predecessor', async () => {
+    const installed = await installedContact()
+    await db.exec(installed.definition.replace(installed.body, afterBody))
+    await db.exec('ALTER FUNCTION gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text) SECURITY DEFINER')
+    const unexpected = await installedContact()
+    await expect(applyConflictForwardWithinFixture()).rejects.toMatchObject({ message: 'contact_version_conflict_predecessor_mismatch' })
+    expect(await installedContact()).toEqual(unexpected)
   })
 })

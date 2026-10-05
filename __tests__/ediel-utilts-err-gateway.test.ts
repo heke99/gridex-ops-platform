@@ -1,8 +1,9 @@
+// masterplan: U-13, AT-U-13, SC-045, SC-047, SC-048
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
-import { createAckIfMissing,createUtiltsRuntimeAcks } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import { createAckIfMissing,createUtiltsRuntimeAcks,matchUtiltsTransactionsForTenant } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { buildAperakDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
@@ -39,6 +40,11 @@ vi.mock('@/lib/supabase/service', () => {
       if (operation !== 'in') throw Error(`unexpected_filter:${operation}`)
       const excluded = String(expected).replace(/^\(|\)$/g, '').split(',')
       this.filters.push(row => !excluded.includes(String(value(row, key))))
+      return this
+    }
+    or(expression: string) {
+      const options = expression.split(',').map(part => part.split('.eq.'))
+      this.filters.push(row => options.some(([key, expected]) => String(value(row, key) ?? '') === expected))
       return this
     }
     order() { return this }
@@ -252,6 +258,14 @@ it('keeps a leading own-ID functional ERR separate from its trimmed positive sib
  expect(f.acks().filter(row=>row.message_family==='CONTRL')).toHaveLength(1)
 })
 
+it('U-13 an outgoing UTILTS ERR always uses message function 9 and acknowledgement request AB',async()=>{
+ const f=seed([{reference:'OWN B',outcome:'processability_rejected'}])
+ await f.finalize()
+ const err=f.acks().find(row=>row.message_family==='UTILTS_ERR')!
+ const wire=EdifactEnvelopeCodec.decode(String(err.raw_payload)),bgm=wire.segments.find(s=>s.tag==='BGM')!
+ expect(segmentComposite(bgm,1,wire.una)[0]).toBe('ERR')
+ expect([segmentComposite(bgm,3,wire.una)[0],segmentComposite(bgm,4,wire.una)[0]]).toEqual(['9','AB'])
+})
 it('SC-045 finalizes one header-negative APERAK without inventing an original IDE reference', async () => {
   const f = seed([
     { reference: 'HEADER-OK', outcome: 'accepted' },
@@ -491,4 +505,53 @@ it('accepts only the actual immutable source capability in ERR preflight, never 
   expect(draft.rawPayload).toContain('STS+E01::260+41+E19::260')
   expect(()=>buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19',ackSourceQualification:{...q}})).toThrow('ack_source_qualification_scope_mismatch')
   expect(()=>buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19'})).toThrow('ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED')
+})
+
+it('SC-048 an own E50 period fault on a known object is finalized as a physical UTILTS ERR E50 on the current TN, without E10 or created objects',async()=>{
+ // Registration (SG5 DTM+597) moved before the latest QTY+220 reading date.
+ const f=seed([{reference:'OWN-E50',outcome:'accepted'}],'2026-09-30',raw=>raw.replace("DTM+597:202608010000:203'\nDTM+354","DTM+597:202607150000:203'\nDTM+354").replace("QTY+136:500'","QTY+136:1000'"))
+ expect(f.runtime.ackPlan.utiltsErrCodes).toEqual(['E50'])
+ // Contrast: the same object and sender with a valid registration time gives no ERR code.
+ expect(runUtiltsRuntimeForMessage({...f.source,raw_payload:f.source.raw_payload!.replace("DTM+597:202607150000:203'\nDTM+354","DTM+597:202608010000:203'\nDTM+354")},{referenceDate:'2026-09-30'}).ackPlan.utiltsErrCodes).toEqual([])
+ expect(f.runtime.validation.issues.filter(i=>i.severity==='error').map(i=>i.utiltsErrCode)).toEqual(['E50'])
+ const tablesBefore=[...database.tables.keys()].filter(t=>t!=='ediel_messages'&&t!=='ediel_message_events'&&t!=='ediel_ack_transaction_results').map(t=>[t,database.tables.get(t)!.length])
+ await f.finalize()
+ const errs=f.acks().filter(row=>row.message_family==='UTILTS_ERR')
+ expect(errs).toHaveLength(1)
+ const wire=EdifactEnvelopeCodec.decode(String(errs[0].raw_payload))
+ const codes=wire.segments.filter(s=>s.tag==='STS'||s.tag==='ERC').flatMap(s=>s.elements.flatMap((_,i)=>segmentComposite(s,i,wire.una)))
+ expect(codes).toContain('E50');expect(codes).not.toContain('E10')
+ expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E50'])
+ // No master data was created to make the check pass.
+ expect([...database.tables.keys()].filter(t=>t!=='ediel_messages'&&t!=='ediel_message_events'&&t!=='ediel_ack_transaction_results').map(t=>[t,database.tables.get(t)!.length])).toEqual(tablesBefore)
+})
+
+it('SC-047 an object known only in another tenant is unknown here: the real lookup, runtime and ACK gateway send one UTILTS ERR E10 on the original TN',async()=>{
+ const f=seed([{reference:'OWN-E10',outcome:'accepted'}])
+ const foreign={id:'foreign-point',company_id:'00000000-0000-4000-8000-0000000000ff',meter_point_id:'735999260731000007',metering_point_id:null,ediel_reference:null}
+ database.tables.set('metering_points',[foreign]);database.tables.set('customer_sites',[]);database.tables.set('customers',[])
+ const before=structuredClone({points:database.tables.get('metering_points'),sites:database.tables.get('customer_sites'),customers:database.tables.get('customers')})
+ // Actual company-scoped lookup on the parsed transaction identity.
+ const matches=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
+ expect(matches).toEqual([expect.objectContaining({transactionReference:'OWN-E10',externalMeteringPointId:'735999260731000007',meteringPointId:null,matchStatus:'unmatched'})])
+ const source={...f.source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:matches}} as EdielMessageRow
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',selectedGuideRevision:'25-A-4',applicationReference:source.application_reference,mode:'parse'})
+ const runtime=runUtiltsRuntimeForMessage(source,{referenceDate:'2026-10-01',canonicalPolicy:policy})
+ // Syntax and guide pass; the object control is the prescribed functional outcome.
+ expect(runtime.validation.issues.filter(i=>i.severity==='error').map(i=>[i.kind,i.utiltsErrCode])).toEqual([['functional','E10']])
+ database.tables.set('ediel_ack_transaction_results',runtime.transactionDispositions.map(row=>({id:randomUUID(),company_id:source.company_id,environment:'test',source_message_id:source.id,
+  source_transaction_id:row.transactionId,planned_response_type:row.responseType,finalized_at:null})))
+ await createUtiltsRuntimeAcks({actorUserId:f.actor,sourceMessage:source,ackPlan:runtime.ackPlan,transactionDispositions:runtime.transactionDispositions})
+ const errs=f.acks().filter(row=>row.message_family==='UTILTS_ERR')
+ expect(errs).toHaveLength(1)
+ const wire=EdifactEnvelopeCodec.decode(String(errs[0].raw_payload))
+ expect(wire.segments.flatMap(s=>s.elements.flatMap((_,i)=>segmentComposite(s,i,wire.una)))).toContain('E10')
+ expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E10'])
+ // The foreign tenant's object and the own customer data stay untouched; nothing is created.
+ expect({points:database.tables.get('metering_points'),sites:database.tables.get('customer_sites'),customers:database.tables.get('customers')}).toEqual(before)
+ // Contrast: the same object registered in the own tenant matches and gives no E10.
+ database.tables.set('metering_points',[foreign,{...foreign,id:'own-point',company_id:source.company_id}])
+ const own=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
+ expect(own[0]).toMatchObject({meteringPointId:'own-point',matchStatus:'matched'})
+ expect(runUtiltsRuntimeForMessage({...source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:own}} as EdielMessageRow,{referenceDate:'2026-10-01',canonicalPolicy:policy}).ackPlan.utiltsErrCodes).toEqual([])
 })

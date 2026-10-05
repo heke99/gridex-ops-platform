@@ -1,0 +1,356 @@
+{
+  "scope": "Standard TypeScript semantic static check with only one existing native source read overlay; no test/module/native/DB/provider execution",
+  "startedAt": "2026-10-05T14:00:45.991Z",
+  "endedAt": "2026-10-05T14:01:21.320Z",
+  "repository": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005",
+  "head": "2a96780497eb102527f514103c608f0ec0b3a1a3",
+  "targetBlob": "9435a5e2c9cc3d7477a5455068236ed3a669cda1",
+  "provenanceSource": "/tmp/gridex-z14-native-owner-proposal-semantic-check/git-provenance-before.json",
+  "command": [
+    "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "/tmp/gridex-z14-native-owner-proposal-semantic-check/check-overlay.cjs"
+  ],
+  "execPath": "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+  "nodeVersion": "v22.23.0",
+  "nodeExecutableSHA256": "b587d8a062552ab52ecae2a7b0bcd079351d1dc61cf2555fd5994f558274ae58",
+  "compiler": {
+    "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/typescript/lib/typescript.js",
+    "version": "5.9.3",
+    "sha256": "3ae902c92cc44dace175c0e69e13a4b0899f6983c6121d76b9ab8dd5795e7675"
+  },
+  "standardCommand": "npm run typecheck:scripts -> tsc --noEmit -p tsconfig.scripts.json",
+  "configPath": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.scripts.json",
+  "compilerOptions": {
+    "target": 4,
+    "lib": [
+      "lib.dom.d.ts",
+      "lib.dom.iterable.d.ts",
+      "lib.esnext.d.ts"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": 99,
+    "moduleResolution": 100,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": 4,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "pathsBasePath": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005",
+    "checkJs": false,
+    "configFilePath": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.scripts.json"
+  },
+  "rootNames": [
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/backfill-spot-price-coverage.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-ai-network-original-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-ai-purpose-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-ai-purpose-source-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-artifact-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-bilateral-customer-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-bilateral-customer-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-bilateral-prodat-profile-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-bilateral-prodat-profile-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-bilateral-prodat-profile-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-blob-retention-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-blob-retention-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-blob-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-brp-certification-copy-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-case-view-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-case-view-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-classification-copy-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-classified-customer-wallclock-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-closure-wire-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-confirmed-customer-bilateral-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-contract-original-copy-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-correction-context-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-correction-process-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-customer-record-retention-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-customer-record-retention-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-customer-record-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-customer-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-decision-original-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-decision-original-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-decision-original-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-document-reference-dispatch-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-document-reference-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-dsn-source-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-esco-10-11-projection-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-finance-copy-retention-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-finance-copy-retention-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-finance-copy-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-fresh-business-incident-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-inbound-reception-actual-columns-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-invoice-file-retention-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-invoice-file-retention-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-invoice-file-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-network-registry-source-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-original-source-intake-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-outbound-ack-replay-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-process-journal-retention-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-process-journal-retention-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-process-journal-retention-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-prodat-ack-raw-scope-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-prodat-mixed-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-prodat-object-batch-current-source-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-registry-import-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-registry-route-certificate-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-regulated-supply-ground-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-regulated-supply-ground-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-regulated-supply-ground-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-requested-change-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-requested-change-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-requested-change-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-requested-customer-change-browser-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-requested-customer-change-browser-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-requested-customer-change-source-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-retention-grant-native-clock-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-sc-003-005-service-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-sc-071-projection-revocation-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-source-owner-native.config.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-source-owner-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-transport-data-query-plan-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-transport-exception-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-utilts-consumption-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-utilts-err-gateway-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-utilts-s02-required-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-z04-ack-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-z06f-reading-followup-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/staff-case-create-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/staff-case-write-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/staff-customer-write-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/staff-identity-provider-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/staff-user-client-concurrency-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/staff-user-concurrency-native.test.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/fixtures/ediel-service-evidence-native.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/gridex/cleanWebsiteFlowRegression.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/gridex/inspectCustomerFlow.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/gridex/repairMissingFacilityZ01Rows.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/browserFixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/correctionContextNative.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-ai-purpose-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-bilateral-customer-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-bilateral-customer-native-wire.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-bilateral-prodat-profile-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-customer-record-retention-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-decision-original-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-finance-copy-retention-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-invoice-file-retention-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-legal-source-stage-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-mixed-prodat-native-wire.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-native-permission-catalog.setup.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-network-registry-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-normal-switch-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-regulated-supply-ground-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-requested-change-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-requested-customer-change-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/ediel-z06f-reading-followup-native-wire.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/nationalRescissionNative.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/native-fixture-company-identity.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/native-lock-process.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/staff-write-native-fixture.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/syntheticCertificateTrust.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/utiltsConsumptionParties.ts",
+    "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/helpers/utiltsPersistenceCatalog.ts"
+  ],
+  "rootCount": 113,
+  "sourceFileCount": 1591,
+  "projectReferences": [],
+  "overlay": {
+    "target": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "candidate": "/tmp/gridex-z14-native-owner-proof/scripts/ediel-service-evidence-native.test.ts",
+    "patch": "/tmp/gridex-z14-native-owner-proof.patch",
+    "expected": {
+      "base": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+      "candidate": "b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f",
+      "patch": "f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238"
+    },
+    "overlayReads": 0,
+    "overlaySources": 1,
+    "compiledSourceSHA256": "b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f",
+    "onlyVirtualPath": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts"
+  },
+  "fixedInputs": [
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.json",
+      "sha256": "caa1e74f72eaa627680ae4d7a7affc041d56e8c53766940aaac4ac1d319ad7d1"
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.scripts.json",
+      "sha256": "f8a0d7dfd7b623ee83735e6912a739a1ee19fe7372c88cce4d98a4c725e95ba0"
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/package.json",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878"
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/package-lock.json",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-source-owner-native.config.ts",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a"
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
+    }
+  ],
+  "packages": [
+    {
+      "name": "typescript",
+      "version": "5.9.3",
+      "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/typescript/package.json",
+      "sha256": "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6",
+      "lock": {
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+        "dev": true,
+        "license": "Apache-2.0",
+        "bin": {
+          "tsc": "bin/tsc",
+          "tsserver": "bin/tsserver"
+        },
+        "engines": {
+          "node": ">=14.17"
+        }
+      }
+    },
+    {
+      "name": "vitest",
+      "version": "4.1.9",
+      "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/vitest/package.json",
+      "sha256": "e12762a5b629bea6cbb2b0540a8a15c50f3098bb3193d3e319293b58b64c4ed9",
+      "lock": {
+        "version": "4.1.9",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.1.9.tgz",
+        "integrity": "sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ==",
+        "dev": true,
+        "license": "MIT",
+        "dependencies": {
+          "@vitest/expect": "4.1.9",
+          "@vitest/mocker": "4.1.9",
+          "@vitest/pretty-format": "4.1.9",
+          "@vitest/runner": "4.1.9",
+          "@vitest/snapshot": "4.1.9",
+          "@vitest/spy": "4.1.9",
+          "@vitest/utils": "4.1.9",
+          "es-module-lexer": "^2.0.0",
+          "expect-type": "^1.3.0",
+          "magic-string": "^0.30.21",
+          "obug": "^2.1.1",
+          "pathe": "^2.0.3",
+          "picomatch": "^4.0.3",
+          "std-env": "^4.0.0-rc.1",
+          "tinybench": "^2.9.0",
+          "tinyexec": "^1.0.2",
+          "tinyglobby": "^0.2.15",
+          "tinyrainbow": "^3.1.0",
+          "vite": "^6.0.0 || ^7.0.0 || ^8.0.0",
+          "why-is-node-running": "^2.3.0"
+        },
+        "bin": {
+          "vitest": "vitest.mjs"
+        },
+        "engines": {
+          "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
+        },
+        "funding": {
+          "url": "https://opencollective.com/vitest"
+        },
+        "peerDependencies": {
+          "@edge-runtime/vm": "*",
+          "@opentelemetry/api": "^1.9.0",
+          "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0",
+          "@vitest/browser-playwright": "4.1.9",
+          "@vitest/browser-preview": "4.1.9",
+          "@vitest/browser-webdriverio": "4.1.9",
+          "@vitest/coverage-istanbul": "4.1.9",
+          "@vitest/coverage-v8": "4.1.9",
+          "@vitest/ui": "4.1.9",
+          "happy-dom": "*",
+          "jsdom": "*",
+          "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+        },
+        "peerDependenciesMeta": {
+          "@edge-runtime/vm": {
+            "optional": true
+          },
+          "@opentelemetry/api": {
+            "optional": true
+          },
+          "@types/node": {
+            "optional": true
+          },
+          "@vitest/browser-playwright": {
+            "optional": true
+          },
+          "@vitest/browser-preview": {
+            "optional": true
+          },
+          "@vitest/browser-webdriverio": {
+            "optional": true
+          },
+          "@vitest/coverage-istanbul": {
+            "optional": true
+          },
+          "@vitest/coverage-v8": {
+            "optional": true
+          },
+          "@vitest/ui": {
+            "optional": true
+          },
+          "happy-dom": {
+            "optional": true
+          },
+          "jsdom": {
+            "optional": true
+          },
+          "vite": {
+            "optional": false
+          }
+        }
+      }
+    },
+    {
+      "name": "@types/node",
+      "version": "20.19.39",
+      "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/@types/node/package.json",
+      "sha256": "dff75445c782bf28ff62a6b3768aee8b50f87f21f776a8dec60206e28371fb8b",
+      "lock": {
+        "version": "20.19.39",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-20.19.39.tgz",
+        "integrity": "sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw==",
+        "license": "MIT",
+        "dependencies": {
+          "undici-types": "~6.21.0"
+        }
+      }
+    }
+  ],
+  "diagnosticCount": 9,
+  "errorCount": 9,
+  "targetErrorCount": 9,
+  "nonTargetErrorCount": 0,
+  "exitCode": 1,
+  "emitPerformed": false,
+  "nativeExecution": "NOT_RUN",
+  "ordinaryBaselineFullTypecheck": "NOT_RUN",
+  "sourceInputManifestSHA256": "b0f2f618483481d16f372259763af4b36e88989632121d33bd8362a282be4541",
+  "driverSHA256": "7acb64d984861b6ead67caa415cff48ef00ae88205864f8e2e05f02f8236887f"
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="6.944594219">
+    <testsuite name="scripts/ediel-sc-071-projection-revocation-native.test.ts" timestamp="2026-10-05T10:22:12.260Z" hostname="runnervm8df0l" tests="3" failures="0" errors="0" skipped="0" time="6.944594219">
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="writer-first real grant revocation COMMIT serializes before projection, including a retained page" time="2.481414308">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="writer-first real grant revocation ROLLBACK serializes before projection, including a retained page" time="2.209624538">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions" time="2.252088795">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -545,7 +545,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     }
     addNegativeAperakIfAllowed({family:String(canonical.family),code:canonical.messageCode,responsePlan,
       reason:description,...(qualified && projected ? {applicationErrors:projected.applicationErrors} : {})})
-    return buildResult({
+    const result = buildResult({
       canonical,
       policy: null,
       utiltsBusinessOutcome: null,
@@ -558,6 +558,8 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
       decisionTrace: [...decisionTrace, `Canonical policy: blockerad (${description}).`],
       syntax,
     })
+    result.validationReport.failureDisposition = failureDisposition
+    return result
   }
 
   let utiltsFunctionalValidation: ReceivedUtiltsFunctionalValidation | undefined
@@ -834,9 +836,16 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
         && Boolean(response.applicationErrors?.length)
         && response.applicationErrors!.every(isQualifiedProdatApplicationError))
     const failureDisposition=classifyEdielFailure(error)
+    const prodatProcessingDisposition:ProdatProcessingDisposition|undefined=selectedFamily==='PRODAT'
+      ? {kind:'internal_review',reasons:[
+        ...(base.prodatProcessingDisposition?.reasons??[]),
+        {code:'code' in failureDisposition?failureDisposition.code:'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE',sourceRule:'OPS-05',reason:description},
+      ]}
+      : undefined
     const decisionTrace = [...base.decisionTrace, `DB evidence gate: blockerad (${description}).`]
     const validationReport = {
       ...base.validationReport,
+      ...(prodatProcessingDisposition?{prodatProcessingDisposition}:{}),
       applicationDecision: 'manual_review',
       functionalDecision: 'manual_review',
       failureDisposition,
@@ -847,6 +856,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
     }
     const held:CanonicalRuntimeDecision={
       ...base,
+      ...(prodatProcessingDisposition?{prodatProcessingDisposition}:{}),
       applicationDecision: 'manual_review',
       functionalDecision: 'manual_review',
       issues,

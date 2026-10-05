@@ -5,5 +5,5 @@ import { inspectMimeStructure } from './mimeStructure'
 export function isDeliveryStatusNotification(raw: string | null | undefined): boolean {
   if (!raw) return false
   const inspected = inspectMimeStructure(raw)
-  return inspected.deliveryStatus || inspected.exceededLimits
+  return inspected.deliveryStatus || inspected.exceededLimits || inspected.issues.length > 0
 }

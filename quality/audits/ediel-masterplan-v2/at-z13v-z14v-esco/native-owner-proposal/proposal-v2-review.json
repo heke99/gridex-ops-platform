@@ -1,0 +1,42 @@
+{
+  "status": "APPROVED_PROPOSAL_ONLY",
+  "reviewer": "/root/z14_missing_fields_refute_spec",
+  "writer": "/root/z14_missing_fields_refute_code",
+  "target": "scripts/ediel-service-evidence-native.test.ts",
+  "basisCommit": "95d706a216623ae08dec0de53ebbe56eaaaa5449",
+  "targetBlob": "9435a5e2c9cc3d7477a5455068236ed3a669cda1",
+  "targetSHA256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+  "patchSHA256": "f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238",
+  "notesSHA256": "f60d57c1a9bc838bd00bf039bf2c9c1e1b107db47fb80be9af30abd2da0de554",
+  "candidateSHA256": "b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f",
+  "verdict": "APPROVE revision2 as proposal only; no remaining Important finding in bounded fresh-Z14V permission/source-effect scope.",
+  "resolvedV1Finding": "Unconfirmed ledger plus arbitrary P0001 could falsely pass unchanged snapshots. V2 requires recorded validation and captured fresh basis, propagates every exception, and qualifies exactly two existing structured application refusals against actual nonaccepted header/object/function.",
+  "positiveScope": [
+    "Separate fresh baseline/missing222/missing326 requests",
+    "Mutation before first Z14 insert/admission/application",
+    "Real encoder correct UNT, actual stored wire checked",
+    "Actual registry/validation/capture/protected consumer APIs",
+    "Ordered business state snapshots allowing legitimate ingress/audit",
+    "Negative callback returns before grant commands"
+  ],
+  "checks": {
+    "patchApplicability": "PASS_READ_ONLY",
+    "TypeScriptParseTranspile": "PASS",
+    "EmittedJavaScriptSyntax": "PASS",
+    "fullTypecheck": "NOT_RUN",
+    "nativeExecution": "NOT_RUN",
+    "CI": "NOT_RUN"
+  },
+  "limits": [
+    "No existing repository implementation or shared fixture was edited",
+    "Proposal is not selected or executed by profile/native CI",
+    "Malformed callbacks do not execute grant commands or final ACK",
+    "No VH, history, full forbidden-input or external market proof",
+    "Retained native owner must review/apply/typecheck/execute on their own current branch; no ownership transfer"
+  ],
+  "supersededArtifacts": [
+    "superseded-v1.patch",
+    "superseded-v1-notes.md",
+    "superseded-v1-review.md"
+  ]
+}

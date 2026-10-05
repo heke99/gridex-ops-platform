@@ -487,7 +487,7 @@ function estimateStepMs(contract: JsonRecord | null, snapshotJson: JsonRecord): 
   return resolution === "quarter_hour" ? 15 * 60_000 : 60 * 60_000;
 }
 
-function estimatedItems(
+export function estimatedItems(
   estimate: ConsumptionEstimate,
   base: JsonRecord,
 ): JsonRecord[] {
@@ -514,7 +514,7 @@ function estimatedItems(
     }));
 }
 
-function estimatePayload(estimate: ConsumptionEstimate, actualKwh: number | string) {
+export function estimatePayload(estimate: ConsumptionEstimate, actualKwh: number | string) {
   return {
     method: estimate.method,
     reference_start: estimate.referenceStart,

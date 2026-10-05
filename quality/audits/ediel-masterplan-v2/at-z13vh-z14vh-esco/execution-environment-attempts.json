@@ -1,0 +1,14 @@
+{
+  "firstSupportedGateStart": {
+    "executed": false,
+    "reason": "Automatic approval review selected model capacity failure; not safety rejection; no command executed",
+    "safeRetry": "Same authorized command and environment successfully executed; no bypass"
+  },
+  "actualSupportedGate": "technical-candidate-supported-gate.json",
+  "earlierStatics": {
+    "testsTypeScriptRootObservedExitCode": 0,
+    "scopedLintRootObservedExitCode": 0,
+    "source": "Prior actual root tool execution retained through task continuation; empty raw logs alone do not independently prove exits",
+    "noDuplicateRun": true
+  }
+}

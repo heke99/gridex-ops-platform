@@ -1,0 +1,20 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc015-sc016
+
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > a same-object K2 request reuses the pending source without a new wire 31ms
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > a new internal mission identifier still obeys the selected pending original resolver 18ms
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > explicitly selecting the same permission cannot bypass pending coordination into the renderer 9ms
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > a relevant new-object decision passes the real DGI gateway and scoped renderer immediately 306ms
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > a current timing hold prevents all origin, route, intent and wire effects 6ms
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > fails closed when reuse asserts beneficiary access instead of the protected no-access result 15ms
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts > SC015 pending P/customer/DSO permission coordination reaches the real command caller > preserves exact source-owner denial without retry or a fabricated replacement request 4ms
+ ✓ __tests__/ediel-sc-016-partial-permission-membership.test.ts > SC-016 literal multi-object permission membership (finite SQL) > commits only Z14-approved A from Z13 A/B/C without customer-registry expansion 22ms
+ ✓ __tests__/ediel-sc-016-partial-permission-membership.test.ts > SC-016 literal multi-object permission membership (finite SQL) > publishes only A after separate approval and holds B, C and A/B/C grants 6ms
+ ✓ __tests__/ediel-sc-016-partial-permission-membership.test.ts > SC-016 literal multi-object permission membership (finite SQL) > executes automatic, SDK and manual callers with source-only authority and real actor refusals 5ms
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  13:40:58
+   Duration  14.49s (transform 8.31s, setup 449ms, import 10.73s, tests 13.57s, environment 0ms)
+
+JUNIT report written to /workspace/gridex-masterplan-sc015-sc016/quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/current-main-actor-import-green.xml
