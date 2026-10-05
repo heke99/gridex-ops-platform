@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "reviewer": "root/sc051_sc068_final_review",
+  "reviewed_at_utc": "2026-10-05T20:45:15.102530+00:00",
+  "verdict": "READY_EXACT_0F624_BILLING_ACTUAL296_PUBLICATION_AND_INPUT_CARRY_ONLY",
+  "candidate": {
+    "head": "0f624276562efc03a73c3b0bc520eca577b39fbb",
+    "tree": "642bd3f610612d1145b15a87dcb8effd0d1be6a8",
+    "actual_main": "2964415adec9e36932583e95f8506437d262c507",
+    "actual_main_tree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+    "parent": "da6fb6aaeabd5d79135feaf4620bd312788c961c",
+    "genuine_merge_parents": [
+      "4ddd37513995c033c4a6d98430255051a07d277b",
+      "2964415adec9e36932583e95f8506437d262c507"
+    ],
+    "clean": true,
+    "chain_verified": "original4ddd +actual296 ->da6fb6 genuine merge ->0f doc-only commit",
+    "only_new_delta_from_source_merge": [
+      ".agent-memory/supplier-billing-surface-main296-carry-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/supplier-billing-surface-main296-carry-20261005/raw-evidence-index.json",
+      "quality/audits/ediel-masterplan-v2/supplier-billing-surface-main296-carry-20261005/raw-evidence.zip",
+      "quality/audits/ediel-masterplan-v2/supplier-billing-surface-main296-carry-20261005/verification.json"
+    ],
+    "boundary_vs_actual_main": "Original qualified5 paths plus only4new OWNmetadata paths; all other tree paths equal actualmain296."
+  },
+  "prior_qualification_reused": {
+    "prior_publication_ready_sha256": "719864b087095901f6bf6607f405669629e1b9677fd1bca5268057449d748057",
+    "checker_sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1",
+    "checker_and_original5_paths_byte_exact4ddd": true,
+    "other26_assertions_and_original_EOF": "Inherited exact checker bytes; no AST/source-control re-review or reconstruction rerun.",
+    "original14_entry_ZIP_and_HOLD_READY_history": "Entire previous ZIP/index byte-exact4ddd; reused prior independent custody, not reopened/re-reviewed."
+  },
+  "current_input_carry": {
+    "current17_selected_SHA_and_gitblob_pins_match": true,
+    "all16_nonchecker_match_actual296": true,
+    "only2_prior_input_drifts": [
+      "app/admin/customers/[id]/page.part-4.tsx",
+      "app/admin/billing/page.tsx"
+    ],
+    "other14_prior_nonchecker_inputs_exact": true,
+    "actual608_ENV07_fixture_sha256": "78f4065d8e2d4fa8fd633332736c4eac0abf3909eb0078bc0f3f931d07625a3a",
+    "actual608_ENV07_fixture_equals_main296_and_blob45437d": true,
+    "unmerged610_variant_adopted": false,
+    "fixture_executed_by_reviewer": false,
+    "four_enclosed_source_blocks": [
+      {
+        "name": "customer_auth_scope_and_billing_loaders",
+        "path": "app/admin/customers/[id]/page.part-4.tsx",
+        "sha256": "e750f2e9561f148cf9ebb0d7d5e12c9c75cfc516219d1f5f4b45d0db64b505c3",
+        "bytes": 25695,
+        "start_marker": "export async function CustomerAdminDetailPage",
+        "end_marker": "  const showFoldedTechnicalPanels",
+        "both_markers_excluded_without_trimming": true,
+        "both_markers_identical_and_bound_separately": true,
+        "complete_enclosed_actual_block_byte_exact": true,
+        "bounds": [
+          {
+            "revision": "4ddd37513995c033c4a6d98430255051a07d277b",
+            "byte_start_inclusive": 6384,
+            "byte_end_exclusive": 32079,
+            "enclosed_start_line": 66,
+            "end_marker_line": 716
+          },
+          {
+            "revision": "2964415adec9e36932583e95f8506437d262c507",
+            "byte_start_inclusive": 6476,
+            "byte_end_exclusive": 32171,
+            "enclosed_start_line": 67,
+            "end_marker_line": 717
+          }
+        ]
+      },
+      {
+        "name": "actual_returned_billing_AST_section_props",
+        "path": "app/admin/customers/[id]/page.part-4.tsx",
+        "sha256": "2b2bc5b9f26f8066d29eceded7a2b33c13dd2c711385426f3bec39ea1e7d075c",
+        "bytes": 679,
+        "start_marker": "      {activeTab === \"billing-metering\" ? (",
+        "end_marker": "      {isPlatformAdmin && activeTab === \"analytics\" ? (",
+        "both_markers_excluded_without_trimming": true,
+        "both_markers_identical_and_bound_separately": true,
+        "complete_enclosed_actual_block_byte_exact": true,
+        "bounds": [
+          {
+            "revision": "4ddd37513995c033c4a6d98430255051a07d277b",
+            "byte_start_inclusive": 51290,
+            "byte_end_exclusive": 51969,
+            "enclosed_start_line": 1135,
+            "end_marker_line": 1156
+          },
+          {
+            "revision": "2964415adec9e36932583e95f8506437d262c507",
+            "byte_start_inclusive": 48037,
+            "byte_end_exclusive": 48716,
+            "enclosed_start_line": 1062,
+            "end_marker_line": 1083
+          }
+        ]
+      },
+      {
+        "name": "canonical_billing_read_company_customer_scope",
+        "path": "app/admin/billing/page.tsx",
+        "sha256": "4c0d3b46ac2ec7b5464e7018a8d5a8634cd0f58d0821b76d220395b117204c63",
+        "bytes": 1948,
+        "start_marker": "export default async function AdminBillingPage",
+        "end_marker": "  return (",
+        "both_markers_excluded_without_trimming": true,
+        "both_markers_identical_and_bound_separately": true,
+        "complete_enclosed_actual_block_byte_exact": true,
+        "bounds": [
+          {
+            "revision": "4ddd37513995c033c4a6d98430255051a07d277b",
+            "byte_start_inclusive": 2732,
+            "byte_end_exclusive": 4680,
+            "enclosed_start_line": 66,
+            "end_marker_line": 98
+          },
+          {
+            "revision": "2964415adec9e36932583e95f8506437d262c507",
+            "byte_start_inclusive": 2802,
+            "byte_end_exclusive": 4750,
+            "enclosed_start_line": 67,
+            "end_marker_line": 99
+          }
+        ]
+      },
+      {
+        "name": "canonical_billing_actual_approval_form_gate",
+        "path": "app/admin/billing/page.tsx",
+        "sha256": "3514d3adf99fc3f41ff2a6888046a76ff36bdb0c3da3ee26f43ddfee07a9179f",
+        "bytes": 487,
+        "start_marker": "          {companyId && !customerFilter && sendableCount > 0 ? (",
+        "end_marker": "        {!customerFilter ? (",
+        "both_markers_excluded_without_trimming": true,
+        "both_markers_identical_and_bound_separately": true,
+        "complete_enclosed_actual_block_byte_exact": true,
+        "bounds": [
+          {
+            "revision": "4ddd37513995c033c4a6d98430255051a07d277b",
+            "byte_start_inclusive": 11092,
+            "byte_end_exclusive": 11579,
+            "enclosed_start_line": 195,
+            "end_marker_line": 205
+          },
+          {
+            "revision": "2964415adec9e36932583e95f8506437d262c507",
+            "byte_start_inclusive": 11482,
+            "byte_end_exclusive": 11969,
+            "enclosed_start_line": 199,
+            "end_marker_line": 209
+          }
+        ]
+      }
+    ],
+    "block_method": "Raw UTF-8 data[index(start)+len(start):index(end,a)]; both marker strings EXCLUDED from each block digest, no trim/normalization. Markers themselves identical and separately bound by complete current source pins and unchanged checker/current result. Full enclosed block bytes equal old/current/candidate.",
+    "existing_boundary_supplement_sha256": "954116290561715b6384e27b86d7acc11933bcce0e286e438e79a82e88e6f846",
+    "source_carry_raw_sha256": "df141aec4d57cd334ba7e145255551d570f4ce0ce1b38b14419adf2b361112db",
+    "referenced_root60_receipt_hash_matches": true,
+    "root60_broader_scope": "Referenced parent source metadata only; no new root replay/native/generated claim from reviewer."
+  },
+  "new_raw_custody": {
+    "ZIP_sha256": "01070d72ed148aa5cd3258dc7692f029baabfbdb06365a39e70a8df371ed05ef",
+    "index_sha256": "fdcbc019a579e8181420d2829ec630b1b6b815c03712538e7f582383f7533115",
+    "entries": 3,
+    "unique_safe_flat_names_no_symlinks_CRC_sizes_hashes_and_raw_origin_bytes_exact": true,
+    "current_actual_tool_chunk": "3c52f9",
+    "completed_exit": 0,
+    "new_authorized_direct_runs": 1,
+    "raw_actual_result": "27OK/0FAIL/0SKIP",
+    "stdout_equal_prior_bytes": "Truthful new execution metadata separately archived; equal stdout is not relabeled prior execution.",
+    "new_verification_sha256": "c11b77954bd002f59e865eded9c6b70e05b090177a0cfce908650d1ec5a5be10",
+    "freeze_receipt_sha256": "e05bddf3ecd6314dc9c81e33e28937990f9cf94599ef441dca50d23d3df9ba8d"
+  },
+  "honest_limits": {
+    "finite_static_checker_only": true,
+    "full_supplierchain_native_browser_provider_whole_plan_approval": false,
+    "actual_current_head_CI_merge_publication": "PENDING_ROOT_DESIGNATED_GATES",
+    "historical845_supplier_firstcause": "UNKNOWN retained.",
+    "new_product_guard_fix": "NONE; current actual608 source accepted without replacing product owner source."
+  },
+  "reviewer_actions": "Read immutable ancestry/tree/path boundary, compare source/pins/block bytes/hashes, validate only new3-entryZIP/raw completed result and write this external immutable receipt. No AST parsing/eval, old14ZIP re-review, source/index/ref/memory/GitHub/fetch/test/native/full/CI/artifact action.",
+  "next": "Root may consume exact0f source once into designated next40d intake and publish under ordinary current-head/source/CI gates; reviewer performs no publication or second observer."
+}
