@@ -1,0 +1,26 @@
+{
+  "atUTC": "2026-10-05T14:59:33.716835+00:00",
+  "originalSemanticBasis": "2a96780497eb102527f514103c608f0ec0b3a1a3",
+  "actualCurrentMain": "d10402d5028021794994e6d5d61622de61d08b57",
+  "actualCurrentNativeTargetBlob": "9435a5e2c9cc3d7477a5455068236ed3a669cda1",
+  "actualCurrentNativeTargetSHA256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+  "expectedApplyBaseSHA256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+  "actualRecordedSemanticRepoInputsCompared": 879,
+  "changedComparedInputs": [
+    {
+      "path": "scripts/ediel-z04-ack-native.test.ts",
+      "oldBlob": "3dc52914f683319051e73de632ade35374dfd444",
+      "currentBlob": "e539c6a34d4845568b70cfae3f1ef1fc09cb999d"
+    }
+  ],
+  "newCurrentRepoScriptSources": "A\tscripts/ediel-sc-018-manual-service-context-sql-regression.mjs\nM\tscripts/ediel-ten-07-scoped-projection-sql-regression.mjs\nM\tscripts/ediel-z04-ack-native.test.ts\nA\tscripts/test-ediel-sc-018-056-service-incident.cjs\nM\tscripts/test-ediel-ten-07-scoped-projection.cjs\n",
+  "nativeExecution": "NOT_RUN",
+  "newSemanticCompilerCheck": "NOT_RUN pending genuine delta assessment",
+  "firstToolHandling": "Command legitimately yielded a running PTY session30843; root initially treated absent exit_code as failure. Session polled/completed0; no duplicate command/rerun or source/native execution.",
+  "currentMainIndexApplyCheck": {
+    "atUTC": "2026-10-05T15:02:13.359341+00:00",
+    "scope": "git read-tree currentd104 into separate /tmp index then git apply --cached --check exactv3; no patchapply/source/worktree/shared-index edit",
+    "exitCode": 0,
+    "targetCurrentBaseMatches": true
+  }
+}

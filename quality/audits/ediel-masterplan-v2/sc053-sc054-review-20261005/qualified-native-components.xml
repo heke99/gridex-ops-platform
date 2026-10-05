@@ -1,0 +1,9 @@
+<testsuite name="Qualified components only; SC053/054 remain PARTIAL" tests="4" failures="0" errors="0" skipped="0"><testcase classname="scripts/ediel-utilts-consumption-native.test.ts" name="internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry" time="0.66115568">
+        </testcase>
+        <testcase classname="scripts/ediel-utilts-consumption-native.test.ts" name="real downstream writers consume database-derived stored values and retry idempotently" time="0.82712479">
+        </testcase>
+        <testcase classname="scripts/ediel-utilts-consumption-native.test.ts" name="native mixed S01 object-first rolls back the held reservation when its point sibling cannot persist, then retries" time="1.579713183">
+        </testcase>
+        <testcase classname="scripts/ediel-utilts-consumption-native.test.ts" name="native mixed S01 point-first rolls back the held reservation when its point sibling cannot persist, then retries" time="2.031141624">
+        </testcase>
+        </testsuite>

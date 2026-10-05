@@ -1,0 +1,223 @@
+{
+  "basis": "fff486f822001d35970f163507b10e17c3692f58",
+  "readOnlyWorktreeHead": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+  "files": [
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "blob": "9435a5e2c9cc3d7477a5455068236ed3a669cda1",
+      "sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "blob": "033887c8672e1516449dc19d5f83ea1fd01bfd9e",
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "blob": "3f9efc34ee5638071ed3843adb23392229ad5ea6",
+      "sha256": "bd352ab2cdd941706fdf9ac1f1ecd1d15a8060e8464984180260e1b7d77a409c",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "blob": "1b329d3fa8f73fa98c60ed7606064d9bc84be0dc",
+      "sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/utilts/transactionPersistence.ts",
+      "blob": "05c1667a9168cab37d7dcc3466e536b964eb3cfd",
+      "sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/services/projection.ts",
+      "blob": "d0feea27c8f4e76720cabccd8c7a493cecbd26c5",
+      "sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+      "blob": "338dc11afd4f892cad91adbce5c83da9d140ebb5",
+      "sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+      "blob": "2aaf2b8df967a8e056118d545db24a892c8aab1c",
+      "sha256": "842cf2a8342f4164dd61e7d7ca2e2eb577b7cbb844e978c49be141ad5720a3af",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql",
+      "blob": "13df45ddbfa74030808490552dc3c27d4130bb6b",
+      "sha256": "23e5e5d36f5cac428c799356f6080ef902fcd1d67cacbdebba982d95c01cc896",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+      "blob": "fb15154e9ef50c887fbcceb4d0a41e488a5795c2",
+      "sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql",
+      "blob": "e55134506ad94204ca9e1f87ca05b609bd0740b6",
+      "sha256": "26b9153c1f478ec5e5c924da0a7c7edc68a5d01da91a2a0aaa93b850ea527083",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/state_transitions.json",
+      "blob": "9b36a20ad417d31598837dea62db31e320e0eaf3",
+      "sha256": "c770025dddec7e34a89fdf0bcb2632726174dee1e2f298b51afd68430acc51ff",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "blob": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/prodatServicePermission.ts",
+      "blob": "b0dc283649d76edfecb0864acc66e3c7a4c51757",
+      "sha256": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/intent/renderers/servicePermission.ts",
+      "blob": "8da96654415e05af50c6a6ed045bd49c224c71fc",
+      "sha256": "f3d9532c6fc20bbbfff9a5116128272aa15c15f04da749465d9e413520ed7b29",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/services/requestTiming.ts",
+      "blob": "48469c5586cac92ee286a0efdcfe97cde4cc7196",
+      "sha256": "de31ae0973f8ae5385eff4fe557d621a3d96f4203d92a831b2e43ac78ab51f2a",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+      "blob": "e3ffa9fd8f16e646c10e79df3770e1445e08427a",
+      "sha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/permissions/permissionMarketTransition.ts",
+      "blob": "9d9a7fc2912706b8fd1db2a1ac45e7262d6455d4",
+      "sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5",
+      "sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.ts",
+      "blob": "ab4e9fb008b2174f3415d45f74c7647879e85990",
+      "sha256": "585c29859583271f1f03a4328cfa7699c7e9af6f4d3d4a57d39b2e7e6c3d1b8a",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "blob": "4f8cafb51ef8070d2a401475ec0b950d7fa9cd3e",
+      "sha256": "702de664dad9aa919bb6cfa5d94e4ae7ff457083fdb91c7ab05b7b1441a5736f",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "blob": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+      "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001051410_ediel_utilts_persist_reading_followup_owner.sql",
+      "blob": "623d26c1f0996aeace243f70fe003ae30409a9c6",
+      "sha256": "f3abf3c97b9db9432130fdd83094d0c9e5432f476e0f5d4dc1fd85f5b7237a80",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql",
+      "blob": "b7eb6fce861398ae640f87ce23dfe31b886ef56e",
+      "sha256": "3bf690f8a2cf25658e63553f0f311d9905abfd5525eb49deed51db08362c4b1a",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql",
+      "blob": "3ddcf5817665ccd9c078b4d461effa508678f8cf",
+      "sha256": "f55258a1efbdc2795cc35a4e0b9864ca3ebf627c71e293ccc85e2ccb2677b146",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+      "blob": "cec253220d05b3e4d3430a4ba56ba5efd347238c",
+      "sha256": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "blob": "ce3d82bfaac13406f35f7917696b83c5e3058a76",
+      "sha256": "5da55a0ce60bd6714a56e36c811fbc1347fd8a07edd91b9e58248eb5c72b0d2d",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsObservationHandoff.ts",
+      "blob": "6bb483b64bc05574026776bf1693e376e8c99fda",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/stateMachines/prodatLifecycle.ts",
+      "blob": "edd52c5f31d4dea15d2f73fa4ac48859b46a66a4",
+      "sha256": "93ce2fbb1196b97a0148edcf9b20cf49d2bac6b9eefa1176fffbf5c5abb56887",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/billing/historyRequest.ts",
+      "blob": "1280251a65136a4d917c6e96943d2afcdacf8aa9",
+      "sha256": "6e088b0e4dc4509d4a8c09aad8b4083d81959e79afad1ae9d90b1c2aa991416f",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/metering/validation.ts",
+      "blob": "269e21ef4be669b8f5ce8a3bb40852dd634dbe94",
+      "sha256": "a39f66a8102bbd1bab50864a7377594e58708369f2568941092e42a11e404ccf",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "blob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+      "sha256": "802c6a5ffccb19a511db0e6b4c534d817412f6cf482b253965a261c082456a24",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "blob": "598e05fd47cf261572dc1e71793d5d7a6be01522",
+      "sha256": "1d3e51de42176234867d4e1546447c36eae44222e8d0ae04bed6e2db36f5d3be",
+      "matchesReadOnlyWorktree": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "blob": "a170889bc7a9463e757302989cb596e30f527c6f",
+      "sha256": "d395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f",
+      "matchesReadOnlyWorktree": true
+    }
+  ],
+  "execution": "Static read/hash comparison only; tests/runtime/native/database/CI NOT_RUN"
+}

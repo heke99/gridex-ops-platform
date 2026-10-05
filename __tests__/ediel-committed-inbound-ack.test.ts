@@ -1,3 +1,5 @@
+// masterplan: TEN-12, AT-TEN-12
+// masterplan: ACK-09, AT-ACK-09
 import {beforeEach,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({rpc:vi.fn()}));vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck'

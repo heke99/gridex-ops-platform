@@ -1,3 +1,4 @@
+// masterplan: SC-043
 import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect,vi} from 'vitest'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
@@ -37,6 +38,9 @@ it('retains supplied reporting321 date identity through its specialized owner',(
 it('reports missing327 from its source descriptor rather than DTM164',()=>{
  const wire=raw([...head(),line('1','A'),['RFF',['LI','PERMISSION']]],'Z15')
  expect(check(wire,'Z15','C',['327']).applicationErrors).toMatchObject([{ercCode:'41',fieldCode:'327'}])
+ // SC-043: the PRODAT APERAK names field 327 in its own FTX format, never the DTM qualifier 164.
+ const reply=String(buildAperakDraft({sourceMessage:source(wire,'Z15'),outcome:'negative',applicationErrors:check(wire,'Z15','C',['327']).applicationErrors}).rawPayload)
+ expect(reply).toContain('ERC+41');expect(reply).toMatch(/FTX\+AAO\+\+327::260/);expect(reply).not.toMatch(/FTX\+AAO\+\+164/)
 })
 it('preserves known numeric invoicee errors beside a genuine aggregate parent hold',()=>{
  const party=['NAD','IV',['I','','89'],'','Invoicee','Street','City','','12 345','SE'] as const

@@ -1,0 +1,331 @@
+{
+  "kind": "Publication carry of already-completed own documentation; no duplicate review/test/runtime/source work",
+  "sourceHead": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+  "files": [
+    {
+      "path": ".agent-memory/masterplan-at-z13vh-z14vh-esco-checkpoint.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "bec456bdc716a6b4b22dcd20ab5e00248c2a4dba837a71b80bbdd09d29dd4eba",
+      "bytes": 16750
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/SC051SC068-review-handoff-result.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "57c96890c3a863786e8563655188336520b96edd7a0e28db0e5b1fb86e8edb9c",
+      "bytes": 162
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/SC051SC068-review-handoff.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "0a3b56d69462f4bad4fd2dc43cece9f6a625fff31b513714672428e95ed64aeb",
+      "bytes": 1334
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-board530-continuation-since1350.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "ae0b8e80f12783cc50275ed1463292b740bcd2bf06868a19a55bbb760f05f35b",
+      "bytes": 52123
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-pr561-50005-independent-review.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "16a94e64403768719ff501c6582cfc9aaa89500c35476f172ca85d3924f0ba96",
+      "bytes": 15851
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-pr561-50005-independent-review.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "066951e3977afd9eb23c7bdad4faf8aa278355aa405ca1939eea313c367233e4",
+      "bytes": 16587
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-pr561-next-correction-current.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "a29781ddba88b250d8613fa4d097c13a4cf2be16e413f4022b98bc546ac53f6d",
+      "bytes": 18489
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-basis.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "3e67d105624101dc67a59946db866daff1bc230f87df2e947e41e87819c3ca89",
+      "bytes": 9781
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation-review.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "26fafeacef1494f2154291ad65b52827824451dab33bda16b8ca13aea808ddee",
+      "bytes": 15574
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.draft-v1.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "fa06a8d865f47068f5c2c34c959aa12bbed5f472bd2103163af89afd4195d796",
+      "bytes": 18376
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.draft-v2.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "9d812b2802310e87f2a51357e4ab1b4634709ed46941987f48417650cb0a4d9d",
+      "bytes": 19739
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "b7d70f658950cf04a02079edbdc3cc2fdb7cbe71cea8c03afb72861cb08af40f",
+      "bytes": 20656
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.raw-peer-finding-v1.txt",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "2b2aee12088aab448ffc742a5cc5ce9564c74650dae0b0c65a6a1229376e9c43",
+      "bytes": 973
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.raw-peer-finding-v2.txt",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "8be9b05f9242d7930111b34e446c97b843c6f04391d8c9472e293e4830c1ea9d",
+      "bytes": 629
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.requests-changes-v1.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "b8e3daeda4c6f207dc95a100bc243e4bdc3cc648a982ae586aa1aa338857fda1",
+      "bytes": 2022
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-continuation.requests-changes-v2.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "12948d4a528c898a5c28d9fe11741faef31d77014d78dfbed15da7ca8426ffdf",
+      "bytes": 1615
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-handoff-comment.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "c8fda3bb9031a80735c08e8adf1674089386f461817c5f7cbeeff160f1f45810",
+      "bytes": 22445
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-history-owner-read-findings.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "04374a93145fb49f374e496c98dcabc5f5be87795ef8fccf905c11dba57c8655",
+      "bytes": 4855
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-pr589-files.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "8ac7bd6a9c585931ca388a52602b67eec95eb003807cd22fefb7e48c5b9b2cc0",
+      "bytes": 401992
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-pr589-publication.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "48108e5634261c058148ebfcf0e17c5b1211d8b494e5f3a24952d2c6086783b8",
+      "bytes": 17616
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-vh-pr589-remote-ref.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "25eafa127498da5319ba069226e97d157c28407d44f8b35f1a7cdc99a25e6f9d",
+      "bytes": 473
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-z02l-z02lk-independent-scope-map.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "2de2ce4b2d4b4f0025d9d36652f658c5005176830f85ebeee147cafd462d642b",
+      "bytes": 29659
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/gridex-z02l-z02lk-preclaim-race.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "6cbadc6d1f6fdd5d3804f5c61e68f9e9ebf43dc646e4386f6f6d58a38f15e39c",
+      "bytes": 113114
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/local-publication-and-owner-continuation/local-publication-and-handoff.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "af61f556ee7b39ff7da7ae5e2bf1411cc8939db1acc90c80bc2251c34189f539",
+      "bytes": 6413
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/artifact-11347304308-coverage-summary.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "a4a36b38e7c869753453fe579dc194cbcbdd8d13ef6960f87eeeb4dabe69ec57",
+      "bytes": 374271
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/artifact-11347334548-pr-release-certificate.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "5d13a350cac9a946c08086f075dba1465be7f4afa35a474376edbb20e8a48ea8",
+      "bytes": 8060
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/attempt-000-sandbox-network.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "1b420b56d9190974af017c57ccada911a98f9a784abe5fca47cc1801c73fccdd",
+      "bytes": 198
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/attempt-000-sandbox-network.log",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "34b7684854262afae960b06e6c3a2bb1b73e4b739e6e35decedc51a1d9c7a7a4",
+      "bytes": 225
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-checks.raw.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "596fb6ceddfe322119d87f80cd7f14c0d0c2c5e9f373869c01b271688646a827",
+      "bytes": 65001
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-fetch-attempt.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "c9946afe9d2b98ae839d5d3fd81d20a14a193229db45e12f87995693f5a3d85c",
+      "bytes": 382
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-ops-jobs.raw.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "4c2c3d88402a9e76eae33c0568fac507ff0e8a097754fbda26b15f3f18350fdd",
+      "bytes": 18575
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-pr.raw.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "2965f5b88f3c01cfbe09571cd59ff67be744d3e2e08a94432dddf45af820a8f4",
+      "bytes": 17613
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-qualification.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "75717a6ceee7a93884b3dcf7614d35e75f4db35f4d92724379fcd4ca350d08be",
+      "bytes": 13214
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-qualification.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "b7b824af76dee8d9f36f120fc0fd5644bb9bb5d9831ea08428bb2eabf8be22b5",
+      "bytes": 6019
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/final-runs.raw.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "c07f36c6aa701326329bdb0cde4d15f63df1cca46c075a34d65794c1656ffd12",
+      "bytes": 52483
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-actual-merged-pr.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "c2e7f645781395fe2e004762e2e7b8b7ae072ba6be973bb431f41d50b8d986af",
+      "bytes": 18551
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-actual-postmerge-guard.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "9ab9512dfcce8cbf0623dc6f68e92daa1757b48d94fb99705f2fd94860163126",
+      "bytes": 1160
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-corrected-live-premerge-guard.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "796b3f549cc479c7ea2edbabf4c21143548e4fd773267dffa280ff0db6f580a0",
+      "bytes": 952
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-immediate-checks.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "596fb6ceddfe322119d87f80cd7f14c0d0c2c5e9f373869c01b271688646a827",
+      "bytes": 65001
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-immediate-guard.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "f428c1bf3641ca225bd46b21c042d53177eab0bef12b43debac0a9bd3586aa12",
+      "bytes": 1591
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-immediate-main.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "431a38773072733d92120b52cd1c66b2dabb7707b4ec513876db7533c8399686",
+      "bytes": 5397
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-immediate-pr.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "0ddad5f135c363914e226b47729f330447a8263d585e26008b6152c0292327c8",
+      "bytes": 17613
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-live-premerge-main.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "431a38773072733d92120b52cd1c66b2dabb7707b4ec513876db7533c8399686",
+      "bytes": 5397
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-live-premerge-pr.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "416b68dfd7317d2128b5b38dae75ab0221652187d675452d88371d4fbef9af4f",
+      "bytes": 17613
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-main3dff-composition-review.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "2925880535b74ccf4416e44e3314b3fd86b540232cba672b6da4f80c264a6719",
+      "bytes": 58176
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-main3dff-composition-review.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "99653d205b15905864b430e6cf91d83fe15b89373cab4b3efb27019c72928a60",
+      "bytes": 5720
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/gridex-vh589-ordinary-merge-command.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "5841e1f5d73d9e2c2a7095059b8d20965fae059a5589a7c402d1dc95ffe15fef",
+      "bytes": 253
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/intended-530-comment.md",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "b4f4eb3eb72d3e7e83dd87057fee8930df29eda1f7ca3d72bb50afc03389b00b",
+      "bytes": 803
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/intended-530-result.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "6fc875a09c246fe5d1e928b32ade7b72f784782c3610ee6bb8c5a8f2ca55b926",
+      "bytes": 162
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/job-111782546601-selected-excerpts.log",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "07fb0bbb3cba627292d97e2612faa9b6ff55a29c74f0722674996b99b81d3f03",
+      "bytes": 75700
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/original-final-preservation.sha256",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "ee7cc11727a326c56c2f51b820a1808b00aa5afec28dc1e5aa866ac5ae285707",
+      "bytes": 2254
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/qualified-small-artifacts.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "70e6f6cf66da6a4c3f3f29f37db14f79e709edd5eacc9c97e75e4d3a48575cb2",
+      "bytes": 10301
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/raw-postmerge-doc-whitespace-check.log",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "c4b029565bed2ea272d2ed4521379037677663bcdfa1c1a04cd5fdee05748b85",
+      "bytes": 712
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/postmerge-current-b7-ci/retention-and-actual-merge.json",
+      "sourceCommit": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+      "sha256": "84b2e01e2c965cb9e12cedf5d6c9aec99d1c68ba639ba6f6f7b2b3755fc529b3",
+      "bytes": 6219
+    }
+  ],
+  "filesExact": true
+}

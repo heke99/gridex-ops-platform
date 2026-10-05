@@ -1,0 +1,10 @@
+{
+  "baseline": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "adopted_actual_main": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+  "tree": "00612b25336ee545defa14695f439537accd2dde",
+  "delta": "only foreign NEW tests/checkpoints/quality/plans from merged589/590",
+  "runtime_sql_scripts_config_package_frozen_coverage_unchanged": true,
+  "own_component_receipt_reused": "40/34PASS/6FAIL/0ERROR/0SKIP at identical source/config/deps/version/scope",
+  "whole_rows": "unchanged NOT_EXECUTED",
+  "prior_foreign_coverage_sha256": "011e3393d8c51bc39c3d43f7154d360b1c50a9abdf0772f762362b7e35f54294"
+}

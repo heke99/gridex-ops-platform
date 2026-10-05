@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-05T14:15:33.743878+00:00",
+  "results": [
+    {
+      "kind": "pr",
+      "exit_code": 0,
+      "bytes": 17613
+    },
+    {
+      "kind": "checks",
+      "exit_code": 0,
+      "bytes": 65001
+    },
+    {
+      "kind": "runs",
+      "exit_code": 0,
+      "bytes": 52483
+    },
+    {
+      "kind": "ops-jobs",
+      "exit_code": 0,
+      "bytes": 18575
+    }
+  ]
+}

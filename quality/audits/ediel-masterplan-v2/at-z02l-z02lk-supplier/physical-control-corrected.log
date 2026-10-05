@@ -1,0 +1,216 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts (44 tests | 2 failed | 42 skipped) 117ms
+     × decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 69ms
+     ↓ rejects missing required LIN in the real field consumer
+     ↓ rejects missing required RFF:LI in the real field consumer
+     ↓ rejects missing required RFF:Z05 in the real field consumer
+     ↓ rejects missing required NAD:UD in the real field consumer
+     ↓ rejects missing required NAD:IT in the real field consumer
+     ↓ refuses DGI application reference in the actual Z02 policy
+     ↓ passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification
+     ↓ holds absent candidate references without enqueuing or mutation
+     ↓ holds ambiguous candidate references without enqueuing or mutation
+     ↓ holds foreign-only candidate references without enqueuing or mutation
+     ↓ holds incomplete correlation proof and allows review only
+     ↓ holds incomplete payload proof and allows review only
+     ↓ holds incomplete snapshot proof and allows review only
+     ↓ holds incomplete atomic applied proof and allows review only
+     ↓ holds incomplete atomic receipt proof and allows review only
+     ↓ does not promote a blocked job even with a complete-looking result
+     ↓ does not promote a needs_review job even with a complete-looking result
+     ↓ propagates a declared actor-port denial before any request query or worker effect
+     ↓ holds worker enqueue failure without replacing a verified snapshot
+     ↓ a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint
+     ↓ the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result
+     × decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 46ms
+     ↓ rejects missing required LIN in the real field consumer
+     ↓ rejects missing required RFF:LI in the real field consumer
+     ↓ rejects missing required RFF:Z05 in the real field consumer
+     ↓ rejects missing required NAD:UD in the real field consumer
+     ↓ rejects missing required NAD:IT in the real field consumer
+     ↓ refuses DGI application reference in the actual Z02 policy
+     ↓ passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification
+     ↓ holds absent candidate references without enqueuing or mutation
+     ↓ holds ambiguous candidate references without enqueuing or mutation
+     ↓ holds foreign-only candidate references without enqueuing or mutation
+     ↓ holds incomplete correlation proof and allows review only
+     ↓ holds incomplete payload proof and allows review only
+     ↓ holds incomplete snapshot proof and allows review only
+     ↓ holds incomplete atomic applied proof and allows review only
+     ↓ holds incomplete atomic receipt proof and allows review only
+     ↓ does not promote a blocked job even with a complete-looking result
+     ↓ does not promote a needs_review job even with a complete-looking result
+     ↓ propagates a declared actor-port denial before any request query or worker effect
+     ↓ holds worker enqueue failure without replacing a verified snapshot
+     ↓ a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint
+     ↓ the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation
+AssertionError: expected [ { severity: 'error', …(6) }, …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "blocking": true,
++     "code": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
++     "description": "NAD+UD/3251 krävs för PRODAT Z02.",
++     "fieldPath": "NAD+UD/3251",
++     "prodatDiagnostic": {
++       "component": {
++         "locator": "NAD+UD/3251",
++         "partyComponents": 1,
++         "partyElement": 8,
++         "partyQualifier": "UD",
++       },
++       "errorKind": "missing",
++       "fieldNumber": "231",
++       "group": "SG8/SG17",
++       "kind": "field",
++       "occurrence": {
++         "identityAgency": "9",
++         "lineIndex": 0,
++         "lineItemReference": "OWN-Z01-LI",
++         "lineNumber": "1",
++         "messageReference": "M",
++         "objectId": "735123456789012345",
++         "ownReferences": {
++           "customerId": {
++             "kind": "present",
++             "value": "199001011234",
++           },
++           "lineItemReference": {
++             "kind": "present",
++             "value": "OWN-Z01-LI",
++           },
++           "objectId": {
++             "kind": "present",
++             "value": "735123456789012345",
++           },
++         },
++         "registerPosition": 1,
++         "scope": "object",
++       },
++       "segmentPath": "NAD+UD/3251",
++       "sourceRule": "PRODAT26A:§2.2:Z02:231",
++     },
++     "severity": "error",
++     "title": "end_user_postcode saknas",
++   },
++   {
++     "blocking": true,
++     "code": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
++     "description": "NAD+UD/3164 krävs för PRODAT Z02.",
++     "fieldPath": "NAD+UD/3164",
++     "prodatDiagnostic": {
++       "component": {
++         "locator": "NAD+UD/3164",
++         "partyComponents": 1,
++         "partyElement": 6,
++         "partyQualifier": "UD",
++       },
++       "errorKind": "missing",
++       "fieldNumber": "232",
++       "group": "SG8/SG17",
++       "kind": "field",
++       "occurrence": {
++         "identityAgency": "9",
++         "lineIndex": 0,
++         "lineItemReference": "OWN-Z01-LI",
++         "lineNumber": "1",
++         "messageReference": "M",
++         "objectId": "735123456789012345",
++         "ownReferences": {
++           "customerId": {
++             "kind": "present",
++             "value": "199001011234",
++           },
++           "lineItemReference": {
++             "kind": "present",
++             "value": "OWN-Z01-LI",
++           },
++           "objectId": {
++             "kind": "present",
++             "value": "735123456789012345",
++           },
++         },
++         "registerPosition": 1,
++         "scope": "object",
++       },
++       "segmentPath": "NAD+UD/3164",
++       "sourceRule": "PRODAT26A:§2.2:Z02:232",
++     },
++     "severity": "error",
++     "title": "end_user_city saknas",
++   },
++   {
++     "blocking": true,
++     "code": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
++     "description": "NAD+UD/3207 krävs för PRODAT Z02.",
++     "fieldPath": "NAD+UD/3207",
++     "prodatDiagnostic": {
++       "component": {
++         "locator": "NAD+UD/3207",
++         "partyComponents": 1,
++         "partyElement": 9,
++         "partyQualifier": "UD",
++       },
++       "errorKind": "missing",
++       "fieldNumber": "316",
++       "group": "SG8/SG17",
++       "kind": "field",
++       "occurrence": {
++         "identityAgency": "9",
++         "lineIndex": 0,
++         "lineItemReference": "OWN-Z01-LI",
++         "lineNumber": "1",
++         "messageReference": "M",
++         "objectId": "735123456789012345",
++         "ownReferences": {
++           "customerId": {
++             "kind": "present",
++             "value": "199001011234",
++           },
++           "lineItemReference": {
++             "kind": "present",
++             "value": "OWN-Z01-LI",
++           },
++           "objectId": {
++             "kind": "present",
++             "value": "735123456789012345",
++           },
++         },
++         "registerPosition": 1,
++         "scope": "object",
++       },
++       "segmentPath": "NAD+UD/3207",
++       "sourceRule": "PRODAT26A:§2.2:Z02:316",
++     },
++     "severity": "error",
++     "title": "end_user_country saknas",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:127:66
+    125|     expect(validateEdifactSyntax(row).issues.filter(issue => issue.sev…
+    126|     expect(validateEdifactSyntax(row).ok).toBe(true)
+    127|     expect(fieldIssues(profile).filter(issue => issue.blocking)).toEqu…
+       |                                                                  ^
+    128|     expect(policy(profile)).toMatchObject({ code: 'Z02', subtype: prof…
+    129|     const parsed = parseProdatMessage(row)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 42 skipped (44)
+   Start at  13:36:07
+   Duration  3.17s (transform 2.21s, setup 40ms, import 2.63s, tests 117ms, environment 0ms)
+

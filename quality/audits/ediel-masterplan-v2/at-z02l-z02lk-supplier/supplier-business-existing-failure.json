@@ -1,0 +1,13 @@
+{
+  "script": "scripts/gridex-supplier-remaining-business-regression.cjs",
+  "script_sha256": "56fe10481c5466616cac4db026927055fd71f27c011802bf5dcc627c8b1672ad",
+  "actual_execution_exit": 1,
+  "first_failed_assertion": "characterized PRODAT side effects create or update supply periods",
+  "actual_predicate": "/ensureSupplyPeriodFromSwitch/.test(inboundStateLegacy)",
+  "baseline_commit": "bc2b60cfa0cc8ff1037846f0763045f4e58c8369",
+  "baseline_predicate": false,
+  "repaired_predicate": false,
+  "conclusion": "same obsolete name predicate already fails on exact unmodified baseline; not a Z02 repair regression",
+  "source_fix_scope": "unrelated runner unchanged; owner handoff, no assert weakening",
+  "later_assertions": "not reached"
+}
