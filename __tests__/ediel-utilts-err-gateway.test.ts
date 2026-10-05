@@ -1,9 +1,9 @@
-// masterplan: U-13, AT-U-13, SC-045, SC-048
+// masterplan: U-13, AT-U-13, SC-045, SC-047, SC-048
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
-import { createAckIfMissing,createUtiltsRuntimeAcks } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import { createAckIfMissing,createUtiltsRuntimeAcks,matchUtiltsTransactionsForTenant } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { buildAperakDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
@@ -40,6 +40,11 @@ vi.mock('@/lib/supabase/service', () => {
       if (operation !== 'in') throw Error(`unexpected_filter:${operation}`)
       const excluded = String(expected).replace(/^\(|\)$/g, '').split(',')
       this.filters.push(row => !excluded.includes(String(value(row, key))))
+      return this
+    }
+    or(expression: string) {
+      const options = expression.split(',').map(part => part.split('.eq.'))
+      this.filters.push(row => options.some(([key, expected]) => String(value(row, key) ?? '') === expected))
       return this
     }
     order() { return this }
@@ -519,4 +524,34 @@ it('SC-048 an own E50 period fault on a known object is finalized as a physical 
  expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E50'])
  // No master data was created to make the check pass.
  expect([...database.tables.keys()].filter(t=>t!=='ediel_messages'&&t!=='ediel_message_events'&&t!=='ediel_ack_transaction_results').map(t=>[t,database.tables.get(t)!.length])).toEqual(tablesBefore)
+})
+
+it('SC-047 an object known only in another tenant is unknown here: the real lookup, runtime and ACK gateway send one UTILTS ERR E10 on the original TN',async()=>{
+ const f=seed([{reference:'OWN-E10',outcome:'accepted'}])
+ const foreign={id:'foreign-point',company_id:'00000000-0000-4000-8000-0000000000ff',meter_point_id:'735999260731000007',metering_point_id:null,ediel_reference:null}
+ database.tables.set('metering_points',[foreign]);database.tables.set('customer_sites',[]);database.tables.set('customers',[])
+ const before=structuredClone({points:database.tables.get('metering_points'),sites:database.tables.get('customer_sites'),customers:database.tables.get('customers')})
+ // Actual company-scoped lookup on the parsed transaction identity.
+ const matches=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
+ expect(matches).toEqual([expect.objectContaining({transactionReference:'OWN-E10',externalMeteringPointId:'735999260731000007',meteringPointId:null,matchStatus:'unmatched'})])
+ const source={...f.source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:matches}} as EdielMessageRow
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',selectedGuideRevision:'25-A-4',applicationReference:source.application_reference,mode:'parse'})
+ const runtime=runUtiltsRuntimeForMessage(source,{referenceDate:'2026-10-01',canonicalPolicy:policy})
+ // Syntax and guide pass; the object control is the prescribed functional outcome.
+ expect(runtime.validation.issues.filter(i=>i.severity==='error').map(i=>[i.kind,i.utiltsErrCode])).toEqual([['functional','E10']])
+ database.tables.set('ediel_ack_transaction_results',runtime.transactionDispositions.map(row=>({id:randomUUID(),company_id:source.company_id,environment:'test',source_message_id:source.id,
+  source_transaction_id:row.transactionId,planned_response_type:row.responseType,finalized_at:null})))
+ await createUtiltsRuntimeAcks({actorUserId:f.actor,sourceMessage:source,ackPlan:runtime.ackPlan,transactionDispositions:runtime.transactionDispositions})
+ const errs=f.acks().filter(row=>row.message_family==='UTILTS_ERR')
+ expect(errs).toHaveLength(1)
+ const wire=EdifactEnvelopeCodec.decode(String(errs[0].raw_payload))
+ expect(wire.segments.flatMap(s=>s.elements.flatMap((_,i)=>segmentComposite(s,i,wire.una)))).toContain('E10')
+ expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E10'])
+ // The foreign tenant's object and the own customer data stay untouched; nothing is created.
+ expect({points:database.tables.get('metering_points'),sites:database.tables.get('customer_sites'),customers:database.tables.get('customers')}).toEqual(before)
+ // Contrast: the same object registered in the own tenant matches and gives no E10.
+ database.tables.set('metering_points',[foreign,{...foreign,id:'own-point',company_id:source.company_id}])
+ const own=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
+ expect(own[0]).toMatchObject({meteringPointId:'own-point',matchStatus:'matched'})
+ expect(runUtiltsRuntimeForMessage({...source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:own}} as EdielMessageRow,{referenceDate:'2026-10-01',canonicalPolicy:policy}).ackPlan.utiltsErrCodes).toEqual([])
 })
