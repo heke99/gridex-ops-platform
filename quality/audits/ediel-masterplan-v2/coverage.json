@@ -86,8 +86,14 @@
     {
       "id": "GOV-08",
       "acceptance_id": "AT-GOV-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        ".agent-memory/masterplan-gov08-checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+        "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+        "scripts/ediel-test-original-outcome-native.test.ts",
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql"
+      ]
     },
     {
       "id": "TEN-01",
@@ -2362,8 +2368,14 @@
     },
     {
       "id": "AT-GOV-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        ".agent-memory/masterplan-gov08-checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+        "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+        "scripts/ediel-test-original-outcome-native.test.ts",
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql"
+      ]
     },
     {
       "id": "AT-TEN-01",

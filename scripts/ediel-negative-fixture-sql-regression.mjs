@@ -1,3 +1,4 @@
+// masterplan: GOV-08, AT-GOV-08
 // Prospective protected qualification contract checks with synthetic originals.
 // These are not authentic TGT files, native replay or permission to activate.
 import {readFileSync} from 'node:fs'
@@ -25,14 +26,19 @@ try{
  await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,roleCode:'esco'}),/run_scope_mismatch/)
  const id=(await as('gridex_ediel_fixture_authority_owner',publish())).id;assert.equal((await as('gridex_ediel_fixture_authority_owner',publish())).id,id);checks++
  const qualified=(await as('service_role',read())).result;assert.equal(qualified.registrationId,id);assert.equal(qualified.originalFileSha256,createHash('sha256').update(Buffer.from(raw,'latin1')).digest('hex'));assert.equal(qualified.expectedOutcome,'negative');assert.deepEqual(qualified.expectedDiagnosticCodes,scope.expectedDiagnosticCodes);checks++
+ for(const key of ['companyId','runId','roleCode','caseCode','suite','revision','stepNo','sourceReference','ownerDecisionReference'])assert.equal(qualified[key],scope[key]);assert.equal(qualified.wireSha256,qualified.originalFileSha256);checks++
+ assert.equal((await db.query('select original_wire from gridex_negative_fixtures.originals where id=$1',[id])).rows[0].original_wire,raw);checks++
  assert.equal((await as('service_role',read({messageId:message,runId:uid(99)}))).result.registrationId,id);checks++ // actual persisted link overrides caller run
  assert.equal((await as('service_role',read({rawPayload:raw+' '}))).result,null);checks++
  assert.equal((await as('service_role',read({stepNo:2}))).result,null);checks++
  await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,expectedDiagnosticCodes:['OTHER']}),/original_conflict/)
+ await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,sourceReference:'synthetic://conflicting-source'}),/original_conflict/)
  await rejects('service_role',read({companyId:uid(99)}),/no rows/)
  await db.exec(`update ediel_messages set environment='production' where id='${message}';`);await rejects('service_role',read({messageId:message}),/no rows/)
  await rejects('service_role',`update gridex_negative_fixtures.originals set expected_outcome='positive';`,/permission denied/)
  await assert.rejects(db.exec(`update gridex_negative_fixtures.originals set valid_until=now();`),/original_immutable/);checks++
+ await assert.rejects(db.exec(`update gridex_negative_fixtures.originals set original_wire=original_wire||' ';`),/original_immutable/);checks++
+ assert.equal((await as('service_role',read())).result.expectedOutcome,'negative');checks++
  const owned=(await db.query(`select rolcanlogin login,(select count(*)::int from pg_auth_members where roleid=r.oid) members from pg_roles r where rolname='gridex_ediel_fixture_authority_owner'`)).rows[0];assert.deepEqual(owned,{login:false,members:0});checks++
  console.log(`PASS ${checks} targeted negative-fixture ownership checks; synthetic originals only, no authentic TGT evidence`)
 }finally{await db.close()}

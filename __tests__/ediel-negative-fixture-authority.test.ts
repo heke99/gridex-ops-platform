@@ -1,3 +1,4 @@
+// masterplan: GOV-08, AT-GOV-08
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
@@ -14,6 +15,9 @@ beforeEach(()=>{io.rpc.mockReset();io.rpc.mockResolvedValue({data:source(),error
 describe('source-qualified negative fixture capability, synthetic port responses only',()=>{
  it('binds the actual persisted message and exact expected negative diagnostic',async()=>{
   const m=message(),qualification=await resolveSourceQualifiedNegativeFixtureForMessage({message:m,actorUserId:'synthetic-actor'})
+  expect(qualification).toMatchObject({companyId:'synthetic-company',runId:'synthetic-run',roleCode:'supplier',caseCode:'synthetic-case',suite:'PRODAT',revision:'synthetic-revision',stepNo:1,sourceReference:'synthetic://unit-original',ownerDecisionReference:'synthetic://unit-only',expectedOutcome:'negative',expectedDiagnosticCodes:['NATIONAL_FIELD_MISSING']})
+  expect(qualification?.originalFileSha256).toBe(createHash('sha256').update(Buffer.from(raw,'latin1')).digest('hex'))
+  expect(qualification?.wireSha256).toBe(qualification?.originalFileSha256)
   expect(sourceQualifiedNegativeFixtureMatchesMessage({message:m,qualification,diagnosticCodes:['NATIONAL_FIELD_MISSING']})).toBe(true)
   expect(io.rpc).toHaveBeenCalledWith('gridex_ediel_negative_fixture_read_v1',{p_context:{companyId:m.company_id,messageId:m.id,actorUserId:'synthetic-actor'}})
  })

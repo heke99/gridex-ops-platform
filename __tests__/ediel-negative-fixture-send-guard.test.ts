@@ -1,3 +1,4 @@
+// masterplan: GOV-08, AT-GOV-08
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn(),validate:vi.fn()}))
