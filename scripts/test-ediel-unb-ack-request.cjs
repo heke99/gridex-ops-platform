@@ -1,4 +1,4 @@
-// masterplan: ENV-04, AT-ENV-04
+// masterplan: ENV-04, AT-ENV-04, SC-041
 // E011 / ENV-04: T24.A rev6 p12 §2.1 and p25 §4.2.
 // Synthetic, source-qualified ACK references; no live market or provider calls.
 // Run with: node --experimental-vm-modules --test scripts/test-ediel-unb-ack-request.cjs
@@ -198,6 +198,7 @@ test('UTILTS_ERR has a CONTRL request and canonical persisted CONTRL plus APERAK
 test('CONTRL opposing control neither requests nor awaits a new ACK', async () => {
   const a = await api, draft = a.buildContrlDraft({ sourceMessage:source() })
   assert.equal(finalWire(draft.rawPayload).unb[9] || '', '')
+  assert.deepEqual(finalWire(draft.rawPayload).rows.find(row => row[0] === 'UNH')[2].split(':').slice(0, 4), ['CONTRL', '2', '2', 'UN'])
   assert.equal(draft.requiresContrl, false); assert.equal(draft.requiresAperak, false)
   assert.equal(draft.contrlStatus, 'not_required'); assert.equal(draft.aperakStatus, 'not_required')
   assert.equal(draft.ackDueAt, null); assert.equal(a.getCanonicalAckState(stateRow(draft)), 'no_ack_required')

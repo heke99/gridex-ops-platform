@@ -1,4 +1,4 @@
-// masterplan: TEN-07, AT-TEN-07, ESCO-11, AT-ESCO-11, SC-019
+// masterplan: TEN-07, AT-TEN-07, ESCO-11, AT-ESCO-11, SC-019, DB-06, AT-DB-06
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import type {EdielProjectionPage,EdielProjectionRequest} from '@/lib/ediel/services/types'
 const mocks=vi.hoisted(()=>({rpc:vi.fn()}))

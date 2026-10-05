@@ -1,0 +1,424 @@
+{
+  "qualified_at": "2026-10-05T14:15:33.743878+00:00",
+  "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/589",
+  "pr_state": "open",
+  "pr_merged": false,
+  "expected_head": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+  "actual_pr_head": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+  "expected_tree": "6aed10be3004362471444db2590d36784b852c23",
+  "actual_committed_tree": "6aed10be3004362471444db2590d36784b852c23",
+  "head_match": true,
+  "all_mandatory_check_heads_match": true,
+  "mandatory_success": 9,
+  "mandatory_required": 9,
+  "mandatory_jobs": [
+    {
+      "name": "browser-public",
+      "job_id": 111782539215,
+      "run_id": 37315927293,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:44Z",
+      "completed_at": "2026-10-05T13:20:54Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927293/job/111782539215"
+    },
+    {
+      "name": "smoke",
+      "job_id": 111782539655,
+      "run_id": 37315927245,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:44Z",
+      "completed_at": "2026-10-05T13:21:29Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927245/job/111782539655"
+    },
+    {
+      "name": "coverage",
+      "job_id": 111782539806,
+      "run_id": 37315927245,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:43Z",
+      "completed_at": "2026-10-05T13:25:30Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927245/job/111782539806"
+    },
+    {
+      "name": "targeted-regressions",
+      "job_id": 111782539683,
+      "run_id": 37315927355,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:43Z",
+      "completed_at": "2026-10-05T13:24:25Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927355/job/111782539683"
+    },
+    {
+      "name": "verify",
+      "job_id": 111782546766,
+      "run_id": 37315927996,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:45Z",
+      "completed_at": "2026-10-05T13:21:41Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927996/job/111782546766"
+    },
+    {
+      "name": "quality-release-gates",
+      "job_id": 111782546558,
+      "run_id": 37315927996,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:45Z",
+      "completed_at": "2026-10-05T13:28:42Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927996/job/111782546558"
+    },
+    {
+      "name": "clean-migration-replay",
+      "job_id": 111782546601,
+      "run_id": 37315927996,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:19:45Z",
+      "completed_at": "2026-10-05T14:13:58Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927996/job/111782546601"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "job_id": 111782546353,
+      "run_id": 37315927996,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:20:20Z",
+      "completed_at": "2026-10-05T13:29:54Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927996/job/111782546353"
+    },
+    {
+      "name": "pr-certificate",
+      "job_id": 111785066225,
+      "run_id": 37315927245,
+      "run_attempt": 1,
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T13:25:34Z",
+      "completed_at": "2026-10-05T13:26:55Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37315927245/job/111785066225"
+    }
+  ],
+  "all_observed_checks": {
+    "total": 18,
+    "success": 9,
+    "skipped": 9,
+    "failure": 0
+  },
+  "runs": [
+    {
+      "id": 37315927293,
+      "name": "Gridex browser and quality E2E",
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T13:20:54Z"
+    },
+    {
+      "id": 37315927355,
+      "name": "Ediel masterplan v2 regressions",
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T13:24:26Z"
+    },
+    {
+      "id": 37315927245,
+      "name": "Gridex full E2E",
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T13:26:56Z"
+    },
+    {
+      "id": 37315927996,
+      "name": "OPS hardening",
+      "head_sha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T14:14:00Z"
+    }
+  ],
+  "execution_qualification": {
+    "full_unit": {
+      "files_passed": 822,
+      "tests_passed": 10494,
+      "skipped": 0,
+      "jobs": [
+        111782539806,
+        111782546558
+      ]
+    },
+    "new_profile_files": {
+      "AT-Z13VH-ESCO": {
+        "path": "__tests__/ediel-at-z13vh-esco-profile.test.ts",
+        "tests_passed": 6
+      },
+      "AT-Z14VH-ESCO": {
+        "path": "__tests__/ediel-at-z14vh-esco-profile.test.ts",
+        "tests_passed": 4
+      }
+    },
+    "masterplan_gate": {
+      "total_ids": 352,
+      "approved": 213,
+      "tagged_green": 236,
+      "tagged_failing": 0,
+      "untagged": 116,
+      "job_id": 111782539683,
+      "whole_card_promotion": false
+    },
+    "quality": {
+      "scripts_typecheck": "PASS",
+      "tests_typecheck": "PASS",
+      "lint": "PASS",
+      "mechanical_checks": "PASS",
+      "quality_test_files": 2,
+      "quality_tests_passed": 45,
+      "build": "PASS"
+    },
+    "coverage_total": {
+      "lines": {
+        "total": 58724,
+        "covered": 34315,
+        "skipped": 0,
+        "pct": 58.43
+      },
+      "statements": {
+        "total": 74157,
+        "covered": 42696,
+        "skipped": 0,
+        "pct": 57.57
+      },
+      "functions": {
+        "total": 12660,
+        "covered": 8211,
+        "skipped": 0,
+        "pct": 64.85
+      },
+      "branches": {
+        "total": 96057,
+        "covered": 49227,
+        "skipped": 0,
+        "pct": 51.24
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "coverage_ratchet": "PASS"
+  },
+  "clean_replay": {
+    "job_id": 111782546601,
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-05T13:19:45Z",
+    "completed_at": "2026-10-05T14:13:58Z",
+    "all_steps_nonfailed": true,
+    "log_file": "job-111782546601.log",
+    "log_sha256": "831ee157a3cce6c3b6080e9158366f661a93ba43b457432bc7dca68c2a593520",
+    "log_lines": 28421,
+    "phases": [
+      {
+        "line": 606,
+        "at": "2026-10-05T13:20:28Z",
+        "phase": "clean_replay_start"
+      },
+      {
+        "line": 24509,
+        "at": "2026-10-05T13:23:06Z",
+        "phase": "clean_replay_complete"
+      },
+      {
+        "line": 24510,
+        "at": "2026-10-05T13:23:06Z",
+        "phase": "artifact_generation_start"
+      },
+      {
+        "line": 24523,
+        "at": "2026-10-05T13:23:18Z",
+        "phase": "artifact_generation_complete"
+      },
+      {
+        "line": 24524,
+        "at": "2026-10-05T13:23:18Z",
+        "phase": "sql_regressions_start"
+      },
+      {
+        "line": 25478,
+        "at": "2026-10-05T13:23:34Z",
+        "phase": "merge_concurrency_start"
+      },
+      {
+        "line": 25480,
+        "at": "2026-10-05T13:23:39Z",
+        "phase": "merge_concurrency_complete"
+      },
+      {
+        "line": 25481,
+        "at": "2026-10-05T13:23:39Z",
+        "phase": "sql_regressions_complete"
+      },
+      {
+        "line": 25517,
+        "at": "2026-10-05T13:23:40Z",
+        "phase": "native_owners_start"
+      },
+      {
+        "line": 26479,
+        "at": "2026-10-05T14:03:41Z",
+        "phase": "native_owners_complete"
+      },
+      {
+        "line": 26480,
+        "at": "2026-10-05T14:03:41Z",
+        "phase": "browser_fixtures_start"
+      },
+      {
+        "line": 26643,
+        "at": "2026-10-05T14:06:37Z",
+        "phase": "browser_fixtures_complete"
+      },
+      {
+        "line": 26644,
+        "at": "2026-10-05T14:06:37Z",
+        "phase": "browser_start"
+      },
+      {
+        "line": 28135,
+        "at": "2026-10-05T14:12:29Z",
+        "phase": "browser_complete"
+      },
+      {
+        "line": 28136,
+        "at": "2026-10-05T14:12:29Z",
+        "phase": "after_browser_native_start"
+      },
+      {
+        "line": 28275,
+        "at": "2026-10-05T14:13:22Z",
+        "phase": "after_browser_native_complete"
+      },
+      {
+        "line": 28276,
+        "at": "2026-10-05T14:13:22Z",
+        "phase": "schema_gates_start"
+      },
+      {
+        "line": 28317,
+        "at": "2026-10-05T14:13:30Z",
+        "phase": "schema_gates_complete"
+      }
+    ],
+    "generated_types_sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+    "schema_fingerprint": "a183679d86a31305e60b2e1625f666adee3ff1faa442e03a3be2fe55b7ff901e",
+    "ordinary_native_log_summary": {
+      "files_passed": 48,
+      "tests_passed": 608,
+      "tests_skipped": 1,
+      "total_tests": 609,
+      "line_files": 26473,
+      "line_tests": 26474,
+      "new_VH_native_scope_qualified": false
+    },
+    "browser_log_summary": {
+      "tests_passed": 31,
+      "line": 28134
+    },
+    "uploaded_artifact_log_reference": {
+      "artifact_id": 11351057199,
+      "name": "gridex-rem-002-clean-replay",
+      "bytes": 16090415,
+      "sha256_emitted_in_log": "28dcc398e75fe57f59ffae802a000821049cd68acc8751c8a110ca4b4de0bc22",
+      "downloaded": false,
+      "CRC_or_member_qualification": "NOT_EXECUTED",
+      "line": 28397
+    },
+    "saved_log_exactly_matches_authentic_decoded_content": true
+  },
+  "small_artifacts": [
+    {
+      "artifact_id": 11347334548,
+      "path": "/tmp/gridex-vh-589-current-head-ci/vh589-11347334548.zip",
+      "sha256": "65520a93657be2f3bc3f0c88001c33fdbd249f078f6422267f1fa31c9e97a784",
+      "metadata_digest_match": true,
+      "all_crc_valid": true,
+      "members": [
+        "pr-release-certificate.json"
+      ]
+    },
+    {
+      "artifact_id": 11347304308,
+      "path": "/tmp/gridex-vh-589-current-head-ci/vh589-11347304308.zip",
+      "sha256": "4fff6d67166740e3a4c99a02b42e29f3be632a898f20f5baddcb2050507e2ec1",
+      "metadata_digest_match": true,
+      "all_crc_valid": true,
+      "members": [
+        "coverage-summary.json",
+        "lcov.info"
+      ]
+    }
+  ],
+  "certificate_scope": {
+    "verdict": "GREEN",
+    "smoke": "success",
+    "coverage": "success",
+    "candidateSha": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+    "candidateTree": "6aed10be3004362471444db2590d36784b852c23",
+    "checkoutClean": true,
+    "eventSha": "ff750412c175033419ff53c9c7eb5ea6ee94cf30",
+    "runId": "37315927245",
+    "runAttempt": "1",
+    "sourceAuthentication": "same_workflow_artifact_channel",
+    "codeEvidence": "incomplete",
+    "fullCardVerification": "NOT_VERIFIED",
+    "formalEdielApproval": false,
+    "liveCounterpartyVerified": false,
+    "scopeMatrix": {
+      "tenantIds": [],
+      "DDQ": false,
+      "DGI": false,
+      "crossTenantAssignments": false
+    }
+  },
+  "limits": [
+    "Whole AT-Z13VH-ESCO and AT-Z14VH-ESCO cards remain PARTIAL / coverage NOT_EXECUTED.",
+    "CI green qualifies the actual committed workflows and finite profile/unit assertions. It does not promote native VH permission/projection/history/ACK/source coverage.",
+    "No rerun, repository mutation, source/native artifact download, new native harness, external comment, or merge performed by this reader.",
+    "Root owns fresh actual-main composition and final merge authorization guard. PR base metadata is not asserted to be the latest main ref.",
+    "Previously qualified selected native evidence stays attributed to its original d1 source; this check does not reattribute it to b7 or a later merge."
+  ]
+}

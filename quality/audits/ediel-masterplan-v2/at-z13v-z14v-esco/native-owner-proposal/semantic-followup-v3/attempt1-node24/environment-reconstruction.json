@@ -1,0 +1,16 @@
+{
+  "qualification": "Post-attempt static read of previously discovered executable/compiler paths; not a recovered semantic diagnostic verdict or recovered source-input manifest",
+  "command": "node --max-old-space-size=4096 /tmp/gridex-z14-native-owner-proposal-semantic-check/check-overlay.cjs",
+  "cwd": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005",
+  "nodePath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "nodeVersionObservedInActualFailure": "v24.19.0",
+  "nodeExecutableSHA256Now": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+  "compilerPath": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/typescript/lib/typescript.js",
+  "compilerVersionPreverified": "5.9.3",
+  "compilerSHA256Now": "3ae902c92cc44dace175c0e69e13a4b0899f6983c6121d76b9ab8dd5795e7675",
+  "actualExitCode": 1,
+  "failure": "Ancillary receipt-only spawnSync git EPERM after ts.getPreEmitDiagnostics but before output persistence",
+  "semanticVerdict": "UNAVAILABLE",
+  "actualSourceManifest": "NOT_SAVED",
+  "native": "NOT_RUN"
+}

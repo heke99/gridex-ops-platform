@@ -1,0 +1,29 @@
+{
+  "atUTC": "2026-10-05T15:18:52.804082+00:00",
+  "scope": "Own read/retention command handling only; no changed code or qualification verdict",
+  "observations": [
+    {
+      "operation": "Read required active memory and final-comments schema",
+      "firstResult": "Python IndentationError, exit1, no files changed",
+      "correction": "Corrected indentation; subsequent read exit0. Large historical memory output was narrowed to active first sections/actual checkpoint fields rather than treating truncated output as a complete current read."
+    },
+    {
+      "operation": "Preserve four current owner records",
+      "firstResult": "Initial final-comments-only selection contained two requested IDs; later allocation and source update were absent from that older raw file.",
+      "correction": "Derived record now includes all four exact decoded API objects from their actual final-scout/incremental refresh inputs with input paths/hashes."
+    },
+    {
+      "operation": "Native semantic qualification",
+      "result": "No new compiler/native/DB/provider/test/CI run. New main roots are assessed only for bounded reuse; old semantic PASS remains pinned to its original basis."
+    },
+    {
+      "operation": "Archive source handling",
+      "result": "Separate own documentation branch; ordinary main composition plus exact existing own VH documentation carry. Original implementation branches and closed PR heads preserved. No foreign workspace switched or edited."
+    },
+    {
+      "operation": "Read-only documentation ref workflow trigger qualification",
+      "firstResult": "Parser assertion exit1 because an initial whitespace regex crossed the newline after on: and treated the following push: as inline syntax; no output/changes/test/CI execution.",
+      "correction": "Restrict whitespace to spaces/tabs; complete workflow scan then exit0. All actual push trigger branch filters exclude the documentation ref."
+    }
+  ]
+}
