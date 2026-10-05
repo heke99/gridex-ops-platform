@@ -1,5 +1,5 @@
 {
-  "status": "IMPLEMENTED_TARGETED_VERIFIED_AUTHENTIC_CAPTURE_IMPORTED_CURRENT_MAIN_COMPOSED_FINAL_CI_PENDING",
+  "status": "IMPLEMENTED_TARGETED_VERIFIED_AUTHENTIC_CAPTURE_IMPORTED_SHARED_NATIVE_ASSERTION_CORRECTED_FRESH_CI_PENDING",
   "base_commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
   "problem": "The deliberately raised contact_change_version_conflict40001 triggered PostgREST automatic retries instead of a timely409.",
   "production_evidence": {
@@ -64,7 +64,7 @@
     "skipped": "No UI/React, broad audit, new architecture, dependency, email delivery, payment, AWS or market-rule change.",
     "verification_config": "PROJECT_E2E.yaml read; apply security/isolation/contract and release gates to the authorized Personal API S1-S5 scope. Unrelated company/market-rule scenarios are outside this task."
   },
-  "release_gates": "Authentic current-prefix capture, exact final-head mandatory CI/native/upgrade, guarded merge, exact production deployment, apply ONLY the two new conflict forwards once, and complete synthetic acceptance/finally cleanup remain required. Already installed migrations remain unchanged.",
+  "release_gates": "Fresh exact corrected-head capture/raw parity and all mandatory CI/native/upgrade; guarded merge and exact READY production deployment; apply ONLY the two new pinned conflict forwards once after old/new catalog preflight; one complete synthetic acceptance attempt with guaranteed cleanup. Existing installed migrations remain unchanged.",
   "scope_limits": "No original migration reapplication, real-company activation, real communication or positive invitation/contract-approval email claim.",
   "identity_variant": {
     "classification": "CONFIRMED_REACHABLE_SOURCE_VARIANT_NO_HOSTED_STALE_OCCURRENCE_CLAIM",
@@ -93,7 +93,7 @@
       "log_sha256": "7fb6ff153087e19207538cd255986ac0eed36cefc0338d0b44af941d1ec64ff4"
     },
     "independent_fp_check_sha256": "d169203ce70ac90a3cdc4c935d99dbee3074f491383858eaed31f5589f3e078c",
-    "test_predecessor": "Verbatim immutable20261004084204 decisionbodye914, so future updatedgeneratedschema cannotturn old→newcoverage into reapply-only.",
+    "test_predecessor": "Verbatim immutable20261004084204 decisionbodye914, so future updatedgeneratedschema cannotturn old\u2192newcoverage into reapply-only.",
     "independent_final_unit_quality_review_sha256": "533b0fabe105ae47fac17ce33cbad27aa0f91665e34798431a080856e5fd8e3b"
   },
   "targeted_total": {
@@ -181,5 +181,45 @@
     "capture": "PASS_CAPTURE_ONLY_IMPORTED",
     "fresh_final_head_CI": "NOT_RUN",
     "independent_composition_review_sha256": "f4c6dee66363249154db37906dadecc86a0539f56612533096856eab455bb19c"
+  },
+  "prior_final_candidate": {
+    "source": "6e8663806ccd182baee239c80354d20d4fdb4ee2",
+    "tree": "abaca893af4576214475b41ee6c7d62bd3829b40",
+    "ops_workflow_run": 37263714768,
+    "acceptance": "FAILED_ONE_OBSOLETE_SHARED_SQL_EXPECTATION",
+    "clean_job": 111616097731,
+    "failed_artifact": 11327125472,
+    "failed_archive_sha256": "c326575126f9fe45284c0e1a7e99a415e95c9ee64ac1740460251d90f2f9a93f",
+    "cause": "The shared native identity/billing SQL regression still caught serialization_failure40001 for the deliberately changed PT409 identity_change_stale decision conflict.",
+    "failure_independent_receipt_sha256": "b20a93428b000d736a50183b22f2c82815be3ecb5175d763e542910f57eabeee",
+    "application_unit": {
+      "passed": 10285,
+      "total": 10285,
+      "files": 796
+    },
+    "upgrade_job": "SUCCESS_ARTIFACT_NOT_QUALIFIED_INDEPENDENTLY",
+    "capture": "PASS_FINAL6E_RAW_PARITY_ONLY",
+    "boundary": "All eighteen phases completed and all twenty-six JUnit files had no failures, but the accumulated native flag remained FAILED. Those facts do not qualify this source."
+  },
+  "shared_native_assertion_correction": {
+    "path": "scripts/tenantservice-identity-billing-regression.sql",
+    "sha256": "ef692d01d013faae090f17a304c8abef27edd792920cfc9b932a72c62a352c83",
+    "behavior": "Accept only PT409 with exact identity_change_stale; unexpected-success sentinel escapes; compare whole scoped customer/request/events/audit/billing-revision snapshots before cancellation.",
+    "preservation": "All unrelated approval, positive, cancellation, expiry, takeover, billing and append-only controls and the genuine invoice_file_items_changed serialization_failure catcher remain unchanged.",
+    "targeted": {
+      "passed": 5,
+      "total": 5,
+      "scope": "Actual stale native excerpt with captured real decision RPC in embedded PostgreSQL; baseline RED, corrected GREEN, old40001, wrongPT409message and unexpected success refused."
+    },
+    "targeted_receipt_sha256": "ac9503516688a5e8f29c2b98b558763bc0f77a9a83aa13308acbeda48be4811b",
+    "independent_source_receipt_sha256": "6603b71136247e8c7e2c0277271661d533a468cc5c186946da84301dbae09565",
+    "independent_final_receipt_sha256": "aa26e9f8654ba8d0cbb9d10ba1b568e6c20227209fc52b1446584c4224a5003f",
+    "full_native_PG17_acceptance": "FRESH_CORRECTED_HEAD_REQUIRED"
+  },
+  "current_main_qualification_target": {
+    "main": "61e84d8d93945c1daed4c8e685aa2866686bee0f",
+    "authenticated_compare_base": "eacb6c7cb473b2130e668479e0c176d456766e61",
+    "delta": "Disjoint Ediel tests, native case/config, workflow and evidence only; no staff application, migration, generated output or eight capture-input changes.",
+    "preservation": "All main changes must be retained in the corrected candidate and fresh mandatory CI/native/upgrade must qualify that exact resulting source."
   }
 }
