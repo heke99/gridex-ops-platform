@@ -256,8 +256,18 @@
     {
       "id": "IMP-01",
       "acceptance_id": "AT-IMP-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/types.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "__tests__/ediel-actor-registry-source.test.ts",
+        "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-zero-route-preview.test.ts"
+      ]
     },
     {
       "id": "IMP-02",
@@ -2352,8 +2362,18 @@
     },
     {
       "id": "AT-IMP-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/types.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "__tests__/ediel-actor-registry-source.test.ts",
+        "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-zero-route-preview.test.ts"
+      ]
     },
     {
       "id": "AT-IMP-02",
