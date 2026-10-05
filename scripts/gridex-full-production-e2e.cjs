@@ -53,7 +53,7 @@ const nativeCaseBindings = [
     effects: { DDQ: true, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 1 },
     ports: { postgres: 'real_local', postgrest: 'real_local', smtp: 'substituted', issuer: 'synthetic', tenantBootstrap: 'synthetic' } },
 ]
-const reviewedNativeInputBase = '3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686'
+const reviewedNativeInputBase = 'aa271e14b8a39145dca04aa1433dd54be88f44bd'
 const ownedNativeInputExceptions = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '.agent-memory/masterplan-ops03-checkpoint.md', '.github/workflows/full-e2e.yml']
 const coverageLedgerPath = 'quality/audits/ediel-masterplan-v2/coverage.json'
