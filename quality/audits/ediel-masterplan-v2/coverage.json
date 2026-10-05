@@ -1446,8 +1446,7 @@
         "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
         "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
         "scripts/ediel-sc-018-manual-service-context-sql-regression.mjs",
-        "scripts/test-ediel-sc-018-056-service-incident.cjs",
-        "Independent WHOLE SC-018 APPROVE at PR5606b37a5d33303d306becc94460b7000bcd839b926/tree07ac0e0b152c3b9c481bd77818289fb939e99da8/base507e8bfa: actual public customer-card facade/current tenant/manual preparation asserts exact source selectors, missing evidence request and zero automatic DGI traffic. Owner-executed current SQL9PASS installs/verifies10 current bodies and preserves full13 rights/supply/request/traffic tables plus source request/task replay/rollback, current denial and foreign sentinels. Independent fresh six caller cases PASS0SKIP and all26 inputs/19 installed-native bodies/718 static hashes qualified. Active DDQ, current timing/assessment/actor/lock/bootstrap facts are explicit finite ports, not canonical supply or authentic market authority; no standalone raw SQL artifact inferred. Code/scenario approval only; current mandatory CI/composition/merge and external custody remain separate."
+        "scripts/test-ediel-sc-018-056-service-incident.cjs"
       ]
     },
     {
@@ -1723,8 +1722,7 @@
         "quality/audits/ediel-masterplan-v2/sc018-sc056/verification-receipt.json",
         "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
         "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
-        "scripts/ediel-fresh-business-incident-native.test.ts",
-        "Independent WHOLE SC-056 APPROVE at PR5606b37a5d33303d306becc94460b7000bcd839b926/tree07ac0e0b152c3b9c481bd77818289fb939e99da8/base507e8bfa: real public POST/report/GET/read and qualified genuine primary0796 incident/accepted-positive-ACK owners retain own transaction/source identity, incident plus2held independently reviewed contact/correction plans, current deny/race/atomic rollback, original bytes/history/no opposite ACK/no market/outbox traffic and retry tripwires. Exact six unique native selected passes compose firstphase5PASS1intentionalSKIP + afterbrowser1PASS5phaseSKIP; not a zero-skip single report. Native issuer/legal/representation/network/BRP/masterdata/method/POA/UTILTS/provider grounds and fresh RPC persistence are declared finite substitutions. All current native/source/schema bodies and two bounded transport deltas qualified; no fresh full-current native/SMTP/archive or authentic external custody/market approval. Mandatory current candidate CI/composition/merge remain separate."
+        "scripts/ediel-fresh-business-incident-native.test.ts"
       ]
     },
     {
