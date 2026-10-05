@@ -1,0 +1,38 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc051-sc068
+
+ ❯ __tests__/ediel-sc-051-revision-treatment.test.ts (8 tests | 1 failed) 656ms
+   ✓ SC-051 actual receipt 2026-09-30 carries one 25-A-3 through final owner, consumption and ACK  416ms
+   ✓ SC-051 actual receipt 2026-10-01 carries one 25-A-4 through final owner, consumption and ACK 66ms
+   ✓ SC-051 October field209 enforcement is not activated early at receipt 2026-09-30 43ms
+   ✓ SC-051 October field209 enforcement is not activated early at receipt 2026-10-15 32ms
+   ✓ SC-051 an asynchronous clock rollover cannot reselect the receipt guide in downstream billing 45ms
+   ✓ SC-051 the real pre-send consumer captures its own fresh boundary before asynchronous registry IO 19ms
+   ✓ SC-051 replay trace time preserves a stored receipt selection and original E5SE5A bytes 2ms
+   × SC-051 the actual queued worker reconsiders the unchanged September E5SE5A original with October admission and holds before provider entry 31ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-051-revision-treatment.test.ts > SC-051 the actual queued worker reconsiders the unchanged September E5SE5A original with October admission and holds before provider entry
+AssertionError: expected 'ediel_source_rule_pack_basis_required' to contain 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT…'
+
+Expected: "UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID"
+Received: "ediel_source_rule_pack_basis_required"
+
+ ❯ __tests__/ediel-sc-051-revision-treatment.test.ts:219:24
+    217|   const result = await sendOutboxItem({ actorUserId: UTILTS_FIXTURE_AC…
+    218|   expect(result).toMatchObject({ status: 'failed', messageId: null })
+    219|   expect(result.error).toContain('UTILTS_METERING_POINT_GS1_CHECK_DIGI…
+       |                        ^
+    220|   expect(io.rpc.mock.calls.filter(([name]) => name === 'resolve_canoni…
+    221|     .map(([, args]) => args.p_business_date)).toEqual(['2026-09-30', '…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  13:45:52
+   Duration  8.04s (transform 5.08s, setup 54ms, import 6.84s, tests 656ms, environment 0ms)
+
+JUNIT report written to /tmp/sc051-continuation-first.xml

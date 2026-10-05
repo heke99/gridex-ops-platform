@@ -7,18 +7,24 @@ import type { UtiltsConsumptionContract } from '@/lib/ediel/utilts/consumptionCo
 import { processInboundUtiltsMessageByCanonicalPolicy } from '@/lib/ediel/flows/utiltsInboundPolicyProcessor'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { assertRegistryRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
+import * as sendGuardConsumers from '@/lib/ediel/rulebook/sendGuards'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
+import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { receivedUtiltsOwnerFixture, resetUtiltsCanonicalOwnerIo } from './helpers/utiltsCanonicalOwnerIo'
 import { createUtiltsFinalValidationIo, currentUtiltsActorQuery, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { createUtiltsFinalValidationIo as registryFixture } from './helpers/utiltsFinalValidationFixture'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn() }))
+const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn(), provider: vi.fn(), tenant: vi.fn(), readiness: vi.fn(), route: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn(), listEdielTestRuns: vi.fn().mockResolvedValue([]) }))
 vi.mock('@/lib/ediel/core/kernel', () => ({ createCanonicalAckMessage: io.ack }))
 vi.mock('@/lib/ediel/core/versionRegistry', () => ({ resolveCanonicalOutboundVersion: vi.fn(async () => 'E5SE5A') }))
+vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: io.provider }))
+vi.mock('@/lib/tenant/operationPolicy', () => ({ getTenantOperationDecision: io.tenant }))
+vi.mock('@/lib/ediel/outbox/readinessGuard', () => ({ getEdielOutboundReadinessBlocker: io.readiness }))
+vi.mock('@/lib/ediel/outbox/routeContract', () => ({ evaluateEdielRouteContract: io.route }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: io.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
@@ -31,7 +37,9 @@ vi.mock('@/lib/ediel/matching', () => ({
 
 // Current production dispatch/opaque owners/parser/contracts/ACK drafts execute.
 // Original insertion, issuer/registry/current actor/matching and persistence/ACK
-// sinks are declared finite IO. This is neither native custody nor a worker retry.
+// sinks are declared finite IO. The retained seven cases do not prove native
+// custody or worker retry; the additive case reaches the actual worker with
+// explicitly declared public claim/route/tenant and denied original-source IO.
 let duringRegistry: (() => void) | undefined
 beforeEach(() => {
   vi.clearAllMocks(); resetUtiltsCanonicalOwnerIo(); duringRegistry = undefined
@@ -61,6 +69,7 @@ beforeEach(() => {
   })
 })
 afterEach(() => vi.useRealTimers())
+afterEach(() => vi.restoreAllMocks())
 
 function source(date: string, invalidPoint = false) {
   const message = energyHandoffMessage(date)
@@ -149,4 +158,95 @@ it('SC-051 replay trace time preserves a stored receipt selection and original E
   expect(hash(message.raw_payload!)).toBe(original)
   expect(io.rpc).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.ack).not.toHaveBeenCalled()
   // This is trace-only policy inspection, not an operative historical replay.
+})
+
+it('SC-051 the actual queued worker reconsiders the unchanged September E5SE5A original with October admission and holds before provider entry', async () => {
+  // Public claim/storage/tenant/route readiness and registry activation are
+  // finite IO. The worker, claim adapter, SMTP admission and national validator
+  // execute unchanged. No private original/capability or SMTP result is seeded.
+  // An explicitly absent qualified original is a denied source port, not an
+  // undeclared RPC failure or authority fabricated from the old public trace.
+  vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-09-30T10:00:00Z'))
+  const draft = await buildUtiltsOutboundDraft({ code: 'E73', environment: 'test', senderEdielId: '11111', receiverEdielId: '22222',
+    applicationReference: '23-DDQ-E66-S', externalReference: 'SC051-RETRY-DOC', transactionReference: 'SC051-RETRY-TX',
+    payload: { legalSenderEdielId: '33333', legalReceiverEdielId: '44444', meterPointId: '735999100001686670', gridAreaId: 'TES',
+      periodStart: '2026-09-30T00:00:00+01:00', periodEnd: '2026-10-01T00:00:00+01:00', registrationTime: '2026-10-01T10:00:00+01:00', siteType: 'Consumption' } })
+  const message = { id: 'sc051-retry-original', company_id: 'own-company', environment: 'test', direction: 'outbound', status: 'failed',
+    message_family: 'UTILTS', message_code: 'E73', message_version: 'E5SE5A', message_standard: 'edifact',
+    sender_ediel_id: '11111', receiver_ediel_id: '22222', receiver_email: 'recipient@example.invalid',
+    application_reference: draft.applicationReference, raw_payload: draft.rawPayload, parsed_payload: {},
+    created_at: '2026-09-30T10:00:00Z', message_sent_at: null } as EdielMessageRow
+  const prior = await assertRegistryRulebookAllowsSend(message)
+  expect(prior?.canonicalPolicy?.guide.guideRevision).toBe('25-A-3')
+  expect(prior?.issues.filter(issue => issue.severity === 'error' || issue.blocking)).toEqual([])
+  const retainedDecision = structuredClone({ policy: prior?.canonicalPolicy, snapshot: prior?.rulePackSnapshot })
+  // Public historical trace is retained in the exact source row. It supplies
+  // no original witness or capability to the later send/capture boundary.
+  message.validation_report = { priorAdmissionDecision: structuredClone(retainedDecision) }
+  const original = structuredClone(message), originalHash = hash(message.raw_payload!)
+  const outbox = { id: 'sc051-outbox', company_id: message.company_id, environment: message.environment,
+    ediel_message_id: message.id, status: 'queued', locked_by: null as string | null,
+    current_send_attempt_id: 'sc051-prior-failed-attempt' }
+  const updates: Array<{ filters: Array<[string, unknown]>; payload: Record<string, unknown> }> = []
+  const inheritedRpc = io.rpc.getMockImplementation()!, inheritedFrom = io.from.getMockImplementation()!
+  io.get.mockResolvedValue(message)
+  io.tenant.mockResolvedValue({ allowed: true, company_status: 'active' })
+  io.readiness.mockResolvedValue(null)
+  io.route.mockResolvedValue({ blocker: null, fingerprint: 'declared-current-route', routeId: null,
+    receiverEdielId: '22222', receiverSubaddress: null, receiverEmail: message.receiver_email, certificateId: null,
+    certificateFingerprint: null, checks: { declaredFiniteReadiness: true } })
+  io.rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+    if (name === 'claim_ediel_outbox_item') {
+      expect(args).toEqual({ p_outbox_item_id: outbox.id, p_worker_id: 'sc051-worker', p_actor_user_id: UTILTS_FIXTURE_ACTOR })
+      expect(outbox.status).toBe('queued')
+      Object.assign(outbox, { status: 'sending', locked_by: 'sc051-worker', current_send_attempt_id: 'sc051-new-attempt' })
+      return Promise.resolve({ data: [structuredClone(outbox)], error: null })
+    }
+    if (['gridex_ediel_accepted_transport_projection_v1', 'gridex_ediel_negative_fixture_read_v1'].includes(name)) return Promise.resolve({ data: null, error: null })
+    if (name === 'ediel_capture_source_rule_pack_basis_v1') {
+      expect(args).toEqual({ p_company_id: message.company_id, p_message_id: message.id })
+      return Promise.resolve({ data: null, error: { message: 'ediel_source_rule_pack_basis_required' } })
+    }
+    return inheritedRpc(name, args)
+  })
+  io.from.mockImplementation((table: string) => {
+    if (!['ediel_outbox', 'ediel_send_locks'].includes(table)) return inheritedFrom(table)
+    const filters: Array<[string, unknown]> = []; let payload: Record<string, unknown> | undefined
+    const result = () => {
+      if (payload) {
+        expect(table).toBe('ediel_outbox')
+        expect(filters).toEqual([['id', outbox.id], ['current_send_attempt_id', 'sc051-new-attempt']])
+        updates.push({ filters: structuredClone(filters), payload: structuredClone(payload) }); Object.assign(outbox, payload)
+      } else expect(filters).toEqual([['company_id', message.company_id]])
+      return { data: payload ? { id: outbox.id } : [], error: null }
+    }
+    const query = { select: () => query, eq: (key: string, value: unknown) => { filters.push([key, value]); return query },
+      limit: () => query, update: (value: Record<string, unknown>) => { payload = value; return query },
+      maybeSingle: async () => result(), then: (resolve: (value: unknown) => unknown) => Promise.resolve(result()).then(resolve) }
+    return query
+  })
+  vi.setSystemTime(new Date('2026-10-15T10:00:00Z'))
+  const actualAdmission = vi.spyOn(sendGuardConsumers, 'assertRegistryRulebookAllowsSend')
+  const result = await sendOutboxItem({ actorUserId: UTILTS_FIXTURE_ACTOR, outboxItemId: outbox.id, workerId: 'sc051-worker' })
+  expect(result).toMatchObject({ status: 'failed', messageId: null })
+  expect(result.error).toBe('ediel_source_rule_pack_basis_required')
+  expect(actualAdmission).toHaveBeenCalledTimes(1)
+  const currentAdmission = await actualAdmission.mock.results[0].value
+  expect(currentAdmission?.canonicalPolicy?.guide.guideRevision).toBe('25-A-4')
+  expect(currentAdmission?.rulePackSnapshot?.version).toBe('25-A-4:r4')
+  expect(currentAdmission?.canonicalPolicy?.referenceDate).toBe('2026-10-15')
+  expect(io.rpc.mock.calls.filter(([name]) => name === 'resolve_canonical_ediel_rule_pack_with_witness_v1')
+    .map(([, args]) => args.p_business_date)).toEqual(['2026-09-30', '2026-10-15'])
+  expect(io.rpc.mock.calls.filter(([name]) => name === 'claim_ediel_outbox_item')).toHaveLength(1)
+  expect(io.rpc.mock.calls.filter(([name]) => name === 'gridex_ediel_accepted_transport_projection_v1')).toHaveLength(2)
+  expect(updates.at(-1)?.payload).toMatchObject({ status: 'failed', locked_at: null, locked_by: null })
+  expect(updates.at(-1)?.payload.last_error).toBe('ediel_source_rule_pack_basis_required')
+  expect(message).toEqual(original); expect(hash(message.raw_payload!)).toBe(originalHash)
+  expect(message.raw_payload).toContain('UTILTS:D:02B:UN:E5SE5A')
+  expect(retainedDecision).toEqual({ policy: prior?.canonicalPolicy, snapshot: prior?.rulePackSnapshot })
+  expect(retainedDecision.policy?.guide.guideRevision).toBe('25-A-3')
+  expect(io.rpc.mock.calls.filter(([name]) => name === 'ediel_capture_source_rule_pack_basis_v1')).toHaveLength(1)
+  expect(io.rpc.mock.calls.some(([name]) => /outbound_attempt|dispatch_enter|persist_utilts_consumption/.test(name))).toBe(false)
+  expect(io.provider).not.toHaveBeenCalled(); expect(io.update).not.toHaveBeenCalled(); expect(io.event).not.toHaveBeenCalled()
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled(); expect(io.ack).not.toHaveBeenCalled()
 })

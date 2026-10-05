@@ -1,0 +1,37 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc051-sc068
+
+ ❯ __tests__/ediel-sc-068-reference-authority-boundary.test.ts (8 tests | 1 failed) 2759ms
+   ✓ SC-068 actual public production send holds a test reference identity {"sender_ediel_id":"91100"} before any new authority/provider 10ms
+   ✓ SC-068 actual public production send holds a test reference identity {"receiver_ediel_id":"91109"} before any new authority/provider 1ms
+   ✓ SC-068 actual public production send holds a test reference identity {"application_reference":"23-TGT-PRODAT"} before any new authority/provider 1ms
+   ✓ SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer 87ms
+   ✓ SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer 34ms
+   ✓ SC-068 actual historical accepted-original repair cannot re-enter the provider after today changes to a test identity 3ms
+   ✓ SC-068 historical sent status without an actual accepted journal never creates new production traffic 1ms
+   × SC-068 unchanged TEST original is held by actual production admission and customer-effect source capture before any business sink 2621ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-068-reference-authority-boundary.test.ts > SC-068 unchanged TEST original is held by actual production admission and customer-effect source capture before any business sink
+error: column "hold_reason" does not exist
+ ❯ be.$r ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:432:10
+ ❯ be.za ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:210:15
+ ❯ be.parse ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:102:24
+ ❯ ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/src/pglite.ts:398:27
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:2608882
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:2609769
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:5283187
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:366756
+ ❯ invoke_v ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/release/pglite.js:9:389209
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:368873
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  13:49:57
+   Duration  11.32s (transform 6.39s, setup 32ms, import 8.11s, tests 2.76s, environment 0ms)
+
+JUNIT report written to /tmp/sc068-owned-focused.xml
