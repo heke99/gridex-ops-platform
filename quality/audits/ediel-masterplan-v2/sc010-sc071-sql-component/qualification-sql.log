@@ -1,0 +1,6 @@
+Actual positive ACK service-scope SQL consumer: 23 PASS; synthetic source/storage dependencies, NOT native/legal approval proof
+Grant-set forward SQL: 21 PASS; finite synthetic source/accepted/review fixtures, NOT native/legal approval proof
+SC010_SC071_CURRENT_GRANT_RESULT {"checks":["positive-current-read-and-retained-receipt","stale-version-denied-with-zero-row-effects","expired-grant-denied-with-zero-row-effects","revoked-beneficiary-membership-denied-with-zero-row-effects","revoked-upstream-evidence-denied-with-zero-row-effects","actual-revoke-command-advances-own-version","cached-previous-page-cannot-authorize-a-new-read","revoke-replay-preserves-exact-result-and-all-rows","independent-beneficiary-retains-own-quality-only-read"],"boundary":"existing SQL owners with finite actor/source/issuer/storage fixtures","leasedExportWorker":"NOT_EXERCISED","nativeConcurrency":"NOT_EXERCISED","wholeScenarios":"NOT_APPROVED"}
+Projection replay SQL: 4 PASS plus same OID/ACL; real forward owner, bounded synthetic dependencies, NOT native races/legal approval
+Projection provenance SQL: 11 PASS; actual receipt consumer with finite synthetic source/review/storage dependencies, NOT native/legal approval
+PASS 48 targeted service administration PostgreSQL checks; synthetic owner/helper fixtures, not native/legal evidence
