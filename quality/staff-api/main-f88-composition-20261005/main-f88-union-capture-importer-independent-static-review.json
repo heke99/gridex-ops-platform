@@ -1,0 +1,116 @@
+{
+  "status": "PASS_BOUNDED_STATIC_IMPORTER_REVIEW_AUTHENTIC_CAPTURE_PENDING",
+  "created_at_utc": "2026-10-05T19:04:34.350572+00:00",
+  "helper": {
+    "path": "/tmp/gridex-staff-review/import-main-f88-union-capture.py",
+    "sha256": "d866c250ec8c42f187c0416afa48f49aeaab54190fce98ede0d9e69a4ed67a34",
+    "syntax_ast_parse": "PASS",
+    "execution": "NOT_RUN"
+  },
+  "witness": {
+    "path": "/tmp/gridex-staff-review/f88-union-capture-pilot-source-witness.json",
+    "sha256": "44a151d5e31f8423f0d024018d31bbabfab25a4cfff8f85acf06fdcbd4981b97",
+    "source_head": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "source_tree": "20a7dc9d75b5db20a32f918fe638a11ca928fbf3",
+    "capture_run": 37359791003,
+    "committed_source_clean_exact_head_tree_verified": true,
+    "all_eight_input_hashes_match_committed_current_source": true
+  },
+  "prior_preflight": {
+    "path": "/tmp/gridex-staff-review/staff-main-f88-composition-preflight-independent-review.json",
+    "sha256": "18cd8c19f0aa982c81265866a4ceaf35e06b6953db8448978696218b252ebd23"
+  },
+  "critical_important_findings": [],
+  "fail_closed_checks": {
+    "exact_source_head_and_tree_in_git_witness_producer": true,
+    "clean_worktree_required": true,
+    "exact_run_id_head_branch_event_completed_success_metadata": true,
+    "single_exact_source_named_artifact_run_head_size_sha256_digest_expiry": true,
+    "zip_exact_four_unique_flat_members_no_symlink_crc_and_per_member_size_bound": true,
+    "receipt_capture_only_exact_checkout_tree_run_latest_f103_cli2_101_pg17_dump17": true,
+    "producer_input_map_exact_eight_keys_all_current_bytes_hashed": true,
+    "all_three_producer_output_hashes_verified": true,
+    "all_four_native_browser_comparison_upgrade_flags_remain_not_run": true,
+    "canonical_fingerprint_section_sha_and_schema_union_verified": true
+  },
+  "producer_bytes_and_comparison": {
+    "comparison_raw2_hashes_only_used_as_refusal_checks": true,
+    "raw3_source_writes_read_actual_authenticated_zip_data_only": true,
+    "no_auto_merged_source_bytes_imported_or_marked_native_acceptance": true,
+    "repository_writes_only_inside_explicit_apply_branch": true,
+    "default_verify_only_writes_temporary_extraction_and_safe_receipt_only": true,
+    "static_write_inventory": [
+      {
+        "line": 156,
+        "target": "output",
+        "source_expression": "json.dumps(result, indent=2) + '\\n'"
+      },
+      {
+        "line": 103,
+        "target": "target",
+        "source_expression": "raw"
+      },
+      {
+        "line": 148,
+        "target": "preimport_path",
+        "source_expression": "previous"
+      },
+      {
+        "line": 151,
+        "target": "manifest_path",
+        "source_expression": "json.dumps(new, indent=2) + '\\n'"
+      },
+      {
+        "line": 152,
+        "target": "EVIDENCE / 'authentic-capture-receipt-cff.json'",
+        "source_expression": "data['capture-receipt.json']"
+      },
+      {
+        "line": 150,
+        "target": "ROOT / 'supabase' / name",
+        "source_expression": "data[name]"
+      }
+    ]
+  },
+  "apply_provenance": {
+    "starts_from_copy_deepcopy_of_exact_pending_manifest": true,
+    "preimport_complete_manifest_saved_byte_for_byte": true,
+    "main_f88_prior_capture_state_preserves_previous_capture_artifact_note_scope_and_prefix": true,
+    "both_existing_complete_historical_manifests_untouched_and_verified": [
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/previous-complete-dc2-types-manifest.json",
+        "sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e",
+        "source": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+        "complete_original_bytes_verified": true
+      },
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/main-f88-complete-types-manifest.json",
+        "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+        "source": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+        "complete_original_bytes_verified": true
+      }
+    ],
+    "new_capture_identity_remains_actual_producer_source_not_import_commit": true,
+    "pending_flag_false_only_after_verified_capture_apply": true,
+    "current_prefix_source_union": {
+      "previous_entries": 9,
+      "main_entries_added": 7,
+      "new_entries": 16,
+      "all_migration_names_hashes_in_three_manifest_union": true,
+      "three_manifest_union_files": 1076
+    },
+    "historical_nested_lineage_retained": true,
+    "final_required_native_and_ci_pending_scope_preserved": true,
+    "new_import_evidence_paths_currently_absent": true
+  },
+  "limits": {
+    "metadata_authenticity_owner": "Root authenticates/downloads GitHub run/artifact metadata; this offline helper verifies bindings against that metadata.",
+    "authentic_artifact_or_dry_run_verification_review": "PENDING separate receipt after root supplies actual archive/metadata; no artifact inspected now.",
+    "import_or_helper_execution": 0,
+    "repository_or_index_mutations_by_reviewer": 0,
+    "artifact_downloads": 0,
+    "migration_replays_or_suites": 0,
+    "hosted_or_network_calls": 0,
+    "not_native_or_production_acceptance": true
+  }
+}

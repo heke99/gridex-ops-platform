@@ -1,0 +1,4 @@
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+

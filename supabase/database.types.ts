@@ -94335,6 +94335,16 @@ export type Database = {
           dry_run: boolean
         }[]
       }
+      ediel_admit_unattributed_technical_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_expected_environment: string
+          p_expected_payload_hash: string
+          p_inbound_email_message_id: string
+          p_parse_result_id: string
+        }
+        Returns: Json
+      }
       ediel_advance_permission_deadlines_v1: {
         Args: {
           p_actor_user_id: string
@@ -94703,6 +94713,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_claim_beneficiary_exports_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_beneficiary_company_id: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
       ediel_commit_duplicate_103_response_v1: {
         Args: {
           p_actor_user_id: string
@@ -94981,6 +94999,15 @@ export type Database = {
       }
       ediel_customer_record_tombstones_v1: {
         Args: { p_company_id: string; p_customer_id: string }
+        Returns: Json
+      }
+      ediel_execute_beneficiary_export_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_beneficiary_company_id: string
+          p_job_id: string
+          p_lease_token: string
+        }
         Returns: Json
       }
       ediel_finance_copy_retention_basis_v1: {
@@ -95470,6 +95497,24 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_queue_beneficiary_export_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_after_at?: string
+          p_after_id?: string
+          p_beneficiary_company_id: string
+          p_end: string
+          p_expected_grant_version: number
+          p_fields: string[]
+          p_grant_id: string
+          p_idempotency_key: string
+          p_limit?: number
+          p_purpose: string
+          p_series_id: string
+          p_start: string
+        }
+        Returns: Json
+      }
       ediel_queue_prodat_retry_v1: {
         Args: {
           p_actor_user_id: string
@@ -95494,6 +95539,14 @@ export type Database = {
           p_artifact_id: string
           p_company_id: string
           p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_beneficiary_export_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_beneficiary_company_id: string
+          p_job_id: string
         }
         Returns: Json
       }
@@ -95940,6 +95993,14 @@ export type Database = {
           p_company_id: string
           p_exception_id: string
           p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_unattributed_technical_intake_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_inbound_email_message_id: string
+          p_source_message_id: string
         }
         Returns: Json
       }
