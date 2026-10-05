@@ -1322,8 +1322,30 @@
     {
       "id": "DB-03",
       "acceptance_id": "AT-DB-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/sources/datedSourceMeasurements.ts",
+        "lib/billing/underlayEngine.ts",
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "__tests__/ediel-utilts-transaction-persistence.test.ts",
+        "__tests__/ediel-utilts-consumption-contract.test.ts",
+        "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+        "__tests__/ediel-source-decision-timeline.test.ts",
+        "__tests__/ediel-structural-source-wire.test.ts",
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-dated-source-measurements.test.ts",
+        "__tests__/ediel-source-owner-runtime.test.ts",
+        "scripts/ediel-utilts-late-version-sql-regression.mjs",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "scripts/ediel-source-owner-native.test.ts",
+        "scripts/ediel-utilts-consumption-native.test.ts",
+        ".agent-memory/masterplan-db03-checkpoint.md"
+      ]
     },
     {
       "id": "DB-04",
@@ -3263,8 +3285,30 @@
     },
     {
       "id": "AT-DB-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/sources/datedSourceMeasurements.ts",
+        "lib/billing/underlayEngine.ts",
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "__tests__/ediel-utilts-transaction-persistence.test.ts",
+        "__tests__/ediel-utilts-consumption-contract.test.ts",
+        "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+        "__tests__/ediel-source-decision-timeline.test.ts",
+        "__tests__/ediel-structural-source-wire.test.ts",
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-dated-source-measurements.test.ts",
+        "__tests__/ediel-source-owner-runtime.test.ts",
+        "scripts/ediel-utilts-late-version-sql-regression.mjs",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "scripts/ediel-source-owner-native.test.ts",
+        "scripts/ediel-utilts-consumption-native.test.ts",
+        ".agent-memory/masterplan-db03-checkpoint.md"
+      ]
     },
     {
       "id": "AT-DB-04",
