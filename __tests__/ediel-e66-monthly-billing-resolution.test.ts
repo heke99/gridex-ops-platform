@@ -1,3 +1,4 @@
+// masterplan: U-03, AT-U-03, U-10, AT-U-10
 import { describe, expect, it } from 'vitest'
 
 import type { EdielMessageRow } from '@/lib/ediel/types'

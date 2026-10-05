@@ -102,19 +102,25 @@ jobs:
     needs: [smoke, coverage]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download executed smoke evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-smoke-${{ github.run_id }}
+          path: e2e-artifacts/inputs/smoke
       - name: Require deterministic PR gates to execute and pass
         shell: bash
         env:
           SMOKE_RESULT: ${{ needs.smoke.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
         run: |
-          set -euo pipefail
-          mkdir -p e2e-artifacts
-          verdict=RED
-          if [[ "$SMOKE_RESULT" == success && "$COVERAGE_RESULT" == success ]]; then verdict=GREEN; fi
-          printf '{"schema_version":1,"smoke":"%s","coverage":"%s","verdict":"%s"}\n' "$SMOKE_RESULT" "$COVERAGE_RESULT" "$verdict" > e2e-artifacts/pr-release-certificate.json
-          [[ "$SMOKE_RESULT" == success ]] || { echo "Smoke did not pass: $SMOKE_RESULT" >&2; exit 1; }
-          [[ "$COVERAGE_RESULT" == success ]] || { echo "Coverage did not pass: $COVERAGE_RESULT" >&2; exit 1; }
+          node scripts/gridex-full-production-e2e.cjs --certificate=pr
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -260,6 +266,30 @@ jobs:
     needs: [full, runtime-staging, real-customer-staging]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download executed full evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-full-${{ github.run_id }}
+          path: e2e-artifacts/inputs/full
+      - name: Download executed runtime evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-runtime-${{ github.run_id }}
+          path: e2e-artifacts/inputs/runtime
+      - name: Download executed real evidence
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gridex-e2e-real-customer-${{ github.run_id }}
+          path: e2e-artifacts/inputs/real
       - name: Require all nightly release gates to execute and pass
         shell: bash
         env:
@@ -267,14 +297,7 @@ jobs:
           RUNTIME_RESULT: ${{ needs.runtime-staging.result }}
           REAL_RESULT: ${{ needs.real-customer-staging.result }}
         run: |
-          set -euo pipefail
-          mkdir -p e2e-artifacts
-          verdict=RED
-          if [[ "$FULL_RESULT" == success && "$RUNTIME_RESULT" == success && "$REAL_RESULT" == success ]]; then verdict=GREEN; fi
-          printf '{"schema_version":1,"full":"%s","runtime_staging":"%s","protected_customer_staging":"%s","verdict":"%s"}\n' "$FULL_RESULT" "$RUNTIME_RESULT" "$REAL_RESULT" "$verdict" > e2e-artifacts/nightly-release-certificate.json
-          [[ "$FULL_RESULT" == success ]] || { echo "full did not pass: $FULL_RESULT" >&2; exit 1; }
-          [[ "$RUNTIME_RESULT" == success ]] || { echo "runtime-staging did not pass: $RUNTIME_RESULT" >&2; exit 1; }
-          [[ "$REAL_RESULT" == success ]] || { echo "real-customer-staging did not pass: $REAL_RESULT" >&2; exit 1; }
+          node scripts/gridex-full-production-e2e.cjs --certificate=nightly
       - uses: actions/upload-artifact@v4
         if: always()
         with:

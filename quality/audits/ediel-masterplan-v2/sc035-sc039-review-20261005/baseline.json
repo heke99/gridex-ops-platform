@@ -1,0 +1,169 @@
+{
+  "scope": "Two review-only scenarios; no coverage promotion",
+  "baselineCommit": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "baselineTree": "cc0b6412e13c04f6baa3413957c7b609aeba74be",
+  "boardClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992041282",
+  "productOwner": "Claude P/U/SC-03x–05x",
+  "sourceIntegrationOwner": "retained coordinator",
+  "coverageSha256": "4307875af0390036489d81ec325b698fc9270a3506bfcbaea26e61d839e768fc",
+  "mainCounts": {
+    "rules": {
+      "NOT_VERIFIED": 25,
+      "VERIFIED": 91,
+      "PARTIAL": 5
+    },
+    "acceptanceContracts": {
+      "NOT_EXECUTED": 99,
+      "PASSED": 113,
+      "PARTIAL": 19
+    }
+  },
+  "rulesApproved": 91,
+  "contractsApproved": 113,
+  "approvedDistinct": 204,
+  "totalDistinct": 352,
+  "reviewRows": [
+    {
+      "id": "SC-035",
+      "status": "PARTIAL",
+      "evidence": [
+        "scripts/test-ediel-p-10-z02-correlation.cjs",
+        "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
+      ]
+    },
+    {
+      "id": "SC-039",
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-supply-market-consumers.test.ts",
+        "scripts/ediel-normal-switch-source-sql-regression.mjs"
+      ]
+    }
+  ],
+  "runtimeLimits": [
+    "No local full suite repeated: no installed dependencies and shell proxy unavailable",
+    "Existing GitHub original ordinary receipts only for observed successful tests",
+    "No new synthetic SQL or native run",
+    "No external market acceptance inferred"
+  ],
+  "publicationBaseline": {
+    "commit": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+    "tree": "b8d41fd2b75c0b5f375f483353ebca1a4ea90c2a",
+    "coverageGitBlob": "fd898365c46f95c15479adbdf895ce9e7fc64a0a",
+    "rules": {
+      "NOT_VERIFIED": 25,
+      "VERIFIED": 91,
+      "PARTIAL": 5
+    },
+    "acceptanceContracts": {
+      "NOT_EXECUTED": 99,
+      "PASSED": 114,
+      "PARTIAL": 18
+    },
+    "rows": [
+      {
+        "id": "SC-035",
+        "status": "PARTIAL",
+        "evidence": [
+          "scripts/test-ediel-p-10-z02-correlation.cjs",
+          "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
+        ]
+      },
+      {
+        "id": "SC-036",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+          "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+          "scripts/test-ediel-p-11-z04-order.cjs",
+          "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+          "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+          "lib/inbound-mail/inboundStatusUpdater.ts",
+          "__tests__/supplier-switch-activation-sweep.test.ts"
+        ]
+      },
+      {
+        "id": "SC-039",
+        "status": "PARTIAL",
+        "evidence": [
+          "__tests__/ediel-supply-market-consumers.test.ts",
+          "scripts/ediel-normal-switch-source-sql-regression.mjs"
+        ]
+      }
+    ],
+    "deltaPaths": [
+      ".agent-memory/handover.md",
+      "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+      "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json",
+      "scripts/ediel-p-11-z04-order-sql-regression.mjs"
+    ],
+    "reviewedSourceTestSpecInputsUnchanged": true,
+    "reviewedCoverageInputChangedForSC036Only": true
+  },
+  "followupPublicationBaseline": {
+    "commit": "fb11952a105adc62b62a89ea70a19c9ad030ad22",
+    "tree": "fcb872555f7fa85af5ec5dadc055885aac0d48db",
+    "coverageGitBlob": "c1748d36f7af4ecf16c41b0348db3b7422a3d37a",
+    "rules": {
+      "NOT_VERIFIED": 25,
+      "VERIFIED": 91,
+      "PARTIAL": 5
+    },
+    "acceptanceContracts": {
+      "NOT_EXECUTED": 98,
+      "PASSED": 115,
+      "PARTIAL": 18
+    },
+    "rows": [
+      {
+        "id": "SC-035",
+        "status": "PARTIAL",
+        "evidence": [
+          "scripts/test-ediel-p-10-z02-correlation.cjs",
+          "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
+        ]
+      },
+      {
+        "id": "SC-036",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+          "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+          "scripts/test-ediel-p-11-z04-order.cjs",
+          "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+          "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+          "lib/inbound-mail/inboundStatusUpdater.ts",
+          "__tests__/supplier-switch-activation-sweep.test.ts"
+        ]
+      },
+      {
+        "id": "SC-039",
+        "status": "PARTIAL",
+        "evidence": [
+          "__tests__/ediel-supply-market-consumers.test.ts",
+          "scripts/ediel-normal-switch-source-sql-regression.mjs"
+        ]
+      },
+      {
+        "id": "SC-042",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+          "lib/ediel/core/runtimeDecision.ts",
+          "lib/ediel/utiltsEngine.ts",
+          "lib/ediel/ack.ts",
+          "lib/ediel/rulebook/ackGuidePolicy.ts"
+        ]
+      }
+    ],
+    "deltaPaths": [
+      ".agent-memory/masterplan-sc042-checkpoint.md",
+      "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json"
+    ],
+    "reviewedSourceTestSpecInputsUnchanged": true,
+    "coverageOnlyForSC042": true,
+    "SC036WholeApprovalDisputedByRetainedReviewer": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992400012"
+  }
+}

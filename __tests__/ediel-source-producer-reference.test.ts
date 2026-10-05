@@ -1,3 +1,5 @@
+// masterplan: TEN-13, AT-TEN-13
+// masterplan: TEN-03, AT-TEN-03
 import { beforeEach, expect, it, vi } from 'vitest'
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const ports = vi.hoisted(() => ({ readBrp: vi.fn(), readCancellation: vi.fn(), readService: vi.fn(), intent: vi.fn(), request: vi.fn(), brpGateway: vi.fn(), cancellationGateway: vi.fn(), serviceGateway: vi.fn(), route: vi.fn() }))

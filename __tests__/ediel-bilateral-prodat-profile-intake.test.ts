@@ -1,3 +1,4 @@
+// masterplan: P-16, AT-P-16
 import {beforeEach,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:vi.fn()}}))
@@ -20,6 +21,13 @@ it('issuer scope returned by native owner must bind exact selected contract/poin
  const selector={environment:submission.environment,kind:submission.kind,rulePackId:submission.rulePackId,gridAreaCode:submission.gridAreaCode,bilateralAgreementId:submission.bilateralAgreementId,validFrom:submission.validFrom,validTo:submission.validTo},actual={...selector,gridArea:selector.gridAreaCode,companyId:scope.companyId}
  rpc.mockResolvedValueOnce(result('scoped',{scope:actual}) as never);expect((await readBilateralProdatGroundScope({companyId:scope.companyId,actorUserId:scope.actorUserId,...selector})).status).toBe('scoped')
  rpc.mockResolvedValueOnce(result('scoped',{scope:{...actual,rulePackId:'foreign'}}) as never);await expect(readBilateralProdatGroundScope({companyId:scope.companyId,actorUserId:scope.actorUserId,...selector})).rejects.toThrow('scope_result_unqualified')
+})
+it('a counterpart approval scoped to another company or agreement is not authority for this tenant',async()=>{
+ const selector={environment:submission.environment,kind:submission.kind,rulePackId:submission.rulePackId,gridAreaCode:submission.gridAreaCode,bilateralAgreementId:submission.bilateralAgreementId,validFrom:submission.validFrom,validTo:submission.validTo},actual={...selector,gridArea:selector.gridAreaCode,companyId:scope.companyId}
+ for(const foreign of [{companyId:'00000000-0000-4000-8000-0000000000ff'},{bilateralAgreementId:'other-agreement'},{environment:'production'}]){
+  rpc.mockResolvedValueOnce(result('scoped',{scope:{...actual,...foreign}}) as never)
+  await expect(readBilateralProdatGroundScope({companyId:scope.companyId,actorUserId:scope.actorUserId,...selector})).rejects.toThrow('scope_result_unqualified')
+ }
 })
 it('metadata cannot leak original bytes or a foreign artifact; exact original download rechecks hash/length',async()=>{
  rpc.mockResolvedValueOnce(result('held',{bytesBase64:bytes.toString('base64')}) as never);await expect(readBilateralProdatGroundArtifact(scope)).rejects.toThrow('artifact_result_unqualified')

@@ -1,0 +1,54 @@
+{
+  "scope": "read-only extension of SC071 production-consumer search; no vulnerability or job execution claimed",
+  "checked_at_utc": "2026-10-05T09:47:15.505055+00:00",
+  "source_base": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "source_sha256": {
+    "lib/ediel/services/projection.ts": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+    "app/api/ediel/beneficiary/series/[seriesId]/route.ts": "820e3872046e1202a82bf8409deb06d5428323d08d9a4a9737c9183e09872474",
+    "lib/ediel/production/customerLifeEventExport.ts": "b59d16d7a36b59d10e29f523798fe6ac86ca0fa0d706a27f54855c89698836a4",
+    "lib/billing/exportCenter.ts": "4ae21d0b438fbf3950608957936a10755a981988db61a4a4c02b39f60b09ae14",
+    "lib/integrations/billing/invoiceExportCore.ts": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+    "app/api/cron/billing/invoice-export-retry/route.ts": "ee4919a13c683d4fb9ab27698c685f3bd673c8fbabc8d19d69003e7ce5c1866b",
+    "lib/customer-operations/automation.part-3.ts": "4c112ac3b33897a06200846460266de48c38cb0a3e6a11bdee7ed8524d9c328a",
+    "lib/automation/locks.ts": "48e2f957953d936ad95a59b961d960bf854354d8128cd310a742b675ee5482d4",
+    "lib/tenant/provisioningWorker.ts": "ac0eb5a39a9b6b25468f52a5db9503efc7cacc45afbc0a73aed40eb01eb24708",
+    "lib/pricing/spot/spotImportJobs.ts": "b51f62e1550df5b515a4f58029e81552722a870627b2172438c5760a7d6ec548"
+  },
+  "operative_beneficiary_caller": "app/api/ediel/beneficiary/series/[seriesId]/route.ts:GET -> projectEdielSeriesToBeneficiary -> public.ediel_beneficiary_series_page_v1",
+  "excluded_candidates": [
+    {
+      "source": "lib/ediel/production/customerLifeEventExport.ts",
+      "reason": "Source-approved customer masterdata/life event export, not E66 grant-scoped series distribution"
+    },
+    {
+      "source": "lib/billing/exportCenter.ts",
+      "reason": "Company billing underlay export and partner send; no beneficiary grant/version/purpose projection seam"
+    },
+    {
+      "source": "lib/integrations/billing/invoiceExportCore.ts",
+      "reason": "Invoice items/provider transport, protected by automation lease; no beneficiary series/grant/version inputs"
+    },
+    {
+      "source": "app/api/cron/billing/invoice-export-retry/route.ts",
+      "reason": "Retries approved invoice dispatch/provider events; no grant-scoped E66 export consumer"
+    },
+    {
+      "source": "lib/customer-operations/automation.part-3.ts",
+      "reason": "Fixed switch/customer-info/inbound-response jobs; no beneficiary export job type/branch"
+    },
+    {
+      "source": "lib/automation/locks.ts",
+      "reason": "Existing mutual-exclusion lease primitive; neither queued export job nor current data-access grant authority"
+    },
+    {
+      "source": "lib/tenant/provisioningWorker.ts",
+      "reason": "Tenant provisioning, unrelated to E66 access or distribution"
+    },
+    {
+      "source": "lib/pricing/spot/spotImportJobs.ts",
+      "reason": "Spot price import job, unrelated to E66 beneficiary grant"
+    }
+  ],
+  "remaining_source_owner_decision": "Identify actual producer if outside this traced surface, else assign one first producer and explicit lease/disclosure boundary jointly with SC010 owner; shared schema/manifest/config remain coordinator-owned",
+  "credential_data_included": false
+}

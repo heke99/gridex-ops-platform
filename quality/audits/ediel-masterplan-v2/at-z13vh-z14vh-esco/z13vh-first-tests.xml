@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="6" failures="1" errors="0" time="0.166777245">
+    <testsuite name="__tests__/ediel-at-z13vh-esco-profile.test.ts" timestamp="2026-10-05T12:48:38.728Z" hostname="8095447c6b62" tests="6" failures="1" errors="0" skipped="0" time="0.166777245">
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; joins the historical timing guard, actual identityless S18 draft and source authority" time="0.074870219">
+            <failure message="expected [ …(27) ] to deeply equal ArrayContaining{…}" type="AssertionError">
+AssertionError: expected [ …(27) ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
++   &quot;UNB+UNOC:3+99111:ZZ+54321:ZZ+261005:1200+VH-UNB++23-DGI-PRODAT++1++1&quot;,
++   &quot;UNH+1+PRODAT:D:97A:UN:E2SE6A&quot;,
++   &quot;BGM+Z13+VH-DOCUMENT+9+AB&quot;,
++   &quot;DTM+137:202610051100:203&quot;,
++   &quot;DTM+ZZZ:1:805&quot;,
++   &quot;NAD+FR+21660:160:SVK+++++++SE&quot;,
++   &quot;NAD+DO+54321:160:SVK+++++++SE&quot;,
++   &quot;LIN+1&quot;,
+    &quot;DTM+90:202606010000:203&quot;,
+    &quot;DTM+91:202609010000:203&quot;,
+-   &quot;NAD+UD+SYNTHETIC-VH-CUSTOMER:SE1:260&quot;,
++   &quot;CCI++Z13&quot;,
++   &quot;CAV+S18&quot;,
++   &quot;CCI++Z04&quot;,
++   &quot;CAV+Z04&quot;,
++   &quot;CCI++Z12&quot;,
++   &quot;CAV+:::D&quot;,
++   &quot;CCI++Z14&quot;,
++   &quot;CAV+::::8716867000030&quot;,
++   &quot;CCI++Z22&quot;,
++   &quot;CAV+E19&quot;,
++   &quot;CCI++Z24&quot;,
++   &quot;CAV+B72&quot;,
++   &quot;RFF+LI:VH-LI&quot;,
++   &quot;RFF+ANJ:VH-AGREEMENT&quot;,
++   &quot;NAD+UD+SYNTHETIC-VH-CUSTOMER:SE1:260++Synthetic VH Customer+++++SE&quot;,
++   &quot;UNT+25+1&quot;,
++   &quot;UNZ+1+VH-UNB&quot;,
+  ]
+
+ ❯ __tests__/ediel-at-z13vh-esco-profile.test.ts:88:27
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; holds missingEnd against the independently declared history" time="0.021823124">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; holds changedEnd against the independently declared history" time="0.02131678">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; holds ongoingReason against the independently declared history" time="0.017221224">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; requires the independent evaluation clock rather than a stored parsed snapshot" time="0.023276443">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; refuses an absent bounded end at the timing and actual service-source boundary" time="0.005578322">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,3 +1,4 @@
+// masterplan: U-01, AT-U-01
 import { describe, expect, it } from 'vitest'
 import { parseUtiltsRuntimeFacts, runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
