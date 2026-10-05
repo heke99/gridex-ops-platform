@@ -1,3 +1,4 @@
+// masterplan: P-06, AT-P-06
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'

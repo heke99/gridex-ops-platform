@@ -41,6 +41,7 @@ import CustomerDataRequestsCard from "@/components/admin/customers/CustomerDataR
 import { listBillingUnderlaysByCustomerId, listGridOwnerDataRequestsByCustomerId, listMeteringValuesByCustomerId, listOutboundRequestsByCustomerId, listPartnerExportsByCustomerId } from "@/lib/cis/db"
 import { listCustomerInfoRequestsByCustomerId, listZ01RepairEventsByCustomerId } from "@/lib/onboarding/infoRequests"
 import { resolveEdielDispatchState } from "@/lib/ediel/intent/dispatchState"
+import { readEdielProcessNextActions, type EdielProcessNextAction } from "@/lib/ediel/operations/processNextAction"
 import { listManualGridOwnerRequestSummaries } from "@/lib/customer-operations/manualRequestSummary"
 import { listCustomerAuthorizationDocumentsByCustomerId, listCustomerBlockersByCustomerId, listPowersOfAttorneyByCustomerId, listSupplierSwitchEventsByRequestIds, listSupplierSwitchRequestsByCustomerId } from "@/lib/operations/db"
 
@@ -539,6 +540,24 @@ export async function CustomerAdminDetailPage({
       }).catch(() => [])
     : [];
 
+  // OPS-02: the card's waiting/next step comes from the native process decision
+  // of each request's Ediel source message. A failed or unauthorized read leaves
+  // the map empty, so the card holds instead of trusting a static status.
+  const processDecisions = new Map<string, EdielProcessNextAction>();
+  const canReadProcess = Boolean(customerCompanyId && access.permissions.includes("communication.read"));
+  const processSourceIds = customerInfoRequests.slice(0, 12).flatMap((request) => request.ediel_message_id ? [request.ediel_message_id] : []);
+  if (customerCompanyId && canReadProcess && processSourceIds.length) {
+    try {
+      for (const environment of ["test", "production"] as const) {
+        const decisions = await readEdielProcessNextActions({ companyId: customerCompanyId, actorUserId: access.userId, environment, messageIds: processSourceIds,
+          evaluatedAt: new Date().toISOString(), access: { canRead: canReadProcess, canReview: access.permissions.includes("cases.write"), canPrepare: false } });
+        for (const [sourceId, decision] of decisions) processDecisions.set(sourceId, decision);
+      }
+    } catch {
+      processDecisions.clear();
+    }
+  }
+
   const customerWorkflow = buildCustomerCardWorkflow({
     customerId: id,
     snapshot: customerCardSnapshot,
@@ -551,6 +570,7 @@ export async function CustomerAdminDetailPage({
     manualRequests: manualRequestSummaries,
     isPlatformAdmin,
     dispatchState: customerDispatchState,
+    processDecisions,
   });
   const switchCompleted = switchRequests.some((request) => request.status === "completed");
   const switchInProgress = switchRequests.some((request) =>
@@ -927,6 +947,7 @@ export async function CustomerAdminDetailPage({
             isPlatformAdmin={isPlatformAdmin}
             z01RepairEvents={z01RepairEvents}
             dispatchState={customerDispatchState}
+            processDecisions={processDecisions}
             manualRequests={manualRequestSummaries}
             billingUnderlays={billingUnderlays as Array<Record<string, unknown>>}
             isTestData={customer.is_test_data === true}
@@ -1418,6 +1439,7 @@ export async function CustomerAdminDetailPage({
                 isPlatformAdmin
                 z01RepairEvents={z01RepairEvents}
                 dispatchState={customerDispatchState}
+            processDecisions={processDecisions}
                 manualRequests={manualRequestSummaries}
                 billingUnderlays={billingUnderlays as Array<Record<string, unknown>>}
                 isTestData={customer.is_test_data === true}

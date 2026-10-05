@@ -250,3 +250,8 @@ Oberoende aktuell SC014överlämning /tmp/masterplan-sc014-current-main-handoff-
 SC072ägarkontroll:65aktuella PRfilename-listor, full491/530board och aktuella ledgerheads. Ingen scopedägare modifierar scriptet; endast historiska424 har samma mainblobbd3a4529/SHA6d8ac592f3afdd865b73547bbfb2ccd39f3b0b775ecd389e33d513a1a37ea6b9. #503/GOV08/OPS03källor är readonly. next_rule_pair är nu ensam tekniskSC072ägare, skapar isoleradWT vid faktisktmain985 och återanvänder befintliga fyra verkliga mapping/mutant/facitprov en gång; endast metadata-tag och egenCP är initialt tillåtna. sc014_integration_handoff gör separat läsande hel-literal/källa/facitreview utan omkörning. Root äger eventuell exaktSC072coveragepromotion/fulltagcheck/publicering efter faktiskt godkänd frusen källa.
 
 SC010/SC071 får inte felaktigt stängas med existerande read/projection/pending-DENYtest: deras verkliga export-jobb/lease/distribution-predikat har ännu inte visats av en legitim nuvarande producer. De är ärliga kvarvarande luckor, inga nya mode- eller leasefält uppfinns för en grön rad.
+
+
+## Dokumentationsgrenens enda konflikt — 2026-10-05 10:50 Europe/Stockholm
+
+#564 uppdateras mot faktiskmain985. Den enda konflikten var äldre lokala append-rader i gemensam handover.md. Den aktuella integratorns main-version bevaras exakt utan nya gemensamma handover-rader; våra #506/#510/#511kvitton finns fortsatt i egen TR06checkpoint och de publicerade historiska dokumentcommitsen. Stagedtree jämfört med aktuellmain skiljer enbart de två egna checkpointfilerna. Ingen annan ägares källa, schema, capture, coverage eller gemensamma memory får en ny ändring i dennaPR. Denna nödvändiga dokumentkonfliktlösning är ingen teknisk omkvalificering eller masterplanpromotion.
