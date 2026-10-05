@@ -1,3 +1,8 @@
+## Current source release — 2026-10-05 13:54 UTC
+
+- Independent SOURCE_FOR_CAPTURE APPROVE18d99585, exact source unchanged throughd5e500d6. Sole intake/export, actual native source includes, complete origin manifests/runtime checksums/current actualtail qualified. Reviews copied byte-exact.
+- Next: publish existing#503 source and inspect the existing authentic capture-only job; old generated baseline refusal before capture is expected and remains enforced. No whole/currentnative/parity merge approval follows from source review. Continue other approved scenario merges/reviews whilecapture runs.
+
 ## Latest integration — 2026-10-05 13:49 UTC
 
 - SC001/002 #557 actuallymerged665e6e9b and SC018/056 #560 actuallymerged3dff03dd after independent current-main carry/9requiredgreens. Actual trees/parents verified; main217 stored approvals. All foreign evidence retained. Adopted these exact source-free packets in656b3cee. Necessary independent carry records and unique real merge handover lines are in this source integration.
