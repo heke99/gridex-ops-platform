@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSAL_ONLY; existing #574 workflow owner must confirm/carry; no workflow/shared files changed here",
+  "status": "ACCEPTED_OWNER_CALLER_PREPARATION; no caller diff or native run yet; shared files untouched",
   "design_review": "implementation-review.md: bounded base-then-forward native feedback; not candidate canonical replay or final capture",
   "coordination": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993124044",
   "workflow_owner": "revocation-20261005/#574; existing .github/workflows/ediel-sc071-native.yml only",
@@ -39,5 +39,13 @@
     "whole-card approval without actual qualifying results/review",
     "merge before all final required current-head gates"
   ],
-  "ordinary_candidate_gates": "remain mandatory FAIL/PENDING until retained root admission and authentic capture; unchanged"
+  "ordinary_candidate_gates": "remain mandatory FAIL/PENDING until retained root admission and authentic capture; unchanged",
+  "owner_acceptance": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993523187",
+  "latest_actual_main_example": "607ea6773ac9bdcbd97d3801276cea1a896a8398; owner pins chosen BASE and authentic replay receipts independently",
+  "own_expected_native_case_names": [
+    "SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload",
+    "SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values",
+    "SC010 lease expires during a real results write lock wait and rolls back result, completion and receipt together",
+    "SC010 lease expires during a real jobs write lock wait and rolls back result, completion and receipt together"
+  ]
 }

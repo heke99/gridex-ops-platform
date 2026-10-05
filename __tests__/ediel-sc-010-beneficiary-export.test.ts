@@ -37,7 +37,7 @@ describe('SC010 reachable internal beneficiary export consumer', () => {
     })
     expect(execution.error).toBeUndefined()
     expect(execution.status, execution.stderr?.slice(-3000)).toBe(0)
-    expect(execution.stdout).toContain('Beneficiary export SQL: 9 PASS')
+    expect(execution.stdout).toContain('Beneficiary export SQL: 12 PASS')
   }, 35000)
 
   it('queues the trusted selected tenant/actor and exact captured scope without putting values in the response', async () => {

@@ -1,0 +1,286 @@
+{
+  "recorded_utc": "2026-10-05T11:12:10Z",
+  "source_candidate": "8c79ab436279991b47eb717b1816cde32b0d2191",
+  "PR": "https://github.com/heke99/gridex-ops-platform/pull/570",
+  "ready_for_review": true,
+  "product_native_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
+  "sql_endpoint_qualification_commit": "737252ad7e8683b2ecd0c808e5d4a85bc776cf70",
+  "adopted_main": "85b6d6602ab0d060a86702847641156470f73234",
+  "actual_main_at_snapshot": {
+    "rules_verified": 91,
+    "contracts_passed": 118,
+    "distinct_approved": 209
+  },
+  "actual_current_ci_tag_gate": {
+    "job": 111731851114,
+    "run": 37300512616,
+    "result": "SUCCESS",
+    "ids": 352,
+    "candidate_approved": 209,
+    "tagged_green": 229,
+    "tagged_failing": 0,
+    "untagged": 123,
+    "proof": "evidence/export-ci-8c79-selected-excerpt.log",
+    "excerpt_only": true
+  },
+  "actual_current_verify": {
+    "job": 111731852182,
+    "run": 37300512628,
+    "result": "FAILURE",
+    "reason": "sole migration missing from checksum manifest; SHA d0e4 matches exact unchanged migration"
+  },
+  "ci_snapshot": {
+    "headRefOid": "8c79ab436279991b47eb717b1816cde32b0d2191",
+    "isDraft": false,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:04:14Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512612/job/111731851561",
+        "name": "sc003-sc005-native",
+        "startedAt": "2026-10-05T11:03:49Z",
+        "status": "COMPLETED",
+        "workflowName": "Ediel SC003 SC005 native feedback"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:05:32Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111731852191",
+        "name": "smoke",
+        "startedAt": "2026-10-05T11:03:50Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:04:10Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512628/job/111731852182",
+        "name": "verify",
+        "startedAt": "2026-10-05T11:03:49Z",
+        "status": "COMPLETED",
+        "workflowName": "OPS hardening"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:46Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512602/job/111731852674",
+        "name": "crawl-production-readonly",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex zero-admin production crawler"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:07:49Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512616/job/111731851114",
+        "name": "targeted-regressions",
+        "startedAt": "2026-10-05T11:03:49Z",
+        "status": "COMPLETED",
+        "workflowName": "Ediel masterplan v2 regressions"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:05:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512622/job/111731853503",
+        "name": "browser-public",
+        "startedAt": "2026-10-05T11:04:10Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex browser and quality E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:04:07Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512601/job/111731851826",
+        "name": "tenant-integrity-regression",
+        "startedAt": "2026-10-05T11:03:54Z",
+        "status": "COMPLETED",
+        "workflowName": "Tenant integrity regression"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:47Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512622/job/111731855019",
+        "name": "browser-staging",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex browser and quality E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:09:37Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111731851839",
+        "name": "coverage",
+        "startedAt": "2026-10-05T11:03:49Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:12:42Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512628/job/111731851890",
+        "name": "quality-release-gates",
+        "startedAt": "2026-10-05T11:03:49Z",
+        "status": "COMPLETED",
+        "workflowName": "OPS hardening"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:04:51Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512628/job/111731852190",
+        "name": "clean-migration-replay",
+        "startedAt": "2026-10-05T11:03:51Z",
+        "status": "COMPLETED",
+        "workflowName": "OPS hardening"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:47Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512622/job/111731854788",
+        "name": "k6-staging-load",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex browser and quality E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:46Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111731853052",
+        "name": "full",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:07:16Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512628/job/111731852130",
+        "name": "upgrade-migration-replay",
+        "startedAt": "2026-10-05T11:03:50Z",
+        "status": "COMPLETED",
+        "workflowName": "OPS hardening"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:47Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512622/job/111731902557",
+        "name": "k6-staging-soak",
+        "startedAt": "2026-10-05T11:03:56Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex browser and quality E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:46Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111731853203",
+        "name": "runtime-staging",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:47Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512622/job/111731854903",
+        "name": "zap-staging-baseline",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex browser and quality E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:46Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111731853191",
+        "name": "real-customer-staging",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:09:44Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111733857540",
+        "name": "pr-certificate",
+        "startedAt": "2026-10-05T11:09:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:47Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512622/job/111731855582",
+        "name": "staging-quality-certificate",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex browser and quality E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T11:03:46Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/37300512640/job/111731854137",
+        "name": "nightly-release-certificate",
+        "startedAt": "2026-10-05T11:03:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Gridex full E2E"
+      },
+      {
+        "__typename": "StatusContext",
+        "context": "CodeRabbit",
+        "startedAt": "2026-10-05T11:04:58Z",
+        "state": "SUCCESS",
+        "targetUrl": ""
+      }
+    ]
+  },
+  "native": "4 SOURCE_REVIEWED; NOT_RUN; existing #574 owner evaluating same-stack base+forward proposal",
+  "whole_SC010": "NOT_APPROVED",
+  "whole_SC071": "retained #574 owner; NOT_APPROVED HERE",
+  "shared_admission_capture": "retained #503 owner; pending",
+  "workflow_proposal": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993124044",
+  "publication_board": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5993188414",
+  "current_main_coverage": "all352 rows preserved, own SC010/071 statuses unchanged",
+  "merged": false,
+  "external": "NOT_RUN",
+  "documentation_ref": "codex/ediel-sc010-sc071-checkpoint-20261005; metadata follow-up only, candidate8c79 stable",
+  "excerpt_sha256": "13c209a7a3e06cabf5613509e43bd9e493cd5f81092f7bb06cbd30043af8124a",
+  "latest_followup": {
+    "recorded_utc": "2026-10-05T11:40:09.083422+00:00",
+    "actual_main": "607ea6773ac9bdcbd97d3801276cea1a896a8398",
+    "rules_verified": 92,
+    "contracts_passed": 121,
+    "distinct_approved": 213,
+    "adopted_main_unchanged": "85b6d6602ab0d060a86702847641156470f73234",
+    "main_changes_not_yet_carried": [
+      "#577 documentation",
+      "#580 SC031 inbound direction fix and SC045 coverage"
+    ],
+    "quality_release_gates": "SUCCESS",
+    "workflow_review_handoff": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993337873",
+    "native_workflow_owner_response": "ACCEPTED5993523187; owner caller diff/native execution pending",
+    "contract_review": "Final exact source575ccd57/c3a53636 independently reviewed; three bounded own gaps closed; no further confirmed literalSC010 bounded-test gap; native4 and integration pending",
+    "new_own_tests": "12 real exportSQL groups qualified locally, same existing runner+ownbridge only; not yet source-published",
+    "next_action": "publish exact own12-group proof, carry currentmain/currenttaggedgate, review accepted owner caller/native",
+    "documentation_ref": "new own-test proof requires source follow-up; prior documentation-only checkpoint plan superseded"
+  }
+}
