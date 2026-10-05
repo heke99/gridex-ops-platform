@@ -1,0 +1,74 @@
+{
+  "at": "2026-10-05T23:25:00.977658+00:00",
+  "pr": 594,
+  "head": "c5cf7921a3047f803ae707a186ede52951919806",
+  "actual_main_before": "8c18fe64988154707a927e1af6bd6645de1be6e6",
+  "expected_tree": "11804364323064e9dca69a8a7a2ad8a3e79ac3bd",
+  "source_guard_sha256": "aee07ab4b1f8882c3de637a778a7538e2e0ab5dcda4acbe38207602de1f23ae8",
+  "authentic_current_CODE_VERIFIED_artifact": 11376960061,
+  "ordinary_nine_success": {
+    "pr-certificate": {
+      "check_id": 111997744806,
+      "run_id": 37378806485,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "smoke": {
+      "check_id": 111995020637,
+      "run_id": 37378806485,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "browser-public": {
+      "check_id": 111995020413,
+      "run_id": 37378806375,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/browser-quality-e2e.yml"
+    },
+    "coverage": {
+      "check_id": 111995020407,
+      "run_id": 37378806485,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "clean-migration-replay": {
+      "check_id": 111995020233,
+      "run_id": 37378806419,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "quality-release-gates": {
+      "check_id": 111995020199,
+      "run_id": 37378806419,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "upgrade-migration-replay": {
+      "check_id": 111995020165,
+      "run_id": 37378806419,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "verify": {
+      "check_id": 111995019818,
+      "run_id": 37378806419,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "targeted-regressions": {
+      "check_id": 111995018890,
+      "run_id": 37378806324,
+      "head_sha": "c5cf7921a3047f803ae707a186ede52951919806",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ediel-masterplan-v2.yml"
+    }
+  }
+}

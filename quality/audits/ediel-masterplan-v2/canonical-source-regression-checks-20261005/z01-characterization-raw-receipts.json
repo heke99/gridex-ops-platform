@@ -1,0 +1,79 @@
+{
+  "scope": "Own public-source checker review/proposal/executed-test/control receipts only; no private CI/native logs or foreign inventory",
+  "source_commit": "3887873eee088b224c55d608de153d16cf7bd4cc",
+  "checker_sha256": "bb4faff930d887bc0065c62ff95df3308e88ad379d5b14656c43672c262d83af",
+  "archive_sha256": "283eb29a7a9904a876d5144eae69c8de88a7c6e5eba7e4ed9ab221896c8f41be",
+  "members": [
+    {
+      "path": "pipeline-facility-renderer-checker-main4b-readonly-diagnosis.json",
+      "bytes": 16215,
+      "sha256": "3c089efd2e53b0527a83969a15018ca8957b62aa1e6d757d69951c31f7ebe4f0"
+    },
+    {
+      "path": "z01-pipeline-characterization-main4b-original.cjs",
+      "bytes": 4617,
+      "sha256": "5a204d55ccc55d94edc2d43a925e6fe4debd01bcb787db9b3fca479b296d9ede"
+    },
+    {
+      "path": "z01-pipeline-characterization-main4b-before-edit.patch",
+      "bytes": 2449,
+      "sha256": "e7600cfdb7664d2c37bf7ae75d8bda49bf207922f006aa0096062e19b1e0ab12"
+    },
+    {
+      "path": "z01-pipeline-characterization-main4b-before-edit.json",
+      "bytes": 4864,
+      "sha256": "09f69324f3e194fd80db9eef98514f5337630e686770cec6b75692f82ac36ba6"
+    },
+    {
+      "path": "z01-pipeline-characterization-e760-independent-review.json",
+      "bytes": 6726,
+      "sha256": "65cb9bd8a0f06d8f987b6e7af9bbf35f15f6289b841b17122abe6bbf9097f62a"
+    },
+    {
+      "path": "z01-pipeline-characterization-main4b-v2-before-edit.cjs",
+      "bytes": 8113,
+      "sha256": "bb4faff930d887bc0065c62ff95df3308e88ad379d5b14656c43672c262d83af"
+    },
+    {
+      "path": "z01-pipeline-characterization-main4b-v2-before-edit.patch",
+      "bytes": 5074,
+      "sha256": "080459fab85ccc1f58a90a4760087fea396bb680e511d7517fa654e62cfb0408"
+    },
+    {
+      "path": "z01-pipeline-characterization-main4b-v2-before-edit.json",
+      "bytes": 5965,
+      "sha256": "320de97a82de7af48aed02e7a47c2ab94bea590d4325fb6678779908cc7d80db"
+    },
+    {
+      "path": "z01-pipeline-characterization-bb4f-v2-independent-ready.json",
+      "bytes": 6934,
+      "sha256": "be7f6093508300bfdec791bc872a7d19718d146099917e54dce883e3d2522f9d"
+    },
+    {
+      "path": "z01-pipeline-characterization-bb4f-node22-existing-child.stdout.txt",
+      "bytes": 1383,
+      "sha256": "7bdda323b377ad3f1c77aaa198cfdad00e5cb59d48954838194758483941c683"
+    },
+    {
+      "path": "z01-pipeline-characterization-bb4f-node22-existing-child.execution.json",
+      "bytes": 1676,
+      "sha256": "548792321309c0c694fddfdb93d6684017ba82372732c4ca1fe2c30308ed91e5"
+    },
+    {
+      "path": "z01-pipeline-characterization-bb4f-commented-hold-control.json",
+      "bytes": 1174,
+      "sha256": "fc937d080be563d2be3602201ff1918092af841ae0ded3572bae7a57440b3507"
+    },
+    {
+      "path": "z01-pipeline-characterization-3887873e-final-receipt.json",
+      "bytes": 7853,
+      "sha256": "add393f0ee7144f7254025447b32752cf604edac9a2bdadc18e2ced7537d45c1"
+    },
+    {
+      "path": "z01-pipeline-characterization-3887873e-final-receipt.md",
+      "bytes": 2190,
+      "sha256": "dc6f293c691f2f8c97e2d5b14090b7f2fdfe1acb818555b51febbd296adb5bdc"
+    }
+  ],
+  "original_stdout_and_skip_scope_preserved": true
+}

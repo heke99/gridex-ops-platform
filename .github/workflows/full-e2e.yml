@@ -77,7 +77,11 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Run Vitest V8 coverage
-        run: npm run test:coverage
+        run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile=coverage/ediel-unit-junit.xml
+      - name: Record immutable Ediel document coverage separately
+        run: |
+          mkdir -p coverage
+          node scripts/check-ediel-masterplan-v2.cjs > coverage/ediel-document-integrity.json
       - name: Enforce measured coverage ratchet when baseline exists
         shell: bash
         run: |
@@ -94,31 +98,68 @@ jobs:
           path: |
             coverage/coverage-summary.json
             coverage/lcov.info
+            coverage/ediel-document-integrity.json
+            coverage/ediel-unit-junit.xml
           if-no-files-found: error
           retention-days: 30
 
   pr-certificate:
     if: always() && github.event_name == 'pull_request'
     needs: [smoke, coverage]
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
       - name: Download executed smoke evidence
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: gridex-e2e-smoke-${{ github.run_id }}
           path: e2e-artifacts/inputs/smoke
+      - name: Await the existing native producer at this exact checkout
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head_sha="$(git --no-replace-objects rev-parse HEAD)"
+          native_run_id="$(
+            gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${head_sha}&per_page=100" |
+            node -e '
+              const assert = require("node:assert/strict");
+              const inventory = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+              const [repository, head] = process.argv.slice(1);
+              assert(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository));
+              assert(/^[0-9a-f]{40}$/.test(head));
+              assert(Array.isArray(inventory.workflow_runs) && Number.isSafeInteger(inventory.total_count)
+                && inventory.total_count <= inventory.workflow_runs.length, "native_run_inventory_incomplete");
+              const runs = inventory.workflow_runs.filter(run => run.head_sha === head
+                && run.path === ".github/workflows/ops-hardening.yml"
+                && run.repository?.full_name === repository && run.head_repository?.full_name === repository
+                && ["pull_request", "push"].includes(run.event));
+              assert(runs.length && runs.every(run => Number.isSafeInteger(run.run_number) && run.run_number > 0), "native_run_missing");
+              const latest = runs.filter(run => run.run_number === Math.max(...runs.map(row => row.run_number)));
+              assert(latest.length === 1 && Number.isSafeInteger(latest[0].id) && latest[0].id > 0, "native_run_not_unique");
+              process.stdout.write(String(latest[0].id));
+            ' "$GITHUB_REPOSITORY" "$head_sha"
+          )"
+          gh run watch "$native_run_id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30
       - name: Require deterministic PR gates to execute and pass
         shell: bash
         env:
           SMOKE_RESULT: ${{ needs.smoke.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           node scripts/gridex-full-production-e2e.cjs --certificate=pr
       - uses: actions/upload-artifact@v4
@@ -150,7 +191,7 @@ jobs:
         run: node scripts/gridex-p0-executor.cjs
       - name: Run full production release certificate
         env:
-          NODE_OPTIONS: --max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs
+          NODE_OPTIONS: --max-old-space-size=4096 --require=${{ github.workspace }}/scripts/lib/refactor-safe-static-read.cjs
         run: node scripts/gridex-full-production-e2e.cjs --mode=full
       - name: Build sanitized AI verification handoff
         if: always()
@@ -264,14 +305,19 @@ jobs:
   nightly-release-certificate:
     if: always() && github.event_name == 'schedule'
     needs: [full, runtime-staging, real-customer-staging]
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
       - name: Download executed full evidence
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -296,6 +342,7 @@ jobs:
           FULL_RESULT: ${{ needs.full.result }}
           RUNTIME_RESULT: ${{ needs.runtime-staging.result }}
           REAL_RESULT: ${{ needs.real-customer-staging.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           node scripts/gridex-full-production-e2e.cjs --certificate=nightly
       - uses: actions/upload-artifact@v4

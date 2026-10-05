@@ -1,0 +1,468 @@
+{
+  "kind": "Root five original checker packets genuinely carried to actual606main; source-only preparation",
+  "source_head": "0c354644d6889aef1797e377ae22e56f8be13c93",
+  "source_tree": "2d3549a058ebf7008940428f84ea0f1aaf53cc49",
+  "actual_main": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "actual_main_tree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+  "genuine_parents": [
+    "bd9f9ca567da615ab8485674d6086bab3d965a5d",
+    "b83b284467c8e0fcaa277706a708706e0a705068"
+  ],
+  "original_four_component_preparation": "7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4",
+  "original_four_component_guard_sha256": "152a12d269900c94c77ed5547fad6ee81738582d01020445acf5dac89500d884",
+  "released_advisor": {
+    "head": "15a1580834dbae28bc50661c34c4936e81962127",
+    "public_release": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6002074021",
+    "complete13_paths_exact": true,
+    "source_SHA256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654",
+    "applied_peer_SHA256": "126ddeb4f27df3dfc183e5de2d14bbbba1923fa450d6d4ec5aeed5e6168e6167",
+    "original_result": "19OK/1FAIL before;20OK/exit0 after;28 controlled overlays, no SQL execution",
+    "original_current_boundary_reader_retained": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003281607"
+  },
+  "actual606_delta_paths": [
+    ".agent-memory/main-baseline-pr225-repair-checkpoint-20261005.md",
+    ".agent-memory/tenant-website-primary-selection-checkpoint-20261005.md",
+    "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+    "__tests__/main-baseline-pr225-facility-aliases.test.ts",
+    "__tests__/tenant-website-go-live-selection.test.ts",
+    "app/admin/platform/go-live/actions.ts",
+    "lib/integrations/tenantWebsiteClient.ts",
+    "lib/integrations/tenantWebsiteGoLive.ts",
+    "lib/website/applicationReview.ts",
+    "lib/website/customerApplicationCore.ts",
+    "lib/website/customerApplicationOnboarding.ts"
+  ],
+  "all60_prior_direct_inputs_exact_current_main": true,
+  "advisor_fixed_reads_and_migration_directory_no_actual606_change": "Derived from complete actual606 changed-path list; original advisor reader retains its separate final input-proof custody",
+  "source_delta_paths": 60,
+  "all_original_five_checker_bodies_and_original_payloads_preserved": true,
+  "direct_read_inputs": {
+    "lib/customer-operations/businessProcesses.ts": {
+      "sha256": "75a1dcd9bb33d7ca13f7e61a7b9f1149922d28294c86053b694148bce5e4975d",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "4ce238b8cc377adf5b2c653a51f2089f276e7ffc"
+    },
+    "lib/customer-operations/customerBusinessActions.ts": {
+      "sha256": "f0fe5a837ad7f5dc9a00014c619e39237928e4ca33899cd91e68ae710efac643",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "9e4e27c12cb22566b7a855fd02c974eca1f4cd1b"
+    },
+    "lib/ediel/flows/inboundBusinessStateMachine.ts": {
+      "sha256": "d296385e2dcc5e8ad74eb8a9bf376d31fe0b5ca188331f5e6014a764eace80a6",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "1964e7157140e16d1591c6a4f89e5beae765e35a"
+    },
+    "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts": {
+      "sha256": "e9ff9d52b3efc52d3deefa1f2d8e9185ea9d145ba91bbe9897e52c2e759e0f3b",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "9159d677f6d9f69e20f26dd0259cbb0eb9866f5a"
+    },
+    "lib/ediel/flows/supplyMarketTransition.ts": {
+      "sha256": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "12eb1c04e2af1caf1c539107f2a948c034dba346"
+    },
+    "lib/ediel/flows/inboundAckProcessing.ts": {
+      "sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "c5aee26bd5fc281c2de5a749794ce3d1b344e0d2"
+    },
+    "lib/ediel/ack/committedInboundAck.ts": {
+      "sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "51ec84a1bd2516a4d596ab77be0912715db7c4c0"
+    },
+    "lib/ediel/stateMachines/prodatLifecycle.ts": {
+      "sha256": "93ce2fbb1196b97a0148edcf9b20cf49d2bac6b9eefa1176fffbf5c5abb56887",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "edd52c5f31d4dea15d2f73fa4ac48859b46a66a4"
+    },
+    "lib/ediel/flows/inboundProcessing.ts": {
+      "sha256": "7a2c731a6e5acc15f923a5cbeeea64233d581fc435a69a1d2b31323659f794fa",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "7fad1ac51c1c53ab24cdd2778e353acf6a7d5355"
+    },
+    "components/admin/customers/CustomerBusinessActionsCard.tsx": {
+      "sha256": "3b4e1baad55a4dd58d786f28e0fc7686e543972ce244336fd5773b1915b582eb",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "b97176d3db33ebff0512f60c8b767ba3db5a0559"
+    },
+    "app/admin/customers/[id]/switch-create-actions.ts": {
+      "sha256": "3b1b1503329d65418768d433142839bea47f7c2699ca9a5b54cba62fd340c0fa",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "3687562bf5f015f34574bec18e0f90790921f6b1"
+    },
+    "supabase/migrations/20260624130000_gridex_supplier_remaining_business_state_machine.sql": {
+      "sha256": "132f8f18eaaf51e7baae1d421d0e66616a2cd85ad04420e0749fb29f24d953f7",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "72796b5a937d21ae9f3b8cf5b173a1edbca3d4eb"
+    },
+    "package.json": {
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "owners": [
+        "original612",
+        "website_quote"
+      ],
+      "git_blob": "7e8140606986b98e6acfe71415ce8fa38bad3784"
+    },
+    "lib/ediel/intent/noPlaceholderGuard.ts": {
+      "sha256": "33a5f8b0a4a040ca5911557659036939c64ce0d3649c4457a85de73fdcb0daab",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "8448ac5f9552130abd900044c3e9841b2b268b3f"
+    },
+    "lib/ediel/prodat/builders/profileRenderer.ts": {
+      "sha256": "7d5eff3c51ecb817a1378d55e5821dc437017e41849bb256671d15db16471c95",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "acb51bf381d003bff15c79325ee23a754dc8dd16"
+    },
+    "lib/ediel/prodat.ts": {
+      "sha256": "a8278f7ccbe759608fa8ea33fc1951ce62b3e916adab9b1e4f7ba9c88bafcfd1",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "65e8c8497d5fd4610e798e9ae37ff189529b54dc"
+    },
+    "lib/customer-operations/facilityLookupEdifactDispatch.ts": {
+      "sha256": "484c00d044a07000919aad6e5f2782980dc9e6f6881ab98023f9ca44d092fa4e",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "6eaa76a4b22c683d3a804f638907749309a39c77"
+    },
+    "lib/ediel/intent/renderers/facilityLookupZ01.ts": {
+      "sha256": "b34b9794a17590812f11a3647da022cc1a2d3f3de3097d44ac72b5491a172a1b",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "482359ca35b7cdc5ad7beacf135525dcf00aaa19"
+    },
+    "lib/ediel/intent/intentEngine.ts": {
+      "sha256": "b56e03cb0fc92835fbfd49812224015bdd7d27348b84a2bfa178965276c02829",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "c9b04a6a2c0226012a795b63f023ecde394e0bb2"
+    },
+    "lib/ediel/intent/tenantStatusTranslator.ts": {
+      "sha256": "82cd6d5fc29063f0994fc1b9ba132df806f950081f874f633c4de0c3dc559bac",
+      "owners": [
+        "original612"
+      ],
+      "git_blob": "3b243719f2557f6b8e277470cce43416c627adfc"
+    },
+    "scripts/lib/current-api-contract.cjs": {
+      "sha256": "734e114a2c28ea7e01800313a40f745164a4dc13e5e10fca880e3c522795e7e2",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "ba7092e3fd61d5a94255fd5e91fec642494de886"
+    },
+    "scripts/finalize-openapi-release.cjs": {
+      "sha256": "0ab12bc5f1175e44c347372fb9f3755bc4c14de21ed6b6a9b5ad9221446f0401",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "b49b20fe46c4ed6c7a981e922b9448542d45de4f"
+    },
+    "scripts/finalize-openapi-release.portal.cjs": {
+      "sha256": "bb13ef98aca256c208afb616342d64f781bdf5bacb5e113d0b2a9b7fc781b5af",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "85c370768a4b3ea1f624fc93907936de6eb86f4e"
+    },
+    "lib/integrations/websiteIntegrationContract.ts": {
+      "sha256": "4c86cbf5cb90b826d275be2a92685d20aefa8d3aa6035fa94ddb8108d27e8ace",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "62aac262c761c7dcc8f0603ac04277b820e26ad8"
+    },
+    "scripts/check-api-compatibility.cjs": {
+      "sha256": "35571de9b6343cf9a04a5e703b0b2169b4991486c9a6904d8192b7919b7f54b1",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "413eada9cad1565e12bf5e34c3b50c726d99e0a6"
+    },
+    "scripts/verify-openapi-release.cjs": {
+      "sha256": "e6443b117f340ba2b4863b0b61d88f413df73fe014b97476acfc445fcf2354a9",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "aa3c25d4392691d52c1fe0d8697ab2f3a79c9b99"
+    },
+    "scripts/check-api-documentation-version.cjs": {
+      "sha256": "c260f80d12559baf683bb7deb5370758e00978db150fcf29f5d193d481a1e95b",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "ae0b119f8d5f17c57bb2784e8a463181d1700cf6"
+    },
+    "scripts/check-public-contract-runtime-openapi.cjs": {
+      "sha256": "f780b6430f96399f76b0a88c7a13610fc862c7ecef9bc783f4931fbdcf2e1472",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "2a82f67d5bcff49c16faed156534904dc6eba893"
+    },
+    "lib/api/publicRouteRegistry.ts": {
+      "sha256": "f87dbf4e2526f78d42b20b8701cc9cdbd005caf61bda8a08e00d170d4789bbf5",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "ab408af867a3e87a27060a4349691a7a01f49377"
+    },
+    "app/developers/customer-portal-api/page.tsx": {
+      "sha256": "f3f5dbee070ab8c54b9c538c490bee8a4b56d3c31fed6e6219e31491e6b42334",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "a74a16cff53dbb2aeb79480a380112c8e8a389aa"
+    },
+    "docs/gridex-staff-api.md": {
+      "sha256": "01cec5a011771c8e6988078d281ef6a5089a2f73a3739d1425fb3d8888ab5154",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "e6cce5bb556645f0406a2b41c8717cdb373af568"
+    },
+    "docs/external-website-api-integration-guide.md": {
+      "sha256": "939a30973aae9e40ea42d6d4a35e6761cb922a5c07156d44de2cf933d272c08a",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "b5e48a1335d373271bdc05008b7b2efb29e5194b"
+    },
+    "docs/gridex-customer-portal-api.md": {
+      "sha256": "f3bf4d3d8ca85cfcdd1ac4a621577d6f26181087f182a8c091d404d8add2e99a",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "dbe81b169fb89b4f1d749b0564eac7d6f165eee3"
+    },
+    "docs/single-api-key-tenant-integration.md": {
+      "sha256": "2fd90dd061fcf7a20d7142b98113d1fa8a3174711708d035a106cf787b11b136",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "5836c1e3dc82212c325c3dde0155664b0a89ba1f"
+    },
+    "docs/fixtures/public-contracts-response-2026-10-04.1.json": {
+      "sha256": "04e489a4b1430007bf1942025dc919f57a46933e47cfb26988bc1850bfb85688",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "64a4477af058b90b5f81a02bedee5402a3506f9f"
+    },
+    "docs/openapi/website-integration-v1.json": {
+      "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "0c8333cfc4429def4b48de08a40e7487a4094aa7"
+    },
+    "docs/openapi/releases/2026-10-04.1/website-integration-v1.json": {
+      "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "0c8333cfc4429def4b48de08a40e7487a4094aa7"
+    },
+    "app/api/v1/openapi/2026-10-04.1/website-integration-v1.json/route.ts": {
+      "sha256": "a12992cc94cdbe2c7a1d45dca2470021dd912dbba576251b23fe4116c119fcda",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "271d3c62c0388e9ec467892976d1da5c440d442c"
+    },
+    "docs/openapi/customer-portal-v1.json": {
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "33ce667a6fc253f0d233e77fd5ac02b864a47738"
+    },
+    "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json": {
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "33ce667a6fc253f0d233e77fd5ac02b864a47738"
+    },
+    "app/api/v1/openapi/2026-10-04.1/customer-portal-v1.json/route.ts": {
+      "sha256": "56f03150b6a596a04b31b514aeb94034dddd9e3380707471b9707677d5ddfa48",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "cce3bbf64afda9c185086b88a6b633d8fcaffed1"
+    },
+    "docs/openapi/staff-v1.json": {
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "82e754b05f3d3b59e266991d328b3f5a8e87912a"
+    },
+    "docs/openapi/releases/2026-10-04.1/staff-v1.json": {
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "82e754b05f3d3b59e266991d328b3f5a8e87912a"
+    },
+    "app/api/v1/openapi/2026-10-04.1/staff-v1.json/route.ts": {
+      "sha256": "fd038bf0cf130954df8df489dbfd14a43da3cc0d8e3d42d3d423709902d7e87b",
+      "owners": [
+        "website_quote"
+      ],
+      "git_blob": "9f4ee62706efe443dc56fdfe69f1d757319f6935"
+    },
+    "app/admin/customers/[id]/page.tsx": {
+      "sha256": "0a5fa04dc76bd7022da9d56d34f661d8253b5d93d9437715f45fa79a09e7a962",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "a1406ab680e5d09b7856a243d4885fe01e06554f"
+    },
+    "app/admin/customers/[id]/page.part-4.tsx": {
+      "sha256": "97066bd93aaf65129ae8d78e0f82115c6ca60ee5467ddb71d3ee3c3bb706983c",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "da8de9840ea7e132b51895b2da806f7e7c847a20"
+    },
+    "app/admin/customers/[id]/page.part-1.tsx": {
+      "sha256": "08d9f7e00d8609e65471097775cc2dc5a560218675f2fe1e12be9b309ff30358",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "20c061c5db5e604e870774df81138ffccd618674"
+    },
+    "components/admin/customers/CustomerBillingMeteringCard.tsx": {
+      "sha256": "c860ed450637f41fc43ba72592cae6227d1db224381cee9af3ff9783955717d5",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "877631ce8ca23b502086b2088bc9f5dd02315c28"
+    },
+    "components/admin/customers/billing-metering/shared.tsx": {
+      "sha256": "f8d5edabd9355abfbab271ee949b5d00ae1365484ecd93bc98f184de05bf86b9",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "afc5d5964c8b329f7d4f1c48e1eaed6657af02b5"
+    },
+    "lib/cis/db.ts": {
+      "sha256": "6dd58a8234456890d390387ac1badd04e936d96adc2e474ba8c24e18f59d9f0f",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "c9218f0c6ea320c33d4533ab428df3dcb626765c"
+    },
+    "lib/cis/db-data.ts": {
+      "sha256": "5299216751a3f5e644b0917197fd5ed493c8c69ece86426cf9979d9856e22464",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9"
+    },
+    "lib/cis/db-outbound.ts": {
+      "sha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "1ec9079d4fc7d7f64968fca4ca1b959619bfa5ac"
+    },
+    "lib/admin/guards.ts": {
+      "sha256": "ac7cb38d188e18672e294ac662c3e4401e4167d9cf9e61846c960a954ffc10ca",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "2850dcc28d699c593a7acabd95bb986080998a37"
+    },
+    "lib/tenant/adminScope.ts": {
+      "sha256": "ceea0f50ef043fc2a89384a9d6eacd6b1c45d7f1c35a917f0faceaaa25c1083e",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "293e7897629990ce1d9256dc0d8fc17134871c59"
+    },
+    "lib/tenant/scope.ts": {
+      "sha256": "dad0d989403d00ea5bc5e72c86e2a6eae69ba0edadb0a2853214087dc8bd8910",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "c468c2d3bc6a2f97791db73ac33907f747a3b272"
+    },
+    "app/admin/billing/page.tsx": {
+      "sha256": "84b29f4b4beb341958d6ae942aa35531f0bc8f64bc35731b3e9b2f539318e448",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "842a02144eb2a84ebbde6bcab8226a663f1c2bbf"
+    },
+    "app/admin/billing/actions.ts": {
+      "sha256": "4214d6be8787168bbc4ecdd89a0012d03a4757bf39904e501fbf8a4982a07585",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "f2c01b5be7b931438cce6bcc3046b009ace6fccf"
+    },
+    "lib/auth/requirePermissionServer.ts": {
+      "sha256": "52372b8fec00993e1e152ef6735b761ec93690049bfb2c116ea358f96d9e6736",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "2794abffaa4207941b6ed6ea5bcb77feac5f5f89"
+    },
+    "lib/billing/invoiceReviewData.ts": {
+      "sha256": "1fcbceb9a2482f5f2a0ef95ab441ffb28bc7f869a313193c9f7552c0152929cb",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "d15e77b2d3554bb4917843d7756afc46271537a5"
+    },
+    "lib/billing/invoiceApprovedDispatch.ts": {
+      "sha256": "532608401c20578e22c0fddaa4934d7954347a4f38b6aaa02797db0b7fbfbd4c",
+      "owners": [
+        "supplier_billing"
+      ],
+      "git_blob": "e63aecb07c6d9909bf3dab533274ae7a2d601950"
+    }
+  },
+  "Staff_oracle_packet": "Original Staff author retains implementation/admission in578; unaccepted optional root intake offer retired5306003678385/5786003681367",
+  "full73_source_or_full_main_green": "NOT_CLAIMED",
+  "old612c34_attempt": "Terminal8CANCELLED+1certificateFAILURE/0SUCCESS, retained within original scope",
+  "current_resulting_PR612_all9": "PENDING_NEW_PUBLICATION_AND_ACTUAL_CURRENT_HEAD_CI",
+  "execution": "NONE; no unchanged finite result repeated",
+  "final_publication_guard": "PENDING"
+}

@@ -1,0 +1,141 @@
+{
+  "result": "APPROVE",
+  "recordedAtUTC": "2026-10-05T20:47:19.883426+00:00",
+  "scope": "Independent nonwriter static proposal-v2 review only; approval for the exact proposed one-file correction pending separate root RUN_READY. No apply or execution.",
+  "writerAllocation": "5306001957294",
+  "rootACK": "6002074021",
+  "frozenCommit": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "frozenTree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+  "sourcePath": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+  "proposalPatchSha256": "56b87c4abb2df41448067fff7520364e36cf091574d7299d48a3000d151bb58a",
+  "proposalJSONSha256": "80f483c2d25587ea2b233bfef69d3147784ad69161980301a53fde17cbb97049",
+  "originalBlob": "f83b8fce6d9ce22cd5a270e099bb776f7cc77fed",
+  "originalSha256": "2116509e6e7913856a51a7cf1f481cbb08ac9350713b8588574fb6b1dd39eb43",
+  "proposedPostimageSha256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654",
+  "proposedPostimageBytes": 20026,
+  "proposedNetAddedLines": 77,
+  "postimageReconstructedFromExactPatchInMemory": true,
+  "preservedV1": {
+    "patchSha256": "58b2787884abde01a0840f1988b94e90c765dc11fb0e8a44fbb38f478dfaa4d0",
+    "proposalJSONSha256": "993676b6195a2a8945daa48e57c447330df17161c621b84c9f2465c6b2144895",
+    "originalHOLDReceiptSha256": "50ac3df7bc18ac6a78bb9e883c9bc4a00d92b73f39ef78841328de74e6f79c0f",
+    "allBytesUnchanged": true,
+    "oldVerdictRetainedAsHistoricalHOLD": true
+  },
+  "preservation": {
+    "other19ExpectPrefixByteExact": true,
+    "prefixSHA256": "888c82fd77c96690259cc16c9ed15fb7854e1d0058b881653f89cc06d9cdc719",
+    "all20ExpectCallsPresent": true,
+    "inheritedInlineAndForwardAcceptanceByteExact": true,
+    "inheritedAlterRegexAndAddByteExact": true,
+    "final20thAssertionAndTerminalOutputByteExact": true,
+    "worktreeOriginalScriptStillByteExact": true,
+    "onlyProposedSection6Changed": true,
+    "noNewValidatorOrGeneralSQLInterpreter": true
+  },
+  "resolvedFindings": [
+    {
+      "id": "F1",
+      "result": "RESOLVED_IN_PROPOSED_V2",
+      "postimageLines": [
+        281,
+        306,
+        307
+      ],
+      "staticTrace": "Each origin carries its actual migration basename and create-token offset. Admission requires the origin file lexically precede the current getter migration, or an earlier create offset in that same file. A later file or later same-file declaration leaves the prefix Set empty for this copy. Source indexing order itself no longer provides temporal evidence.",
+      "finiteControls": [
+        "future-file-origin",
+        "future-same-file-origin"
+      ]
+    },
+    {
+      "id": "F2",
+      "result": "RESOLVED_IN_PROPOSED_V2",
+      "postimageLines": [
+        256,
+        258,
+        293
+      ],
+      "staticTrace": "Double-quoted identifiers including doubled quote escapes are masked with offsets preserved before origin-name/header pin matching. The prior full quoted-alias fake declaration is absent from projected code; quoted SET text cannot set pinned=true. Any executable quoted identifier in the bounded DO is unsupported, so a quoted d alias cannot disappear from the projection while rebinding the trusted definition variable.",
+      "finiteControls": [
+        "fake-source",
+        "double-quoted-fake-pin",
+        "quoted-variable-alias"
+      ]
+    },
+    {
+      "id": "F3",
+      "result": "RESOLVED_IN_PROPOSED_V2",
+      "postimageLines": [
+        266
+      ],
+      "staticTrace": "IN/OUT/INOUT/VARIADIC are rejected before optional named-argument reduction. OUT jsonb no longer produces the wrong input identity. The declared name becomes unsupported/ambiguous and cannot certify a different regprocedure overload.",
+      "finiteControls": [
+        "two-word-out-mode",
+        "unsupported-signature",
+        "unknown-overload"
+      ]
+    }
+  ],
+  "remainingBlockingFindings": [],
+  "remainingFiniteNegativePathAssessment": {
+    "unknownSourceOrOverload": "No unique complete prior inline-pinned exact signature means no prefix exemption; inherited name-only forward-pin set is not origin evidence.",
+    "commentSingleDollarQuotedFakeSource": "Origin/DO code projection masks these contexts; raw CREATE scan remains conservative.",
+    "reboundOrWrongScope": "Immediate first getter, same local text variable, exactly getter+rename writes, INTO/extra-token/nested-scope holds and exact same-regprocedure EXECUTE consumer remain in place.",
+    "completeQuotedCreateConcatDynamicOrRealUnpinnedPublicFunction": "All are still inspected by the unchanged raw CREATE recognition/old inline-or-forward acceptance block, apart from the two exact admitted prefix offsets.",
+    "unsupportedGrammar": "Does not earn an exemption; this remains a deliberately narrow static source idiom."
+  },
+  "finiteControlPlan": {
+    "plannedCases": 29,
+    "IDs": [
+      "baseline",
+      "plain-unpinned",
+      "inline-positive",
+      "forward-positive",
+      "quoted-execute-unpinned",
+      "quoted-execute-pinned",
+      "opaque-concat",
+      "nonreplacement-literal",
+      "unknown-getter",
+      "unknown-overload",
+      "old-prefix-mismatch",
+      "unpinned-template",
+      "same-signature-replacement",
+      "source-alter-reset",
+      "rebind-assignment",
+      "select-into-rebind",
+      "wrong-scope",
+      "fake-source",
+      "fake-binding",
+      "fake-pin",
+      "unsupported-signature",
+      "qualified-prefix-positive",
+      "implicit-call-out",
+      "wrong-consumer",
+      "future-file-origin",
+      "future-same-file-origin",
+      "double-quoted-fake-pin",
+      "two-word-out-mode",
+      "quoted-variable-alias"
+    ],
+    "notExecuted": true,
+    "assessment": "The previously authorized baseline, original pin acceptance, required negative paths and concrete F1/F2/F3 controls are present. Exact fixture construction and executed outcomes remain the sole writer/root runtime lane.",
+    "rootRequiredGuard": "Exact Node22.23/input/controls and independent same-input before/after outcomes still require separate root RUN_READY; this peer did not release or execute them."
+  },
+  "sourceProofReused": {
+    "sourceReceiptSHA256": "2b01b48d0d11fb78c2143faa2147cdbf96a8ba1e0fd2e1e3be7da0fca96f5b3c",
+    "separatePeerSHA256": "d244e8d295dd5152c821aa32d5f77f61e49bbe01d4cf7fa8955c082b0b2a27da",
+    "sourceChainNotRerun": true,
+    "liveCatalogReplayNativeSecurityWholeRemainUnknown": true
+  },
+  "rootRUNREADYGrantedByThisPeer": false,
+  "applied": false,
+  "checkerOrControlTestsExecuted": false,
+  "limitations": [
+    "Only this new requested outside review receipt is written; v1/HOLD and all source artifacts remain immutable.",
+    "No source/test/SQL/index/ref edit, fetch/API/watch, database/native/full/CI run or source-chain requalification.",
+    "APPROVE is bounded to the exact v2 postimage and finite idiom, not universal SQL parsing, actual migration application, live pinning, fixed-checker execution, current-main-green or whole acceptance.",
+    "Parent-owned later-main applicability guards remain separate; proposal reviewed on frozen5cde.",
+    "No additional broad implementation or testing requirement is introduced by this review."
+  ]
+}

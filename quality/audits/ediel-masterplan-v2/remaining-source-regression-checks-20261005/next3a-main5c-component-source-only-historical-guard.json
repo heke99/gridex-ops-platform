@@ -1,0 +1,153 @@
+{
+  "schema": "gridex-next3a-main5c-component-source-only-historical-guard/v1",
+  "verdict": "READY_HISTORICAL_EXACT_COMPONENT_SOURCE_INPUT_GUARD_LIVE_PUBLICATION_HOLD",
+  "created_at": "2026-10-05T20:25:27.208177+00:00",
+  "candidate": "3a19b42804f76d6fe25d6dc5c30fbc1401cf8724",
+  "candidate_tree": "f08fa437b42b4306b5ab2299ecfd2969ba55e86f",
+  "single_parent": "4c68296cdc6b973193c3a94d78d2a0f002f3e0d3",
+  "historical_genuine_main": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "genuine_component_merge_chain": [
+    {
+      "commit": "fef1a1a03a01ae27b56f83323129a492a3d7ff1e",
+      "ordered_parents": [
+        "5cde80940ee213612fde3ba6b3461429dd615a7f",
+        "c34c5648044078117740e27186ae66d06ab7286e"
+      ]
+    },
+    {
+      "commit": "3836fa2a9b7e0801345492556de29da2fd13d80a",
+      "ordered_parents": [
+        "fef1a1a03a01ae27b56f83323129a492a3d7ff1e",
+        "60758f26d649ff320f2da757712b0ce777080efe"
+      ]
+    },
+    {
+      "commit": "4c68296cdc6b973193c3a94d78d2a0f002f3e0d3",
+      "ordered_parents": [
+        "3836fa2a9b7e0801345492556de29da2fd13d80a",
+        "4ddd37513995c033c4a6d98430255051a07d277b"
+      ]
+    }
+  ],
+  "exact_original_component_packets": [
+    {
+      "owner": "original612",
+      "public_frozen_head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "tree": "56a76d27ebaaf62d16fbe85cc4cde2dc8ed484ba",
+      "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "path_count": 20,
+      "all_owned_blobs_modes_exact": true
+    },
+    {
+      "owner": "website_quote",
+      "public_frozen_head": "60758f26d649ff320f2da757712b0ce777080efe",
+      "tree": "dfbee73265d0fcfd16cc451efee85945fa05e99f",
+      "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "path_count": 9,
+      "all_owned_blobs_modes_exact": true
+    },
+    {
+      "owner": "supplier_billing",
+      "public_frozen_head": "4ddd37513995c033c4a6d98430255051a07d277b",
+      "tree": "998c35d933f61239925a18e4f68f811b6a900af8",
+      "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "path_count": 5,
+      "all_owned_blobs_modes_exact": true
+    }
+  ],
+  "source_packet_changed_paths": 34,
+  "own_new_metadata_paths": [
+    {
+      "path": ".agent-memory/remaining-source-regression-checks-checkpoint-20261005.md",
+      "sha256": "e1de2c386cdaa5dde80552e0f038aa54dd5e82aca389f1efa48abc8ee1fb3bf4",
+      "blob": "3a6d9481f0097c890fc3dc1310722082dd55bcbd",
+      "role": "own preparation checkpoint"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-main5cde-component-readset.json",
+      "sha256": "8a998337dd62bcebd2f3f54996818f0a5dd1099b2fae797a5a4bff451108b98c",
+      "blob": "5b5a7dc61a5ee68228ff0a6a3a464388407a4957",
+      "role": "readset metadata"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-4ddd-publication-boundary-independent-ready.json",
+      "sha256": "719864b087095901f6bf6607f405669629e1b9677fd1bca5268057449d748057",
+      "blob": "ad806350e8e820ca1b2a7413fc03415f3e6054a0",
+      "role": "applied/publication peer metadata"
+    }
+  ],
+  "total_changes_from_pinned_main": 37,
+  "checker_body_pins": [
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1",
+      "exact_original_owner_body": true
+    },
+    {
+      "path": "scripts/gridex-supplier-remaining-business-regression.cjs",
+      "sha256": "1937ab14b3ff9fd84e4c1f2f762c477b135b87fb632ffd248d068f851798f7b3",
+      "exact_original_owner_body": true
+    },
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2",
+      "exact_original_owner_body": true
+    },
+    {
+      "path": "scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+      "sha256": "bb4faff930d887bc0065c62ff95df3308e88ad379d5b14656c43672c262d83af",
+      "exact_original_owner_body": true
+    }
+  ],
+  "direct_input_boundary": {
+    "readset_path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-main5cde-component-readset.json",
+    "readset_sha256": "8a998337dd62bcebd2f3f54996818f0a5dd1099b2fae797a5a4bff451108b98c",
+    "unique_files": 60,
+    "owner_counts_with_shared_inputs": {
+      "original612": 20,
+      "website_quote": 25,
+      "supplier_billing": 16
+    },
+    "all60_SHA_and_blob_pins_exact_candidate_source_currentmain_and_each_declared_owner_head": true,
+    "full60_pinset_sha256": "618507cfa678651dc501e5837559cc54e41f01c5c0b3e578179ffb0508724901",
+    "finite_reuse_scope": "Only the exact declared60 direct inputs and unchanged four previously qualified checker bodies; no new whole AST/proposal/runtime qualification."
+  },
+  "foreign_main_preservation": {
+    "path_count": 8492,
+    "all_other_main_blobs_modes_and_entries_exact": true,
+    "foreign_path_mode_blob_pinset_sha256": "8e41aec2b5c9806239f61d096e1c9e715646337a63eccada0dc0272f399f28e9",
+    "only4_preexisting_main_files_changed_are_original_checker_components": true,
+    "all_foreign_production_SQL_generated_workflows_native_registration_tests_package_entries_exact": true,
+    "coverage_bytes_all352_rows_order_metadata_evidence_exact_main": true,
+    "coverage_blob": "875b60dcc320dcd329e4c57a8a04a761a414cea1",
+    "new_approval_rows": 0
+  },
+  "billing_applied_publication_peer": {
+    "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-4ddd-publication-boundary-independent-ready.json",
+    "sha256": "719864b087095901f6bf6607f405669629e1b9677fd1bca5268057449d748057",
+    "actual4ddd_tree_and_checker_after_SHA_exact": true,
+    "original_raw_archive_sha256": "e4b7082a6fc6f588404e495a4b30dfcc180bae22b4ab733985aaa8d133fb80ea",
+    "raw_index_sha256": "d6ad5b05688c7e79cad266c322290353b755670c991df61972aa3fc61a536ebf",
+    "archive_original_bytes_exact_published_component": true,
+    "previous_qualifier_v3_sha256": "d8f8430cc4035ff896b81323fd1cbfaabbd79d3409d56f7666d0b8be183ec218",
+    "previous_v3_projected_checker_equals_actual_applied_after_bytes": true,
+    "previous_qualifier_HOLD_RED_READY_history_retained_inside_unchanged_archive": true
+  },
+  "separately_executed_finite_results_reused": {
+    "supplier_remaining": "Original35PASS and five static negative controls only.",
+    "supplier_billing": "Original27PASS/0FAIL/0SKIP direct checker only.",
+    "website_quote": "Original supported Node22.23.0 focused exit0; prior RED retained.",
+    "Z01": "Original18 staticPASS and realVitest6PASS/6SKIP; skips remain explicit.",
+    "no_combined_full_supplier_chain_or_wholemain_currentgreen_claim": true
+  },
+  "live_delivery_boundaries": {
+    "advisor_original_writer": "Pending; no advisor source in this packet or second implementation.",
+    "original612_source_head": "c34c5648044078117740e27186ae66d06ab7286e remains unchanged; ordinary current9 acceptance/maindelivery pending.",
+    "historical612_queued_cancelled_status": "Readset20:18 state is historical only, not live CI observation.",
+    "prior_next610_routing": "Historical/superseded by actual first ENV07 #608 postimage, not a source finding in immutable3a.",
+    "reported_actual608_admission": "2964415adec9e36932583e95f8506437d262c507 via public5306002234271; parent is authenticating/adopting this separately.",
+    "actual608_postimage_not_adopted_or_source_qualified_by_this_guard": true,
+    "live_prep_ref_publication": "HOLD pending root genuine actual608/currentmain carry; historical source readiness does not authorize current CI/maingreen or new612 head."
+  },
+  "limits": "Immutable historical3a/main5c source and metadata custody only. Existing component AST/proposal/source-packet reviews and archive qualifier accepted by unchanged bytes; no new whole review or runtime probes. No test/native/CI/full/artifact/capture/fetch/source/index/ref/sharedmemory/GitHub mutation, newPR or frozen612 headchange. No combined/current-main green, canonical/main delivery or masterplancompletion claim. Own minimal public-safe immutable JSON only; root retains sole prep publication, newmain adoption and ordinary observer/source lanes."
+}

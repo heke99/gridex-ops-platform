@@ -1,0 +1,23 @@
+{
+  "kind": "Actual full local lint output; byte-exact archive custody",
+  "source_before_archive_fix": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+  "archive": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output.zip",
+  "archive_sha256": "94cbb5eef6957da915b7e03cd222ce9c449229dfd2c84876feb42fa9484d0a17",
+  "members": [
+    {
+      "path": "stdout.txt",
+      "bytes": 19624,
+      "sha256": "25b1207fc3c7f8f97b27e9d825fa75fe7d4a681fee829c5a4ff41b9353e6b234",
+      "crc_verified": true
+    },
+    {
+      "path": "stderr.txt",
+      "bytes": 181,
+      "sha256": "d12f2ea758ad10fef044ed82e63c71ac4ee28d7f4c433e5f9f6172f99d63c166",
+      "crc_verified": true
+    }
+  ],
+  "exit_code": 0,
+  "summary": "125 warnings, zero errors",
+  "raw_ci_log_included": false
+}
