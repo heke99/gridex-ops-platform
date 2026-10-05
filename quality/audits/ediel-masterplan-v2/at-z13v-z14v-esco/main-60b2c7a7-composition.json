@@ -59,5 +59,29 @@
     "untagged": 118,
     "rawLog": "main-60b2c7a7-supported-tagged-gate.log",
     "warning": "Stored approval count includes separately disputed SC036; this packet adds no whole approvals."
+  },
+  "laterMainAdoption": {
+    "commit": "505e20637d5b8e1bcffab5f1f1971154dec5622d",
+    "mergeCommit": "f6d6420ec4ea26371d7dcb0db8a0d570a1bab86c",
+    "deltas": "Only retained review packets and separate SC071 native workflow/test/checkpoint. No supported-gate input, selected native discovery/helper, source/schema or coverage change.",
+    "qualificationPaths": [
+      "lib",
+      "app",
+      "supabase",
+      "scripts/helpers",
+      "scripts/fixtures",
+      "scripts/ediel-source-owner-native.config.ts",
+      "scripts/ediel-service-evidence-native.test.ts",
+      "scripts/ediel-sc-003-005-service-native.test.ts",
+      "scripts/ediel-esco-10-11-projection-native.test.ts",
+      "__tests__",
+      "scripts/ediel-masterplan-test-coverage.cjs",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ops-hardening.yml",
+      "quality/audits/ediel-masterplan-v2/coverage.json"
+    ],
+    "allQualificationPathsByteUnchangedFromExecuted60": true,
+    "noRuntimeRerun": "Executed60 gate/focused/probe remain qualified; separate retained SC071 workflow/test is not selected by supported tag walker or the native receipt config."
   }
 }
