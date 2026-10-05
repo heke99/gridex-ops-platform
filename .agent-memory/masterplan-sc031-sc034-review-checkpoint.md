@@ -1,6 +1,6 @@
 # SC-031 / SC-034 independent contract review
 
-Status: REVIEW_READY_SOURCE_OWNER_ACTION_REQUIRED. Agent: Codex current session.
+Status: UNDER_REVIEW_SOURCE_OWNER_ACTION_REQUIRED. Agent: Codex current session.
 Scope: independent static review plus bounded actual-module reproduction.
 Branch: `codex/ediel-sc031-sc034-review-20261005`.
 Worktree: `/workspace/gridex-ediel-sc031-sc034-review-20261005`.
@@ -68,11 +68,25 @@ parsing passes without changing an input or weakening an assertion. Failed shell
 access and current release8/73 failure remain recorded; no green status replaces
 those results.
 
+## Published packet and exact commit
+
+Draft PR: https://github.com/heke99/gridex-ops-platform/pull/571
+Verified published report commit: `713b781781695fef56db01818ab70e3761539d14`.
+Verified local/API tree: `6ceff9327654313f74f8609676f5c5adcea11a5b`.
+The exact remote commit object was imported into the local Git object database
+and the own branch advanced with an expected-old-ref check; the worktree was
+clean at that commit. Original main parents and other checkouts were preserved.
+Initial import assumed +0000 header offsets and failed without changing branch
+or files; verifying the commit hash with actual +0200 offsets succeeded. Source
+and report bytes were not rewritten to fit a receipt.
+The current document-only follow-up records this publication; its HEAD is read
+from Git. The report commit above remains the pinned review version.
+Current draft/new-head CI is unverified; no merge or approval is claimed.
+
 ## Next action and ownership
 
-Publish the exact documentation tree through available GitHub GitData tools,
-then hand the precise frozen clauses to the existing Claude implementation owner.
-Shell git publication remains unavailable, but connector publication is available.
+Deliver the published full-clause handoff on #530. Shell git publication remains
+unavailable, but connector GitData publication succeeded without force updates.
 Claude owns the existing inbound case/source fix and new coupled scenario tests.
 The retained coordinator owns source/capture composition, native qualification,
 release failures and any eventual merge. No source takeover or merge is performed
@@ -81,5 +95,5 @@ work proceeded; the safe review-only lane was kept.
 
 The full masterplan remains incomplete. Source-owner fixes, complete native effect
 proofs, required review/CI and integration are outstanding, with external market
-proofs separate. The documentation packet will be under review; source approval
+proofs separate. The documentation packet is under review; source approval
 and main integration are not inferred from its publication.

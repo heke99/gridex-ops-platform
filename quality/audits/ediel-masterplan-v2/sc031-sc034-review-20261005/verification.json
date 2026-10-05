@@ -63,6 +63,10 @@
     {
       "command": "initial Python review input-hash validator",
       "result": "FAILED because SC031 uses a fenced JSON hash map and initial parser only accepted Markdown table rows; no hash mismatch observed. Corrected parser now verifies SC03144+SC03417 input hashes."
+    },
+    {
+      "command": "first exact remote Git commit import",
+      "result": "Initial +0000 author/committer offset assumption did not match Git SHA; no local branch or file changed. Trying actual +0200 offsets matched713b781 exactly; imported that exact object and advanced only the own branch with expected-old-ref check."
     }
   ],
   "publication_method": "GitHub connector GitData API can publish the exact inspected documentation tree; no force update or source-owner edits.",
@@ -79,5 +83,14 @@
       "input_count": 17,
       "sha256": "f87f733e37a617238e8ef58e25c2c7e11fc5874907eb1c6e351d4ce621d0f536"
     }
+  },
+  "publication": {
+    "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/571",
+    "status": "draft_under_review",
+    "verified_report_commit": "713b781781695fef56db01818ab70e3761539d14",
+    "verified_tree": "6ceff9327654313f74f8609676f5c5adcea11a5b",
+    "local_remote_tree_byte_identical": true,
+    "merge_performed": false,
+    "new_head_ci_verified": false
   }
 }
