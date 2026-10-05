@@ -1,0 +1,112 @@
+{
+  "qualification": "PASS bounded actual native behavior only",
+  "workflow_sha": "f7fc20f7b5adc784bdd6ed01bd56ac56e53d2763",
+  "workflow_run_id": "37310521982",
+  "base_sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+  "producer_sha": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "sc010_native_sha": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "artifact_id": 11345294346,
+  "zip_sha256": "90787405c69fa0ab78e6682834968ca9b7dbe2943a16ccb101c768f86023d991",
+  "actual_cases": 10,
+  "cases": [
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 real enqueue \u2192 real grant revoke \u2192 lease \u2192 blocked internal export preserves originals, receipts, history and zero result payload",
+      "seconds": "4.132220142"
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values",
+      "seconds": "3.61918586"
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 lease expires during a real 'results' write lock wait and rolls back result, completion and receipt together",
+      "seconds": "8.516477672"
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 lease expires during a real 'jobs' write lock wait and rolls back result, completion and receipt together",
+      "seconds": "8.410637557"
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "writer-first real grant revocation COMMIT serializes before projection, including a retained page",
+      "seconds": "4.036454769"
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "writer-first real grant revocation ROLLBACK serializes before projection, including a retained page",
+      "seconds": "3.358207202"
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions",
+      "seconds": "3.198842032"
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "SC071 actual leased export waits for grant writer COMMIT before its internal result commit",
+      "seconds": "3.256265827"
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "SC071 actual leased export waits for grant writer ROLLBACK before its internal result commit",
+      "seconds": "3.479918198"
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "SC071 actual export result transaction commits before waiting revoke; later reads cannot disclose its retained page",
+      "seconds": "3.276940991"
+    }
+  ],
+  "zero_failure_error_skip": true,
+  "verified_base_input_count": 7559,
+  "official_ledger_versions_unchanged": 48,
+  "rpc_witness_count": 4,
+  "stored_role_timeout_diagnostic": [
+    {
+      "role": "anon",
+      "statement_timeout": "3s"
+    },
+    {
+      "role": "authenticated",
+      "statement_timeout": "8s"
+    },
+    {
+      "role": "authenticator",
+      "statement_timeout": "8s"
+    }
+  ],
+  "timeout_diagnostic_scope": "stored values only; not each RPC connection effective timeout",
+  "file_sha256": {
+    "base-checkout.json": "23eba82f3f53a460ff6178e02ad17ac659965620020ce31eba93de66fba2de93",
+    "base-ledger.json": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8",
+    "base-replay-complete.json": "9ca64a7b0f255d398433da61190f2a5d03040c6064eb446dad75c4b5d3a8701e",
+    "base-input-sha256.json": "9e2249afa68670b7ff560238c4743ab07e688108c1df9b377f3b6481e68878af",
+    "base-replay.log": "1fc46174f7752b97d4c225ebd7ee297367b138ec72728a3cad4fdc89a982bde6",
+    "effective-runtime-inputs.json": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2",
+    "forward-rpc-catalog.json": "9171abcc2d966320970c134e5a602c21ef67256d7efedc33d0bca0edea7d1aff",
+    "forward.log": "d42f23bf9de5b4a5078f24acacf0d8fa6e5c9ee4346f271c724101df87629543",
+    "native-junit.xml": "d75c9d2cfb816629b0693891747192adaf9b070ac2ef260c39648ef15605cede",
+    "native.log": "74d27a6755800843757e5a31d9426fac0a82c722502788b3f2ab2479475af112",
+    "post-forward-ledger.json": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8",
+    "post-native-inputs.json": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2",
+    "receipt.json": "83c3d966cbf246551d8e131354f41e8987c10fc9e7eb771ccc363e6ece9dc499",
+    "role-statement-timeouts.json": "3d27895b3dfa3d6aaa33d6a36973654bd6b4932a55aa4cc99e601e965c14bfc2",
+    "rpc-readiness.json": "1851934f61360e02f77b2ed05747c794dabef36a890b535a0750b3828f371331",
+    "session.log": "fb5c13fa392f70fbecf7d768d82bfd85a8bacd39190ce8ffc5969fa2454a8fbc"
+  },
+  "whole_sc071": "UNAPPROVED",
+  "whole_sc010": "UNAPPROVED",
+  "producer_canonical_admission_capture": "PENDING_COORDINATOR",
+  "immutable_job_log_receipt_equality": true,
+  "job_id": 111764517709,
+  "log_download_cli": "redirect403, empty file discarded; connector decoded exact log successfully",
+  "independent_peer_review": {
+    "verdict": "QUALIFIED10PASS; sixSC071effects +bothleaseatomicitycases; source/custody/BASE PASS",
+    "path": "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-review.md",
+    "sha256": "568665d9c559c75a463d98c29882e01bd304a4ca3e0f80e97895a3439f35ebdb",
+    "whole_cards": "UNAPPROVED"
+  }
+}

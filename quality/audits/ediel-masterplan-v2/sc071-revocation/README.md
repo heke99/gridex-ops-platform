@@ -54,3 +54,15 @@ admission, generated schema/types or whole-card approval. Retained coordinator
 #503 owns those shared final gates; its missing-manifest failure remains visible.
 Ordinary candidate checks are mandatory. Finite issuer/legal, SMTP and route
 session-selection ports do not establish authentic market qualification.
+
+Corrected actual run37310521982/job111764517709 atf7fc20f7 is now
+**independently qualified10 PASS /0 FAIL /0 ERROR /0 SKIP**, exact6+4.
+Artifact11345294346 ZIP90787405… has16files; both lease cases reach final
+atomicity assertions. export-native-passed-* retain raw corrected bytes and
+export-native-pass-qualification.json records custody. Historical4498/2
+remains unchanged. SC-071-export-proof.md maps the frozen criterion;
+integration-handoff.json supplies exact reserved baselines, one runtime
+admission entry and conflict-free source composition preview. Whole cards,
+coordinator admission/capture/integrated current-head proof remain pending.
+The evidence-only handoff branch creates no second PR, workflow or producer;
+PR586 remains frozen at the actual testedf7fc head during required CI.

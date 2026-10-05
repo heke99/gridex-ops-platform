@@ -330,3 +330,34 @@ package/lock/ownregisterednative/fixture/helpers/redactor unchangedBASE7b.
 NativeBASE remains7b rather than claiming498 candidateparity. Next publish
 reviewed solecaller+sourcepin+rawfirstfailure as one owned packet; actual10
 with no secondproducer or duplicate native correction; then qualifycustody.
+
+## Corrected actual ten-case native PASS
+
+Publishedf7fc20f7b5adc784bdd6ed01bd56ac56e53d2763 treeb2f39f25, sole
+run37310521982/job111764517709 actual10PASS/0FAIL/0ERROR/0SKIP.
+Artifact11345294346 SHA90787405c69fa0ab78e6682834968ca9b7dbe2943a16ccb101c768f86023d991
+16members; parentCRC/secrets/API/job-logreceipt/7559BASE/effective8/9b50+d0e4/
+4RPC/48ledger/source qualificationPASS. Both correctedleaseatomicitycasesPASS;
+no repeatedunchangednativejob. Direct570handoff5994688422, board5994690475
+claimsrawpassingfiles. CLIlogdownloadredirect403 producedemptyfile, discarded;
+existingconnectorreturneddecodedlog58194bytes, actualreceipt equalityPASS.
+Read-onlystoredtimeoutsanon3s/authenticated8s/authenticator8s, notdirecteffective
+connectionmeasurement. Independentactualartifactreview pending; ordinaryCIopen.
+ContinuewhileCI: reservedownSC-071-export-proof.md mapsfrozenfacittoactualraces;
+integration-handoff.json recordsone exactruntimeentry+currentreservedfilehashes
+andexistingcapture/native/pathsteps. No12comment503release:5994183839retains
+coordinatorownership. Legacy9a0 excludesexporter; fullschema/typecaptureneeded;
+do notresetunrelatedbaseline/addsecondmanifestentry/inventCLIledgerrows.
+Wholecardsunapproved, first4498/2 preserved. Next finishindependentproof then
+sendconcretepacketretainedcoordinator and qualifyordinarycurrentheadCI.
+
+IndependentactualartifactqualificationCOMPLETE10PASS: reviewSHA568665d9,
+exactsource/custody/frozenSC071internalboundary+fullyreachedleaseatomicity.
+Currentf7fc ordinaryCI8/9GREEN, cleanreplayrunning; noallgreenclaim.
+Conflictfreeread-onlymerge-treef7fc+9b50→603e0232:7589currentmainpathschecked,
+only7existingownpathschange; allforeignpaths+8sharedbaselinespreserved,
+all9sourceproducer/unit/SQLhashesmatch, ownpatchcheckPASS/NOT_APPLIED.
+Publishownproofdocumentationon codex/ediel-sc071-qualified-handoff-20261005
+asoneevidence-onlycommit, noextraPR/workflow; keep586f7fc frozenwhileCIruns.
+Retainedcoordinatorcancarrysingleproofcommitwiththeactualnecessaryintegration.
+No sharedwindowrelease; newpacketconcretereviewable, nohandwritten schema/types.
