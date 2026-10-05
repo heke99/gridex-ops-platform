@@ -1,0 +1,82 @@
+{
+  "requirement": "SC-036",
+  "candidate": "774287939d53eb60bf1c202ac81cb9f9c24ed87b",
+  "reviewer": "independent /root/sc036_requirement_review",
+  "mode": "READ_ONLY requirement review plus independent conditional-probe refutation",
+  "verdict": "PARTIAL",
+  "confirmedCurrentNativeProductionDefects": [],
+  "confirmedConditionalBehavior": "Fresh historical SQL receipt with finalAckReached=true/sourceAccepted=true makes actual processInboundAckMessage and actual CIS writer set a declared confirmed request to acknowledged. Mixed receipt control preserves confirmed with zero writes. Z04 payload persists. Actual Z04 registration/current source wrappers/native catalogue are not established.",
+  "effects": [
+    {
+      "requirement": "Correct Z04 before positive APERAK registers the confirmed period",
+      "witness": "scripts/ediel-p-11-z04-order-sql-regression.mjs14-17; real normal-switch SQL apply",
+      "status": "COMPONENT_VERIFIED",
+      "limits": "Finite legal/permissions/source ports; historical PGlite fixture, not current native authority."
+    },
+    {
+      "requirement": "Late real APERAK completes ACK while preserving that same period/business state",
+      "status": "NOT_JOINED",
+      "witnesses": [
+        "SQL script21-24 directly writes expected ACK columns; no ACK consumer is called",
+        "Canonical test30-36 seeds confirmed/accepted and injected matched identity; no supply-period table",
+        "Legacy test36-45 seeds confirmed/accepted and injected matched identity; no supply-period table"
+      ],
+      "snapshotLimit": "SQL asserts id/status/start_date/end_date only; byte-identical full-row claim is unsupported."
+    },
+    {
+      "requirement": "Mail canonical and two legacy positive branches preserve advanced request state and write ACK columns",
+      "status": "COMPONENT_VERIFIED",
+      "witness": "7 unchanged candidate cases pass; canonical guard200-224 and legacy993-1051",
+      "limits": "In-memory Supabase port; no real period. Legacy positive APERAK lacks ERC and is only a direct-branch probe; production mail284-314 uses canonical classifier."
+    }
+  ],
+  "additionalConsumer": {
+    "call": "lib/ediel/flows/inboundProcessing.ts1071 -> lib/ediel/flows/inboundAckProcessing.ts364 -> lib/cis/db-outbound.ts557",
+    "condition": "Fresh accepted original, finalAckReached=true, sourceAccepted=true, own linked request",
+    "observed": "confirmed -> acknowledged at declared finite request boundary",
+    "severity": "Potential ordinary business-state regression; native SC036 reachability not proven",
+    "refutation": [
+      "Validation assessments do not pre-create ACK source_correlations/applied_receipts; fresh first apply remains possible in the read code",
+      "Committed ACK receipt short-circuits replay, not the first request update",
+      "Current require_ack/guide/actor/physical scope wrappers need authentic source inputs; simplified fixture does not prove them",
+      "Identified outbound DB payload guard concerns queued/prepared/ready Z01 states and does not enforce confirmed preservation",
+      "Actual native catalogue, Z04-produced request state, period/switch regression NOT_RUN/NOT_PROVEN"
+    ]
+  },
+  "nextOwnerAction": "Use existing authentic normal-switch fixture: actual sent Z03 -> correct Z04 -> registered period and observed request state -> fresh qualified positive APERAK through actual current processor/wrappers. Assert own ACK columns, exact request response, complete period/switch rows and unchanged control scopes. If confirmed is never produced on this path, refute/narrow the conditional request claim. Keep whole SC036 PARTIAL until the joined consumer effect is proved.",
+  "searches": [
+    "SC-036",
+    "Z04.*APERAK",
+    "late.*ACK",
+    "applyCanonicalInboundAckStatusUpdate",
+    "applySafeInboundStatusUpdate",
+    "ediel_apply_supply_source_v1",
+    "confirmed.*acknowledged",
+    "gridex_ack_authority.apply_v1",
+    "gridex_read_committed_inbound_ack_v2",
+    "outbound_requests trigger/status guards"
+  ],
+  "ownership": {
+    "reviewClaim": 5992057617,
+    "releasedRacedSC035": 5992105299,
+    "ownerHandoffs": [
+      5992173618,
+      5992300102
+    ],
+    "implementation": "Claude",
+    "integration": "retained coordinator",
+    "coverageEdited": false,
+    "productionEdited": false
+  },
+  "mainObservedAfterReview": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+  "sourceCarry": "All24 exact candidate blobs match mergedmain0dab9200; #568 merged while review was in progress. Current PASSED promotion remains disputed, source owner/coordinator asked to reconcile; reviewer does not edit foreign coverage.",
+  "finalPacketReview": {
+    "reviewer": "/root/sc010_sc071_review",
+    "verdict": "APPROVE bounded review/probe packet",
+    "criticalOrImportant": 0,
+    "sourceHashesVerified": 48,
+    "logHashesVerified": 6,
+    "unchangedInputsAlsoOn": "fb11952a105adc62b62a89ea70a19c9ad030ad22",
+    "limits": "No current native/Z04-period regression or whole SC036 approval; observation PASS and separate normative assertion FAILED preserved."
+  }
+}

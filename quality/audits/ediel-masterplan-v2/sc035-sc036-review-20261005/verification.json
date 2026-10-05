@@ -1,0 +1,236 @@
+{
+  "candidate": "774287939d53eb60bf1c202ac81cb9f9c24ed87b",
+  "currentMain": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+  "node": "22.23.0",
+  "vitest": "4.1.9",
+  "qualification": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "candidateSha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "currentMainSha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "candidateSha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "currentMainSha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundAckProcessing.ts",
+      "candidateSha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "currentMainSha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "candidateSha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+      "currentMainSha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/cis/db-outbound.ts",
+      "candidateSha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a",
+      "currentMainSha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "candidateSha256": "46ffcae646308bda20efcab6fd0b13beed8b1f1af0793ddcc416ee3492261f6b",
+      "currentMainSha256": "46ffcae646308bda20efcab6fd0b13beed8b1f1af0793ddcc416ee3492261f6b",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/inbound-mail/inboundStatusUpdater.ts",
+      "candidateSha256": "af0a2ba13dbc60a387407e39e3d72f0bb07d38e9541b036e0368177ce669a3bc",
+      "currentMainSha256": "af0a2ba13dbc60a387407e39e3d72f0bb07d38e9541b036e0368177ce669a3bc",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/inbound-mail/edielInboundProcessor.ts",
+      "candidateSha256": "3c8ffa29cd3faaffa7f1d51d2946f396a7e930471d7322912cb0943e38406c81",
+      "currentMainSha256": "3c8ffa29cd3faaffa7f1d51d2946f396a7e930471d7322912cb0943e38406c81",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/inbound-mail/inboundMatcher.ts",
+      "candidateSha256": "c98b20377a078af4c9bcf1459f94f32e2c9cafc0b727e9b62ad60f9cd35c3ed1",
+      "currentMainSha256": "c98b20377a078af4c9bcf1459f94f32e2c9cafc0b727e9b62ad60f9cd35c3ed1",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/ediel/ack/committedInboundAck.ts",
+      "candidateSha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "currentMainSha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "lib/ediel/ack/sourceCorrelation.ts",
+      "candidateSha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+      "currentMainSha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "scripts/ediel-ack-source-sql-regression.mjs",
+      "candidateSha256": "a852666fb0d7805e0fb67ab7a7752c4b0ad3c50ff0bbd08d81d6868d96cfcb52",
+      "currentMainSha256": "a852666fb0d7805e0fb67ab7a7752c4b0ad3c50ff0bbd08d81d6868d96cfcb52",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "scripts/ediel-normal-switch-source-sql-regression.mjs",
+      "candidateSha256": "3740a7c8cb28abd3c4c46188cca992d88eae7b49f4762723202cbc111e20c6e6",
+      "currentMainSha256": "3740a7c8cb28abd3c4c46188cca992d88eae7b49f4762723202cbc111e20c6e6",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+      "candidateSha256": "e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746",
+      "currentMainSha256": "e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+      "candidateSha256": "0ea477f9bddb75a4cbbc1286a845f52c3f69a7aaf2f04cfd7693931ea0015426",
+      "currentMainSha256": "0ea477f9bddb75a4cbbc1286a845f52c3f69a7aaf2f04cfd7693931ea0015426",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+      "candidateSha256": "8d51f862b171a0ca4eb3286253aaa48fb9e1e28477a7d4f7b56aa46570195a01",
+      "currentMainSha256": "8d51f862b171a0ca4eb3286253aaa48fb9e1e28477a7d4f7b56aa46570195a01",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+      "candidateSha256": "44d4a3baa59a7cbffe4b7408824463853b0707b0d69142a4ee112996f6c70c94",
+      "currentMainSha256": "44d4a3baa59a7cbffe4b7408824463853b0707b0d69142a4ee112996f6c70c94",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+      "candidateSha256": "fae54aef3c070ec24ca36b64a922035355d4b8b19fbda549355cb9a23c83386a",
+      "currentMainSha256": "fae54aef3c070ec24ca36b64a922035355d4b8b19fbda549355cb9a23c83386a",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "candidateSha256": "0e30b9ddcf5309d8abbdd7d4077274e74699b3c8ae39bdc89d02fec80ac33ec8",
+      "currentMainSha256": "0e30b9ddcf5309d8abbdd7d4077274e74699b3c8ae39bdc89d02fec80ac33ec8",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql",
+      "candidateSha256": "a08d9c16131e3afd879246932956e5698b605246c2ae4427e141b45eddfc9395",
+      "currentMainSha256": "a08d9c16131e3afd879246932956e5698b605246c2ae4427e141b45eddfc9395",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "candidateSha256": "98a186c75e6bef3c8b1609ae15a09679f4599a5452cb141089eff872d4494f13",
+      "currentMainSha256": "98a186c75e6bef3c8b1609ae15a09679f4599a5452cb141089eff872d4494f13",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "candidateSha256": "c9b05a063c742d96fcb1521756859d92ffc3b3766cd949ad9103b83fa429df4d",
+      "currentMainSha256": "c9b05a063c742d96fcb1521756859d92ffc3b3766cd949ad9103b83fa429df4d",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "supabase/migrations/20260707120000_gridex_pipeline_hardening_guards.sql",
+      "candidateSha256": "b21a9a1073ab2aa1107f673b02e814b7c6d58a9f91788d23ac1cb1840bac5cd7",
+      "currentMainSha256": "b21a9a1073ab2aa1107f673b02e814b7c6d58a9f91788d23ac1cb1840bac5cd7",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "package-lock.json",
+      "candidateSha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "currentMainSha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "matchesCurrentMain": true
+    }
+  ],
+  "checks": [
+    {
+      "command": "node22 node_modules/vitest/vitest.mjs run __tests__/ediel-sc-036-late-ack-after-z04.test.ts __tests__/ediel-sc-036-legacy-late-ack.test.ts --reporter=default --reporter=junit",
+      "cwd": "/workspace/gridex-ediel-sc036-candidate-replay-20261005",
+      "exitCode": 0,
+      "result": "7 PASS, 0 FAIL, 0 SKIP",
+      "log": "existing-tests.log",
+      "junit": "existing-tests.xml"
+    },
+    {
+      "command": "node22 scripts/test-ediel-p-11-z04-order.cjs",
+      "exitCode": 0,
+      "result": "6 P11 groups PASS; inherited normal-switch harness also executed",
+      "log": "existing-sql.log"
+    },
+    {
+      "command": "node22 conditional-ack-status-probe.mjs /workspace/gridex-ediel-sc036-candidate-replay-20261005",
+      "exitCode": 0,
+      "result": "1 conditional observation PASS, 18 inherited SQL checks PASS; NOT normative SC036 approval",
+      "log": "conditional-observation.log"
+    },
+    {
+      "command": "SC036_ASSERT_PRESERVATION=1 node22 conditional-ack-status-probe.mjs /workspace/gridex-ediel-sc036-candidate-replay-20261005",
+      "exitCode": 1,
+      "result": "Preservation oracle FAILED: expected confirmed, received acknowledged; retained failure",
+      "log": "conditional-preservation-RED.log"
+    }
+  ],
+  "logs": {
+    "conditional-observation.log": "097def3a099f8b8084b8a83aa18e4bc03139027f0eb8f06acbcca4c7ba13c15a",
+    "existing-tests.log": "e46ae68ab26838aba34f7c2fa446bff725a172b4e6983151d9e32b96fb52a15d",
+    "existing-tests.xml": "27462f923f8a9b625204149393b89ff394a1d5c98c266fe7e157b5148dea2739",
+    "existing-sql.log": "9b444df3f29c9fa33b0054bb1007602beaa3dc52df31b6bdfe7d8166475758cb",
+    "conditional-preservation-RED.log": "3f8fa6cd2974cb6f055d200a877ca44da10b77454658cf10b7bab49922c1afff",
+    "current-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+  },
+  "nodeBinary": "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+  "followupChecks": [
+    {
+      "command": "node22 --check conditional-ack-status-probe.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node22 node_modules/eslint/bin/eslint.js conditional-ack-status-probe.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node22 scripts/check-ediel-masterplan-v2.cjs",
+      "exitCode": 0,
+      "result": "33 original files /121 rules /231 contracts; specification/evidence references only",
+      "log": "current-integrity.log"
+    }
+  ],
+  "preservedSetupFailures": [
+    {
+      "operation": "Initial eslint invocation in own review worktree before node_modules was linked",
+      "exitCode": 2,
+      "error": "ERR_MODULE_NOT_FOUND: eslint imported by eslint.config.mjs",
+      "resolution": "Linked already installed own package-lock-identical node_modules; unchanged script/config retry exits0"
+    },
+    {
+      "operation": "Initial attempt to start integration preview tool with not-yet-created cwd",
+      "result": "exec-server No such file or directory; shell did not run",
+      "resolution": "Created the unique linked worktree from existing root first; actual composition executed afterward"
+    },
+    {
+      "operation": "Initial merge precheck after main advanced concurrently",
+      "exitCode": 1,
+      "result": "mergeable UNKNOWN; guard stopped before any merge",
+      "resolution": "Refreshed actual main and recomposed; no bypass/retry from unqualified base"
+    }
+  ],
+  "publishedMainObserved": "63a34e1c9b5e08dcf5440ee5ebc1cd2b703bc28d",
+  "sqlComponentIntegration": {
+    "pr": 572,
+    "head": "7cf4524428868b99a342cd6fc2b0d062b234e47d",
+    "merge": "63a34e1c9b5e08dcf5440ee5ebc1cd2b703bc28d",
+    "tree": "ba643b59a046706fc4ad7bc154d3fd98ba47f7c4",
+    "requiredCi": "All nine mandatory current-head checks SUCCESS; no admin/bypass/branch deletion",
+    "componentReview": "Independent bounded APPROVE retained",
+    "composition": "8 focused PASS, integrity33/121/231 PASS; supported352-ID check206approved226taggreen0failing",
+    "newFilesOnly": 12,
+    "coverageChangedByComponent": false
+  }
+}

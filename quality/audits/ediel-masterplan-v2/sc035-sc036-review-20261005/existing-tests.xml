@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="7" failures="0" errors="0" time="0.039132045">
+    <testsuite name="__tests__/ediel-sc-036-late-ack-after-z04.test.ts" timestamp="2026-10-05T09:51:03.162Z" hostname="8095447c6b62" tests="4" failures="0" errors="0" skipped="0" time="0.0197265">
+        <testcase classname="__tests__/ediel-sc-036-late-ack-after-z04.test.ts" name="both fixtures are classified as positive ACKs" time="0.01014625">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-036-late-ack-after-z04.test.ts" name="a late positive APERAK after Z04 keeps the confirmed business status and Z04 payload" time="0.005020941">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-036-late-ack-after-z04.test.ts" name="a late positive CONTRL after Z04 keeps the confirmed business status and Z04 payload" time="0.001439269">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-036-late-ack-after-z04.test.ts" name="before any business response the positive APERAK still records application acceptance" time="0.001646193">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-sc-036-legacy-late-ack.test.ts" timestamp="2026-10-05T09:51:03.164Z" hostname="8095447c6b62" tests="3" failures="0" errors="0" skipped="0" time="0.019405545">
+        <testcase classname="__tests__/ediel-sc-036-legacy-late-ack.test.ts" name="legacy updater: a late positive APERAK after Z04 keeps the confirmed request and completes the Z03 ACK columns" time="0.012528412">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-036-legacy-late-ack.test.ts" name="legacy updater: a late positive CONTRL after Z04 keeps the confirmed request and completes the Z03 ACK columns" time="0.003233121">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-036-legacy-late-ack.test.ts" name="legacy updater: before any business response the positive APERAK still records application acceptance" time="0.00215152">
+        </testcase>
+    </testsuite>
+</testsuites>
