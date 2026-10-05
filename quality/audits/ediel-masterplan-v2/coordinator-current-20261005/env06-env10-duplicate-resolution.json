@@ -1,0 +1,874 @@
+{
+  "schema_version": 1,
+  "reviewer": "/root/sc051_sc068_final_review",
+  "reviewed_at": "2026-10-05T15:10:31Z",
+  "decision": "APPROVE_COORDINATION_PATH_ONLY",
+  "whole_current_head_approval": false,
+  "scope": [
+    "ENV-06",
+    "AT-ENV-06",
+    "ENV-10",
+    "AT-ENV-10"
+  ],
+  "method": "Independent read-only full frozen criteria, actual PR diffs/callers/trust boundaries, original approval-byte continuity, authoritative API heads/checks and existing decoded quality/native logs; no behavior rerun.",
+  "snapshot": {
+    "env06": {
+      "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+      "tree": "f395dc0a0dd17c615b40e51a02327caf29258bfd",
+      "inputs": {
+        "lib/ediel/core/runtimeDecision.ts": {
+          "sha256": "76161c2a83f390e14349bb691d6c886262a89266af0396a10b410bca6c22558c",
+          "bytes": 54609,
+          "blob": "89d9df9aa2cfa644e34b8c91c2bdbc3c34882290"
+        },
+        "lib/ediel/decisionEngine.ts": {
+          "sha256": "5267a66d5f3380e2b2171c0899f2e843bd8c81f39822832f853a173343d44d03",
+          "bytes": 24354,
+          "blob": "faa717c496defd3fd67053fa3fcf767e25f3f856"
+        },
+        "lib/ediel/prodat/prodatTransactionReason.ts": {
+          "sha256": "8ffc6d7d91910ee86eecd39f54bb9c6a46e805f5fc5e78028e18c59735cbe348",
+          "bytes": 3349,
+          "blob": "f3478eca8ea974f3693907485ffb4c5bcbbf908c"
+        },
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": {
+          "sha256": "6461183da115063562ac8c393612809be672019dc59936700821701951e882c5",
+          "bytes": 18303,
+          "blob": "a8ea27ead16b409f6cc3df44765bccc079e33d4f"
+        },
+        "lib/ediel/rulebook/validator.ts": {
+          "sha256": "4800241295df427c7dbfd076eefedc42ef2faf238b27d2c10b3b7cb10afca997",
+          "bytes": 52248,
+          "blob": "c8d573892c2a629fdda511135831fd3a206bb5dc"
+        },
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts": {
+          "sha256": "faaf4c1597a6259c04130437aa5ddeecf599daa585a26db8b92b97bc24f50d93",
+          "bytes": 10014,
+          "blob": "1054ef1a1b566c908ccdbcdb6e6d31408f88c1dc"
+        },
+        "docs/ediel/masterplan-v2/registers/rules.json": {
+          "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+          "bytes": 91487,
+          "blob": "2108c9c297457c288364b9ed669809aedd21e21e"
+        },
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json": {
+          "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+          "bytes": 150753,
+          "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+        }
+      }
+    },
+    "env10": {
+      "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+      "tree": "5e2563a81b53dfad16557e2c12cbe752f0976464",
+      "inputs": {
+        "__tests__/ediel-env10-family-release-locators.test.ts": {
+          "sha256": "d195f68137e0fa1d60167fb725894c379b33e15320e65504951f928d9bbebef3",
+          "bytes": 5622,
+          "blob": "8fe70704916a3e8d956cd9a07980762d50572585"
+        },
+        "docs/ediel/masterplan-v2/registers/rules.json": {
+          "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+          "bytes": 91487,
+          "blob": "2108c9c297457c288364b9ed669809aedd21e21e"
+        },
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json": {
+          "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+          "bytes": 150753,
+          "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+        }
+      }
+    },
+    "claude": {
+      "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+      "tree": "bd72399a90f3d0e7ef6a06a9bd2b36decd31bb79",
+      "inputs": {
+        "lib/ediel/core/runtimeDecision.ts": {
+          "sha256": "a2285418649b008a4eee01e4badc7d12d262ae936657ea94f88f40bb3ecd542e",
+          "bytes": 53989,
+          "blob": "8a1b8bc06ec29132a19f65acd8185f7742975004"
+        },
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts": {
+          "sha256": "ce46d108635ccbe6af75f00b538c40a97efc98f678a55908a87f692c927b8593",
+          "bytes": 18286,
+          "blob": "2d1ed2912ce02125d8d3ec826bb2b533899f2282"
+        },
+        "lib/ediel/prodat/prodatReasonCodeRejection.ts": {
+          "sha256": "5ede340af3249083b4f9ee51733c1139232635c592a5757eb544d3a1931c0672",
+          "bytes": 1787,
+          "blob": "4d16ce11a065b262ac038114d8624f6479f01dff"
+        },
+        "lib/ediel/core/canonicalEdifactAst.ts": {
+          "sha256": "97ac9b02867114ec33ed95df20ba9a2d57da57b43cd0b619ab06c46b92109d5a",
+          "bytes": 11513,
+          "blob": "aa673f1a868dd1285872fdec59303dd2b1d3af99"
+        },
+        "lib/ediel/rulebook/fieldMatrix.ts": {
+          "sha256": "83cf303fbb57576f093aa60a24453325a721ae05d700158789c9176f02fa5482",
+          "bytes": 54218,
+          "blob": "72900ea2274e430619a08aea3504270e70b5c777"
+        },
+        "__tests__/ediel-env-06-env-10-prodat-cci-layout.test.ts": {
+          "sha256": "e791b3a4e12f453fe4d79abb707f654f70939cf812067beaa8ff7f0a95e769cc",
+          "bytes": 10579,
+          "blob": "8e127a69892f2e3c6c277ea67655e0ce377a04a4"
+        },
+        "docs/ediel/masterplan-v2/registers/rules.json": {
+          "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+          "bytes": 91487,
+          "blob": "2108c9c297457c288364b9ed669809aedd21e21e"
+        },
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json": {
+          "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+          "bytes": 150753,
+          "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+        }
+      }
+    },
+    "main": {
+      "head": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+      "tree": "b519b3271f5bdd41bc3aac794b607420b5b725f5",
+      "inputs": {
+        "lib/ediel/core/runtimeDecision.ts": {
+          "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+          "bytes": 53737,
+          "blob": "9f2e3c7e36affec21f1430a3beb165fac2e5242c"
+        },
+        "lib/ediel/core/canonicalEdifactAst.ts": {
+          "sha256": "d005f2dc03c40ada838079e8d5090f4b40217155d4b0b1f16d59892f3f2249d2",
+          "bytes": 11240,
+          "blob": "0bc609c2838452538e9aa09fefe6ccfc5b6ec284"
+        },
+        "lib/ediel/rulebook/fieldMatrix.ts": {
+          "sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+          "bytes": 53792,
+          "blob": "fc541d91021427f0daa7c2f681f4590c07850454"
+        },
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts": {
+          "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+          "bytes": 22014,
+          "blob": "18a4b4359d40d9972e06b5b438a65e5f699815fa"
+        },
+        "lib/ediel/prodat/prodatCharacteristicFields.ts": {
+          "sha256": "15a0102f79eca1ec6ae5b27eef773ec5a15b45041ebac4e52b7ef80b191115c7",
+          "bytes": 4574,
+          "blob": "00965f080f6151ba07a5146982a7e51ea6ad8960"
+        },
+        "lib/ediel/prodat/prodatRegisterGroups.ts": {
+          "sha256": "142e9e441e6a94708841dec9aaddb9656b091aa04536c00ec358a6b59bcfe291",
+          "bytes": 7902,
+          "blob": "b256e85423c5ba8d478d53d459af9f2fa9279958"
+        },
+        "lib/ediel/rulebook/fieldRuleRegistry.ts": {
+          "sha256": "d0c95a4d88dc4889c5f47e201dab3c12e100610665c07d262e88cf35252ee8f9",
+          "bytes": 5234,
+          "blob": "515a03d8948b484ac181c02858de285f9ad36013"
+        },
+        "lib/ediel/utiltsEngine.ts": {
+          "sha256": "ff0fe04f6888c0257dde773216173f1c12b0ea6708b1025a6af163499558f6f6",
+          "bytes": 58489,
+          "blob": "007d8270d467ff7bddbb0f7ca65beed722d6071e"
+        },
+        "lib/ediel/utilts/consumptionPreparation.ts": {
+          "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+          "bytes": 14672,
+          "blob": "e0b5618ca796930b122864f9880ac33cdd3ed160"
+        },
+        "docs/ediel/masterplan-v2/registers/rules.json": {
+          "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+          "bytes": 91487,
+          "blob": "2108c9c297457c288364b9ed669809aedd21e21e"
+        },
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json": {
+          "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+          "bytes": 150753,
+          "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+        }
+      }
+    },
+    "root503": {
+      "head": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+      "tree": "19101e4c10ce05641b748ed64df9338c5b2fe29b",
+      "inputs": {
+        "lib/ediel/core/runtimeDecision.ts": {
+          "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+          "bytes": 53737,
+          "blob": "9f2e3c7e36affec21f1430a3beb165fac2e5242c"
+        },
+        "lib/ediel/inbound/receptions.ts": {
+          "sha256": "1e5647867da934101244bee7f8c982573eccdae1077b641cfe86f74b7f42e167",
+          "bytes": 7470,
+          "blob": "13a7a6615653ef286e6fc91a4fe1dfc537445817"
+        },
+        "lib/ediel/flows/inboundProcessing.ts": {
+          "sha256": "7a2c731a6e5acc15f923a5cbeeea64233d581fc435a69a1d2b31323659f794fa",
+          "bytes": 60172,
+          "blob": "7fad1ac51c1c53ab24cdd2778e353acf6a7d5355"
+        },
+        "scripts/supabase-types-manifest.json": {
+          "sha256": "e2ed39c6fc2e9ddb125d83e4a6b8e6095a97055a751d576835649df11403304d",
+          "bytes": 54485,
+          "blob": "62f347cc40c97d15fa2587f7269027bb9a482703"
+        },
+        "docs/ediel/masterplan-v2/registers/rules.json": {
+          "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+          "bytes": 91487,
+          "blob": "2108c9c297457c288364b9ed669809aedd21e21e"
+        },
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json": {
+          "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+          "bytes": 150753,
+          "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+        }
+      }
+    }
+  },
+  "canonical_paths": {
+    "ENV06": {
+      "pr": 517,
+      "source_head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+      "approval_freeze": "44aa4fab2c0909381b820ef54179c405084a548c",
+      "approval_comment": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5984608254",
+      "source_and_test_exact_to_approved_freeze": true,
+      "independent_assertions": 237,
+      "qualification": "Retain original whole code approval and original source owner. Actual-current-main integration and current CI pending; original clean gate remains failed."
+    },
+    "ENV10": {
+      "pr": 512,
+      "source_head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+      "approval_freeze": "7fab80cce52bc1c8a517e8837849bed3f7e40b76",
+      "approval_comment": "https://github.com/heke99/gridex-ops-platform/pull/512#issuecomment-5984122757",
+      "six_tagged_assertions_exact_to_approved_freeze": true,
+      "independent_assertions": 57,
+      "source_supplement": {
+        "from_pr": 576,
+        "from_head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+        "source_paths": [
+          "lib/ediel/core/canonicalEdifactAst.ts",
+          "lib/ediel/rulebook/fieldMatrix.ts"
+        ],
+        "behavior": "Retain the four existing ENV10 cases verbatim, through explicit source/test owner handoff; original mixed 14-case package remains preserved at its original freeze."
+      },
+      "qualification": "Previous reader/full-UNSM approval excluded generic AST/persisted CCI buckets. A new combined frozen head needs whole literal ENV10/ATENV10 review plus normal current-head CI; this record grants neither source-writer transfer nor whole new-head approval."
+    }
+  },
+  "criterion_effects": [
+    {
+      "id": "ENV-06/AT-ENV-06",
+      "condition": "Unsuffixed physical BGM, exact three-character own CCI Z13/CAV reason",
+      "on_pass": "Actual Z03/Z22 resolves L and renderer never emits BGM Z03L",
+      "on_failure": "Directory-length/missing mandatory CAV -> negative CONTRL only; accepted own bad or absent 223 -> typed national 42/41 with own Z07/LI and actual APERAK; ambiguous scope -> internal review without invented wire error",
+      "canonical": "517",
+      "evidence": "30 durable cases; unchanged five source files plus test match whole-review freeze; actual old-head quality 10103 PASS"
+    },
+    {
+      "id": "ENV-10/AT-ENV-10",
+      "condition": "PRODAT C502/6313 versus UTILTS C240/7037; physical full UNH family/release grammar",
+      "on_pass": "512 preserves full D97A/D02B grammar, physical representation bounds and actual P/U field-reader contrasts; 576 adds exact family slot to generic AST and legacy planning locator",
+      "on_failure": "Cross-family relocation cannot supply P242/223 or U Exchange; 576 corrects wrong-family UTILTS AST qualifier and legacy required/forbidden 254",
+      "canonical": "512 plus explicitly handed-off ENV10-only 576 delta",
+      "evidence": "512 six durable contrasts/57 independent; 576 four additional ENV10 cases in genuine 14-case owner test; combined freeze not yet created"
+    }
+  ],
+  "duplication": {
+    "exclude_from_env10_transfer": [
+      "lib/ediel/core/runtimeDecision.ts (all #576 ENV06 hunks)",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts (all #576 ENV06 hunks)",
+      "lib/ediel/prodat/prodatReasonCodeRejection.ts",
+      "the ten #576 ENV06 cases and their four mixed coverage promotions"
+    ],
+    "reason": "517 already has one shared physical assessment at policy-success, policy-failure, public ACK and validator consumers. Adding both owners produces duplicate/contradictory semantics and error evidence.",
+    "incompatible_owner_oracles": [
+      "576 expects PRODAT26A:§2.2:Z01:223 while 517 owns PRODAT26A:§2.6:P64–65:annex4:P122:223",
+      "576 expects FIELD_MATRIX_CODE_LIST_INVALID for outbound alias while 517's single physical owner emits PRODAT_TRANSACTION_REASON_INVALID"
+    ],
+    "assertion_rule": "Preserve both original historical proofs. Do not rewrite either assertion suite to make a duplicate source union green; transfer only the four ENV10 cases verbatim after owner ACK."
+  },
+  "reservations": [
+    {
+      "paths": [
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/decisionEngine.ts",
+        "lib/ediel/prodat/prodatTransactionReason.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts"
+      ],
+      "owner": "retained #517 ENV06 technical owner; root coordinates current shared runtime integration",
+      "scope": "sole ENV06 source/proof; preserve current OPS failure-disposition and opaque owner gates"
+    },
+    {
+      "paths": [
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/rulebook/fieldMatrix.ts",
+        "four ENV10 cases from __tests__/ediel-env-06-env-10-prodat-cci-layout.test.ts"
+      ],
+      "owner": "retained #576 zealous-brown source/test owner until explicit handoff",
+      "scope": "ENV10-only delta; no runtime/matrix field223 source ownership"
+    },
+    {
+      "paths": [
+        "__tests__/ediel-env10-family-release-locators.test.ts",
+        ".agent-memory/masterplan-env10-checkpoint.md",
+        "ENV-10 and AT-ENV-10 rows only in quality/audits/ediel-masterplan-v2/coverage.json"
+      ],
+      "owner": "retained #512 ENV10 owner; root owns final promotion and whole approval",
+      "scope": "sole ENV10 integration path; magical-einstein may only perform root's authorized merge carry"
+    },
+    {
+      "paths": [
+        "lib/ediel/inbound/receptions.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/outbox/sendOutboxItem.ts",
+        "lib/ediel/transport/copy.ts",
+        "lib/ediel/services/beneficiaryExport.ts",
+        "supabase/migrations/**",
+        "schema/type/generated captures and replay inputs"
+      ],
+      "owner": "root503c5 and existing source/native owners",
+      "scope": "excluded from ENV source work; no public projection or helper grants private source/intake/business authority"
+    }
+  ],
+  "required_handoff": [
+    "Root names #517 ENV06 and #512 ENV10 as sole canonical paths; both retained owners acknowledge.",
+    "Zealous-brown explicitly ACKs ENV10-only source/test extraction, preservation of original mixed proof, and no further duplicate ENV06 runtime/helper/matrix or coverage edits.",
+    "#512 owner and zealous-brown agree a single writer for two source paths plus four verbatim ENV10 cases; magical-einstein's carry-only permission grants no implementation work.",
+    "Publish one combined ENV10 freeze, retain six original #512 cases and source-qualified four extra cases, assess whole frozen expected/prohibited effects, and qualify actual head with normal gates.",
+    "Root integrates #517 on current main preserving current runtime/source custody; genuine current-head clean/native CI must pass before guarded merge. Do not infer a fix from unrelated current changes.",
+    "Root alone handles any later superseding/closing of duplicate #576 and promotion union, after owner acknowledgment and retained-delta publication."
+  ],
+  "source_cause_fp_checks": {
+    "env10_ast": {
+      "result": "VERIFIED_DISTINCT_SOURCE_CAUSE",
+      "before": "cciCavMap uses element2 ?? element3 for non-PRODAT families",
+      "after": "family==='UTILTS' selects element3 only; PRODAT stays its original source-qualified reader",
+      "scope": "Physical UNH already owns message family; existing full UNSM owns release representation. No new family architecture required."
+    },
+    "env10_planning": {
+      "result": "VERIFIED_DISTINCT_SOURCE_CAUSE",
+      "before": "Legacy UTILTS E02/E12/Z01 paths use CCI++ and generic regex cannot parse CCI+++; correct U slot cannot satisfy own path",
+      "after": "CCI path helper preserves ++ versus +++; four UTILTS path strings become CCI+++",
+      "scope": "Keep source-only correction. Evidence-only applied SQL seed rows remain immutable."
+    },
+    "utilts_shape_cast": {
+      "result": "NOT_A_NEW_UNIVERSAL_DEFECT",
+      "reason": "UtiltsFieldRule differs from generic RulebookFieldRule, but actual UTILTS runtime and explicit S02 fieldNo/requirements consumer enforce own requirements; no new common validator is justified."
+    },
+    "env06_old_native_failure": {
+      "result": "GENUINE_CI_FAILURE_NOT_AN_ENV06_SOURCE_DEFECT",
+      "job": 111541633760,
+      "case": "scripts/ediel-z06f-reading-followup-native.test.ts > actual misaligned or missing own reading {\"date\":\"next-day\"} cannot fulfill F or borrow sibling evidence",
+      "error": "utilts_consumption_binding_conflict:observation_interval_unresolved",
+      "stack": [
+        "lib/ediel/utilts/consumptionPreparation.ts:74",
+        "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts:74",
+        "scripts/ediel-z06f-reading-followup-native.test.ts:45"
+      ],
+      "actual_result": "603 PASS / 1 FAIL / 1 SKIP in 46 files",
+      "reason": "Pure UTILTS preparation source is unchanged by #517's PRODAT-guarded source delta. Existing main has an unrelated declared wall-time calendar correction, but this review neither reproduces nor claims that it cures this exact case. Red gate stays blocking until genuine current-head success."
+    }
+  },
+  "current_carry": {
+    "main_first": "d10402d5028021794994e6d5d61622de61d08b57",
+    "main_latest_reviewed": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "main_delta": "PR588 adds supplier acceptance scripts/audit/checkpoint only; reviewed ENV source paths unchanged",
+    "root503_frozen": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "shared_runtime_equal_to_reviewed_main": true,
+    "criteria_raw_equal_all_five_heads": true,
+    "old_checks_do_not_qualify_new_head": true,
+    "public_authorization": "https://github.com/heke99/gridex-ops-platform/pull/530#issuecomment-5997005674",
+    "external_carry": "magical-einstein only the ten allocated PRs including #512; no root/subagent implementation overlap"
+  },
+  "existing_results": {
+    "512": {
+      "quality_job": 111525356324,
+      "tagged_cases": 6,
+      "full_tests": 9873,
+      "full_files": 760,
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "pr-certificate",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111536150188,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111536150188"
+        },
+        {
+          "name": "real-customer-staging",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111530951655,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111530951655"
+        },
+        {
+          "name": "nightly-release-certificate",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111530931582,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111530931582"
+        },
+        {
+          "name": "full",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111530931337,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111530931337"
+        },
+        {
+          "name": "runtime-staging",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111530931045,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111530931045"
+        },
+        {
+          "name": "smoke",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111530930567,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111530930567"
+        },
+        {
+          "name": "coverage",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111530930389,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626407/job/111530930389"
+        },
+        {
+          "name": "browser-staging",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111525388783,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626319/job/111525388783"
+        },
+        {
+          "name": "zap-staging-baseline",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111525384912,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626319/job/111525384912"
+        },
+        {
+          "name": "k6-staging-soak",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111525384851,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626319/job/111525384851"
+        },
+        {
+          "name": "staging-quality-certificate",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111525359715,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626319/job/111525359715"
+        },
+        {
+          "name": "browser-public",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111525358817,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626319/job/111525358817"
+        },
+        {
+          "name": "k6-staging-load",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111525358786,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626319/job/111525358786"
+        },
+        {
+          "name": "crawl-production-readonly",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111525357308,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626310/job/111525357308"
+        },
+        {
+          "name": "clean-migration-replay",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111525356429,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626334/job/111525356429"
+        },
+        {
+          "name": "quality-release-gates",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111525356324,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626334/job/111525356324"
+        },
+        {
+          "name": "verify",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111525356314,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626334/job/111525356314"
+        },
+        {
+          "name": "upgrade-migration-replay",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111525356207,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626334/job/111525356207"
+        },
+        {
+          "name": "targeted-regressions",
+          "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111525356091,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37232626307/job/111525356091"
+        }
+      ]
+    },
+    "517": {
+      "quality_job": 111541633575,
+      "tagged_cases": 30,
+      "full_tests": 10103,
+      "full_files": 766,
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "pr-certificate",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111542776014,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111542776014"
+        },
+        {
+          "name": "staging-quality-certificate",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541635245,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262301/job/111541635245"
+        },
+        {
+          "name": "browser-staging",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541635134,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262301/job/111541635134"
+        },
+        {
+          "name": "nightly-release-certificate",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541635105,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111541635105"
+        },
+        {
+          "name": "k6-staging-soak",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541635056,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262301/job/111541635056"
+        },
+        {
+          "name": "k6-staging-load",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541634957,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262301/job/111541634957"
+        },
+        {
+          "name": "zap-staging-baseline",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541634828,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262301/job/111541634828"
+        },
+        {
+          "name": "runtime-staging",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541634738,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111541634738"
+        },
+        {
+          "name": "real-customer-staging",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541634655,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111541634655"
+        },
+        {
+          "name": "full",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541634652,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111541634652"
+        },
+        {
+          "name": "crawl-production-readonly",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111541634395,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262292/job/111541634395"
+        },
+        {
+          "name": "browser-public",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541634200,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262301/job/111541634200"
+        },
+        {
+          "name": "smoke",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541634089,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111541634089"
+        },
+        {
+          "name": "coverage",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541633964,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262289/job/111541633964"
+        },
+        {
+          "name": "targeted-regressions",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541633864,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262293/job/111541633864"
+        },
+        {
+          "name": "upgrade-migration-replay",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541633832,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262286/job/111541633832"
+        },
+        {
+          "name": "verify",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541633790,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262286/job/111541633790"
+        },
+        {
+          "name": "clean-migration-replay",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "failure",
+          "status": "completed",
+          "job": 111541633760,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262286/job/111541633760"
+        },
+        {
+          "name": "quality-release-gates",
+          "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111541633575,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37238262286/job/111541633575"
+        }
+      ]
+    },
+    "576": {
+      "quality_job": 111721359291,
+      "tagged_cases": 14,
+      "full_tests": 10350,
+      "full_files": 809,
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "pr-certificate",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111723310140,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111723310140"
+        },
+        {
+          "name": "full",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721390056,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111721390056"
+        },
+        {
+          "name": "staging-quality-certificate",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721362989,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270188/job/111721362989"
+        },
+        {
+          "name": "nightly-release-certificate",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721362422,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111721362422"
+        },
+        {
+          "name": "crawl-production-readonly",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721361365,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270182/job/111721361365"
+        },
+        {
+          "name": "k6-staging-load",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721361172,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270188/job/111721361172"
+        },
+        {
+          "name": "k6-staging-soak",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721361018,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270188/job/111721361018"
+        },
+        {
+          "name": "zap-staging-baseline",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721361003,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270188/job/111721361003"
+        },
+        {
+          "name": "browser-staging",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721360848,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270188/job/111721360848"
+        },
+        {
+          "name": "real-customer-staging",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721360828,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111721360828"
+        },
+        {
+          "name": "runtime-staging",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "skipped",
+          "status": "completed",
+          "job": 111721360681,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111721360681"
+        },
+        {
+          "name": "smoke",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359720,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111721359720"
+        },
+        {
+          "name": "browser-public",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359427,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270188/job/111721359427"
+        },
+        {
+          "name": "coverage",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359365,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270180/job/111721359365"
+        },
+        {
+          "name": "verify",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359294,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270181/job/111721359294"
+        },
+        {
+          "name": "quality-release-gates",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359291,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270181/job/111721359291"
+        },
+        {
+          "name": "clean-migration-replay",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359257,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270181/job/111721359257"
+        },
+        {
+          "name": "upgrade-migration-replay",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721359079,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270181/job/111721359079"
+        },
+        {
+          "name": "targeted-regressions",
+          "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+          "conclusion": "success",
+          "status": "completed",
+          "job": 111721358862,
+          "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37297270183/job/111721358862"
+        }
+      ]
+    }
+  },
+  "non_actions": [
+    "No repository source/helper/test/assertion/coverage/shared-memory mutation",
+    "No PR close, merge, GitHub comment or source export",
+    "No reviewer full/native/unit/browser/SQL rerun",
+    "No schema/types/capture regeneration; no historical migration rewrite",
+    "Own read-only clone and these immutable MD/JSON records only"
+  ]
+}

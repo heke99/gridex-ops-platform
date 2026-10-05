@@ -848,3 +848,5 @@ Root exact-lock npm ci passed470 packages. SC072 actual full97A +independent T24
 | #474 production apply + read-only verification | PASS | Production has no supply periods yet (all counts 0) |
 | SQL behaviour tests (stub, PG16) | 8 + 4 + rollup checks PASS, no LEAK | Stub schema, not full replay |
 | Performance pass (5 000 customers, 8.76M hourly values) | see customer-portfolio-checkpoint.md | Local PG16, synthetic data |
+
+- 2026-10-05T15:06:32Z coordinator: direct API/Git main aa271e14/treeb519b327 and published503c5af verified; main222/root227 separate. New read-only allocation5305997005674 and pointer handoff5305997187270, exact required-gate snapshot archived. Current checks pending, no duplicate native/full dispatch; blocked private IMP05 report excluded.

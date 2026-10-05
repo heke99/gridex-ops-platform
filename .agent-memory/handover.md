@@ -1310,3 +1310,9 @@ composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
 - 2026-10-05 main integration: #562 36e873fbac87695f9d3522086f721961824e29f9 — Merge pull request #562 from heke99/codex/ediel-sc057-sc059-registry-evidence-20261005; actual tree a32ecc7e8760c056581385b233bd84c56f82d476; owner source/evidence retained, no production apply.
 - 2026-10-05 SC-047 stays PARTIAL (review 5994883822: inbound receiver/role admission not executed jointly; gateway test kept): gateway fixture runs real matchUtiltsTransactionsForTenant (object only in a foreign tenant → unmatched) → runtime E10 (syntax/guide pass) → createUtiltsRuntimeAcks → one physical UTILTS ERR E10 on RFF+TN OWN-E10; foreign/own data unchanged; own-tenant contrast matches with no codes. Removing the company filter turns it red.
 - 2026-10-05 SC-034 native: z04-ack-native gains complete-first-lin-two and complete-global-order-132 (all objects otherwise complete) → BGM 27/FTX 314, no case/switch/supply, stable replay. Promoted to PASSED; verified only by CI clean-migration-replay (no local Docker).
+
+- 2026-10-05 main integration: #587 d10402d5028021794994e6d5d61622de61d08b57 — actual parents36e873fb +757008e7, tree ddbd102d384349dc25f46c845e0ec26fe67f785b; SC034 PASSED, SC047 PARTIAL evidence only; no production apply.
+
+- 2026-10-05 main integration: #588 aa271e14b8a39145dca04aa1433dd54be88f44bd — actual parentsd10402d5 +7453605e, tree b519b3271f5bdd41bc3aac794b607420b5b725f5; F/G proposal-only release, whole AT/native HELD, helper continuation excluded; no production apply.
+
+- 2026-10-05 main integration: #548 cf275d78d252bdaa8e49fb4e5f65afaa61bf0128 — actual parents aa271e14 +99af2133, tree80d5b295ceae1c65b57b924a42e259897b5412cd; SC013/SC020 PASSED, nine exact-head gates plus CodeRabbit SUCCESS, main222→224; 350 foreign rows and7,788 paths exact; no production apply.
