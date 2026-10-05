@@ -1,0 +1,352 @@
+{
+  "schema": "gridex-masterplan-sc013-sc020-current-main-integration/v1",
+  "createdAt": "2026-10-05T14:07:27.508218+00:00",
+  "owner": "/root/sc001_sc002_sc018_sc056_carry",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/548",
+  "branch": "codex/ediel-sc013-sc020-evidence-20261004",
+  "previousOwnerHead": "dc77ef07ca05feefc852cddfcfe663cbccd07eb8",
+  "actualMainAdopted": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "sourceMergeHead": "986586b09256036cf38e2efa91759cbbf23ccca7",
+  "sourceMergeTree": "ac85a1bbb87b54240b255a451a8e43e25fe42df7",
+  "genuineParents": [
+    "dc77ef07ca05feefc852cddfcfe663cbccd07eb8",
+    "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686"
+  ],
+  "claims": [
+    "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995933723",
+    "https://github.com/heke99/gridex-ops-platform/pull/548#issuecomment-5995937142",
+    "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995976014"
+  ],
+  "ownershipInventory": {
+    "full530Comments": 252,
+    "full491Comments": 454,
+    "claim491CountTranscriptionCorrectedBeforeSourceEdit": true,
+    "noCompeting548IntegrationOwner": true
+  },
+  "retainedWholeApproval": {
+    "head": "c4513ddac5e49a262114b3e05d0bb4728ae791ab",
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985754345",
+    "adopted548ReviewUrl": "https://github.com/heke99/gridex-ops-platform/pull/548#issuecomment-5985883129",
+    "sameFrozenLiteralFiniteEffectScope": true,
+    "SC013": "Actual APERAK/CONTRL codec→global original physical source qualifier→tenant selector chooses B despite A route hint; allA/Boriginal/request values remain unchanged. SDK/source/legal identity ports are finite.",
+    "SC020": "Actual positive Z13 ACK registers receipt through unchanged protected source/apply ports; permission waitsz13_sent withoutZ14/supply/grant activation. Exact finite SQL STORE and separate active→waiting READ contrast retained."
+  },
+  "selectedSqlOwners": [
+    {
+      "name": "public.gridex_read_inbound_ack_source_v1",
+      "previousOwnerBodySha256": "7341fe46a60564bbabd5b805ae02fdfc36f07a3610d9091be5a9f8216a30b2f6",
+      "mainBodySha256": "7341fe46a60564bbabd5b805ae02fdfc36f07a3610d9091be5a9f8216a30b2f6",
+      "equal": true
+    },
+    {
+      "name": "public.gridex_apply_inbound_ack_source_v1",
+      "previousOwnerBodySha256": "e3d2bd2b046b902c08f4dc53ee6354d4b21b0ab9202263e93de821911286cd30",
+      "mainBodySha256": "e3d2bd2b046b902c08f4dc53ee6354d4b21b0ab9202263e93de821911286cd30",
+      "equal": true
+    },
+    {
+      "name": "gridex_utilts_binding.require_current_esco_storage_v1",
+      "previousOwnerBodySha256": "1c30339d0297b5a067793e43d2d021b04adddcb7506ceae54988ce32101785a0",
+      "mainBodySha256": "1c30339d0297b5a067793e43d2d021b04adddcb7506ceae54988ce32101785a0",
+      "equal": true
+    },
+    {
+      "name": "public.gridex_persist_utilts_consumption_v1",
+      "previousOwnerBodySha256": "c08d23455d13301454b7e7b7968bbcd80c13d0a13ba4567ed00d04dd4cfa7f48",
+      "mainBodySha256": "c08d23455d13301454b7e7b7968bbcd80c13d0a13ba4567ed00d04dd4cfa7f48",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_beneficiary_series_page_v1",
+      "previousOwnerBodySha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+      "mainBodySha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2",
+      "previousOwnerBodySha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+      "mainBodySha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+      "equal": true
+    }
+  ],
+  "changedSourceEffects": [
+    {
+      "path": "app/admin/ediel/actors/actions.ts",
+      "previousSha256": "37e1185a37b1c690f0fa6ab0f21902e3aad4d1a3871f2330d90808a84a2a8c56",
+      "mainSha256": "ac81f859715bcaf58e75582c28bd16a1c29a14a4e33537638776a31db132270f",
+      "effectQualification": "Already merged DB01 admin legacy route removal/UI change. Selected ACK original/correlation uses declared source/identity ports and actual protected ACK owners, without actor-admin route writes; no selected source/tenant authority is removed."
+    },
+    {
+      "path": "app/admin/ediel/actors/page.tsx",
+      "previousSha256": "4d142ff411d638f604b448881c1eb99a85b5d49e9734fcb6c35fa125d9ce11af",
+      "mainSha256": "e6e47e2216743c3b56191f83ebd8f4b7e59dc47b385d4efa98f953d9d77dda0c",
+      "effectQualification": "Already merged DB01 admin legacy route removal/UI change. Selected ACK original/correlation uses declared source/identity ports and actual protected ACK owners, without actor-admin route writes; no selected source/tenant authority is removed."
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "previousSha256": "714c155fe68875d63f33111ce7cb871cb8c998adba394f83d6bf72cbbed67876",
+      "mainSha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "effectQualification": "Only two existing pure helpers become exports; bodies unchanged. No billing path is called by these ACK/no-access scenarios."
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "previousSha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "mainSha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "effectQualification": "Only policy/evidence failure disposition metadata and internal_review projection changed. The selected positive physical APERAK register_ack path and APERAK-before-permission rejection are asserted through unchanged processInboundAckMessage/permissionMarketTransition; synthetic current source/apply/RPC ports stay explicit."
+    },
+    {
+      "path": "lib/ediel/core/tenantResolver.ts",
+      "previousSha256": "72e2bfcefc8c218426434ae908f3f59cdca815de581e48f4d622dd0a04f8e702",
+      "mainSha256": "b4fd81cb0d4faaac51c89357eba34a1c51058a3d4a06a32da002086720a0bf7a",
+      "effectQualification": "Reached by SC013. Uses the source-backed inboundLegalReceiverEdielId selector instead of promoting UNB for PRODAT/UTILTS. Actual APERAK/CONTRL namespace selection still chooses own B and preserves all A/B originals; current53 cases assert both physical families."
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "previousSha256": "e90a22a838d861ca699ff00d0f231f766b050005d44c799d48abff8e68909df7",
+      "mainSha256": "2248ac210b846e116eb5e313e20e7673dd53e7877604be0a363ae703b370ce54",
+      "effectQualification": "Optional reference correlation receives the resolved own point. Selected SC013 uses physical ACK original namespaces; SC020 uses Z13 APERAK and finite SQL STORE/READ, without UTILTS request linkage."
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "previousSha256": "a53ff6e8e95d3d65cfe02f95afaedf3ac7d67a26241aea9fe6b2009a97fd1174",
+      "mainSha256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+      "effectQualification": "Inbound register-direction correction affects non-structural PRODAT business case creation, which selected ACK correlation/positiveACK processing and finite SQL STORE/READ do not call."
+    },
+    {
+      "path": "lib/ediel/matching.ts",
+      "previousSha256": "308bbdc52a24fe04ecf6433a4ead122ce8cfbbeb46cbe65fa090f2844507dff7",
+      "mainSha256": "d99c779b0313235e672d35d5a4b080eb3a49915c6d062dba13f0634ea345608c",
+      "effectQualification": "TN hint ambiguity and point coherence improve findMatchingGridOwnerDataRequest. Selected ACK source correlator is a separate unchanged actual module; selected SQL guards do not call this TS matcher."
+    },
+    {
+      "path": "lib/ediel/partyRegistry.ts",
+      "previousSha256": "8ded21f3fa8ac4f779d5a7c3f2ecb68ebcbc273f4012658c37e970cfdaeb0ed5",
+      "mainSha256": "5a9faaabcadf18a22fba499c2d8d251cedd438cd902e0e07d40db24d173e7780",
+      "effectQualification": "Already merged DB01 admin legacy route removal/UI change. Selected ACK original/correlation uses declared source/identity ports and actual protected ACK owners, without actor-admin route writes; no selected source/tenant authority is removed."
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "previousSha256": "72ab4f6836154c74a4dcd8e3fefec92fc31bb5da6800318707b591f51f44bf0e",
+      "mainSha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+      "effectQualification": "Optional direction forwards received ignored-field behavior; selected ACK original/correlation and Z13 positive receipt do not obtain or approve a permission from business payload fields."
+    },
+    {
+      "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+      "previousSha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+      "mainSha256": "b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7",
+      "effectQualification": "Required S/MIME leaf now binds Subject/SAN to actual mailbox. Selected scenarios perform ACK correlation/registration and refused access, not actual SMTP/S/MIME sending; no certificate/native/custody proof is inferred."
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "previousSha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "mainSha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "effectQualification": "Membership/profile/permission predicates, query ordering, and original rejection messages remain exact; only Error constructors become imported EdielExecutionFailure security_quarantine, which extends Error. Actual selected tests import production modules rather than extracting this function into an unbound AST factory. No new test-local class/function binding is necessary. Invalid identities still stop before effects; no denial turns into national protocol authority."
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "previousSha256": "b25168afa2814456bf985d41d2a2253effc92c321a07e4bfd89e4bb80d67e49e",
+      "mainSha256": "45698f2d4b494902a864efff0dee733ae7ee039b7a29b863da1a08ac1ec6ed1e",
+      "effectQualification": "Already merged generic archived-MIME/provider attempt gate correction. Selected correlation and positive ACK source/apply tests stop at declared persistence ports and do not enter actual provider dispatch; no SMTP/archive/native acceptance is carried."
+    },
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "previousSha256": "0a4fee017c2633d8b34efbb59d3b06e45aede744d3ff9da6296a21a1ea8f29e8",
+      "mainSha256": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "effectQualification": "Reached shared tenant selector: physical PRODAT/UTILTS DO/MR missing/ambiguous stays null; ACK families use transport receiver. Normalized family variants retain strict qualifier rules. Existing own ACK SDK/identity ports remain declared; current actual tenant resolver+physical correlation assertions pass."
+    },
+    {
+      "path": "lib/ediel/testing/selftest.ts",
+      "previousSha256": "6970f811be0ec9d5d01a524f6e8824945c749d88578b6b6d152c112c51dffe2b",
+      "mainSha256": "d02fbd587a547735925e538a490e20519d48d636ce36f3725c0c804b506cb5e6",
+      "effectQualification": "Already merged simulation/default UTILTS outbound changes. Selected ACKs use retained independently encoded physical inputs, and STORE/READ use exact installed finite SQL fixture functions; no simulation or outgoing UTILTS construction is selected."
+    },
+    {
+      "path": "lib/ediel/transport/outboundAttempt.ts",
+      "previousSha256": "23a1ed87416c6a065b50b493667fd1e3ffad0a33ab106603ccfc3d108ec5db54",
+      "mainSha256": "3a3505ded65fa001f8b71a7a3bbdffc8a8948a97f7c5295ac2e1ed7c1ccfc1ff",
+      "effectQualification": "Already merged generic archived-MIME/provider attempt gate correction. Selected correlation and positive ACK source/apply tests stop at declared persistence ports and do not enter actual provider dispatch; no SMTP/archive/native acceptance is carried."
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "previousSha256": "2863c2977f64711ef864a92f516c53caa21a77eb889e1eaf37fadfd60fff9222",
+      "mainSha256": "91cffa7caa8361fceee693d481c7245ebf9e6595e1d7b9fbb30b80ee8834326c",
+      "effectQualification": "Already merged simulation/default UTILTS outbound changes. Selected ACKs use retained independently encoded physical inputs, and STORE/READ use exact installed finite SQL fixture functions; no simulation or outgoing UTILTS construction is selected."
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "previousSha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+      "mainSha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+      "effectQualification": "Already merged current normalized-UTC/calendar interval correction. Selected ACK waiting-state path does not prepare measurement consumption; SQL STORE denial stops before lower owner and READ refuses the waiting permission. No E66/native/calendar execution is claimed for these scenarios."
+    },
+    {
+      "path": "lib/ediel/utilts/resolution.ts",
+      "previousSha256": "a3532305d47ea2650b43f953c9b50a147e88991fe8be7c12a3cce5e7db63dded",
+      "mainSha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498",
+      "effectQualification": "Already merged current normalized-UTC/calendar interval correction. Selected ACK waiting-state path does not prepare measurement consumption; SQL STORE denial stops before lower owner and READ refuses the waiting permission. No E66/native/calendar execution is claimed for these scenarios."
+    },
+    {
+      "path": "lib/ediel/utilts/timezone.ts",
+      "previousSha256": "2bec26bfc311c07b72df294f71a7fbf5c5ebaf190bfe2868174889b3d5098d90",
+      "mainSha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954",
+      "effectQualification": "Already merged current normalized-UTC/calendar interval correction. Selected ACK waiting-state path does not prepare measurement consumption; SQL STORE denial stops before lower owner and READ refuses the waiting permission. No E66/native/calendar execution is claimed for these scenarios."
+    },
+    {
+      "path": "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "previousSha256": "9f9c432b72080ae0c235d4e4c08c827b491b3a8b891d633f057fe92fc4c12aeb",
+      "mainSha256": "46ffcae646308bda20efcab6fd0b13beed8b1f1af0793ddcc416ee3492261f6b",
+      "effectQualification": "Positive request ACK updates retain completed business-response status. SC020 selected actual processInboundAckMessage uses unchanged protected source/apply ports; its finite original remains z13_sent and no business activation is asserted."
+    },
+    {
+      "path": "lib/inbound-mail/dsnClassifier.ts",
+      "previousSha256": "4bd9102ca7c034d78da2498ffb1b519ded4d825fa32a442532ab71bf4b940c27",
+      "mainSha256": "d4e77cd8c7ba8effdaa93e996aed1ab539df6fcbee7c92ff788833c676ffa664",
+      "effectQualification": "Already merged DSN/MIME parsing changes; these selected scenarios start at physical Ediel ACK/current message source ports rather than raw email DSN/MIME intake."
+    },
+    {
+      "path": "lib/inbound-mail/inboundStatusUpdater.ts",
+      "previousSha256": "afa6c446e79913fa0925083938ee94e341d679aa93a0cfabb95997217a18523e",
+      "mainSha256": "af0a2ba13dbc60a387407e39e3d72f0bb07d38e9541b036e0368177ce669a3bc",
+      "effectQualification": "Same late-positive status guard and mailbox_message_id persistence apply to different intake/safe-update wrappers. Selected source remains explicit SDK message/current original; no mailbox provider custody or safe-update execution is claimed."
+    },
+    {
+      "path": "lib/inbound-mail/inboundTenantResolver.ts",
+      "previousSha256": "0525b9986e20d47e9afb32e4e3c8fb0ea54c9da2d8cc3685f032760b1a84932d",
+      "mainSha256": "3873193947f46514143133fa52e9a4563308d6ed41ffe35a5eeede34994f61ab",
+      "effectQualification": "Parallel email resolver adopts the same legal-receiver helper. Selected SC013 starts at actual Ediel tenantResolver over declared already-available message/source ports; it does not claim actual mailbox intake. No competing email pipeline implementation or native mailbox proof is added."
+    },
+    {
+      "path": "lib/inbound-mail/mimeStructure.ts",
+      "previousSha256": "d049639e60d65c60eda0a55c077051fea2d965a3af9491a1602df60874cf10f7",
+      "mainSha256": "fd28790fcd32106a7889183b1d6f54b619fab261ba68d6dfedddcccc36489365",
+      "effectQualification": "Already merged DSN/MIME parsing changes; these selected scenarios start at physical Ediel ACK/current message source ports rather than raw email DSN/MIME intake."
+    },
+    {
+      "path": "lib/inbound-mail/smokeTests.ts",
+      "previousSha256": "ba585bba6e5d2d67f5ad6125b9d75ed4c531ee89aa733c3d07285d08ea69d5b4",
+      "mainSha256": "3a3d47bb37873519d6c4807eff8b049e6ed6fe46ce2519f9446ef9c1175f4d7d",
+      "effectQualification": "Already merged simulation/default UTILTS outbound changes. Selected ACKs use retained independently encoded physical inputs, and STORE/READ use exact installed finite SQL fixture functions; no simulation or outgoing UTILTS construction is selected."
+    },
+    {
+      "path": "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+      "previousSha256": null,
+      "mainSha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8",
+      "effectQualification": "Already merged current service request-resolver timing gate. SC020 never originates a new request; it registers the original positive ACK while awaiting Z14. Selected current storage/read/ACK owners remain byte-exact."
+    },
+    {
+      "path": "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+      "previousSha256": null,
+      "mainSha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985",
+      "effectQualification": "Private DSN source-identity parsing/qualification only. Selected physical APERAK/CONTRL candidates and positive Z13 ACK are not DSNs; no DSN consumer/provider effect is inferred."
+    },
+    {
+      "path": "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql",
+      "previousSha256": null,
+      "mainSha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
+      "effectQualification": "Staff customer-retention read prerequisite lies outside selected SDK ACK and finite service SQL ports; main bytes preserved, no hosted staff operation."
+    },
+    {
+      "path": "supabase/migrations/20261004205816_support_attachment_quarantine_carrier.sql",
+      "previousSha256": null,
+      "mainSha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594",
+      "effectQualification": "Support attachment quarantine carrier lies outside ACK/permission storage/read selection; main bytes preserved, no external attachment operation."
+    },
+    {
+      "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+      "previousSha256": null,
+      "mainSha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+      "effectQualification": "Exact contact stale-conflict exception40001→PT409 with predecessor/source/metadata checks. Neither selected ACK namespace correlation nor no-access scenario calls contact mutation."
+    },
+    {
+      "path": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+      "previousSha256": null,
+      "mainSha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
+      "effectQualification": "Exact identity stale-conflict exception40001→PT409 preserves definer/approval/staff guards. These selected entries do not decide customer identity changes."
+    },
+    {
+      "path": "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "previousSha256": null,
+      "mainSha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1",
+      "effectQualification": "New private immutable confirmation trigger returns unless an accepted outbound PRODAT Z09 belongs to an own current production event. Selected positive inbound APERAK on Z13 cannot satisfy that code/family/direction predicate; no permission/supply/grant confirmation effect is introduced."
+    }
+  ],
+  "mergeProof": {
+    "all352IdsPreserved": true,
+    "all350ForeignRowsIncludingOrderedEvidenceExactlyMain": true,
+    "own2PASSEDRowsExactlyPreviousOwner": true,
+    "allTopLevelMetadataExactlyMain": true,
+    "completeProductionSchemaMigrationHelpersNativeWorkflowConfigExactlyMain": true,
+    "soleConflict": "First-line ACK source correlation tagunion retains TEN13/AT/TEN13,ACK06/ATACK06,SC013. Complete asserting body exact previous owner.",
+    "otherMinimumAdoption": "Exact main inboundLegalReceiverEdielId mock export retained. All assertions unchanged.",
+    "mainApprovedMarkers": 217,
+    "candidateApprovedMarkers": 219
+  },
+  "verification": {
+    "focused": {
+      "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs Node22 vitest run four owned tagged suites --maxWorkers=2",
+      "pass": 53,
+      "files": 4,
+      "failure": 0,
+      "error": 0,
+      "skip": 0,
+      "exitCode": 0,
+      "rawLogPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+      "rawLogSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef"
+    },
+    "types": {
+      "command": "Node22 tsc --noEmit -p tsconfig.tests.json --max-old-space-size=4096",
+      "exitCode": 0,
+      "stdoutBytes": 0
+    },
+    "lint": {
+      "command": "Node22 eslint four owned tagged suites",
+      "exitCode": 0,
+      "stdoutBytes": 0
+    },
+    "spec": {
+      "command": "Node22 scripts/check-ediel-masterplan-v2.cjs",
+      "exitCode": 0,
+      "originalFiles": 33,
+      "rules": 121,
+      "acceptanceContracts": 231
+    },
+    "diff": {
+      "command": "git diff --check main3dff sourceMerge9865",
+      "exitCode": 0,
+      "inheritedMainOnlyWhitespaceKept": "Old-to-main diff reports existing whitespace in foreign evidence/patch files; actual own delta against main is clean. No foreign proof file was reformatted."
+    },
+    "prerequisiteFailure": {
+      "command": "Initial vitest command rejected unsupported --minWorkers before collecting any tests; corrected CLI reran once",
+      "executedCases": 0,
+      "sourceChanges": 0
+    }
+  },
+  "retainedSqlProof": {
+    "standaloneAdmin": "49PASS at exactc451, old logSHA15f5fd3ba566d59bf81f55994ea9173806124c415f8ea71ecc3ccf41434e4b25; installed immutable migration inputs and same assertion file unchanged.",
+    "store": "Original23STORE/24archive/23positiveACK sections retained with exact own script/migration inputs.",
+    "readBoundary": "Executed retained184042 reader; current15846 filtered reader retains same permission-phase predicate, and current35402 wrapper delegates it first. Neither latest whole wrapper/native replay nor RLS/concurrency/external custody is newly executed.",
+    "knownNestedFailure": "Old nested ANJ agreementReference undefined vsSOURCE-DECLARED-ANJ remains explicitly historical RED; no assertion/helper was removed, waived or truncated; no full nested rerun."
+  },
+  "oldCleanFailure": {
+    "head": "dc77ef07ca05feefc852cddfcfe663cbccd07eb8",
+    "run": 37245473877,
+    "job": 111562395535,
+    "selectedFailure": "ediel-z06f-reading-followup-native next-day observation_interval_unresolved",
+    "excerptPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-clean-selected-failure.txt",
+    "excerptOnly": true,
+    "resolutionPath": "Genuine current main includes sole upstream0796 normalized-clock correction; new combined-head clean required. No duplicate source/calendar patch or old allgreen claim."
+  },
+  "limits": [
+    "No native or whole SQL chain reexecution; original approval intentionally has no native custody claim.",
+    "Finite SDK/tenant/legal/source/persistence/RPC fixture boundaries remain; unchanged current selected SQL definitions are qualified by source hash, not new installed schema replay.",
+    "No EdielExecutionFailure duplicate/class/function/AST binding was needed in own548 files; actual imported module remains authority.",
+    "New-head all9 GitHub gates and independent current-main carry review are pending. Root owns main merge; no final merge/DONE claim."
+  ],
+  "skillRouting": {
+    "activated": [
+      "differential-review",
+      "verification-before-completion"
+    ],
+    "reason": "Surgical current source/effect and assertion-preserving union; exact executed focused/static gates.",
+    "conditional": "systematic-debugging only on concrete new failure; no new implementation/native/DDL performed."
+  }
+}

@@ -1,0 +1,17 @@
+Selected excerpt from original GitHub run37245473877/job111562395535, head dc77ef07. Partial excerpt; no full-log digest or fresh run claim.
+2026-10-05T01:14:20.6955315Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+2026-10-05T01:14:20.6955852Z 
+2026-10-05T01:14:20.6959672Z  FAIL  scripts/ediel-z06f-reading-followup-native.test.ts > actual misaligned or missing own reading {"date":"next-day"} cannot fulfill F or borrow sibling evidence
+2026-10-05T01:14:20.6967009Z Error: utilts_consumption_binding_conflict:observation_interval_unresolved
+2026-10-05T01:14:20.6969339Z  ❯ consumptionConflict lib/ediel/utilts/consumptionContract.ts:95:9
+2026-10-05T01:14:20.7034776Z      93|
+2026-10-05T01:14:20.7036250Z      94| export function consumptionConflict(reason: string): never {
+2026-10-05T01:14:20.7038700Z      95|   throw new Error(`utilts_consumption_binding_conflict:${reason}`)
+2026-10-05T01:14:20.7040340Z        |         ^
+2026-10-05T01:14:20.7040950Z      96| }
+2026-10-05T01:14:20.7042360Z      97| function object(value: unknown): Record<string, unknown> {
+2026-10-05T01:14:20.7044003Z  ❯ lib/ediel/utilts/consumptionPreparation.ts:74:121
+2026-10-05T01:14:20.7045338Z  ❯ lib/ediel/utilts/consumptionPreparation.ts:63:25
+2026-10-05T01:14:20.7046916Z  ❯ prepareUtiltsConsumptionContracts lib/ediel/utilts/consumptionPreparation.ts:53:40
+2026-10-05T01:14:20.7049023Z  ❯ Object.reading scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts:74:25
+2026-10-05T01:14:20.7050854Z  ❯ scripts/ediel-z06f-reading-followup-native.test.ts:45:90
