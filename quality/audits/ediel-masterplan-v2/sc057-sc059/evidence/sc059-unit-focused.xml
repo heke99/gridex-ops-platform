@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="13" failures="0" errors="0" time="0.119700188">
+    <testsuite name="__tests__/ediel-sc-059-registered-subaddress.test.ts" timestamp="2026-10-05T04:51:18.241Z" hostname="c8313f035683" tests="13" failures="0" errors="0" skipped="0" time="0.119700188">
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 21660 Gridex EL AB PRODAT preserves the exact registered null through actual materialization/context/UNB" time="0.031238555">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 21660 Gridex EL AB UTILTS preserves the exact registered null through actual materialization/context/UNB" time="0.016100595">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 27700 Mjölby Kraftnät AB PRODAT preserves the exact registered PRODAT through actual materialization/context/UNB" time="0.007748922">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; 27700 Mjölby Kraftnät AB UTILTS preserves the exact registered null through actual materialization/context/UNB" time="0.008176804">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies invented GRIDEX for the registered empty Gridex PRODAT before rendering or additional writes" time="0.011411954">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies invented SCH for the registered empty Gridex PRODAT before rendering or additional writes" time="0.005808807">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changing named Mjölby PRODAT to null without changed source before rendering or additional writes" time="0.006152489">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changing named Mjölby PRODAT to GRIDEX without changed source before rendering or additional writes" time="0.00513603">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changing named Mjölby PRODAT to SCH without changed source before rendering or additional writes" time="0.005781258">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; holds absent current source before any operational write despite declared public verification flags" time="0.004528646">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies a different source actor before any operational write" time="0.003984241">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies foreign_company at actual dispatch revalidation before rendering or additional writes" time="0.005034207">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-059-registered-subaddress.test.ts" name="SC059 registered subaddress with named frozen projection and declared finite ports &gt; denies changed_current_source at actual dispatch revalidation before rendering or additional writes" time="0.00656063">
+        </testcase>
+    </testsuite>
+</testsuites>
