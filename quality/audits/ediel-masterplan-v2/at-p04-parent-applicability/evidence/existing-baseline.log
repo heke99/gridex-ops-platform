@@ -1,0 +1,13 @@
+
+ RUN  v4.1.9 /workspace/gridex-at-p04-parent-applicability
+
+ ✓ __tests__/ediel-prodat-dependent-z14-boundaries.test.ts (21 tests) 1424ms
+ ✓ __tests__/ediel-prodat-z14-negative-context.test.ts (41 tests) 1779ms
+ ✓ __tests__/ediel-prodat-dependent-z14.test.ts (83 tests) 3612ms
+     ✓ requires each positive field independently  312ms
+
+ Test Files  3 passed (3)
+      Tests  145 passed (145)
+   Start at  13:03:25
+   Duration  6.96s (transform 6.38s, setup 125ms, import 9.26s, tests 6.81s, environment 0ms)
+

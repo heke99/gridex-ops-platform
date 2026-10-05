@@ -2327,8 +2327,14 @@
     },
     {
       "id": "AT-P-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/prodat/prodatPartyFields.ts",
+        "__tests__/ediel-at-p04-parent-applicability.test.ts"
+      ]
     },
     {
       "id": "AT-P-05",
