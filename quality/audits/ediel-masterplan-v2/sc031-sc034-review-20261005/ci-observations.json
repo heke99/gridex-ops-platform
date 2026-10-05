@@ -1,0 +1,62 @@
+{
+  "head": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "method": "Fetched original current-head Actions job logs through GitHub connector; excerpted exact named-suite and gate lines.",
+  "ordinary_receipts": [
+    {
+      "run": 37281682561,
+      "job": 111670976041,
+      "scope": "ordinary quality-release-gates",
+      "head": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682561/job/111670976041",
+      "observed_conclusion": "success",
+      "selected_log_lines": [
+        "2026-10-05T08:11:00.3219833Z  ✓ __tests__/ediel-prodat-z04-persisted-ack.test.ts (32 tests) 3217ms",
+        "2026-10-05T08:12:25.1221408Z  ✓ __tests__/ediel-prodat-incoming-unused-fields.test.ts (13 tests) 173ms",
+        "2026-10-05T08:12:29.2938537Z  ✓ __tests__/ediel-prodat-energy-product-inbound.test.ts (8 tests) 501ms",
+        "2026-10-05T08:12:38.3669893Z  ✓ __tests__/ediel-prodat-registers.test.ts (50 tests) 217ms",
+        "2026-10-05T08:12:54.3400366Z  ✓ __tests__/ediel-received-register-validation-binding.test.ts (20 tests) 32ms",
+        "2026-10-05T08:14:33.9185184Z  Test Files  808 passed (808)",
+        "2026-10-05T08:14:33.9244359Z       Tests  10335 passed (10335)"
+      ]
+    },
+    {
+      "run": 37281682667,
+      "job": 111670974962,
+      "scope": "tagged-masterplan gate",
+      "head": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682667/job/111670974962",
+      "observed_conclusion": "success",
+      "selected_log_lines": [
+        "2026-10-05T08:09:48.8161647Z Masterplan IDs: 352; approved 202; tagged green 223; tagged failing 0; untagged 129",
+        "2026-10-05T08:09:48.8172638Z   SC-031  __tests__/ediel-prodat-incoming-unused-fields.test.ts, __tests__/ediel-received-register-validation-binding.test.ts",
+        "2026-10-05T08:09:48.8173625Z   SC-034  __tests__/ediel-prodat-z04-persisted-ack.test.ts"
+      ]
+    }
+  ],
+  "release_observation": {
+    "run": 37281682654,
+    "job": 111670975807,
+    "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682654",
+    "conclusion": "failure",
+    "artifact": 11332849336,
+    "artifact_zip_sha256": "a7dfb9dfb9628bf494281d0fa0868c79cd562d754531a98b6faeae5b593eeb82",
+    "selected_log_lines": [
+      "2026-10-05T08:09:16.3855988Z FAILED runtime-consistency (0.1s) [code_or_workflow_defect]",
+      "2026-10-05T08:13:09.9028339Z FAILED website-quote-integrity (0.2s) [code_or_workflow_defect]",
+      "2026-10-05T08:13:10.4645970Z FAILED customer-intake-hardening (0.1s) [code_or_workflow_defect]",
+      "2026-10-05T08:13:11.4542877Z FAILED inbound-facility-recognition (0.1s) [code_or_workflow_defect]",
+      "2026-10-05T08:13:15.5512907Z FAILED ediel-full-business-pipeline (3.1s) [database_or_migration_drift]",
+      "2026-10-05T08:13:15.9328423Z FAILED supplier-business (0.4s) [database_or_migration_drift]",
+      "2026-10-05T08:13:22.6302600Z FAILED supabase-advisors (0.2s) [database_or_migration_drift]",
+      "2026-10-05T08:18:40.9480354Z FAILED unit-integration-tests (201.3s) [stale_regression_or_uncovered_surface]",
+      "2026-10-05T08:18:40.9485006Z Error: Cannot find module './scripts/lib/refactor-safe-static-read.cjs'",
+      "2026-10-05T08:20:05.0745454Z Gridex E2E failed: 65/73 passed, 8 failed."
+    ]
+  },
+  "limitations": [
+    "Remote ordinary test execution is reused on its exact checkout; no local Vitest run.",
+    "Passing tagged tests do not prove complete expected/prohibited clauses.",
+    "Native clean replay job111670976092 remains in progress at observation; no native qualification claimed.",
+    "Release failure categories are runner observations, not independently proved defect root causes."
+  ]
+}

@@ -29,7 +29,7 @@ async function tableExists(table: string): Promise<boolean> {
   return !error
 }
 
-function sampleParseTests(): InboundSmokeTestResult[] {
+export function sampleParseTests(): InboundSmokeTestResult[] {
   const samples = [
     {
       name: 'Parse CONTRL',
@@ -59,7 +59,7 @@ function sampleParseTests(): InboundSmokeTestResult[] {
         nadMs: '21660',
         dtm157: '202605301400',
       },
-      payload: "UNB+UNOC:3+91100:ZZ:SENDER+21660:ZZ:SUBTENANT+260530:1400+ABC126++23-DDQ-PRODAT'UNH+1+PRODAT:D:96A:UN:E2SE5'BGM+E01+BGM123+9'NAD+MS+21660::9'RFF+AAC:MPID123'DTM+157:202605301400:203'UNT+7+1'UNZ+1+ABC126'",
+      payload: "UNB+UNOC:3+91100:ZZ:SENDER+21660:ZZ:SUBTENANT+260530:1400+ABC126++23-DDQ-PRODAT'UNH+1+PRODAT:D:96A:UN:E2SE5'BGM+E01+BGM123+9'NAD+MS+21660::9'RFF+AAC:MPID123'DTM+157:202605301400:203'UNT+6+1'UNZ+1+ABC126'",
     },
   ]
 
