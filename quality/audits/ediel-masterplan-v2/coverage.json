@@ -1691,7 +1691,7 @@
     },
     {
       "id": "SC-043",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-prodat-field-identity-owners.test.ts",
         "__tests__/ediel-sc-043-utilts-field-512.test.ts",
@@ -1700,7 +1700,7 @@
     },
     {
       "id": "SC-044",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
         "__tests__/ediel-utilts-transaction-disposition.test.ts",

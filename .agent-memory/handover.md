@@ -1154,3 +1154,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-05 #556: SC-035 and SC-037 downgraded to PARTIAL after review (gaps in open-blockers).
 - 2026-10-05 #556: SC-048 downgraded to PARTIAL after review.
 - 2026-10-05 #556: SC rows → PARTIAL; #556 now carries rule cards + fixes only.
+- 2026-10-05 #556: U-19 caller fix 531e32b4 independently approved (review 5988350281); SC-043 and SC-044 restored to PASSED after independent qualification of their complete code effects.
