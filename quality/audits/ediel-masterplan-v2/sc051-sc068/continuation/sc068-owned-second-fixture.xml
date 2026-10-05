@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="8" failures="1" errors="0" time="2.758850962">
+    <testsuite name="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" timestamp="2026-10-05T13:50:08.802Z" hostname="c8313f035683" tests="8" failures="1" errors="0" skipped="0" time="2.758850962">
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;sender_ediel_id&quot;:&quot;91100&quot;} before any new authority/provider" time="0.009546912">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;receiver_ediel_id&quot;:&quot;91109&quot;} before any new authority/provider" time="0.001167198">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;application_reference&quot;:&quot;23-TGT-PRODAT&quot;} before any new authority/provider" time="0.00077773">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer" time="0.086722017">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer" time="0.033653292">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual historical accepted-original repair cannot re-enter the provider after today changes to a test identity" time="0.002914343">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 historical sent status without an actual accepted journal never creates new production traffic" time="0.001111673">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 unchanged TEST original is held by actual production admission and customer-effect source capture before any business sink" time="2.621002329">
+            <failure message="column &quot;hold_reason&quot; does not exist" type="error">
+error: column &quot;hold_reason&quot; does not exist
+ ❯ be.$r ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:432:10
+ ❯ be.za ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:210:15
+ ❯ be.parse ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:102:24
+ ❯ ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/src/pglite.ts:398:27
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:2608882
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:2609769
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:5283187
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:366756
+ ❯ invoke_v ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/release/pglite.js:9:389209
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:368873
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 111, severity: &apos;ERROR&apos;, code: &apos;42703&apos;, detail: undefined, hint: undefined, position: &apos;15&apos;, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: &apos;parse_relation.c&apos;, routine: &apos;errorMissingColumn&apos;, query: &apos;SELECT status,hold_reason,context,payload_sha256 FROM gridex_ediel_inbound_context.receipts WHERE source_message_id=$1&apos;, params: [ &apos;00000000-0000-0000-0000-000000000070&apos; ], queryOptions: undefined }
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

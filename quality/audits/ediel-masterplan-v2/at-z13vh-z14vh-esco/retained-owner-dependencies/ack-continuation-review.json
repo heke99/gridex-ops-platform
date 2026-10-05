@@ -1,0 +1,21 @@
+{
+  "status": "APPROVED_CONTINUATION_PROPOSAL_ONLY",
+  "basis": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+  "writer": "/root/z14_missing_fields_refute_code",
+  "independentReviewer": "/root/z14_missing_fields_refute_spec",
+  "continuationSHA256": "ccb3d62f58b046a4dc674fe40793da552a5c9a39d914c60433ce327e44d1ead9",
+  "sourceReviewSHA256": "cf2f23728acb872def99c717ffab57cb69af6313a124de126e7df13ebc1efc56",
+  "firstDraftSHA256": "9dd2acbb815e7ced44fbf25a21dabfb066237c2393ce3538a31291d12d489146",
+  "resolvedDraftFinding": "First draft incorrectly said reverse UCI source-party composites. Source review corrected original-order UCI and reversed outer ACK UNB. This was proposal wording, not an executed production behavior finding; source-review file retains exact finding/version hashes.",
+  "execution": "NOT_RUN: no module/native/database/provider/test/CI execution",
+  "repoExistingTargetEdited": false,
+  "owner": "Retained native/source/ACK owner; no transfer or second harness",
+  "limits": [
+    "Blueprint joins existing saved/sent Z13 ACK intake and fresh Z14 committed effects/finalplan/bothphysicalsend observations before grants",
+    "E66 atomic ACK is separate evidence",
+    "No synthetic/private owner/capability may be minted from copied JSON",
+    "No whole V/VH card approval or actual external delivery",
+    "Pending-request precedence and awaiting-customer-decision persisted semantics remain unresolved source-owner questions"
+  ],
+  "VHUse": "Shared existing PRODAT ACK owner/dependency map; original concrete blueprint is V-scoped. VH history/source/native scenario requires its own qualified owner inputs, not relabelled V execution."
+}

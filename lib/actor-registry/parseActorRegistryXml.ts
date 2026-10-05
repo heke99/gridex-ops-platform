@@ -112,7 +112,7 @@ export function parseActorRegistryXml(xml:string):ParsedActorRegistryActor[]{
         const edielId=normalizeEdielId(keys.EdielId??field(c,['EdielId','EdielID','EDIELID','Ediel','PartyId'])??attr(c,['edielId','edielID','partyId']))
         const orgNumber=normalizeOrgNumber(keys.OrgNo??field(c,['OrgNo','OrgNumber','OrganizationNumber','OrganisationNumber','CompanyRegistrationNumber'])??attr(c,['orgNo','orgNumber','organizationNumber']))
         const eic=normalizeEic(keys.EIC??field(c,['EIC','EicCode'])??attr(c,['eic','eicCode']))
-        if(!name&&!edielId&&!orgNumber&&!eic)continue
+        if(!name&&!edielId&&!orgNumber&&!eic)throw new Error(`actor_registry_xml_identity_required:record_${actors.length+1}`)
         const rawRoles=descendants(c,['Role','ActorRole','MarketRole']).map(value=>field(node(value),['Code','Name','Value'])??text(value)).filter((role):role is string=>Boolean(role))
         const attributeRole=attr(c,['role','actorRole','marketRole']);if(attributeRole)rawRoles.push(attributeRole)
         const roles=uniqueStrings(rawRoles.map(normalizeRole))

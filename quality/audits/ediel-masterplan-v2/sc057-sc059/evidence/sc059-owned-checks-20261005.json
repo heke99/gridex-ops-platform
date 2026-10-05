@@ -1,0 +1,183 @@
+{
+  "rule": "SC-059",
+  "createdAt": "2026-10-05T04:53:09.499742+00:00",
+  "cwd": "/workspace/gridex-masterplan-sc057-sc059",
+  "base": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "newOwnedFile": {
+    "path": "/workspace/gridex-masterplan-sc057-sc059/__tests__/ediel-sc-059-registered-subaddress.test.ts",
+    "sha256": "1a6ad1673fd3fa352d5dadc106f11e4bb561ec30a4e4450adc01d1bd0ec78947"
+  },
+  "commands": [
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs ./node_modules/.bin/vitest run __tests__/ediel-sc-059-registered-subaddress.test.ts --pool=threads --maxWorkers=2 --reporter=default --reporter=junit --outputFile.junit=/tmp/sc059-unit-focused.xml",
+      "exit": 0,
+      "testFilesPassed": 1,
+      "testsPassed": 13,
+      "log": "/tmp/sc059-unit-focused.log",
+      "junit": "/tmp/sc059-unit-focused.xml",
+      "logSha256": "2dabc7d830055f06341338b7b8e8f43df3b1313a92b4e8f94a297c3ffa936955",
+      "junitSha256": "cf22272c40558f74dafdbe518542bb8c9e73a1bd3e0fccd49e26d5d9e353a1ae"
+    },
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH ./node_modules/.bin/tsc -p /tmp/sc059-owned-types.json --pretty false",
+      "exit": 0,
+      "log": "/tmp/sc059-owned-types.log",
+      "config": "/tmp/sc059-owned-types.json",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "configSha256": "2b0eea7555ac7a9b02ff1b8f25dc15c3d2dbb71b308e4d19f2e9dbc915705ac9"
+    },
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH ./node_modules/.bin/eslint __tests__/ediel-sc-059-registered-subaddress.test.ts",
+      "exit": 0,
+      "log": "/tmp/sc059-owned-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "scope": "current tracked checkout; owned new file lint/type/runtime separately recorded"
+    }
+  ],
+  "projection": {
+    "path": "/workspace/gridex-masterplan-sc057-sc059/docs/ediel/masterplan-v2/registers/registry_snapshot_evidence.json",
+    "artifactSha256": "2a60f51ca225a1dd21711fa0fc0a29c67528737dd1ea02ee5f25222dff64de2c",
+    "exactHeadBytes": true,
+    "originalXmlSha256LinkageOnly": "e94c3fac98913a113573376d6e0134ce3c5b5778cf6c8c8905dd9174db30d9ab",
+    "originalXmlBytesAvailable": false,
+    "notImportedLive": true,
+    "records": [
+      {
+        "name": "Gridex EL AB",
+        "edielId": "21660",
+        "family": "PRODAT",
+        "receiverSubaddress": null,
+        "receiverAddress": "ediel@gridex.se",
+        "projectionRecordSha256": "a0ad6f66f099da243246a765afcd72b658b03c16966892816cec5e78603a596a",
+        "hashMeaning": "frozen JSON named projection record, not native/original XML record custody"
+      },
+      {
+        "name": "Gridex EL AB",
+        "edielId": "21660",
+        "family": "UTILTS",
+        "receiverSubaddress": null,
+        "receiverAddress": "ediel@gridex.se",
+        "projectionRecordSha256": "fc23d69e7d9ba9c19f958054e169edac9b6ad41b44b9d94154ee8e8834db4487",
+        "hashMeaning": "frozen JSON named projection record, not native/original XML record custody"
+      },
+      {
+        "name": "Mjölby Kraftnät AB",
+        "edielId": "27700",
+        "family": "PRODAT",
+        "receiverSubaddress": "PRODAT",
+        "receiverAddress": "27700@tvlab.se",
+        "projectionRecordSha256": "62aced6377ee62f09e5004252c8f6bff0e8524b400fced17834541b000944e5a",
+        "hashMeaning": "frozen JSON named projection record, not native/original XML record custody"
+      },
+      {
+        "name": "Mjölby Kraftnät AB",
+        "edielId": "27700",
+        "family": "UTILTS",
+        "receiverSubaddress": null,
+        "receiverAddress": "27700@tvlab.se",
+        "projectionRecordSha256": "9d44848b2e085ab732a15aba037dd30e29a2ec776b7def8b751d7e16276414e5",
+        "hashMeaning": "frozen JSON named projection record, not native/original XML record custody"
+      }
+    ]
+  },
+  "actualConsumerFiles": [
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/actor-registry/registryMarketSource.ts",
+      "sha256": "67e1f758203b88161989286e24e20b552b77c08ae2cbcdd161d8a13ce712c4a6",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/routeMaterializer.ts",
+      "sha256": "ecf18b973384fcb12214f0565245404ed36f8b28a3d12473bd0cb06676efcd24",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/senderSettingsResolver.ts",
+      "sha256": "ffeea9a4f3b6348c249fe6b21126f87fb41c2436ce93a94d7d9d3a0adb6667d1",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/core/actorRegistry.ts",
+      "sha256": "eea4d38cf8bdc996d0927c66d6538306637886791bfc4b0737c2baba30fd6373",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/core/routeRegistry.ts",
+      "sha256": "e9e36c9c2b99b2cb8086523b9ad0787830ce7777e5773c5c3de8d00d9f75441a",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/core/edifactEnvelopeCodec.ts",
+      "sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/core/edifactTokenizer.ts",
+      "sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/core/applicationReferenceResolver.ts",
+      "sha256": "080d1e73d5ba253d70303f2eba3c16b0367cff297efa9fe0e7edbff029fea2e9",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/intent/applicationReferencePolicy.ts",
+      "sha256": "ed146c86becb4ae0c5358bc7d1e580a6c1e9feeac2c59dcd75c0e2dea2db2c1f",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/core/marketRole.ts",
+      "sha256": "a0b385b3a52a4693684d5b01c891605e825b873372ad7da00a6e4481daaf02c6",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc057-sc059/lib/ediel/routeMatrix.ts",
+      "sha256": "7c9ec8e502cab73c8532dc9acacec579ff389f41cdb028926214b8dd065d8fdb",
+      "exactHeadBytes": true,
+      "proofKind": "actual runtime consumer source; private producer not executed"
+    }
+  ],
+  "finitePorts": [
+    "SDK row reads/write capture without native SQL constraints/grants",
+    "qualified private source and dispatch DTO admission (original hash linkage only)",
+    "current selected tenant identity and own actor settings",
+    "safe readiness evaluation and operational readiness postcheck",
+    "current business application reference/clock inputs separate from projection"
+  ],
+  "effectBounds": {
+    "positiveCases": 4,
+    "eachPositiveOperationalWritePayloads": 3,
+    "positiveActualGuardAndCodecCompletions": 4,
+    "hostileCases": 9,
+    "hostileCodecCompletions": 0,
+    "hostileAdditionalOperationalWriteCalls": 0,
+    "sourceHeldAndForeignActorTotalWrites": 0,
+    "smtpExecutions": 0,
+    "outboxExecutions": 0,
+    "originalProjectionUnchanged": true
+  },
+  "limits": [
+    "Retained companies.xml bytes and original normalized record custody are unavailable.",
+    "Source-qualified DTOs are declared upstream ports and do not prove genuine private SQL admission or producer authority.",
+    "Readiness/identity inputs do not approve production sending or certificates.",
+    "Minimal business segments exercise the actual UNB codec, not full PRODAT/UTILTS message validation or downstream market acceptance.",
+    "Fresh source guard permits null for an unmapped generic route; these tests qualify selected mapped routes and do not claim generic missing-source denial.",
+    "Native/full/SMTP/legal/counterparty acceptance not run; whole-card authentic custody remains open."
+  ],
+  "mutationScope": "only the single new test; no existing source/helper/schema/native files, staging or commit"
+}

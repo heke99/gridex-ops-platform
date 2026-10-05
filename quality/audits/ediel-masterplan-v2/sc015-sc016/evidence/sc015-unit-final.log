@@ -1,0 +1,11 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc015-sc016
+
+ ✓ __tests__/ediel-sc-015-pending-provider-request.test.ts (7 tests) 76ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  02:36:42
+   Duration  2.25s (transform 1.61s, setup 20ms, import 2.00s, tests 76ms, environment 0ms)
+
+JUNIT report written to /tmp/sc015-unit-final.xml

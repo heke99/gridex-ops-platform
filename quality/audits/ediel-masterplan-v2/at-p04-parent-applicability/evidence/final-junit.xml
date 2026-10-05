@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="187" failures="0" errors="0" time="8.19051197">
+    <testsuite name="__tests__/ediel-at-p04-parent-applicability.test.ts" timestamp="2026-10-05T13:21:46.957Z" hostname="64e5d94c31a4" tests="42" failures="0" errors="0" skipped="0" time="1.631601289">
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.08256272">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.052426197">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 316 while its parent remains present" time="0.114791023">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 233 while its parent remains present" time="0.091254229">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 234 while its parent remains present" time="0.053348404">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 316 while its parent remains present" time="0.044697373">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 233 while its parent remains present" time="0.044453723">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 234 while its parent remains present" time="0.051059903">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses empty UD without requiring its absent children" time="0.004049575">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses populated UD without requiring its absent children" time="0.004897539">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses empty IT without requiring its absent children" time="0.002091054">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses populated IT without requiring its absent children" time="0.002196478">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.090968924">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; a second complete message cannot supply the first message parent children" time="0.091990702">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.029610271">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.034856719">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 316 while its parent remains present" time="0.034284022">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 233 while its parent remains present" time="0.040101579">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 234 while its parent remains present" time="0.036399165">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 316 while its parent remains present" time="0.041531282">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 233 while its parent remains present" time="0.04574003">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 234 while its parent remains present" time="0.034453987">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses empty UD without requiring its absent children" time="0.001958338">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses populated UD without requiring its absent children" time="0.002314068">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses empty IT without requiring its absent children" time="0.00199629">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses populated IT without requiring its absent children" time="0.00183631">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.073134869">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; a second complete message cannot supply the first message parent children" time="0.092108318">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.031432379">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.028669275">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 316 while its parent remains present" time="0.034621351">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 233 while its parent remains present" time="0.031859155">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 234 while its parent remains present" time="0.033217033">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 316 while its parent remains present" time="0.034029183">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 233 while its parent remains present" time="0.033916926">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 234 while its parent remains present" time="0.03834985">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses empty UD without requiring its absent children" time="0.002941801">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses populated UD without requiring its absent children" time="0.002833432">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses empty IT without requiring its absent children" time="0.002114857">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses populated IT without requiring its absent children" time="0.002019231">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.076504746">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; a second complete message cannot supply the first message parent children" time="0.071982906">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" timestamp="2026-10-05T13:21:46.967Z" hostname="64e5d94c31a4" tests="21" failures="0" errors="0" skipped="0" time="1.199941186">
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries :+?&apos; test &gt; all real send paths protect missing and forbidden Z14 cells against override flags" time="0.380240343">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries :+?&apos; test &gt; inactive N parents pass their bounded rule while a wrong full-message application remains held" time="0.084724549">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries :+?&apos; test &gt; inbound parse does not turn local unknown into this outbound rejection" time="0.031253016">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries :+?&apos; production &gt; all real send paths protect missing and forbidden Z14 cells against override flags" time="0.146789527">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries :+?&apos; production &gt; inactive N parents pass their bounded rule while a wrong full-message application remains held" time="0.046958323">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries :+?&apos; production &gt; inbound parse does not turn local unknown into this outbound rejection" time="0.005538646">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries *;!~ test &gt; all real send paths protect missing and forbidden Z14 cells against override flags" time="0.066055884">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries *;!~ test &gt; inactive N parents pass their bounded rule while a wrong full-message application remains held" time="0.03286088">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries *;!~ test &gt; inbound parse does not turn local unknown into this outbound rejection" time="0.005077851">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries *;!~ production &gt; all real send paths protect missing and forbidden Z14 cells against override flags" time="0.075640446">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries *;!~ production &gt; inactive N parents pass their bounded rule while a wrong full-message application remains held" time="0.032697985">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries *;!~ production &gt; inbound parse does not turn local unknown into this outbound rejection" time="0.002756451">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries ^|!% test &gt; all real send paths protect missing and forbidden Z14 cells against override flags" time="0.058688624">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries ^|!% test &gt; inactive N parents pass their bounded rule while a wrong full-message application remains held" time="0.026447883">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries ^|!% test &gt; inbound parse does not turn local unknown into this outbound rejection" time="0.003273859">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries ^|!% production &gt; all real send paths protect missing and forbidden Z14 cells against override flags" time="0.052121062">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries ^|!% production &gt; inactive N parents pass their bounded rule while a wrong full-message application remains held" time="0.026987575">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 boundaries ^|!% production &gt; inbound parse does not turn local unknown into this outbound rejection" time="0.004078807">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 builder and parser integration &gt; profiled positive builder returns protected issues for missing fields, retaining parsed positive source data" time="0.047435271">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="Z14 builder and parser integration &gt; generic builder rejects a positive message lacking the bounded fields" time="0.01170406">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14-boundaries.test.ts" name="generic positive Z14 can represent and validate its installation parent" time="0.053680662">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-prodat-dependent-z14.test.ts" timestamp="2026-10-05T13:21:46.970Z" hostname="64e5d94c31a4" tests="83" failures="0" errors="0" skipped="0" time="3.699095382">
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 209: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.008223827">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 302: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.004297572">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 508: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.003403393">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 326: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.002930164">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 217: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.005938215">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 222: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.00349633">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 506: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.003961297">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 513: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.003097211">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 260: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.003116441">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 325: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.007656955">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 227: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.001445107">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 source outcomes &gt; 228: V/VH required, N forbidden, foreign/unknown remains unknown" time="0.001529016">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.061450333">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; requires each positive field independently" time="0.116354903">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; forbids all positive fields on N including empty supplied fragments" time="0.033792478">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; never borrows reason or required fields from another object or message" time="0.028893121">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.125572682">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.011517736">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; payload &gt; parent activation suppresses N children but checks positive parent children" time="0.009756765">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.050045288">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; requires each positive field independently" time="0.215429004">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; forbids all positive fields on N including empty supplied fragments" time="0.15122032">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; never borrows reason or required fields from another object or message" time="0.058654249">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.230859479">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.096077732">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; all &gt; parent activation suppresses N children but checks positive parent children" time="0.082778387">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.037122647">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; requires each positive field independently" time="0.154883708">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; forbids all positive fields on N including empty supplied fragments" time="0.066992523">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; never borrows reason or required fields from another object or message" time="0.02430768">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.144679664">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.02844774">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 :+?&apos; dependent_only &gt; parent activation suppresses N children but checks positive parent children" time="0.026861333">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.017230198">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; requires each positive field independently" time="0.083362462">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; forbids all positive fields on N including empty supplied fragments" time="0.02891668">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; never borrows reason or required fields from another object or message" time="0.010241381">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.06105572">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.007265107">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ payload &gt; parent activation suppresses N children but checks positive parent children" time="0.013359103">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.025764572">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; requires each positive field independently" time="0.119665324">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; forbids all positive fields on N including empty supplied fragments" time="0.087568248">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; never borrows reason or required fields from another object or message" time="0.019654351">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.122555321">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.040679942">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ all &gt; parent activation suppresses N children but checks positive parent children" time="0.019066712">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.013923169">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; requires each positive field independently" time="0.072495816">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; forbids all positive fields on N including empty supplied fragments" time="0.03572671">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; never borrows reason or required fields from another object or message" time="0.016241167">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.08261488">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.021591871">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 *;!~ dependent_only &gt; parent activation suppresses N children but checks positive parent children" time="0.013804099">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.0088873">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; requires each positive field independently" time="0.070377659">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; forbids all positive fields on N including empty supplied fragments" time="0.036886174">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; never borrows reason or required fields from another object or message" time="0.018045088">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.060831386">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.008205357">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% payload &gt; parent activation suppresses N children but checks positive parent children" time="0.00901146">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.016665589">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; requires each positive field independently" time="0.0884041">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; forbids all positive fields on N including empty supplied fragments" time="0.064221986">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; never borrows reason or required fields from another object or message" time="0.019674503">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.121664566">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.03705587">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% all &gt; parent activation suppresses N children but checks positive parent children" time="0.037636446">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; accepts V/VH and empty N despite opposite stale root subtype" time="0.02369286">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; requires each positive field independently" time="0.11014196">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; forbids all positive fields on N including empty supplied fragments" time="0.030285755">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; never borrows reason or required fields from another object or message" time="0.01464368">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; rejects malformed and misplaced supplied values beside a valid complete object" time="0.090706572">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; keeps malformed, duplicate, misplaced and alias reasons unknown" time="0.016286">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="Z14 ^|!% dependent_only &gt; parent activation suppresses N children but checks positive parent children" time="0.012845131">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="inbound parse keeps outbound knowledge gaps out of external protocol errors" time="0.014314696">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="rejects extra header DTM while retaining valid object DTM" time="0.004985106">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="uses actual EL wire market; stale metadata cannot supply GAS/unknown evidence" time="0.016123229">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="validates differing V, VH and N per object" time="0.008448526">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="next message cannot supply the first message reason or fields" time="0.000855439">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="checks source code lists and raw coded tokens, not merely field presence" time="0.018927969">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="keeps SG8 dates before characteristic/reference/party groups" time="0.006012381">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-dependent-z14.test.ts" name="checks installation identity against its own object and never UD identity" time="0.005347209">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-prodat-z14-negative-context.test.ts" timestamp="2026-10-05T13:21:46.983Z" hostname="64e5d94c31a4" tests="41" failures="0" errors="0" skipped="0" time="1.659874113">
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N date at every protected boundary" time="0.168922904">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N empty-date at every protected boundary" time="0.067424253">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N padded-date at every protected boundary" time="0.071301739">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N purpose at every protected boundary" time="0.071298435">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N empty-purpose at every protected boundary" time="0.052552349">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N padded-purpose at every protected boundary" time="0.047852388">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; rejects N malformed-sibling at every protected boundary" time="0.046205927">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; supplied context in header cannot disappear" time="0.007825526">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; supplied context in header cannot disappear" time="0.018638678">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; supplied context in header cannot disappear" time="0.008555006">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; minimal N and valid positive supplied context remain unchanged" time="0.012848426">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; mixed objects use their own reason and cannot lend an exclusion" time="0.025726369">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name=":+?&apos; malformed and alias reasons remain protected unknown" time="0.019296299">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N date at every protected boundary" time="0.059267132">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N empty-date at every protected boundary" time="0.075231334">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N padded-date at every protected boundary" time="0.0572559">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N purpose at every protected boundary" time="0.058809012">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N empty-purpose at every protected boundary" time="0.042804837">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N padded-purpose at every protected boundary" time="0.044364026">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ rejects N malformed-sibling at every protected boundary" time="0.04660205">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ supplied context in header cannot disappear" time="0.006790212">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ supplied context in header cannot disappear" time="0.007601404">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ supplied context in header cannot disappear" time="0.008533831">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ minimal N and valid positive supplied context remain unchanged" time="0.028925984">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ mixed objects use their own reason and cannot lend an exclusion" time="0.026930636">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="*;!~ malformed and alias reasons remain protected unknown" time="0.024396869">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N date at every protected boundary" time="0.071196093">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N empty-date at every protected boundary" time="0.047100143">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N padded-date at every protected boundary" time="0.052155009">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N purpose at every protected boundary" time="0.075747411">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N empty-purpose at every protected boundary" time="0.051383439">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N padded-purpose at every protected boundary" time="0.076122985">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% rejects N malformed-sibling at every protected boundary" time="0.04938056">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% supplied context in header cannot disappear" time="0.025610497">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% supplied context in header cannot disappear" time="0.007634884">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% supplied context in header cannot disappear" time="0.007771904">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% minimal N and valid positive supplied context remain unchanged" time="0.010386939">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% mixed objects use their own reason and cannot lend an exclusion" time="0.019912448">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="^|!% malformed and alias reasons remain protected unknown" time="0.014967893">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="generic and profiled builders reject emitted purpose on N" time="0.030158094">
+        </testcase>
+        <testcase classname="__tests__/ediel-prodat-z14-negative-context.test.ts" name="direct inbound canonical validation preserves its existing parse-only contract" time="0.010125025">
+        </testcase>
+    </testsuite>
+</testsuites>

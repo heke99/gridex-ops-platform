@@ -1,3 +1,4 @@
+// masterplan: U-07, AT-U-07, U-11
 import { describe, expect, it } from 'vitest'
 import { vi } from 'vitest'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'

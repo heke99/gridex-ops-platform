@@ -1,0 +1,202 @@
+{
+  "reviewer": "Codex sc038-sc045-review-20261005",
+  "claim": 5991409356,
+  "main": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "main_tree": "cc0b6412e13c04f6baa3413957c7b609aeba74be",
+  "qualified_ci_head": "445bf50942818495f7edc09f52a2288be81ad176",
+  "run": 37281693425,
+  "quality_job": 111671247914,
+  "clean_job": 111671247602,
+  "artifact": 11334955859,
+  "artifact_sha256": "33b1207eb2efda48feebfaa7c048bc6e1f0f7a7ea9f863e36aed79bd10b0f597",
+  "unchanged_blobs": [
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "sha": "007d8270d467ff7bddbb0f7ca65beed722d6071e"
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.part-1.ts",
+      "sha": "342db99ededbece82af6ea6cc049887e50557bd8"
+    },
+    {
+      "path": "scripts/ediel-regulated-supply-ground-sql-regression.mjs",
+      "sha": "799063b36b701296eb0a01af55646ee7cf93b952"
+    },
+    {
+      "path": "scripts/ediel-p-12-z04ad-scope-sql-regression.mjs",
+      "sha": "5a2b4f267de95fb006e0fad23f6c173dd5901722"
+    },
+    {
+      "path": "__tests__/ediel-supply-market-consumers.test.ts",
+      "sha": "900d0c8c17829f1ab16c00f0a771a88586ad3c2c"
+    },
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "sha": "598e05fd47cf261572dc1e71793d5d7a6be01522"
+    },
+    {
+      "path": "lib/ediel/stateMachines/prodatLifecycle.ts",
+      "sha": "edd52c5f31d4dea15d2f73fa4ac48859b46a66a4"
+    },
+    {
+      "path": "scripts/test-ediel-p-12-z04ad-scope.cjs",
+      "sha": "51e7eb129a91c10b3f892fd3058e8241140a98d9"
+    },
+    {
+      "path": "__tests__/ediel-utilts-err-gateway.test.ts",
+      "sha": "90686b26c418b5fdece71d01c5dfa420c63d3a12"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "sha": "c2083462a6bd7a96416fd556e00e9d2a5932c458"
+    },
+    {
+      "path": "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql",
+      "sha": "38a8b5dcadddfcad432f0b98c6bc0bea0dde511b"
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "sha": "ce3d82bfaac13406f35f7917696b83c5e3058a76"
+    },
+    {
+      "path": "lib/ediel/ack.ts",
+      "sha": "227dd6159d73905a5e1c8220c557896cabdfc97a"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "sha": "2108c9c297457c288364b9ed669809aedd21e21e"
+    },
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "sha": "409d98bc603e89557faddce523cbda689597d489"
+    },
+    {
+      "path": "scripts/ediel-regulated-supply-ground-native.test.ts",
+      "sha": "0f415589a531b4fb4a4dbcdb7efcb96a31da7670"
+    },
+    {
+      "path": "scripts/helpers/ediel-regulated-supply-ground-native-fixture.ts",
+      "sha": "d2e2d499a955effba28e1d40a26cf937541f1a72"
+    },
+    {
+      "path": "__tests__/ediel-received-utilts-header-validation.test.ts",
+      "sha": "9143c040aee19c5b0e3d917a63315f42f24d3133"
+    },
+    {
+      "path": "lib/ediel/aperakEngine.ts",
+      "sha": "fd9091e140af38627ead5a67d5c0ed448ff1c536"
+    },
+    {
+      "path": "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
+      "sha": "ab10aef49c08cd986daef8cdf140570139bcc2c9"
+    }
+  ],
+  "ci_source_blobs": [
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "sha": "007d8270d467ff7bddbb0f7ca65beed722d6071e"
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.part-1.ts",
+      "sha": "342db99ededbece82af6ea6cc049887e50557bd8"
+    },
+    {
+      "path": "scripts/ediel-regulated-supply-ground-sql-regression.mjs",
+      "sha": "799063b36b701296eb0a01af55646ee7cf93b952"
+    },
+    {
+      "path": "scripts/ediel-p-12-z04ad-scope-sql-regression.mjs",
+      "sha": "5a2b4f267de95fb006e0fad23f6c173dd5901722"
+    },
+    {
+      "path": "__tests__/ediel-supply-market-consumers.test.ts",
+      "sha": "900d0c8c17829f1ab16c00f0a771a88586ad3c2c"
+    },
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "sha": "598e05fd47cf261572dc1e71793d5d7a6be01522"
+    },
+    {
+      "path": "lib/ediel/stateMachines/prodatLifecycle.ts",
+      "sha": "edd52c5f31d4dea15d2f73fa4ac48859b46a66a4"
+    },
+    {
+      "path": "scripts/test-ediel-p-12-z04ad-scope.cjs",
+      "sha": "51e7eb129a91c10b3f892fd3058e8241140a98d9"
+    },
+    {
+      "path": "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
+      "sha": "ab10aef49c08cd986daef8cdf140570139bcc2c9"
+    },
+    {
+      "path": "__tests__/ediel-utilts-err-gateway.test.ts",
+      "sha": "90686b26c418b5fdece71d01c5dfa420c63d3a12"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "sha": "c2083462a6bd7a96416fd556e00e9d2a5932c458"
+    },
+    {
+      "path": "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql",
+      "sha": "38a8b5dcadddfcad432f0b98c6bc0bea0dde511b"
+    },
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "sha": "409d98bc603e89557faddce523cbda689597d489"
+    },
+    {
+      "path": "scripts/ediel-regulated-supply-ground-native.test.ts",
+      "sha": "0f415589a531b4fb4a4dbcdb7efcb96a31da7670"
+    },
+    {
+      "path": "scripts/helpers/ediel-regulated-supply-ground-native-fixture.ts",
+      "sha": "d2e2d499a955effba28e1d40a26cf937541f1a72"
+    },
+    {
+      "path": "__tests__/ediel-received-utilts-header-validation.test.ts",
+      "sha": "9143c040aee19c5b0e3d917a63315f42f24d3133"
+    },
+    {
+      "path": "lib/ediel/aperakEngine.ts",
+      "sha": "fd9091e140af38627ead5a67d5c0ed448ff1c536"
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "sha": "ce3d82bfaac13406f35f7917696b83c5e3058a76"
+    },
+    {
+      "path": "lib/ediel/ack.ts",
+      "sha": "227dd6159d73905a5e1c8220c557896cabdfc97a"
+    }
+  ],
+  "scope": "Existing current-source qualified receipts, not a new local/native run or external market acceptance",
+  "local_failures": [
+    {
+      "command": "git fetch origin main",
+      "result": "exit 128; configured HTTP proxy unreachable at port8080"
+    },
+    {
+      "command": "node scripts/test-ediel-p-12-z04ad-scope.cjs",
+      "result": "exit 1; @electric-sql/pglite is not installed. No SQL executed."
+    }
+  ],
+  "local_checks": [
+    {
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "result": "PASS 33 originals,121 rules,231 acceptance contracts; integrity/reference scope only"
+    },
+    {
+      "command": "node --check scripts/ediel-p-12-z04ad-scope-sql-regression.mjs",
+      "result": "PASS syntax only"
+    },
+    {
+      "command": "node --check scripts/ediel-regulated-supply-ground-sql-regression.mjs",
+      "result": "PASS syntax only"
+    }
+  ],
+  "version": 2
+}

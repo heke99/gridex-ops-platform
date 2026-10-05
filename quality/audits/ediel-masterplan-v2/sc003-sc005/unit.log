@@ -1,0 +1,12 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc003-sc005
+
+ ✓ __tests__/ediel-sc-005-shared-dgi-projections.test.ts (9 tests) 26ms
+ ✓ __tests__/ediel-sc-003-provider-legal-dgi.test.ts (8 tests) 115ms
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  00:55:36
+   Duration  3.35s (transform 2.32s, setup 56ms, import 3.17s, tests 141ms, environment 0ms)
+
+JUNIT report written to /tmp/masterplan-sc003-sc005-proof/unit-junit.xml

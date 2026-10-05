@@ -1,3 +1,4 @@
+// masterplan: ACK-09, AT-ACK-09
 // Declared native reception/command IO proves actual producer dispatch only;
 // duplicate source authorization and wire execute in their separate owner tests.
 import {beforeEach,expect,it,vi} from 'vitest'

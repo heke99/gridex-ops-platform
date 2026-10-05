@@ -1,0 +1,214 @@
+{
+  "captured_at": "2026-10-05T13:25:03.811523+00:00",
+  "baseline_commit": "fff486f822001d35970f163507b10e17c3692f58",
+  "current_source_sha256": "6efc74bc2f5659d41965050763b27605e491ab3f49b3516b7346a88b18f96130",
+  "runtime_node": "v22.23.3",
+  "runs": [
+    {
+      "label": "initial",
+      "source_sha256": "ac5af2d7a85a928680718868d9d87a3d84c4a6ecd420377f91f4ce7be75d9c33",
+      "junit": "quality/audits/ediel-masterplan-v2/at-p04-parent-applicability/evidence/initial-junit.xml",
+      "junit_sha256": "098a06dbaed60d8fac2907b6ae271ff3b119b51cc63f5cf52ee60615a25fc302",
+      "cases": 39,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "label": "expanded-proof-failure",
+      "source_sha256": "b91d13d initial expanded source; exact short hash retained in review",
+      "junit": "quality/audits/ediel-masterplan-v2/at-p04-parent-applicability/evidence/expanded-junit.xml",
+      "junit_sha256": "576f1bde2b114b35325c9ff7fbfd7300de8ccc090dd1d982a79d1c7b2cbccce6",
+      "cases": 42,
+      "failures": 21,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "label": "combined187-green",
+      "source_sha256": "ebddf402e0400d9cab24b0b4f1f61622bde880d65f019027d07ad8aacd316ae9",
+      "junit": "quality/audits/ediel-masterplan-v2/at-p04-parent-applicability/evidence/final-junit.xml",
+      "junit_sha256": "a766e60ee80c99fab38f1e13d6d358dddef9ac8a74badbf75431fc03f921c8ad",
+      "cases": 187,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "diagnostic_only_run": {
+    "actual_failed": 3,
+    "filtered_out_skipped": 39,
+    "whole_approval": false,
+    "log": "evidence/diagnostic-test.log"
+  },
+  "setup_failure_resolution": "Missing mandatory child correctly also produces exactly one matching own-parent structure error, source prodatPartyFields:195-200 and prodatZ14Policy:138-143; independent reviewer agrees. Require child blocking + unaffectedchildren clear +exact own-parent companion and reject all other issues. No production change.",
+  "current_source_typecheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+    "exit_code": 0,
+    "log": "evidence/final-types.log"
+  },
+  "current_source_lint": {
+    "command": "node node_modules/eslint/bin/eslint.js __tests__/ediel-at-p04-parent-applicability.test.ts",
+    "exit_code": 0,
+    "log": "evidence/final-lint.log"
+  },
+  "frozen_integrity": {
+    "exit_code": 0,
+    "originalFiles": 33,
+    "rules": 121,
+    "acceptanceContracts": 231,
+    "applicationConformanceAsserted": false,
+    "productionReadinessAsserted": false,
+    "log": "evidence/integrity.log"
+  },
+  "current_source_tagged_gate": {
+    "status": "PASS",
+    "command": "node scripts/ediel-masterplan-test-coverage.cjs --check",
+    "log": "evidence/tagged-gate.log",
+    "exit_code": 0,
+    "log_sha256": "db4af9eb07615e9f8ec9f77c6f32da32293ff29b3be4488a1e6e338acf4eb45d",
+    "summary": "Masterplan IDs: 352; approved 213; tagged green 235; tagged failing 0; untagged 117"
+  },
+  "approval_service_capacity_failures": {
+    "action": "Start local Vitest with sandbox additional network permission needed for worker spawning",
+    "attempts": 3,
+    "executed": false,
+    "resolution": "Two expanded-run starts and one separate fresh-own42 start were notexecuted due temporary reviewer capacity. Expandedrun eventuallystarted and current-source fulltaggedgate was independently admitted and completed exit0. No bypass."
+  },
+  "approval": "Independent final review APPROVED complete pure AT-P-04; only its acceptance row promotedPASSED. Current-head CI/merge stillpending.",
+  "history": "Initial39pass and expanded21fail21pass retained; 187green source ebdd differs current6efc only added severity:error assertion. Do not attribute187JUnitto6efc; current-source gate covers added assertion.",
+  "final_source_pin_check": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "expected": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "expected": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json",
+      "sha256": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "expected": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatParentApplicability.ts",
+      "sha256": "260ab636f50f1bf1885e95858d0a9df21121dab34e05a54fe5f302b930f72cf3",
+      "expected": "260ab636f50f1bf1885e95858d0a9df21121dab34e05a54fe5f302b930f72cf3",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+      "sha256": "32d81f9bd9efae753642c77e2f2726a06dfccf4ef05bee417266f1cddd1902a3",
+      "expected": "32d81f9bd9efae753642c77e2f2726a06dfccf4ef05bee417266f1cddd1902a3",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+      "sha256": "54e569b3d723cc109370c43512240b28402c1dbdf612a62e8d9ecea7aed918ce",
+      "expected": "54e569b3d723cc109370c43512240b28402c1dbdf612a62e8d9ecea7aed918ce",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+      "expected": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "expected": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "expected": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/rulebook/fieldMatrix.ts",
+      "sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+      "expected": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatZ14Policy.ts",
+      "sha256": "a976167f6c85c71c0e8796f31d370c956e4bf376fa32823d075ca8d1b9349731",
+      "expected": "a976167f6c85c71c0e8796f31d370c956e4bf376fa32823d075ca8d1b9349731",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatSubtypePolicy.ts",
+      "sha256": "8403cd1f4ca09f80cb6eb3d55f51fac5a9659b4717848bfe99cdbafca9ee4e1d",
+      "expected": "8403cd1f4ca09f80cb6eb3d55f51fac5a9659b4717848bfe99cdbafca9ee4e1d",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatEndUserPolicy.ts",
+      "sha256": "d046ed2d5807d15384e624e05708415426c6d6ace195153b1fa96bc86e096bc7",
+      "expected": "d046ed2d5807d15384e624e05708415426c6d6ace195153b1fa96bc86e096bc7",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-dependent-z14.test.ts",
+      "sha256": "d3818c3eb62068bb76902af56da19004c23a4245b99a750258420fca04d24fad",
+      "expected": "d3818c3eb62068bb76902af56da19004c23a4245b99a750258420fca04d24fad",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+      "sha256": "62ac74af7a24dee985c011eff17054e2cdf20b7b32ec23a04a273df1b52b1388",
+      "expected": "62ac74af7a24dee985c011eff17054e2cdf20b7b32ec23a04a273df1b52b1388",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-z14-negative-context.test.ts",
+      "sha256": "244cc7565643a96fffc1cc8565a337d5607042ccce514731a3f51ba8f6c476bf",
+      "expected": "244cc7565643a96fffc1cc8565a337d5607042ccce514731a3f51ba8f6c476bf",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-permission-ack.ts",
+      "sha256": "7fba884dbaeceefb2cf56f3fc0475c14bae7afed0d1fe1b075ccf72ea6dc9ce7",
+      "expected": "7fba884dbaeceefb2cf56f3fc0475c14bae7afed0d1fe1b075ccf72ea6dc9ce7",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-register.ts",
+      "sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+      "expected": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-reporting-permission.ts",
+      "sha256": "3f1275f0597871f75d54b436745df483946a301d34da9d1f80de307b89ac1b08",
+      "expected": "3f1275f0597871f75d54b436745df483946a301d34da9d1f80de307b89ac1b08",
+      "equal_baseline_and_preflight": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+      "sha256": "d4cc28e95ee7a785e7bf0ef132cf3d9297830a1ce91dbd9e705966084e574e1e",
+      "expected": "d4cc28e95ee7a785e7bf0ef132cf3d9297830a1ce91dbd9e705966084e574e1e",
+      "equal_baseline_and_preflight": true
+    }
+  ],
+  "current_source_gate_complete_at": "2026-10-05T13:25:23.191300+00:00",
+  "coverage_change": {
+    "only_changed_row": "acceptance_contracts:AT-P-04",
+    "status": "PASSED",
+    "local_counts": {
+      "total": 352,
+      "rules_verified": 92,
+      "acceptance_passed": 122,
+      "approved": 214
+    },
+    "unchanged_foreign_rows": 351
+  }
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="3.7853504">
+    <testsuite name="__tests__/ediel-sc-016-partial-permission-membership.test.ts" timestamp="2026-10-05T04:35:18.996Z" hostname="c8313f035683" tests="3" failures="0" errors="0" skipped="0" time="3.7853504">
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="SC-016 literal multi-object permission membership (finite SQL) &gt; commits only Z14-approved A from Z13 A/B/C without customer-registry expansion" time="0.004164289">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="SC-016 literal multi-object permission membership (finite SQL) &gt; publishes only A after separate approval and holds B, C and A/B/C grants" time="0.000835648">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-016-partial-permission-membership.test.ts" name="SC-016 literal multi-object permission membership (finite SQL) &gt; executes automatic, SDK and manual callers with source-only authority and real actor refusals" time="0.000438081">
+        </testcase>
+    </testsuite>
+</testsuites>

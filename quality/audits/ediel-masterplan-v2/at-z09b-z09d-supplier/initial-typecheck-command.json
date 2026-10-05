@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/tmp/ediel-sc010-sc071-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "node_modules/typescript/bin/tsc",
+    "--project",
+    "quality/audits/ediel-masterplan-v2/at-z09b-z09d-supplier/tsconfig.component.json",
+    "--pretty",
+    "false"
+  ],
+  "exit_code": 2,
+  "executed_at": "2026-10-05T15:18:51.409070+00:00"
+}
