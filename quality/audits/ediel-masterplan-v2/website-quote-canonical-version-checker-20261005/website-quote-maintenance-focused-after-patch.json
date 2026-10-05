@@ -1,0 +1,20 @@
+{
+  "phase": "existing-focused-command-after-exact-reviewed-patch",
+  "parent": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "node_version": "v22.23.0",
+  "argv": [
+    "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+    "--experimental-strip-types",
+    "scripts/gridex-website-quote-integrity-regression.mjs"
+  ],
+  "started": "2026-10-05T19:55:46.012831+00:00",
+  "ended": "2026-10-05T19:55:46.202343+00:00",
+  "exit_code": 0,
+  "raw_file": "/workspace/gridex-main-integration-coordination-20261005/website-quote-maintenance-focused-after-patch.raw.log",
+  "raw_sha256": "6f73066d3b3f392af9e0c47181959b195470ff1180ac8508151f405941bd35e6",
+  "raw_bytes": 82,
+  "checker_sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2",
+  "sanitary_output": "website quote integrity and OpenAPI synchronization regression: ok (2026-10-04.1)\n",
+  "full_native_CI_whole_contract_run": false
+}

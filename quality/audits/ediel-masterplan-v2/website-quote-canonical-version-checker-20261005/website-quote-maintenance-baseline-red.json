@@ -1,0 +1,21 @@
+{
+  "phase": "baseline-before-reviewed-patch",
+  "parent": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "node": "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+  "node_version": "v22.23.0",
+  "argv": [
+    "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+    "--experimental-strip-types",
+    "scripts/gridex-website-quote-integrity-regression.mjs"
+  ],
+  "started": "2026-10-05T19:55:29.338091+00:00",
+  "ended": "2026-10-05T19:55:29.488017+00:00",
+  "exit_code": 1,
+  "raw_file": "/workspace/gridex-main-integration-coordination-20261005/website-quote-maintenance-baseline-red.raw.log",
+  "raw_sha256": "fa31a7040abd243a63626ced4a9d0f4aa36ff76e7e91229f44a1bc9a45bf54c2",
+  "raw_bytes": 26468,
+  "expected_obsolete_literal_assertion_line69": true,
+  "source_modified": false,
+  "sanitary_error": "obsolete finalizer literal const version assertion at existing checker:69"
+}

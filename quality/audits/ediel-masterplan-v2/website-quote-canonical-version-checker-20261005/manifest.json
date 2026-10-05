@@ -1,0 +1,59 @@
+{
+  "schema": "website-quote-canonical-checker-maintenance-v1",
+  "author": "root V/VH lane",
+  "claim_comment": 6001520006,
+  "parent": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "branch": "codex/website-quote-canonical-version-checker-20261005",
+  "sole_code_path": "scripts/gridex-website-quote-integrity-regression.mjs",
+  "code_sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2",
+  "source_review_md_sha256": "8f43d62bfb9ee7022d2023751541d51eb566e7f165baabe35079f88a9e16f045",
+  "source_review_json_sha256": "3f20d06ac5714b41a851446d98567b8634725c059724f4ac2804840ab0123d50",
+  "proposal_peer_md_sha256": "01e473030dc2876b48380b5ec65c489642921dea109b1f2b6873ccf57059f0eb",
+  "proposal_peer_json_sha256": "524dda544179bdc8282e80af75b546d7c9e811be4aebe82dfad59e17fd23f8ee",
+  "existing_focused_check": {
+    "node": "v22.23.0",
+    "baseline_exit_code": 1,
+    "after_patch_exit_code": 0,
+    "baseline_cause": "obsolete const version literal assertion at checker:69",
+    "runs": 2
+  },
+  "limits": {
+    "finalizer_execution": false,
+    "new_test_harness": false,
+    "product_API_pricing_change": false,
+    "whole_contract_promotion": false,
+    "main_or_CI_acceptance": false
+  },
+  "files": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/focused-check.stdout.txt",
+      "sha256": "6f73066d3b3f392af9e0c47181959b195470ff1180ac8508151f405941bd35e6",
+      "bytes": 82
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-integrity-proposal-peer.json",
+      "sha256": "524dda544179bdc8282e80af75b546d7c9e811be4aebe82dfad59e17fd23f8ee",
+      "bytes": 8324
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-integrity-source-review.patch",
+      "sha256": "7248d97b394e888c19cb4c1217792feebe9447f845515158b32651e89ee49618",
+      "bytes": 3926
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-maintenance-baseline-red.json",
+      "sha256": "b5396aca9cfaf967f75be862c2a279fe0052d6b04d98f9fb3edb19c9e59679ea",
+      "bytes": 993
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-maintenance-focused-after-patch.json",
+      "sha256": "a6694aa79532b6c54d214a259e76f10e4db83d0ba19a7ae7d0fa6e10fd27429c",
+      "bytes": 991
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-maintenance-parent-applicability.json",
+      "sha256": "e7b2896d1f3adfe62be378216b3c51bbcbb0bf60f025d98a54ad1c8e06ad90cc",
+      "bytes": 6687
+    }
+  ]
+}
