@@ -246,8 +246,82 @@ const newMigrations = fs.readdirSync(migrationsDir)
 // `alter function public.<name>(...) set search_path` (applied migrations are
 // immutable, so advisor repairs must be forward migrations).
 const alterPinned = new Set()
+// Source-only admission for the already qualified reconstructed-template seam.
+// Mask literals/comments only to identify actual origins/scopes; the raw CREATE
+// scan below still checks complete quoted definitions and opaque concatenations.
+const originalDefinitions = new Map()
+const ambiguousOriginalNames = new Set()
+function sourceCode(sql, rejectQuotedIdentifiers = false) {
+  let unsupported = false
+  const code = sql.replace(/--[^\n]*|\/\*[\s\S]*?\*\/|'(?:''|\\.|[^'])*'|"(?:""|[^"])*"|\$([a-z_][a-z0-9_]*|)\$[\s\S]*?\$\1\$/gi, (token) => {
+    if (token.startsWith('/*') && token.slice(2).includes('/*')) unsupported = true
+    if (rejectQuotedIdentifiers && token.startsWith('"')) unsupported = true
+    return token.replace(/[^\n]/g, ' ')
+  })
+  return unsupported ? null : code
+}
+function simpleSignature(name, parameters, named) {
+  const types = parameters.trim() ? parameters.split(',').map((parameter) => {
+    const words = parameter.trim().toLowerCase().split(/\s+/)
+    if (/^(?:in|out|inout|variadic)$/.test(words[0])) return null
+    if (named && words.length === 2 && /^[a-z_][a-z0-9_]*$/.test(words[0])) words.shift()
+    return words.length === 1 && /^(?:uuid|jsonb|text|boolean|integer|bigint|numeric|date|timestamptz|timestamp|time|bytea)(?:\[\])?$/.test(words[0]) ? words[0] : null
+  }) : []
+  return types.includes(null) ? null : `${name.toLowerCase()}(${types.join(',')})`
+}
+function recordOriginalDefinitions(sql, file) {
+  const code = sourceCode(sql)
+  const names = [...(code ?? sql).matchAll(/\bcreate(?: or replace)? function\s+public\.([a-z0-9_]+)/gi)]
+  for (const create of names) {
+    const declaration = (code ?? '').slice(create.index).match(/^create(?: or replace)? function\s+public\.([a-z0-9_]+)\s*\(([^()]*)\)([\s\S]*?)\bas\b/i)
+    const completeBody = declaration && /^\s*\$([a-z_][a-z0-9_]*|)\$[\s\S]*?\$\1\$\s*;/i.test(sql.slice(create.index + declaration[0].length))
+    const signature = completeBody && /^\s+returns\b/i.test(declaration[3]) ? simpleSignature(declaration[1], declaration[2], true) : null
+    if (!signature) { ambiguousOriginalNames.add(create[1].toLowerCase()); continue }
+    const definitions = originalDefinitions.get(signature) ?? []
+    definitions.push({ pinned: /\bset\s+search_path\b/i.test(declaration[3]), file, offset: create.index })
+    originalDefinitions.set(signature, definitions)
+  }
+  for (const alter of (code ?? sql).matchAll(/\balter function\s+public\.([a-z0-9_]+)/gi)) ambiguousOriginalNames.add(alter[1].toLowerCase())
+}
+function reconstructedHeaderPrefixes(sql, file) {
+  const prefixes = new Set()
+  const outerCode = sourceCode(sql)
+  if (!outerCode) return prefixes
+  for (const scope of sql.matchAll(/\bdo\s+\$([a-z_][a-z0-9_]*|)\$([\s\S]*?)\$\1\$/gi)) {
+    if (outerCode.slice(scope.index, scope.index + 2).toLowerCase() !== 'do') continue
+    const body = scope[2]
+    const code = sourceCode(body, true)
+    const declaration = code?.match(/^\s*declare\s+(?:[a-z_][a-z0-9_]*\s+text\s*;\s*)+begin\b/i)
+    if (!declaration) continue
+    const bodyStart = scope.index + scope[0].indexOf('$', scope[0].indexOf('$') + 1) + 1
+    for (const rename of body.matchAll(/\b([a-z_][a-z0-9_]*)\s*:=\s*replace\(\s*\1\s*,\s*'(create(?: or replace)? function\s+public\.([a-z0-9_]+)\()'\s*,\s*'(create(?: or replace)? function\s+public\.[a-z0-9_]+\()'\s*\)/gi)) {
+      const variable = rename[1]
+      if (code.slice(rename.index, rename.index + variable.length) !== variable || !new RegExp(`\\b${variable}\\s+text\\s*;`, 'i').test(declaration[0])) continue
+      const binding = body.slice(declaration[0].length, rename.index).match(new RegExp(`^\\s*${variable}\\s*:=\\s*pg_get_functiondef\\(\\s*'public\\.([a-z0-9_]+)\\(([^']*)\\)'::regprocedure\\)\\s*;`, 'i'))
+      if (!binding || binding[1].toLowerCase() !== rename[3].toLowerCase()) continue
+      const signature = simpleSignature(binding[1], binding[2], false)
+      const definitions = originalDefinitions.get(signature)
+      if (!definitions || definitions.length !== 1 || !definitions[0].pinned || ambiguousOriginalNames.has(binding[1].toLowerCase())) continue
+      const origin = definitions[0]
+      const getterOffset = bodyStart + declaration[0].length + binding[0].search(/\S/)
+      if (!(origin.file < file || (origin.file === file && origin.offset < getterOffset))) continue
+      if ([...code.matchAll(new RegExp(`\\b${variable}\\s*(?::=|=)`, 'gi'))].length !== 2 || new RegExp(`\\binto\\b[^;]*\\b${variable}\\b`, 'i').test(code)) continue
+      if (/\b(?:declare|begin)\b/i.test(code.slice(declaration[0].length))) continue
+      const variableToken = new RegExp(`\\b${variable}\\b`, 'i')
+      if (variableToken.test(code.slice(declaration[0].length + binding[0].length, rename.index))) continue
+      const afterRename = rename.index + rename[0].length
+      const consumer = body.slice(afterRename).match(new RegExp(`^\\s*;\\s*execute\\s+replace\\(\\s*${variable}\\s*,\\s*\\(\\s*select\\s+prosrc\\s+from\\s+pg_proc\\s+where\\s+oid\\s*=\\s*'public\\.([a-z0-9_]+)\\(([^']*)\\)'::regprocedure\\s*\\)\\s*,\\s*([a-z_][a-z0-9_]*)\\s*\\)\\s*;`, 'i'))
+      if (!consumer || simpleSignature(consumer[1], consumer[2], false) !== signature || variableToken.test(code.slice(afterRename + consumer[0].length))) continue
+      prefixes.add(bodyStart + rename.index + rename[0].indexOf(rename[2]))
+      prefixes.add(bodyStart + rename.index + rename[0].lastIndexOf(rename[4]))
+    }
+  }
+  return prefixes
+}
+
 for (const file of fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'))) {
   const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+  recordOriginalDefinitions(sql, file)
   for (const match of sql.matchAll(/alter function\s+public\.([a-z0-9_]+)\s*\([^)]*\)\s+set search_path/gi)) {
     alterPinned.add(match[1].toLowerCase())
   }
@@ -255,8 +329,11 @@ for (const file of fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'
 const offenders = []
 for (const file of newMigrations) {
   const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
-  const fnBlocks = sql.split(/create or replace function|create function/i).slice(1)
-  for (const block of fnBlocks) {
+  const prefixes = reconstructedHeaderPrefixes(sql, file)
+  const creates = [...sql.matchAll(/create or replace function|create function/gi)]
+  for (const [index, create] of creates.entries()) {
+    if (prefixes.has(create.index)) continue
+    const block = sql.slice(create.index + create[0].length, creates[index + 1]?.index ?? sql.length)
     if (!/^\s+(public\.|if not exists\s+public\.)/i.test(block)) continue
     const head = block.slice(0, block.search(/\bas\s+\$|\bbegin\b/i) === -1 ? block.length : block.search(/\bas\s+\$|\bbegin\b/i))
     if (/set search_path/i.test(head)) continue
