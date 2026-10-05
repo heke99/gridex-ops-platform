@@ -1,6 +1,6 @@
 # Task 1 implementer report
 
-Status: **DONE_WITH_CONCERNS**. The requested source suite is ready for independent review and exact-head CI. No Vitest case, typecheck, lint, SQL test or native/integration suite was executed successfully in this workspace. No whole-profile approval is claimed.
+Status: **DONE_WITH_CONCERNS**. Initial source work and the bounded review amendment are complete. Parent-reported historical exact-head CI at `2870cdebf6aa7a5cd44e89838f172d11936a8803` passed the new suite **37/37**, full Vitest **809 files / 10,373 tests**, and types/lint steps. Lint included the two own unused-argument warnings corrected below. This amendment has local syntax/whitespace verification only; new-head CI remains separate. No whole-profile approval is claimed.
 
 ## Scope and skills
 
@@ -66,4 +66,19 @@ Fresh final syntax and whitespace results are recorded after the completed sourc
 
 The tests name realistic production breaks in comments and use literal F/G/minute/physical-segment expectations rather than deriving the expected tuple/date from production helpers. Real gateway bypass loses reservation/reread counts, source-bound finalization, actual lifecycle and physical payload evidence. Swapped F/G tuples, current-method substitution, lost legal sender/LI, DST/midnight mistakes, source holds ignored, missing required identity and duplicate replay queueing have explicit contrasting assertions. The table adapter has an explicit recursive query type to avoid implicit recursive TypeScript inference, and the physical UNB positions/NAD country/BGM acknowledgement were reviewed against the actual source. No test only string-matches production files.
 
-Remaining concerns are explicit: this is an unexecuted component suite with finite IO doubles. Whole AT-Z09F/G profiles, received ACK/source authority, durable SQL source/replay/tenant/environment boundaries and later Z06/P-15 structure consumers are not approved by these fixtures. No coverage status was changed. Parent retains independent review, exact-head CI and all wider owners.
+Remaining concerns are explicit: this is a component suite with finite IO doubles, historically green at the parent's exact CI head. Whole AT-Z09F/G profiles, received ACK/source authority, durable SQL source/replay/tenant/environment boundaries and later Z06/P-15 structure consumers are not approved by these fixtures. No coverage status was changed. Parent retains new-head CI and all wider owners.
+
+## Bounded final-review amendment
+
+Parent dispatched one final-review fix after source approval and actual CI at `2870cdebf6aa7a5cd44e89838f172d11936a8803`: new suite **37/37 PASS**, full Vitest **809 files / 10,373 tests PASS**, types/lint steps **SUCCESS**. These are parent-reported historical CI results, not local executions or amended-head results. The actual lint report introduced two own warnings: `_columns` at test line155 and `_row` at line163 were defined but unused.
+
+Removed only the unused formal arguments from the fixture's `select` and `insert` implementations. Both remain contextually typed by the unchanged `FixtureQuery` signatures. JavaScript already ignored those supplied arguments; the zero-argument bodies preserve query behavior, fail-closed insertion and all 37 cases. No test, interface, production or unrelated cleanup was added. The parent-owned uncommitted checkpoint was left untouched; no Git metadata, dependencies, native files, existing tests or external posts were changed.
+
+Covering local checks on the amended source:
+
+- The exact Node24 TypeScript-strip/module-syntax command recorded above → exit0, `TypeScript strip + module syntax OK`, with the same expected Node experimental warnings.
+- `git diff --check -- __tests__/ediel-at-z09f-z09g-supplier-profile.test.ts` → exit0, no whitespace errors.
+- `git diff --no-index --check /dev/null .superpowers/sdd/implementation-plan/task-1-report.md` → exit0, no whitespace errors.
+- Read-only diff inspection confirms exactly the two formal-argument removals in the test. The fixture interfaces and test count are unchanged.
+
+Local Vitest/lint/typecheck remain unavailable without dependencies; the known unavailable test command was not repeated. Syntax stripping is not a typecheck or lint execution. Historical green CI does not prove the amended head; parent owns publication, the archived287 receipt and the separate new-head CI gate.

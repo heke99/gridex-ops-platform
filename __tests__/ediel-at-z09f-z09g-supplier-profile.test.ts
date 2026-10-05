@@ -152,7 +152,7 @@ function tableQuery(table: string, tenant?: string): FixtureQuery {
     return { data: single ? selected[0] ?? null : selected, error: null }
   }
   const query: FixtureQuery = {
-    select: (_columns: string) => query,
+    select: () => query,
     eq: (key: string, value: unknown) => { filters.push([key, value]); return query },
     limit: (value: number) => { rowLimit = value; return query },
     returns: () => query,
@@ -160,7 +160,7 @@ function tableQuery(table: string, tenant?: string): FixtureQuery {
     single: async () => result(true),
     upsert: (row: Row) => { operation = 'upsert'; mutation = row; return query },
     update: (row: Row) => { operation = 'update'; mutation = row; return query },
-    insert: (_row: Row) => unexpected(`insert:${table}`),
+    insert: () => unexpected(`insert:${table}`),
     delete: () => unexpected(`delete:${table}`),
     then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result(false)).then(resolve),
   }
