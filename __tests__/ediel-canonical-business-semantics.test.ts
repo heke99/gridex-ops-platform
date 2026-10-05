@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { vi } from 'vitest'
 
 import {
   assertMessageMatchesRequestType,
@@ -106,5 +107,96 @@ describe('canonical Ediel business semantics', () => {
     await expect(assertMessageMatchesRequestType({
       requestType: 'supplier_switch', messageFamily: 'PRODAT', messageCode: 'Z08', subtype: 'H',
     })).resolves.toMatchObject({ ok: false, reason: 'message_code_request_type_mismatch' })
+  })
+})
+
+describe('published canonical market and business semantics', () => {
+  it.each(['row', 'backing array'] as const)('keeps the first E73 send held after attempted %s replacement', async (target) => {
+    vi.resetModules()
+    const { UTILTS_CANONICAL_MARKET_PROFILES, getCanonicalUtiltsMarketProfile } = await import('@/lib/ediel/rulebook/utiltsMarketSemantics')
+    const { UTILTS_MARKET_PROFILES } = await import('@/lib/ediel/rulebook/utiltsMarketEngine')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const row = getCanonicalUtiltsMarketProfile('E73')!
+    expect(row.bilateralRequired).toBe(true)
+    expect(UTILTS_MARKET_PROFILES).toBe(UTILTS_CANONICAL_MARKET_PROFILES)
+    const changed = target === 'row' ? Reflect.set(row, 'bilateralRequired', false)
+      : Reflect.set(UTILTS_CANONICAL_MARKET_PROFILES, String(UTILTS_CANONICAL_MARKET_PROFILES.indexOf(row)), { ...row, bilateralRequired: false })
+    try {
+      expect(() => resolveCanonicalEdielPolicy({
+        family: 'UTILTS', messageCode: 'E73', direction: 'outbound', referenceDate: '2026-10-15',
+        applicationReference: '23-DDQ-E66-S', requestedMessageCode: 'E66', bilateralCapabilityVerified: false, mode: 'send',
+      })).toThrow('utilts_bilateral_capability_required:E73')
+      expect(changed).toBe(false)
+    } finally { vi.resetModules() }
+  })
+
+  it('preserves market roles before the first dependent profile import and canonical selection', async () => {
+    vi.resetModules()
+    const { getCanonicalUtiltsMarketProfile } = await import('@/lib/ediel/rulebook/utiltsMarketSemantics')
+    const row = getCanonicalUtiltsMarketProfile('E73')!
+    const changes = [Reflect.set(row.senderRoles, '0', 'unqualified_sender'), Reflect.set(row.receiverRoles, '0', 'unqualified_receiver')]
+    try {
+      const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+      const policy = resolveCanonicalEdielPolicy({
+        family: 'UTILTS', messageCode: 'E73', direction: 'outbound', referenceDate: '2026-10-15',
+        applicationReference: '23-DDQ-E66-S', requestedMessageCode: 'E66', mode: 'catalog_evidence',
+      })
+      expect(policy.utiltsProfile?.allowedSenderRoles[0]).toBe('supplier')
+      expect(policy.utiltsProfile?.allowedReceiverRoles).toEqual(['grid_owner'])
+      expect(changes).toEqual([false, false])
+    } finally { vi.resetModules() }
+  })
+
+  it('retains all four nested semantic arrays in the first actual Z01 policy projection', async () => {
+    vi.resetModules()
+    const { listCanonicalEdielBusinessSemantics, resolveCanonicalEdielBusinessSemantics } = await import('@/lib/ediel/rulebook/businessSemantics')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const row = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z01', subtype: 'L' })!
+    expect(listCanonicalEdielBusinessSemantics()).toContain(row)
+    const changes = [
+      Reflect.set(row.expectedBusinessResponses, '0', 'PRODAT:Z99:L'), Reflect.set(row.expectedAcknowledgements, '0', 'UNQUALIFIED_ACK'),
+      Reflect.set(row.senderRoles, '0', 'unqualified_sender'), Reflect.set(row.receiverRoles, '0', 'unqualified_receiver'),
+    ]
+    try {
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z01', subtypeOrReasonCode: 'L', direction: 'outbound', referenceDate: '2026-10-15', mode: 'catalog_evidence' })
+      expect(policy.businessResponses).toEqual(['PRODAT:Z02:L'])
+      expect(policy.semantics.expectedAcknowledgements).toEqual(['CONTRL'])
+      expect(policy.semantics.senderRoles).toEqual(['supplier'])
+      expect(policy.semantics.receiverRoles).toEqual(['grid_owner'])
+      expect(policy.ackRule.businessResponses).toEqual(['Z02'])
+      expect(changes).toEqual([false, false, false, false])
+    } finally { vi.resetModules() }
+  })
+
+  it('retains the published semantic effect and source locator in the first canonical trace', async () => {
+    vi.resetModules()
+    const { resolveCanonicalEdielBusinessSemantics } = await import('@/lib/ediel/rulebook/businessSemantics')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const row = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z01', subtype: 'L' })!
+    const changes = [Reflect.set(row, 'businessEffect', 'unqualified_effect'), Reflect.set(row.source, 'pageOrSection', 'unqualified locator')]
+    try {
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z01', subtypeOrReasonCode: 'L', direction: 'outbound', referenceDate: '2026-10-15', mode: 'catalog_evidence' })
+      expect(policy.semantics.businessEffect).toBe('request_grid_contract_check')
+      expect(policy.sourceTrace.find(source => source.authority === 'business_semantics')).toEqual({
+        authority: 'business_semantics', document: 'Ediel PRODAT/APERAK + Svensk Elmarknadshandbok',
+        section: 'PRODAT field 223 and Handbook chapters 4, 10, 11',
+      })
+      expect(changes).toEqual([false, false])
+    } finally { vi.resetModules() }
+  })
+
+  it('cannot replace the published semantic row through its actual list alias before selection', async () => {
+    vi.resetModules()
+    const { CANONICAL_EDIEL_BUSINESS_SEMANTICS, listCanonicalEdielBusinessSemantics, resolveCanonicalEdielBusinessSemantics } = await import('@/lib/ediel/rulebook/businessSemantics')
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    const row = resolveCanonicalEdielBusinessSemantics({ family: 'PRODAT', code: 'Z01', subtype: 'L' })!
+    const list = listCanonicalEdielBusinessSemantics()
+    expect(list).toBe(CANONICAL_EDIEL_BUSINESS_SEMANTICS)
+    const changed = Reflect.set(list, String(list.indexOf(row)), { ...row, businessEffect: 'unqualified_effect' })
+    try {
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z01', subtypeOrReasonCode: 'L', direction: 'outbound', referenceDate: '2026-10-15', mode: 'catalog_evidence' })
+      expect(policy.semantics.businessEffect).toBe('request_grid_contract_check')
+      expect(changed).toBe(false)
+    } finally { vi.resetModules() }
   })
 })
