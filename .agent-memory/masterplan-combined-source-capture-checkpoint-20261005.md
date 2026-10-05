@@ -37,3 +37,19 @@ SC068/ENV07 variants are separately routed to the original owners for canonical
 first-admitted fixture preservation; no new fixture repair is created here.
 Original Staff source/native/whole qualification and input-freeze handoff remain
 required; this receipt grants no runtime or whole-business approval.
+
+Current source b21e4c111f042273c63f764155826d8bbd9a5da2 genuinely adopts actual
+main2964415a, tree7dac0fd66f8bf1dbeb51c76bc7496664d57de135. The source-only
+carry receipt40bb2f9c records all1073 historical SQL/two original forwards/eight
+generator files/raw3/full origins exact against previous qualifieda2. Current
+main271→candidate275 changes only the four original Gov/DB rows; all348 foreign
+complete ordered rows and current-main metadata remain exact. Capture remains
+pending, with no new runtime/native/parity/whole-CI claim.
+
+Actual #608 supplies the first delivered ENV07 postimage. Old e081-versus610
+fixture-drift receipt926e6758 is preserved byte-exact as historical source-only
+evidence; its next610 routing is superseded by actual608. Original Staff/610
+authors must reconcile to the first admitted fixture and canonical SC068/a7.
+Staff now publishes a249; the same sole source-intake reviewer qualifies only
+its changed generator/runtime inputs. Original Staff freeze/whole gates remain
+with the author. Held599 and private IMP05 remain excluded from this source.
