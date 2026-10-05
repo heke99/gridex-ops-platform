@@ -274,8 +274,11 @@
     {
       "id": "IMP-04",
       "acceptance_id": "AT-IMP-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "IMP-05",
@@ -310,8 +313,14 @@
     {
       "id": "ENV-03",
       "acceptance_id": "AT-ENV-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/testing/selftest.ts",
+        "lib/inbound-mail/smokeTests.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "ENV-04",
@@ -1057,8 +1066,22 @@
     {
       "id": "TR-03",
       "acceptance_id": "AT-TR-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/rawMimeArchive.ts",
+        "lib/ediel/transport/smimeTransportArchive.ts",
+        "lib/ediel/transport/verifiedCopy.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "__tests__/ediel-tr-03-archive-dispatch.test.ts",
+        "__tests__/ediel-raw-mime-archive.test.ts",
+        "__tests__/ediel-smime-archive-storage.test.ts",
+        "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-transport-copy-sql-regression.mjs",
+        ".agent-memory/masterplan-codex-archive-checkpoint.md"
+      ]
     },
     {
       "id": "TR-04",
@@ -1073,7 +1096,13 @@
         "__tests__/ediel-dsn-disposition.test.ts",
         "__tests__/ediel-dsn-transport-candidates.test.ts",
         "__tests__/ediel-dsn-source-observations.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md",
+        "lib/inbound-mail/mimeStructure.ts",
+        "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+        "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+        "scripts/test-ediel-tr-04-dsn-source.cjs",
+        "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs",
+        "scripts/ediel-dsn-source-native.test.ts"
       ]
     },
     {
@@ -1198,8 +1227,13 @@
     {
       "id": "DB-01",
       "acceptance_id": "AT-DB-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts",
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+      ]
     },
     {
       "id": "DB-02",
@@ -2094,8 +2128,11 @@
     },
     {
       "id": "AT-IMP-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "AT-IMP-05",
@@ -2126,8 +2163,14 @@
     },
     {
       "id": "AT-ENV-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/testing/selftest.ts",
+        "lib/inbound-mail/smokeTests.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-04",
@@ -2685,8 +2728,22 @@
     },
     {
       "id": "AT-TR-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/rawMimeArchive.ts",
+        "lib/ediel/transport/smimeTransportArchive.ts",
+        "lib/ediel/transport/verifiedCopy.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "__tests__/ediel-tr-03-archive-dispatch.test.ts",
+        "__tests__/ediel-raw-mime-archive.test.ts",
+        "__tests__/ediel-smime-archive-storage.test.ts",
+        "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-transport-copy-sql-regression.mjs",
+        ".agent-memory/masterplan-codex-archive-checkpoint.md"
+      ]
     },
     {
       "id": "AT-TR-04",
@@ -2700,7 +2757,13 @@
         "__tests__/ediel-dsn-disposition.test.ts",
         "__tests__/ediel-dsn-transport-candidates.test.ts",
         "__tests__/ediel-dsn-source-observations.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md",
+        "lib/inbound-mail/mimeStructure.ts",
+        "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+        "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+        "scripts/test-ediel-tr-04-dsn-source.cjs",
+        "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs",
+        "scripts/ediel-dsn-source-native.test.ts"
       ]
     },
     {
@@ -2812,8 +2875,13 @@
     },
     {
       "id": "AT-DB-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts",
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+      ]
     },
     {
       "id": "AT-DB-02",

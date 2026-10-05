@@ -1,3 +1,6 @@
+## ENV-03 + IMP-04 — 2026-10-04 (claude/env-03-imp-04)
+
+- Godkända (+AT). GOV-03 i #505, OPS-02 i #507. Nästa lediga: DB-01 fp-check (kolla #491).
 ## Aktuellt läge — 2026-10-04 eftermiddag (gäller före allt nedan)
 
 **Parallella agenter: läs detta och `.agent-memory/handover.md` innan du väljer kluster.**

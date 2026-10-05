@@ -526,8 +526,10 @@ export async function buildUtiltsOutboundDraft(
 
   const senderEdielId = requireOutboundEdielId(input.senderEdielId, 'sender')
   const receiverEdielId = requireOutboundEdielId(input.receiverEdielId, 'receiver')
-  const senderSubAddress = input.senderSubAddress ?? 'UTILTS'
-  const receiverSubAddress = input.receiverSubAddress ?? 'UTILTS'
+  // IMP-04: UTILTS uses no sub-address. An empty registered value stays empty;
+  // an exactly registered value is preserved, and none is ever invented.
+  const senderSubAddress = input.senderSubAddress ?? null
+  const receiverSubAddress = input.receiverSubAddress ?? null
 
   const applicationReference =
     input.applicationReference ??

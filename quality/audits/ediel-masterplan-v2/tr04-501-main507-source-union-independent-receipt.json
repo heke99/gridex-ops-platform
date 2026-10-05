@@ -1,0 +1,159 @@
+{
+  "review": "TR04 PR501 source composition only",
+  "verdict": "APPROVE_SOURCE_COMPOSITION",
+  "reviewed_at_utc": "2026-10-05T02:09:25.959570+00:00",
+  "parents": [
+    {
+      "commit": "6bb3cdd9a2cb13e07d40d4aba09fdada96a2ba8e",
+      "tree": "5a8eec39a038fe1978a09477ab014b6fef0250ee"
+    },
+    {
+      "commit": "507e8bfa20606be31933eea1582066267ff2577a",
+      "tree": "20b492198c7b4bdbb5bec1634a42ee5cec978d47"
+    }
+  ],
+  "staged_index_path_blob_sha256": "0e36894e6ef14b1e8064a62e142fffb4bf52c342d71afb565399779dc2692752",
+  "index_path_count": 7429,
+  "nonparent_blobs": [
+    ".agent-memory/handover.md",
+    ".agent-memory/masterplan-codex-dsn-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/supabase-types-manifest.json"
+  ],
+  "frozen_file_count": 36,
+  "frozen_path_blob_sha256": "5b4995d2160973cfbb2988eaee20da6e047e053a657297cc7e8b1e16272fc7db",
+  "exact_dsn_parent_paths": {
+    "lib/inbound-mail/dsnClassifier.ts": "5e5abe621f224713b036a46551fcd99275423b66",
+    "lib/inbound-mail/mimeStructure.ts": "d40fb4a2821594e9d0ea610ae082905e2a212dfa",
+    "__tests__/ediel-dsn-classification.test.ts": "76a0f645a347b9670ec4b599a26aec4069ff7c6d",
+    "__tests__/ediel-tr-04-attributed-dsn.test.ts": "c30a9f89125d13d96734b76bd303d691465353f6",
+    "scripts/ediel-dsn-source-native.test.ts": "c1750d031db0d7e9fe32f904b1443712e5867b7f",
+    "scripts/ediel-dsn-source-observation-sql-regression.mjs": "cfcd984581736f3a021bc9a7cc51b8b89e1c88f3",
+    "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs": "a9a4e59fe9347030f57b00d48b270216ebaea0ff",
+    "scripts/test-ediel-tr-04-dsn-source.cjs": "bee6fc01e0961ff55fda8f1e7cdc71a14b99236e",
+    "scripts/ediel-source-owner-native.config.ts": "ae36d181f16fdfc70f7a9b2a87414119b45b00f4",
+    "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql": "7f4ea54835ceaf5a865aafe1dc45b9a5cdaf57e4"
+  },
+  "exact_main_parent_paths": {
+    "lib/ediel/utilts/resolution.ts": "6eb95bdc83fe8c80cbcf171381fdfc605faa0258",
+    "lib/ediel/utilts/timezone.ts": "ac5252ac61e7069873562bdaa17796194ff31e74",
+    "lib/ediel/utilts/consumptionPreparation.ts": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+    "__tests__/ediel-utilts-monthly-resolution-offset.test.ts": "8db4c575673033af73ef5a8012209ca7301d58e9",
+    "__tests__/ediel-utilts-monthly-consumption-offset.test.ts": "dce74cde052e8554fe88dabab02f594d3eb8479e",
+    "__tests__/ediel-z06f-native-wire-grammar.test.ts": "8a62e21bb98dd104ff3f85307925390ef2f8f4a3",
+    "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts": "3435a81d610efb5a90ae43c7c003606c988b5e22",
+    "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts": "bc271289ac70ce8a3649a87f1f505bd9d2cc60d0",
+    "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql": "8250fc34519ea93c9d52e488521dfd84bdbed8e1",
+    "supabase/migrations/20261004205816_support_attachment_quarantine_carrier.sql": "80aa23297bb9b571d0b97f5df8d398592c0ce483",
+    ".github/workflows/ops-hardening.yml": "3062a6a4631ff6bf4fe24272124c4a08f5a2594f",
+    ".agent-memory/current-task.md": "285cbcc36f71af18a555367810ed9e4ae9c9a09a",
+    ".agent-memory/checkpoint.json": "ecbccafb1dd36945f2c628dd05dc5e8630de1655",
+    ".agent-memory/open-blockers.md": "595e86d4bdbbdfa3acd2fc349f20c529db0748d6"
+  },
+  "approved_row_counts": {
+    "dsn": 169,
+    "main": 183,
+    "union": 183,
+    "total": 352
+  },
+  "coverage_changes_vs_main": [
+    "TR-04",
+    "AT-TR-04"
+  ],
+  "coverage_status_union": true,
+  "coverage_evidence_union": true,
+  "migration_registry_counts": {
+    "scripts/migration-history-manifest.json": 813,
+    "scripts/migration-history-manifest.additions.json": 262,
+    "scripts/migration-history-manifest.runtime.additions.json": 124
+  },
+  "registered_unique_files": 1063,
+  "source_migrations": [
+    {
+      "name": "20261004175536_ediel_dsn_encoded_source_identity.sql",
+      "sha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985"
+    },
+    {
+      "name": "20261004205603_staff_customer_retention_read_prerequisite.sql",
+      "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+    },
+    {
+      "name": "20261004205816_support_attachment_quarantine_carrier.sql",
+      "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+    }
+  ],
+  "latest_source_migration": "20261004205816_support_attachment_quarantine_carrier.sql",
+  "retained_generated_artifacts": {
+    "supabase/database.types.ts": {
+      "git_blob": "f446bee956a2960560b9a5948d030f52a832706c",
+      "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "bytes": 3679044,
+      "main_equal": true
+    },
+    "supabase/schema.sql": {
+      "git_blob": "80fc9f27395755179cab8b4c647030366bb0017e",
+      "sha256": "df8644bdb58bddbbfd23e30de4deb6fd909ea01f963c071aedc9059ccdb540bf",
+      "bytes": 11181024,
+      "main_equal": false
+    },
+    "supabase/schema.fingerprint.json": {
+      "git_blob": "3c9d114aec40b1e490a3804aeb8c7bfd2fb9e634",
+      "sha256": "f6651048f3325a3ea5b256bea2805c80510c45a5d3f3dea3bfe37be506c1ca1b",
+      "bytes": 3625,
+      "main_equal": false
+    }
+  },
+  "retained_capture_exact": true,
+  "manifest_pointers_verified": true,
+  "composition_capture_pending": true,
+  "staged_manifest_git_blob": "cbc0c490a079de38caeaf3afabfe910187ae6072",
+  "staged_manifest_sha256": "064d0035d8d9fa88da70ee60984ae122170a8e46731bff039e29bd539d4a231b",
+  "native_config_main_includes_preserved": true,
+  "dsn_native_registered_once": true,
+  "owned_test_tags": {
+    "__tests__/ediel-dsn-classification.test.ts": "// masterplan: TR-04, AT-TR-04, SC-062",
+    "__tests__/ediel-tr-04-attributed-dsn.test.ts": "// masterplan: TR-04, AT-TR-04, SC-062",
+    "scripts/ediel-dsn-source-native.test.ts": "// masterplan: TR-04, AT-TR-04, SC-062",
+    "scripts/test-ediel-tr-04-dsn-source.cjs": "// masterplan: TR-04, AT-TR-04, SC-062"
+  },
+  "dsn_owner_source_mutations_only_predecessor_and_forward": [
+    "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
+    "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql"
+  ],
+  "public_rpc_signature_unchanged": true,
+  "workflow_byte_equal_main": true,
+  "required_gates_waived": false,
+  "execution": "Read-only Git/index/source/hash assertions and diff --check only; no tests, typechecks, native, capture, provider or deployment execution.",
+  "remaining_qualification": [
+    "Publish/freeze composition then authentic current-prefix capture with actual head/tree/all8 inputs/latest migration/all3 raw outputs.",
+    "Import only actual produced bytes and truthful provenance.",
+    "All required exact-head clean/upgrade native/browser/type/schema/parity/release checks before PR501 main merge."
+  ],
+  "limits": [
+    "No actual combined database equality claimed by retained schema snapshot.",
+    "Historical DSN3/native/full-suite receipts remain qualified to their original parents.",
+    "Finite attributed processor/SQL ports are not authentic external delivery custody, SC062 market activation or resend authority."
+  ],
+  "main_paths_deleted": [],
+  "main_changed_paths": [
+    ".agent-memory/handover.md",
+    ".agent-memory/masterplan-codex-dsn-checkpoint.md",
+    "__tests__/ediel-dsn-classification.test.ts",
+    "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+    "lib/inbound-mail/dsnClassifier.ts",
+    "lib/inbound-mail/mimeStructure.ts",
+    "quality/audits/ediel-masterplan-v2/captures/tr-04-composed-ten09-staff-capture-receipt-20261004.json",
+    "quality/audits/ediel-masterplan-v2/captures/tr-04-dsn-source-capture-receipt-20261004.json",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/ediel-dsn-source-native.test.ts",
+    "scripts/ediel-dsn-source-observation-sql-regression.mjs",
+    "scripts/ediel-source-owner-native.config.ts",
+    "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs",
+    "scripts/migration-history-manifest.json",
+    "scripts/supabase-types-manifest.json",
+    "scripts/test-ediel-tr-04-dsn-source.cjs",
+    "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+    "supabase/schema.fingerprint.json",
+    "supabase/schema.sql"
+  ]
+}
