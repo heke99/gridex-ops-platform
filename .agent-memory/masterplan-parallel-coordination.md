@@ -6,12 +6,14 @@ User steering: two technical lanes at once, independent ownership, memory and ev
 | --- | --- | --- |
 | SC-021 durable A13/A76 denial and processing ACK | /root/tr06_spec_review | #552 / 5f7a2d832224ca09c6836b81976f73635b95da1a |
 | SC-022 source-bound overdue Z13 tracking | /root/ack01_precheck | #554 / 578738988d72515628e734400fd9fcfc59ebe8e8 |
-| SC-055 wrong-legal-counterparty ACK isolation | /root/tr06_spec_review, independent /root/ack01_precheck | #558 / 912eaf6ff532a5966da086c4536fd4a184de239d |
+| SC-055 wrong-legal-counterparty ACK isolation | /root/tr06_spec_review, independent /root/ack01_precheck | #558 / 0f8e36d92851d5b80800ce8f0fc4c7921d0e07e9 |
 
 | Current active technical part | Sole owner | Exact scope |
 | --- | --- | --- |
-| Adopt actual merged main into five older approved packets | /root/tr06_spec_review | Separate #524/#539/#546/#549/#550 worktrees; retain own approved producer/assertions and main provenance/rows; own checkpoints, necessary gates and local composition commits only before root publication |
-| SC-014 protected technical ACK qualification | /root/ack01_precheck | Existing own test/checkpoint only; preserve six-case freeze, qualify one genuine fresh CONTRL through actual kernel/current atomic SQL, no product/SQL repair or approval row |
+| SC014 source lifecycle/custody mapping | /root/ack01_precheck | Read-only source review; local note only, frozen14cc65b6 qualification files unchanged |
+| SC014 native/schema/generated-artifact obligations | /root/tr06_spec_review | Separate read-only tooling/instructions review; no duplicate lifecycle review or execution |
+
+All eight earlier owned packets are published on actual507e. Root owns this packet's documentation, public CI status and integration coordination. No existing owner source or shared capture/coverage/handover is taken.
 
 Current actual parent is merged main `507e8bfa20606be31933eea1582066267ff2577a` after #491 and #500. SC055/014 claim remains #5305986591063; source-owner scope #4915986603379 remains. Root alone updates #552/#554/#558 while the first child owns the other five worktrees. SC014 preserves null legal attribution, real staging and all business-access refusals; a safe persisted positive is required before any protected admission repair. No agent owns another team's source, common campaign memory, #556 mailbox-ID/SC036 guard, or another validator/resolver. Prior snapshots below are historical; the latest receipt at the end controls current state.
 
@@ -116,3 +118,31 @@ Precisely authorized next SC014 part is one genuine known-source fresh CONTRL th
 Five older packets are conflict-free on507e with approved own assertions/producers, main dependencies/provenance and all other rows retained. Focused OPS05+shared calendar51, IMP05 42, OPS03 37, SC058 4+89 SQL, SC069 5 all PASS; selected type/lint/spec/migration checks PASS. Their actual supported tag gates/local final composition freezes are still agent-owned and pending; no remote update is inferred yet. An OPS05 tag JSON failure was diagnosed as `spawnSync npx EPERM` with zero stdout, a sandbox execution-port failure; permitted necessary rerun is coordinated, not a product RED. Root's local91d046f6 native email-SAN fixture correction remains preserved inside IMP05; authentic old539/546 failed artifacts remain historical. No duplicate P consumer/native repro or new source correction is made.
 
 Next: publish five exact reviewed compositions only after their necessary gates; independently review SC014's immutable six-case packet and final actual-persistence extension; inspect all nine actual final-head CI checks through direct API and preserve the campaign integrator's merge order. Existing #506/#510/#511 three handover receipts remain exactly once.
+
+
+## Latest published freezes and public CI — 2026-10-05 03:41 UTC
+
+This receipt supersedes the older local-adoption/persistence-pending snapshots above. Actual parent remains merged main507e8bfa20606be31933eea1582066267ff2577a. All eight owned PRs are published. Main/shared integration remains with the retained campaign integrator; no new merge or duplicate handover is claimed.
+
+| PR / scope | Published exact head | Tree | Actual focused composition |
+| --- | --- | --- | --- |
+| #524 OPS05/AT whole code | 9f2277f5b0fc0dd37bdc6bb1213733aafb25c5ca | 77e16a44571835923077e20a938c11e397e94081 | 19 own +32 shared =51 PASS |
+| #539 IMP05 address component | 789b928ad39fa4514743ee453b08ed7bc7e9ea80 | 25fcbbde368fe493d664b6adebc80fdc0608a0c4 | 24 address +18 readiness =42 PASS |
+| #546 OPS03 artifact component | 62a8e8107445e082ca4169ad64244c33cc023b68 | 694e5ba15c0753349c6408647441b98e83c2a682 | 37 PASS |
+| #549 SC058 whole code | 509a133f2478844e6a7859fc10866e5b3b55ac65 | 62152b08fda0153b223014982dd6967a54fb30c9 | 4 +89 original SQL PASS |
+| #550 SC069 whole code | 58da12b0fa6572b10e8d7177617d0699f9760ce9 | 4cbf13665884865dfa4828f262a096f2afc2246e | 5 PASS |
+| #552 SC021 whole code | 5f7a2d832224ca09c6836b81976f73635b95da1a | 68f62e8c54e2e3de22550b4cb0b1339e69c5d2fb | 4 +61 original SQL +15 composition PASS |
+| #554 SC022 whole code | 578738988d72515628e734400fd9fcfc59ebe8e8 | afb3aa41957ec8cfedcbf5bf3aef37d1a00fec74 | 4 PASS |
+| #558 SC055 final whole code | 0f8e36d92851d5b80800ce8f0fc4c7921d0e07e9 | c2ee55fc0cb6f547c72fdbef1a30a8bc4988b8d2 | final5 +18 original historical SQL PASS |
+
+Every composed packet preserves actual main's eight dependency/provenance inputs, prior owned assertions and all other coverage rows. Supported tag/spec/migration checks pass individually. OPS05 branch tag352/185/195/0; IMP05/OPS03 component branches352/183/193/0 with whole-card rows untouched; each scenario branch352/184/194/0. These are branch counts, not a completion percentage. Shared32 calendar composition and application proof are reused only after exact source/config comparison; canceled duplicate type processes are never PASS. OPS03 scoped TS lint passes; CJS is excluded by default ESLint and is instead exercised by the37 assertions. OPS05's restricted npx EPERM was a tooling failure; unchanged permitted retry passes. SC022's unchanged isolated type retry passes after the recorded resource OOM. All authentic older failed native artifacts retain their original failure scope.
+
+Five final-freeze manifest SHA256 e37d55f3c7641290d7775cbf820f45fb0b47e69647366f7d991c462b29f40e23; independent parent preservation receipts5957fa69e9b57dad82a784588606a4488ba30ba7ba01cf2608548dae57332e56 and e6324e5dcdf71a48d04f43a9daecf60e5ccc8cab174ce6949c4c6065546c8b8c. Public source publication receipt: #4915987303688.
+
+SC055's final fifth sender-only contrast preserves the prior four cases and18 SQL controls. Published test SHA256 e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746; checkpoint55b0c14f1f93a5f233bf9aa804b5b04f54830d5a481f3bf69e58f1c7e7c69b33. Actual5+18 log a9a96198ee471d9950e13aa32390373d06f23fa0f1e8adf4932e79620d04a180; independent peer source review APPROVE75559918fe976bc5a120f34642fcb8eb193faac2f86327acbbacc3714a042e42. No production/SQL/shared row change beyond its existing approval. All finite/historical/native/market limits remain unchanged.
+
+SC014 seven-case published qualification is14cc65b6ad46360249ecd95781eb7b70add4b926, tree67cc8918d30d1e68df59eb4bcb345d75c1ade8f8; exactly two owned files, no PR/tag/row promotion. Published test SHA25660c45683eb5dfb86a494c6abbced392b962d55077058aab75f0ad706bde7283c; checkpoint740c203cb04f709ae350cf2af25ee4f977d9008574b3353b82e668df06912263. Owner7/7 log5e10e39f2913f02cf67251e0f3a783b1589382ffd6473fc2c1316c762b109bc8 and root detached exact-commit7/7 log82361f8fd2d2512372f6cd6792aee19ef563516ed34e9fafa4841af3c0e63ebc, both zero skips. Independent read-only seven-case review APPROVE875c998f233551a59fa0fe4f0c47faf8f3acb757719f73d067735975c80a0b07. Original six cases and actual507e inputs remain exact. Whole SC014 remains NOT_VERIFIED; no product or SQL repair, native/live/SEND or wider approval is inferred. Further source-review notes stay local while exact scope is reconciled.
+
+Direct GitHub current-head checks: #552/#554/#558 each9/9 required SUCCESS including clean and upgrade replay; all remain OPEN/unmerged. #524/#539/#546/#549/#550 each8 SUCCESS with only clean-migration-replay in progress, no failure. Public-status coordination accepted at #4915987702576. #501 current head4b2245416df6d268c48db32ff6f01915396af94d and #5561753773679d85c30dde60934692a046888973035 remain OPEN/unmerged. A synthetic merge_commit_sha is never an actual merge receipt.
+
+Public owner board remains authoritative: SC015/016 draft559, SC018/056 draft560, and newly claimed SC057/059 #5305987396774/#4915987398106 are other owners. No extra rule is claimed here. Current next action: finish two disjoint SC014 local reviews, reconcile a concrete protected admission scope before any desired RED/repair, and inspect remaining CI only when actionable. Integrator owns #501 -> #556 -> #503 -> GOV08 -> DB02, shared capture/coverage and unique main handovers; own #506/#510/#511 handovers remain exactly once.
