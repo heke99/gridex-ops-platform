@@ -1,0 +1,16 @@
+{
+  "command": [
+    "gh",
+    "pr",
+    "merge",
+    "589",
+    "--repo",
+    "heke99/gridex-ops-platform",
+    "--merge",
+    "--match-head-commit",
+    "b7acb387c4132c7885e84bd1d7197f3ec5a0143f"
+  ],
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": ""
+}

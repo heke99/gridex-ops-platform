@@ -63,6 +63,33 @@ export type CompleteFacilityLookupInput = {
   triggerNextStep?: boolean
 }
 
+export type SuccessfulFacilityLookupCompletion = {
+  ok: true
+  requestId: string
+  status: 'completed'
+  facilityId: string | null
+  meteringPointId: string | null
+  meteringPointRecordId: string | null
+  customerId: string
+  customerSiteId: string
+  operationId: string | null
+  nextStep: Awaited<ReturnType<typeof evaluateAndRunNextCustomerStep>> | null
+}
+
+// A continuation failure must retain the validated result of the committed
+// RPC. Callers can distinguish it from a rejected or failed completion.
+export class FacilityLookupPostCommitError extends Error {
+  constructor(
+    readonly companyId: string,
+    readonly requestId: string,
+    readonly completion: SuccessfulFacilityLookupCompletion,
+    cause: unknown,
+  ) {
+    super('facility_lookup_continuation_failed', { cause })
+    this.name = 'FacilityLookupPostCommitError'
+  }
+}
+
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
@@ -232,7 +259,7 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
   }
 
   const completion = atomicResult(data)
-  if (!completion.requestId || !completion.customerId || !completion.customerSiteId) {
+  if (!completion.requestId || completion.requestId !== input.requestId || !completion.customerId || !completion.customerSiteId) {
     throw new Error('facility_completion_invalid_result')
   }
 
@@ -254,7 +281,7 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
       idempotencyKey: `facility_data.conflict:${input.requestId}:${completion.code ?? 'data_conflict'}`,
     })
     return {
-      ok: false,
+      ok: false as const,
       requestId: input.requestId,
       status: 'needs_review' as const,
       blockerCode: completion.code ?? 'data_conflict',
@@ -268,82 +295,86 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
     }
   }
 
-  // Only the website application is an ancillary projection now. The canonical
-  // facility resolution is already committed atomically by the RPC.
-  await updateWebsiteApplication({ companyId: input.companyId, request })
-
-  await emitFacilityLookupCompletedEvent({
-    companyId: input.companyId,
-    customerId: completion.customerId,
-    customerSiteId: completion.customerSiteId,
-    meteringPointId: completion.meteringPointRecordId ?? null,
-    operationId: completion.operationId ?? text(request.operation_id),
-    requestId: input.requestId,
-    actorUserId: input.actorUserId ?? null,
-    source: input.source,
-    payload: {
-      facility_id: completion.facilityId ?? facilityId,
-      metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
-      metering_point_record_id: completion.meteringPointRecordId ?? null,
-      grid_area_code: completion.gridAreaCode ?? gridAreaCode,
-      price_area_code: completion.priceAreaCode ?? priceAreaCode,
-      resolution_id: completion.resolutionId ?? null,
-      ediel_message_id: text(input.edielMessageId),
-      atomic_completion: true,
-      already_completed: completion.alreadyCompleted === true,
-    },
-  })
-
-  await emitCustomerProcessEvent({
-    companyId: input.companyId,
-    customerId: completion.customerId,
-    customerSiteId: completion.customerSiteId,
-    meteringPointId: completion.meteringPointRecordId ?? null,
-    operationId: completion.operationId ?? text(request.operation_id),
-    eventType: 'facility_data.verified',
-    title: 'Anläggningsuppgifter verifierade',
-    message: 'Anläggnings-ID och/eller mätpunkt har sparats atomärt och processen kan fortsätta.',
-    actorUserId: input.actorUserId ?? null,
-    status: 'completed',
-    severity: 'info',
-    source: 'facility_lookup_workflow',
-    payload: {
-      request_id: input.requestId,
-      source: input.source,
-      facility_id: completion.facilityId ?? facilityId,
-      metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
-      resolution_id: completion.resolutionId ?? null,
-      atomic_completion: true,
-    },
-    idempotencyKey: `facility_data.verified:${input.requestId}:${completion.facilityId ?? completion.meteringPointExternalId ?? facilityId ?? meteringPointId}`,
-  })
-
-  let nextStep: Awaited<ReturnType<typeof evaluateAndRunNextCustomerStep>> | null = null
-  if (input.triggerNextStep !== false) {
-    nextStep = await evaluateAndRunNextCustomerStep({
-      companyId: input.companyId,
-      customerId: completion.customerId,
-      siteId: completion.customerSiteId,
-      operationId: completion.operationId ?? text(request.operation_id),
-      trigger: 'facility_data_received',
-      actorUserId: input.actorUserId ?? null,
-      source: input.source,
-    })
-  }
-
-  revalidatePath('/admin/facility-requests')
-  revalidatePath(`/admin/customers/${completion.customerId}`)
-
-  return {
+  const result: SuccessfulFacilityLookupCompletion = {
     ok: true,
-    requestId: input.requestId,
-    status: 'completed' as const,
+    requestId: completion.requestId,
+    status: 'completed',
     facilityId: completion.facilityId ?? facilityId,
     meteringPointId: completion.meteringPointExternalId ?? meteringPointId,
     meteringPointRecordId: completion.meteringPointRecordId ?? null,
     customerId: completion.customerId,
     customerSiteId: completion.customerSiteId,
     operationId: completion.operationId ?? text(request.operation_id),
-    nextStep,
+    nextStep: null,
   }
+
+  try {
+    // Only the website application is an ancillary projection now. The canonical
+    // facility resolution is already committed atomically by the RPC.
+    await updateWebsiteApplication({ companyId: input.companyId, request })
+
+    await emitFacilityLookupCompletedEvent({
+      companyId: input.companyId,
+      customerId: completion.customerId,
+      customerSiteId: completion.customerSiteId,
+      meteringPointId: completion.meteringPointRecordId ?? null,
+      operationId: completion.operationId ?? text(request.operation_id),
+      requestId: input.requestId,
+      actorUserId: input.actorUserId ?? null,
+      source: input.source,
+      payload: {
+        facility_id: completion.facilityId ?? facilityId,
+        metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
+        metering_point_record_id: completion.meteringPointRecordId ?? null,
+        grid_area_code: completion.gridAreaCode ?? gridAreaCode,
+        price_area_code: completion.priceAreaCode ?? priceAreaCode,
+        resolution_id: completion.resolutionId ?? null,
+        ediel_message_id: text(input.edielMessageId),
+        atomic_completion: true,
+        already_completed: completion.alreadyCompleted === true,
+      },
+    })
+
+    await emitCustomerProcessEvent({
+      companyId: input.companyId,
+      customerId: completion.customerId,
+      customerSiteId: completion.customerSiteId,
+      meteringPointId: completion.meteringPointRecordId ?? null,
+      operationId: completion.operationId ?? text(request.operation_id),
+      eventType: 'facility_data.verified',
+      title: 'Anläggningsuppgifter verifierade',
+      message: 'Anläggnings-ID och/eller mätpunkt har sparats atomärt och processen kan fortsätta.',
+      actorUserId: input.actorUserId ?? null,
+      status: 'completed',
+      severity: 'info',
+      source: 'facility_lookup_workflow',
+      payload: {
+        request_id: input.requestId,
+        source: input.source,
+        facility_id: completion.facilityId ?? facilityId,
+        metering_point_id: completion.meteringPointExternalId ?? meteringPointId,
+        resolution_id: completion.resolutionId ?? null,
+        atomic_completion: true,
+      },
+      idempotencyKey: `facility_data.verified:${input.requestId}:${completion.facilityId ?? completion.meteringPointExternalId ?? facilityId ?? meteringPointId}`,
+    })
+
+    if (input.triggerNextStep !== false) {
+      result.nextStep = await evaluateAndRunNextCustomerStep({
+        companyId: input.companyId,
+        customerId: completion.customerId,
+        siteId: completion.customerSiteId,
+        operationId: completion.operationId ?? text(request.operation_id),
+        trigger: 'facility_data_received',
+        actorUserId: input.actorUserId ?? null,
+        source: input.source,
+      })
+    }
+
+    revalidatePath('/admin/facility-requests')
+    revalidatePath(`/admin/customers/${completion.customerId}`)
+  } catch (cause) {
+    throw new FacilityLookupPostCommitError(input.companyId, input.requestId, result, cause)
+  }
+  return result
 }

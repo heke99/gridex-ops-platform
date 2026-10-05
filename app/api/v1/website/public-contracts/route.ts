@@ -129,11 +129,13 @@ export async function GET(request: NextRequest) {
     }
     const [revision, tenant, offers] = await Promise.all([
       branch('revision', loadPublicationRevision(auth.context.companyId, 'website')),
-      branch('tenant', loadExternalTenantContext(auth.client)),
+      branch('tenant', loadExternalTenantContext(auth.client).then((tenant) => {
+        currentTenantReference = tenant.tenant_reference
+        return tenant
+      })),
       branch('offers', loadPublicContracts({ client: auth.client, customerType: query.customerType })),
     ])
     lap('load')
-    currentTenantReference = tenant.tenant_reference
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     const headers = responseHeaders({
