@@ -1,3 +1,15 @@
+# Current Z15V/VH ESCO component checkpoint — 2026-10-05 13:34 UTC
+
+PR #585 is actually merged as cfcee6877f57c4ff52265cafc6a8a1fa5692a714 at 13:33:20Z. Ordered parents: genuine main a8c991c1672d97cb03486a15ca34a16d1b2814e3 and frozen candidate8c52ce0d6aa8016a636460a0b1d69990ab1e58fc. Exact actual tree779cc833d9f160a9892a33e598e8a828e38b209d equals qualified composition and the actual git merge-tree. Twelve added own paths/candidate blobs and coverageunchanged were verified. RequiredCI9/9 is exact8c52; independent review5414519011 and substantive CodeRabbit5414427593/corrected minor4183997149 are retained. INTENDED#5305995461544; MERGED/RELEASE#5305995567079.
+
+Whole AT-Z15V-ESCO and AT-Z15VH-ESCO remain HELD/NOT_EXECUTED/evidence[], no machine tags or coverage promotion. This merge integrates profile/component evidence only. Native physicalACK/current owner history/liveDDQ/sourcepermission/ESCO relation proof remains held at retained503/ESCO owners. All392 selected pins unchanged from genuine d2ad42-profile qualification, explicitly not a full application/native/external closure. No changed-behavior rerun, native run or CI waiver occurred.
+
+Main moved twice during the final guard (#586 then#583). Root fetched/requalified a8c991c1 and preserved both. GitHub mergeable was null, so the published commit was fetched and real git merge-tree proved no conflict/exact expectedtree before ordinary expected-head merge. Raw postmerge PR/tree/orderedparents and local own12path/blob/coverage checks confirmed actual integration. Postmerge local adoption encountered only the expected own add/add checkpoint conflict; the entire preserved59a checkpoint is retained below, with every foreign/main path unchanged. No foreign-file conflict resolution.
+
+Next: finish publishing this own closed-branch postmerge status/receipt without reopening or changing the merged candidate. Shared-memory owner has the unique actualmerge handover line in5995567079; root does not edit common memory. Active plan continues in isolated Z06F/G #588 worktree; source/native registration and field306 code-list/fixture qualification remain with #503/canonical owner. Separate current-head CI, native, main and external gates stay explicit.
+
+## Historical checkpoints — preserved and superseded by current status above
+
 # AT-Z15V-ESCO / AT-Z15VH-ESCO checkpoint
 
 Current: 2026-10-05; Codex at-z15v-z15vh-esco-20261005.
@@ -88,3 +100,13 @@ Current next action: finish genuine a8275cf3 nine-requiredCI, handle concrete bo
 - Authenticmain498ebd1c31f449630ea2b630cf23381447d71ba6 has only foreignhandover/Z04persistedACKtest/UTILTSlate-versionSQLtest delta since qualifiedd2ad. All392selected pins/coverage unchanged; exact frozen12path composition has no collisions/differrors. Root safelymerged actualmain into ownlocalhistory without altering foreignpaths. The existing matching certificate workflow+runner remain intact. Current doccorrection requires newhead review/CI; previousa827 statuses are not relabeled.
 
 Next: independent read-only doc-delta review, non-force publish once, reply to actualinlinefinding and resolve only after the publishedfix is verified. Freeze newHEAD through9mandatoryCI, thenfreshmain qualify/intendedmerge. AllwholeAT/native/history/ACK/liveDDQ andconditionalF/G handoffs remain retained/held; no newclaim or silentrelease.
+
+## Latest frozen candidate — 2026-10-05 12:32 UTC (local status only)
+
+- Actual published585 HEAD8c52ce0d6aa8016a636460a0b1d69990ab1e58fc/tree0ba17152de8332eb61a77d63db13f793b6a5aecc equals preservedlocal6707d77c63c8fe21f91cb639705223b8633181ef; orderedparentsa827 +authenticmain498. ExactPR/ref/GC/12paths confirmed. Independent docdelta technicalAPPROVE COMMENT5414519011; READY/RELEASE5305994508795 supersedes earlier candidate references.
+- Verified CodeRabbit singleMinor4183929723 was fixed inactualpublishedreview.md, replied inline4183997149, then actualthreadPRRT_kwDORvYys86pB5Iv resolved. Completebotreview5414427593 reviewed8processedpaths, excluded4logs; peer verifiedalllogs/artifacts independently. No botAPPROVE or unexecuted fullcontract claim. SoleCIagent now watchesonly8c52; allolderheads/results remain historical. No routinecandidatepush follows thislocalnote.
+- Soleownerwatcher found retainedZ09owner5035994437865 joins ourconditionalF/G5994170476 into ONE existing supply/method-event/sealedZ09/transport/Z06/caseapproval/persistedACK chain. This is coordination only, no completedcallerproof/ownershiprelease. #583 newsource-owner proposal d1a78215/tree7b95d8ae on5305994465496 concerns retainedpre-firstZ14 nativehook/cases, savedonlynewproposalpaths; native/types/proposalCI NOT_RUN and notZ15proof. We neitherapplynor duplicateit. Z15handoff5035993970278 remainsheld.
+
+Currentnextaction: genuine8c52nine-requiredCI; freshmainpin/coverage/collisionqualification from /tmp/z15-qualify-current-main.py usingpreservedlocal6707 only (exclude laterlocalstatus); intendedmergeannounce/expectedheadactualintegrationafterallgates. Then durableclosedbranchcheckpointandownedpostmergeproof, latestownershippreflightorconcreteblockedhandoff withoutduplication. BothwholeATsHELD/coverageNOT_EXECUTED; source/native/history/physicalACK/liveDDQ andexternalacceptance remain separateunprovedgates.
+
+Postmerge record verification: the initial unscoped local merge-index diff --check returned2 on inherited foreign #583/#586 audit whitespace. Those original logs/proposal patches were preserved byte-exact; this is not an own-candidate or behavioral failure. The targeted actual cfcee687→owned status diff --check exited0 and contains only own checkpoint plus post-merge receipt; all foreign actual-main blobs match. The failed broad check remains recorded, not retroactively PASS.
