@@ -1,0 +1,78 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "wholeApproval": false,
+  "componentCasesDeclared": 37,
+  "suiteSha256": "939c1d0f4b69c6caa51c90c6dc141dae74dd22f8c21854d38fc5390f2caea26e",
+  "implementerReportSha256": "a40b96f4a48ec16fdd363e8058d4d0a30871ea5a227ac8094e7f24a45bbc82e9",
+  "literalReviewSha256": "c1cb4be3fe15cc6aff14a5c3f7149ba9a7a7a5fb301fc5b290d9fa660d872613",
+  "baselineSha256": "a521483c2ca25588c2b5739dc645055f3980f249195a8dbebcfb249c9d06e52a",
+  "historicalExcerptsSha256": "630f586e0e060a056d780cc29789f556c6166e72ed45d6fd6e597b4957add582",
+  "executedChecks": [
+    {
+      "check": "Initial Node strip/VM without flag",
+      "result": "FAILED",
+      "detail": "SourceTextModule not constructor; not test result"
+    },
+    {
+      "check": "Node24 TypeScript strip/VM with experimental-vm-modules",
+      "result": "PASS",
+      "scope": "syntax only"
+    },
+    {
+      "check": "npm test -- __tests__/ediel-at-z09f-z09g-supplier-profile.test.ts",
+      "result": "FAILED_TO_START",
+      "exitCode": 127,
+      "detail": "vitest not found; zero cases executed"
+    },
+    {
+      "check": "new-file no-index whitespace",
+      "result": "PASS"
+    },
+    {
+      "check": "generic GitHub single-job GET",
+      "result": "BLOCKED_TOOL_ENDPOINT",
+      "detail": "supported run-jobs wrapper used instead"
+    },
+    {
+      "check": "initial staged whitespace",
+      "result": "FAILED",
+      "detail": "new blank line at implementation-plan EOF; corrected before publication"
+    }
+  ],
+  "pending": [
+    "amended-head existing requiredCI",
+    "scoped final-fix rereview",
+    "native authentic F/G authority/currentness",
+    "actual receivedCONTRL/APERAK",
+    "outgoing desired journal through independently versionedZ06/P15"
+  ],
+  "coverageEdited": false,
+  "historicalSuiteSha256At2870cdeb": "02b67e03bbd148849272d1b7f8be2a695d79b22e1d5f745545486e9259c4ccac",
+  "priorHeadExecutedCI": {
+    "head": "2870cdebf6aa7a5cd44e89838f172d11936a8803",
+    "runId": 37303478614,
+    "qualityJobId": 111741497966,
+    "qualityResult": "SUCCESS",
+    "newSuite": "37PASS/0FAIL",
+    "ordinary": "809files/10373testsPASS",
+    "lint": "SUCCESS with two introduced unused-parameter warnings155/163; amended",
+    "typesTestsScripts": "SUCCESS",
+    "physicalNativeAckZ06Whole": "UNAPPROVED",
+    "receiptSha256": "fe4bdf4ae0b493790fee7d8f22fec3d2121f1d4b579ad5ff70d9c3a95f6500a5"
+  },
+  "sourceReviewsAt2870cdeb": {
+    "taskSpecQuality": "Approved",
+    "taskReportSha256": "a567585e91870895a3d479b8d9768e79fc09238c887e9ba4d70ef183f8d88df1",
+    "wholeBranch": "Approved source-only",
+    "finalReportSha256": "f2e0804c68fa137b2a7645af79965c8d5ccbd153f12b454a8506f2823554485b"
+  },
+  "amendment": {
+    "reason": "two introduced lint warnings, unused formal args only",
+    "singleImplementer": "/root/z09_profile_implementer",
+    "sourceBehaviorChanged": false,
+    "syntaxAndWhitespace": "PASS",
+    "currentHeadCI": "PENDING after publication",
+    "scopedRereview": "PENDING",
+    "wholeApproval": false
+  }
+}

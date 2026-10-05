@@ -22,6 +22,8 @@ const requestsBefore=(await query('SELECT count(*)::int n FROM public.grid_owner
 `
 const after=`
 // Z02 is master data only: no new outbound message (no Z03), no new requests.
+// SC-035: the core succeeds in a schema without supply/switch tables, so it
+// cannot create an active supply or a Z04-confirmed state.
 await db.exec('RESET ROLE;')
 assert.equal((await query('SELECT count(*)::int n FROM public.ediel_messages')).rows[0].n,messagesBefore);p10++
 assert.equal((await query("SELECT count(*)::int n FROM public.ediel_messages WHERE message_code='Z03'")).rows[0].n,0);p10++
