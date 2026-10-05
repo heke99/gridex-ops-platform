@@ -214,7 +214,8 @@
   },
   "remaining": {
     "ownWholeVContracts": "AT-Z13V/Z14V/Z13VH/Z14VH-ESCO NOT_EXECUTED/evidence[].",
-    "commonActual611HandoverFulfillment": "PENDING original sole common writer; request already published, no second600row.",
+    "commonActual611HandoverFulfillment": "FULFILLED exactly once in original common writer publication 83f179a16150b76e15025e807ad6fd955f1a5adb, .agent-memory/handover.md line 1398, actual merge 9538c4818a5802e066cbae5639a5f07a28675560. No second #611 or #600 row.",
+    "commonMetadataActualMainAdoption": "PENDING retained sole common MAIN documentation adopter; public handover publication is not actual metadata main admission.",
     "quote": "Original 60758 unchanged in existing current PR #612 at 6d69; current-source CI/actual main admission retained root503.",
     "finalPushMainAndCommonTag": "PENDING retained sole baseline owner.",
     "otherExistingSourceNativeCaptureLegacyPrerequisites": "Retain original owners and exact HOLD criteria; no new rule or duplicate writer."
