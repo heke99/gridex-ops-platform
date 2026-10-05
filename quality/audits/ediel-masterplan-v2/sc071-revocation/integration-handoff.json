@@ -180,5 +180,40 @@
     "all8_reserved_baselines_preserved": true,
     "sc071_patch_applicability": "git apply --check PASS; NOT_APPLIED; effective source still requires actualowner integration",
     "canonical_admission_replay_capture": "NOT_PERFORMED"
+  },
+  "later_current_main_qualification": {
+    "main": "fff486f822001d35970f163507b10e17c3692f58",
+    "head": "f7fc20f7b5adc784bdd6ed01bd56ac56e53d2763",
+    "tree": "d19954dc674406f425d3e3f40805b9ab0eb5af12",
+    "temporary_commit": "ba5186891b5de1287c173b591d926551dc742eb5",
+    "qualification_worktree": "/tmp/gridex-sc071-current-fff-qualification-20261005",
+    "native_runtime_BASE": "7b9218da",
+    "purpose": "fresh current-main tag/source composition; no producer admission/capture/native rerun",
+    "tagged_gate": {
+      "command": "PATH=Node22bin:$PATH Node22 scripts/ediel-masterplan-test-coverage.cjs",
+      "exit_code": 0,
+      "ids": 352,
+      "approved": 213,
+      "tagged_green": 234,
+      "tagged_failing": 0,
+      "untagged": 118,
+      "log": "current-composition-fff-tagged-coverage.log",
+      "log_sha256": "e6f491c17c4e9de1a94afb357c1cead9dfdfa9fc518d29b65f297bb1c7027355",
+      "earlier_attempt": "interrupted130 beforequalification; npxchildPATH not pinned; raw retainedoutsidePR"
+    },
+    "existing_current_main_paths_checked": 7600,
+    "changed_existing_current_main_paths": [
+      ".agent-memory/masterplan-sc071-checkpoint.md",
+      ".github/workflows/ediel-sc071-native.yml",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/README.md",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/native-feedback-review.md",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/verification-receipt.json",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/workflow-control-probe.json"
+    ],
+    "foreign_main_blobs_preserved": true,
+    "coverage_blob_equal_main": true,
+    "coverage_path": "quality/audits/ediel-masterplan-v2/coverage.json",
+    "earlier_metadata_error": "wrong presumed docs coverage path raisedKeyError; actual quality/audits path discovered and compared; test gate itself PASS"
   }
 }

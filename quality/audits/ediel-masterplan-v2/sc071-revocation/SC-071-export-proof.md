@@ -53,7 +53,8 @@ was independently qualified against7,559 BASE Git blobs, immutable caller and
 effective input hashes, actual job receipt, four RPC witnesses, zero skips and
 unchanged48 official ledger versions. Raw failure/JUnit/receipt remain in
 export-native-first-*. Both SC010 expiry cases received57014 before their
-atomicity assertions; those effects are unqualified until a fresh real pass.
+atomicity assertions; those effects were unqualified in that historical run.
+The corrected actual run below qualifies both expiry cases.
 
 ## Remaining acceptance gates
 

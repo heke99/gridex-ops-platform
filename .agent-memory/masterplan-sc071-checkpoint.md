@@ -361,3 +361,26 @@ Publishownproofdocumentationon codex/ediel-sc071-qualified-handoff-20261005
 asoneevidence-onlycommit, noextraPR/workflow; keep586f7fc frozenwhileCIruns.
 Retainedcoordinatorcancarrysingleproofcommitwiththeactualnecessaryintegration.
 No sharedwindowrelease; newpacketconcretereviewable, nohandwritten schema/types.
+
+## Current-main movement and scoped composition verification
+
+Mainadvanced498→fff486f8 via584:11newforeign test/doc files only; allruntime/
+package/lock/ownnative/caller/sharedbaselinebytesunchanged. Newreadonly
+currentmerge-tree f7fc+fff→d19954dc; temporarycommitba518689/worktree
+/tmp/gridex-sc071-current-fff-qualification-20261005. Supportedtag/sourcegate
+startedfornewforeigntestcomposition. Firstlocalgateinterruptedexit130 before
+qualification becauseabsoluteNode22parentdidnotpin npxchildPATH; noPASSclaim
+andfirstrawlogretainedoutsidePR. CorrectedcommandprependsNode22binPATHfor
+parent+child; native/DBstacknotrerun. Nextfinishactualcurrentcompositiongate
+andsavecounts, preserveallforeignrows; f7fc requiredcleanreplaystillrunning.
+Publishedhandoff3d9delivered5035994831063+5305994833189; actualpeerreview
+COMMENT5865414767634 isCOMMENTED, notGitHubselfAPPROVED.
+
+Currentfffcomposition supportedNode22parent+child gatePASSexit0:352IDs,
+213approveddistinct,234taggedgreen,0failing,118untagged. Uniond19954dc/
+temporaryba518689; fullcurrentmain7600pathschecked, only7ownexistingpaths
+change; foreignblobs+coveragepreserved. Ownrawlogcurrent-composition-fff-
+tagged-coverage.log, claim5305995072569, no native rerun/wholeclaim.
+FirstmetadataassemblyraisedKeyErrorforwrongpresumeddocscoveragepath;
+rgfilesfoundactualquality/audits/ediel-masterplan-v2/coverage.json andexact
+GitblobcomparisonPASS. Supportedtaggate wasalreadygreen; no test rerun.
