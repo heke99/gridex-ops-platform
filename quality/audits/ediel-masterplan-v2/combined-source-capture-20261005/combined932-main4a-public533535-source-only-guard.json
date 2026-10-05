@@ -1,0 +1,160 @@
+{
+  "schema": "gridex-combined932-main4a-public533535-source-only/v1",
+  "verdict": "APPROVE_EXACT_REVIEWED_GOV08_DB02_SOURCE_UNION_AND_LOSSLESS_MANIFEST_CAPTURE_PENDING",
+  "created_at": "2026-10-05T19:37:34.240723+00:00",
+  "candidate": "932a194cded4d4a59aaa429464516b80ac38d303",
+  "candidate_tree": "53b15632af24ad71431d849e3bd6b339b71ec0fe",
+  "genuine_ordered_candidate_parents": [
+    "b7d842aad6359c15ad7d8f8f91ad63bf5f1ac0be",
+    "78e5e90b809f87b0e667046e9cbd7f994562cce7"
+  ],
+  "genuine_GOV_main_adoption_parents": [
+    "f7e8365b8177bb85a009cb8ca78598ffb591373a",
+    "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3"
+  ],
+  "pinned_adopted_main": "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3",
+  "public_reviewed_owner_heads": {
+    "GOV08_PR533": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+    "DB02_PR535": "78e5e90b809f87b0e667046e9cbd7f994562cce7"
+  },
+  "main_and_both_public_owner_heads_actual_ancestors": true,
+  "preservation": {
+    "all_main_app_lib_and_root13_original_source_blobs_exact": true,
+    "F3_original_gate_test_pair_and_source_readset_retained": true,
+    "generated3_exact_original_main_historical5be_bytes": true,
+    "every1073_prior_SQL_path_blob_mode_exact_main": true,
+    "no_main_paths_removed_or_unowned_body_changes": true,
+    "remaining_GOV_DB_packet_tests_scripts_receipts_checkpoints_exact_public_owner_blobs": true,
+    "root_additions": "Only own combined checkpoint and two prior immutable source-only receipts; no new runtime source."
+  },
+  "only_added_SQL_forwards": [
+    {
+      "owner": "GOV08",
+      "public_head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+      "path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+      "blob": "14cead09ae5d5a7d9b1d21351a0ad724e6d39664",
+      "sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25"
+    },
+    {
+      "owner": "DB02",
+      "public_head": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+      "path": "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+      "blob": "1980d56b10aa1d26cd5b67929002b119b3d5559a",
+      "sha256": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0"
+    }
+  ],
+  "SQL_counts": {
+    "old_main": 1073,
+    "candidate": 1075
+  },
+  "migration_tree": "defbf44a6fc563a8516c9a8a80a5b847b90cefa3",
+  "merged_history_registries": [
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "sha256": "49fb97955b9389f5ec090fe99ad8e433a3b82d7fba896bf8108f33c32f819a88",
+      "previous_values_exact": true,
+      "single_added_file": "20261004221605_ediel_test_original_outcome_conflict.sql"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "sha256": "bc07fca03a79a17da575814ea62bfae528e103247e2de827649b065b1f630882",
+      "previous_values_exact": true,
+      "single_added_file": "20261004223219_ediel_tenant_profile_interval_guard.sql"
+    }
+  ],
+  "native_registration": {
+    "path": "scripts/ediel-source-owner-native.config.ts",
+    "sha256": "be3056735e7496d09212adc81137e2aacec8adb372a2ef0c9b2e08ea1cc61616",
+    "all_prior_bytes_order_and_registrations_exact_after_two_added_lines_removed": true,
+    "sole_added_tests_once": [
+      "scripts/ediel-test-original-outcome-native.test.ts",
+      "scripts/ediel-db02-profile-periods-native.test.ts"
+    ],
+    "author_test_bodies_exact_respective_public_heads": true,
+    "all_registered_filenames_unique": true,
+    "execution": "NOT_RUN by this review; current native status not inferred."
+  },
+  "coverage": {
+    "foreign348_ordered_complete_rows_including_evidence_exact_main": true,
+    "foreign348_canonical_full_rows_sha256": "9fcc82c87715f3aa59b7b1817e13ceff8445425aa36dd70e15e9ebc4139347db",
+    "all352_IDs_row_order_and_current_main_metadata_exact": true,
+    "only_owned_promotions": {
+      "GOV-08": "VERIFIED",
+      "AT-GOV-08": "PASSED",
+      "DB-02": "VERIFIED",
+      "AT-DB-02": "PASSED"
+    },
+    "complete_owned_rows_and_evidence_exact_respective_public_owner_heads": true,
+    "root6_as_foreign_complete_rows_retained": true,
+    "main_PASSED_or_VERIFIED": 267,
+    "candidate_PASSED_or_VERIFIED": 271
+  },
+  "manifest_lossless_resolution": {
+    "path": "scripts/supabase-types-manifest.json",
+    "sha256": "f26ede7d9ae73e5d863a49172df7cb8fdd586682f5b37e92be4823600e4dc4ca",
+    "only_shared_parent_conflicts": [
+      "composition_capture_pending_scope",
+      "composition_note"
+    ],
+    "all_other_shared_JSON_values_and_complete_histories_exact_both_parents": true,
+    "all_branch_only_values_and_complete_histories_retained_exact": true,
+    "both_original_note_scope_strings_retained_in_bindings": true,
+    "exact_raw_public_blob_hash_bindings": [
+      {
+        "owner": "GOV08_composed_input",
+        "source_input_commit": "b7d842aad6359c15ad7d8f8f91ad63bf5f1ac0be",
+        "public_owner_head_same_raw_blob": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+        "git_blob": "365021a37cc0cffea57985cecddfbef16694f2b7",
+        "sha256": "5c7f4d94c83383868eaef0fef0d76d5671957ccf8490bb084b4ab1146eb33fe1",
+        "original_note_and_scope_strings_exact": true
+      },
+      {
+        "owner": "DB02_public_input",
+        "source_input_commit": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+        "public_owner_head_same_raw_blob": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+        "git_blob": "187e1e964a286bf70d7829cc954486a7c1aa16a0",
+        "sha256": "5409c33ef247c18060c240cd814461848a79ca1e82da4cbcf9c950a3d49d4116",
+        "original_note_and_scope_strings_exact": true
+      }
+    ],
+    "original_complete_history_raw_pins": [
+      {
+        "key": "gov08_previous_manifest_before_f88",
+        "commit": "d0a85ac78307699b1f86aff4bba36360617f5676",
+        "blob": "32b1f6fbaf9d94f850f94de8845f3e641558cbd4",
+        "sha256": "0b41ab9b13baa504a5c9c3abf2ad91caa78672fd411e3f22b6591f697b2a766d",
+        "complete_original_JSON_or_pointer_exact": true
+      },
+      {
+        "key": "db02_previous_manifest",
+        "commit": "2fb524ff6f3413861a9c21142d867074d6f1906c",
+        "blob": "664f9948d28ee0b0e8f9f38901dd816926578745",
+        "sha256": "ff867820f9aaa4c26a907846ac2a365a241a35bff5a72b351827fff077644e0c",
+        "complete_original_JSON_or_pointer_exact": true
+      },
+      {
+        "key": "db02_incoming_main_manifest",
+        "commit": "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+        "blob": "e64eaf5b82f41b24bd12c240172ff8224ea9d030",
+        "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+        "complete_original_JSON_or_pointer_exact": true
+      }
+    ],
+    "relative_to_main_only_existing_scalar_changes": [
+      "composition_capture_pending",
+      "composition_note",
+      "composition_capture_pending_scope"
+    ],
+    "composition_capture_pending": true
+  },
+  "capture_boundary": {
+    "historical_root_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "historical_root_run": "37319901610",
+    "original_native_browser_typecomparison_upgrade_flags": "NOT_RUN",
+    "capture_object_and_complete_history_exact_main": true,
+    "no_current1075_prefix_capture_native_parity_or_wholeCI_claim": true,
+    "qualified_Staff3_later_admission_not_part_of_current_candidate_or_review": true,
+    "candidate_may_not_be_final_source_prefix": true
+  },
+  "review_scope": "Source-only independent preservation/merge-conflict custody. Existing wholeGOV/DB owner reviews retain their original finite executed prefixes; no duplicate whole review, test/native/CI/artifact/capture call, source/index/ref/sharedmemory/generated/coverage mutation, publication/push/merge or new claim. Own immutable public-safe JSON only; root retains subsequent admitted-input union, sole authentic capture, current final-head gates and merge."
+}
