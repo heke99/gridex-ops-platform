@@ -1,4 +1,4 @@
-name: Ediel DB-04 native query plans
+name: Ediel DB-04/DB-05 native checks
 
 on:
   workflow_dispatch:
@@ -7,11 +7,14 @@ on:
     paths:
       - 'scripts/ediel-transport-data-query-plan-native.test.ts'
       - 'quality/audits/ediel-masterplan-v2/db04-query-plan/**'
+      - 'scripts/db-05-hard-delete-guard-native.test.ts'
+      - 'supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql'
       - '.github/workflows/ediel-db04-native.yml'
   pull_request:
     paths:
       - 'scripts/ediel-transport-data-query-plan-native.test.ts'
       - 'quality/audits/ediel-masterplan-v2/db04-query-plan/**'
+      - 'scripts/db-05-hard-delete-guard-native.test.ts'
       - 'supabase/migrations/**'
       - '.github/workflows/ediel-db04-native.yml'
 
@@ -72,7 +75,7 @@ jobs:
           NATIVE
       - name: Keep the measured plans
         if: always()
-        run: grep -h '"kind":"ediel_transport_data_native_query_plans"' db04-working/native.log > db04-working/plans.json || true
+        run: grep -hE '"kind":"(ediel_transport_data_native_query_plans|db05_hard_delete_guard_native)"' db04-working/native.log > db04-working/plans.json || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
