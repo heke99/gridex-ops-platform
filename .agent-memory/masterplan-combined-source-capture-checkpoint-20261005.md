@@ -109,3 +109,30 @@ raw JSON is retained here, followed only by this own checkpoint supplement.
 Next: normal fast-forward this same public combined preparation branch, then
 wait for qualified original Staff/IMP05 inputs before ONE final capture. No
 source/main/whole-CI qualification is inferred from this preservation receipt.
+
+
+Current prepared477/tree799 genuinely composes actualmainfc plus qualified
+GovDB/SC010 and explicitly released immutableStaffebf. Independent finite
+mechanical peer a6835a4e is SOURCE_ONLY_READY:222/225Staff tuples exact, only
+fullmanifest field-family union, migrationregistration union and WHOLEadmitted
+SC0682f are exceptions;8672foreignmain entries/5owned+347foreignledgerrows exact.
+SQL1073historical+2GovDB+3Staff=1078; one supportedNode22 integritycheck
+PASS1078files/981groups/checksums. Originalraw87byte stdout/zero stderr retained,
+not rerun. Candidate278 versus actual273 is preparedsource, not actualpromotion.
+
+Full prior root and incomingStaff origin manifests are preserved byte-exact
+as f26ede7d/456efc05 snapshots. Active raw3 and capture envelope remain original
+Staffcff; four historicalNOT_RUN flags and composition_capture_pendingTRUE are
+unchanged. Existing six IMP05/protected/common function preimages remain exact
+b83 after that rawschema adoption (finite receipt6bb0901f); no private report
+read, correctiveforward admission, product/native/control/whole review or capture.
+All raw finite receipts are retained in the SAME owned audit subtree.
+
+Originalproposal writer explicitly transferred ONE intake of its already-done
+TWO7232 Staff-oracle hunks in5786003893283/5306003553685; rootACK5306005413298
+supersedes prior exclusive578 implementation routing. Quotehunk is UNUSED.
+Next: carry actual211 main53b3, adopt only the released exacttwohunks once,
+consume qualified originalIMP05 corrective scoped evidence or preciseHOLD,
+freeze actual admitted vector and perform ONE authentic finalunioncapture.
+No new Masterplan rule/pair/scout; final commonDOCadoption/baseline retains its
+original separate owner.477 is publicpreparedsource, not main/nativeGREEN.

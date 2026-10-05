@@ -1,0 +1,224 @@
+{
+  "schema": "gridex-combined477-releasedStaff-mechanical-source-composition/v1",
+  "verdict": "READY_MECHANICAL_ACTUAL_RELEASED_INPUT_COMPOSITION_ONLY_CURRENT_UNION_CAPTURE_AND_GATES_PENDING",
+  "recorded_at_utc": "2026-10-05T23:44:16.979671+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "One finite mechanical composition review in existing active combined lane; no new Masterplan work or product/auth/source/whole/native re-review",
+  "candidate": {
+    "head": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+    "tree": "79923be3c9bd4b4e5aab30d91fb0ace79c7bb0bf",
+    "ordered_parents": [
+      "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
+      "ebf380da2528b6a32a17f94ca245835726babca4"
+    ],
+    "worktree_clean": true
+  },
+  "base_carry": {
+    "head": "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
+    "ordered_parents": [
+      "34e98e2f08638da0b6cc34cb522499883e528b33",
+      "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b"
+    ],
+    "actual_main_snapshot": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b"
+  },
+  "original_author_release": {
+    "input_go": "https://github.com/heke99/gridex-ops-platform/pull/578#issuecomment-6003893283",
+    "final_ready": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005084967",
+    "all13_PG17_source_qualification": "Original owner scope reused, no artifact/native/test/source review repetition",
+    "actual_input_composition_authorized": true,
+    "extra_future_schema_promise_gate": "NOT_REQUIRED_NOT_INVENTED"
+  },
+  "prior_root_packet": {
+    "owned_paths": 44,
+    "all44_currentbase06c_entries_preserved_except_two_necessary_manifest_compositions": true,
+    "root_native_tests_configs_and_original_receipts_exact": true,
+    "prior34e_to06c_coverage_change_only_currentmain_OPS03_ATOPS03_foreign_rows": true,
+    "source06c_44tuple_pinset_sha256": "4a7d8a795db6fb6a8dba0ba70b8ed38d481789074fde5e147286a9dff8b14d2e"
+  },
+  "Staff_packet": {
+    "head": "ebf380da2528b6a32a17f94ca245835726babca4",
+    "owned_paths_vs_b83": 225,
+    "exact_original_tuple_paths": 222,
+    "222tuple_pinset_sha256": "09de9dca6bd1b9a38f383dbee1cbcecfacf19057023486ea92f2b3b848c3e47a",
+    "three_intentional_exceptions": {
+      "migration_history_manifest": "Exact conflict-free original registration file-map union and common metadata unchanged",
+      "types_manifest": "Active Staff capture family plus complete root/Staff historical provenance composition",
+      "SC068": "Whole first-admitted main2f326 preserved instead of staleStaffdd948"
+    },
+    "every_other_Staff_payload_path_exact": true
+  },
+  "foreign_main": {
+    "entries": 8672,
+    "all_other_path_mode_type_blob_tuples_exact": true,
+    "pinset_sha256": "2525002d610e163b303b1e6499f7bc0c28b9b7736fd56d41dcc0bf76ec781517",
+    "currentmain612_five_active_checker_bodies_exact": [
+      "scripts/gridex-supplier-remaining-business-regression.cjs",
+      "scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+      "scripts/gridex-website-quote-integrity-regression.mjs",
+      "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "scripts/gridex-supabase-advisors-hardening-regression.cjs"
+    ],
+    "canonical_whole_ENV07_blob": "45437dfbf60867dd70d96c28f38874a63bd3c374",
+    "canonical_whole_SC068_blob": "2f32623b0d7161b40ce2fe4ddde2b18081deb470"
+  },
+  "coverage": {
+    "rows": 352,
+    "header_ID_order_currentmain_exact": true,
+    "wholefive_GovDB_SC010_rows_exact_prior34e": [
+      "AT-DB-02",
+      "AT-GOV-08",
+      "DB-02",
+      "GOV-08",
+      "SC-010"
+    ],
+    "foreign347_fullrows_evidence_includingOPS03_ATOPS03_exact_currentmain": true,
+    "foreign_fullrow_canonical_sha256": "85182b81db18199c2bd333c75eb43feaf28dd82ad9c258736cae8972bbffb613",
+    "stored_candidate_approvals": 278,
+    "stored_main_approvals": 273,
+    "new_Staff_rule_promotion_or_actualmain_delivery": false
+  },
+  "SQL_registration": {
+    "historical_main_SQL_files": 1073,
+    "all1073_historical_tuples_exact": true,
+    "two_prior_exact_GovDB_forwards": [
+      "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+      "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql"
+    ],
+    "three_released_exact_Staff_forwards": [
+      "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+      "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql"
+    ],
+    "current_SQL_files": 1078,
+    "no_other_forward_admission": true,
+    "primary_file_map_exact_conflictfree_union_common_metadata_exact": true,
+    "all_five_forward_registry_locations": [
+      {
+        "migration": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+        "registered_in": [
+          "scripts/migration-history-manifest.additions.json"
+        ]
+      },
+      {
+        "migration": "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "registered_in": [
+          "scripts/migration-history-manifest.json"
+        ]
+      },
+      {
+        "migration": "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+        "registered_in": [
+          "scripts/migration-history-manifest.json"
+        ]
+      },
+      {
+        "migration": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+        "registered_in": [
+          "scripts/migration-history-manifest.json"
+        ]
+      },
+      {
+        "migration": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+        "registered_in": [
+          "scripts/migration-history-manifest.json"
+        ]
+      }
+    ],
+    "root_one_integrity_result_reused": {
+      "attribution": "Root reported one matching-lock Node22 check-migration-versions.cjs on exact477",
+      "exit_code": 0,
+      "summary": "Migration integrity check passed (1078 files; 981 version groups; checksums verified).",
+      "stdout_bytes": 87,
+      "stdout_sha256": "dbb5bf8a18ef26f1aef46bc684067db3d127436b877cbb22eaf89ddcc15b6e36",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_rerun": false
+    },
+    "IMP05_d020_or_DB05_held_forward_admitted": false
+  },
+  "full_manifest_custody": {
+    "entire_preStaff_root_GovDB_manifest": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-staff-complete-combined-types-manifest-mainfc.json",
+      "sha256": "f26ede7d9ae73e5d863a49172df7cb8fdd586682f5b37e92be4823600e4dc4ca",
+      "bytes": 157834,
+      "complete_original_bytes_exact": true
+    },
+    "entire_Staff_manifest": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/incoming-staff-ebf-complete-types-manifest.json",
+      "sha256": "456efc058c18e03f7d1131d580311d824e262ea98d4d83187ecadea54577433a",
+      "bytes": 54258,
+      "complete_original_bytes_exact": true
+    },
+    "composed_manifest_sha256": "b4c8722bfa1f13c99d4fccdfce2f51ee12a451444fc51704c099e01e690de6b9",
+    "all_unique_Staff_and_root_origin_fields_exact_except_repointed_active_output_origin": true,
+    "all_colliding_original_field_families_in_complete_snapshots": [
+      "capture",
+      "capture_artifact",
+      "composition_capture_pending",
+      "composition_capture_pending_scope",
+      "composition_note",
+      "current_prefix_verification",
+      "generated_at",
+      "generated_with",
+      "latest_migration",
+      "latest_migration_schema_effect",
+      "sha256",
+      "source_latest_migration"
+    ],
+    "active_originalStaff_capture_envelope_capture_artifact_exact": true,
+    "original_four_capture_flags": "NOT_RUN",
+    "active_raw3_custody": [
+      {
+        "path": "supabase/database.types.ts",
+        "released_Staff_mode_type_blob": [
+          "100644",
+          "blob",
+          "a03032ffba09768fdf9dcdd11f9af96738d0b74e"
+        ],
+        "original_cff_output_sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "released_Staff_mode_type_blob": [
+          "100644",
+          "blob",
+          "d41b3ebde294d03ef50088c7ec803b4e4e937eed"
+        ],
+        "original_cff_output_sha256": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd"
+      },
+      {
+        "path": "supabase/schema.fingerprint.json",
+        "released_Staff_mode_type_blob": [
+          "100644",
+          "blob",
+          "f5296fefb9fd6b39105f3ac4e40ecaa94b500249"
+        ],
+        "original_cff_output_sha256": "aa62329efddaee84f699f6bbc235cc325f3d5a4f3d20374f7adfac08a19f6ab4"
+      }
+    ],
+    "active_generated_outputs_origin_producer": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "active_generated_outputs_origin_run": 37359791003,
+    "active_generated_outputs_origin_artifact": 11365813975,
+    "composition_capture_pending": true,
+    "current_prefix_status": "SOURCE_COMPOSED_CAPTURE_AND_RESULTING_HEAD_GATES_PENDING",
+    "no_historical_flag_or_origin_relabelled_current_union": true,
+    "producer_git_tree_boundary": "Capture outputs are produced after checkout and imported later; authentic originalcff output SHA pins plus exact releasedStaff imported Git tuples bind raw3. The cff producer pre-import Git tree is not an output-byte comparison authority."
+  },
+  "prior_source_guard_reused": {
+    "path": "/workspace/agent-review-checkpoints/combined-c021-mainb83-source-only-preservation-independent-ready.json",
+    "sha256": "f6622ffbbfb0fe7cacafb43d9dc71b681899575f90d09a0c8ec6ba727218cafc",
+    "scope": "Earlier GovDB/SC010 source preservation via original Git custody, not a current union capture"
+  },
+  "pinset_encoding": "UTF-8 compact JSON arrays[path,mode,type,blob] sorted by path",
+  "blocking_findings": [],
+  "pending": {
+    "authentic_final_union_capture": "Original root sole capture owner; one final admitted input-vector capture and byte-exact import pending",
+    "current_resulting_native_CI_parity_main_baseline": "PENDING_AUTHENTIC_OWNER_EXECUTION",
+    "original_two7232_Staff_oracles": "Adoption/disposition remains original source-owner route; no new root variant",
+    "IMP05d020": "Original evidence/handoff awaited; not admitted/read/exported here",
+    "actual_capture_main_delivery_whole_union_GREEN": "NOT_CLAIMED"
+  },
+  "reviewer_predicate_corrections": "Two initial narrower custody predicates were disproved without source changes: Gov08 registration is in existing additions rather than primary; producer cff Git tree precedes capture import, so current raw3 are bound to original output SHA pins and importedStaff tuples. No source defect or extra gate inferred.",
+  "actions": "Mechanical immutable Git/ledger/manifest/raw-generated byte custody only, one new sanitary immutable outsideGit JSON. No merge-tree/fetch/ref/index/source/GitHub mutation, product/auth/source/native/whole review, old archives/native artifact/CI/raw receipt read, tests/control/AST/native/capture/schema execution or duplicate observer. Generated-file hashes checked opaquely without schema review.",
+  "next": "Root consumes exact composition receipt plus its original one registration check for SAMEbranch publication, then single authentic final admitted-prefix capture and ordinary guarded resulting-head qualification/delivery. Finish existing work only; select no new rules."
+}

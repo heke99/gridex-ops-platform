@@ -1,0 +1,33 @@
+{
+  "kind": "Changed raw schema source bounded preimage identity only; no IMP05 source admission/execution",
+  "source_head": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+  "current_schema_origin": "original Staffcff raw3 exact in releasedebf",
+  "old246_public_review_base": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "identical_six_existing_function_definitions": {
+    "public.ediel_record_inbound_reception_v1": {
+      "exact_old_b83": true,
+      "sha256": "b9679a74edecdaf1435f83edfa306b49d3c8a1066dddc38c30720cb0ff343904"
+    },
+    "gridex_ediel_technical_ack.select_configured_reply_route_v2": {
+      "exact_old_b83": true,
+      "sha256": "3aaf4967bf8e7056736cb6b47b6bd8a359c6980beab17d5d4dd7d9dcaeb79e78"
+    },
+    "gridex_unattributed_intake.capture_custody_v1": {
+      "exact_old_b83": true,
+      "sha256": "81c2900e6649c6a21a71d77be8b6347b6cf5474266e26743e039b39fd575a28e"
+    },
+    "gridex_unattributed_intake.is_birth_v1": {
+      "exact_old_b83": true,
+      "sha256": "9a82221188a41675c70df8e44c571bd7366e91bbe6518fd3bddadacdb312a532"
+    },
+    "gridex_ediel_technical_ack.require_source_v1": {
+      "exact_old_b83": true,
+      "sha256": "1b4c899e8b02dc68893ac47a1c4bc788e428cbc2df277d1dbb708473f77c819b"
+    },
+    "gridex_ediel_common_header.read_negative_route_v1": {
+      "exact_old_b83": true,
+      "sha256": "fc49dd125d1805d552dc9eb35c53d39255c0bcdc1bbc1f425cb4a5b7120047a0"
+    }
+  },
+  "limit": "Reuse earlier246 public source review only within unchanged six preimage bytes. Original IMP05d020 executed result/handoff pending; no tests/native/capture/privateoldreport read."
+}
