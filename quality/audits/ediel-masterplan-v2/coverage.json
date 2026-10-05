@@ -1671,8 +1671,9 @@
     },
     {
       "id": "SC-034",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "scripts/ediel-z04-ack-native.test.ts",
         "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/prodat/prodatAckMessageFunction.ts"
