@@ -1,3 +1,5 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
 // app/admin/metering/_components.tsx
 import Link from 'next/link'
 import type { GridOwnerDataRequestRow, MeteringValueRow } from '@/lib/cis/types'
@@ -65,10 +67,10 @@ function isCorrectedValue(value: MeteringValueRow): boolean {
 
 export function MeteringFilterBar({ query }: { query: string }) {
  return (
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
- <form className="grid gap-4 xl:grid-cols-[1fr_auto]">
+ <section className="rounded-3xl border border-slate-200 bg-white p-4">
+ <form className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
  <input
- name="q"
+ name="q" aria-label="Sök mätvärden"
  defaultValue={query}
  placeholder="Sök kund, anläggning, mätpunkt, ärende-id, kvalitet eller källa"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-700"
@@ -98,47 +100,47 @@ export function MeteringOperationalSummary({
  const missingTenantValues = values.filter((value) => !value.company_id)
 
  return (
- <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-8">
- <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+ <section className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-8">
+ <div className="rounded-3xl border border-amber-200 bg-amber-50 p-3">
  <div className="text-sm font-medium text-amber-700">Öppna requests</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{openRequests.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{openRequests.length}</div>
  </div>
 
- <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+ <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
  <div className="text-sm font-medium text-emerald-700">Skickade E73-liknande</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{sentRequests.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{sentRequests.length}</div>
  </div>
 
- <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+ <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
  <div className="text-sm font-medium text-emerald-700">Mottagna</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{receivedRequests.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{receivedRequests.length}</div>
  </div>
 
- <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+ <div className="rounded-3xl border border-red-200 bg-red-50 p-3">
  <div className="text-sm font-medium text-red-700">Felade</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{failedRequests.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{failedRequests.length}</div>
  </div>
 
- <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+ <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
  <div className="text-sm font-medium text-emerald-700">UTILTS/Ediel-värden</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{edielValues.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{edielValues.length}</div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white p-5">
+ <div className="rounded-3xl border border-slate-200 bg-white p-3">
  <div className="text-sm font-medium text-slate-700">Kopplade värden</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">
+ <div className="mt-1 text-2xl font-semibold text-slate-950">
  {valuesWithSourceRequest.length}
  </div>
  </div>
 
- <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+ <div className="rounded-3xl border border-amber-200 bg-amber-50 p-3">
  <div className="text-sm font-medium text-amber-900">Korrigerade värden</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{correctedValues.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{correctedValues.length}</div>
  </div>
 
- <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+ <div className="rounded-3xl border border-red-200 bg-red-50 p-3">
  <div className="text-sm font-medium text-red-900">Saknar tenant</div>
- <div className="mt-2 text-3xl font-semibold text-slate-950">{missingTenantValues.length}</div>
+ <div className="mt-1 text-2xl font-semibold text-slate-950">{missingTenantValues.length}</div>
  </div>
  </section>
  )
@@ -150,7 +152,7 @@ export function MeteringRequestsSection({
  requests: GridOwnerDataRequestRow[]
 }) {
  return (
- <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+ <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
  <div className="border-b border-slate-200 px-6 py-5">
  <div className="flex flex-wrap items-start justify-between gap-3">
  <div>
@@ -198,16 +200,17 @@ export function MeteringRequestsSection({
  >
  Detailvy
  </Link>
- <Link
+ <AdminActionsMenu ariaLabel={`Fler länkar för mätvärdesbegäran ${request.id}`}> <Link
  href={`/admin/customers/${request.customer_id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
  Kundkort
- </Link>
+ </Link></AdminActionsMenu>
  </div>
  </div>
 
- <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+ <p className="mt-3 break-words text-sm text-slate-700">Period: {request.requested_period_start ?? '—'} → {request.requested_period_end ?? '—'} · Mätpunkt: {shortId(request.metering_point_id)}</p>
+ <details className="mt-2 text-sm text-slate-700"><summary className="cursor-pointer font-medium">Ärendedetaljer</summary><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 break-words md:grid-cols-2">
  <div>Kund: <span className="font-medium">{shortId(request.customer_id)}</span></div>
  <div>Request: <span className="font-medium">{shortId(request.id)}</span></div>
  <div>Site: <span className="font-medium">{shortId(request.site_id)}</span></div>
@@ -218,7 +221,8 @@ export function MeteringRequestsSection({
  <div>Mottagen: <span className="font-medium">{formatDateTime(request.received_at)}</span></div>
  </div>
 
- <div className="mt-4 grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)]">
+ </details>
+ <div className="mt-3 grid min-w-0 grid-cols-1 items-start gap-2 lg:grid-cols-[auto_minmax(0,1fr)]">
  <form action={prepareUtiltsE73Action}>
  <input type="hidden" name="gridOwnerDataRequestId" value={request.id} />
  <button
@@ -229,14 +233,14 @@ export function MeteringRequestsSection({
  </button>
  </form>
 
- <form
+ <AdminDisclosurePanel id={`metering-status-${request.id}`} title="Uppdatera status" className="min-w-0 rounded-xl border border-slate-200 p-3"> <form
  action={updateGridOwnerDataRequestStatusAction}
- className="grid gap-2 md:grid-cols-[160px_1fr_1fr_auto]"
+ className="mt-2 grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full"
  >
  <input type="hidden" name="request_id" value={request.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
  <select
- name="status"
+ name="status" aria-label="Status"
  defaultValue={request.status}
  className="h-11 rounded-2xl border border-slate-300 px-3 text-sm"
  >
@@ -247,20 +251,20 @@ export function MeteringRequestsSection({
  <option value="cancelled">Cancelled</option>
  </select>
  <input
- name="external_reference"
+ name="external_reference" aria-label="Extern referens"
  defaultValue={request.external_reference ?? ''}
  placeholder="Extern referens"
  className="h-11 rounded-2xl border border-slate-300 px-3 text-sm"
  />
  <input
- name="response_payload_note"
+ name="response_payload_note" aria-label="Svarsnotering"
  placeholder="Notering"
  className="h-11 rounded-2xl border border-slate-300 px-3 text-sm"
  />
  <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
  Uppdatera
  </button>
- </form>
+ </form></AdminDisclosurePanel>
  </div>
  </div>
  ))
@@ -274,34 +278,34 @@ export function MeteringIngestForm() {
  return (
  <form
  action={ingestMeteringValueAction}
- className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+ className="rounded-3xl border border-slate-200 bg-white p-4"
  >
  <h2 className="text-lg font-semibold text-slate-950">Registrera inkommet mätvärde</h2>
  <p className="mt-1 text-sm text-slate-700">
  Reservväg för manuell registrering. UTILTS E66/E30 ska normalt skapa värden automatiskt.
  </p>
 
- <div className="mt-5 grid gap-4">
- <input name="customer_id" placeholder="Kund-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
- <input name="site_id" placeholder="Anläggnings-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="metering_point_id" placeholder="Mätpunkt-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
- <input name="source_request_id" placeholder="Källärende-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="grid_owner_id" placeholder="Nätägare-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
+ <input name="customer_id" aria-label="Kund-id" placeholder="Kund-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
+ <input name="site_id" aria-label="Anläggnings-id" placeholder="Anläggnings-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="metering_point_id" aria-label="Mätpunkts-id" placeholder="Mätpunkt-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
+ <input name="source_request_id" aria-label="Källärende-id" placeholder="Källärende-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="grid_owner_id" aria-label="Nätägar-id" placeholder="Nätägare-id" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
 
- <select name="reading_type" defaultValue="consumption" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm">
+ <select name="reading_type" aria-label="Mätvärdestyp" defaultValue="consumption" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm">
  <option value="consumption">Consumption</option>
  <option value="production">Production</option>
  <option value="estimated">Estimated</option>
  <option value="adjustment">Adjustment</option>
  </select>
 
- <input name="value_kwh" placeholder="kWh" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
- <input name="quality_code" placeholder="Kvalitetskod" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="read_at" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="period_start" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="period_end" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="source_system" defaultValue="manual_admin" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
- <input name="raw_payload_note" placeholder="Notering / rådatareferens" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="value_kwh" aria-label="Energi, kWh" placeholder="kWh" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" required />
+ <input name="quality_code" aria-label="Kvalitetskod" placeholder="Kvalitetskod" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="read_at" aria-label="Avläst tid" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="period_start" aria-label="Periodstart" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="period_end" aria-label="Periodslut" type="datetime-local" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="source_system" aria-label="Källsystem" defaultValue="manual_admin" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
+ <input name="raw_payload_note" aria-label="Rådatareferens eller notering" placeholder="Notering / rådatareferens" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
  </div>
 
  <div className="mt-6">
@@ -315,7 +319,7 @@ export function MeteringIngestForm() {
 
 export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) {
  return (
- <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+ <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
  <div className="border-b border-slate-200 px-6 py-5">
  <h2 className="text-lg font-semibold text-slate-950">Senaste mätvärden</h2>
  <p className="mt-1 text-sm text-slate-700">
@@ -323,9 +327,9 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  </p>
  </div>
 
- <div className="overflow-x-auto">
- <table className="min-w-full text-sm">
- <thead className="bg-slate-50">
+ <div className="min-w-0">
+ <table className="w-full table-fixed text-sm [&_td]:min-w-0 [&_td]:break-words max-xl:[&_tbody_tr]:grid max-xl:[&_tbody_tr]:grid-cols-2 max-xl:[&_td]:px-4 max-xl:[&_td]:py-2 max-xl:[&_tbody_tr]:p-2">
+ <thead className="sr-only bg-slate-50 xl:not-sr-only xl:table-header-group">
  <tr className="border-b border-slate-200 text-left">
  <th className="px-6 py-4 font-semibold text-slate-700">Tid</th>
  <th className="px-6 py-4 font-semibold text-slate-700">Kund</th>
@@ -360,7 +364,7 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  </span>
  </div>
  </td>
- <td className="px-6 py-4 font-medium text-slate-900">{value.value_kwh}</td>
+ <td className="px-6 py-4 font-medium text-slate-900"><span className="mb-1 block text-xs text-slate-600 xl:hidden">Energi, kWh</span>{value.value_kwh}</td>
  <td className="px-6 py-4 text-slate-700">
  {value.period_start ?? '—'} → {value.period_end ?? '—'}
  </td>

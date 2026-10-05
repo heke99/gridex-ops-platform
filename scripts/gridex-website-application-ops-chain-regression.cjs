@@ -70,7 +70,8 @@ expect(
   'list UI blocks website actions for external-only fallback rows'
 )
 expect(
-  /href=\{`\/admin\/website-applications\/\$\{item\.id\}\?source=/.test(page),
+  /const detailHref = `\/admin\/website-applications\/\$\{item\.id\}\?source=\$\{item\.source_table \?\? "website_customer_applications"\}`/.test(page) &&
+    /<Link href=\{detailHref\}/.test(page),
   'list UI exposes a detail route for every intake row'
 )
 expect(

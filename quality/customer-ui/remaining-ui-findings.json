@@ -1,0 +1,83 @@
+[
+  {
+    "id": "CIS-01",
+    "status": "FIXED",
+    "severity": "P2",
+    "problem": "Metering-request and partner-export follow-up work trusted customer_id from the form rather than the saved record.",
+    "impact": "Wrong-customer refresh/audit/operations sync within permitted data; session RLS remains a cross-company protection.",
+    "fix": "Bind follow-up sync, audit customer metadata and revalidation to saved.customer_id.",
+    "evidence": [
+      "cis-action-binding-red.log",
+      "cis-action-binding-green.log",
+      "__tests__/admin-cis-action-customer-binding.test.ts"
+    ]
+  },
+  {
+    "id": "CIS-02",
+    "status": "FIXED",
+    "severity": "P2",
+    "problem": "Outbound status, metering-request status and manual metering ingest audit entries omitted company_id.",
+    "impact": "Saved audit entries are not attributed to the tenant and disappear from tenant-scoped reads.",
+    "fix": "Pass saved.company_id to insertAuditLog.",
+    "evidence": [
+      "cis-action-binding-red.log",
+      "metering-audit-red.log",
+      "operational-action-contracts.log"
+    ]
+  },
+  {
+    "id": "UI-01",
+    "status": "FIXED",
+    "severity": "P2",
+    "problem": "390px metering status disclosure shrank beside E73 submit, clipping its label.",
+    "fix": "Stack controls on narrow screens and retain desktop grid."
+  },
+  {
+    "id": "UI-02",
+    "status": "FIXED",
+    "severity": "P2",
+    "problem": "320px information-request KPI labels expanded document width to325px.",
+    "fix": "min-w-0 and break-words on KPI grid/cards/labels."
+  },
+  {
+    "id": "UI-03",
+    "status": "FIXED",
+    "severity": "P2",
+    "problem": "Platform event technical-panel light text was forced dark by the global admin contrast guard on a dark background (2.66 contrast).",
+    "fix": "Use light background and dark text in this panel; preserve data and platform guard."
+  },
+  {
+    "id": "DB-FP-01",
+    "status": "FALSE_POSITIVE",
+    "problem": "Permissive authenticated SELECT USING(true) appears broad.",
+    "resolution": "Actual restrictive lifecycle policy ANDs the permission-filtered company list. Native authenticated read checks verified no-membership zero rows and sampled member0foreign rows."
+  },
+  {
+    "id": "DB-01",
+    "status": "FIXED",
+    "severity": "P2",
+    "problem": "Facility request embeds fail with actual duplicate customer/site relationships and absent grid_owner relationship; flat fallback loses customer/site/grid-owner names.",
+    "fix": "Explicit customer/site FK hints and deduplicated grid-owner master lookup with the same session SSR client; existing tenant filters and fallback retained.",
+    "evidence": [
+      "facility-postgrest-before.json",
+      "facility-postgrest-after.json",
+      "facility-relations-red.log",
+      "facility-relations-green.log",
+      "__tests__/facility-admin-read-relations.test.ts"
+    ],
+    "limits": "Actual API checks use anonymous limit=0 and prove parser-error removal only. Synthetic page tests verify render success and grid-owner lookup failure. No authenticated live journey."
+  },
+  {
+    "id": "CI-01",
+    "status": "FIXED",
+    "problem": "Full suite and RBAC gate referenced an unused duplicate platformOnly type in the sidebar removed by compact navigation.",
+    "fix": "Audit canonical navigation type, explicit platformOnly deny guard and actual sidebar helper wiring. Added a behavioral matching-permission company-admin negative case.",
+    "evidence": [
+      "merge-full-suite-red.json",
+      "merge-rbac-red.log",
+      "merge-rbac-green.log",
+      "merge-rbac-tests-green.log"
+    ],
+    "review": "Existing UI agent independently reviewed the audit/test diff and found no blocker; runtime policy unchanged."
+  }
+]

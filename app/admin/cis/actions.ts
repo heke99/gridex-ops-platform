@@ -448,6 +448,7 @@ export async function updateOutboundRequestStatusAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: saved.company_id ?? null,
     entityType: 'outbound_request',
     entityId: saved.id,
     action: 'outbound_request_status_updated',
@@ -517,23 +518,26 @@ export async function updateGridOwnerDataRequestStatusAction(
     notes: formValue(formData, 'notes') || null,
   })
 
+  const savedCustomerId = saved.customer_id
+
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: saved.company_id ?? null,
     entityType: 'grid_owner_data_request',
     entityId: saved.id,
     action: 'grid_owner_data_request_status_updated',
     newValues: saved,
     metadata: {
-      customerId,
+      customerId: savedCustomerId,
       status: saved.status,
     },
   })
 
-  await syncCustomerOperationsAfterCisChange(customerId)
+  await syncCustomerOperationsAfterCisChange(savedCustomerId)
 
   revalidatePath('/admin/metering')
   revalidatePath('/admin/billing')
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${savedCustomerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/ediel')
@@ -580,6 +584,8 @@ export async function updatePartnerExportStatusAction(
     },
   })
 
+  const savedCustomerId = saved.customer_id
+
   await insertAuditLog({
     actorUserId: actor.id,
     companyId: (saved as { company_id?: string | null }).company_id ?? null,
@@ -588,16 +594,16 @@ export async function updatePartnerExportStatusAction(
     action: 'partner_export_status_updated',
     newValues: saved,
     metadata: {
-      customerId,
+      customerId: savedCustomerId,
       status: saved.status,
     },
   })
 
-  await syncCustomerOperationsAfterCisChange(customerId)
+  await syncCustomerOperationsAfterCisChange(savedCustomerId)
 
   revalidatePath('/admin/partner-exports')
   revalidatePath('/admin/billing')
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${savedCustomerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
 }
@@ -652,6 +658,7 @@ export async function ingestMeteringValueAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId: saved.company_id ?? null,
     entityType: 'metering_value',
     entityId: saved.id,
     action: 'metering_value_ingested',

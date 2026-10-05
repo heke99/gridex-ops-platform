@@ -1,0 +1,70 @@
+import React from 'react'
+import {renderToStaticMarkup} from 'react-dom/server'
+import {it,vi} from 'vitest'
+import {writeFileSync} from 'node:fs'
+const seed=vi.hoisted(()=>{
+const customer={id:'synthetic-customer',company_id:'synthetic-company',customer_number:'TEST-1',full_name:'Syntetisk Kund',email:'kund@example.test',status:'active'}
+const switches=['blocked','ready_to_execute','completed'].map((stage,i)=>({id:'synthetic-switch-'+i,customer_id:customer.id,site_id:'synthetic-site-'+i,metering_point_id:'735999999999999999',status:i===0?'draft':i===1?'accepted':'completed',stage,request_type:'supplier_switch',requested_start_date:'2026-11-01',incoming_supplier_name:'Syntetisk elleverantör',current_supplier_name:'Syntetisk tidigare leverantör',external_reference:'Syntetisk referens '+i,created_at:'2026-10-01T10:00:00Z'}))
+const state={failure:false}
+const query=(table:string)=>{const rows=table==='customer_sites'?switches.map(s=>({id:s.site_id,customer_id:customer.id})):[];const q:any=new Proxy({}, {get:(_,key)=>key==='then'?(resolve:any)=>resolve({data:rows,error:state.failure&&table==='customer_operation_tasks'?{code:'synthetic_count_error'}:null,count:0}):(..._:any[])=>q});return q}
+return {state,customer,switches,query,queue:[{id:'synthetic-queue',source:'Support',customerId:customer.id,customerLabel:'Syntetisk Kund',title:'Saknar fullmakt',description:'Begär signerad fullmakt innan processen fortsätter.',status:'blocked',priority:'high',createdAt:'2026-10-01T10:00:00Z',href:'/admin/customers/synthetic-customer',actionLabel:'Öppna kundkort'}],invoiceRows:[{underlayId:'underlay-1',customerId:customer.id,customerName:'Syntetisk Kund',customerNumber:'TEST-1',status:'ready_for_review',statusLabel:'Klar för granskning',contractType:'variable_monthly',contractName:'Syntetiskt månadsavtal',priceArea:'SE3',totalKwh:312,amountIncVat:690,invoiceExportItemId:'invoice-1'},{underlayId:'underlay-2',customerId:'synthetic-blocked',customerName:'Syntetisk Blockerad Kund',customerNumber:'TEST-2',status:'blocked',statusLabel:'Blockerad',blocker:'Saknar mätvärden för perioden',priceArea:'SE3',totalKwh:null,amountIncVat:null}],files:[{id:'synthetic-file',billing_month:'2026-09',row_count:3,total_inc_vat:2499,environment:'test',created_at:'2026-10-01T10:00:00Z'}],website:[{id:'synthetic-application',company_id:'synthetic-company',customer_id:customer.id,contract_id:'synthetic-contract',external_customer_id:'TEST-WEB-1',customer_number:'TEST-1',status:'needs_information',source_table:'website_customer_applications',payload:{customer:{first_name:'Syntetisk',last_name:'Kund',email:'kund@example.test'},facility:{address:{street:'Testgatan 1',postal_code:'11111',city:'Stockholm'}}},customers:{full_name:'Syntetisk Kund',email:'kund@example.test'},missing_fields:['facility_id'],blocking_reasons:[],next_step:'Kontrollera anläggnings-ID med kunden.',created_at:'2026-10-01T10:00:00Z',requested_start_date:'2026-11-01'}]}
+})
+vi.mock('@/lib/admin/guards',()=>({requireAdminPageKeyAccess:async()=>({userId:'synthetic-actor',email:'admin@example.test',permissions:['customers.read','cases.write','communication.read']}),requireAdminPageAccess:async()=>({userId:'synthetic-actor'}),isPlatformAdminContext:()=>false}))
+vi.mock('@/lib/tenant/scope',()=>({getOperationalCompanyScope:async()=>({companyId:'synthetic-company',companyName:'Syntetiskt bolag'}),isMissingRelationError:()=>false}))
+vi.mock('@/lib/tenant/adminScope',()=>({resolveAdminTenantReadScope:async()=>({companyId:'synthetic-company',isPlatformAdmin:false}),tenantReadCompanyId:(_:boolean,id:string)=>id}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:seed.query}}))
+vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({from:seed.query,auth:{getUser:async()=>({data:{user:{id:'synthetic-actor',email:'admin@example.test'}}})}})}))
+vi.mock('@/lib/performance/companySummaries',()=>({getCompanyDashboardSummary:async()=>null,listCompanyWorkQueue:async()=>seed.queue}))
+vi.mock('@/lib/ediel/summary',()=>({getEdielSummary:async()=>({failedMessages:0,ackPendingMessages:0,ackOverdueMessages:0,queuedMessages:0,sentMessages:0,inboundMessages:0,totalMessages:0,activeRoutes:0,configuredProfiles:0})}))
+vi.mock('@/lib/ediel/config',()=>({getActiveEdielActorSettings:async()=>({actor_ediel_id:'99999'})}))
+vi.mock('@/lib/ediel/operations/processNextAction',()=>({readEdielProcessNextActions:async()=>new Map()}))
+vi.mock('@/lib/operations/db',()=>({listAllSupplierSwitchRequests:async()=>seed.switches,listSupplierSwitchEventsByRequestIds:async()=>[],listPowersOfAttorneyByCustomerIds:async()=>[]}))
+vi.mock('@/lib/masterdata/db',()=>({listMeteringPointsBySiteIds:async()=>[]}))
+vi.mock('@/lib/operations/readiness',()=>({evaluateSiteSwitchReadiness:({site}:any)=>({isReady:!site.id.endsWith('0'),issues:site.id.endsWith('0')?[{code:'missing_authorization',message:'Saknar signerad fullmakt'}]:[]})}))
+vi.mock('@/lib/operations/controlTower',()=>({getSwitchLifecycle:({request}:any)=>({stage:request.stage,label:request.stage==='blocked'?'Blockerad':request.stage==='completed'?'Slutförd':'Redo att slutföra',reason:request.stage==='blocked'?'Saknar signerad fullmakt':'Kontrollera nästa steg'}),summarizeReadinessIssues:()=> 'Saknar signerad fullmakt'}))
+vi.mock('@/lib/cis/db',()=>({listOutboundRequests:async()=>[]}))
+vi.mock('@/components/admin/CustomerName',()=>({default:()=>React.createElement('span',null,'Syntetisk Kund')}))
+vi.mock('@/lib/customer-cases/db',()=>({listCustomerCases:async()=>[{id:'synthetic-case',customer_id:seed.customer.id,customer_name:'Syntetisk Kund',title:'Syntetiskt supportärende',description:'Beskrivning för handläggaren. '.repeat(45),status:'action_required',priority:'high',source:'tenant_support_admin',created_at:'2026-10-01T10:00:00Z'}]}))
+vi.mock('@/lib/customer-cases/support',()=>({listTenantSupportCustomerOptions:async()=>[{id:seed.customer.id,label:'Syntetisk Kund'}]}))
+vi.mock('@/lib/admin/websiteIntegrationOps',()=>({listWebsiteApplications:async()=>seed.website}))
+vi.mock('@/lib/auth/requirePermissionServer',()=>({requirePermissionServer:async()=>{}}))
+vi.mock('@/lib/billing/invoiceReviewData',()=>({listInvoiceReviewRows:async()=>seed.invoiceRows}))
+vi.mock('@/lib/billing/invoiceFileExport',()=>({listInvoiceFileCandidates:async()=>[{}],listInvoiceFiles:async()=>seed.files}))
+vi.mock('@/lib/billing/providers/registry',()=>({loadTenantInvoiceProviderSelection:async()=>({invoice_export_target_system:'file_export',billing_provider_environment:'test',invoice_export_enabled:true})}))
+vi.mock('@/lib/tenant/governance',()=>({getCompanyById:async()=>({id:'synthetic-company',name:'Syntetiskt bolag',primary_contact_email:'admin@example.test',country_code:'SE',branding:{}}),listCompanyUsersForGovernance:async()=>[]}))
+vi.mock('@/lib/contracts/canonical',()=>({getTenantLegalProfile:async()=>({missing_fields:['org_number'],completeness_status:'incomplete',review_required:true})}))
+vi.mock('@/components/admin/companies/CompanyUserInviteForm',()=>({default:()=>React.createElement('p',null,'Inbjudningsformulär ingår inte i denna fixture')}))
+vi.mock('@/app/admin/customer-cases/actions',()=>({createCustomerCaseFromFormAction:async function createCustomerCaseFromFormAction(){},updateCustomerCaseStatusAction:async function updateCustomerCaseStatusAction(){}}))
+vi.mock('@/app/admin/operations/actions',()=>({finalizeSupplierSwitchExecutionAction:async function finalizeSupplierSwitchExecutionAction(){},updateSupplierSwitchStatusFromAdminAction:async function updateSupplierSwitchStatusFromAdminAction(){},validateSupplierSwitchBeforeProcessingAction:async function validateSupplierSwitchBeforeProcessingAction(){}}))
+vi.mock('@/app/admin/cis/actions',()=>({queueSupplierSwitchOutboundAction:async function queueSupplierSwitchOutboundAction(){}}))
+vi.mock('@/app/admin/website-applications/actions',()=>({checkWebsiteApplicationReadinessAction:async function checkWebsiteApplicationReadinessAction(){},markWebsiteApplicationFacilityDataReceivedAction:async function markWebsiteApplicationFacilityDataReceivedAction(){},requestWebsiteApplicationGridOwnerInfoAction:async function requestWebsiteApplicationGridOwnerInfoAction(){},resolveWebsiteApplicationEnergyAction:async function resolveWebsiteApplicationEnergyAction(){},updateWebsiteApplicationReviewAction:async function updateWebsiteApplicationReviewAction(){}}))
+vi.mock('@/app/admin/billing/actions',()=>({approveAndSendReadyInvoicesAction:async function approveAndSendReadyInvoicesAction(){}}))
+vi.mock('@/app/admin/billing/invoice-files/actions',()=>({createInvoiceFileAction:async function createInvoiceFileAction(){}}))
+vi.mock('@/app/admin/company-settings/actions',()=>({updateCompanyResponsibleUserAction:async()=>{},updateCompanySettingsAction:async()=>{}}))
+const known=new Set(['AdminActionsMenu','AdminDisclosurePanel','CustomerActionsMenu','CustomerDisclosurePanel'])
+function serialize(value:any):any{
+ if(value==null||typeof value==='boolean'||typeof value==='string'||typeof value==='number')return value
+ if(Array.isArray(value))return value.map(serialize)
+ if(typeof value==='function')return {__action:value.name||'anonymous'}
+ if(React.isValidElement(value)){
+  const e=value as any;let type=e.type
+  if(typeof type==='symbol')return serialize(e.props.children)
+  if(typeof type==='function'&&!known.has(type.name))return serialize(type(e.props))
+  if(typeof type==='function')type=type.name
+  const props:any={};for(const[key,v]of Object.entries(e.props)){if(key==='prefetch')continue;props[key]=serialize(v)}
+  return {__element:type,key:e.key,props}
+ }
+ const object:any={};for(const[key,v]of Object.entries(value))object[key]=serialize(v);return object
+}
+it('renders synthetic admin views from the actual server page trees',async()=>{
+ const paths={dashboard:'@/app/admin/page',queue:'@/app/admin/work-queue/page',support:'@/app/admin/customer-cases/page',billing:'@/app/admin/billing/page',switches:'@/app/admin/operations/switches/page',website:'@/app/admin/website-applications/page',settings:'@/app/admin/company-settings/page'}
+ for(const[name,path]of Object.entries(paths)){
+  const module=await import(path);const tree=await module.default({searchParams:Promise.resolve({month:'2026-09',customer:name==='support'?'synthetic-customer':undefined,channel:'phone'})})
+  writeFileSync('/tmp/gridex-ui-browser/admin-'+name+'.json',JSON.stringify(serialize(tree)))
+  writeFileSync('/tmp/gridex-ui-browser/admin-'+name+'.html',renderToStaticMarkup(tree))
+ }
+ seed.state.failure=true
+ const dashboard=await import('@/app/admin/page');const errorTree=await dashboard.default()
+ writeFileSync('/tmp/gridex-ui-browser/admin-dashboard-error.json',JSON.stringify(serialize(errorTree)))
+
+})
