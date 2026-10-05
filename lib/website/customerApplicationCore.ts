@@ -492,7 +492,10 @@ export async function runEnergyResolution(input: {
     city: clean(body.site?.city),
     country: clean(body.site?.country) ?? "SE",
     gridAreaCode: explicitGridAreaCodeFromInput(body),
-    facilityId: clean(body.site?.facility_id),
+    facilityId:
+      clean(body.site?.facility_id) ??
+      clean(body.metering_point?.site_facility_id) ??
+      clean(body.metering_point?.anlage_id),
     meteringPointId:
       clean(body.metering_point?.metering_point_id) ??
       clean(body.metering_point?.meter_point_id) ??
@@ -702,9 +705,16 @@ export function normalizeRawApplication(rawBody: unknown): Record<string, unknow
     raw.anlage_id,
     raw.anlaggningId,
   );
+  const nestedMeteringFacilityId = firstClean(
+    nestedMeteringPoint?.site_facility_id,
+    nestedMeteringPoint?.siteFacilityId,
+    nestedMeteringPoint?.anlage_id,
+    nestedMeteringPoint?.anlaggningId,
+  );
   const hasTopLevelSite = Boolean(
     nestedSite ||
     topLevelFacilityId ||
+    nestedMeteringFacilityId ||
     hasAnyCleanValue(raw, [
       "site_name",
       "site_type",
@@ -748,8 +758,12 @@ export function normalizeRawApplication(rawBody: unknown): Record<string, unknow
           raw.facilityId,
           raw.site_facility_id,
           raw.siteFacilityId,
+          nestedMeteringPoint?.site_facility_id,
+          nestedMeteringPoint?.siteFacilityId,
           raw.anlage_id,
           raw.anlaggningId,
+          nestedMeteringPoint?.anlage_id,
+          nestedMeteringPoint?.anlaggningId,
           topLevelFacilityId,
         ),
         site_name: firstDefined(

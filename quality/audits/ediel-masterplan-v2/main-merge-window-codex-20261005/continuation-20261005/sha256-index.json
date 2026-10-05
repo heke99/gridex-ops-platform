@@ -7,8 +7,8 @@
   "files": [
     {
       "path": ".agent-memory/masterplan-codex-main-merge-window-20261005.md",
-      "bytes": 6649,
-      "sha256": "9daaee4fd8ed86369b58db12f9238f7e61ade405fd028b78a84d6d3bc42eea8c",
+      "bytes": 11462,
+      "sha256": "a92b66d0c90a9c11b897785138f408f8d38b1f7f81df23c95dcad39fe86646f8",
       "kind": "appended_own_memory"
     },
     {
@@ -73,8 +73,8 @@
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/README.md",
-      "bytes": 5216,
-      "sha256": "16cc3c5538b37f9459779fa7bd63271e08700cf304e5b9e2110b40430d1aea01",
+      "bytes": 8085,
+      "sha256": "458a3dd27906a489eeb32513a79ef88c0f21b051593b179c16c743ff95187d5b",
       "kind": "continuation"
     },
     {
@@ -251,5 +251,8 @@
       "sha256": "2ecf4bfe6203b5ed7f0b3d097589f27c505f08ac11e3dfd39ce12f0b37b604a0",
       "kind": "bounded_status_custody"
     }
-  ]
+  ],
+  "current_handoff_main_commit": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "current_handoff_inventory_at": "2026-10-05T22:32:20.297909+00:00",
+  "snapshot_boundary": "snapshot_main_commit retains the immutable historical proof baseline296; current_handoff_main_commit identifies the genuinely carried b83 source/status continuation. No whole-main readiness claim."
 }

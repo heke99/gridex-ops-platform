@@ -1,3 +1,17 @@
+# Existing PR integration — current handoff
+
+This continuation physically carries actual main `b83b284467c8e0fcaa277706a708706e0a705068` (tree `eea46bab1cc77fd76a762fe48ecc3b639db03504`) after the qualified #606 delivery and #225 closure. The bounded inventory at 2026-10-06 00:32 CEST still has **24 open PRs**. Coverage is unchanged: **108 VERIFIED / 10 NOT_VERIFIED / 3 PARTIAL rules**, **163 PASSED / 54 NOT_EXECUTED / 14 PARTIAL contracts**. This is an interim source/status handoff while existing integration continues, not a completed queue or full-main GREEN claim.
+
+The user instructs us to finish existing agent work and then stop at the resulting baseline. **Do not start new Masterplan rules, clusters or scouts.** Existing owners retain their source, CI, serial merge, ONE combined capture and common memory/adoption lanes. The shared directive is [#5306004280346](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6004280346).
+
+#520's retained ordinary attempt 2 has eight of nine successful checks; clean replay is still executing, with no merge claimed. #611's original observer retains its current source and final qualification; the [one missing-job transport handoff](https://github.com/heke99/gridex-ops-platform/pull/611#issuecomment-6004329585) recorded its clean job still executing at 00:20 CEST. No successful job was repeated and no gate was waived. GitHub's official Actions component now reports operational; that provider status does not replace actual job results.
+
+The latest inventory records existing #612 at `6d69aea82bf1f2e7fab048e024fff3339c2f3477`, #594 at `c5cf7921a3047f803ae707a186ede52951919806`, #578 at `ebf380da2528b6a32a17f94ca245835726babca4`, and #211 at `37eba257f7af69777cea624241e06ae78c809fea`. Earlier 773 lint / a249 source observations in the appended memory retain their historical scope; they do not qualify these newer heads. Their original authors and observers retain actual current-source CI/review/capture/merge. #533/#535 combined schema/native qualification, #599's retained hold and other historical dispositions remain documented with their existing owners.
+
+Only the existing owned documentation namespace and own memory change in this packet. The source-bound historical proof below remains fixed at main296; the SHA index explicitly separates that original snapshot from this current handoff and checks every actual indexed file. No product code, SQL, generated artifacts, tests, coverage, workflow or shared central checkpoint is edited. The original sole common MAIN-documentation writer should consume only the latest owned packet once, preserving newer main and all prior receipts/actual markers. A future genuine delivery is recorded additively after its actual guards pass; no next rule is selected.
+
+## Preserved original packet — fixed main296 and historical receipts
+
 # Main merge window continuation — 2026-10-05
 
 This metadata packet records **16 actual root deliveries: original seven + eight later deliveries + #564**. Its genuine incoming-main baseline is 2964415adec9e36932583e95f8506437d262c507, tree 20ac0963cf989a08e5aebaa7bb8df405d34d5eba. #564 source d057d3e76427a0407dc8b6670be9f91c41067bc0 merged as 5cde80940ee213612fde3ba6b3461429dd615a7f with eight applicable successful gates; targeted is **excluded, not PASSED**.
