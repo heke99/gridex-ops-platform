@@ -1,3 +1,4 @@
+// masterplan: P-15
 import {beforeEach,expect,it,vi} from 'vitest'
 const state=vi.hoisted(()=>({message:{id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',direction:'inbound',message_family:'PRODAT',message_code:'Z06',parsed_payload:{readingFrequency:'quarter_hourly',customerId:'ATTACKER'}},
  result:{} as unknown,actor:vi.fn(),rpc:vi.fn(),proposal:vi.fn()}))

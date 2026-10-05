@@ -80,3 +80,20 @@ export function localEdifactDateTimeToUtc(
 
   return new Date(localAsUtc - timezone.offsetMinutes * 60_000).toISOString()
 }
+
+/** Express an absolute instant in the declared fixed Ediel offset (e.g. +01:00),
+ * so calendar arithmetic (P1M/P1Y) follows the local wall time it was sent in.
+ * Floating values and values without a declared offset are returned unchanged. */
+export function edifactInstantInDeclaredOffset(
+  value: string | null | undefined,
+  timezone: EdifactTimezoneOffset | null | undefined,
+): string | null {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  if (!timezone || !(/Z$/i.test(raw) || /[+-]\d{2}:?\d{2}$/.test(raw))) return raw
+  const instant = Date.parse(raw)
+  if (!Number.isFinite(instant)) return raw
+  const offset = timezone.offsetMinutes, abs = Math.abs(offset)
+  const wall = new Date(instant + offset * 60_000).toISOString().slice(0, -1)
+  return `${wall}${offset < 0 ? '-' : '+'}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`
+}
