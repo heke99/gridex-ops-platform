@@ -76,12 +76,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Run Vitest V8 coverage
+        run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile=coverage/ediel-unit-junit.xml
       - name: Record immutable Ediel document coverage separately
         run: |
           mkdir -p coverage
           node scripts/check-ediel-masterplan-v2.cjs > coverage/ediel-document-integrity.json
-      - name: Run Vitest V8 coverage
-        run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile=coverage/ediel-unit-junit.xml
       - name: Enforce measured coverage ratchet when baseline exists
         shell: bash
         run: |

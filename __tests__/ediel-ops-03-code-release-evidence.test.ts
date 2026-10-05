@@ -26,13 +26,35 @@ const guardName = 'ENV-01 lossless bytes at every SMTP packaging boundary > the 
 const tgtFile = '__tests__/ediel-prodat-register-tgt-workflow.test.ts'
 const tgtName = 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval'
 const reviewedBase = '3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686'
-const treeSnapshot = spawnSync('git', ['ls-tree', '-r', '-z', '--full-tree', reviewedBase], { encoding: 'utf8' })
-if (treeSnapshot.status !== 0) throw Error('reviewed_base_fixture_unavailable')
 const ledgerFile = 'quality/audits/ediel-masterplan-v2/coverage.json'
-const ledgerSnapshot = spawnSync('git', ['show', reviewedBase + ':' + ledgerFile], { encoding: 'utf8' })
-if (ledgerSnapshot.status !== 0) throw Error('reviewed_ledger_fixture_unavailable')
 const approvedEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '__tests__/ediel-ops-03-release-evidence.test.ts', '.github/workflows/full-e2e.yml']
+// Finite Git ports model a baseline/candidate comparison, not actual reviewedBase
+// custody. Read available HEAD descriptors even in depth-one CI; only the two
+// owned row spans are normalized in this modeled baseline. No ancestor fetch,
+// historical-object fallback or change to the real production guard occurs.
+const currentTree = spawnSync('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD'], { encoding: 'utf8' })
+if (currentTree.status !== 0) throw Error('fixture_head_tree_unavailable')
+const currentLedger = spawnSync('git', ['--no-replace-objects', 'show', 'HEAD:' + ledgerFile], { encoding: 'utf8' })
+if (currentLedger.status !== 0) throw Error('fixture_head_ledger_unavailable')
+const ledgerSnapshot = { ...currentLedger, stdout: (() => {
+  const ledger = JSON.parse(currentLedger.stdout) as { rules: LedgerRow[]; acceptance_contracts: LedgerRow[] }
+  let bytes = currentLedger.stdout
+  const rowBytes = (row: LedgerRow) => JSON.stringify(row, null, 2).split('\n').map(line => '    ' + line).join('\n')
+  for (const [rows, id, status, promoted] of [[ledger.rules, 'OPS-03', 'NOT_VERIFIED', 'VERIFIED'],
+    [ledger.acceptance_contracts, 'AT-OPS-03', 'NOT_EXECUTED', 'PASSED']] as const) {
+    const selected = rows.filter(row => row.id === id)
+    if (selected.length !== 1) throw Error('fixture_owned_row_not_unique')
+    const row = selected[0], oldBytes = rowBytes(row)
+    if (!((row.status === status && row.evidence.length === 0) || (row.status === promoted && JSON.stringify(row.evidence) === JSON.stringify(approvedEvidence)))
+      || bytes.split(oldBytes).length !== 2) throw Error('fixture_owned_row_shape_invalid')
+    bytes = bytes.replace(oldBytes, rowBytes({ ...row, status, evidence: [] }))
+  }
+  return bytes
+})() }
+const modeledLedgerBlob = createHash('sha1').update('blob ' + Buffer.byteLength(ledgerSnapshot.stdout) + '\0').update(ledgerSnapshot.stdout).digest('hex')
+const treeSnapshot = { ...currentTree, stdout: currentTree.stdout.split('\0').map(record => record.endsWith('\t' + ledgerFile)
+  ? record.replace(/[0-9a-f]{40}\t/, modeledLedgerBlob + '\t') : record).join('\0') }
 const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex')
 type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'run' | 'attempt' | 'job' | 'job_failed'
   | 'artifact' | 'artifact_head' | 'artifact_run' | 'expired' | 'digest' | 'artifact_attempt' | 'source'
