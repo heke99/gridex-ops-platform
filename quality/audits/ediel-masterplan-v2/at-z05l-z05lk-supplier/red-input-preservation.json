@@ -1,0 +1,188 @@
+{
+  "recorded_at": "2026-10-05T14:36:05.815858+00:00",
+  "baseline": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "adopted_main": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+  "source_facit_sha": "0b2dc2f8c09032d40957700bfb3b00be9d251da5f4a7480f204a9caa6e76c022",
+  "test_sha": "2a076859c7ef7abea5d7aebfa68bd20e28817a97b4668db3cd9bc97b8e8729f4",
+  "all_reviewed_inputs_match_at_RED": true,
+  "reviewed_inputs": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_message_cases.json",
+      "sha256": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_fields.json",
+      "sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json",
+      "sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json",
+      "sha256": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7"
+    },
+    {
+      "path": "lib/ediel/rulebook/businessSemantics.ts",
+      "sha256": "89037706cdf2433f0c3f5e08dcb079bbc564b2da5b2c8dd5b3e9d87dc4ab235d"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatRulebook.ts",
+      "sha256": "bc8a47b4e2b8860026ae179e65163986039b1838c802dea7aada7f346ce4336b"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9"
+    },
+    {
+      "path": "lib/ediel/rulebook/messageFormatParser.ts",
+      "sha256": "b13d4831eec16922e25cf009add1abe48b17ef29cf164f50210664d6112d255d"
+    },
+    {
+      "path": "lib/ediel/rulebook/messageParser.ts",
+      "sha256": "6f9d71114759e49f5c6245a88252d54ed75dae9c4e549580089d2580c5dccbb6"
+    },
+    {
+      "path": "lib/ediel/core/edifactParser.ts",
+      "sha256": "ae7d4c52730bb00a6a77eb59d61ca1cefc8086ad3e1c66d08347fb44b6646df2"
+    },
+    {
+      "path": "lib/ediel/core/edifactValidation.ts",
+      "sha256": "fde3d220220ee541e6e6b884921a1289eedcf14afa1f7e99a416e565c8cb0fcd"
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce"
+    },
+    {
+      "path": "lib/ediel/prodat/parser.ts",
+      "sha256": "2deb1745cf6054b8ea7741b63d5acbcc9f62ea81e10f2001556bb8ee4c25354e"
+    },
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "sha256": "72dd6d730ff55a55cde0969f4bb7465619b5a2a91439104f5365fbf939d36b3d"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+      "sha256": "84c73ac0287f060ca78d812aa73012c293a0309c426f355baf5171d4f27a8bdd"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatInvoiceePolicy.ts",
+      "sha256": "146eb7cf60e118ab5961f865290b03194eec1d13b209eb5236aaf7a34de1e110"
+    },
+    {
+      "path": "lib/ediel/stateMachines/prodatLifecycle.ts",
+      "sha256": "93ce2fbb1196b97a0148edcf9b20cf49d2bac6b9eefa1176fffbf5c5abb56887"
+    },
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachine.ts",
+      "sha256": "d296385e2dcc5e8ad74eb8a9bf376d31fe0b5ca188331f5e6014a764eace80a6"
+    },
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "sha256": "1d3e51de42176234867d4e1546447c36eae44222e8d0ae04bed6e2db36f5d3be"
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2"
+    },
+    {
+      "path": "lib/ediel/flows/supplyMarketTransition.ts",
+      "sha256": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829"
+    },
+    {
+      "path": "lib/ediel/flows/supplyEndFollowup.ts",
+      "sha256": "01e00f9e60bfd06a3e3ad7758ae9da5531848344fde7c70e83408b1122221213"
+    },
+    {
+      "path": "__tests__/fixtures/prodat-register.ts",
+      "sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2"
+    },
+    {
+      "path": "__tests__/fixtures/prodat-identity.ts",
+      "sha256": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c"
+    },
+    {
+      "path": "__tests__/helpers/supabaseMock.ts",
+      "sha256": "d6da21184457bfe00bd31674ee5a58445ad9a67e50388fe97c0ccb5d6397775b"
+    },
+    {
+      "path": "__tests__/helpers/closureWireFixtures.ts",
+      "sha256": "118a13c22250002af48055fd09b7dcc089347c315ba837b4c92db4fde74eb4e5"
+    },
+    {
+      "path": "__tests__/ediel-supply-market-consumers.test.ts",
+      "sha256": "13fbf9d00f4458dd9892b286193208f2b2b2cca8b05a9124c69c7572e0c89ea2"
+    },
+    {
+      "path": "__tests__/ediel-supply-end-followup.test.ts",
+      "sha256": "843f9657101a88285c635175df950a9f52bd71558664ced411c310e757a91c6f"
+    },
+    {
+      "path": "scripts/ediel-p-13-end-preserves-sql-regression.mjs",
+      "sha256": "e0fdba4dabe049ed624ed7bff3a66dad4bca7d1f492c57151e1d64992bd97009"
+    },
+    {
+      "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "sha256": "38a50e4f52293755553eeab543e9831ed53f03277b24d7bd5bfc2a41e2efd7e7"
+    },
+    {
+      "path": "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "sha256": "a9e0a3e12f4c0df878259799e2d00ea248ab542dea9929c1be692b50f07ec2d2"
+    },
+    {
+      "path": "supabase/migrations/20261001054018_ediel_supply_end_followup_receipt_command.sql",
+      "sha256": "faec77f0cadcc85e77605e2be902755aea76f64fbb91d9c0926eba5847dc5084"
+    },
+    {
+      "path": "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+      "sha256": "758889e9bfa112fe2fbe3417bbd3755394bc81c6de9b735720950af4f3102217"
+    },
+    {
+      "path": "supabase/migrations/20261001142550_ediel_supply_wrapper_chain_union_order.sql",
+      "sha256": "52674722fd38d9dd60132417a445fe1e2f7e383440e191e0b37d1393a040ee9d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-source-20260920.evidence.json",
+      "sha256": "219090eb7419796126f6d00b0aeac891583d2c61339876dac865e1def57a675c"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.evidence.json",
+      "sha256": "0e6ff6432afbdc3c73f8523b6a498c0ab6d2f15e11da0af534b09dd3f9e5d95f"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/e035-source-ledger/handbook-source-scope-20260923.md",
+      "sha256": "2d4c5c4a2fbc42b4542564d6cb73744bf9c086fbfb13a4928fb874db7a212d32"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/e035-source-ledger/handbook-lifecycle-design-addendum.md",
+      "sha256": "6903216b49ca97f240823a6ea8b046ef5426dee98a912611d1ce82c7c110fbd2"
+    },
+    {
+      "path": "package.json",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "5745fb70262f40a2a1a6b00223cf112f2696c7253c9387ef5a641b3c2790ae64"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "011e3393d8c51bc39c3d43f7154d360b1c50a9abdf0772f762362b7e35f54294"
+    }
+  ],
+  "result": "40unique/34PASS/6FAIL/0ERROR/0SKIP",
+  "native_core_receipt": "not executed; declared RPC DTO only"
+}
