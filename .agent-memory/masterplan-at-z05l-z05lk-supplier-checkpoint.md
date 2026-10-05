@@ -1,3 +1,22 @@
+# Current published Z05 component checkpoint — 2026-10-05
+
+PR#597 ready for review, exact implementation head
+850493836e9905f379f391fd1e544a6564c09743, local89PASS/0FAIL/0ERROR/0SKIP,
+scoped types/lint0/no warnings, independent review20490ba2. Published board
+5996914572/coordinator5996916499; current-head CI pending, no merge/whole/native
+approval claimed. Implementation remains frozen on
+codex/ediel-at-z05l-z05lk-supplier-20261005.
+
+This evidence-only checkpoint branch creates no new PR/workflow and advances no
+CI candidate. Existing Z02#593 stays frozen4e98; its actual verify/quality/browser/
+targeted/upgrade jobs are green, clean/coverage/smoke/certificate still required.
+Peer now read-only scouts next unowned real consumer seam; Z04 allocated to
+existing source/Claude/ACK owners is excluded. B/D remains preflight only.
+Root continues current-main preservation and remainingCI/merge-queue qualification.
+No duplicated native/source/fixture/runner or unchanged suite rerun.
+
+## Historical execution steps before publication
+
 # AT-Z05L / AT-Z05LK supplier — 2026-10-05
 
 Active owned component claim5305996398059. Worktree
