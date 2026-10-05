@@ -1,0 +1,9 @@
+# SC015/SC016 current-head quality gate repair
+
+The authentic `cdeeee07036da027ea840123f4f951ab32690395` OPS run `37320249172`, job `111797193129`, failed `npm run lint` with five `@typescript-eslint/no-require-imports` errors in the newly published historical actor-import probe (lines 1, 2, 3, 4, 7). Later quality tests and typechecks were skipped; build and the separate verify job succeeded. This failure does not establish a functional SC015/SC016 regression.
+
+Root authorized only that existing diagnostic artifact. Claims preceded edits: #559 comment `5996196519`, #530 comment `5996200918`. The old CommonJS source is archived byte-for-byte as `.cjs.txt`; its runnable `.mjs` uses actual Node/TypeScript imports and `import.meta.url`. Everything after line 7, original source inputs and executed JSON output remain byte-identical. The original receipt is immutable and references the original path at the old commit. No shared ESLint, production source, scenario assertion, SQL, schema or native harness changes occurred.
+
+Node22 scoped ESLint reproduced the original five errors, then passed the ESM copy. The same ESM diagnostic passed all original assertions and produced the exact original output. Full `npm run lint` passed with zero errors and the same 125 inherited warnings. No broad functional/native execution was repeated. Root independently approved the exact scoped ESM bindings, old-source archive and byte-identical body/input/output; current new-head CI remains required before merge.
+
+Skill routing: systematic-debugging traced the actual failed command before a fix; verification-before-completion requires fresh lint/output evidence. The existing direct failed lint plus byte comparison supplies causal verification. Security fp-check, database, UI, performance and broad audit groups are outside this diagnostic-only scope. Shared agent memory remains coordinator-owned; this checkpoint and GitHub claims supply the narrow owner's handover.

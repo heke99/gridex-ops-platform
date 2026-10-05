@@ -1,0 +1,59 @@
+2026-10-05T03:19:52.9598374Z  [32m✓[39m quality/test_functional.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 102[2mms[22m[39m
+2026-10-05T03:19:52.9622942Z 
+2026-10-05T03:19:52.9627409Z [2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+2026-10-05T03:19:52.9628354Z [2m      Tests [22m [1m[32m45 passed[39m[22m[90m (45)[39m
+2026-10-05T03:19:52.9629066Z [2m   Start at [22m 03:19:51
+2026-10-05T03:19:52.9633940Z [2m   Duration [22m 1.12s[2m (transform 804ms, setup 43ms, import 1.26s, tests 206ms, environment 0ms)[22m
+2026-10-05T03:19:52.9635382Z 
+2026-10-05T03:19:53.0043339Z ##[group]Run NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npm test
+2026-10-05T03:19:53.0044184Z [36;1mNODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npm test[0m
+2026-10-05T03:19:53.0106648Z shell: /usr/bin/bash -e {0}
+2026-10-05T03:19:53.0106917Z env:
+2026-10-05T03:19:53.0107157Z   NODE_OPTIONS: --max-old-space-size=6144
+2026-10-05T03:19:53.0107460Z ##[endgroup]
+2026-10-05T03:19:53.1278285Z 
+2026-10-05T03:23:31.5337818Z [31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-10-05T03:23:31.5339845Z 
+2026-10-05T03:23:31.5341527Z [41m[1m FAIL [22m[49m __tests__/ediel-sc-016-partial-permission-membership.test.ts[2m [ __tests__/ediel-sc-016-partial-permission-membership.test.ts ][22m
+2026-10-05T03:23:31.5349152Z [31m[1mAssertionError[22m: 
+2026-10-05T03:23:31.5350255Z node:internal/modules/cjs/loader:1433
+2026-10-05T03:23:31.5350794Z   throw err;
+2026-10-05T03:23:31.5353623Z   ^
+2026-10-05T03:23:31.5353870Z 
+2026-10-05T03:23:31.5354479Z Error: Cannot find module './scripts/lib/unit-loopback-network-boundary.cjs'
+2026-10-05T03:23:31.5355276Z Require stack:
+2026-10-05T03:23:31.5355706Z - internal/preload
+2026-10-05T03:23:31.5356400Z     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+2026-10-05T03:23:31.5357432Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+2026-10-05T03:23:31.5358449Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+2026-10-05T03:23:31.5359384Z     at Function._load (node:internal/modules/cjs/loader:1216:25)
+2026-10-05T03:23:31.5360505Z     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+2026-10-05T03:23:31.5361407Z     at Module.require (node:internal/modules/cjs/loader:1527:12)
+2026-10-05T03:23:31.5362151Z     at node:internal/modules/cjs/loader:2071:12
+2026-10-05T03:23:31.5363003Z     at loadPreloadModules (node:internal/process/pre_execution:756:5)
+2026-10-05T03:23:31.5363947Z     at setupUserModules (node:internal/process/pre_execution:231:5)
+2026-10-05T03:23:31.5398086Z 
+2026-10-05T03:23:31.5398123Z 
+2026-10-05T03:23:31.5421929Z [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m791 passed[39m[22m[90m (792)[39m
+2026-10-05T03:23:31.5483970Z [2m      Tests [22m [1m[32m10225 passed[39m[22m[2m | [22m[33m3 skipped[39m[90m (10228)[39m
+2026-10-05T03:23:31.5484901Z [2m   Start at [22m 03:19:53
+2026-10-05T03:23:31.5493883Z [2m   Duration [22m 217.97s[2m (transform 27.57s, setup 5.23s, import 227.66s, tests 250.85s, environment 126ms)[22m
+2026-10-05T03:23:31.5495993Z 
+2026-10-05T03:23:31.5583083Z 
+2026-10-05T03:23:31.5610004Z ##[error]AssertionError: 
+node:internal/modules/cjs/loader:1433
+  throw err;
+  ^
+
+Error: Cannot find module './scripts/lib/unit-loopback-network-boundary.cjs'
+Require stack:
+- internal/preload
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at node:internal/modules/cjs/loader:2071:12
+    at loadPreloadModules (node:internal/process/pre_execution:756:5)
+    at setupUserModules (node:internal/process/pre_execution:231:5)
