@@ -6,7 +6,7 @@ import { canonicalUtiltsDecimal, utiltsEnergyQuantityKwh } from './exactDecimal'
 import { supportedUtiltsConsumptionIdentity } from './consumptionIdentity'
 import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
-import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
+import { edifactInstantInDeclaredOffset, localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
 import { resolveUtiltsTransactionId } from './transactionIdentity'
 import {physicalUtiltsReference,isValidUtiltsTransactionReference} from './physicalReference'
@@ -69,7 +69,10 @@ export async function prepareUtiltsConsumptionContracts(input: {
         const register = observation.references.find(reference => reference.qualifier === 'AES' && reference.directReferenceSlot)?.value ?? null
         const ordinal = seriesOrdinals.get(register) ?? 0
         seriesOrdinals.set(register, ordinal + 1)
-        const start = resolution ? addNormalizedResolution(stringOrNull(tx.deliveryPeriodStart), resolution, ordinal) : stringOrNull(tx.deliveryPeriodStart)
+        // Step in the declared wall time: the normalized start is UTC (previous
+        // day 23:00Z for a local midnight), where calendar months drift.
+        const localPeriodStart = edifactInstantInDeclaredOffset(stringOrNull(tx.deliveryPeriodStart), timezone)
+        const start = resolution ? addNormalizedResolution(localPeriodStart, resolution, ordinal) : stringOrNull(tx.deliveryPeriodStart)
         const end = resolution ? addNormalizedResolution(start, resolution) : stringOrNull(tx.deliveryPeriodEnd)
         if ((!resolution && quantities.length > 1) || !start || !end || absolute(end) > absolute(tx.deliveryPeriodEnd)) consumptionConflict('observation_interval_unresolved')
         return { ...tx, deliveryPeriodStart: absolute(start), deliveryPeriodEnd: absolute(end), resolution, quantities: [quantity] }
