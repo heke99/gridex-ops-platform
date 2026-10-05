@@ -1,0 +1,43 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc003-sc005
+
+ ❯ __tests__/ediel-sc-005-shared-dgi-projections.test.ts (9 tests | 1 failed) 32ms
+     × returns two distinct current grants and receipts for one unchanged source/series without an upstream write or per-beneficiary ACK call 17ms
+     ✓ does not let K1 use K2 grant or disclose owner/source diagnostics 4ms
+     ✓ rejects a wrongly bound private-port success instead of returning another grant 1ms
+     ✓ denies widening a K grant through purpose rather than widening P access 2ms
+     ✓ denies widening a K grant through start rather than widening P access 1ms
+     ✓ denies widening a K grant through fields rather than widening P access 1ms
+     ✓ an ungranted tenant knowing the same series obtains no source rows 2ms
+     ✓ a caller cannot select the provider company or its actor through the query 1ms
+     ✓ refuses private source fields inside an allegedly allowed row 2ms
+ ✓ __tests__/ediel-sc-003-provider-legal-dgi.test.ts (8 tests) 85ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-005-shared-dgi-projections.test.ts > SC005 two scoped API derivatives of the same DGI source > returns two distinct current grants and receipts for one unchanged source/series without an upstream write or per-beneficiary ACK call
+AssertionError: expected 403 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 403
+
+ ❯ __tests__/ediel-sc-005-shared-dgi-projections.test.ts:61:31
+     59|       selected(mission)
+     60|       const response = await GET(request(query(mission)), context)
+     61|       expect(response.status).toBe(200); expect(response.headers.get('…
+       |                               ^
+     62|       const result = await response.json() as EdielProjectionPage
+     63|       expect(result).toEqual(page(mission)); results.push(result)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 16 passed (17)
+   Start at  00:54:19
+   Duration  2.34s (transform 1.76s, setup 33ms, import 2.27s, tests 117ms, environment 0ms)
+
+JUNIT report written to /tmp/masterplan-sc003-sc005-proof/unit-junit.xml

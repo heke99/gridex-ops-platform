@@ -1,0 +1,102 @@
+{
+  "purpose": "SC003_SC005_bounded_current_consumer_evidence",
+  "source_base": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+  "branch": "codex/ediel-sc003-sc005-provider-projection-evidence-20261005",
+  "claims": {
+    "initial": [
+      "5305986205147",
+      "4915986205299"
+    ],
+    "native_scope": [
+      "5305986353434",
+      "4915986353609"
+    ]
+  },
+  "current_input_sha256": {
+    "__tests__/ediel-sc-003-provider-legal-dgi.test.ts": "79a22139456f95f42e42e10f55e125a53b5a4e719261e5b280fd14272c509a68",
+    "__tests__/ediel-sc-005-shared-dgi-projections.test.ts": "9bd36389290fcdb6342daa4550ae445d0650114f4342bc659a2ac385c59d563a",
+    "scripts/ediel-sc-003-005-service-native.test.ts": "2989d5d7b6d0ee85ae450dcbaed3204f72ed92fb277d9ec245798c5aa637c0db",
+    ".github/workflows/ediel-sc003-sc005-native.yml": "c3961b7e175f1017e34d9fc99a302554c45f158151511aedd7708bf469f7473e",
+    "scripts/ediel-source-owner-native.config.ts": "de08cf7128fcab4f6871cf609e79e2e01e857fca2e0b2c12e13865c54ae0b10a",
+    "scripts/fixtures/ediel-service-evidence-native.ts": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+    "scripts/helpers/utiltsConsumptionParties.ts": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5",
+    "scripts/helpers/ediel-native-permission-catalog.setup.ts": "a1d6dd98a4e10895b56b5a649a481a6f3e535df1395befc34dac312b5628c85f",
+    "scripts/gridex-redact-native-evidence.py": "db285c16dc62542028d497e805a5d8315ed6183ead8d9564982ea1a80164fb74",
+    "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+    "lib/ediel/services/administration.ts": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+    "lib/ediel/services/projection.ts": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+    "lib/ediel/flows/prodatServicePermission.ts": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c",
+    "lib/ediel/utilts/transactionPersistence.ts": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+    "scripts/migration-history-manifest.json": "573174fa0bb8aa1ef51c6b7077f2c0b6e2bed220efc4c84617332628be9254b2",
+    "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+    "scripts/migration-history-manifest.runtime.additions.json": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09"
+  },
+  "verification": {
+    "unit": {
+      "status": "PASS",
+      "tests": 17,
+      "files": 2,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "junit": "unit-junit.xml",
+      "junit_sha256": "7b3d3997df34745ce5ad995d7e56052773b96b4faff2ebc923ee3210262d6833"
+    },
+    "unit_scoped_types": "PASS",
+    "unit_scoped_lint": "PASS",
+    "native_scoped_types": "PASS",
+    "native_scoped_lint": "PASS",
+    "workflow_yaml_bash_python_single_scope_redaction_mechanics": "PASS",
+    "native": {
+      "status": "NOT_RUN",
+      "selected_files": [
+        "scripts/ediel-sc-003-005-service-native.test.ts"
+      ],
+      "cases": 1
+    },
+    "full_suite": "NOT_RUN",
+    "schema_capture": "NOT_RUN",
+    "market_custody": "NOT_PROVIDED",
+    "specification_integrity": "PASS_33_FROZEN_FILES_352_ROWS",
+    "whole_tag_scanner_attempt": {
+      "status": "ERROR",
+      "exit_code": 1,
+      "reason": "Existing scanner unexpectedly executes all tagged suites; no readable Vitest JSON report. Not repeated; no gate pass claimed.",
+      "log": "tag-scanner-attempt.log",
+      "raw_log_sha256": "2b869e5841bfb3692eb3cca62ee034383bed2518d473dfa35e93cf4f67d95fcb",
+      "log_presentation": "Trailing empty newline removed only; complete failure text preserved."
+    },
+    "owned_tags_and_unchanged_shared_rows": "PASS"
+  },
+  "initial_unit_fixture_red": {
+    "tests": 17,
+    "passed": 16,
+    "failed": 1,
+    "cause": "Explicit finite projection-port expected timestamps omitted canonical .000Z. Fixture normalized; no production source or product assertion changed.",
+    "junit": "unit-fixture-red-junit.xml",
+    "production_red": false
+  },
+  "historical_native_497": {
+    "source": "f4a0fb4398a79f5777824123142c82aeeb8338ec",
+    "run_id": 37219122360,
+    "artifact_id": 11310821113,
+    "zip_sha256": "470c1eed5afd99678c2d5ab2c7fa108bc33384cc873fb5ecab5cf9cb4f820076",
+    "junit_sha256": "e3d61b376c876c49fc2aed4f6ed61c6f9f16b8dfb110141a65fd94479c9ccb73",
+    "selected_case": "literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18",
+    "status": "PASS_HISTORICAL_BOUNDED_CORROBORATION",
+    "current_cardinality_proof": false,
+    "different_permission_case_352": "NOT_SELECTED",
+    "dependency_inventory": "Prior359-node inventory is incomplete and is not reused as exhaustive; reviewer corrected697native/699current with13changed existing plus2new transport helpers."
+  },
+  "limits": [
+    "Finite unit RPC/authorization/route/persistence ports do not prove legal custody or physical SQL cardinality.",
+    "New native case requires genuine clean replay at exact published source before any SC005 whole approval.",
+    "Captured schema equality alone is not current migration-tail replay proof.",
+    "External SMTP is mocked and issuer/legal/tenant bootstrap is synthetic in the native fixture.",
+    "Ordinary mandatory gates, capture, browser and upgrade parity are not replaced."
+  ],
+  "whole_review": {
+    "SC-003": "PENDING_INDEPENDENT_REVIEW",
+    "SC-005": "PENDING_GENUINE_SINGLE_CASE_AND_INDEPENDENT_REVIEW"
+  }
+}
