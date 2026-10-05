@@ -1,0 +1,130 @@
+{
+  "schema": "gridex-root503-current-main-small-carry-extension/v1",
+  "verdict": "APPROVE_MAIN551_EXTENSION_WITH_UNCHANGED_CAPTURE_INPUTS",
+  "created_at": "2026-10-05T14:41:08.896390+00:00",
+  "previous_receipt": "root503-main7b-current-carry.json",
+  "previous_receipt_sha256": "6222e2ec6ca44dbf8f18a220b63bb223435b8c51bcdd2921f953b4ad7a14d878",
+  "reviewer": "/root/sc001_sc002_sc018_sc056_carry",
+  "candidate": "66774385a98b1e01ec8821ff3d2fd3a415cdf605",
+  "candidate_tree": "72eec929e8270bb50b09bc86c8b441961bf48736",
+  "main": "2579fa93b8008eb72ca2a77d074b551828d0be58",
+  "main_tree": "d05a67b8e566720e0579e59287262e426c0c7584",
+  "actual_genuine_main_parents": [
+    "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+    "f3adf926990cd77162d9366477d35e1c20b343b9"
+  ],
+  "expected_conflict_free_union_tree": "9efcd7d1b587a9449fca21b612377a5514fef18b",
+  "new_delta": {
+    "paths": 19,
+    "added": 15,
+    "modified": 4,
+    "scope": "Sole whole-approved SC004/SC006 #551 packet: three ordinary asserting test/harness consumers, two own coverage rows and own checkpoint/quality records; no production/schema/migration/capture-input/workflow/common-memory change."
+  },
+  "test_harness_effects": [
+    {
+      "path": "__tests__/ediel-service-administration.test.ts",
+      "qualification": "Current actual administration caller gets additive SC006 end-assignment positive/refusal assertions, keeping actor/coordinator/transport substitutions explicit. No producer change."
+    },
+    {
+      "path": "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+      "qualification": "Existing finite SQL harness installs four current projection/graph-lock owners and adds SC004 zero-beneficiary-identity/provenance/grant assertions. These are declared finite test schema/authority ports, not a new migration or capture input."
+    },
+    {
+      "path": "scripts/test-ediel-ten-07-scoped-projection.cjs",
+      "qualification": "Retains existing tagged-ID union and adds SC004 stdout assertion for the existing SQL child; accepted owner head carried byte-exact."
+    }
+  ],
+  "peer_three_inputs_exact_actual_main": true,
+  "other_existing_candidate_paths_exact": 7864,
+  "all63_foreign_added_paths_exact": true,
+  "production_app_lib_migration_tree_unchanged": "Exact previous reviewed667 and authentic5be",
+  "all_eight_capture_inputs_and_raw_generated_import_preserved": true,
+  "capture_refresh_required_by_main551_delta": false,
+  "authentic_capture_attribution": "Retains producer5be3a902/tree5c3e101c and raw_NOT_RUN flags from prior reviewed receipt; neither main2579 nor consumer667 is a capture producer.",
+  "coverage": {
+    "all352_ids_ordered": true,
+    "foreign346_rows_and_ordered_evidence_exact_actual_main": true,
+    "only_root_six_prior_rows_differ": [
+      "TR-05",
+      "TR-10",
+      "SC-040",
+      "SC-063",
+      "AT-TR-05",
+      "AT-TR-10"
+    ],
+    "six_owned_rows_exact_prior_candidate": true,
+    "main_approved": 219,
+    "union_approved": 225,
+    "main_metadata_exact": true
+  },
+  "incoming_owner_head_nine_actual_green_checks": [
+    {
+      "name": "pr-certificate",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "targeted-regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "quality-release-gates",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "browser-public",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    },
+    {
+      "name": "clean-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "f3adf926990cd77162d9366477d35e1c20b343b9"
+    }
+  ],
+  "coderabbit": [
+    {
+      "context": "CodeRabbit",
+      "state": "success"
+    }
+  ],
+  "inherited_whitespace": {
+    "root_to_union_diff_check_exit": 2,
+    "unchanged_same_three589_paths": true,
+    "foreign_normalization": false,
+    "own_raw_import_diff_check_0_reused_prior": true
+  },
+  "github_snapshot": "root503-main2579-current-carry-github-snapshot.json",
+  "scope_limits": "Tiny source/input/raw-import carry extension only. No repeated tests, native, SQL, capture, tagger, parity or broad qualification; no owner edits/push/merge. Root owns genuine candidate integration/publication and actual new-head gates."
+}

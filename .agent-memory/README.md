@@ -33,6 +33,10 @@ checkpoint in `customer-portfolio-checkpoint.md` and its evidence in
 
 ## Update rules
 
+Customer and daily admin UI simplification (user-approved 2026-10-05) keeps its checkpoint in
+`customer-ui-checkpoint.md` and local verification evidence in
+`quality/customer-ui/`, preserving the Ediel campaign's global progress files.
+
 - Maintain exactly one active work item and subtask.
 - Update the checkpoint after implementation, verification, failure or blocker.
 - Put only actually verified work in `completed-work.md`.
@@ -48,3 +52,5 @@ Allowed statuses: `NOT_STARTED`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`,
 Never store API keys, tokens, secrets, `.env` content, private keys, passwords,
 full identity numbers, production customer data, raw webhook secrets, entire
 chats, chain-of-thought or complete terminal output.
+
+Current existing-PR integration: see the top of current-state.md/current-task.md and masterplan-root503-ci-integration-20261005.md. Older freeze snapshots are historical.

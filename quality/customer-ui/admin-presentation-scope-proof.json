@@ -1,0 +1,60 @@
+[
+  {
+    "path": "app/admin/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  },
+  {
+    "path": "app/admin/work-queue/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  },
+  {
+    "path": "app/admin/customer-cases/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  },
+  {
+    "path": "app/admin/billing/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  },
+  {
+    "path": "app/admin/operations/switches/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  },
+  {
+    "path": "app/admin/website-applications/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": [
+      "status"
+    ]
+  },
+  {
+    "path": "app/admin/company-settings/page.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  },
+  {
+    "path": "app/admin/layout.tsx",
+    "loader_before_ui_unchanged": true,
+    "server_action_bindings_unchanged": true,
+    "removed_field_names": [],
+    "added_field_names": []
+  }
+]

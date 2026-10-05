@@ -1,0 +1,175 @@
+{
+  "reviewed_at": "2026-10-05T04:32:58.986532+00:00",
+  "reviewer": "/root/sc007_sc066_review",
+  "verdict": "APPROVE_STAGED_AUTHENTIC_CAPTURE_IMPORT",
+  "scope": "Exact raw-output/archive/provenance metadata and producer-to-pre-import replay-input carry only; no new capture/runtime execution.",
+  "artifact_qualification": {
+    "path": "/workspace/agent-review-checkpoints/root503-329-capture11325200901-independent-receipt.json",
+    "sha256": "52f051e6ce55d66391c44e340f8bf4184920e0d7679b0edcec813ed98e422e60",
+    "verdict": "APPROVE_AUTHENTIC_CAPTURE_ARTIFACT"
+  },
+  "producer": {
+    "sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "tree": "c1a15c0597cb32995b81a8a621d865afc3eeb96e",
+    "run_id": 37260943445,
+    "job_id": 111607846726,
+    "artifact_id": 11325200901
+  },
+  "pre_import_consumer": {
+    "sha": "bf936cf08adbdbd356bdfaad29c45c131573a1d6",
+    "tree": "5aedd096a1bf226f0ee4311598da89cb0db3542b",
+    "checkout": "/workspace/gridex-masterplan-retry"
+  },
+  "working_manifest": {
+    "path": "/workspace/gridex-masterplan-retry/scripts/supabase-types-manifest.json",
+    "sha256": "038426f133dcf31030f456a102b09c0fcf98316a8ded63161fe9610fff3c3151",
+    "capture_object_equals_raw_receipt": true,
+    "composition_capture_pending": false
+  },
+  "eight_replay_inputs": {
+    "scripts/gridex-aud-003-clean-replay.sh": {
+      "producer_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "pre_import_git_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "working_sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    },
+    "scripts/migration-history-manifest.json": {
+      "producer_sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
+      "pre_import_git_sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
+      "working_sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    },
+    "scripts/migration-history-manifest.additions.json": {
+      "producer_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "pre_import_git_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "working_sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    },
+    "scripts/migration-history-manifest.runtime.additions.json": {
+      "producer_sha256": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09",
+      "pre_import_git_sha256": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09",
+      "working_sha256": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    },
+    "scripts/supabase-types-manifest.json": {
+      "producer_sha256": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
+      "pre_import_git_sha256": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
+      "working_sha256": "038426f133dcf31030f456a102b09c0fcf98316a8ded63161fe9610fff3c3151",
+      "unchanged": false,
+      "allowed_post_import_metadata": true
+    },
+    "scripts/apply-supabase-types-nullability-overrides.cjs": {
+      "producer_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "pre_import_git_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "working_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    },
+    "scripts/gridex-schema-snapshot.cjs": {
+      "producer_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "pre_import_git_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "working_sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    },
+    "supabase/config.toml": {
+      "producer_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "pre_import_git_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "working_sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "unchanged": true,
+      "allowed_post_import_metadata": false
+    }
+  },
+  "migration_tree_exact_carry": {
+    "329b079ff4aecde8164d5be057ffaf37e2334d9c": "7575d1b61a5fe9e724d4f1aa7c26b9e12e4e5fa3",
+    "bf936cf08adbdbd356bdfaad29c45c131573a1d6": "7575d1b61a5fe9e724d4f1aa7c26b9e12e4e5fa3"
+  },
+  "generated_outputs": {
+    "database.types.ts": {
+      "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "bytes": 3679044,
+      "raw_equals_imported": true,
+      "changed_from_pre_import": false
+    },
+    "schema.sql": {
+      "sha256": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6",
+      "bytes": 11212356,
+      "raw_equals_imported": true,
+      "changed_from_pre_import": true
+    },
+    "schema.fingerprint.json": {
+      "sha256": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44",
+      "bytes": 3625,
+      "raw_equals_imported": true,
+      "changed_from_pre_import": true
+    }
+  },
+  "archived_zip": {
+    "path": "/workspace/gridex-masterplan-retry/artifacts/masterplan-v2/ediel-root503-329-composed-capture.zip",
+    "sha256": "9353629de11059586e05caf1957d35e31d6e382a22f8b704d21feac380cfb657",
+    "raw_byte_equal": true,
+    "crc": "PASS"
+  },
+  "archived_raw_receipt": {
+    "path": "/workspace/gridex-masterplan-retry/artifacts/masterplan-v2/ediel-root503-329-composed-capture-receipt.json",
+    "sha256": "cb3d361a01e7e311dcff36cd499fdcea1586ef7e22d85e10587278c1cb2bd13d",
+    "raw_byte_equal": true
+  },
+  "existing_parent_pointers": {
+    "upstream_main_manifest": "EXACT_UNCHANGED",
+    "upstream_tr04_manifest": "EXACT_UNCHANGED",
+    "upstream_primary_side_manifest": "EXACT_UNCHANGED",
+    "current_prefix_verification.retained_root_manifest": "EXACT_UNCHANGED",
+    "current_prefix_verification.source_migrations": "EXACT_UNCHANGED",
+    "current_prefix_verification.requirements": "EXACT_UNCHANGED"
+  },
+  "new_provenance_pointers": {
+    "pre_import_manifest": {
+      "commit": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+      "git_blob": "3cf54cb3ba13ce304cf581c41059e687fe72f071",
+      "sha256": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
+      "exact": true
+    },
+    "upstream_primary_side_manifest_current": {
+      "commit": "8904457f2aa72cc09ebcd094ad852445a557ce3e",
+      "git_blob": "5dc4514735e3f3f76d95d524748f30a13e9a7287",
+      "sha256": "71b54e3bb196e25ef86388cb14f30821f778bb60ad4a06eeadaef2bac786532a",
+      "exact": true
+    }
+  },
+  "raw_receipt_flags": {
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN"
+  },
+  "tracked_working_changes": [
+    ".agent-memory/handover.md",
+    ".agent-memory/masterplan-codex-retry-checkpoint.md",
+    "scripts/supabase-types-manifest.json",
+    "supabase/schema.fingerprint.json",
+    "supabase/schema.sql"
+  ],
+  "reviewer_execution": {
+    "capture": "NOT_RUN",
+    "sql": "NOT_RUN",
+    "test": "NOT_RUN",
+    "native": "NOT_RUN",
+    "browser": "NOT_RUN",
+    "replay": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN"
+  },
+  "limits": [
+    "Approval binds these exact dirty working bytes onbf936cf0, not an as-yet-unpublished import commit.",
+    "Producer329 attribution and original input hashes are retained; later consumer is not claimed as capture producer.",
+    "Only types-manifest capture/provenance metadata changes among8producer replay inputs.",
+    "All committed migration-tree bytes are unchanged from329 tobf; this is source equality, not new SQL or runtime execution.",
+    "Current exact-head native/browser/clean-upgrade/schema-type/parity/release gates remain required.",
+    "Root reported minimum Node baseline success; reviewer did not repeat or independently claim execution of those gates.",
+    "No broad source/card/coverage review is added by this narrow import verdict."
+  ]
+}

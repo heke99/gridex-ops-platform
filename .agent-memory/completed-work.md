@@ -371,3 +371,6 @@ Root exact-lock npm ci passed470 packages. SC072 actual full97A +independent T24
 
 ## 2026-10-03 — Customer portfolio (#474, VERIFIED)
 Kundportfölj RPCs and pages, white-label read-only overview, superadmin-only assignment with audit, supply-period customer definition everywhere, persisted forecasts. CI green on `d84c327`; production migrations applied and verified (objects, grants, RPC calls on real companies, advisors). Evidence: `quality/customer-portfolio/2026-10-03-verification.md`.
+
+## 2026-10-05 — Customer and admin UI side track
+VERIFIED locally: compact customer register/card/contracts/intake, shared navigation, seven daily areas and all seven remaining operational groups. Reproduced CIS customer/audit binding and facility read-relation defects fixed. Final40 files/403 tests,42 browser interactions,112 responsive and56 axe states pass;actual scoped production database checked read-only,10 provider-SQL checks isolated. No authenticated live journey or publication. Evidence: quality/customer-ui/remaining-admin-verification-2026-10-05.md;workstream checkpoint: customer-ui-checkpoint.md.

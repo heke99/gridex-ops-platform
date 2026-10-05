@@ -53,7 +53,7 @@ const nativeCaseBindings = [
     effects: { DDQ: true, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 1 },
     ports: { postgres: 'real_local', postgrest: 'real_local', smtp: 'substituted', issuer: 'synthetic', tenantBootstrap: 'synthetic' } },
 ]
-const reviewedNativeInputBase = '99676683338e11e60666345782609a822de9181e'
+const reviewedNativeInputBase = 'b83b284467c8e0fcaa277706a708706e0a705068'
 const ownedNativeInputExceptions = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '.agent-memory/masterplan-ops03-checkpoint.md', '.github/workflows/full-e2e.yml']
 const coverageLedgerPath = 'quality/audits/ediel-masterplan-v2/coverage.json'
@@ -301,7 +301,7 @@ function consumeReviewedCodeEvidence(root, source, blockers, modes) {
     try {
       const workflow = '.github/workflows/ops-hardening.yml'
       if (!sourceMatches(workflow, 'eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261')
-        || !sourceMatches('scripts/ediel-source-owner-native.config.ts', '2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a')) throw Error('case_producer_source_changed')
+        || !sourceMatches('scripts/ediel-source-owner-native.config.ts', '722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56')) throw Error('case_producer_source_changed')
       const run = latestRun(runs, workflow)
       if (run.status !== 'completed' || run.conclusion !== 'success') throw Error('case_latest_run_not_qualified')
       caseEvidence.push(...readArtifact(run, successfulJob(run, 'clean-migration-replay'), 'gridex-rem-002-clean-replay', (read, producer) => cases(nativeCaseBindings, read('rem002-native-junit.xml'), producer)))

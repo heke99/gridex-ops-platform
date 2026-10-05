@@ -25,7 +25,7 @@ const mimeName = 'ENV-01 lossless bytes at every SMTP packaging boundary > MIME 
 const guardName = 'ENV-01 lossless bytes at every SMTP packaging boundary > the actual send path rejects before route, archive, attempt or provider effects'
 const tgtFile = '__tests__/ediel-prodat-register-tgt-workflow.test.ts'
 const tgtName = 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval'
-const reviewedBase = '99676683338e11e60666345782609a822de9181e'
+const reviewedBase = 'b83b284467c8e0fcaa277706a708706e0a705068'
 const ledgerFile = 'quality/audits/ediel-masterplan-v2/coverage.json'
 const approvedEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '__tests__/ediel-ops-03-release-evidence.test.ts', '.github/workflows/full-e2e.yml']

@@ -1,0 +1,43 @@
+[
+  {
+    "path": "app/admin/customer-info-requests/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/facility-requests/page.tsx",
+    "server_body_before_first_render_unchanged": false,
+    "reviewed_change": "Explicit customer/site FK hints and one session-RLS-protected bulk grid-owner lookup; company scope and existing fallback retained. See DB-01."
+  },
+  {
+    "path": "app/admin/metering/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/outbound/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/messages/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/events/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/pricing/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/pricing/campaigns/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/users/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  },
+  {
+    "path": "app/admin/billing/integrations/page.tsx",
+    "server_body_before_first_render_unchanged": true
+  }
+]

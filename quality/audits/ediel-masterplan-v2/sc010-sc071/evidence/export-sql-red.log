@@ -1,0 +1,8 @@
+file:///workspace/gridex-sc010-sc071/scripts/.ediel-projection-replay-consumer.tmp.mjs:32
+ await db.exec(migration)
+               ^
+
+ReferenceError: Cannot access 'migration' before initialization
+    at file:///workspace/gridex-sc010-sc071/scripts/.ediel-projection-replay-consumer.tmp.mjs:32:16
+
+Node.js v22.23.3

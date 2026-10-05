@@ -146,6 +146,14 @@ export const CANONICAL_EDIEL_DEADLINE_RULES: readonly CanonicalEdielDeadlineRule
   { family: 'PRODAT', code: 'Z18', subtype: 'V', direction: 'outbound', constraints: [c('as_soon_as_possible', 'metering_agreement_ended')], summary: 'Z18V skickas så snart avtalet om rapportering har upphört.', source: source('10.2.1', '199') },
 ] as const
 
+for (const rule of CANONICAL_EDIEL_DEADLINE_RULES) {
+  for (const constraint of rule.constraints) Object.freeze(constraint)
+  Object.freeze(rule.constraints)
+  Object.freeze(rule.source)
+  Object.freeze(rule)
+}
+Object.freeze(CANONICAL_EDIEL_DEADLINE_RULES)
+
 function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
 }

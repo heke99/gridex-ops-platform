@@ -1,0 +1,676 @@
+{
+  "schema": "gridex-masterplan-sc009-sc019-independent-current-main-carry/v1",
+  "recommendation": "APPROVE_MINIMUM_SOURCE_CARRY",
+  "merge_readiness": "ROOT_REQUIRES_CURRENT_HEAD_ALL_NINE_GATES_AND_FRESH_MAIN_GUARD",
+  "reviewer": "/root/sc001_sc002_sc018_sc056_carry",
+  "created_at": "2026-10-05T14:23:51.353148+00:00",
+  "head": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+  "tree": "866e87474527463cad630b7a7ead6a3477d5fa0f",
+  "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "main_tree": "e222e54afb45d25f2988eaf283274527ad413f0c",
+  "genuine_parents": [
+    "7bd40bd0179a5929b00875911a9744aace14470c",
+    "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686"
+  ],
+  "merge_tree": "866e87474527463cad630b7a7ead6a3477d5fa0f",
+  "merge_conflicts": false,
+  "original_whole_freeze": "415d9a06ac2c38b49590cc228ab20716aa3a4f47",
+  "original_approved_head": "7bd40bd0179a5929b00875911a9744aace14470c",
+  "original_base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+  "canonical_whole_review": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985411226",
+  "canonical_review_body_sha256": "c2f0139bbfa58d5b88eb74cc48bf4a402099a696a5c5a5e40ae95de2bfa55ca3",
+  "owner_source_carry_sha256": "0b9d6ec384a814281f8ed9e80b0a470fffe15299f952484f86e515df3d22c7ef",
+  "owner_baseline_sha256": "00383ba9f3f849b78e2092d4c73cedbdb9eb8216aaee213ace53126b33d5878b",
+  "foreign_main_paths_exact": 7685,
+  "foreign_coverage_rows_and_ordered_evidence_exact": 350,
+  "all352_ids_ordered_and_preserved": true,
+  "top_level_main_metadata_exact": true,
+  "coverage_only_delta": [
+    "SC-009",
+    "SC-019"
+  ],
+  "main_approved": 217,
+  "candidate_approved": 219,
+  "tests": [
+    {
+      "path": "__tests__/tenant-ediel-identity-completeness.test.ts",
+      "sha256": "b18188a4bd7ee1bf1391413119654257c97991af4965d8469d278dfca1e32c3d",
+      "exact_original_whole_freeze": true,
+      "exact_prior_approved_head": true,
+      "main_tags_preserved": true
+    },
+    {
+      "path": "__tests__/billing-canonical-gate.test.ts",
+      "sha256": "bdc6b9869186bf50d9cb0f938832bd6598f4d66b3f356e80b1e6e30da0cf5f67",
+      "exact_original_whole_freeze": true,
+      "exact_prior_approved_head": true,
+      "main_tags_preserved": true
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "sha256": "ccf695eb99eec9eb4448de1cdf4aee691a21eac7bfbb18e2760472b88568184f",
+      "exact_original_whole_freeze": true,
+      "exact_prior_approved_head": true,
+      "main_tags_preserved": true
+    }
+  ],
+  "selected_sources": [
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/actor-registry/normalizeActor.ts",
+      "sha256": "05003fa8f3c892922be96d130fd77a450b7e912c9bd9e78f264645867617464c",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/actor-registry/types.ts",
+      "sha256": "e68906f097a929812dd493753c8ecb896b3655b2779560c1f06b508c3360e6f9",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "sha256": "22f6ea98e4696de4c2a4dd8a1de52dc5b23e19e20a8e0d654d411f680f63bfba",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentityEvidence.ts",
+      "sha256": "4dc019e7f6a987162def2ea5ab95a6b800c5f1c037ba16bb7207e7ec51c0c0ee",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/inboundRouteSemantics.ts",
+      "sha256": "4c39eaf679c72235df125503112b79e162e02ca06e0114eefa7e9dcf1e562598",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "sha256": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "exact_main": true,
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/ediel/services/projection.ts",
+      "sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/services/types.ts",
+      "sha256": "7679a6e4dd94f5ace7f83464eb55e1d5359f4bb6995c27e2d7d22e79f597271b",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "exact_main": true,
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/ediel/core/failureDisposition.ts",
+      "sha256": "05af6463754ccd524c1cbfc3ee214e5d9f7911228f8aef2e9cf0c7b90a2e2e5c",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/billing/billingGate.ts",
+      "sha256": "08786cb6ace01cfc5518ce153e53500e31ab2c1058b9301bac6a4d1c56aaf42f",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/billing/sourceBasis.ts",
+      "sha256": "145287b8d0d9023672a8dddf5d8c7873d591504d4825f4607a722731a0461513",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "exact_main": true,
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/billing/consumptionEstimate.ts",
+      "sha256": "ef2ded1ff0933adc6b247dccce337a94463e5579c261c7cc63625abee5fd3c91",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/billing/historyRequest.ts",
+      "sha256": "6e088b0e4dc4509d4a8c09aad8b4083d81959e79afad1ae9d90b1c2aa991416f",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/pricing/types.ts",
+      "sha256": "774d38bb4c787bbb2d1d57bd689a2606d717aaddfabb24f1a82ff7887c344c71",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/time/stockholm.ts",
+      "sha256": "dc85350d43db406a772fbc3297a4bce13b316b0d6d0a6d48ac7e8b946edbe568",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/utilts/exactDecimal.ts",
+      "sha256": "47ceb14b50cc3d7136690479f203f1317a3983bb1f02c6a9569ff6a76e53889f",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "sha256": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "scripts/ediel-billing-source-sql-regression.mjs",
+      "sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+      "exact_main": true,
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/ediel/utilts/resolution.ts",
+      "sha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498",
+      "exact_main": true,
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/ediel/utilts/timezone.ts",
+      "sha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954",
+      "exact_main": true,
+      "exact_original_base": false
+    },
+    {
+      "path": "__tests__/helpers/utiltsObservationHandoff.ts",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsNativeSourceFixture.ts",
+      "sha256": "47003f06ec6a241de78ce6fa90a2e537f2a45aba161a94f4f293fdda9967e9a8",
+      "exact_main": true,
+      "exact_original_base": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "sha256": "5da55a0ce60bd6714a56e36c811fbc1347fd8a07edd91b9e58248eb5c72b0d2d",
+      "exact_main": true,
+      "exact_original_base": true
+    }
+  ],
+  "changed_reached_paths": [
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "old_sha256": "0a4fee017c2633d8b34efbb59d3b06e45aede744d3ff9da6296a21a1ea8f29e8",
+      "current_sha256": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "effect_qualification": "Explicit SC009 legal62110/transport82150 still normalize identically; only missing legal PRODAT/UTILTS fallback is removed. Current full-module positive and four denial contrasts retain distinct identities and explicit dated delegation."
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "old_sha256": "714c155fe68875d63f33111ce7cb871cb8c998adba394f83d6bf72cbbed67876",
+      "current_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "effect_qualification": "Only two export modifiers added. Both helper bodies and billing gate/source/price/period effects remain byte-exact."
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "old_sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "current_sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "effect_qualification": "Existing real EdielExecutionFailure import wraps the identical two predicates/messages in an Error subclass, security_quarantine. Queries and success path are identical; selected TS suites use full modules, with no AST/class fabrication."
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "old_sha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+      "current_sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+      "effect_qualification": "Declared offset re-expression precedes stepping. Selected historical one15-minute/+0200 physical observation keeps its absolute linear endpoints; month/year behavior is changed and is not borrowed as fresh native proof."
+    },
+    {
+      "path": "lib/ediel/utilts/resolution.ts",
+      "old_sha256": "a3532305d47ea2650b43f953c9b50a147e88991fe8be7c12a3cce5e7db63dded",
+      "current_sha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498",
+      "effect_qualification": "Offset-preserving rendering and wall-time calendar stepping; fixed PT15M adds the same absolute900000ms. Original selected wire generators are exact; no current full-calendar/native result inferred."
+    },
+    {
+      "path": "lib/ediel/utilts/timezone.ts",
+      "old_sha256": "2bec26bfc311c07b72df294f71a7fbf5c5ebaf190bfe2868174889b3d5098d90",
+      "current_sha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954",
+      "effect_qualification": "New helper re-expresses the same parsed instant in its declared fixed offset. The old local-to-UTC routine is unchanged; no new legal source/custody is supplied."
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "old_sha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "current_sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "effect_qualification": "Only policy/evidence failure metadata and PRODAT internal_review projection changed; accepted E66 decision path unchanged. Historical selected reception proof stays historical, with no fresh source origination claim."
+    },
+    {
+      "path": "lib/ediel/core/tenantResolver.ts",
+      "old_sha256": "72e2bfcefc8c218426434ae908f3f59cdca815de581e48f4d622dd0a04f8e702",
+      "current_sha256": "b4fd81cb0d4faaac51c89357eba34a1c51058a3d4a06a32da002086720a0bf7a",
+      "effect_qualification": "Uses physical-family legal-receiver helper rather than transport fallback; explicit NAD legal identity in retained E66 fixture stays distinct. Direct current SC009 resolver is independently exercised by existing owner raw32 results."
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "old_sha256": "e90a22a838d861ca699ff00d0f231f766b050005d44c799d48abff8e68909df7",
+      "current_sha256": "2248ac210b846e116eb5e313e20e7673dd53e7877604be0a363ae703b370ce54",
+      "effect_qualification": "Resolved metering point passed to request correlator; this is upstream historical source linking, not the selected current beneficiary/provenance/underlay effect owner."
+    },
+    {
+      "path": "lib/ediel/matching.ts",
+      "old_sha256": "308bbdc52a24fe04ecf6433a4ead122ce8cfbbeb46cbe65fa090f2844507dff7",
+      "current_sha256": "d99c779b0313235e672d35d5a4b080eb3a49915c6d062dba13f0634ea345608c",
+      "effect_qualification": "Optional TN parsing, at most2 candidates and same-point/unambiguous gate tighten upstream correlation. No beneficiary/invoice right is minted; no old full origination/native equivalence claimed."
+    },
+    {
+      "path": "lib/ediel/partyRegistry.ts",
+      "old_sha256": "8ded21f3fa8ac4f779d5a7c3f2ecb68ebcbc273f4012658c37e970cfdaeb0ed5",
+      "current_sha256": "5a9faaabcadf18a22fba499c2d8d251cedd438cd902e0e07d40db24d173e7780",
+      "effect_qualification": "Removed legacy DB/admin route resolver; surviving encryption/portal helpers used by real transport keep bodies. Current SC009 parser/identity/delegation path does not call removed legacy route producer."
+    },
+    {
+      "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+      "old_sha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+      "current_sha256": "b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7",
+      "effect_qualification": "Required signed leaf binds actual SMTP mailbox via Subject/SAN. This changes upstream send validation; old native custody is not relabelled as current certificate/send proof."
+    },
+    {
+      "path": "lib/ediel/transport/outboundAttempt.ts",
+      "old_sha256": "23a1ed87416c6a065b50b493667fd1e3ffad0a33ab106603ccfc3d108ec5db54",
+      "current_sha256": "3a3505ded65fa001f8b71a7a3bbdffc8a8948a97f7c5295ac2e1ed7c1ccfc1ff",
+      "effect_qualification": "Existing prepare/enter/observe/failure fence extracted into reusable gate; ordinary adapter calls that gate. No new physical send or fresh whole-native result asserted by these scenario carries."
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "old_sha256": "2863c2977f64711ef864a92f516c53caa21a77eb889e1eaf37fadfd60fff9222",
+      "current_sha256": "91cffa7caa8361fceee693d481c7245ebf9e6595e1d7b9fbb30b80ee8834326c",
+      "effect_qualification": "Outbound default subaddresses become null. Retained received-E66 wire generators and current provenance/billing effect owners unchanged; historical source generation remains original-head evidence."
+    }
+  ],
+  "selected_sql": [
+    {
+      "signature": "gridex_billing_source.basis_before_precision_v1(p_company uuid, p_value uuid)",
+      "body_sha256": "6c9942c5025d8d11d4c8e37c0e261b1e9fddc01970f56a17228d71282a1e8235",
+      "complete_definition_sha256": "b30a43cc24c4b71a2e05f59f6817f1f19576acd6b92eb3b210a8bba25716146f",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.basis_v1(p_company uuid, p_value uuid)",
+      "body_sha256": "805c55c2678e05016bd0d8807b1a04c4c76a727e2326d64164a0ac49554135d9",
+      "complete_definition_sha256": "e0e90d1d9845e735c6d4216572733f626d7366715972c9953ce0e0128c81f832",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.capture_correction_v1()",
+      "body_sha256": "03cd5ec5b0c02a140a15e5536bb6ee58aa0d5db2ac1a41f21a124c1d8e99516d",
+      "complete_definition_sha256": "3ec90a914dc24480f6bbdfa9e3dbe433128cfba42cd1cc6665996e6b96cf31b3",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.gridex_create_billing_export_run_before_source_v2(p_run jsonb, p_items jsonb DEFAULT '[]'::jsonb)",
+      "body_sha256": "d48fce1292d20192370d693b1194b96005bf5403660043ca57bd8310bb807cf4",
+      "complete_definition_sha256": "34cd805d6f0444a4a984d42848c8b8e68f3502872611e62e571015baa07012c1",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.gridex_set_metering_billing_gate_before_source_v2(p_company_id uuid, p_metering_value_id uuid, p_normalized_value_id uuid, p_gate jsonb)",
+      "body_sha256": "44b5422ac0e4e92ef18638ad02644620291ae4384fc4ec9c739c568b64f049ee",
+      "complete_definition_sha256": "d4c408bac73bd3c9fd31f725e0d7edf87201d28f4003baf27b98752baca4e988",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.gridex_store_billing_underlay_before_source_v2(p_company_id uuid, p_underlay jsonb, p_items jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "dfc3a512208506445ecd5ec7eeff09c02bb86ee7b3915983ef928484afe4948e",
+      "complete_definition_sha256": "2c22bfd93d35f4942a21442f1f38d2e48d759715ccce4dc086b397879a8ea5a9",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.lock_values_v1(p_company uuid, p_values uuid[], p_period uuid DEFAULT NULL::uuid)",
+      "body_sha256": "1d4c8185dc023dfaffd4a224f8c58a6924b6a64ae68b08bcab803355071f82fc",
+      "complete_definition_sha256": "1c0e50c4325963994787cf663cbcd9d6d7000638476be4eb02f56bac9c0b80ed",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.observation_v1(tokens jsonb, tx text, ordinal integer, decimal_mark text DEFAULT '.'::text)",
+      "body_sha256": "43bad08eacf8fdc9a090c31a45461983b621ec73778cbc762fde8636989296d5",
+      "complete_definition_sha256": "0ff763cd72b88ef6474319e7198dbb3e6cb1ab389e52d6bf1f961193df811b37",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.protect_items_v1()",
+      "body_sha256": "c7bdc415f71b4974d3ef6745198395285dfdf3e8dbd14f6a8d03f8a2730aaf64",
+      "complete_definition_sha256": "4b86072345eba48bb6741fa680360b825bdff6f3673e8da9234f45f847d21a58",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.protect_underlay_v1()",
+      "body_sha256": "818265cc3a66fa71674d0cd995b9720aac9a90fdffaad681f74fc09f79b7c706",
+      "complete_definition_sha256": "7b74ea451a6dec16d4cfd6e3bf0815e061bb6509ec59764d448ea606e6d896a2",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_billing_source.require_underlay_v1(p_company uuid, p_underlay uuid)",
+      "body_sha256": "d9a0de54a2d63bcfad746a5dd80eb77896c9a647a3d8490b1701572e557696d9",
+      "complete_definition_sha256": "775993426fcb125cdd76e14eac97f4f64d9c20f191d0d7dc9ddb2827b0cbf7d2",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+      "complete_definition_sha256": "7c6c9121a6d7516c12864170f407bbd3bfb1135a3d6f1c9e29da2d894a5de629",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.lock_current_graph_v2()",
+      "body_sha256": "75d3cba19b5a346914933fca2345250cd98667fa07c37e35930a3a02fc4cf321",
+      "complete_definition_sha256": "07a073f746e882bcc5bfcc522d43da72024c1512e5c2b95963a79fdb8e643b2a",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.require_current_source_role_v2(c uuid, env text, source_id uuid)",
+      "body_sha256": "d2f6006b69f21372d3c6c4e5d003d67f47c96cef40d3c7fe78502288738a0bb4",
+      "complete_definition_sha256": "b201a23c568d267a528829ddaddfc123ba4d5f9702937cd22a6a9d9be9bcb5bc",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.assignment_assessment_basis_v1(p_provider_company_id uuid, p_assignment_id uuid)",
+      "body_sha256": "b3a07ba3abcd26908a45c5c4f66764afaab89bcb23cc221805ef8b5899a6f306",
+      "complete_definition_sha256": "4364997490d833bba21c58a0a83fd31c393ea3e23dad69ff9f31a1306c6826f7",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.evidence_basis_v1(e public.ediel_service_evidence)",
+      "body_sha256": "8f4a40cb12bdd683a9f391fb9d1b747b761ced7a46c0d29699171f1ea8b0005c",
+      "complete_definition_sha256": "d107d02a623c3578df8b308f5496023a692ec0295248d276aaa7736e03f29813",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.billing_supply_basis_v1(p_company_id uuid, p_period_id uuid, p_start timestamp with time zone, p_end timestamp with time zone)",
+      "body_sha256": "0faca1c2228f1cd24cd2b7749a4eab0645bac7f96aa247f616c03912235e2e64",
+      "complete_definition_sha256": "4e8538d99dcdaa6254df6f1c3bf54c3d4d04eb97573118d672edaa1a39a083f3",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "public.ediel_beneficiary_series_page_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+      "complete_definition_sha256": "c8b1b5ea0fd3008d4d8c9fe8339c4fea063942c2e8cad5c0689a9bceb3e91991",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "public.ediel_service_assignment_assessment_v1(p_provider_company_id uuid, p_assignment_id uuid)",
+      "body_sha256": "22afa6337ee3f7d5cb1d9bc4f188937aa58082e40214f19f0b8435d2a6befac2",
+      "complete_definition_sha256": "b8effe6f6d7b6e5c1b8a97054d2a85f80e97df44ed84e773f10536dbd0fda834",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "public.gridex_read_billing_source_values_v1(p_company_id uuid, p_value_ids uuid[])",
+      "body_sha256": "005c4571ab782a4695a346585d4644cee8e89b4e0a2b071874aaef747e512fa2",
+      "complete_definition_sha256": "9aaa78ecd22458f1f47e997547cac42627869491e03e8c5201a77998c4951d77",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "public.gridex_read_billing_underlay_source_basis_v1(p_company_id uuid, p_underlay_ids uuid[])",
+      "body_sha256": "1d7449308bd6585ca76b8f4ed364a586641204b67d627fcad37fc4b74c956a83",
+      "complete_definition_sha256": "d86b01417cfd88765eece7078857af5ce86b3bda7e5192259d3fa0e2873b1cc4",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "public.gridex_store_billing_underlay(p_company_id uuid, p_underlay jsonb, p_items jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "96d2259e53e808b586a0054d38798ac356c48bf17ec397f3357779d531067276",
+      "complete_definition_sha256": "6fb0af09309660fb7722875b034bffd63f3e0021243a1a76ac2b41e7bd4470b4",
+      "body_and_attributes_exact_original": true
+    },
+    {
+      "signature": "public.gridex_store_billing_underlay_batch(p_company_id uuid, p_commands jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "1b1c411cf5955f346809d26870f48a7936b38cd5dc178c9782bac50b2ae733fc",
+      "complete_definition_sha256": "90e9cb2e1288b38ebdc7e22a8e791c1e608b70cf3a59d82be27aeaad20477f74",
+      "body_and_attributes_exact_original": true
+    }
+  ],
+  "seven_migrations_additions_only": [
+    {
+      "path": "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+      "sha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8"
+    },
+    {
+      "path": "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+      "sha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985"
+    },
+    {
+      "path": "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql",
+      "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+    },
+    {
+      "path": "supabase/migrations/20261004205816_support_attachment_quarantine_carrier.sql",
+      "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+    },
+    {
+      "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+      "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+    },
+    {
+      "path": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+      "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+    },
+    {
+      "path": "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+    }
+  ],
+  "migration_boundaries": "Seven new forwards since561 only: request_access resolver timing, DSN encoded transport identity, staff retention prerequisite, support quarantine MIME, contact/identity PT409, P08 own-outbound-PRODAT-Z09 positive ACK confirmation. No historical migration edited; no selected billing/projection/assignment assessment body replaced. Accepted E66/read/billing/internal grant branches do not invoke new request-access/DSN/staff/support producers; P08 trigger rejects other family/code/direction before lookup.",
+  "whole_literals_retained": [
+    {
+      "id": "SC-009",
+      "name": "Tekniskt ombud skiljer sig fr\u00e5n juridisk part",
+      "given": "Registerpost har InterchangePartyId82150 och legalPartyId62110.",
+      "when": "Routa eller ta emot enligt posten.",
+      "expected": "Identiteterna bevaras och beh\u00f6rig delegation kontrolleras.",
+      "prohibited": "Systemet kr\u00e4ver inte att parterna alltid \u00e4r lika.",
+      "rule_ids": [
+        "TEN-04",
+        "IMP-02"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte k\u00f6rd mot systemet",
+      "evidence": ""
+    },
+    {
+      "id": "SC-019",
+      "name": "DGI-v\u00e4rden till fakturering",
+      "given": "Data mottagen i P:s DGI-roll och \u00f6nskas anv\u00e4ndas av retailer K.",
+      "when": "Bygg underlag.",
+      "expected": "Pr\u00f6va datagrund/\u00e4ndam\u00e5l/leveransperiod/prismodell och bevara k\u00e4llproveniens.",
+      "prohibited": "Omskriv inte original som DDQ-E66 eller anv\u00e4nd data utan r\u00e4tt.",
+      "rule_ids": [
+        "ESCO-11",
+        "DB-06"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte k\u00f6rd mot systemet",
+      "evidence": ""
+    }
+  ],
+  "literal_current_carry": "SC009 preserves distinct sourced legal/transport identities and current explicit-delegation refusals. SC019 examines scoped data basis/purpose/current rights and actual supply/locked-price/legal-basis before physical-DGI refusal, preserves DGI provenance and refuses unauthorized use. The original entire literal review permits that examined held outcome; no positive DGI invoice or DDQ rewrite is required or claimed.",
+  "owner_existing_results_inspected": {
+    "focused": {
+      "tests": 32,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    "tagged": {
+      "ids": 352,
+      "approved": 219,
+      "green": 242,
+      "failing": 0,
+      "untagged": 110
+    },
+    "logs": [
+      {
+        "name": "focused_three_suites",
+        "path": "quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-focused.log",
+        "sha256": "db46bddcb488f72f84ec3a76f4428a334cd9e63914595e5e8be99db9c6a92693",
+        "bytes": 604,
+        "owner_reported_exit": 0,
+        "reviewer_rerun": false
+      },
+      {
+        "name": "focused_junit",
+        "path": "quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-focused.xml",
+        "sha256": "35c787e32952a6e7ec795d42cb7c2ff3aa61fdffec6fcffc94969b512ae0e7b4",
+        "bytes": 8207,
+        "owner_reported_exit": 0,
+        "reviewer_rerun": false
+      },
+      {
+        "name": "frozen_integrity",
+        "path": "quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-integrity.log",
+        "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+        "bytes": 197,
+        "owner_reported_exit": 0,
+        "reviewer_rerun": false
+      },
+      {
+        "name": "tests_types",
+        "path": "quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-tests-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "owner_reported_exit": 0,
+        "reviewer_rerun": false
+      },
+      {
+        "name": "scoped_lint",
+        "path": "quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-scoped-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "owner_reported_exit": 0,
+        "reviewer_rerun": false
+      },
+      {
+        "name": "unfiltered_tagged_check",
+        "path": "quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-tagged-coverage.log",
+        "sha256": "13a0e4e7d9655dc29a85914a4ffce1bd458876f052a28590fbc764e784bd1358",
+        "bytes": 2502,
+        "owner_reported_exit": 0,
+        "reviewer_rerun": false
+      }
+    ],
+    "frozen": {
+      "files": 33,
+      "rules": 121,
+      "contracts": 231
+    },
+    "types_and_lint": "owner exit0 receipt with exact empty stdout, not independent rerun"
+  },
+  "historical_finite_proof": "Original whole reviewer verified DB06 actual64TS/50 finite SQL and #511 three V/VH/current-grant/DGI derivative PASS cases at run37231850192/job111523098655/artifact11315805392, ZIPf4c6de14b2ea27e730becd249e03df66daa13341f5d14c9fd438bcf3f1646744. Their synthetic-analysis/external-issuer/finite-authority boundaries are retained. No new native or full current origination/installation/RLS/market/custody/certificate/send/invoice proof.",
+  "historical_old_clean_failure": "Original7bd run37242653268/job111554272606 had603PASS/1Z06 monthly next-dayFAIL/1intentionalSKIP; existing fixture/test unchanged, current main offset/calendar correction adopted. No duplicate producer/fixture patch and no new native PASS inferred.",
+  "diff_check": {
+    "exit_code": 0,
+    "scope": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686..4e6b196e9957606d6e05b9259e1a8a2303930be7"
+  },
+  "github_snapshot": "/workspace/agent-review-checkpoints/sc009-sc019-final-carry-github-snapshot.json",
+  "github_observed_at": "2026-10-05 14:20:51 UTC",
+  "mandatory_gates_snapshot": [
+    {
+      "name": "pr-certificate",
+      "status": "NOT_PRESENT_YET",
+      "conclusion": null
+    },
+    {
+      "name": "quality-release-gates",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921650/job/111806273056"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921650/job/111806273111"
+    },
+    {
+      "name": "clean-migration-replay",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921650/job/111806272732"
+    },
+    {
+      "name": "verify",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921650/job/111806273068"
+    },
+    {
+      "name": "browser-public",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921567/job/111806272396"
+    },
+    {
+      "name": "smoke",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921571/job/111806287593"
+    },
+    {
+      "name": "coverage",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921571/job/111806287489"
+    },
+    {
+      "name": "targeted-regressions",
+      "status": "queued",
+      "conclusion": null,
+      "head_sha": "4e6b196e9957606d6e05b9259e1a8a2303930be7",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37322921642/job/111806272557"
+    }
+  ],
+  "coderabbit": [
+    {
+      "context": "CodeRabbit",
+      "state": "success",
+      "target_url": null
+    }
+  ],
+  "skills": "Retained using-superpowers, differential-review, verification-before-completion; minimum changed-source review. No design, remediation, scanner, UI/performance, broad/native or hosted operation introduced.",
+  "no_duplicated_execution": true,
+  "no_owner_edits_push_or_merge": true,
+  "root_owns_publication_and_merge": true
+}

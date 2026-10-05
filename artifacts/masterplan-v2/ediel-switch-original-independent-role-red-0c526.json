@@ -1,0 +1,29 @@
+{
+  "capturePath": "/tmp/masterplan503-capture0c/schema.sql",
+  "captureSha256": "ee1daf18f58b5535f1d14bc9cd8a25eb6325ebf7b186d3be76e5a14d4bc8a41e",
+  "exactTriggerFunctionSha256": "680119b5876f2a97425d3f06e4268d6d9ad3d6a2aaff2361f686eab598658dd9",
+  "trigger": "CREATE TRIGGER ediel_switch_original_message_immutable BEFORE UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.switch_original_message_immutable_v1();",
+  "metadata": {
+    "security_definer": false,
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog"
+    ],
+    "service_execute": false,
+    "private_select": false
+  },
+  "serviceRoleStatusOnlyUpdate": "PASS: unchanged protected ROW can short-circuit",
+  "serviceRoleUnboundAckLinkUpdateRed": {
+    "code": "42501",
+    "message": "permission denied for table switch_originals",
+    "where": "SQL expression \"EXISTS(SELECT FROM gridex_received_sources.switch_originals o WHERE o.message_id=OLD.id) AND\n ROW(NEW.id,NEW.company_id,NEW.environment,NEW.direction,NEW.message_standard,NEW.message_family,NEW.message_code,NEW.intent_id,NEW.outbound_request_id,NEW.source_operation_id,NEW.switch_request_id,NEW.customer_id,NEW.site_id,NEW.metering_point_id,NEW.raw_payload,NEW.immutable_payload_hash,NEW.immutable_rendered_at,NEW.original_message_id)\n IS DISTINCT FROM ROW(OLD.id,OLD.company_id,OLD.environment,OLD.direction,OLD.message_standard,OLD.message_family,OLD.message_code,OLD.intent_id,OLD.outbound_request_id,OLD.source_operation_id,OLD.switch_request_id,OLD.customer_id,OLD.site_id,OLD.metering_point_id,OLD.raw_payload,OLD.immutable_payload_hash,OLD.immutable_rendered_at,OLD.original_message_id)\"\nPL/pgSQL function gridex_received_sources.switch_original_message_immutable_v1() line 3 at IF"
+  },
+  "rolledBackCustomerId": null,
+  "ownerSameLinkUpdate": "PASS",
+  "actualProtectedOriginalChangeRefusal": {
+    "message": "switch_original_bound_message_immutable",
+    "where": "PL/pgSQL function gridex_received_sources.switch_original_message_immutable_v1() line 6 at RAISE"
+  },
+  "inactiveDeclaredRetentionPortCalls": 0,
+  "scope": "Exact captured trigger/body/ACL/RLS; genuine PostgreSQL roles. Only minimum tables/public UPDATE permission and inactive retention port are synthetic. No repository modification, native PASS or production fix tested."
+}

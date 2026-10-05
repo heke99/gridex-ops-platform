@@ -6,8 +6,17 @@ import type { EdielMessageIntent } from './types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {loadRecoveryMeteringMethodContext,assertRecoveryMeteringMethodRoute} from '@/lib/ediel/recovery/meteringMethodContext'
 import {prepareRecoveryCustomerMasterdataContext} from '@/lib/ediel/production/customerMasterdataSource'
+import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
+import {createProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {copyReportingSelection} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import {readContractInvoicee} from '@/lib/ediel/production/contractInvoicee'
+import {tenantDb} from '@/lib/supabase/tenantDb'
 
 type DraftParams = Parameters<typeof finalizeCanonicalOutboundDraft>[0]
+type ScopedSelect=ReturnType<ReturnType<typeof supabaseService.from>['select']>
+type InvoiceeSwitch={id:string;company_id:string|null;customer_id:string;customer_contract_id:string|null;contract_id:string|null}
 async function reserve(input: { companyId: string; operationId: string; actorUserId: string; intentId: string; outboundRequestId: string }) {
   const { data, error } = await supabaseService.rpc('ediel_reserve_prodat_recovery_origin_v1', {
     p_company_id: input.companyId,p_operation_id: input.operationId,p_actor_user_id: input.actorUserId,p_intent_id: input.intentId,p_outbound_request_id: input.outboundRequestId,
@@ -33,6 +42,40 @@ export async function finalizeRecoveryDraft(input: { companyId: string; operatio
     params.customerMasterdataContext=context
     const parsed=draft.parsedPayload&&typeof draft.parsedPayload==='object'&&!Array.isArray(draft.parsedPayload)?draft.parsedPayload:{}
     params.draft={...draft,parsedPayload:{...parsed,customerMasterdataSourceContextId:context?.projection.sourceContextId??null}}
+    if(context){
+      const wire=tokenizeEdifact(draft.rawPayload)
+      // The native operation and fresh customer preparation have already
+      // qualified these exact corrected bytes. Physical LIN selectors scope
+      // facts; their presence cannot supply a customer/address credential.
+      const objects=prodatRegisterGroups(wire.segments,wire.una,input.intent.messageCode).groups.map(group=>{
+        if(!group.itemId||(group.identityAgency!=='9'&&group.identityAgency!=='89'))throw Error('prodat_recovery_customer_object_required')
+        return {meteringPointId:group.itemId,identityAgency:group.identityAgency as '9'|'89'}
+      })
+      const endUserAddressObjects=objects.flatMap(object=>createCustomerMasterdataAddressFacts({...object,projection:context.projection}))
+      const invoiceeObjects=[]
+      if(input.intent.messageCode==='Z03'){
+        if(!draft.switchRequestId||input.intent.supplierSwitchRequestId!==draft.switchRequestId)throw Error('prodat_recovery_invoicee_switch_required')
+        const{data:source,error}=await(tenantDb(input.companyId).from('supplier_switch_requests')
+          .select('id,company_id,customer_id,customer_contract_id,contract_id') as ScopedSelect)
+          .eq('id',draft.switchRequestId).returns<InvoiceeSwitch[]>().maybeSingle()
+        if(error)throw error
+        const contractId=source?.customer_contract_id??source?.contract_id
+        if(!source||source.id!==draft.switchRequestId||source.company_id!==input.companyId||source.customer_id!==draft.customerId||!contractId
+          ||source.customer_contract_id&&source.contract_id&&source.customer_contract_id!==source.contract_id)throw Error('prodat_recovery_invoicee_contract_required')
+        for(const object of objects){
+          const invoicee=await readContractInvoicee({companyId:input.companyId,customerId:draft.customerId,contractId,...object,
+            endUser:{identity:context.projection.customerIdentity,...context.projection.endUserMasterdata}})
+          invoiceeObjects.push(invoicee.fact)
+        }
+      }
+      // Rebuild from current protected contexts and the independent tenant
+      // contract source. Never relabel the original's body-bound facts or a
+      // caller's old customer/source selectors as this fresh correction.
+      const engine=parsed.prodatEngine&&typeof parsed.prodatEngine==='object'&&!Array.isArray(parsed.prodatEngine)?parsed.prodatEngine:{}
+      params.draft.parsedPayload={...params.draft.parsedPayload,prodatEngine:{...engine,registerEvidence:createProdatRegisterEvidence({code:input.intent.messageCode,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:{market:'electricity',endUserAddressObjects,invoiceeObjects,
+        ...(params.dateEventContext?{dateEventSource:params.dateEventContext.source,dateEventObjects:params.dateEventContext.objects}:{}),
+        ...(params.reportingContext?{reportingPermission:copyReportingSelection({source:params.reportingContext.source,objects:params.reportingContext.objects})}:{})}})}}
+    }
   }
   if(input.intent.messageCode==='Z09'){const raw=params.draft.rawPayload;if(!raw)throw Error('prodat_recovery_physical_source_required');const context=await loadRecoveryMeteringMethodContext({companyId:input.companyId,operationId:input.operationId,actorUserId:input.actorUserId,rawPayload:raw});if(context)assertRecoveryMeteringMethodRoute(context,params.routeContext)}
   let message: EdielMessageRow

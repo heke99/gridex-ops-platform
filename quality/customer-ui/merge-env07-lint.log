@@ -1,0 +1,2 @@
+Command: Node22 node_modules/eslint/bin/eslint.js __tests__/ediel-env07-outbox-separation.test.ts
+Exit:0; no output.
