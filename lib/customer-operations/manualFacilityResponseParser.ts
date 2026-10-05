@@ -274,6 +274,25 @@ export async function applyManualFacilityResponse(input: {
       note: 'Automatiskt tolkat svar från nätägarens e-post.',
       rawPayload: { ...(input.rawPayload ?? {}), extracted: input.extracted as unknown as JsonRecord },
     })
+    if (!completion.ok) {
+      const blockerCode = completion.blockerCode ?? 'data_conflict'
+      const reviewUpdate = await supabaseService
+        .from('grid_owner_information_requests')
+        .update({
+          status: 'needs_review',
+          received_payload: input.rawPayload ?? {},
+          parsed_payload: { ...parsedPayload, applied: false, completion_code: blockerCode },
+          received_at: now,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId)
+        .eq('company_id', input.companyId)
+        .select('id')
+        .maybeSingle()
+      if (reviewUpdate.error) throw reviewUpdate.error
+      if (!reviewUpdate.data) throw new Error('Nätägarärendet kunde inte säkert återföras till granskning.')
+      return { outcome: 'needs_review', confidence: effectiveConfidence, extracted: input.extracted, reasons: [blockerCode] }
+    }
     nextStepDecision = completion.supplierSwitchResult?.decision ?? completion.intakeDecision?.state ?? null
   } catch (error) {
     // Completion failed (e.g. request/site linkage issue): fall back to
