@@ -1,0 +1,72 @@
+{
+  "baseline": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "tree": "0b8ad8d2272f77a346781a13b909aa0cdcc9b8d1",
+  "coverage_blob": "bbd4f202f93b7adc89658b56e1fd092563cb5b01",
+  "counts": {
+    "rules": 121,
+    "verified_rules": 91,
+    "contracts": 231,
+    "passed_contracts": 111,
+    "approved_total": 202,
+    "total": 352
+  },
+  "review_claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991247216",
+  "owner_request": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5990498953",
+  "runs": [
+    {
+      "id": 37281682564,
+      "name": "Tenant integrity regression",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "event": "push",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682564"
+    },
+    {
+      "id": 37281682561,
+      "name": "OPS hardening",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "event": "push",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682561"
+    },
+    {
+      "id": 37281682688,
+      "name": "Vercel production deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "event": "push",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682688"
+    },
+    {
+      "id": 37281682654,
+      "name": "Gridex full E2E",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "event": "push",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682654"
+    },
+    {
+      "id": 37281682686,
+      "name": "Gridex browser and quality E2E",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "event": "push",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682686"
+    },
+    {
+      "id": 37281682667,
+      "name": "Ediel masterplan v2 regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "985724f58ef15e222cf4d3b2e1c643c674852106",
+      "event": "push",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37281682667"
+    }
+  ],
+  "scope": "Observed CI metadata only; no suite-level assertion or whole-contract approval inferred."
+}

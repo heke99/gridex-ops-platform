@@ -1,0 +1,31 @@
+{
+  "status": "Not executed; retained source/native owner action only. No ownership takeover.",
+  "existingNativeConsumer": "scripts/ediel-service-evidence-native.test.ts",
+  "existingDiscovery": "scripts/ediel-source-owner-native.config.ts",
+  "existingSharedFixture": "scripts/fixtures/ediel-service-evidence-native.ts",
+  "positiveSequence": "Fresh actual seed -> archiveReviewEvidence -> approveAssignment -> request_access -> real queued/sent Z13 -> rendered Z14 -> pinned registry -> recordReceivedSourceValidation -> captureFresh -> applyPermissionMarketSource -> separate grant publication.",
+  "criticalFreshness": "Existing qualify()/qualifyNativeEscoFixture apply positive Z14 and publish a grant before returning. Mutating after they return cannot prove first invalid Z14 creates no authority. Each missing-field case must get its own fresh pending request and mutate before Z14 encoding/recording/capture/effect application.",
+  "cases": [
+    {
+      "name": "positive_control",
+      "mutation": "None",
+      "required": "Current genuine consumer/native positive Z14 effect and emitted ACK pair, explicit separate grant publication."
+    },
+    {
+      "name": "missing326",
+      "mutation": "Remove only own DTM693; preserve other bytes and correct UNT.",
+      "required": "Current genuine admission decision plus before/after complete permission/object/grant/storage/supply projection snapshot and actual final ACK, or a held admission with no side effects."
+    },
+    {
+      "name": "missing222",
+      "mutation": "Remove only own reporting-frequency CCI++Z12 and its following CAV; preserve other bytes and correct UNT.",
+      "required": "Same independent fresh-state proof as missing326."
+    }
+  ],
+  "finalAckBoundary": {
+    "consumer": "lib/ediel/flows/inboundProcessing.ts",
+    "guard": "inboundProcessing defers provisional positive Z14 APERAK; applied permission results call createCommittedDomainAcks -> createReceivedProdatCommittedEffectAcks -> readReceivedProdatFinalResponsePlan in lib/ediel/core/receivedProdatFinalResponsePlan.ts. Its protected read requires actual effect scopes and valid effect receipts before a positive response plan. Pure provisional positive response is not final emitted ACK."
+  },
+  "coordination": "Ask retained Claude P/TEN/ESCO and sole current native/source integrator through existing530/491 board; current ownership must be confirmed before any existing test/fixture/config edit. No second workflow/harness/validator/shared schema/capture producer.",
+  "sourceEvidence": "original-source-qualification.json; exact frozen original makes222/326 applicable D for S17/V, white receiver rows; no specific ERC inferred."
+}

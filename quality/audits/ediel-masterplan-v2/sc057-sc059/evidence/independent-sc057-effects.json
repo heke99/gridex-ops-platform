@@ -1,0 +1,330 @@
+{
+  "initialPreview": {
+    "status": "completed",
+    "upserted": 0,
+    "preview": {
+      "issues": [],
+      "changes": [],
+      "conflicts": 0,
+      "newActors": 4,
+      "gridOwners": 4,
+      "routesSeen": 7,
+      "recordsSeen": 4,
+      "prodatRoutes": 4,
+      "snapshotHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "utiltsRoutes": 3,
+      "changedActors": 0,
+      "missingRoutes": 0,
+      "existingActors": 0,
+      "missingEdielId": 0,
+      "unchangedActors": 0,
+      "electricitySuppliers": 0,
+      "safeAutoUpdateFields": [
+        "namn",
+        "org.nr",
+        "identifierare",
+        "importkälla",
+        "nya ej verifierade routes"
+      ],
+      "protectedManualFields": [
+        "verifieringsstatus",
+        "auto_send_allowed",
+        "manuellt verifierade routes",
+        "mottagarcertifikat",
+        "kundflödes-synlighet"
+      ]
+    },
+    "masterdataUnchanged": true
+  },
+  "replay": {
+    "samePrivateRun": true,
+    "all17RelationsUnchanged": true,
+    "noAdditionalApplyRpc": true,
+    "sourceBytes": "PFJlZ2lzdHJ5PjxNYXJrZXQgQ29kZT0iRUwiIENvdW50cnk9IlNFIj48Q29tcGFueT48TmFtZT5T\neW50aGV0aWMgU0MwNTcgNzE4MDE8L05hbWU+PEtleSBUeXBlPSJFZGllbElkIj43MTgwMTwvS2V5\nPjxSb2xlPk5ldG93bmVyPC9Sb2xlPjxSb2xlPkVTQ088L1JvbGU+PEVESUZBQ1REZXRhaWxzIFR5\ncGU9IlBST0RBVCI+PEFwcGxpY2F0aW9uUmVmZXJlbmNlPlBST0RBVDwvQXBwbGljYXRpb25SZWZl\ncmVuY2U+PFN1YkFkZHJlc3M+bGl0ZXJhbC1wPC9TdWJBZGRyZXNzPjxQYXJ0eUlkPjcxODAxPC9Q\nYXJ0eUlkPjxJbnRlcmNoYW5nZVBhcnR5SWQ+NzE4MDE8L0ludGVyY2hhbmdlUGFydHlJZD48Q29t\nbXVuaWNhdGlvbkFkZHJlc3MgVHlwZT0iU01UUCI+cDAtMUBleGFtcGxlLmludmFsaWQ8L0NvbW11\nbmljYXRpb25BZGRyZXNzPjwvRURJRkFDVERldGFpbHM+PEVESUZBQ1REZXRhaWxzIFR5cGU9IlVU\nSUxUUyI+PEFwcGxpY2F0aW9uUmVmZXJlbmNlPlVUSUxUUzwvQXBwbGljYXRpb25SZWZlcmVuY2U+\nPFN1YkFkZHJlc3M+PC9TdWJBZGRyZXNzPjxQYXJ0eUlkPjcxODAxPC9QYXJ0eUlkPjxJbnRlcmNo\nYW5nZVBhcnR5SWQ+NzE4MDE8L0ludGVyY2hhbmdlUGFydHlJZD48Q29tbXVuaWNhdGlvbkFkZHJl\nc3MgVHlwZT0iU01UUCI+dTBAZXhhbXBsZS5pbnZhbGlkPC9Db21tdW5pY2F0aW9uQWRkcmVzcz48\nL0VESUZBQ1REZXRhaWxzPjwvQ29tcGFueT48Q29tcGFueT48TmFtZT5TeW50aGV0aWMgU0MwNTcg\nNzE4MDI8L05hbWU+PEtleSBUeXBlPSJFZGllbElkIj43MTgwMjwvS2V5PjxSb2xlPk5ldG93bmVy\nPC9Sb2xlPjxSb2xlPkVTQ088L1JvbGU+PEVESUZBQ1REZXRhaWxzIFR5cGU9IlBST0RBVCI+PEFw\ncGxpY2F0aW9uUmVmZXJlbmNlPlBST0RBVDwvQXBwbGljYXRpb25SZWZlcmVuY2U+PFN1YkFkZHJl\nc3M+bGl0ZXJhbC1wPC9TdWJBZGRyZXNzPjxQYXJ0eUlkPjcxODAyPC9QYXJ0eUlkPjxJbnRlcmNo\nYW5nZVBhcnR5SWQ+NzE4MDI8L0ludGVyY2hhbmdlUGFydHlJZD48Q29tbXVuaWNhdGlvbkFkZHJl\nc3MgVHlwZT0iU01UUCI+cDEtMUBleGFtcGxlLmludmFsaWQ8L0NvbW11bmljYXRpb25BZGRyZXNz\nPjwvRURJRkFDVERldGFpbHM+PEVESUZBQ1REZXRhaWxzIFR5cGU9IlVUSUxUUyI+PEFwcGxpY2F0\naW9uUmVmZXJlbmNlPlVUSUxUUzwvQXBwbGljYXRpb25SZWZlcmVuY2U+PFN1YkFkZHJlc3M+PC9T\ndWJBZGRyZXNzPjxQYXJ0eUlkPjcxODAyPC9QYXJ0eUlkPjxJbnRlcmNoYW5nZVBhcnR5SWQ+NzE4\nMDI8L0ludGVyY2hhbmdlUGFydHlJZD48Q29tbXVuaWNhdGlvbkFkZHJlc3MgVHlwZT0iU01UUCI+\ndTFAZXhhbXBsZS5pbnZhbGlkPC9Db21tdW5pY2F0aW9uQWRkcmVzcz48L0VESUZBQ1REZXRhaWxz\nPjwvQ29tcGFueT48Q29tcGFueT48TmFtZT5TeW50aGV0aWMgU0MwNTcgNzE4MDM8L05hbWU+PEtl\neSBUeXBlPSJFZGllbElkIj43MTgwMzwvS2V5PjxSb2xlPk5ldG93bmVyPC9Sb2xlPjxSb2xlPkVT\nQ088L1JvbGU+PEVESUZBQ1REZXRhaWxzIFR5cGU9IlBST0RBVCI+PEFwcGxpY2F0aW9uUmVmZXJl\nbmNlPlBST0RBVDwvQXBwbGljYXRpb25SZWZlcmVuY2U+PFN1YkFkZHJlc3M+bGl0ZXJhbC1wPC9T\ndWJBZGRyZXNzPjxQYXJ0eUlkPjcxODAzPC9QYXJ0eUlkPjxJbnRlcmNoYW5nZVBhcnR5SWQ+NzE4\nMDM8L0ludGVyY2hhbmdlUGFydHlJZD48Q29tbXVuaWNhdGlvbkFkZHJlc3MgVHlwZT0iU01UUCI+\ncDItMUBleGFtcGxlLmludmFsaWQ8L0NvbW11bmljYXRpb25BZGRyZXNzPjwvRURJRkFDVERldGFp\nbHM+PEVESUZBQ1REZXRhaWxzIFR5cGU9IlVUSUxUUyI+PEFwcGxpY2F0aW9uUmVmZXJlbmNlPlVU\nSUxUUzwvQXBwbGljYXRpb25SZWZlcmVuY2U+PFN1YkFkZHJlc3M+PC9TdWJBZGRyZXNzPjxQYXJ0\neUlkPjcxODAzPC9QYXJ0eUlkPjxJbnRlcmNoYW5nZVBhcnR5SWQ+NzE4MDM8L0ludGVyY2hhbmdl\nUGFydHlJZD48Q29tbXVuaWNhdGlvbkFkZHJlc3MgVHlwZT0iU01UUCI+dTJAZXhhbXBsZS5pbnZh\nbGlkPC9Db21tdW5pY2F0aW9uQWRkcmVzcz48L0VESUZBQ1REZXRhaWxzPjwvQ29tcGFueT48L01h\ncmtldD48TWFya2V0IENvZGU9IkdBUyIgQ291bnRyeT0iU0UiPjxDb21wYW55PjxOYW1lPlN5bnRo\nZXRpYyBTQzA1NyA3MTgwMTwvTmFtZT48S2V5IFR5cGU9IkVkaWVsSWQiPjcxODAxPC9LZXk+PFJv\nbGU+TmV0b3duZXI8L1JvbGU+PEVESUZBQ1REZXRhaWxzIFR5cGU9IlBST0RBVCI+PEFwcGxpY2F0\naW9uUmVmZXJlbmNlPlBST0RBVDwvQXBwbGljYXRpb25SZWZlcmVuY2U+PFN1YkFkZHJlc3M+bGl0\nZXJhbC1wPC9TdWJBZGRyZXNzPjxQYXJ0eUlkPjcxODAxPC9QYXJ0eUlkPjxJbnRlcmNoYW5nZVBh\ncnR5SWQ+NzE4MDE8L0ludGVyY2hhbmdlUGFydHlJZD48Q29tbXVuaWNhdGlvbkFkZHJlc3MgVHlw\nZT0iU01UUCI+Z2FzLXJldGFpbmVkQGV4YW1wbGUuaW52YWxpZDwvQ29tbXVuaWNhdGlvbkFkZHJl\nc3M+PC9FRElGQUNURGV0YWlscz48L0NvbXBhbnk+PC9NYXJrZXQ+PC9SZWdpc3RyeT4="
+  },
+  "laterPreview": {
+    "issues": [],
+    "changes": [
+      {
+        "fields": [
+          "routes"
+        ],
+        "actorId": "637ef39e-53ce-4a03-b35b-db71ddc66f22",
+        "edielId": "71801"
+      },
+      {
+        "fields": [
+          "routes"
+        ],
+        "actorId": "63fc030b-cb93-4f52-b58b-09cf1c15774f",
+        "edielId": "71802"
+      },
+      {
+        "fields": [
+          "routes"
+        ],
+        "actorId": "4d4500f4-8dcf-4c2c-8291-e93a2d2c582e",
+        "edielId": "71803"
+      }
+    ],
+    "conflicts": 0,
+    "newActors": 0,
+    "gridOwners": 3,
+    "routesSeen": 6,
+    "recordsSeen": 3,
+    "prodatRoutes": 3,
+    "snapshotHash": "b1ec3175442dfff7b9bd38872381ff002c2307da80c2cf9525d4c7fa7854b18c",
+    "utiltsRoutes": 3,
+    "changedActors": 3,
+    "missingRoutes": 0,
+    "existingActors": 3,
+    "missingEdielId": 0,
+    "unchangedActors": 0,
+    "electricitySuppliers": 0,
+    "safeAutoUpdateFields": [
+      "namn",
+      "org.nr",
+      "identifierare",
+      "importkälla",
+      "nya ej verifierade routes"
+    ],
+    "protectedManualFields": [
+      "verifieringsstatus",
+      "auto_send_allowed",
+      "manuellt verifierade routes",
+      "mottagarcertifikat",
+      "kundflödes-synlighet"
+    ]
+  },
+  "conflicts": {
+    "old": 3,
+    "new": 3,
+    "bothHeld": true,
+    "retainedRoutes": 10,
+    "unchangedUtilts": true,
+    "unchangedGas": true,
+    "marketRows": [
+      {
+        "market": "EL",
+        "roles": [
+          "grid_owner",
+          "energy_service_company"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner",
+            "ESCO"
+          ],
+          "originalMarket": "EL",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71803</Name><Key Type=\"EdielId\">71803</Key><Role>Netowner</Role><Role>ESCO</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71803</PartyId><InterchangePartyId>71803</InterchangePartyId><CommunicationAddress Type=\"SMTP\">p2-2@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type=\"UTILTS\"><ApplicationReference>UTILTS</ApplicationReference><SubAddress></SubAddress><PartyId>71803</PartyId><InterchangePartyId>71803</InterchangePartyId><CommunicationAddress Type=\"SMTP\">u2@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "EL",
+          "sourceFragmentLength": 669,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      },
+      {
+        "market": "EL",
+        "roles": [
+          "grid_owner",
+          "energy_service_company"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner",
+            "ESCO"
+          ],
+          "originalMarket": "EL",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71803</Name><Key Type=\"EdielId\">71803</Key><Role>Netowner</Role><Role>ESCO</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71803</PartyId><InterchangePartyId>71803</InterchangePartyId><CommunicationAddress Type=\"SMTP\">p2-1@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type=\"UTILTS\"><ApplicationReference>UTILTS</ApplicationReference><SubAddress></SubAddress><PartyId>71803</PartyId><InterchangePartyId>71803</InterchangePartyId><CommunicationAddress Type=\"SMTP\">u2@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "EL",
+          "sourceFragmentLength": 669,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      },
+      {
+        "market": "EL",
+        "roles": [
+          "grid_owner",
+          "energy_service_company"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner",
+            "ESCO"
+          ],
+          "originalMarket": "EL",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71801</Name><Key Type=\"EdielId\">71801</Key><Role>Netowner</Role><Role>ESCO</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71801</PartyId><InterchangePartyId>71801</InterchangePartyId><CommunicationAddress Type=\"SMTP\">p0-2@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type=\"UTILTS\"><ApplicationReference>UTILTS</ApplicationReference><SubAddress></SubAddress><PartyId>71801</PartyId><InterchangePartyId>71801</InterchangePartyId><CommunicationAddress Type=\"SMTP\">u0@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "EL",
+          "sourceFragmentLength": 669,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      },
+      {
+        "market": "EL",
+        "roles": [
+          "grid_owner",
+          "energy_service_company"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner",
+            "ESCO"
+          ],
+          "originalMarket": "EL",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71801</Name><Key Type=\"EdielId\">71801</Key><Role>Netowner</Role><Role>ESCO</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71801</PartyId><InterchangePartyId>71801</InterchangePartyId><CommunicationAddress Type=\"SMTP\">p0-1@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type=\"UTILTS\"><ApplicationReference>UTILTS</ApplicationReference><SubAddress></SubAddress><PartyId>71801</PartyId><InterchangePartyId>71801</InterchangePartyId><CommunicationAddress Type=\"SMTP\">u0@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "EL",
+          "sourceFragmentLength": 669,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      },
+      {
+        "market": "GAS",
+        "roles": [
+          "grid_owner"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner"
+          ],
+          "originalMarket": "GAS",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71801</Name><Key Type=\"EdielId\">71801</Key><Role>Netowner</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71801</PartyId><InterchangePartyId>71801</InterchangePartyId><CommunicationAddress Type=\"SMTP\">gas-retained@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "GAS",
+          "sourceFragmentLength": 392,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      },
+      {
+        "market": "EL",
+        "roles": [
+          "grid_owner",
+          "energy_service_company"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner",
+            "ESCO"
+          ],
+          "originalMarket": "EL",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71802</Name><Key Type=\"EdielId\">71802</Key><Role>Netowner</Role><Role>ESCO</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71802</PartyId><InterchangePartyId>71802</InterchangePartyId><CommunicationAddress Type=\"SMTP\">p1-2@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type=\"UTILTS\"><ApplicationReference>UTILTS</ApplicationReference><SubAddress></SubAddress><PartyId>71802</PartyId><InterchangePartyId>71802</InterchangePartyId><CommunicationAddress Type=\"SMTP\">u1@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "EL",
+          "sourceFragmentLength": 669,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      },
+      {
+        "market": "EL",
+        "roles": [
+          "grid_owner",
+          "energy_service_company"
+        ],
+        "raw": {
+          "extractedWith": "fast_xml_parser_5_11_2_no_entities",
+          "originalRoles": [
+            "Netowner",
+            "ESCO"
+          ],
+          "originalMarket": "EL",
+          "sourceFragment": "<Company><Name>Synthetic SC057 71802</Name><Key Type=\"EdielId\">71802</Key><Role>Netowner</Role><Role>ESCO</Role><EDIFACTDetails Type=\"PRODAT\"><ApplicationReference>PRODAT</ApplicationReference><SubAddress>literal-p</SubAddress><PartyId>71802</PartyId><InterchangePartyId>71802</InterchangePartyId><CommunicationAddress Type=\"SMTP\">p1-1@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type=\"UTILTS\"><ApplicationReference>UTILTS</ApplicationReference><SubAddress></SubAddress><PartyId>71802</PartyId><InterchangePartyId>71802</InterchangePartyId><CommunicationAddress Type=\"SMTP\">u1@example.invalid</CommunicationAddress></EDIFACTDetails></Company>",
+          "originalCountry": "SE",
+          "registryDiagnostics": [],
+          "originalParentMarket": "EL",
+          "sourceFragmentLength": 669,
+          "originalCompanyMarket": null,
+          "originalParentCountry": "SE",
+          "originalCompanyCountry": null,
+          "originalPostalCountries": []
+        }
+      }
+    ],
+    "rolesPreserved": true,
+    "run": "completed",
+    "uiRun": "completed",
+    "completed": true,
+    "activation": "held_pending_current_source_readiness",
+    "historyPreserved": true
+  },
+  "firstSourceRetained": true,
+  "zero": {
+    "status": "completed_with_warnings",
+    "safe": false,
+    "upserted": 0,
+    "noApplyRpc": true,
+    "noSourceOrMasterdataEffects": true
+  },
+  "interruption": {
+    "reachedActualTransientRunningAndPriorMutation": true,
+    "all17RelationsRolledBack": true,
+    "noDurableUnattendedRunning": true,
+    "noCompletionAudit": true
+  },
+  "unauthorized": {
+    "noRpc": true,
+    "noWrites": true
+  },
+  "controlled": {
+    "explicitConfirmationRequired": true,
+    "noUnconfirmedRpc": true,
+    "noUnconfirmedMutation": true
+  },
+  "owners": [
+    {
+      "signature": "public.ediel_apply_actor_registry_v1(uuid,text,text,text,text,jsonb)",
+      "installedBodySha256": "0efcb1eb3209487359390908626d49d6c47acaacbd3ea825d9036f8b36f4ec2e",
+      "capturedBodySha256": "0efcb1eb3209487359390908626d49d6c47acaacbd3ea825d9036f8b36f4ec2e",
+      "exactBody": true
+    },
+    {
+      "signature": "public.ediel_read_actor_registry_batch_v1(uuid,text,text,text)",
+      "installedBodySha256": "906b6c196acb204a7deecdfa985dbddd272cf2a8aba523fa2f27538581bcfe72",
+      "capturedBodySha256": "906b6c196acb204a7deecdfa985dbddd272cf2a8aba523fa2f27538581bcfe72",
+      "exactBody": true
+    },
+    {
+      "signature": "public.ediel_read_registry_preview_snapshot_v1(uuid,text[])",
+      "installedBodySha256": "397225a77d607326ceacd916d0035b5ade1aa2658e093daf3bf7aca7485b8f72",
+      "capturedBodySha256": "397225a77d607326ceacd916d0035b5ade1aa2658e093daf3bf7aca7485b8f72",
+      "exactBody": true
+    },
+    {
+      "signature": "gridex_registry_import.capture_route_version_v1()",
+      "installedBodySha256": "b507eb851bf440bfb3ac03d950ad5db4bacdcd2c2a34c5d96fa523bb785eb81a",
+      "capturedBodySha256": "b507eb851bf440bfb3ac03d950ad5db4bacdcd2c2a34c5d96fa523bb785eb81a",
+      "exactBody": true
+    }
+  ]
+}

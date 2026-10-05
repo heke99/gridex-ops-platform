@@ -98,3 +98,10 @@ delta, unchanged other350 rows, unchanged14 source blobs/all4 inputs, unchanged
 production/app/migrations/tests/scripts since reviewed d1 and byte-identical
 independent review were checked again before commit. Final log hash is retained
 in the adjacent receipt. Parent retains required actual-head CI and merge.
+
+
+## Genuine current-main integration — 2026-10-05
+
+Root preserves the retained whole approvals while genuinely composing main8451f013. All three authoritative main Z06F calendar files and the full existing tagged TEN07 wrapper are byte-exact; the old alternative calendar fixture is superseded. Only SC008/SC017 ledger rows change, with all foreign metadata/order preserved. The actual raw-reader and projection API suites pass24/24 on this composition; frozen specification33/121/231 and own diff checks pass.
+
+Current main has real native-reuse input changes in declared-offset preparation, explicit time anchors and shared AST parsing. Original #497 native evidence stays historical at its exact source; it is not relabeled as new-head native proof. Final ordinary clean native CI must qualify the new source. Root owns push/CI/final guard and merge; implementation owners retain their source scope.

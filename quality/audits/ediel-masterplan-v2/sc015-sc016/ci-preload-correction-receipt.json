@@ -1,0 +1,80 @@
+{
+  "approved_original_head": "f2081c55c86061ec3feb1cff0f93789da89f84cc",
+  "failed_published_head": "145c5ce9b4a40bfd7058b8d85413c2827234c9b7",
+  "actual_github_failure": {
+    "run": 37257463137,
+    "job": 111597574441,
+    "cause": "inherited relative NODE_OPTIONS preload cannot resolve after the unchanged SQL runner starts its execution child with cwd=scripts; failure occurs before SQL",
+    "other_tests_passed": 10225
+  },
+  "scope": "only owned SC016 test child environment; existing preload resolved to absolute repository path. No guard, assertions, SQL, product, helper or workflow changes.",
+  "relative_CI_NODE_OPTIONS": "--require=./scripts/lib/unit-loopback-network-boundary.cjs",
+  "local_reproduction": {
+    "RED": {
+      "exit": 1,
+      "suite_failed": 1,
+      "cases_skipped_before_SQL": 3
+    },
+    "GREEN": {
+      "exit": 0,
+      "passed": 3,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "external_socket_guard": {
+      "exit": 0,
+      "expected_error": "unit_external_network_forbidden",
+      "network_connection_attempted": false
+    },
+    "types_exit": 0,
+    "lint_exit": 0
+  },
+  "changed_input": {
+    "path": "__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+    "before_sha256": "b8bcdcd3e59e2d6acc7648682384fdb05d41647333de45da3bbd13f51edc515a",
+    "after_sha256": "f9ac136ebb0f6d9949a45c18ad24f5d6736232775771c90fb66b1a8a7735d3fe"
+  },
+  "existing_preloader": {
+    "path": "scripts/lib/unit-loopback-network-boundary.cjs",
+    "sha256": "4c0e36a6317453093a604a2c14eeed5bfc22b14ec02b65c25d5d3572521ecad9"
+  },
+  "other31_bounded_inputs_equal_original_manifest": true,
+  "all352_coverage_row_objects_unchanged": true,
+  "fresh_current_head_ordinary_CI": "PENDING",
+  "original_whole_review": "Retained exact f208 review; environment-only correction explicitly qualified here, no new native/custody proof",
+  "evidence": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-ci-green.log",
+      "sha256": "b186f67609970d86929b9d5aa3f5de34bbe4745a3f998c5dd036588d34f85cb3"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-ci-green.xml",
+      "sha256": "3250273f98881edb86d98232865f261c2750f18a2b75d19bba037ebefbf5371b"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-ci-red.log",
+      "sha256": "363578c923db536a8efc73e244b1ac3bbe1b38c1b4ee7452e007a6461a43391a"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-ci-red.xml",
+      "sha256": "530d70d59a5d39d1fadeb16d3002d705decc58dc78902bae6db8df5229050c65"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-guard.log",
+      "sha256": "42fb4e2c5e048b5a48a267c4c3039547b06c8ab94fa94c591c50b8a96fc015a6"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-preload-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-current-ci-failure-excerpt.log",
+      "sha256": "094ece7492a22901f71ddaa41f2ab70011a0731c1435310e9b9208811ac1c429"
+    }
+  ]
+}

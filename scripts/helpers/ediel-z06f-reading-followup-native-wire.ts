@@ -9,19 +9,6 @@ export function z06fNativeChangeInstant(f:Pick<Z06fNativeWireScope,'requestedSta
  const date=new Date(`${f.requestedStartDate}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+12+extraDays)
  return `${date.toISOString().slice(0,10).replaceAll('-','')}0000`
 }
-/** Supply start for the native Z06 F fixture: at least 14 days ahead of the
- * Stockholm date (normal switch window) and chosen so the change instant and
- * its next-day contrast stay on day 1-27. The monthly reading period then ends
- * on the same day of the following month instead of rolling past a month end. */
-export function z06fNativeRequestedStartDate(stockholmToday:string,minimumDays=14){
- for(let days=minimumDays;days<minimumDays+40;days++){
-  const start=new Date(`${stockholmToday}T00:00:00Z`);start.setUTCDate(start.getUTCDate()+days)
-  const change=new Date(start);change.setUTCDate(change.getUTCDate()+12)
-  const next=new Date(change);next.setUTCDate(next.getUTCDate()+1)
-  if(change.getUTCDate()<=27&&next.getUTCDate()<=27)return start.toISOString().slice(0,10)
- }
- throw new Error('z06f_native_start_date_unavailable')
-}
 export function z06fNativeStructureWire(f:Z06fNativeWireScope,kind:'F'|'G',document:string){
  const base=structuralOwnerSource('Z06',kind==='F'?'E64':'E32',document)
  return base.raw_payload!.replaceAll('735123456789012345',f.external).replaceAll('12345:14',f.receiver+':14').replaceAll('54321:14',f.sender+':14').replaceAll('NAD+FR+12345:160:SVK',`NAD+FR+${f.receiver}:160:SVK`).replaceAll('NAD+DO+54321:160:SVK',`NAD+DO+${f.sender}:160:SVK`)
@@ -31,17 +18,19 @@ export function z06fNativeStructureWire(f:Z06fNativeWireScope,kind:'F'|'G',docum
 }
 export type Z06fNativeReadingOptions={register?:string;meter?:string;agency?:string;point?:string;date?:'next-day';quantity?:string}
 /** A supplier receives the grid owner's register reading as E66 (DDQ); E30 is
- * only ever received by a grid owner. One monthly E66 period starts at the
+ * only ever received by a grid owner. One daily E66 period starts at the
  * change instant: SEQ1 is the own start reading at that exact instant, SEQ2 the
  * period end reading and SEQ3 the period energy. In this scope `receiver` is
  * the grid owner (MS) and `sender` the receiving supplier (MR). */
 export function z06fNativeReadingWire(f:Z06fNativeWireScope,options:Z06fNativeReadingOptions={}){
- const start=z06fNativeChangeInstant(f,options.date==='next-day'?1:0),endDate=new Date(Date.UTC(+start.slice(0,4),+start.slice(4,6),+start.slice(6,8)))
+ // One declared offset applies to both bounds. A one-day interval remains
+ // 24 hours after conversion, including month/leap and DST-calendar boundaries.
+ const start=z06fNativeChangeInstant(f,options.date==='next-day'?1:0),endDate=new Date(Date.UTC(+start.slice(0,4),+start.slice(4,6)-1,+start.slice(6,8)+1))
  const end=`${endDate.toISOString().slice(0,10).replaceAll('-','')}0000`,point=options.point??f.external,quantity=options.quantity??'10000',register=options.register??'101'
  const document='DOC-'+randomUUID().replaceAll('-','').slice(0,28),transaction='READ-'+randomUUID().replaceAll('-','').slice(0,28)
  const lines=["UNA:+.? '","UNB+UNOC:3+"+f.receiver+":ZZ+"+f.sender+":ZZ+260831:1811+260831181101++23-DDQ-E66-T++1'","UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
   "DTM+137:202609301811:203'","DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
-  `LOC+172+${point}::${options.agency??'9'}'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:802'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
+  `LOC+172+${point}::${options.agency??'9'}'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:804'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
   "SEQ++1'",`RFF+AES:${register}'`,`RFF+MG:${options.meter??'METER-1'}'`,`QTY+220:${quantity}'`,`DTM+597:${start}:203'`,"CCI+++E22::260'","CAV+E27::260'",
   "SEQ++2'",`RFF+AES:${register}'`,"QTY+220:11000'",`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'","SEQ++3'","QTY+136:500'"]
  return [...lines,`UNT+${lines.length-1}+1'`,"UNZ+1+260831181101'"].join('\n')

@@ -1,4 +1,4 @@
-// masterplan: TEN-07, AT-TEN-07, ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11, SC-008, SC-017
+// masterplan: TR-03, AT-TR-03, TEN-07, AT-TEN-07, ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11, SC-008, SC-017, SC-007, SC-004
 // Run the actual scoped SQL consumer assertions in the regular tagged-test gate.
 const assert = require('node:assert/strict')
 const { spawnSync } = require('node:child_process')
@@ -15,6 +15,7 @@ test('TEN-07 limits each beneficiary to granted objects, periods and fields whil
   assert.ifError(run.error)
   assert.equal(run.status, 0, `${run.stdout || ''}\n${run.stderr || ''}`)
   assert.match(run.stdout, /^PASS 17 TEN-07 scoped-object\/window\/field\/raw-owner effects;/m)
+  assert.match(run.stdout, /^PASS SC-004 explicit granted reads with zero beneficiary Ediel profiles\/identifiers\/market roles before and after; four installed current bodies qualified$/m)
 })
 
 test('TEN-07 keeps full MIME copies behind the original owner boundary', () => {

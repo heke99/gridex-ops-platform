@@ -1,0 +1,25 @@
+{
+  "observedAtUTC": "2026-10-05T13:31:15.908819+00:00",
+  "actualMerge": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "mergedAtUTC": "2026-10-05T13:27:24Z",
+  "actualParents": [
+    "683b3e60b67f71293cd44c14d591f877474f0f88",
+    "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a"
+  ],
+  "actualTree": "4acbd9b92cc689382aaa28e10468b609f6d135c4",
+  "allActualBaseBlobsPreserved": true,
+  "foreignPathsPreserved": 7616,
+  "ownPathsAdded": 49,
+  "storedMainApproved": 213,
+  "mainIDs": 352,
+  "wholeVandVH": "PARTIAL/NOT_EXECUTED",
+  "premergeRace": {
+    "earlierQualifiedBase": "fff486f822001d35970f163507b10e17c3692f58",
+    "immediateBase": "683b3e60b67f71293cd44c14d591f877474f0f88",
+    "foreignPR": 586,
+    "guardFailure": "Python expected-base assert failed; shell lacked set-e and continued to ordinary expected-head ghmerge. Meaningful root error acknowledged; subsequent dependent commands set-e. No false original expected-tree claim.",
+    "qualification": "Independent postmerge review APPROVE preservation/closure only: V28/VH31 and all3063nativeinputbytes unchanged; isolated SC071 supplementalworkflow/config doesnotalter ordinaryunit/nativepaths. No duplicategate justified solelybyrace. Executingd1 proof notrelabeleda8."
+  },
+  "handover": "Retained coordinator must carry uniqueactual583merge line; preserve existing572line9e63a602 exactlyonce, no shared-memory edit by packetwriter",
+  "independentPostmergeRaceReview": "postmerge-race-independent-review.md"
+}

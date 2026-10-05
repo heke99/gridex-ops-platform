@@ -1,0 +1,51 @@
+'use strict'
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const {stripTypeScriptTypes} = require('node:module')
+const {SourceTextModule} = require('node:vm')
+const root = '/workspace/gridex-ediel-sc031-sc034-review-20261005'
+const {sourceManifestModule} = require(root + '/scripts/helpers/ediel-source-manifest-vm.cjs')
+const modules = new Map()
+const entry = new SourceTextModule(`
+export {validateProdatRegisterPayload} from '@/lib/ediel/rulebook/prodatRegisterPolicy';
+export {validateFieldMatrixPayload} from '@/lib/ediel/rulebook/fieldMatrix';
+export {canonicalProdat26AFieldRules,prodatRegisterFieldScope} from '@/lib/ediel/prodat/prodat26AFieldMatrix';
+export {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
+export {raw,input} from '@/__tests__/fixtures/prodat-register';
+export {head,own,source} from '@/__tests__/fixtures/prodat-identity';
+`, {identifier:root+'/__tests__/fixtures/sc031-review-entry.ts'})
+async function run() {
+ await entry.link((specifier,parent) => {
+  const json = sourceManifestModule(specifier,modules,parent)
+  if (json) return json
+  assert(specifier.startsWith('@/') || specifier.startsWith('.'), 'No external runtime port: '+specifier)
+  const base=specifier.startsWith('@/') ? path.join(root,specifier.slice(2)) : path.resolve(path.dirname(parent.identifier),specifier)
+  const file=[base,base+'.ts',base+'/index.ts'].find(p=>fs.existsSync(p)&&fs.statSync(p).isFile())
+  assert(file&&file.startsWith(root+'/'), 'Authentic checkout input required: '+specifier)
+  if (!modules.has(file)) modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'transform',sourceUrl:file}),{identifier:file}))
+  return modules.get(file)
+ })
+ await entry.evaluate()
+ const api=entry.namespace
+ const rules=api.canonicalProdat26AFieldRules('Z01').filter(r=>api.prodatRegisterFieldScope(r.fieldNumber||'')==='local')
+ const outputs=[]
+ for (const extra of [false,true]) {
+  const object=api.own('1','735123456789012345','CASE-A')
+  if(extra) object.splice(2,0,['QTY',['31','777','KWH']])
+  const wire=api.raw([...api.head(),...object],'Z01')
+  const parsed=api.input(wire,'Z01')
+  const source=api.source(wire)
+  const syntax=api.validateEdifactSyntax(source)
+  const ignored=[]
+  const inbound=api.validateFieldMatrixPayload({...parsed,direction:'inbound',onIgnoredField:field=>ignored.push(field)},rules)
+  const caller=api.validateProdatRegisterPayload({code:'Z01',rawSegments:parsed.rawSegments,una:parsed.una})
+  outputs.push({extra,syntax,inbound:inbound.filter(x=>x.blocking),ignored,caller:caller.filter(x=>x.blocking)})
+ }
+ fs.writeFileSync(root+'/quality/audits/ediel-masterplan-v2/sc031-sc034-review-20261005/sc031-probe.json', JSON.stringify({baseline:'985724f58ef15e222cf4d3b2e1c643c674852106',node:process.version,scope:'actual syntax + inbound matrix + exact register-wrapper call; no database/case/ACK/provider execution',outputs},null,2)+'\n')
+ assert.equal(outputs[0].caller.length,0)
+ assert.equal(outputs[1].inbound.length,0)
+ assert(outputs[1].ignored.some(x=>x.fieldNumber==='213'))
+ assert(outputs[1].caller.some(x=>x.code==='FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT'))
+}
+run().catch(e=>{console.error(e);process.exitCode=1})

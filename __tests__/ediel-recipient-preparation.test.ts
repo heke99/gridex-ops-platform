@@ -119,7 +119,7 @@ let revokedCrl: string
 let fingerprint: string
 
 beforeAll(() => {
-  fixture = createSyntheticEdielRecipientFixture()
+  fixture = createSyntheticEdielRecipientFixture({ subjectEmail: portalEmail })
   ;({ leaf, leafPem, anchorPem, cleanCrl, revokedCrl, fingerprint } = fixture)
 })
 afterAll(() => { fixture?.dispose() })
@@ -193,6 +193,11 @@ describe.each(['explicit', 'local', 'directory'] as const)('system-test recipien
     await expect(resolveEffectiveSystemTestCertificateId(arrangeSystemSetup(selection, { company_id: otherCompanyId }))).rejects.toThrow(/certifikatet recipient finns inte/)
     expect(external.mutations).toEqual([])
   })
+  it('holds a changed mailbox despite a valid directory label for the old signed recipient', async () => {
+    const input = arrangeSystemSetup(selection)
+    await expect(resolveEffectiveSystemTestCertificateId({ ...input, portalEmail: 'new-recipient@example.invalid' })).rejects.toThrow('receiver_certificate_smtp_identity_unqualified')
+    expect(external.mutations).toEqual([])
+  })
 })
 
 function arrangeTestRun(changes: Row = {}) {
@@ -252,6 +257,12 @@ describe('test-run recipient preparation with actual AGT gates and persistence',
     const input = arrangeTestRun()
     external.authority = { ...authority('test'), crls: [revokedCrl] }
     await expect(prepareEdielTestRunTransportMetadata(input)).rejects.toThrow(/pkix_or_fresh_authenticated_crl_failed/)
+    expect(external.mutations).toEqual([])
+  })
+  it('holds a changed mailbox before locks, snapshots or run writes', async () => {
+    const input = arrangeTestRun()
+    external.tables.ediel_route_profiles[0].smtp_to = 'new-recipient@example.invalid'
+    await expect(prepareEdielTestRunTransportMetadata(input)).rejects.toThrow('receiver_certificate_smtp_identity_unqualified')
     expect(external.mutations).toEqual([])
   })
 })

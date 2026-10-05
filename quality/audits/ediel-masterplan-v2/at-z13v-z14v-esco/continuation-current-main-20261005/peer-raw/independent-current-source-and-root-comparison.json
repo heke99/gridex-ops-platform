@@ -1,0 +1,350 @@
+{
+  "originalSemanticBasis": "2a96780497eb102527f514103c608f0ec0b3a1a3",
+  "originalRootCount": 113,
+  "sourceComparisons": [
+    {
+      "label": "d104",
+      "sha": "d10402d5028021794994e6d5d61622de61d08b57",
+      "physicalTrackedCount": 879,
+      "physicalUnchangedCount": 878,
+      "changed": [
+        {
+          "path": "scripts/ediel-z04-ack-native.test.ts",
+          "oldBlob": "3dc52914f683319051e73de632ade35374dfd444",
+          "currentBlob": "e539c6a34d4845568b70cfae3f1ef1fc09cb999d",
+          "currentSHA256": "85e883cf7690226a9c73c2fba2760db79b1ec8a7617990fed5500ab293a767c4"
+        }
+      ],
+      "rootCount": 113,
+      "addedRoots": [],
+      "removedRoots": []
+    },
+    {
+      "label": "main-aa",
+      "sha": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+      "physicalTrackedCount": 879,
+      "physicalUnchangedCount": 878,
+      "changed": [
+        {
+          "path": "scripts/ediel-z04-ack-native.test.ts",
+          "oldBlob": "3dc52914f683319051e73de632ade35374dfd444",
+          "currentBlob": "e539c6a34d4845568b70cfae3f1ef1fc09cb999d",
+          "currentSHA256": "85e883cf7690226a9c73c2fba2760db79b1ec8a7617990fed5500ab293a767c4"
+        }
+      ],
+      "rootCount": 115,
+      "addedRoots": [
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts"
+      ],
+      "removedRoots": []
+    }
+  ],
+  "aaAddedModules": [
+    {
+      "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+      "gitBlob": "f7ad4c30278e3bc6359e3d83c1a6679db0e3067f",
+      "sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef",
+      "imports": [
+        "node:crypto",
+        "vitest",
+        "./helpers/ediel-z06f-reading-followup-native-fixture",
+        "./helpers/ediel-normal-switch-native-fixture",
+        "@/lib/ediel/flows/inboundProcessing",
+        "@/lib/ediel/inboundCases",
+        "@/lib/ediel/db",
+        "@/lib/ediel/core/receivedProdatFinalResponsePlan",
+        "@/lib/ediel/ack/sourceCorrelation",
+        "@/lib/ediel/core/edifactEnvelopeCodec",
+        "@/lib/ediel/core/edifactTokenizer",
+        "@/lib/ediel/core/edifactValidation",
+        "@/lib/ediel/mailReadiness",
+        "@/lib/ediel/types"
+      ],
+      "repositoryImports": [
+        {
+          "specifier": "./helpers/ediel-z06f-reading-followup-native-fixture",
+          "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+          "blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+          "originalManifestSHA256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "./helpers/ediel-normal-switch-native-fixture",
+          "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+          "blob": "e138f50cc1f30b16eced98b1668df2667af72788",
+          "originalManifestSHA256": "b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/flows/inboundProcessing",
+          "path": "lib/ediel/flows/inboundProcessing.ts",
+          "blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5",
+          "originalManifestSHA256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/inboundCases",
+          "path": "lib/ediel/inboundCases.ts",
+          "blob": "55b59cce1055b5c63718a10c572c095e72488b59",
+          "originalManifestSHA256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/db",
+          "path": "lib/ediel/db.ts",
+          "blob": "0771e4a820f7a9563bd5856b2d080a3fe83a6507",
+          "originalManifestSHA256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/receivedProdatFinalResponsePlan",
+          "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+          "blob": "4d7f1ff6a93e99762b7c8c8ab814f7a1ae7b1a56",
+          "originalManifestSHA256": "65c846ad8612d4cb3fc51d9b3f8d7b7b665ffbdad5cbafaa9afc4712dc3684c1",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/ack/sourceCorrelation",
+          "path": "lib/ediel/ack/sourceCorrelation.ts",
+          "blob": "2df0a9ec7647ed3953892a3c3d54238aaf0282b2",
+          "originalManifestSHA256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/edifactEnvelopeCodec",
+          "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+          "blob": "d909b4918756b08122ca8bd6c35f2b7477d1b844",
+          "originalManifestSHA256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/edifactTokenizer",
+          "path": "lib/ediel/core/edifactTokenizer.ts",
+          "blob": "918528433f1c2574e1e77f8ddc8b4a1f6292be3f",
+          "originalManifestSHA256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/edifactValidation",
+          "path": "lib/ediel/core/edifactValidation.ts",
+          "blob": "cb0ad748a2086cd16c076c43e7d84448d78ad01e",
+          "originalManifestSHA256": "fde3d220220ee541e6e6b884921a1289eedcf14afa1f7e99a416e565c8cb0fcd",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/mailReadiness",
+          "path": "lib/ediel/mailReadiness.ts",
+          "blob": "6c36ac521f5f3eb82800f53ac8c1bf930e900e63",
+          "originalManifestSHA256": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/types",
+          "path": "lib/ediel/types.ts",
+          "blob": "1c9103c5aac8ae59d965960957d119b87d346af9",
+          "originalManifestSHA256": "516ac1cf49bcf49988e85ca90ddda387d7848692986af539e25e16d107d2965f",
+          "unchangedOriginalBasis": true
+        }
+      ],
+      "repositoryImportCount": 12,
+      "externalModule": true,
+      "ambientGlobalDeclarationsFound": false,
+      "importsProposalTarget": false,
+      "newModuleNotExecutedOrCompiled": true
+    },
+    {
+      "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+      "gitBlob": "109f874c7e51f145f8b31191ac959ba0e43d661c",
+      "sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881",
+      "imports": [
+        "node:crypto",
+        "vitest",
+        "./helpers/ediel-z06f-reading-followup-native-fixture",
+        "./helpers/ediel-normal-switch-native-fixture",
+        "@/lib/ediel/flows/inboundProcessing",
+        "@/lib/ediel/inboundCases",
+        "@/lib/ediel/db",
+        "@/lib/ediel/core/receivedProdatFinalResponsePlan",
+        "@/lib/ediel/ack/sourceCorrelation",
+        "@/lib/ediel/core/edifactEnvelopeCodec",
+        "@/lib/ediel/core/edifactTokenizer",
+        "@/lib/ediel/core/edifactValidation",
+        "@/lib/ediel/mailReadiness",
+        "@/lib/ediel/types"
+      ],
+      "repositoryImports": [
+        {
+          "specifier": "./helpers/ediel-z06f-reading-followup-native-fixture",
+          "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+          "blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+          "originalManifestSHA256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "./helpers/ediel-normal-switch-native-fixture",
+          "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+          "blob": "e138f50cc1f30b16eced98b1668df2667af72788",
+          "originalManifestSHA256": "b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/flows/inboundProcessing",
+          "path": "lib/ediel/flows/inboundProcessing.ts",
+          "blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5",
+          "originalManifestSHA256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/inboundCases",
+          "path": "lib/ediel/inboundCases.ts",
+          "blob": "55b59cce1055b5c63718a10c572c095e72488b59",
+          "originalManifestSHA256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/db",
+          "path": "lib/ediel/db.ts",
+          "blob": "0771e4a820f7a9563bd5856b2d080a3fe83a6507",
+          "originalManifestSHA256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/receivedProdatFinalResponsePlan",
+          "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+          "blob": "4d7f1ff6a93e99762b7c8c8ab814f7a1ae7b1a56",
+          "originalManifestSHA256": "65c846ad8612d4cb3fc51d9b3f8d7b7b665ffbdad5cbafaa9afc4712dc3684c1",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/ack/sourceCorrelation",
+          "path": "lib/ediel/ack/sourceCorrelation.ts",
+          "blob": "2df0a9ec7647ed3953892a3c3d54238aaf0282b2",
+          "originalManifestSHA256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/edifactEnvelopeCodec",
+          "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+          "blob": "d909b4918756b08122ca8bd6c35f2b7477d1b844",
+          "originalManifestSHA256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/edifactTokenizer",
+          "path": "lib/ediel/core/edifactTokenizer.ts",
+          "blob": "918528433f1c2574e1e77f8ddc8b4a1f6292be3f",
+          "originalManifestSHA256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/core/edifactValidation",
+          "path": "lib/ediel/core/edifactValidation.ts",
+          "blob": "cb0ad748a2086cd16c076c43e7d84448d78ad01e",
+          "originalManifestSHA256": "fde3d220220ee541e6e6b884921a1289eedcf14afa1f7e99a416e565c8cb0fcd",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/mailReadiness",
+          "path": "lib/ediel/mailReadiness.ts",
+          "blob": "6c36ac521f5f3eb82800f53ac8c1bf930e900e63",
+          "originalManifestSHA256": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453",
+          "unchangedOriginalBasis": true
+        },
+        {
+          "specifier": "@/lib/ediel/types",
+          "path": "lib/ediel/types.ts",
+          "blob": "1c9103c5aac8ae59d965960957d119b87d346af9",
+          "originalManifestSHA256": "516ac1cf49bcf49988e85ca90ddda387d7848692986af539e25e16d107d2965f",
+          "unchangedOriginalBasis": true
+        }
+      ],
+      "repositoryImportCount": 12,
+      "externalModule": true,
+      "ambientGlobalDeclarationsFound": false,
+      "importsProposalTarget": false,
+      "newModuleNotExecutedOrCompiled": true
+    }
+  ],
+  "fixedInputs": [
+    {
+      "path": "tsconfig.json",
+      "blobs": {
+        "basis": "60bca066cc72efd2a8303216c1e3a425c8aea097",
+        "d104": "60bca066cc72efd2a8303216c1e3a425c8aea097",
+        "main-aa": "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      },
+      "sha256": "caa1e74f72eaa627680ae4d7a7affc041d56e8c53766940aaac4ac1d319ad7d1",
+      "unchanged": true
+    },
+    {
+      "path": "tsconfig.scripts.json",
+      "blobs": {
+        "basis": "c445ccf8eb9880dc5da8e523554f11cebe21d35a",
+        "d104": "c445ccf8eb9880dc5da8e523554f11cebe21d35a",
+        "main-aa": "c445ccf8eb9880dc5da8e523554f11cebe21d35a"
+      },
+      "sha256": "f8a0d7dfd7b623ee83735e6912a739a1ee19fe7372c88cce4d98a4c725e95ba0",
+      "unchanged": true
+    },
+    {
+      "path": "package.json",
+      "blobs": {
+        "basis": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+        "d104": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+        "main-aa": "7e8140606986b98e6acfe71415ce8fa38bad3784"
+      },
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "unchanged": true
+    },
+    {
+      "path": "package-lock.json",
+      "blobs": {
+        "basis": "b247061206a317aeb7302f50d469117555d0b62f",
+        "d104": "b247061206a317aeb7302f50d469117555d0b62f",
+        "main-aa": "b247061206a317aeb7302f50d469117555d0b62f"
+      },
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "blobs": {
+        "basis": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+        "d104": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+        "main-aa": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41"
+      },
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "blobs": {
+        "basis": "033887c8672e1516449dc19d5f83ea1fd01bfd9e",
+        "d104": "033887c8672e1516449dc19d5f83ea1fd01bfd9e",
+        "main-aa": "033887c8672e1516449dc19d5f83ea1fd01bfd9e"
+      },
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "unchanged": true
+    }
+  ],
+  "d104ToAaOnly16Additions": [
+    "A\t.agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/baseline.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/comment-only-source-qualification.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/current-main-composition.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/field-306-source-qualification.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/native-gap-map.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/native-registration.patch",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/plan.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/preflight-snapshot.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/retained-source-request.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/review.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/scoped-lint.log",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/scripts-types.log",
+    "A\tquality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/verification-receipt.json",
+    "A\tscripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+    "A\tscripts/ediel-at-z06g-supplier-acceptance-native.test.ts"
+  ],
+  "scope": "Input inventories and source inspection only; no TypeScript compiler or native module executed"
+}

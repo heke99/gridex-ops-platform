@@ -55,8 +55,12 @@ try{
  await refuses(call(),/ediel_dsn_attempt_ambiguous_or_missing/)
  await db.exec(`UPDATE gridex_ediel_transport.attempts SET binding=binding||'{"sourceMailboxId":"${mailbox}"}'::jsonb`)
  await refuses(call({sourceHash:'a'.repeat(64)}),/ediel_dsn_source_invalid/)
+ await refuses(call({report:{...report,originalMessageIds:['<wrong@example.invalid>']}}),/ediel_dsn_source_invalid/)
+ await refuses(call({report:{...report,recipients:[{...report.recipients[0],finalRecipient:{type:'rfc822',address:'wrong@example.invalid'}}]}}),/ediel_dsn_source_invalid/)
  await refuses(call({report:{...report,recipients:[{...report.recipients[0],action:'delivered'}]}}),/ediel_dsn_source_invalid/)
  const first=await result(call());assert.equal(first.authorizesResend,false);assert.equal(first.deliveryProven,false);assert.equal(first.transportCorrelation,'source_matched_unverified');checks++
+ assert.equal(first.attemptId,attempt);assert.equal(first.messageId,message)
+ assert.deepEqual((await db.query('SELECT report FROM gridex_ediel_transport.dsn_observations WHERE id=$1',[first.observationId])).rows[0].report,report);checks++
  assert.deepEqual(await result(call()),first);checks++
  await refuses('UPDATE inbound_email_messages SET raw_email=raw_email||\'changed\'',/ediel_dsn_observation_source_immutable/)
  await refuses(`UPDATE inbound_email_messages SET company_id='${uid(99)}'`,/ediel_dsn_observation_source_immutable/)
@@ -65,6 +69,7 @@ try{
  await refuses("UPDATE inbound_email_attachments SET raw_text='changed'",/ediel_dsn_observation_source_immutable/)
  const read=()=>`SET ROLE service_role;SELECT public.ediel_read_dsn_source_observations_v1('${c}','${actor}','${message}') receipt;RESET ROLE;`
  const projection=await result(read());assert.equal(projection.observations.length,2);assert.equal(projection.authorizesResend,false);assert.equal(projection.deliveryProven,false);assert.ok(!JSON.stringify(projection).includes('Content-Type'));checks++
+ assert.deepEqual(projection.observations[0].recipient,report.recipients[0]);checks++
  await refuses(`SET ROLE service_role;SELECT public.ediel_read_dsn_source_observations_v1('${uid(99)}','${actor}','${message}');RESET ROLE;`,/ediel_dsn_actor_scope_invalid/)
  await refuses("SET ROLE service_role;UPDATE gridex_ediel_transport.dsn_observations SET delivery_proven=true;RESET ROLE;",/permission denied/)
  await db.exec(`INSERT INTO gridex_outbound_dispatch.attempts VALUES('${uid(8)}','${message}','${c}','test','{"rfcMessageId":"<original@example.invalid>","to":"to@example.invalid","sourceMailboxId":"${mailbox}"}',now());
@@ -74,4 +79,5 @@ try{
  assert.deepEqual(acl,{rpc:false,direct_edit:false});checks++
  console.log(`PASS ${checks} bounded DSN source/tenant/immutable/ACL checks; explicitly synthetic fixtures, not native/replay or authentic delivery evidence`)
 }catch(error){console.error(`FAIL after ${checks} checks: ${error instanceof Error?error.message:String(error)}`);console.error({position:error.position,internalPosition:error.internalPosition,where:error.where});process.exitCode=1}
-finally{await db.close()}
+finally{if(!process.env.EDIEL_DSN_EXTENDED_REGRESSION||process.exitCode)await db.close()}
+export {db,uid,c,actor,message,mailbox,attempt,mail,raw,report,quote}

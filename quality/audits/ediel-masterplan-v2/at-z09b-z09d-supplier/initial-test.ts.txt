@@ -1,0 +1,246 @@
+// masterplan: AT-Z09B-SUPPLIER, AT-Z09D-SUPPLIER
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createFakeSupabase, type Row } from './helpers/supabaseMock'
+import type { CreateEdielMessageIntentInput, EdielMessageIntent } from '@/lib/ediel/intent/types'
+import type { BrpChangeBasis } from '@/lib/ediel/production/brpChangeSource'
+import type { ProductionContractBasis } from '@/lib/ediel/production/contractSource'
+
+const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), route: vi.fn(), intent: vi.fn(), getIntent: vi.fn(),
+  request: vi.fn(), finalize: vi.fn(), queue: vi.fn(), lifecycle: vi.fn(), version: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc, from: io.from } }))
+// This is a finite company-filtering transport port, not native tenant/RLS proof.
+vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: (companyId: string) => ({
+  from: (table: string) => io.from(table).eq('company_id', companyId),
+}) }))
+vi.mock('@/lib/cis/db', () => ({ createOutboundRequest: io.request }))
+vi.mock('@/lib/ediel/core/kernel', () => ({ resolveCanonicalOutboundContext: io.route, finalizeCanonicalOutboundDraft: io.finalize }))
+vi.mock('@/lib/ediel/flows/shared', () => ({ queuePreparedEdielMessage: io.queue }))
+vi.mock('@/lib/ediel/core/versionRegistry', () => ({ resolveCanonicalOutboundVersion: io.version }))
+vi.mock('@/lib/ediel/intent/intentEngine', async () => ({
+  ...await vi.importActual<typeof import('@/lib/ediel/intent/intentEngine')>('@/lib/ediel/intent/intentEngine'),
+  createEdielMessageIntent: io.intent, getEdielMessageIntentById: io.getIntent, updateIntentLifecycle: io.lifecycle,
+}))
+import { prepareAndQueueBrpChangeZ09 } from '@/lib/ediel/flows/prodatBrpChange'
+import { prepareAndQueueProductionContractZ09 } from '@/lib/ediel/flows/prodatProductionContract'
+import { evaluateIntentValidation } from '@/lib/ediel/intent/intentEngine'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+
+// Actual preparer, gateway, RPC adapter, intent validation, renderer and tokenizer.
+// RPC authority, route resolution, intent/request storage, version selection,
+// finalizer persistence and outbox are finite observation ports. Authorized and
+// reserved DTOs below NEVER prove native source admission or a successful send.
+const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+const companyId = uuid(1), eventId = uuid(2), actorUserId = uuid(20), intentId = uuid(10), requestId = uuid(21), messageId = uuid(30)
+const selector = { companyId, eventId, actorUserId }
+const sourceArgs = { p_company_id: companyId, p_event_id: eventId, p_actor_user_id: actorUserId }
+const reserveArgs = { ...sourceArgs, p_intent_id: intentId, p_outbound_request_id: requestId }
+const foreignRequest = { id: uuid(99), company_id: uuid(98), source_type: 'manual', source_id: intentId, request_type: 'customer_masterdata' }
+let tables: Record<string, Row[]>, fake: ReturnType<typeof createFakeSupabase>, savedIntent: EdielMessageIntent | null
+
+function route() {
+  return { companyId, environment: 'test', actor: { actor: { id: uuid(13) }, tenantIdentity: { legalActorId: uuid(7) },
+    legalActorEdielId: '12345', marketRoles: ['electricity_supplier'] }, senderEdielId: '99111', receiverEdielId: '54321',
+    senderSubAddress: null, receiverSubAddress: null, receiverMessageSubAddress: null, applicationReference: '23-DDQ-PRODAT',
+    route: { id: uuid(12) }, routeRuntime: { route_profile_id: uuid(11) }, mailbox: null, receiverEmail: 'dso@example.invalid' }
+}
+function commonBasis() {
+  return { status: 'authorized' as const, companyId, environment: 'test' as const, eventId, customerId: uuid(5), siteId: uuid(22),
+    meteringPointId: uuid(6), legalActorId: uuid(7), legalSenderId: '12345', legalReceiverId: '54321', brpEdielId: '11111',
+    pointId: '735123456789012345', identityAgency: '9' as const, gridArea: 'TES', sourceReference: 'SYNTHETIC UNIT SOURCE',
+    sourceVersion: 'fixture-1', sourceDigest: 'b'.repeat(64) }
+}
+const profiles = [
+  { label: 'B', prepare: prepareAndQueueBrpChangeZ09, read: 'ediel_brp_change_source_v1', reserve: 'ediel_reserve_brp_change_origin_v1',
+    initial: (): BrpChangeBasis => ({ ...commonBasis(), supplyPeriodId: uuid(3), supplyStateVersion: 4, supplySourceMessageId: uuid(4),
+      brpActorId: uuid(8), effectiveAt: '2027-01-01T00:00:00+01:00', registryGroundId: uuid(9), registryVersion: 'SYNTHETIC-REGISTRY', registrySha256: 'a'.repeat(64) }),
+    fresh: (): BrpChangeBasis => ({ ...commonBasis(), brpEdielId: '22222', supplyPeriodId: uuid(3), supplyStateVersion: 5, supplySourceMessageId: uuid(4),
+      brpActorId: uuid(8), effectiveAt: '2027-02-02T13:00:00+01:00', registryGroundId: uuid(9), registryVersion: 'SYNTHETIC-REGISTRY', registrySha256: 'a'.repeat(64) }) },
+  ...(['signed', 'ceased'] as const).map(eventKind => ({ label: `D ${eventKind}`, prepare: prepareAndQueueProductionContractZ09,
+    read: 'ediel_production_contract_source_v1', reserve: 'ediel_reserve_production_contract_origin_v1',
+    initial: (): ProductionContractBasis => ({ ...commonBasis(), eventKind, contractId: uuid(40), contractReference: 'SYNTHETIC-CONTRACT',
+      contractRevision: 'fixture-1', boundaryAt: '2027-01-01T00:00:00+01:00' }),
+    fresh: (): ProductionContractBasis => ({ ...commonBasis(), eventKind, contractId: uuid(40), contractReference: 'SYNTHETIC-CONTRACT',
+      contractRevision: 'fixture-1', boundaryAt: '2027-02-02T13:00:00+01:00' }) })),
+]
+type Profile = typeof profiles[number]
+type RpcStep = { name: string; data?: unknown; error?: Error }
+function rpcScript(profile: Profile, steps: RpcStep[]) {
+  let cursor = 0
+  io.rpc.mockImplementation(async (name: string, args: unknown) => {
+    const step = steps[cursor++]
+    if (!step || step.name !== name) throw new Error(`unplanned_rpc:${name}`)
+    expect(args).toEqual(name === profile.read ? sourceArgs : reserveArgs)
+    return { data: step.data ?? null, error: step.error ?? null }
+  })
+}
+function coherentReads(profile: Profile): RpcStep[] {
+  return [{ name: profile.read, data: profile.initial() }, { name: profile.read, data: profile.fresh() }]
+}
+function assertNoFinalProgress() {
+  expect(io.queue).not.toHaveBeenCalled()
+  expect(io.lifecycle).not.toHaveBeenCalled()
+  expect(savedIntent?.renderStatus).not.toBe('rendered')
+  expect(savedIntent?.outboxStatus).not.toBe('queued')
+  expect(tables.outbound_requests).toEqual([foreignRequest])
+}
+function assertOwnPreliminaryScope(profile: Profile) {
+  expect(io.intent).toHaveBeenCalledOnce()
+  expect(io.request).toHaveBeenCalledOnce()
+  expect(io.getIntent).toHaveBeenCalledWith(intentId)
+  expect(io.request.mock.calls[0][0]).toMatchObject({ actorUserId, customerId: uuid(5), siteId: uuid(22), meteringPointId: uuid(6),
+    sourceId: intentId, operationId: eventId, environment: 'test', failOnMissingEnvironment: true })
+  expect(savedIntent).toMatchObject({ companyId, operationId: eventId, applicationReference: '23-DDQ-PRODAT', messageCode: 'Z09' })
+  expect(evaluateIntentValidation(savedIntent!)).toMatchObject({ ok: true })
+  const lookup = fake.calls.filter(call => call.table === 'outbound_requests')
+  expect(lookup).toHaveLength(1)
+  expect(lookup[0].filters).toEqual(expect.arrayContaining([
+    { method: 'eq', column: 'company_id', value: companyId }, { method: 'eq', column: 'source_id', value: intentId },
+    { method: 'eq', column: 'source_type', value: 'manual' }, { method: 'eq', column: 'request_type', value: 'customer_masterdata' },
+  ]))
+  expect(io.route.mock.calls[0][0]).toMatchObject({ companyId, environment: 'test', receiverEdielId: '54321', applicationReference: '23-DDQ-PRODAT' })
+  expect(io.rpc.mock.calls[0][0]).toBe(profile.read)
+}
+beforeEach(() => {
+  vi.resetAllMocks()
+  savedIntent = null
+  tables = { outbound_requests: [structuredClone(foreignRequest)], ediel_messages: [] }
+  fake = createFakeSupabase({ tables })
+  io.from.mockImplementation((table: string) => {
+    if (!Object.hasOwn(tables, table)) throw new Error(`unplanned_table:${table}`)
+    const query = fake.client.from(table)
+    // Transport-only fluent returns() adapter; reuse the existing filter-aware fake.
+    return Object.assign(query, { returns: () => query })
+  })
+  io.route.mockResolvedValue(route())
+  io.intent.mockImplementation(async (input: CreateEdielMessageIntentInput) => {
+    savedIntent = { ...input, id: intentId, validationStatus: 'validated', renderStatus: 'not_rendered', outboxStatus: 'not_queued' }
+    return savedIntent
+  })
+  io.getIntent.mockImplementation(async () => structuredClone(savedIntent))
+  io.request.mockResolvedValue({ id: requestId })
+  io.version.mockResolvedValue('26.A')
+  io.finalize.mockImplementation(async (params: { draft: { companyId: string; intentId: string; sourceOperationId: string; rawPayload: string }; outboundRequestId: string }) => {
+    const draft = { id: messageId, status: 'draft', company_id: params.draft.companyId, intent_id: params.draft.intentId,
+      source_operation_id: params.draft.sourceOperationId, outbound_request_id: params.outboundRequestId, raw_payload: params.draft.rawPayload }
+    tables.ediel_messages.push(draft)
+    return draft
+  })
+  io.queue.mockRejectedValue(new Error('unexpected_queue_progress'))
+  io.lifecycle.mockRejectedValue(new Error('unexpected_lifecycle_progress'))
+})
+
+for (const profile of profiles) describe(`actual ${profile.label} preparer → gateway HOLD coupling`, () => {
+  it('returns the initial source HOLD before route, intent, request or finalization', async () => {
+    const held = { status: 'held', missing: ['synthetic_initial_source_absent'] }
+    rpcScript(profile, [{ name: profile.read, data: held }])
+    expect(await profile.prepare(selector)).toEqual(held)
+    expect(io.rpc).toHaveBeenCalledExactlyOnceWith(profile.read, sourceArgs)
+    for (const port of [io.route, io.intent, io.request, io.getIntent, io.version, io.finalize]) expect(port).not.toHaveBeenCalled()
+    expect(fake.calls).toEqual([])
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+  it('re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request', async () => {
+    const held = { status: 'held', missing: ['synthetic_source_revoked_between_preparer_and_gateway'] }
+    rpcScript(profile, [{ name: profile.read, data: profile.initial() }, { name: profile.read, data: held }])
+    expect(await profile.prepare(selector)).toEqual(held)
+    assertOwnPreliminaryScope(profile)
+    expect(io.rpc.mock.calls.map(call => call[0])).toEqual([profile.read, profile.read])
+    expect(io.version).not.toHaveBeenCalled()
+    expect(io.finalize).not.toHaveBeenCalled()
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+  it('keeps first reservation HOLD before renderer/version or finalizer', async () => {
+    const held = { status: 'held', missing: ['synthetic_origin_reservation_revoked'] }
+    rpcScript(profile, [...coherentReads(profile), { name: profile.reserve, data: held }])
+    expect(await profile.prepare(selector)).toEqual(held)
+    assertOwnPreliminaryScope(profile)
+    expect(io.rpc.mock.calls.map(call => call[0])).toEqual([profile.read, profile.read, profile.reserve])
+    expect(io.version).not.toHaveBeenCalled()
+    expect(io.finalize).not.toHaveBeenCalled()
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+  it('keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance', async () => {
+    const held = { status: 'held', missing: ['synthetic_source_revoked_after_draft'] }
+    rpcScript(profile, [...coherentReads(profile), { name: profile.reserve, data: { status: 'reserved', messageId: null, outboundRequestId: requestId } },
+      { name: profile.reserve, data: held }])
+    expect(await profile.prepare(selector)).toEqual(held)
+    assertOwnPreliminaryScope(profile)
+    expect(io.rpc.mock.calls.map(call => call[0])).toEqual([profile.read, profile.read, profile.reserve, profile.reserve])
+    expect(io.finalize).toHaveBeenCalledOnce()
+    expect(io.version).toHaveBeenCalledOnce()
+    expect(tables.ediel_messages).toHaveLength(1)
+    expect(tables.ediel_messages[0]).toMatchObject({ id: messageId, company_id: companyId, intent_id: intentId,
+      source_operation_id: eventId, outbound_request_id: requestId, status: 'draft' })
+    const params = io.finalize.mock.calls[0][0]
+    expect(params.draft).toMatchObject({ companyId, intentId, sourceOperationId: eventId, outboundRequestId: requestId, direction: 'outbound', status: 'draft' })
+    const wire = tokenizeEdifact(params.draft.rawPayload).segments.map(segment => segment.raw)
+    expect(wire).toContain('BGM+Z09+' + savedIntent!.interchangeReference + '+9')
+    if (profile.label === 'B') {
+      expect(wire).toContain('NAD+Z02+22222:160:SVK')
+      expect(wire).toContain('DTM+157:202702021300:203')
+      expect(wire).not.toContain('NAD+Z02+11111:160:SVK')
+    } else {
+      const qualifier = profile.label === 'D signed' ? '92' : '93'
+      expect(wire.filter(segment => /^DTM\+(92|93):/.test(segment))).toEqual([`DTM+${qualifier}:202702021300:203`])
+      expect(wire.some(segment => /^DTM\+157:|^NAD\+UD\+/.test(segment))).toBe(false)
+      expect(params.dateEventContext).toMatchObject({ source: { eventId, companyId }, objects: [{ supplyBoundaryAt: '2027-02-02T13:00:00+01:00' }] })
+    }
+    expect(io.finalize.mock.invocationCallOrder[0]).toBeLessThan(io.rpc.mock.invocationCallOrder[3])
+    assertNoFinalProgress()
+  })
+  for (const scope of ['company', 'event', 'family', 'code'] as const) it(`rejects ${scope} drift in the intent fetched by the actual gateway before fresh source/reservation`, async () => {
+    rpcScript(profile, [{ name: profile.read, data: profile.initial() }])
+    io.getIntent.mockImplementation(async () => ({ ...savedIntent,
+      ...(scope === 'company' ? { companyId: uuid(98) } : scope === 'event' ? { operationId: uuid(98) } : scope === 'family' ? { messageFamily: 'UTILTS' } : { messageCode: 'Z08' }),
+    }))
+    await expect(profile.prepare(selector)).rejects.toThrow('intent_scope_mismatch')
+    expect(io.rpc).toHaveBeenCalledTimes(1)
+    expect(io.version).not.toHaveBeenCalled()
+    expect(io.finalize).not.toHaveBeenCalled()
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+  for (const scope of ['company', 'environment', 'legalActor', 'legalSender', 'recipient', 'supplierRole'] as const) it(`rejects canonical route ${scope} drift before intent/request creation`, async () => {
+    rpcScript(profile, [{ name: profile.read, data: profile.initial() }])
+    const wrong = route()
+    if (scope === 'company') wrong.companyId = uuid(98)
+    if (scope === 'environment') wrong.environment = 'production'
+    if (scope === 'legalActor') wrong.actor.tenantIdentity.legalActorId = uuid(98)
+    if (scope === 'legalSender') wrong.actor.legalActorEdielId = '99999'
+    if (scope === 'recipient') wrong.receiverEdielId = '99999'
+    if (scope === 'supplierRole') wrong.actor.marketRoles = ['energy_service_company']
+    io.route.mockResolvedValue(wrong)
+    await expect(profile.prepare(selector)).rejects.toThrow(/canonical_legal_route_mismatch|canonical_supplier_scope_mismatch/)
+    expect(io.rpc).toHaveBeenCalledTimes(1)
+    for (const port of [io.intent, io.request, io.getIntent, io.version, io.finalize]) expect(port).not.toHaveBeenCalled()
+    expect(fake.calls).toEqual([])
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+  it('uses actual intent validation to hold mutated application-reference metadata before fresh source', async () => {
+    rpcScript(profile, [{ name: profile.read, data: profile.initial() }])
+    io.getIntent.mockImplementation(async () => ({ ...savedIntent, applicationReference: '23-DGI-PRODAT' }))
+    const result = await profile.prepare(selector)
+    expect(result.status).toBe('held')
+    if (result.status !== 'held') throw new Error('expected_held')
+    expect(result.missing.length).toBeGreaterThan(0)
+    expect(io.rpc).toHaveBeenCalledTimes(1)
+    expect(io.version).not.toHaveBeenCalled()
+    expect(io.finalize).not.toHaveBeenCalled()
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+  it('propagates a fresh source RPC error without rendering or queueing', async () => {
+    rpcScript(profile, [{ name: profile.read, data: profile.initial() }, { name: profile.read, error: new Error('synthetic_current_source_error') }])
+    await expect(profile.prepare(selector)).rejects.toThrow('synthetic_current_source_error')
+    assertOwnPreliminaryScope(profile)
+    expect(io.rpc).toHaveBeenCalledTimes(2)
+    expect(io.version).not.toHaveBeenCalled()
+    expect(io.finalize).not.toHaveBeenCalled()
+    expect(tables.ediel_messages).toEqual([])
+    assertNoFinalProgress()
+  })
+})

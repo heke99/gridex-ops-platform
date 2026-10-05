@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="24" failures="0" errors="0" time="0.922135259">
+    <testsuite name="__tests__/ediel-at-z13v-esco-profile.test.ts" timestamp="2026-10-05T11:36:39.999Z" hostname="8095447c6b62" tests="13" failures="0" errors="0" skipped="0" time="0.19402895">
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; joins the actual DGI/S17 draft, identityless LIN and source authority without changing its input" time="0.061696354">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds tenant changes against the same rendered original" time="0.014908658">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds environment changes against the same rendered original" time="0.021659671">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds direction changes against the same rendered original" time="0.011767872">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds legalRecipient changes against the same rendered original" time="0.013953021">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds technicalSender changes against the same rendered original" time="0.009725697">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds application changes against the same rendered original" time="0.011401656">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds mutated LI in the actual draft against independent source facts" time="0.010055371">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds mutated ANJ in the actual draft against independent source facts" time="0.008521405">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds mutated customer in the actual draft against independent source facts" time="0.008302837">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds mutated end in the actual draft against independent source facts" time="0.010376398">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; holds mutated purpose in the actual draft against independent source facts" time="0.007411211">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13v-esco-profile.test.ts" name="Z13V source-bound profile and its permission boundary &gt; refuses birthdate-only identity and absent source method/agreement before a draft is returned" time="0.00176591">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-at-z14v-esco-profile.test.ts" timestamp="2026-10-05T11:36:40.004Z" hostname="8095447c6b62" tests="11" failures="0" errors="0" skipped="0" time="0.728106309">
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; joins the real positive builder, own fields and parser while retaining the request scope" time="0.238909345">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses changed LI on the built positive response against its prior request" time="0.110865031">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses changed customer on the built positive response against its prior request" time="0.083561898">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses changed point on the built positive response against its prior request" time="0.023385112">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses changed end on the built positive response against its prior request" time="0.021030841">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses changed purpose on the built positive response against its prior request" time="0.028718047">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses missing own permission at the actual positive builder" time="0.063411151">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses missing own method at the actual positive builder" time="0.054971084">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses missing own start at the actual positive builder" time="0.034487616">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; refuses missing own product at the actual positive builder" time="0.020567428">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z14v-esco-profile.test.ts" name="Z14V profile and independent object/reporting limits &gt; keeps A74 approval and source-valid Z14N denial distinct at the real permission field consumer" time="0.043653869">
+        </testcase>
+    </testsuite>
+</testsuites>

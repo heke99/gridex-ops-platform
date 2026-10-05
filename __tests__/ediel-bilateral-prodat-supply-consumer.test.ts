@@ -1,3 +1,5 @@
+// masterplan: P-13, AT-P-13
+// masterplan: P-16, AT-P-16
 import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {closureFixture} from './helpers/closureWireFixtures'
@@ -22,7 +24,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
  return {data:{applied:true,idempotent:false,periods:[{id:'supply',status:io.source!.message_code==='Z04'?'confirmed_by_grid_owner':'ended'}],commits:io.source!.message_code==='Z04'?[{switchRequestId:'native-switch',supplyPeriodId:'supply',customerId:'customer',meteringPointId:'point',siteId:'site'}]:[]},error:null}
 },from:(table:string)=>{
  let values:Record<string,unknown>|null=null
- const q={select:()=>q,eq:()=>q,is:()=>q,order:()=>q,limit:()=>q,
+ const q={select:()=>q,eq:()=>q,in:()=>q,is:()=>q,order:()=>q,limit:()=>q,
   update:(row:Record<string,unknown>)=>{values=row;io.writes.push({table,row});return q},
   insert:(row:Record<string,unknown>)=>{values=row;io.writes.push({table,row});return q},
   maybeSingle:async()=>({data:{id:'supply'},error:null}),
@@ -37,7 +39,7 @@ vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCus
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 function message(code='Z04',hold=false){const wire=closureFixture({reason:'Z25',minute:'202610150000'}).wire.replace('BGM+Z05','BGM+'+code).replace('DTM+93','DTM+'+(code==='Z04'?'92':'93'));const row={id:'source',company_id:'company',environment:'test',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:code,direction:'inbound',raw_payload:wire,parsed_payload:{subtype:'H',nativeHold:hold,bilateralCapabilityVerified:true}} as unknown as EdielMessageRow;io.source=structuredClone(row);return row}
-beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[];io.source=null;io.nativeCalls=[];io.committed=false})
+beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[{id:'supply',customer_id:'customer',metering_point_id:'point'}];io.source=null;io.nativeCalls=[];io.committed=false})
 it('real H start consumer waits for exact external native commit and publishes only its committed scope once',async()=>{
  const observed:unknown[]=[];const result=await applyInboundBusinessStateMachine({message:message(),actorUserId:'actor',onSourceSwitchCommitted:async value=>{observed.push(value)}})
  expect(result).toMatchObject({outcome:'supplier_switch_accepted',reviewRequired:false,updated:['supplier_switch_requests','customer_supply_periods']});expect(io.nativeCalls).toHaveLength(1);expect(observed).toHaveLength(1);expect(observed[0]).toMatchObject({switchRequestId:'native-switch',supplyPeriodId:'supply',message:{customer_id:'customer',site_id:'site',metering_point_id:'point'}});expect(io.writes).toEqual([])

@@ -1,0 +1,286 @@
+{
+  "reviewed_at": "2026-10-05T13:35:31.001292+00:00",
+  "reviewer": "/root/sc007_sc066_review",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/562",
+  "head": "aaa6b095463469b067c9f3141a680e1e38eddea8",
+  "tree": "563c09d1f811d4e6ef5f407895b23766b2e83241",
+  "technical_base": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "current_main": "61e84d8d93945c1daed4c8e685aa2866686bee0f",
+  "verdicts": {
+    "SC-057": "APPROVE",
+    "SC-059": "APPROVE"
+  },
+  "scope": "Whole exact frozen SC057/SC059 code/effect approval with declared finite given ports. Not authentic registry custody/native authority/market acceptance/current composed-head CI.",
+  "frozen_literals": {
+    "SC-057": {
+      "id": "SC-057",
+      "name": "Registerimport är idempotent",
+      "given": "Samma fil importeras två gånger. En senare registerversion innehåller tre motstridiga adressändringar.",
+      "when": "Förhandsgranska och applicera kontrollerat.",
+      "expected": "Identiska data skapar inte dubbletter. Marknader, roller och rutter bevaras. Motstridiga ändringar får tydlig behandling och körningen får slutstatus.",
+      "prohibited": "En import med noll inlästa rutter får inte beskrivas som fullt sändningsklar. En avbruten körning får inte ligga obevakad som running.",
+      "rule_ids": [
+        "IMP-01",
+        "IMP-02",
+        "IMP-03"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    "SC-059": {
+      "id": "SC-059",
+      "name": "Tom registrerad subadress",
+      "given": "Registerversionen anger ingen subadress för den valda aktören och trafiken.",
+      "when": "Bygg rutt- och kuvertprofilen.",
+      "expected": "Tom subadress bevaras; ingen universell GRIDEX- eller SCH-standard införs.",
+      "prohibited": "Ändra inte Mjölbys registrerade PRODAT-subadress utan registerstöd.",
+      "rule_ids": [
+        "IMP-04"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    }
+  },
+  "effects": {
+    "SC-057": [
+      {
+        "obligation": "Same file twice, followed by three contradictory changes",
+        "evidence": "Synthetic XML1 declares EL71801/71802/71803 with two roles, PRODAT+UTILTS each, and GAS71801 PRODAT; XML2 changes exactly the three EL PRODAT SMTP targets and omits GAS. Actual public action accepts File/FormData through the real XML parser, TS prior-read/apply and service-role SQL owners.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Preview and controlled apply",
+        "evidence": "Initial and later preview use the actual snapshot RPC/diff producer and persist only preview run/issues. Non-preview source/masterdata snapshots remain equal. Explicit IMPORTERA is checked before any RPC; unauthorized front-door admission produces no call/write. Front-door admin and audit capabilities are declared finite ports.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Identical data creates no duplicates",
+        "evidence": "Exact XML1 repeat reads the existing immutable result before parse/apply. Full sorted to_jsonb snapshots of all17 public/private relations remain equal, apply-RPC count is unchanged, retained original bytes decode equal XML1, same original UI/private run is reused, reused audit is nonbillable.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Markets, roles and routes preserved",
+        "evidence": "Actual source-market records retain EL/GAS and original normalized roles. All10 old/new routes survive; the GAS row and three UTILTS rows remain byte-equal. Six actor/role/is_active tuples remain equal. The later omission of GAS is not an authenticated delete.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Three contradictions receive clear treatment",
+        "evidence": "Later actual preview reports exactly three actors with fields=[routes]. Actual SQL retains all3 old and3 new PRODAT rows as needs_review/is_verified=false/auto_send_allowed=false. Existing history trigger retains prior verified/autosend snapshots and 64-character hashes; original first source remains exact.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Execution gets terminal status",
+        "evidence": "Both actual source and UI apply runs end completed, with finished_at/completed_at nonnull and no running source row. The actual result says activation=held_pending_current_source_readiness. Existing verification was real SQL, but pre-change autosend=true was a declared prior readiness input.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Zero imported routes must not appear fully send-ready",
+        "evidence": "Actual preview becomes completed_with_warnings/safe=false/upserted0 with blocking ediel_registry_zero_routes_source_held. Apply throws before apply RPC and leaves all source/masterdata relations unchanged; only permitted preview records are produced.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Interrupted execution must not remain unattended running",
+        "evidence": "Declared fault trigger checks both actual running headers and a preceding route mutation inside the real owner, then raises. Complete17-relation snapshots roll back; no durable new running header, partial source/masterdata or completion audit survives. This tests atomic SQL transaction abort, not process-kill/connection-loss/concurrency or legacy abandoned-run cleanup.",
+        "verdict": "PASS"
+      }
+    ],
+    "SC-059": [
+      {
+        "obligation": "Registered version has no selected subaddress",
+        "evidence": "Frozen named JSON selects Gridex EL AB21660 PRODAT/UTILTS=null and Mjölby Kraftnät AB27700 UTILTS=null; Mjölby PRODAT=PRODAT is the positive registered counterexample. Original XML hash is linkage; original XML bytes are unavailable and not_imported_live=true is asserted.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Build route and envelope profile",
+        "evidence": "Actual requireElRegistryRouteSource/materializer, sender selection, owned three-payload persistence calls, canonical actor/route context, current dispatch/source DTO guard and real EdifactEnvelopeCodec/tokenizer/decode execute. SDK storage, private qualification/dispatch, tenant identity and readiness are finite admitted inputs; no private producer or native ACL execution is fabricated.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Empty subaddress preserved",
+        "evidence": "All4 named cases assert three actual caller payloads, exact selected route/environment/receiver/email and null sender. Gridex both families and Mjölby UTILTS retain receiver null in profile and context; UNB composite has exactly [id,ZZ], decode returns null, no auto-route fallback is called, and frozen projection bytes remain exact.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "No universal GRIDEX/SCH introduced",
+        "evidence": "Invented GRIDEX and SCH on the registered empty Gridex PRODAT profile fail the actual source/context comparison before renderer completion or additional writes. Codec partyComposite emits no third component for null; no universal subaddress constant enters this path.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Do not alter Mjölby registered PRODAT without support",
+        "evidence": "Named27700 PRODAT remains PRODAT in three alias profile fields, actual context, receiver UNB [27700,ZZ,PRODAT] and decode. Replacing it with null, GRIDEX or SCH fails the actual current guard before encoding or additional writes.",
+        "verdict": "PASS"
+      },
+      {
+        "obligation": "Preserve current source/scope at reached boundaries",
+        "evidence": "Held mapped source and different actor deny materialization before all writes/readiness. Foreign dispatch company and a changed current record hash deny current revalidation before rendering/additional writes. Scope RPC argument tuples are asserted; the guard null/unmapped return is not claimed to be a generic missing-source denial.",
+        "verdict": "PASS"
+      }
+    ]
+  },
+  "qualification": {
+    "source_inputs": 52,
+    "owner_evidence_hashes": 11,
+    "new_only_paths": 19,
+    "all_preexisting_tracked_paths_and352_rows_unchanged": true,
+    "all50_existing_inputs_equal_current_main": true,
+    "four_actual_installed_bodies_equal_current_capture": true,
+    "dynamic_migration_tail_independently_reconstructed_equal": true
+  },
+  "verification": {
+    "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH NODE_OPTIONS=--require=/workspace/agent-review-checkouts/sc057-sc059/scripts/lib/unit-loopback-network-boundary.cjs node node_modules/vitest/vitest.mjs run __tests__/ediel-sc-057-registry-import-lifecycle.test.ts __tests__/ediel-sc-059-registered-subaddress.test.ts --reporter=default --reporter=junit --outputFile=/workspace/agent-review-checkpoints/sc057-sc059/independent-unit.xml > /workspace/agent-review-checkpoints/sc057-sc059/independent-unit.log 2>&1",
+    "cwd": "/workspace/agent-review-checkouts/sc057-sc059",
+    "exit_code": 0,
+    "tests": 22,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "SC057_cases": 9,
+    "SC059_cases": 13,
+    "unchanged_inherited_SQL_groups": 28,
+    "separate_SQL_native_full_browser_capture_execution": "NOT_RUN",
+    "first_permission_review": "NOT_EXECUTED_MODEL_CAPACITY",
+    "retry": "same narrow reviewed request succeeded",
+    "owner_types_lint_spec": "OWNER_RETAINED_HASH_QUALIFIED_NOT_INDEPENDENTLY_RERUN"
+  },
+  "owners": [
+    {
+      "signature": "public.ediel_apply_actor_registry_v1(uuid,text,text,text,text,jsonb)",
+      "capturedBodySha256": "0efcb1eb3209487359390908626d49d6c47acaacbd3ea825d9036f8b36f4ec2e",
+      "latest_literal_definition": "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+      "final_catalog_transforms": [
+        "40445 exact EL/country/org prerequisite",
+        "40446 exact TXT/country expansion",
+        "103439 guarded graph lock insertion; current TXT bridge already exact no-op"
+      ],
+      "independently_reconstructed_current_body_exact": true,
+      "lines": 142,
+      "all_literal_definitions": [
+        {
+          "path": "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+          "bodySha256": "51f768044772001ad5411c2c89772fdbe452c0d7be2be9ce30e8f963929f465d"
+        },
+        {
+          "path": "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql",
+          "bodySha256": "b6aa0b66988526e40f9b84c4dbbb6861817c2468056de28870cb9782eba5f378"
+        },
+        {
+          "path": "supabase/migrations/20261001025903_ediel_registry_zero_route_import_hold.sql",
+          "bodySha256": "516b8fb9d7ef712831028d6be8aa3b56e1d2b98cafd8a19b88d5fb1593c30d8e"
+        },
+        {
+          "path": "supabase/migrations/20261001031233_ediel_registry_declared_route_source_fields.sql",
+          "bodySha256": "96140c4e75e4598191a28baa6f489d36949b405db3a964b1bbd711d745038cfb"
+        },
+        {
+          "path": "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+          "bodySha256": "e07b123d231d255bb2aacffb3a5a7e51f111195d04d1814e6c32b684ad3d742b"
+        }
+      ]
+    },
+    {
+      "signature": "public.ediel_read_actor_registry_batch_v1(uuid,text,text,text)",
+      "capturedBodySha256": "906b6c196acb204a7deecdfa985dbddd272cf2a8aba523fa2f27538581bcfe72",
+      "latest_literal_definition": "supabase/migrations/20261001031233_ediel_registry_declared_route_source_fields.sql",
+      "final_catalog_transforms": [
+        "40446 exact TXT expansion",
+        "103439 guarded read graph lock insertion"
+      ],
+      "independently_reconstructed_current_body_exact": true,
+      "lines": 20,
+      "all_literal_definitions": [
+        {
+          "path": "supabase/migrations/20261001031233_ediel_registry_declared_route_source_fields.sql",
+          "bodySha256": "870f543e748de13271ce0b4b32bedf02a2d8ee3478eb01d7c2ffd5921bce914b"
+        }
+      ]
+    },
+    {
+      "signature": "public.ediel_read_registry_preview_snapshot_v1(uuid,text[])",
+      "capturedBodySha256": "397225a77d607326ceacd916d0035b5ade1aa2658e093daf3bf7aca7485b8f72",
+      "latest_literal_definition": "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql",
+      "final_catalog_transforms": [
+        "103439 guarded read graph lock insertion"
+      ],
+      "independently_reconstructed_current_body_exact": true,
+      "lines": 18,
+      "all_literal_definitions": [
+        {
+          "path": "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql",
+          "bodySha256": "dec43fb62321d16ebf759ed670819a91dc86a2aaba717ec61c0c1dfbdebc4843"
+        }
+      ]
+    },
+    {
+      "signature": "gridex_registry_import.capture_route_version_v1()",
+      "capturedBodySha256": "b507eb851bf440bfb3ac03d950ad5db4bacdcd2c2a34c5d96fa523bb785eb81a",
+      "latest_literal_definition": "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql",
+      "final_catalog_transforms": [],
+      "independently_reconstructed_current_body_exact": true,
+      "lines": 9,
+      "all_literal_definitions": [
+        {
+          "path": "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql",
+          "bodySha256": "b507eb851bf440bfb3ac03d950ad5db4bacdcd2c2a34c5d96fa523bb785eb81a"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/workspace/agent-review-checkpoints/sc057-sc059/source-qualification.json",
+      "sha256": "64664fab449826d2e7a86fb1f5d41c9e906c9b8ec87ddabc7c7bceb282d96d5a"
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/sc057-sc059/independent-unit.log",
+      "sha256": "346a1636cd8ce1dc32a7967f878b1aced015a5c16eb86b77bdc4a99fe0e312ff"
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/sc057-sc059/independent-unit.xml",
+      "sha256": "917300d835adb8dded5491b19c111c32e2906d9cf6b405688b6979dc5a6cd7ce"
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/sc057-sc059/independent-sc057-effects.json",
+      "sha256": "8c4cda041d68337ba250fd96b10a58dce5c214bb48c407d2d6f83a5f52d839a1"
+    }
+  ],
+  "review_markdown": {
+    "path": "/workspace/agent-review-checkpoints/sc057-sc059-independent-review.md",
+    "sha256": "c16c1638854844f304b6e4e95ad3d66571bd9071abaf8f80b97001efbf936ede"
+  },
+  "skills": [
+    {
+      "path": ".agents/skills/spec-to-code-compliance/SKILL.md",
+      "sha256": "eb0d91b50a9c06f50baf8763d1e23566897b9fa3e7ffcf13134eee4e1ccaefe5"
+    },
+    {
+      "path": ".agents/skills/code-review/SKILL.md",
+      "sha256": "ec5fc8855cb4648b4f2c79b608f8c8824a2da6a683330524c4d6283e4a3954c4"
+    },
+    {
+      "path": ".agents/skills/differential-review/SKILL.md",
+      "sha256": "1499d68ed4465fe89448f2bd90054b16a1a047f2e49a433623312f3b7a8a9742"
+    },
+    {
+      "path": ".agents/skills/verification-before-completion/SKILL.md",
+      "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
+    },
+    {
+      "path": ".agents/skills/using-git-worktrees/SKILL.md",
+      "sha256": "8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd"
+    }
+  ],
+  "limits": [
+    "Original XML bytes unavailable; original XML hash is linkage only; projection not_imported_live true.",
+    "SC059 private current-source qualification/dispatch, SDK storage, tenant identity/readiness are finite ports, not authentic native producer/ACL.",
+    "SC057 synthetic XML/admin/audit/preview storage, graph/AI/readiness/transport/tokenizer bootstrap ports finite; actual owner writes are reached.",
+    "SC057 interruption is real statement transaction abort/whole17-relation rollback, not process kill/connection loss/concurrency/legacy abandoned-run cleanup.",
+    "Full business payload/outbox/SMTP/certificates/market/legal/current competent Gridex revalidation are not claimed.",
+    "Null/unmapped source return not represented as generic missing-source denial.",
+    "Current head CI/composition/promotion and future root020000 P08 capture scope remain parent-owned."
+  ],
+  "confirmed_findings": [],
+  "owner_source_edits": false,
+  "review_checkout_clean": true
+}

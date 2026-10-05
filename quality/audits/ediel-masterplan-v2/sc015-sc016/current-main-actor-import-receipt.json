@@ -1,0 +1,90 @@
+{
+  "scope": "SC015/SC016 narrow current-main test dependency integration; original whole approval retained at finite ports; new patch requires root final review/mandatory CI",
+  "createdAtUTC": "2026-10-05T13:50:50.696780+00:00",
+  "main": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+  "priorHead": "0befb0046906b7109d9366655be328831e3139bc",
+  "priorWholeApproval": "f2081c55c86061ec3feb1cff0f93789da89f84cc",
+  "ownershipHandoff": "https://github.com/heke99/gridex-ops-platform/pull/559#issuecomment-5995622563",
+  "productionChange": false,
+  "currentProductionAndGeneratedArtifactsByteExactMain": true,
+  "patch": "Replace old AST-only actor function extraction with existing complete-module loader. Supply actual current failureDisposition module through existing import bindings. No copied class, no new test assertion, no SQL or production change.",
+  "redProof": "Exact current denied actor function with original SC016 finite SDK bindings throws ReferenceError EdielExecutionFailure is not defined, failing existing foreign-actor regex. Prior source regex and actual current class-binding control pass. Tiny pure actor probe, no SQL/native red replay.",
+  "greenProof": {
+    "ownedCases": 10,
+    "SC015": 7,
+    "SC016": 3,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "SC016ActualCoupledSqlGroups": 10,
+    "SC016InheritedSqlGroups": 61,
+    "currentRealModule": "Actual unchanged current authorization module and actual failureDisposition class executed in SQL-backed administration caller; foreign actor still denied before publisher RPC"
+  },
+  "checkExits": {
+    "tests": 0,
+    "typesTests": 0,
+    "scopedLint": 0,
+    "frozenIntegrity": 0,
+    "nodeSyntax": 0,
+    "ownedAdaptationDiffCheckComparedToPrior0bef": 0
+  },
+  "originalPreloadFixPreservedByteExact": true,
+  "fullTaggedGate": "NOT_RUN locally again; current required CI owns unfiltered supported tag gate. Owned SC015/016 tags and all foreign approved evidence preserved.",
+  "native": "NOT_RUN; prior genuine0796 provenance retained only at its original source/version/scope, not current full schema/migration replay",
+  "custody": "External legal/market custody not claimed; all original finite ports remain",
+  "sourceCarry": {
+    "foreignMainPathsExact": 7676,
+    "foreignRowsExact": 350,
+    "onlyRowDelta": [
+      "SC-015",
+      "SC-016"
+    ],
+    "boundedInputs": 32,
+    "selectedCurrentSqlBodies": 25,
+    "assertionsAndScriptBodyExactAfterDependencyBindingNormalization": true
+  },
+  "files": [
+    {
+      "path": "evidence/current-main-actor-import-green.log",
+      "sha256": "5ba80e53d407bc1131644d300ff8ccfe74e247c757607c15446c43136f1a4398"
+    },
+    {
+      "path": "evidence/current-main-actor-import-green.xml",
+      "sha256": "b9c3fe072d0e50827608f0ab8b0eccfa3899d763f445ff2d7b4be5cad59af694"
+    },
+    {
+      "path": "evidence/current-main-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/current-main-scoped-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/current-main-integrity.log",
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+    },
+    {
+      "path": "sc015-sc016-a8-actor-import-probe.cjs",
+      "sha256": "e99f2370ee047927488cd79014e7db004b5a41b4144d2566c0002eb42ced018f"
+    },
+    {
+      "path": "sc015-sc016-a8-actor-import-probe-inputs.json",
+      "sha256": "f928c7016021ddbaa0ad2961a2e7cd4ecade40248708c901c49d47479569993b"
+    },
+    {
+      "path": "sc015-sc016-a8-actor-import-probe.json",
+      "sha256": "cdc4ebb560a754623040ef070f66340c565fc98556a2ed611728db2855713c26"
+    },
+    {
+      "path": "current-main-source-carry.json",
+      "sha256": "881b1e49f0fa62e7e5de30b6e8cb45c9db763104975a3a6265e416ce3f57a2c7"
+    },
+    {
+      "path": "qualify-current-main-carry.py",
+      "sha256": "dc4202fa0a7a0a2f7ce811996c83e84ec17b0cf5d542267691c3beffddca60e1"
+    }
+  ],
+  "next": "Publish same owner branch without force; root independently reviews narrow patch/source carry and merges only actual new-head mandatory all-green CI and fresh main union.",
+  "historicalWhitespaceScope": "Actual whole current-main PR diff includes whitespace from unchanged original0bef raw preload-failure logs/XML; retained byte-exact for original receipt custody. No whole-PR diff-check zero claim. Current owned adaptation delta relative0bef passes diff --check."
+}
