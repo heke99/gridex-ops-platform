@@ -1,0 +1,66 @@
+{
+  "status": "TWO_GENUINE_MAIN_FIXTURE_PREREQUISITES_FIXED_LOCAL11_GREEN_TYPES_LINT_DIFF_INDEPENDENT_PASS_NEW_FINAL_CI_PENDING",
+  "created_at_utc": "2026-10-05T19:37:07.875872+00:00",
+  "previous_source_head": "d0e21d200b40cb63bd22043d4a03080fe3584866",
+  "source_sha256": {
+    "__tests__/ediel-env07-outbox-separation.test.ts": "8777163113ac4d0398f0d5d55aad22dec8b64905682b585eb91f63f030a0cc5d",
+    "__tests__/ediel-sc-068-reference-authority-boundary.test.ts": "f08206e98406a372d370e095e617ad646e791a125c2c2026368e14ae307a3e25"
+  },
+  "actual_red": {
+    "tests": 11,
+    "failed": 5,
+    "passed": 6,
+    "preload_does_not_fix": true
+  },
+  "focused_green": {
+    "tests": 11,
+    "passed": 11,
+    "native_ownership_probe_embedded_pass": 20,
+    "actual_PG17_native": "NOT_RUN_BY_THIS_FIXTURE_CHECK"
+  },
+  "checks": {
+    "full_tests_types": "PASS",
+    "scoped_lint": "PASS",
+    "scoped_diff": "PASS",
+    "independent_review": "PASS_ZERO_CRITICAL_IMPORTANT"
+  },
+  "protected": "All runtime/SQL/workflow/8captureinputs/raw3/priorcorrections untouched; all old assertions/tags/refusals remain.",
+  "receipt_sha256": {
+    "diagnosis.json": "c40871d7af9dae42089273960f6f2ae66fda472442eb9a01018bc7b3eae41247",
+    "qualification.json": "069248c931158ed354213a53b7ca76953804c6619d2cadc13f52a3b0320800f2",
+    "ediel-env07-sc068-fixture-prerequisites-independent-review.json": "5ae4b0b9d6d27a785eccee4af76a36ab8fd57b6dbc77f6ad7a3ff52e44fe2486",
+    "historical-d0-failed-qualification.json": "6e4aae784dcfd1ac8f08e668fed338b93160e11dc17c5144d8cbc03f91e979f8",
+    "tenant-composition-final-d0-upgrade-independent-review.json": "2f7324c71720202317a9eb1649ceb1db47ab1d9dae3cda7b078c62d585675a4a"
+  },
+  "lossless_log_files": {
+    "diff-check.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "green-two-files.log.gz": {
+      "sha256": "25cbc80c9e44e5b3ecc2921d61c5d94ebfbdb7f9ed5912e3e711aee9e68b52be",
+      "uncompressed_sha256": "97b46bd9cc0d86a597fea7087c6645e049ae3e9e5e5fc4b6beee0bbfadab7e66"
+    },
+    "lint.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "preload-two-files.log.gz": {
+      "sha256": "d5de1022b08a5610f792eaca934cdebaf6c8d3a9ae15d9cb355392c6a202390e",
+      "uncompressed_sha256": "d01f9d276e08b3f7d830425003ae6bba1bb43f5f883ba421821770003fda7ab1"
+    },
+    "red-two-files.log.gz": {
+      "sha256": "b76de4cdbddc5a1caa87852a7effa2aa5131afb71f845f7e8b36559610810bd2",
+      "uncompressed_sha256": "f80dcbe5813d08b41ec4865f3f4e6dac0d5555e0494a1445f5b79975d95a2742"
+    },
+    "typecheck-tests.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "pending": [
+    "Fresh new-head full13 mandatoryCI/nativeclean/trueancestorupgrade/parity."
+  ],
+  "hosted_writes": 0,
+  "live_support_domain_activated": false
+}

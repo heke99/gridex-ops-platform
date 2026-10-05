@@ -1,0 +1,290 @@
+{
+  "status": "PASS_BOUNDED_TWO_TEST_FIXTURE_SOURCE_REVIEW_FRESH_FINAL_CI_PENDING",
+  "created_at_utc": "2026-10-05T19:35:46.802345+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "base_head": "d0e21d200b40cb63bd22043d4a03080fe3584866",
+  "base_tree": "c345c779ee6435e2daad7dac7a362e57d7bcae09",
+  "reviewed_worktree_delta_only": [
+    "__tests__/ediel-env07-outbox-separation.test.ts",
+    "__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+  ],
+  "author_qualification": {
+    "path": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/qualification.json",
+    "sha256": "069248c931158ed354213a53b7ca76953804c6619d2cadc13f52a3b0320800f2"
+  },
+  "diagnosis": {
+    "path": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/diagnosis.json",
+    "sha256": "c40871d7af9dae42089273960f6f2ae66fda472442eb9a01018bc7b3eae41247"
+  },
+  "source_reconstruction": [
+    {
+      "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+      "before_sha256": "12c032fe32764a0ad990921a3f589865d4f1023e2b792cdcc132832a8e8cc7ae",
+      "after_sha256": "8777163113ac4d0398f0d5d55aad22dec8b64905682b585eb91f63f030a0cc5d",
+      "reversing_only_authorized_prerequisite_reconstructs_base_bytes": true,
+      "existing_assertions_and_masterplan_tags_unchanged": true
+    },
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "before_sha256": "573a70c3055939fcef3764af2d21fabcaac98e3a3dabee249a224ce09b344760",
+      "after_sha256": "f08206e98406a372d370e095e617ad646e791a125c2c2026368e14ae307a3e25",
+      "reversing_only_authorized_prerequisite_reconstructs_base_bytes": true,
+      "existing_assertions_and_masterplan_tags_unchanged": true
+    }
+  ],
+  "source_findings": [
+    {
+      "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+      "result": "PASS",
+      "evidence": [
+        "Claim mock changes only locked_at at same point as sending/locked_by",
+        "Actual captured claim_ediel_outbox_items stamps locked_at=now()",
+        "Current sendOutboxItem requires finite nonfuture lease under ten minutes",
+        "Existing real dispatch, tenant/environment mismatch and immutable wire assertions unchanged"
+      ],
+      "anchors": [
+        {
+          "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+          "line": 33
+        },
+        {
+          "path": "lib/ediel/outbox/sendOutboxItem.ts",
+          "line": 96
+        },
+        {
+          "path": "supabase/schema.sql",
+          "line": 41131
+        }
+      ]
+    },
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "result": "PASS",
+      "evidence": [
+        "timeAnchors retained from genuine initial decision; presence independently asserted",
+        "No fabricated owner token or policy time supplied",
+        "Copied initial still fails initialUtiltsOwners WeakMap identity and exact original-owner message",
+        "Same no receipt/consumption and production-effects assertions unchanged"
+      ],
+      "anchors": [
+        {
+          "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+          "line": 80
+        },
+        {
+          "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+          "line": 15
+        },
+        {
+          "path": "lib/ediel/core/runtimeDecision.ts",
+          "line": 676
+        }
+      ]
+    }
+  ],
+  "protected_byte_bindings": {
+    ".github/workflows/ediel-masterplan-v2.yml": {
+      "sha256": "7b5ccdaa4e0807f03c5fd580f6a4d04492750d5d24a02de4df8bffca02ac513e",
+      "byte_identical_to_d0": true
+    },
+    "scripts/ediel-masterplan-test-coverage.cjs": {
+      "sha256": "e23a0789eb9ea1fb9c7cda2f06901ecb075f9f9a2df1ad04900072e5d44f1bbe",
+      "byte_identical_to_d0": true
+    },
+    "scripts/lib/unit-loopback-network-boundary.cjs": {
+      "sha256": "4c0e36a6317453093a604a2c14eeed5bfc22b14ec02b65c25d5d3572521ecad9",
+      "byte_identical_to_d0": true
+    },
+    "package.json": {
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "byte_identical_to_d0": true
+    },
+    "package-lock.json": {
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "byte_identical_to_d0": true
+    },
+    "quality/audits/ediel-masterplan-v2/coverage.json": {
+      "sha256": "c688a7fa0d758f29dc57af0f969bf7aece32d9866ed00e2e7fae75270a1fa9be",
+      "byte_identical_to_d0": true
+    },
+    "scripts/gridex-aud-003-clean-replay.sh": {
+      "sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "byte_identical_to_d0": true
+    },
+    "scripts/migration-history-manifest.json": {
+      "sha256": "0b15e290c942d458161574f09d6b1cfec90f7a28429e12f05363ea6adffbe28e",
+      "byte_identical_to_d0": true
+    },
+    "scripts/migration-history-manifest.additions.json": {
+      "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "byte_identical_to_d0": true
+    },
+    "scripts/migration-history-manifest.runtime.additions.json": {
+      "sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+      "byte_identical_to_d0": true
+    },
+    "scripts/supabase-types-manifest.json": {
+      "sha256": "456efc058c18e03f7d1131d580311d824e262ea98d4d83187ecadea54577433a",
+      "byte_identical_to_d0": true
+    },
+    "scripts/apply-supabase-types-nullability-overrides.cjs": {
+      "sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "byte_identical_to_d0": true
+    },
+    "scripts/gridex-schema-snapshot.cjs": {
+      "sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "byte_identical_to_d0": true
+    },
+    "supabase/config.toml": {
+      "sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+      "byte_identical_to_d0": true
+    },
+    "supabase/database.types.ts": {
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+      "byte_identical_to_d0": true
+    },
+    "supabase/schema.sql": {
+      "sha256": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd",
+      "byte_identical_to_d0": true
+    },
+    "supabase/schema.fingerprint.json": {
+      "sha256": "aa62329efddaee84f699f6bbc235cc325f3d5a4f3d20374f7adfac08a19f6ab4",
+      "byte_identical_to_d0": true
+    },
+    "scripts/ediel-utilts-consumption-native.test.ts": {
+      "sha256": "c689f3db90e7840217b51dcdc5b31a88bb71410e22a6ba5fd99a60ca69d78df8",
+      "byte_identical_to_d0": true
+    },
+    "scripts/helpers/utiltsConsumptionBoundParties.ts": {
+      "sha256": "25a568f64005a4f912d45ea74ba5e59199cb89c1b923278ded1d6b569fbbcfbd",
+      "byte_identical_to_d0": true
+    },
+    "__tests__/utilts-native-bound-parties.test.ts": {
+      "sha256": "93da672fe78125de283e456e754829a4b1f634abbaa5116ad062330737b85e29",
+      "byte_identical_to_d0": true
+    },
+    "__tests__/fixtures/staff-captured-identity-authority.ts": {
+      "sha256": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296",
+      "byte_identical_to_d0": true
+    },
+    "lib/customer-service/supportConversation.ts": {
+      "sha256": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+      "byte_identical_to_d0": true
+    },
+    "lib/ediel/outbox/sendOutboxItem.ts": {
+      "sha256": "e22878fa467279bba66088415f60bbc525f82347aaa24bd9f239406bed1dd0a8",
+      "byte_identical_to_d0": true
+    },
+    "lib/ediel/flows/utiltsCanonicalValidation.ts": {
+      "sha256": "f0878d542222594c3f9e6800ec06c6ef439cda49207d8a060e7f73a4f658425f",
+      "byte_identical_to_d0": true
+    },
+    "lib/ediel/core/runtimeDecision.ts": {
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "byte_identical_to_d0": true
+    },
+    "lib/ediel/outbox/processEdielOutbox.ts": {
+      "sha256": "06bfcc9d41d0a0c561ee2bca7651c270515566358f2b0c7604e3e266a06543bc",
+      "byte_identical_to_d0": true
+    }
+  },
+  "existing_author_run_evidence_reviewed": [
+    {
+      "name": "RED, exact two failing files, no network preload",
+      "exit_code": 1,
+      "tests": 11,
+      "passed": 6,
+      "failed": 5,
+      "log": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/red-two-files.log",
+      "log_sha256": "f80dcbe5813d08b41ec4865f3f4e6dac0d5555e0494a1445f5b79975d95a2742",
+      "command": "npx --no-install vitest run __tests__/ediel-env07-outbox-separation.test.ts __tests__/ediel-sc-068-reference-authority-boundary.test.ts --reporter=verbose",
+      "reviewer_reran": false
+    },
+    {
+      "name": "A/B, identical two-file RED with existing network preload",
+      "exit_code": 1,
+      "tests": 11,
+      "passed": 6,
+      "failed": 5,
+      "log": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/preload-two-files.log",
+      "log_sha256": "d01f9d276e08b3f7d830425003ae6bba1bb43f5f883ba421821770003fda7ab1",
+      "command": "npx --no-install vitest run __tests__/ediel-env07-outbox-separation.test.ts __tests__/ediel-sc-068-reference-authority-boundary.test.ts --reporter=verbose",
+      "reviewer_reran": false
+    },
+    {
+      "name": "GREEN, same exact two files and no network preload",
+      "exit_code": 0,
+      "tests": 11,
+      "passed": 11,
+      "failed": 0,
+      "log": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/green-two-files.log",
+      "log_sha256": "97b46bd9cc0d86a597fea7087c6645e049ae3e9e5e5fc4b6beee0bbfadab7e66",
+      "command": "npx --no-install vitest run __tests__/ediel-env07-outbox-separation.test.ts __tests__/ediel-sc-068-reference-authority-boundary.test.ts --reporter=verbose",
+      "reviewer_reran": false,
+      "unchanged_embedded_probe": {
+        "finite_PGlite_checks": 20,
+        "body_bindings": 12,
+        "actual_native": "NOT_RUN",
+        "scope": "captured source bodies plus declared finite fixture ports; not hosted or full native acceptance"
+      }
+    },
+    {
+      "name": "full tests TypeScript",
+      "exit_code": 0,
+      "log": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/typecheck-tests.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "npx --no-install tsc --noEmit --pretty false -p tsconfig.tests.json --incremental false",
+      "reviewer_reran": false
+    },
+    {
+      "name": "scoped ESLint",
+      "exit_code": 0,
+      "log": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/lint.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "npx --no-install eslint __tests__/ediel-env07-outbox-separation.test.ts __tests__/ediel-sc-068-reference-authority-boundary.test.ts --max-warnings 0",
+      "reviewer_reran": false
+    },
+    {
+      "name": "Git whitespace check",
+      "exit_code": 0,
+      "log": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/diff-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "git diff --check",
+      "reviewer_reran": false
+    }
+  ],
+  "confirmed_scope": {
+    "existing_tests": 11,
+    "RED_failed": 5,
+    "RED_passed": 6,
+    "GREEN_passed": 11,
+    "GREEN_failed": 0,
+    "network_preload_A_B_same_failures": true,
+    "new_defined_assertion_added": 1,
+    "old_assertions_or_tags_removed": 0,
+    "other_tracked_source_changes": 0
+  },
+  "critical_or_important_findings": [],
+  "routing": {
+    "activated": [
+      "bounded differential review",
+      "source-grounded fixture diagnosis",
+      "existing verification evidence review"
+    ],
+    "skipped": [
+      "Broad audit, variant scans, full suites and live review outside authorized two-test scope",
+      "Next guide: no Next source written",
+      "AGENTS memory mutation: parent explicitly prohibits repository edits"
+    ]
+  },
+  "limitations": {
+    "reviewer_test_or_tag_checker_runs": 0,
+    "native_or_replay_runs": 0,
+    "artifact_downloads": 0,
+    "hosted_or_network_calls": 0,
+    "repository_source_or_memory_edits": 0,
+    "d0_actual_CI_failure_not_relabelled": true,
+    "new_head_full_required_13_CI_and_native_pending": true,
+    "current_branch_not_published_by_reviewer": true
+  }
+}

@@ -1,0 +1,194 @@
+{
+  "status": "PASS_EXACT_D0_COMPOSED1076_UPGRADE_ARTIFACT_ONLY_CLEAN_PENDING_WHOLE_CI_NOT_ACCEPTED",
+  "verified_at_utc": "2026-10-05T19:30:04.707202+00:00",
+  "candidate": {
+    "source": "d0e21d200b40cb63bd22043d4a03080fe3584866",
+    "head": "d0e21d200b40cb63bd22043d4a03080fe3584866",
+    "tree": "c345c779ee6435e2daad7dac7a362e57d7bcae09",
+    "run_id": 37361810249
+  },
+  "verifier": {
+    "path": "/tmp/gridex-staff-review/verify-staff-prerequisite-native-upgrade.py",
+    "sha256": "80701be6b26205ac9712812e5ac579adfc5feb458e7415c0a98a5cded7a7bff6",
+    "verify_upgrade_executions": 1
+  },
+  "authenticated_job": {
+    "id": 111937994728,
+    "conclusion": "success",
+    "started_at": "2026-10-05T19:17:35Z",
+    "completed_at": "2026-10-05T19:27:11Z",
+    "metadata_path": "/tmp/gridex-staff-review/tenant-composition-final-d0-upgrade-job-completion.raw.json",
+    "metadata_sha256": "c1570f16d33c316b8b550dc0e361011d6c6ab660a75541389ea115f4339ca4f2"
+  },
+  "final_source_binding": {
+    "path": "/tmp/gridex-staff-review/tenant-composition-final-d0-source-binding-independent-review.json",
+    "sha256": "0780b7c7f36f53a7e5b644e5c7c3c1f1ba0d1583be525f8886e5d470ce6fde66"
+  },
+  "whole_manifest_count": 1076,
+  "latest_forward": {
+    "name": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
+    "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d"
+  },
+  "old_c6bf_sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+  "upgrade": {
+    "artifact": {
+      "path": "/workspace/attachments/121cc943-51ef-4223-a5fe-d5c8ea0e3b36/gridex-tenant-composition-upgrade-final-d0.zip",
+      "metadata_path": "/tmp/gridex-staff-review/tenant-composition-final-d0-upgrade-artifact-metadata.json",
+      "name": "gridex-rem-002-upgrade-replay",
+      "id": 11367292465,
+      "run_id": 37361810249,
+      "head": "d0e21d200b40cb63bd22043d4a03080fe3584866",
+      "sha256": "293564a8fbab310440b9d0f9f422e155e2030a95435322234e137d70c946ac47",
+      "bytes": 8213017,
+      "member_count": 25,
+      "expiry_digest_size_crc_and_names_verified": true
+    },
+    "main_upgrade": {
+      "base": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "actual_git_ancestor": true,
+      "historical_committed_inputs_preserved": 644,
+      "forward_count": 430,
+      "manifest_delta_and_execution_sequence_equal": true
+    },
+    "branch_upgrade": {
+      "base": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "historical_committed_inputs_preserved": 886,
+      "pending_count": 188,
+      "contract_sha256": "06d80168658bf156f485f55f4efada0dc0fd58dbf74d51e91e012f909e91026d",
+      "manifest_delta_and_execution_sequence_equal": true,
+      "importer_identity_preserved": true,
+      "qualification": "Captured branch receipts/current checksum bindings and local base bytes; no source-witness fetch or independent replay; no deployment-ledger claim."
+    },
+    "generated_outputs": [
+      {
+        "path": "supabase/database.types.ts",
+        "members": [
+          "rem002-upgrade/clean/database.types.ts",
+          "rem002-upgrade/upgraded/database.types.ts",
+          "rem002-upgrade/applied-txt-branch/upgraded/database.types.ts"
+        ],
+        "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+        "bytes": 3705243,
+        "three_raw_outputs_equal": true,
+        "committed_raw_equal": true,
+        "exact_frozen_redactor_equal": true
+      },
+      {
+        "path": "supabase/schema.sql",
+        "members": [
+          "rem002-upgrade/clean/schema/schema.sql",
+          "rem002-upgrade/upgraded/schema/schema.sql",
+          "rem002-upgrade/applied-txt-branch/upgraded/schema/schema.sql"
+        ],
+        "sha256": "6127856548459bbaae3ce8182ad4495001162fb05b424070a7cf1083bc89ae39",
+        "bytes": 11336991,
+        "three_raw_outputs_equal": true,
+        "committed_raw_equal": false,
+        "exact_frozen_redactor_equal": true
+      },
+      {
+        "path": "supabase/schema.fingerprint.json",
+        "members": [
+          "rem002-upgrade/clean/schema/schema.fingerprint.json",
+          "rem002-upgrade/upgraded/schema/schema.fingerprint.json",
+          "rem002-upgrade/applied-txt-branch/upgraded/schema/schema.fingerprint.json"
+        ],
+        "sha256": "44c9964730272203d9dc9e15397e7c1b079cea827191d902ffdc9713e968d573",
+        "bytes": 3033,
+        "three_raw_outputs_equal": true,
+        "committed_raw_equal": false,
+        "exact_frozen_redactor_equal": true
+      }
+    ],
+    "redactor": {
+      "path": "scripts/gridex-redact-native-evidence.py",
+      "sha256": "db285c16dc62542028d497e805a5d8315ed6183ead8d9564982ea1a80164fb74"
+    },
+    "retained_sources": [
+      {
+        "prefix": "rem002-upgrade/",
+        "sha256": "38455a15e8818aa1de4433e9c01ca66890f107601c7c69099a0a9567fe84567c",
+        "raw_equal": true
+      },
+      {
+        "prefix": "rem002-upgrade/applied-txt-branch/",
+        "sha256": "2907bfcf2972b3594abcde0bd66390ca0abf210476b7d50b49c5b484550dd1b6",
+        "raw_equal": true
+      }
+    ],
+    "junit": [
+      {
+        "member": "rem002-upgrade/utilts-catalog-upgrade-junit.xml",
+        "sha256": "6a835b17b26e7133cfa4eba37871d73a75215e36228d6328bb48dc95cabd2b77",
+        "cases": 141,
+        "passes": 1,
+        "skipped": 140,
+        "class_counts": {
+          "scripts/ediel-utilts-consumption-native.test.ts": 141
+        },
+        "repeated_case_labels": 1,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "member": "rem002-upgrade/applied-txt-branch/utilts-catalog-upgrade-junit.xml",
+        "sha256": "e0e1fac00e55e6113c59c6da9e1e106ded6ddfd4e57d9da6e4c61763c0f28e69",
+        "cases": 141,
+        "passes": 1,
+        "skipped": 140,
+        "class_counts": {
+          "scripts/ediel-utilts-consumption-native.test.ts": 141
+        },
+        "repeated_case_labels": 1,
+        "failures": 0,
+        "errors": 0
+      }
+    ],
+    "catalogs": [
+      {
+        "member": "rem002-upgrade/upgraded/utilts-catalog.json",
+        "sha256": "1c972532279f37452377b9302859319e15c273aa7f7c02200f5cf84010aea946",
+        "phase": "upgrade",
+        "head_tree_bound": true,
+        "owner_migrations_bound": 8,
+        "upgrade_oid_preserved": true
+      },
+      {
+        "member": "rem002-upgrade/applied-txt-branch/upgraded/utilts-catalog.json",
+        "sha256": "de4836b32e802e7ee9cefe034ecce142482f9b8d230755ae39b23c973f377831",
+        "phase": "upgrade",
+        "head_tree_bound": true,
+        "owner_migrations_bound": 8,
+        "upgrade_oid_preserved": true
+      }
+    ],
+    "upgrade_skips_scope": "Only the catalog-filtered native case executes in each upgrade report; broad native/browser coverage comes from the distinct clean artifact."
+  },
+  "canonical_fingerprints": [
+    {
+      "prefix": "rem002-upgrade/clean/",
+      "canonical": "e10e9bb25061f4faf6ad003831cca1d76577c5a5b26b7be685e4e9d03b1600db",
+      "file_sha256": "44c9964730272203d9dc9e15397e7c1b079cea827191d902ffdc9713e968d573"
+    },
+    {
+      "prefix": "rem002-upgrade/upgraded/",
+      "canonical": "e10e9bb25061f4faf6ad003831cca1d76577c5a5b26b7be685e4e9d03b1600db",
+      "file_sha256": "44c9964730272203d9dc9e15397e7c1b079cea827191d902ffdc9713e968d573"
+    },
+    {
+      "prefix": "rem002-upgrade/applied-txt-branch/upgraded/",
+      "canonical": "e10e9bb25061f4faf6ad003831cca1d76577c5a5b26b7be685e4e9d03b1600db",
+      "file_sha256": "44c9964730272203d9dc9e15397e7c1b079cea827191d902ffdc9713e968d573"
+    }
+  ],
+  "qualification": "Exact d0 composed1076 upgrade artifact only. Clean remains pending. Parent reported targeted-regressions FAILURE on d0; this proof does not qualify wholeCI or any corrected future workflow head. Existing captures and previous native results retain historical scopes. No hosted/deployment/email proof.",
+  "generated_output_distinction": "Raw types match committed d0. Uploaded schemas/fingerprints equal the exact frozen redactor output; not raw-byte equality to committed dump/fingerprint.",
+  "reviewer_operations": {
+    "upgrade_artifact_downloads": 1,
+    "verify_upgrade_calls": 1,
+    "replays": 0,
+    "tests_run": 0,
+    "hosted_calls": 0,
+    "source_edits": 0
+  }
+}
