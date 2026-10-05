@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-05T18:03:19.982850+00:00",
+  "head": "d3a2309e591e84eb6c352c6bf725ef1a057e0d08",
+  "tree": "881722ffb579d5869bfcf2e8a463c5a2960e37e0",
+  "verdict": "APPROVE_BOUNDED_RECONCILIATION",
+  "whole_sc011_review_carried": true,
+  "sc023": "HELD_NOT_EXECUTED",
+  "coverage_and_grant_script_exact_prior_head": true,
+  "review_sha256": "c8fd1ad52c528cd985355de87072b765697c9abca39aa8f86119e39de846ec08",
+  "technical_patch_sha256": "eac540d67be9a4af4613c63376f0ac81ca8b8311adc8b1f3ae42616e02bbb0fc",
+  "reviewer_tests_repeated": false,
+  "required_next": "Current-main source-preserving composition, exact-head ordinary CI and guarded merge"
+}
