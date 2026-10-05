@@ -1,4 +1,5 @@
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import { PRODAT_SUBTYPE_RULES } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 export const PRODAT_26A_MESSAGE_CODES = ['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10','Z13','Z14','Z15','Z18'] as const
 export type Prodat26AMessageCode = (typeof PRODAT_26A_MESSAGE_CODES)[number]
@@ -135,8 +136,16 @@ export function canonicalProdat26AFieldRules(code: string | null | undefined): R
     segmentPath: row.segmentPath,
     requirement: REQUIREMENT_MAP[row.requirements[index]],
     ...(row.allowedValues ? { allowedValues: [...row.allowedValues] } : {}),
+    ...(row.fieldNumber === '223' ? { allowedValues: prodatWireReasonCodes(normalized) } : {}),
     source: 'static',
   }))
+}
+
+/** ENV-06 (P §2.1, §2.6, field 223 p.122): the wire CAV carries the exact
+ * three-character reason code allowed for this BGM function. Gridex subtype
+ * tokens such as L or LK are compatibility aliases, never wire values. */
+function prodatWireReasonCodes(code: Prodat26AMessageCode): string[] {
+  return PRODAT_SUBTYPE_RULES.filter(rule => rule.allowedMessageCodes.includes(code)).map(rule => rule.transactionReasonCode)
 }
 
 export function assertCanonicalProdat26AMatrixComplete(): void {

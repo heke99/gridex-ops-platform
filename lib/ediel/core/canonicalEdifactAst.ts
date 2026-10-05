@@ -132,19 +132,21 @@ function referenceMap(
   return result
 }
 
+/** ENV-10 (P §2.6; U §3.9): the characteristic qualifier lives in the
+ * family's own CCI element. PRODAT uses C502/6313 (element 2); UTILTS uses
+ * C240/7037 (element 3). A qualifier in the other family's slot is absent. */
 function cciCavMap(
   segments: readonly EdifactTokenizedSegment[],
   una: EdifactServiceStringAdvice,
+  family: string | null,
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {}
   let current: string | null = null
+  const qualifierElement = family === 'UTILTS' ? 3 : 2
 
   for (const segment of segments) {
     if (segment.tag === 'CCI') {
-      current =
-        canonicalFirstComponent(segment, 2, una)?.toUpperCase() ??
-        canonicalFirstComponent(segment, 3, una)?.toUpperCase() ??
-        null
+      current = canonicalFirstComponent(segment, qualifierElement, una)?.toUpperCase() ?? null
       continue
     }
     if (segment.tag !== 'CAV' || !current) continue
@@ -179,7 +181,7 @@ function buildLineGroups(
       itemId: canonicalFirstComponent(line, 3, una),
       segments: group,
       references: referenceMap(group, una, family),
-      cciCavCodes: family === 'PRODAT' ? prodatCharacteristicCodes(group, una) : cciCavMap(group, una),
+      cciCavCodes: family === 'PRODAT' ? prodatCharacteristicCodes(group, una) : cciCavMap(group, una, family),
     }
   })
 }
@@ -259,7 +261,7 @@ export function canonicalMessageFacts(rawPayload: string | null | undefined): {
   const semantic = message?.family === 'PRODAT' ? prodatSemanticMessageSegments(message.segments,ast.una) : message?.segments ?? ast.segments
   const cciCavCodes = message?.family === 'PRODAT'
     ? prodatCharacteristicCodes(semantic, ast.una)
-    : cciCavMap(message?.segments ?? ast.segments, ast.una)
+    : cciCavMap(message?.segments ?? ast.segments, ast.una, message?.family ?? null)
   const dtmValues: Record<string, string[]> = {}
 
   if (message?.family === 'PRODAT') {

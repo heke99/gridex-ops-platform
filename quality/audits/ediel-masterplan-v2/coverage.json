@@ -343,8 +343,15 @@
     {
       "id": "ENV-06",
       "acceptance_id": "AT-ENV-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatReasonCodeRejection.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "__tests__/ediel-env-06-env-10-prodat-cci-layout.test.ts"
+      ]
     },
     {
       "id": "ENV-07",
@@ -1314,8 +1321,13 @@
     {
       "id": "ENV-10",
       "acceptance_id": "AT-ENV-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/rulebook/fieldMatrix.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "__tests__/ediel-env-06-env-10-prodat-cci-layout.test.ts"
+      ]
     },
     {
       "id": "ACK-10",
@@ -2229,8 +2241,15 @@
     },
     {
       "id": "AT-ENV-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatReasonCodeRejection.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "__tests__/ediel-env-06-env-10-prodat-cci-layout.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-07",
@@ -2990,8 +3009,13 @@
     },
     {
       "id": "AT-ENV-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/rulebook/fieldMatrix.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "__tests__/ediel-env-06-env-10-prodat-cci-layout.test.ts"
+      ]
     },
     {
       "id": "AT-ACK-10",

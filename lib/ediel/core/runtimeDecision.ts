@@ -10,6 +10,7 @@ import {readSourceBoundAckRulePackEvidence,sourceBoundAckCanonicalPolicy} from '
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
 import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
 import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
+import {prodatWireReasonCodeRejection} from '@/lib/ediel/prodat/prodatReasonCodeRejection'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import {projectProdatDiagnostics,isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
@@ -508,7 +509,12 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
       title:'Meddelandenamn saknas eller är ogiltigt',description:'BGM/C002/1001 följer inte P26.A §2.2.',prodatDiagnostic:diagnostic}]) : null
     const qualified=Boolean(field202 && sourceWire && projected?.applicationErrors.length &&
       prodatHeaderFieldRejection({field:'202',sourceWire,errors:projected.applicationErrors}).qualified)
-    const failureDisposition = classifyEdielFailure(error, qualified ? { sourceRule: 'PRODAT26A:§2.2:ALL:202' } : undefined)
+    // ENV-06: an unknown, wrong-function or absent field-223 wire code is the
+    // sender's own content (ERC41/42), not a local policy gap.
+    const field223=!qualified && sourceWire ? prodatWireReasonCodeRejection({failure:description,code:canonical.messageCode,
+      rawSegments:canonical.rawSegments,una:canonical.una}) : null
+    const failureDisposition = classifyEdielFailure(error, qualified ? { sourceRule: 'PRODAT26A:§2.2:ALL:202' }
+      : field223 ? { sourceRule: field223.sourceRule } : undefined)
     if (failureDisposition.kind !== 'protocol_rejection') {
       const contextRule = description.startsWith('ediel_energy_sharing_activation_held:') ? 'GOV-07'
         : /^ediel_(?:admission_time|business_time|actual_send_time|replay_time)_/.test(description) ? 'GOV-06' : 'OPS-05'
@@ -528,8 +534,14 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
         title:'Meddelandenamn saknas eller är ogiltigt',description:'Fält 202 i fysisk BGM kvalificerar ERC41/42.',
         source:'P26.A §2.2 p16',prodatDiagnostic:diagnostic!,prodatAperakText:projected.observations[0]?.prodatAperakText}))
     }
+    if (field223) {
+      sourceRules.push(field223.sourceRule)
+      issues.push(...field223.issues.map(entry=>issue({layer:'application',severity:'error',code:entry.code,title:entry.title,
+        description:entry.description,source:'P26.A §2.1, §2.6, fält 223 s.122',prodatDiagnostic:entry.prodatDiagnostic})))
+    }
     addNegativeAperakIfAllowed({family:String(canonical.family),code:canonical.messageCode,responsePlan,
-      reason:description,...(qualified && projected ? {applicationErrors:projected.applicationErrors} : {})})
+      reason:description,...(qualified && projected ? {applicationErrors:projected.applicationErrors}
+        : field223 ? {applicationErrors:field223.applicationErrors} : {})})
     return buildResult({
       canonical,
       policy: null,

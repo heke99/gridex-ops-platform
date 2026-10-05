@@ -109,8 +109,17 @@ function bgmCode(rawSegments: readonly string[] | null | undefined): string | nu
   return components(element(bgm, 1))[0]?.toUpperCase() ?? null
 }
 
-function hasCci(rawSegments: readonly string[] | null | undefined, qualifier: string): boolean {
-  const expected = `CCI++${qualifier.toUpperCase()}`
+/** ENV-10: `CCI++Q` is PRODAT C502/6313; `CCI+++Q` is UTILTS C240/7037.
+ * The path's own element position is matched; neither layout stands in for the other. */
+type CciSlot = '++' | '+++'
+
+function cciPath(candidate: string): { slot: CciSlot; qualifier: string } | null {
+  const match = candidate.match(/^CCI(\+\+\+?)([A-Z0-9]+)/)
+  return match ? { slot: match[1] as CciSlot, qualifier: match[2]! } : null
+}
+
+function hasCci(rawSegments: readonly string[] | null | undefined, qualifier: string, slot: CciSlot = '++'): boolean {
+  const expected = `CCI${slot}${qualifier.toUpperCase()}`
   return (rawSegments ?? []).some((segment) => segment.toUpperCase() === expected || segment.toUpperCase().startsWith(`${expected}+`))
 }
 
@@ -127,9 +136,9 @@ function hasCciWithFollowingCav(rawSegments: readonly string[] | null | undefine
   return false
 }
 
-function valueAfterCci(rawSegments: readonly string[] | null | undefined, qualifier: string): string | null {
+function valueAfterCci(rawSegments: readonly string[] | null | undefined, qualifier: string, slot: CciSlot = '++'): string | null {
   const segments = rawSegments ?? []
-  const expected = `CCI++${qualifier.toUpperCase()}`
+  const expected = `CCI${slot}${qualifier.toUpperCase()}`
   const index = segments.findIndex((segment) => segment.toUpperCase() === expected || segment.toUpperCase().startsWith(`${expected}+`))
   if (index < 0) return null
   for (let cursor = index + 1; cursor < segments.length; cursor += 1) {
@@ -176,8 +185,8 @@ function pathPresence(rawSegments: readonly string[] | null | undefined, path: s
 
   return alternatives.some((candidate) => {
     if (candidate.startsWith('CCI++')) {
-      const qualifier = candidate.match(/^CCI\+\+([A-Z0-9]+)/)?.[1]
-      return qualifier ? hasCci(rawSegments, qualifier) : false
+      const cci = cciPath(candidate)
+      return cci ? hasCci(rawSegments, cci.qualifier, cci.slot) : false
     }
 
     if (candidate.includes('+')) {
@@ -199,8 +208,8 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
   if (!candidate) return null
 
   if (candidate.startsWith('CCI++')) {
-    const qualifier = candidate.match(/^CCI\+\+([A-Z0-9]+)/)?.[1]
-    return qualifier ? valueAfterCci(rawSegments, qualifier) : null
+    const cci = cciPath(candidate)
+    return cci ? valueAfterCci(rawSegments, cci.qualifier, cci.slot) : null
   }
 
   const prefix = candidate.includes('/') ? candidate.split('/')[0] : candidate
@@ -350,13 +359,13 @@ const UTILTS_PLANNING_FIELDS: PlanningFieldDefinition[] = [
   { fieldNumber: '223', fieldKey: 'reason_for_transaction', label: 'Reason for transaction', segmentPath: 'STS+7' },
   { fieldNumber: '264', fieldKey: 'unit', label: 'Unit', segmentPath: 'MEA+AAZ' },
   { fieldNumber: '226', fieldKey: 'prodat_transaction_reference', label: 'PRODAT transaction reference', segmentPath: 'RFF+LI' },
-  { fieldNumber: '254', fieldKey: 'settlement_method', label: 'Settlement method', segmentPath: 'CCI++E02/CAV' },
-  { fieldNumber: '513', fieldKey: 'metering_point_type', label: 'Metering point type', segmentPath: 'CCI++E12/CAV' },
-  { fieldNumber: '507a', fieldKey: 'default_metering_point_count', label: 'Default metering point count', segmentPath: 'CCI++Z01/CAV' },
+  { fieldNumber: '254', fieldKey: 'settlement_method', label: 'Settlement method', segmentPath: 'CCI+++E02/CAV' },
+  { fieldNumber: '513', fieldKey: 'metering_point_type', label: 'Metering point type', segmentPath: 'CCI+++E12/CAV' },
+  { fieldNumber: '507a', fieldKey: 'default_metering_point_count', label: 'Default metering point count', segmentPath: 'CCI+++Z01/CAV' },
   { fieldNumber: '514', fieldKey: 'observation_id', label: 'Observation id', segmentPath: 'SEQ/C286/1050' },
   { fieldNumber: '515', fieldKey: 'planned_periodic_quantity', label: 'Planned periodic quantity', segmentPath: 'QTY+135' },
   { fieldNumber: '520', fieldKey: 'quantity_quality', label: 'Quantity quality', segmentPath: 'STS+8' },
-  { fieldNumber: '507b', fieldKey: 'diverging_metering_point_count', label: 'Diverging metering point count', segmentPath: 'CCI++Z01/CAV' },
+  { fieldNumber: '507b', fieldKey: 'diverging_metering_point_count', label: 'Diverging metering point count', segmentPath: 'CCI+++Z01/CAV' },
 ]
 
 const UTILTS_PLANNING_REQUIREMENTS = {
