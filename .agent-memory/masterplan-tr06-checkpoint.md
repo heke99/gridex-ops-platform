@@ -97,17 +97,7 @@ SC-041 is independently approved in #513 and awaits its own gates and merge wind
 
 ## Next action
 
-Hold #513 and this documentation-only branch outside main until the integrator
-releases the shared-file merge window; #513 also requires its own complete gates.
-One handover line per #506/#510/#511 merge is retained. OPS05 is now whole-card
-approved in frozen #524; bounded IMP05 and OPS03 components are published in
-#539/#546 without whole-card promotion. SC058/SC069 are now whole-code approved
-and published #549/#550, pending actual-head gates/merge. SC021/SC022 are now whole-code approved and published #552/#554;
-next pair SC055/SC014 is reserved under #5305986591063, with a new SC055 caller test and bounded SC014 intake qualification. SC066 was stopped/released to its
-earlier owner before any duplicate task file was created. See the owned
-masterplan-parallel-coordination.md for exact claims, failed #4919433 native
-gate, complete sole-owner0796 correction/independent actual E66-chain review and native/CI custody. DB01 remains with its retained
-primary owner; our old read-only inventory does not approve its full card.
+SC055 is independently code-approved and published as #558; SC021/#552 and SC022/#554 now retain actual merged main507e. Each exact three-file packet changes only its own PASSED row, with necessary composition/types/lint/tag/spec checks PASS. Actual final-head CI and the campaign integrator's shared merge window remain pending. Agent tr06_spec_review solely finishes the five older main compositions; agent ack01_precheck solely qualifies SC014's fresh persisted technical CONTRL using actual current kernel/atomic SQL in its own two files. No source repair or whole SC014 approval has been made. Root owns review/publication and this local coordination memory. Preserve common #491/#500 merger receipts with the integrator and the three unique #506/#510/#511 handovers. See masterplan-parallel-coordination.md for exact current heads, immutable logs, ports and active ownership.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated
 continuation; spec-to-code-compliance + independent read-only reviewer for the
@@ -120,3 +110,5 @@ change, UI/performance work, new dependency, hook or skill authoring is in scope
 Current continuation2026-10-05: SC021/SC022 complete technical code-contract review, readyPR552/554 on main9dc, all nine final-head gates/merge pending; unique506/510/511 merge receipts unchanged. Exact proof/limits/current0796 sole-owner consumer correction and published-head ownership reconciliation are in masterplan-parallel-coordination.md. SC025/026 are already primary-PASSED and never claimed/implemented here; next pair remains unclaimed SC055/056 read-only preflight pending fresh root ownership check. Preserve all frozen source owners, actual main staff changes, shared capture/coverage window and no duplicated native/full run.
 
 Latest continuation01:41: explicit new pair SC055 evidence/SC014 intake qualification is CLAIMED #5305986591063, coordinated #4915986601894 and clarified by source owner #4915986603379. Six obsolete queued runs are verified cancelled; current candidates preserved. Actual frozen539/546 native failures are qualified with authentic ZIP/JUnit receipts in own coordination memory. Root prepares the smallest honest #539 email-SAN native-fixture repair locally; product source remains unchanged and publication waits for the already-authorized post491 main adoption. The preceding unclaimed-candidate sentence is historical, superseded by this claim. No further merge/handover is claimed.
+
+Current merged-main continuation: #558 head912eaf6f/treef64479f6; #552 head5f7a2d83/tree68f62e8c; #554 head57873898/treeafb3aa41. Shared main507e/#491/#500 are actual merges, while open#501/#556 remain separately owned. SC014 six-case freeze2cb00642 and actual507e composition51d8030b are retained; seventh actual-persistence positive is active only in its original two files. No extra handover or another rule approval is claimed.
