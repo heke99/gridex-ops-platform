@@ -477,3 +477,56 @@ paths change; generated types remain unchanged. No repeated native/full suite.
 Next: local import child freeze for root independent review before push, then
 ordinary mandatory final-head CI. No new native/full/capture runs, downloads,
 main integration or merge; coverage promotion remains held for root approval.
+
+## Approved DB02 source carry on genuine main 8d — 2026-10-05
+
+Whole frozen DB-02 / AT-DB-02 behavior at `2fb524ff` independently APPROVED:
+[535/6000893135](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-6000893135),
+[530/6000916737](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6000916737).
+Reviewer MD/JSON are copied byte-for-byte with one final LF under
+`quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.{md,json}`.
+Their SHA256 values remain `e48dc0a684bb2f7171363e1afac61594fa93d351c93ee0be60d8159349304f1a`
+and `e614cc1abba0c75b775a04fa5c397af89064f2e1be5449ecb463e1c2c0eb6968`.
+Capture-only independent approval is
+[535/6000652647](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-6000652647).
+
+The genuine fetched main parent is `8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4`.
+Incoming calendar grammar/fixture/wire are adopted exactly; main already holds
+the admitted SC068 postimage, which is preserved without patch reapplication.
+Every foreign source, native registration, coverage row and metadata/order is
+retained. Only DB-02 becomes VERIFIED and AT-DB-02 becomes PASSED with the
+qualified source/test/review evidence. This code-behavior promotion is separate
+from current-prefix capture and mandatory final-head qualification.
+
+Own product forward remains SHA256
+`8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0`;
+own unit/native assertion bytes equal the approved 2fb source. Earlier 994 5/1
+RED and genuine 6a own 6 PASS / 0 FAIL / 0 SKIP (overall 617 PASS / 1 SKIP)
+remain source-qualified historical receipts. No native test is repeated.
+
+All three generated files are exactly incoming main baseline bytes: types
+`88cf7de264a01c68ba51d6b57f69aac451068cabc0f20f88362d748793ce7b5e`,
+schema `0d733d1ebe663805028817315f66e0e4f6c6740f832a988133c12596e2bd0857`,
+fingerprint file `fee88a983a91dd6e222d14dec461332521ad99065c773412e701d8039c7912bc`.
+Their main canonical fingerprint is `9e2db4c7fc4f3a4e3d96e60019bad403400dd44913f0241f07fb7d1be7881b74`.
+They do not contain the additional own DB02 forward. The active manifest marks
+`composition_capture_pending=true`; complete prior 2fb manifest/object/hash and
+all nested 6a/earlier captures are retained, alongside immutable incoming-main
+manifest commit/path/blob/hash and all main provenance fields. The new combined
+1074-file prefix requires authentic capture; old capture is not relabeled.
+
+No new native/capture/download/test chain is run. Root authorized the single
+coherent 8d-based carry despite later zero-SQL main 4b movement. Next: freeze
+local source/tree, independent root carry review, then one normal publication
+only if remote #535 still equals 6a. Sole root503 SOURCE-admission coordinator
+owns combined capture (530/6000851665); #599 stays excluded until qualified.
+Root retains final whole-prefix CI, current-main and merge gates.
+
+Source integrity checks PASS: migrations 1074 files / 977 version groups,
+legal/contract hardening and generated main types; specification 33/121/231;
+own diff against the genuine main parent. Preservation checks prove the exact
+three main generated files, calendar triple and admitted SC068 postimage;
+every foreign coverage row/metadata/order; every main migration-history entry
+plus only the unchanged own forward; and every main native registration plus
+exactly one own include. Only fifteen own paths differ from main. These source
+checks execute no unit/native/capture producer and do not qualify final CI.

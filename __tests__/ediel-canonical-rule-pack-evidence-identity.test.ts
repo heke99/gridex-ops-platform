@@ -1,3 +1,4 @@
+// masterplan: GOV-05, AT-GOV-05
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({

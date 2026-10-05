@@ -8,6 +8,16 @@ import assert from 'node:assert/strict'
 const original=readFileSync(new URL('./ediel-positive-ack-service-scope-sql-regression.mjs',import.meta.url),'utf8')
 const marker=' // Existing administration checks below retain their original source fixture.'
 assert.equal(original.split(marker).length,2)
+// Reuse the existing declared source fixture inputs, not a second source
+// implementation. The three identity substitutions bind it to this fixture's
+// existing tenant/customer/actor; the production SQL bytes stay unchanged.
+const permissionFixture=readFileSync(new URL('./ediel-partial-permission-source-sql-regression.mjs',import.meta.url),'utf8')
+const permissionHelpers=permissionFixture.slice(permissionFixture.indexOf('function fn('),permissionFixture.indexOf('\ntry{')).replaceAll('id(2)','id(20)').replaceAll('id(3)','id(10)').replaceAll('12345','21660').replaceAll('23-DDQ-PRODAT','23-DGI-PRODAT')
+const sourcePorts=['gridex_received_sources.reject_mutation','gridex_received_sources.sent_source_is_current_v1','gridex_received_sources.require_prodat_application_objects_v1','gridex_received_sources.prodat_application_object_accepted_v1','public.ediel_apply_permission_source_v1','public.ediel_advance_permission_deadlines_v1'].map(name=>{
+ const start=permissionFixture.indexOf(' CREATE FUNCTION '+name+'('),end=permissionFixture.indexOf('$$;',start)
+ assert.ok(start>=0&&end>start,name)
+ return permissionFixture.slice(start,end+3)
+}).join('\n')
 const extension=String.raw`
  // All declarations below are finite synthetic dependency fixtures. Genuine
  // native multi-mission publication/storage/replay is a separate suite.
@@ -73,6 +83,120 @@ const extension=String.raw`
  await multiCheck(async()=>{await db.exec('BEGIN');try{await db.exec("DELETE FROM gridex_received_sources.permission_transitions WHERE source_message_id='"+uid(550)+"'");await assert.rejects(requireProdat(),/source_rules_fixture_unavailable|prodat_own_commit_required/)}finally{await db.exec('ROLLBACK')}await requireProdat()})
  await multiCheck(async()=>{await db.exec('BEGIN');try{await db.exec("UPDATE tenant_actor_roles SET valid_to=now()");await assert.rejects(requireProdat(),/current_captured_role_unavailable/)}finally{await db.exec('ROLLBACK')}await requireProdat()})
  await multiCheck(async()=>{await assert.rejects(capture(prodatAck.replace('RFF+Z07:point-a','RFF+Z07:OTHER'),uid(1),'test',uid(550)),/physical_scope_required/);await assert.rejects(capture(prodatAck.replace('RFF+ACW:PZ14','RFF+ACW:FORGED'),uid(1),'test',uid(550)),/physical_scope_required/)})
+ // SC-011: one database, genuine Z13/Z14/Z15/Z15C permission producer,
+ // genuine independent revoke command, and genuine current beneficiary read.
+ // This probe rolls back its complete fixture graph before any unchanged
+ // historical assertion. The companion source suite separately asserts the
+ // genuinely committed Z15C receipt; this case proves the atomic consumer seam.
+ await db.exec('BEGIN')
+ try {
+  const id=uid
+  // SC-011 REUSED SOURCE INPUT HELPERS
+  await db.exec("ALTER TABLE company_memberships ADD id uuid DEFAULT gen_random_uuid();ALTER TABLE metering_permissions ADD source_z13_message_id uuid,ADD outbound_z13_message_id uuid,ADD inbound_z15_message_id uuid,ADD outbound_z18_message_id uuid,ADD rff_li_reference text,ADD permission_id text,ADD permission_reference text,ADD approved_start_date date,ADD approved_end_date date,ADD approved_start_at timestamptz,ADD approved_end_at timestamptz,ADD report_frequency text,ADD last_blocker text,ADD market_state_version bigint,ADD updated_at timestamptz DEFAULT now(),ADD updated_by uuid;ALTER TABLE metering_permission_sites ADD customer_site_id uuid,ADD metering_point_id uuid,ADD grid_area_code text,ADD permission_end_at timestamptz,ADD updated_at timestamptz DEFAULT now();ALTER TABLE ediel_messages ADD status text,ADD message_sent_at timestamptz,ADD immutable_rendered_at timestamptz,ADD immutable_payload_hash text;ALTER TABLE gridex_received_sources.validation_assessments ADD source_message_id uuid,ADD company_id uuid,ADD environment text,ADD source_payload_hash text,ADD facts_text text,ADD previous_assessment_id uuid,ADD owner text DEFAULT 'canonical-runtime-with-registry-v1',ADD facts_hash text;ALTER TABLE gridex_received_sources.permission_transitions ADD previous_state jsonb,ADD previous_sites jsonb,ADD resulting_state jsonb,ADD applied_at timestamptz DEFAULT now(),ADD actor_user_id uuid,ADD resulting_sites jsonb;")
+  await db.exec("CREATE TABLE ediel_business_expectations(id uuid DEFAULT gen_random_uuid(),company_id uuid,environment text,source_message_id uuid,expected_family text,expected_code text,status text,fulfilled_by_message_id uuid,updated_at timestamptz);CREATE TABLE gridex_received_sources.prodat_application_facets(assessment_id uuid,source_message_id uuid,company_id uuid,environment text,source_payload_hash text,application_facts_text text,application_facts_hash text);CREATE TABLE gridex_received_sources.prodat_response_facets(assessment_id uuid,source_message_id uuid,company_id uuid,environment text,source_payload_hash text,response_facts_text text,response_facts_hash text);CREATE TABLE application_fixture(source uuid PRIMARY KEY,facet jsonb);CREATE TABLE legal_fixture(source uuid PRIMARY KEY,basis jsonb);CREATE TABLE accepted_source_fixture(source uuid PRIMARY KEY,payload_hash text);")
+  await db.exec('ALTER TABLE gridex_received_sources.validation_assessments ADD UNIQUE(id)')
+  // SC-011 REUSED DECLARED SOURCE PORTS
+  for(const name of ['gridex_received_sources.wire_tokens_bounded_v1','gridex_received_sources.closure_wire_tokens_v2','gridex_received_sources.permission_time_v1','gridex_received_sources.permission_date_v1'])await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql',name))
+  await db.exec(fn('../supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql','gridex_received_sources.validate_prodat_application_v1'))
+  const permissionForward=readFileSync(new URL('../supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql',import.meta.url),'utf8')
+  assert.equal((permissionForward.match(/^BEGIN;$/gm)||[]).length,1)
+  assert.equal((permissionForward.match(/^COMMIT;$/gm)||[]).length,1)
+  // Only the forward's outer transaction statements are interpreted inside
+  // this owned transaction. All actual function/DDL statement bytes are kept.
+  await db.exec(permissionForward.replace(/^BEGIN;\n|^COMMIT;\n?/gm,''))
+  // The old standalone administration fixture predates the committed S17/S18
+  // normalization. Execute the actual current matcher, not a metadata UPDATE.
+  await db.exec(getFunction(new URL('../supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql',import.meta.url),'CREATE OR REPLACE FUNCTION gridex_service_administration.permission_matches_assignment_v1'))
+  const captured=readFileSync(new URL('../supabase/schema.sql',import.meta.url),'utf8')
+  const writerStart=captured.indexOf('CREATE FUNCTION gridex_service_permission.lock_request_writer_v1(')
+  assert.ok(writerStart>=0)
+  await db.exec(captured.slice(writerStart,captured.indexOf('$$;',writerStart)+3))
+  await db.exec(getFunction(new URL('../supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql',import.meta.url),'CREATE OR REPLACE FUNCTION public.ediel_service_administration_command_v1'))
+  // The current public consumer also retains source provenance. Its accepted
+  // storage/context input is still the declared port from this same fixture.
+  await db.exec('CREATE SCHEMA gridex_ediel_services;ALTER TABLE gridex_utilts_binding.contracts ADD contract_version integer')
+  // Empty relation definitions support the current genuine writer lock graph;
+  // they contain no invented issuer, artifact, review or permission authority.
+  for(const relation of ['public.user_permission_overrides','gridex_ediel_services.artifacts','gridex_ediel_services.issuer_keys','gridex_ediel_services.issuer_representations','gridex_ediel_services.issuer_revocations','gridex_ediel_services.reviews']){
+   const start=captured.indexOf('CREATE TABLE '+relation+' (')
+   assert.ok(start>=0,relation)
+   await db.exec(captured.slice(start,captured.indexOf('\n);',start)+4))
+  }
+  const evidenceLockStart=captured.indexOf('CREATE FUNCTION gridex_ediel_services.lock_evidence_graph_v1(')
+  assert.ok(evidenceLockStart>=0)
+  await db.exec(captured.slice(evidenceLockStart,captured.indexOf('$$;',evidenceLockStart)+3))
+  await db.query("UPDATE gridex_utilts_binding.contracts SET contract=contract||'{\"version\":2}'::jsonb,contract_version=2")
+  await db.exec("UPDATE gridex_utilts_binding.contracts SET contract_hash=encode(sha256(convert_to(contract::text,'UTF8')),'hex')")
+  await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',["UNB+UNOC:3+54321:14+21660:14+261001:1200+SC011++23-DGI-E66-T'UNH+1+UTILTS:D:02B:UN:E2SE6A'NAD+MS+54321:160:SVK'UNT+3+1'UNZ+1+SC011'",uid(210)])
+  await db.exec(readFileSync(new URL('../supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql',import.meta.url),'utf8'))
+  await db.exec(readFileSync(new URL('../supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql',import.meta.url),'utf8'))
+  const receive=async(n,code,objects)=>{
+   const result=await incoming(n,code,objects)
+   // Keep the existing legal-context dependency port; only its explicitly
+   // declared input row is supplied for this exact incoming source.
+   await db.query('INSERT INTO gridex_ediel_inbound_context.fixture SELECT $1,source,basis FROM legal_fixture WHERE source=$2',[uid(1),uid(n)])
+   return result
+  }
+  const own={point:'point-a',permission:'SC011-PERM',li:'SC011-LI',start:'202601010000',end:'202701010000',status:'A74'}
+  await permission(6201,[own]);await receive(6221,'Z14',[own])
+  assert.equal((await apply(uid(6221))).applied,true)
+  assert.equal(await current(uid(6201),uid(6221)),true)
+  const pair=[]
+  for(const [i,assignment,beneficiary,purpose,requested] of [[0,aid,uid(2),'analysis',['quantity']],[1,aid2,uid(3),'quality-monitoring',['quality']]]){
+   const link=uid(6240+i)
+   await db.query('INSERT INTO ediel_assignment_permission_links(id,company_id,assignment_id,permission_id) VALUES($1,$2,$3,$4)',[link,uid(1),assignment,uid(6201)])
+   // Source local 2027-01-01 00:00 is 2026-12-31 23:00 UTC. Keep the grant
+   // inside that actual decoded interval rather than the old fixture's UTC end.
+   const created=await command({action:'create_grant',commandId:uid(6250+i),assignmentId:assignment,expectedVersion:2,fields:{permission_link_id:link,object_ids:['point-a'],product_ids:['8716867000030'],fields:requested,data_start:'2026-01-01',data_end:'2026-12-31T23:00:00Z',valid_from:'2000-01-01',valid_to:null}})
+   const published=await command({action:'publish_grant',commandId:uid(6260+i),assignmentId:assignment,expectedVersion:2,grantId:created.grantId,expectedGrantVersion:1})
+   assert.equal(published.status,'active',JSON.stringify(published))
+   pair.push({assignment,beneficiary,purpose,requested,grantId:created.grantId})
+  }
+  const read=(item,version=2)=>db.query('SELECT ediel_beneficiary_series_page_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)',[item.beneficiary,uid(20),item.grantId,version,item.purpose,uid(211),item.requested,'2026-01-01','2026-02-01'])
+  assert.deepEqual((await read(pair[0])).rows[0].ediel_beneficiary_series_page_v1.rows,[{quantity:'17.250'}])
+  assert.deepEqual((await read(pair[1])).rows[0].ediel_beneficiary_series_page_v1.rows,[{quality:'56'}])
+  await receive(6222,'Z15',[{...own,permissionEnd:'202601011200',endReason:'B77'}])
+  assert.equal((await apply(uid(6222))).applied,true)
+  assert.equal((await db.query('SELECT status FROM metering_permissions WHERE id=$1',[uid(6201)])).rows[0].status,'ended')
+  assert.equal((await command({action:'revoke_grant',commandId:uid(6270),assignmentId:pair[0].assignment,expectedVersion:2,grantId:pair[0].grantId,expectedGrantVersion:2})).status,'revoked')
+  const grantRows=async()=>(await db.query('SELECT * FROM ediel_data_access_grants WHERE id=ANY($1::uuid[]) ORDER BY id',[pair.map(item=>item.grantId)])).rows
+  const before=await grantRows()
+  const revoked=before.find(row=>row.id===pair[0].grantId),valid=before.find(row=>row.id===pair[1].grantId)
+  assert.equal(revoked.status,'revoked');assert.equal(revoked.version,3);assert.ok(revoked.revoked_at)
+  assert.equal(valid.status,'active');assert.equal(valid.version,2);assert.equal(valid.revoked_at,null)
+  await db.exec('SAVEPOINT sc011_market_hold')
+  await assert.rejects(read(pair[1]),/market_permission_not_approved/)
+  await db.exec('ROLLBACK TO SAVEPOINT sc011_market_hold;RELEASE SAVEPOINT sc011_market_hold')
+  const restored=await receive(6223,'Z15',[{...own,reason:'Z24',permissionEnd:'202601011200',endReason:'B77'}])
+  // Frozen P field 223 / original example p139: C is BGM Z15 with CCI Z13
+  // CAV Z24, not a literal BGM Z15C or an S17/S18 reason-code alias.
+  assert.ok(restored.wire.includes('++23-DGI-PRODAT'))
+  const restoredWire=(await db.query('SELECT gridex_received_sources.permission_partition_wire_v1($1) b',[restored.wire])).rows[0].b
+  assert.equal(restoredWire.code,'Z15');assert.equal(restoredWire.objects[0].reason,'Z24')
+  const result=await apply(uid(6223))
+  assert.equal(result.applied,true)
+  assert.deepEqual(result.manifest.map(item=>item.status),['applied'])
+  assert.equal(await current(uid(6201),uid(6221)),true)
+  assert.equal((await db.query('SELECT status FROM metering_permissions WHERE id=$1',[uid(6201)])).rows[0].status,'active')
+  assert.equal((await db.query('SELECT permission_end_at FROM metering_permission_sites WHERE metering_permission_id=$1',[uid(6201)])).rows[0].permission_end_at,null)
+  assert.deepEqual(await grantRows(),before)
+  await db.exec('SAVEPOINT sc011_revoked_hold')
+  // Use the revoked grant's CURRENT version, so a stale-version rejection
+  // cannot masquerade as the independently retained revocation.
+  await assert.rejects(read(pair[0],3),/grant_not_current/)
+  await db.exec('ROLLBACK TO SAVEPOINT sc011_revoked_hold;RELEASE SAVEPOINT sc011_revoked_hold')
+  await db.exec('SET ROLE service_role;SAVEPOINT sc011_new_basis_required')
+  await assert.rejects(db.query('SELECT ediel_service_administration_command_v1($1,$2,$3) b',[uid(1),uid(20),{action:'publish_grant',commandId:uid(6271),assignmentId:pair[0].assignment,expectedVersion:2,grantId:pair[0].grantId,expectedGrantVersion:3}]),/revoked_grant_requires_new_basis/)
+  await db.exec('ROLLBACK TO SAVEPOINT sc011_new_basis_required;RELEASE SAVEPOINT sc011_new_basis_required;RESET ROLE')
+  assert.deepEqual((await read(pair[1])).rows[0].ediel_beneficiary_series_page_v1.rows,[{quality:'56'}])
+  const committed=(await db.query('SELECT gridex_received_sources.committed_permission_effects_v1($1,$2,NULL) b',[uid(1),uid(6223)])).rows[0].b
+  assert.deepEqual(committed,[]) // Own uncommitted changes are not final ACK evidence.
+  const receipt=(await db.query('SELECT object_scopes,payload_hash FROM gridex_received_sources.permission_effect_receipts WHERE source_message_id=$1',[uid(6223)])).rows
+  assert.equal(receipt.length,1);assert.deepEqual(receipt[0].object_scopes,[restored.scopes[0]])
+  assert.equal(receipt[0].payload_hash,(await db.query("SELECT encode(sha256(convert_to($1,'UTF8')),'hex') h",[restored.wire])).rows[0].h)
+  assert.equal((await apply(uid(6223))).idempotent,true);assert.deepEqual(await grantRows(),before)
+  console.log('SC-011 actual atomic source restore + independently revoked/current beneficiary contrast: PASS; rolled-back consumer probe, declared canonical/legal/source/review/storage ports, NOT native/legal approval')
+ } finally {await db.exec('ROLLBACK')}
  console.log('Grant-set forward SQL: '+grantSetChecks+' PASS; finite synthetic source/accepted/review fixtures, NOT native/legal approval proof')
  // Restore only the public filtered body and finite dependency context for the
  // unchanged historic administration regression below. No migration bytes or
@@ -82,7 +206,10 @@ const extension=String.raw`
  await db.exec(oldAdmin.slice(functionStart,functionEnd))
  await db.query('DELETE FROM meter_reading_values WHERE id=$1',[uid(540)])
 `
-const modified=original.replace(marker,()=>extension+marker).replace("'./.ediel-positive-service-scope.tmp.mjs'","'./.ediel-grant-set-consumer.tmp.mjs'")
+// Insert the reused helpers after the existing nested String.raw generator has
+// completed, so their original template literals are preserved byte for byte.
+const consumerInjection=").replace('  // SC-011 REUSED SOURCE INPUT HELPERS',()=>"+JSON.stringify(permissionHelpers)+").replace('  // SC-011 REUSED DECLARED SOURCE PORTS',()=>"+JSON.stringify('await db.exec('+JSON.stringify(sourcePorts)+')')+"),temp=fileURLToPath("
+const modified=original.replace(marker,()=>extension+marker).replace('),temp=fileURLToPath(',()=>consumerInjection).replace("'./.ediel-positive-service-scope.tmp.mjs'","'./.ediel-grant-set-consumer.tmp.mjs'")
 const temp=fileURLToPath(new URL('./.ediel-grant-set-runner.tmp.mjs',import.meta.url))
 writeFileSync(temp,modified)
 try {const run=spawnSync(process.execPath,[temp],{stdio:'inherit',env:process.env});if(run.error)throw run.error;process.exitCode=run.status??1}finally{unlinkSync(temp)}

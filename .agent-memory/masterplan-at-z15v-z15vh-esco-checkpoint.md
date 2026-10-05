@@ -1,3 +1,15 @@
+# Current integration record — original package merged
+
+Prepared UTC: 2026-10-05T16:37:00.797984+00:00. Agent /root, isolated documentation branch `codex/ediel-own-merge-records-20261005`, worktree `/workspace/gridex-ediel-integration-archive-20261005`. Authentic inspected main `e3606a6575b1f00bc571da3340c34c7d183730b1`, tree `ec5d5e467b94d590f2fcafb6d00634b11bd1210b`. This is a four-path record carry for the user-requested shared baseline, not a new implementation or an actual merge of this record carry. All main source/helper/test/coverage and foreign records are preserved. Previous pending integration/status text below is HISTORICAL where superseded here; exact main checkpoint bytes are preserved beneath this prefix.
+
+PR #585 actually merged as `cfcee6877f57c4ff52265cafc6a8a1fa5692a714` after all nine required checks on reviewed `8c52ce0d6aa8016a636460a0b1d69990ab1e58fc`, independent bounded review and actual parent/tree/path verification. Its historical post-merge receipt is carried unchanged here from preserved local63a5; it matches the separately published archive999d50. Canonical MERGED5305995567079 and durable5305995705220 remain unique; no duplicate actual-merge/handover request is created.
+
+Verification scopes remain separate: 42 finite Vitest profile/source-adapter component cases and 16 finite declared-fixture PGlite permission-mechanics checks. Whole `AT-Z15V-ESCO` and `AT-Z15VH-ESCO` remain HELD/NOT_EXECUTED/evidence[] on this inspected main. Historical CI validates only its frozen head, not later source/native/external authority. No tags/coverage promotion or current-main approval total is produced. Remaining genuine original/source/history/ACK/outbox/separate-V and prohibited-effect qualifications stay with retained owners.
+
+Next: the single integration operator carries these four exact own records in the final baseline/documentation window, preserving every foreign row/blob. Reuse original receipts within unchanged scope; check only genuinely changed inputs. No repeated native/capture/full-suite run is requested by this document.
+
+---
+
 # AT-Z15V-ESCO / AT-Z15VH-ESCO checkpoint
 
 Current: 2026-10-05; Codex at-z15v-z15vh-esco-20261005.

@@ -3,7 +3,14 @@
 import{beforeEach,describe,expect,it,vi}from'vitest'
 const io=vi.hoisted(()=>({read:vi.fn(),record:vi.fn(),events:vi.fn(),acks:vi.fn(),create:vi.fn(),queue:vi.fn(),safe:vi.fn(),inbound:vi.fn(),parse:vi.fn(),status:vi.fn(),task:vi.fn(),match:'matched'}))
 vi.mock('@/lib/ediel/inbound/receptions',async(original)=>({...await original<object>(),readInboundReceptionRequest:io.read,recordInboundReception:io.record}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{const q={select:()=>q,eq:()=>q,order:()=>q,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:table==='inbound_email_messages'?{id:'00000000-0000-4000-8000-000000000010',body_text:"UNB+UNOC:3+54321:ZZ+21660:ZZ+261001:0000+OWN+++++23-DDQ-PRODAT'UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z02+OWN+9'LIN+1'UNT+4+1'UNZ+1+OWN'",environment:'test',ediel_mailboxes:{id:'00000000-0000-4000-8000-000000000004',environment:'test'}}:null,error:null})};return q}}}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{
+ rpc:async(name:string,args:Record<string,unknown>)=>{
+  if(name!=='ediel_read_unattributed_technical_intake_v1')throw Error(`Undeclared reception fixture RPC: ${name}`)
+  expect(args).toEqual({p_inbound_email_message_id:'00000000-0000-4000-8000-000000000010',p_source_message_id:null,p_actor_user_id:'00000000-0000-4000-8000-000000000002'})
+  // This ordinary reception has no protected technical birth; null grants no authority.
+  return{data:null,error:null}
+ },
+ from:(table:string)=>{const q={select:()=>q,eq:()=>q,order:()=>q,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:table==='inbound_email_messages'?{id:'00000000-0000-4000-8000-000000000010',body_text:"UNB+UNOC:3+54321:ZZ+21660:ZZ+261001:0000+OWN+++++23-DDQ-PRODAT'UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z02+OWN+9'LIN+1'UNT+4+1'UNZ+1+OWN'",environment:'test',ediel_mailboxes:{id:'00000000-0000-4000-8000-000000000004',environment:'test'}}:null,error:null})};return q}}}))
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater',()=>({applySafeInboundStatusUpdate:io.safe,createInboundEdielMessage:io.inbound,createParseResult:io.parse,createUnresolvedInboundEdielMessage:vi.fn(),updateInboundEmailProcessingStatus:io.status}))
 vi.mock('@/lib/inbound-mail/inboundTaskFactory',()=>({createInboundMailTask:io.task}))
 vi.mock('@/lib/inbound-mail/inboundTenantResolver',()=>({resolveTenantForInboundEdiel:vi.fn(async()=>({status:'resolved',companyId:'00000000-0000-4000-8000-000000000001',shared:null}))}))

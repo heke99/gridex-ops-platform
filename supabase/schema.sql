@@ -137,6 +137,12 @@ CREATE SCHEMA gridex_ediel_common_header;
 CREATE SCHEMA gridex_ediel_duplicate_responses;
 
 --
+-- Name: gridex_ediel_exports; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_ediel_exports;
+
+--
 -- Name: gridex_ediel_inbound_context; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -321,6 +327,12 @@ CREATE SCHEMA gridex_switch_cancellations;
 --
 
 CREATE SCHEMA gridex_transport_exception;
+
+--
+-- Name: gridex_unattributed_intake; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_unattributed_intake;
 
 --
 -- Name: gridex_utilts_binding; Type: SCHEMA; Schema: -; Owner: -
@@ -8428,7 +8440,7 @@ BEGIN
   alias_wire:=gridex_customer_life_events.wire_v1(alias_message.raw_payload);previous_wire:=gridex_customer_life_events.wire_v1(previous.raw_payload);
   IF qualified IS NULL OR qualified->>'operationId' IS DISTINCT FROM step->>'operationId' OR qualified->>'originalMessageId' IS DISTINCT FROM step->>'originalMessageId' OR qualified->>'correctedPayloadHash' IS DISTINCT FROM step->>'payloadHash'
    OR alias_message.environment IS DISTINCT FROM op.environment OR previous.environment IS DISTINCT FROM op.environment
-   OR alias_message.original_message_id IS DISTINCT FROM previous.id OR alias_message.source_operation_id IS DISTINCT FROM step->>'operationId'
+   OR alias_message.original_message_id IS DISTINCT FROM previous.id::text OR alias_message.source_operation_id IS DISTINCT FROM step->>'operationId'
    OR alias_message.raw_payload IS NULL OR alias_message.immutable_rendered_at IS NULL OR alias_message.immutable_payload_hash IS DISTINCT FROM step->>'payloadHash' OR alias_message.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(alias_message.raw_payload,'UTF8')),'hex')
    OR alias_wire IS NULL OR previous_wire IS NULL OR alias_wire->>'code' IS DISTINCT FROM 'Z09' OR alias_wire->>'legalSender' IS DISTINCT FROM previous_wire->>'legalSender' OR alias_wire->>'legalReceiver' IS DISTINCT FROM previous_wire->>'legalReceiver'
    OR EXISTS(SELECT FROM jsonb_array_elements(alias_wire->'objects')own WHERE NOT EXISTS(SELECT FROM jsonb_array_elements(previous_wire->'objects')approved WHERE approved=own)) THEN RAISE EXCEPTION 'customer_life_event_recovery_alias_source_changed';END IF;
@@ -8932,7 +8944,7 @@ BEGIN
  SELECT * INTO op FROM gridex_received_sources.prodat_recovery_operations WHERE id=p.recovery_operation_id AND company_id=m.company_id FOR SHARE;
  SELECT * INTO o FROM gridex_received_sources.prodat_recovery_origins WHERE operation_id=op.id AND company_id=m.company_id FOR SHARE;
  SELECT prep.* INTO source FROM gridex_customer_masterdata.originals original JOIN gridex_customer_masterdata.preparations prep ON prep.id=original.preparation_id WHERE original.company_id=m.company_id AND original.message_id=(q->>'sourceOriginMessageId')::uuid FOR SHARE OF prep;
- IF source.id IS NULL OR p.id=source.id OR p.actor_user_id IS DISTINCT FROM m.created_by OR p.customer_id IS DISTINCT FROM source.customer_id OR p.environment IS DISTINCT FROM source.environment OR p.as_of IS DISTINCT FROM source.as_of OR p.observed_at IS DISTINCT FROM source.observed_at OR p.basis IS DISTINCT FROM source.basis OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.intent_id IS DISTINCT FROM o.intent_id OR m.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR m.original_message_id IS DISTINCT FROM op.original_message_id OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') IS DISTINCT FROM op.corrected_payload_hash THEN RAISE EXCEPTION 'customer_masterdata_recovery_preparation_scope_required';END IF;
+ IF source.id IS NULL OR p.id=source.id OR p.actor_user_id IS DISTINCT FROM m.created_by OR p.customer_id IS DISTINCT FROM source.customer_id OR p.environment IS DISTINCT FROM source.environment OR p.as_of IS DISTINCT FROM source.as_of OR p.observed_at IS DISTINCT FROM source.observed_at OR p.basis IS DISTINCT FROM source.basis OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.intent_id IS DISTINCT FROM o.intent_id OR m.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR m.original_message_id IS DISTINCT FROM op.original_message_id::text OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') IS DISTINCT FROM op.corrected_payload_hash THEN RAISE EXCEPTION 'customer_masterdata_recovery_preparation_scope_required';END IF;
 END$$;
 
 --
@@ -11874,6 +11886,38 @@ CREATE FUNCTION gridex_ediel_duplicate_responses.source_v1(c uuid, source_id uui
     LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$SELECT gridex_ediel_duplicate_responses.source_for_execution_v1(c,source_id,mail_id,actor,'prepare')$$;
+
+--
+-- Name: immutable_result_v1(); Type: FUNCTION; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_exports.immutable_result_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+ IF TG_OP='DELETE' AND OLD.expires_at<=clock_timestamp() THEN RETURN OLD; END IF;
+ RAISE EXCEPTION 'ediel_export_result_immutable';
+END $$;
+
+--
+-- Name: immutable_scope_v1(); Type: FUNCTION; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_exports.immutable_scope_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+ IF TG_OP<>'UPDATE' OR
+  ROW(NEW.id,NEW.beneficiary_company_id,NEW.actor_user_id,NEW.idempotency_key,NEW.grant_id,NEW.expected_grant_version,
+      NEW.series_id,NEW.purpose,NEW.fields,NEW.start_at,NEW.end_at,NEW.page_limit,NEW.after_at,NEW.after_id,NEW.created_at)
+  IS DISTINCT FROM
+  ROW(OLD.id,OLD.beneficiary_company_id,OLD.actor_user_id,OLD.idempotency_key,OLD.grant_id,OLD.expected_grant_version,
+      OLD.series_id,OLD.purpose,OLD.fields,OLD.start_at,OLD.end_at,OLD.page_limit,OLD.after_at,OLD.after_id,OLD.created_at)
+ THEN RAISE EXCEPTION 'ediel_export_scope_immutable'; END IF;
+ RETURN NEW;
+END $$;
 
 --
 -- Name: capture(); Type: FUNCTION; Schema: gridex_ediel_inbound_context; Owner: -
@@ -17299,6 +17343,7 @@ BEGIN
     OR basis->>'previousAttemptId' IS DISTINCT FROM r.attempt_id::text THEN RAISE EXCEPTION 'ediel_transport_retry_binding_invalid';END IF;
    PERFORM 1 FROM public.ediel_outbox o WHERE o.id=(basis->>'outboxId')::uuid AND o.company_id=c AND o.ediel_message_id=mid AND o.environment=m.environment
     AND o.status='sending' AND o.current_send_attempt_id=(p_input#>>'{owner,sendAttemptId}')::uuid AND o.locked_by=p_input#>>'{owner,workerId}' FOR UPDATE;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(p_input#>>'{owner,outboxId}')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=m.environment AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    IF NOT FOUND THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    IF NOT public.ediel_consume_prodat_retry_authorization_v1(c,mid,r.attempt_id,aid,actor,(basis->>'operationId')::uuid) THEN RAISE EXCEPTION 'ediel_transport_retry_authorization_denied';END IF;
    prior:=to_jsonb(a);
@@ -17574,6 +17619,7 @@ begin
   end if;
   if owner->>'kind'='worker' then
    perform 1 from public.ediel_outbox o where o.id=(owner->>'outboxId')::uuid and o.ediel_message_id=mid and o.company_id=c and o.environment=env and o.status='sending' and o.current_send_attempt_id=(owner->>'sendAttemptId')::uuid and o.locked_by=owner->>'workerId' for update;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    if not found then raise exception 'ediel_transport_worker_fence_lost'; end if;
   elsif owner is distinct from '{"kind":"direct"}'::jsonb then raise exception 'ediel_transport_direct_owner_invalid'; end if;
   insert into gridex_ediel_transport.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) values(aid,mid,c,env,actor,owner,binding);
@@ -17588,6 +17634,7 @@ begin
   if is_ai and (a.binding->>'payloadHash' is distinct from ai_basis->>'sourceHash' or a.binding->>'encoding' is distinct from 'utf8') then raise exception 'ediel_ai_transport_source_bytes_required'; end if;
   if a.owner->>'kind'='worker' then
    perform 1 from public.ediel_outbox o where o.id=(a.owner->>'outboxId')::uuid and o.ediel_message_id=mid and o.company_id=c and o.environment=env and o.status='sending' and o.current_send_attempt_id=(a.owner->>'sendAttemptId')::uuid and o.locked_by=a.owner->>'workerId' for update;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(a.owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    if not found then raise exception 'ediel_transport_worker_fence_lost'; end if;
   end if;
   update gridex_ediel_transport.attempts set entered_at=now() where id=aid;
@@ -17746,6 +17793,74 @@ CREATE FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) RETURNS jsonb
     AS $$DECLARE r jsonb;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();r:=gridex_ediel_transport.mutate_before_duplicate_protocol_v1(p_input);IF p_input->>'action' IN('prepare','enter') AND r->>'proceed'='true' THEN PERFORM gridex_ediel_duplicate_responses.require_transport_v1((p_input->>'companyId')::uuid,(p_input->>'messageId')::uuid,(p_input->>'actorUserId')::uuid);END IF;RETURN r;END$$;
 
 --
+-- Name: open_reconciliation_case_v1(text, uuid, text, text, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.open_reconciliation_case_v1(p_lane text, p_attempt_id uuid, p_reason text, p_origin text, p_origin_id uuid) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE a record; m public.ediel_messages%rowtype; snapshot_id uuid; n bigint; old_case gridex_ediel_transport.reconciliation_cases%rowtype; case_id uuid; bh text;
+BEGIN
+ IF p_lane='generic_journal' THEN
+  SELECT x.id,x.company_id,x.environment,x.message_id,x.actor_user_id,x.binding,x.entered_at INTO STRICT a
+   FROM gridex_ediel_transport.attempts x JOIN gridex_ediel_transport.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state IN ('entered','observed')
+   WHERE x.id=p_attempt_id AND x.entered_at IS NOT NULL;
+ ELSIF p_lane='sealed_z08' THEN
+  SELECT x.id,x.company_id,x.environment,x.message_id,x.actor_user_id,x.binding,e.observed_at entered_at INTO STRICT a
+   FROM gridex_outbound_dispatch.attempts x
+   JOIN gridex_outbound_dispatch.originals o ON o.message_id=x.message_id AND o.company_id=x.company_id AND o.environment=x.environment AND o.payload_hash=x.binding->>'originalHash' AND o.payload_hash=encode(sha256(convert_to(o.raw_payload,'UTF8')),'hex')
+   JOIN gridex_outbound_dispatch.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state='provider_call_entered'
+   JOIN gridex_outbound_dispatch.events e ON e.attempt_id=x.id AND e.message_id=x.message_id AND e.company_id=x.company_id AND e.environment=x.environment AND e.kind='provider_call_entered'
+   JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id AND w.company_id=e.company_id AND w.environment=e.environment
+   WHERE x.id=p_attempt_id AND e.created_xid<>pg_current_xact_id() AND w.created_xid<>pg_current_xact_id()
+    AND pg_visible_in_snapshot(e.created_xid,pg_current_snapshot()) AND pg_visible_in_snapshot(w.created_xid,pg_current_snapshot());
+ ELSE RAISE EXCEPTION 'ediel_reconciliation_lane_invalid'; END IF;
+ IF p_reason='provider_outcome_unknown' THEN
+  IF p_lane='generic_journal' THEN
+   IF p_origin IS DISTINCT FROM 'generic_observation' OR p_origin_id IS DISTINCT FROM a.id OR NOT EXISTS(SELECT FROM gridex_ediel_transport.attempts x WHERE x.id=a.id AND x.observed_at IS NOT NULL AND x.classification='unknown' AND jsonb_typeof(x.provider_result)='object')
+   THEN RAISE EXCEPTION 'ediel_reconciliation_observation_binding_invalid'; END IF;
+  ELSE
+   IF p_origin IS DISTINCT FROM 'sealed_result' OR NOT EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.id=p_origin_id AND e.attempt_id=a.id AND e.message_id=a.message_id AND e.company_id=a.company_id AND e.environment=a.environment AND e.kind='provider_result' AND e.facts->>'classification'='uncertain' AND jsonb_typeof(e.facts->'provider')='object' AND e.facts->>'automaticResend'='false')
+   THEN RAISE EXCEPTION 'ediel_reconciliation_observation_binding_invalid'; END IF;
+  END IF;
+ ELSIF p_reason='entry_unresolved_after_lease' THEN
+  IF p_origin IS DISTINCT FROM 'worker_claim_uncertain'
+   OR NOT EXISTS(SELECT FROM public.ediel_outbox o WHERE o.id=p_origin_id AND o.company_id=a.company_id AND o.environment=a.environment AND o.ediel_message_id=a.message_id AND o.status='delivery_uncertain')
+   OR p_lane='generic_journal' AND EXISTS(SELECT FROM gridex_ediel_transport.attempts x WHERE x.id=a.id AND x.observed_at IS NOT NULL)
+   OR p_lane='sealed_z08' AND EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=a.id AND e.kind='provider_result')
+  THEN RAISE EXCEPTION 'ediel_reconciliation_unresolved_binding_invalid'; END IF;
+ ELSE RAISE EXCEPTION 'ediel_reconciliation_reason_invalid'; END IF;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=a.message_id AND company_id=a.company_id AND environment=a.environment FOR SHARE;
+ IF m.direction IS DISTINCT FROM 'outbound' OR m.immutable_rendered_at IS NULL OR m.raw_payload IS NULL
+  OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  OR a.binding->>'originalHash' IS DISTINCT FROM m.immutable_payload_hash
+  OR coalesce(a.binding->>'mimeSha256','') !~ '^[a-f0-9]{64}$' OR coalesce(a.binding->>'mimeLength','') !~ '^[1-9][0-9]*$'
+  OR nullif(a.binding->>'mimeArchiveRef','') IS NULL OR nullif(a.binding->>'rfcMessageId','') IS NULL
+ THEN RAISE EXCEPTION 'ediel_reconciliation_original_binding_invalid'; END IF;
+ bh:=encode(sha256(convert_to(a.binding::text,'UTF8')),'hex');
+ SELECT * INTO old_case FROM gridex_ediel_transport.reconciliation_cases WHERE company_id=a.company_id AND environment=a.environment AND lane=p_lane AND attempt_id=a.id;
+ IF FOUND THEN
+  IF old_case.message_id IS DISTINCT FROM a.message_id OR old_case.actor_user_id IS DISTINCT FROM a.actor_user_id OR old_case.binding_hash IS DISTINCT FROM bh OR old_case.entered_at IS DISTINCT FROM a.entered_at
+  THEN RAISE EXCEPTION 'ediel_reconciliation_case_binding_changed'; END IF;
+  RETURN old_case.id;
+ END IF;
+ -- Lock the exact retained archive metadata, without copying bytes or addresses.
+ PERFORM 1 FROM public.ediel_message_payloads p WHERE p.company_id=a.company_id AND p.ediel_message_id=a.message_id AND p.encrypted_payload_ref=a.binding->>'mimeArchiveRef' FOR SHARE;
+ SELECT count(*),(array_agg(p.id))[1] INTO n,snapshot_id FROM public.ediel_message_payloads p
+  WHERE p.company_id=a.company_id AND p.ediel_message_id=a.message_id AND p.encrypted_payload_ref=a.binding->>'mimeArchiveRef'
+   AND p.payload_kind IN ('raw_mime','smime_enveloped') AND p.metadata->>'archive_verified'='true'
+   AND p.metadata->>'archived_mime_sha256'=a.binding->>'mimeSha256' AND p.metadata->>'archived_mime_bytes'=a.binding->>'mimeLength'
+   AND p.metadata->>'archived_rfc_message_id'=a.binding->>'rfcMessageId';
+ IF n<>1 THEN RAISE EXCEPTION 'ediel_reconciliation_archive_binding_not_qualified'; END IF;
+ INSERT INTO gridex_ediel_transport.reconciliation_cases(company_id,environment,lane,attempt_id,message_id,actor_user_id,original_hash,binding_hash,mime_sha256,mime_length,mime_archive_ref,mime_payload_snapshot_id,rfc_message_id,entered_at,reason)
+ VALUES(a.company_id,a.environment,p_lane,a.id,a.message_id,a.actor_user_id,m.immutable_payload_hash,bh,a.binding->>'mimeSha256',(a.binding->>'mimeLength')::bigint,a.binding->>'mimeArchiveRef',snapshot_id,a.binding->>'rfcMessageId',a.entered_at,p_reason) RETURNING id INTO case_id;
+ INSERT INTO gridex_ediel_transport.reconciliation_case_events(case_id,company_id,environment,actor_user_id,kind,origin,origin_id)
+ VALUES(case_id,a.company_id,a.environment,a.actor_user_id,'opened',p_origin,p_origin_id);
+ RETURN case_id;
+END $_$;
+
+--
 -- Name: read_dsn_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -17761,6 +17876,99 @@ BEGIN
   OR NOT EXISTS(SELECT FROM public.ediel_messages m WHERE m.id=p_message_id AND m.company_id=p_company_id AND m.direction='outbound') THEN RAISE EXCEPTION 'ediel_dsn_actor_scope_invalid' USING ERRCODE='42501';END IF;
  IF (SELECT count(*) FROM gridex_ediel_transport.dsn_observations WHERE company_id=p_company_id AND message_id=p_message_id)>256 THEN RAISE EXCEPTION 'ediel_dsn_observation_read_limit';END IF;
  RETURN jsonb_build_object('version',1,'companyId',p_company_id,'messageId',p_message_id,'authorizesResend',false,'deliveryProven',false,'observations',coalesce((SELECT jsonb_agg(jsonb_build_object('observationId',o.id,'attemptId',o.attempt_id,'observedAt',o.observed_at,'transportCorrelation','source_matched_unverified','recipient',o.report#>'{recipients,0}') ORDER BY o.observed_at,o.id) FROM gridex_ediel_transport.dsn_observations o WHERE o.company_id=p_company_id AND o.message_id=p_message_id),'[]'::jsonb));
+END $$;
+
+--
+-- Name: read_reconciliation_cases_v1(uuid, text, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.read_reconciliation_cases_v1(p_company_id uuid, p_environment text, p_message_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE result jsonb;
+BEGIN
+ IF (SELECT count(*) FROM gridex_ediel_transport.reconciliation_cases WHERE company_id=p_company_id AND environment=p_environment AND message_id=p_message_id)>50
+ THEN RAISE EXCEPTION 'ediel_reconciliation_case_scope_overflow'; END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('caseId',c.id,'companyId',c.company_id,'environment',c.environment,'messageId',c.message_id,'lane',c.lane,'attemptId',c.attempt_id,'originalHash',c.original_hash,'mimeSha256',c.mime_sha256,'enteredAt',c.entered_at,'openedAt',c.opened_at,'reason',c.reason,
+  'status',CASE WHEN coalesce(g.classification,s.classification) IN ('accepted','partial','all_rejected','explicit_negative','pre_connect_negative') THEN 'outcome_observed' ELSE 'needs_tracking' END,
+  'observedClassification',coalesce(g.classification,s.classification),'observedAt',coalesce(g.observed_at,s.observed_at),'authorizesResend',false,'deliveryProven',false) ORDER BY c.opened_at,c.id),'[]'::jsonb) INTO result
+ FROM gridex_ediel_transport.reconciliation_cases c
+ LEFT JOIN gridex_ediel_transport.attempts g ON c.lane='generic_journal' AND g.id=c.attempt_id AND g.company_id=c.company_id AND g.environment=c.environment AND g.message_id=c.message_id AND g.entered_at=c.entered_at AND encode(sha256(convert_to(g.binding::text,'UTF8')),'hex')=c.binding_hash
+ LEFT JOIN LATERAL (
+  SELECT e.facts->>'classification' classification,e.observed_at FROM gridex_outbound_dispatch.attempts a
+  JOIN gridex_outbound_dispatch.events e ON e.attempt_id=a.id AND e.message_id=a.message_id AND e.company_id=a.company_id AND e.environment=a.environment AND e.kind='provider_result'
+  JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id AND w.company_id=e.company_id AND w.environment=e.environment
+  WHERE c.lane='sealed_z08' AND a.id=c.attempt_id AND a.company_id=c.company_id AND a.environment=c.environment AND a.message_id=c.message_id
+   AND encode(sha256(convert_to(a.binding::text,'UTF8')),'hex')=c.binding_hash AND e.created_xid<>pg_current_xact_id() AND w.created_xid<>pg_current_xact_id()
+   AND pg_visible_in_snapshot(e.created_xid,pg_current_snapshot()) AND pg_visible_in_snapshot(w.created_xid,pg_current_snapshot())
+ ) s ON true
+ WHERE c.company_id=p_company_id AND c.environment=p_environment AND c.message_id=p_message_id;
+ RETURN result;
+END $$;
+
+--
+-- Name: reconciliation_append_only_v1(); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN RAISE EXCEPTION 'ediel_reconciliation_append_only' USING ERRCODE='23514'; END $$;
+
+--
+-- Name: reconciliation_observed_v1(); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.reconciliation_observed_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_TABLE_SCHEMA='gridex_ediel_transport' AND TG_TABLE_NAME='attempts' AND TG_OP='UPDATE' THEN
+  IF OLD.observed_at IS NULL AND NEW.observed_at IS NOT NULL AND NEW.classification='unknown' AND NEW.entered_at IS NOT NULL THEN
+   PERFORM gridex_ediel_transport.open_reconciliation_case_v1('generic_journal',NEW.id,'provider_outcome_unknown','generic_observation',NEW.id);
+  END IF;
+ ELSIF TG_TABLE_SCHEMA='gridex_outbound_dispatch' AND TG_TABLE_NAME='events' AND TG_OP='INSERT' THEN
+  IF NEW.kind='provider_result' AND NEW.facts->>'classification'='uncertain' THEN
+   -- Result witness can only be made after commit; require the committed ENTRY witness.
+   PERFORM gridex_ediel_transport.open_reconciliation_case_v1('sealed_z08',NEW.attempt_id,'provider_outcome_unknown','sealed_result',NEW.id);
+  END IF;
+ ELSE RAISE EXCEPTION 'ediel_reconciliation_observation_origin_invalid'; END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: reconciliation_worker_uncertain_v1(); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.reconciliation_worker_uncertain_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a record;
+BEGIN
+ IF OLD.status IS DISTINCT FROM 'sending' OR NEW.status IS DISTINCT FROM 'delivery_uncertain' OR OLD.current_send_attempt_id IS NULL OR OLD.locked_at IS NULL OR nullif(OLD.locked_by,'') IS NULL
+  OR NEW.company_id IS DISTINCT FROM OLD.company_id OR NEW.environment IS DISTINCT FROM OLD.environment OR NEW.ediel_message_id IS DISTINCT FROM OLD.ediel_message_id OR NEW.current_send_attempt_id IS DISTINCT FROM OLD.current_send_attempt_id
+ THEN RETURN NEW; END IF;
+ -- The prior real claim, not a caller boolean, must own an unresolved entry.
+ FOR a IN
+  SELECT x.id,'generic_journal'::text lane FROM gridex_ediel_transport.attempts x
+   JOIN gridex_ediel_transport.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state='entered'
+   WHERE x.company_id=OLD.company_id AND x.environment=OLD.environment AND x.message_id=OLD.ediel_message_id AND x.entered_at IS NOT NULL AND x.observed_at IS NULL
+    AND x.owner->>'kind'='worker' AND x.owner->>'outboxId'=OLD.id::text AND x.owner->>'sendAttemptId'=OLD.current_send_attempt_id::text AND x.owner->>'workerId'=OLD.locked_by
+  UNION ALL
+  SELECT x.id,'sealed_z08' FROM gridex_outbound_dispatch.attempts x
+   JOIN gridex_outbound_dispatch.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state='provider_call_entered'
+   WHERE x.company_id=OLD.company_id AND x.environment=OLD.environment AND x.message_id=OLD.ediel_message_id
+    AND x.owner->>'kind'='worker' AND x.owner->>'outboxId'=OLD.id::text AND x.owner->>'sendAttemptId'=OLD.current_send_attempt_id::text AND x.owner->>'workerId'=OLD.locked_by
+    AND EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=x.id AND e.message_id=x.message_id AND e.company_id=x.company_id AND e.environment=x.environment AND e.kind='provider_call_entered')
+    AND NOT EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=x.id AND e.message_id=x.message_id AND e.company_id=x.company_id AND e.environment=x.environment AND e.kind='provider_result')
+ LOOP
+  PERFORM gridex_ediel_transport.open_reconciliation_case_v1(a.lane,a.id,'entry_unresolved_after_lease','worker_claim_uncertain',OLD.id);
+ END LOOP;
+ RETURN NEW;
 END $$;
 
 --
@@ -19792,6 +20000,7 @@ BEGIN
   IF owner->>'kind'='worker' THEN
    PERFORM 1 FROM public.ediel_outbox WHERE id=(owner->>'outboxId')::uuid AND ediel_message_id=mid AND company_id=c AND environment=env
     AND status='sending' AND current_send_attempt_id=(owner->>'sendAttemptId')::uuid AND locked_by=owner->>'workerId' FOR UPDATE;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501';END IF;
    IF NOT FOUND THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501'; END IF;
   ELSIF owner IS DISTINCT FROM '{"kind":"direct"}'::jsonb THEN RAISE EXCEPTION 'outbound_dispatch_direct_owner_invalid'; END IF;
   INSERT INTO gridex_outbound_dispatch.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) VALUES(aid,mid,c,env,actor,owner,binding);
@@ -19823,6 +20032,7 @@ BEGIN
    IF a.owner->>'kind'='worker' THEN
     PERFORM 1 FROM public.ediel_outbox WHERE id=(a.owner->>'outboxId')::uuid AND ediel_message_id=mid AND company_id=c AND environment=env
      AND status='sending' AND current_send_attempt_id=(a.owner->>'sendAttemptId')::uuid AND locked_by=a.owner->>'workerId' FOR UPDATE;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(a.owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501';END IF;
     IF NOT FOUND THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501'; END IF;
    END IF;
    UPDATE gridex_outbound_dispatch.reservations SET state='provider_call_entered' WHERE message_id=mid;
@@ -22313,8 +22523,10 @@ BEGIN
     IF actual_message.message_family IN ('APERAK','CONTRL','UTILTS_ERR') THEN
       -- An ACK inherits the protected original's immutable witness. A later
       -- edit of activation rows never replaces its historic guide authority.
-      original_ack:=public.gridex_read_inbound_ack_source_v1(p_company_id,p_environment,src.source_message_id);
-      original_ack:=original_ack->'sourceRulePackEvidence';
+      original_ack:=gridex_ediel_source_rules.read_ack_source_before_basis_v1(p_company_id,p_environment,src.source_message_id);
+      IF original_ack IS NOT NULL THEN
+        original_ack:=gridex_ediel_source_rules.require_v1(p_company_id,(original_ack#>>'{sourceMessage,id}')::uuid);
+      END IF;
       IF original_ack IS NULL OR pack IS DISTINCT FROM jsonb_build_object('profileKey',original_ack->'profileKey',
         'messageProfileId',original_ack->'messageProfileId','rulePackId',original_ack->'rulePackId','sourceHash',original_ack->'sourceHash',
         'version',original_ack->'version','snapshot',jsonb_build_object('rulePack',original_ack#>'{snapshot,rulePack}',
@@ -23079,7 +23291,7 @@ BEGIN
   SELECT * INTO attempt FROM gridex_ediel_transport.attempts WHERE id=p_previous_attempt_id AND message_id=m.id AND company_id=m.company_id AND environment=m.environment FOR SHARE;
   IF NOT FOUND OR (attempt.classification IN ('pre_connect_negative','explicit_negative','all_rejected')) IS NOT TRUE OR attempt.observed_at IS NULL OR attempt.binding->>'originalHash' IS DISTINCT FROM m.immutable_payload_hash
    OR EXISTS(SELECT FROM gridex_ediel_transport.attempts a WHERE a.message_id=m.id AND (a.classification IN ('accepted','partial','unknown') OR a.entered_at IS NOT NULL AND a.observed_at IS NULL))
-   OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages a WHERE a.company_id=m.company_id AND a.environment=m.environment AND a.direction='inbound' AND a.original_message_id=m.id AND a.ack_outcome='positive') THEN RETURN jsonb_build_object('status','held','reason','verified_transfer_loss_required');END IF;
+   OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages a WHERE a.company_id=m.company_id AND a.environment=m.environment AND a.direction='inbound' AND a.original_message_id=m.id::text AND a.ack_outcome='positive') THEN RETURN jsonb_build_object('status','held','reason','verified_transfer_loss_required');END IF;
   recovery_kind:='verified_transfer_loss';
  ELSE
   IF p_source_ack_message_id IS NULL OR p_corrected_raw_payload IS NULL OR octet_length(p_corrected_raw_payload)>262144 THEN RAISE EXCEPTION 'prodat_correction_source_required';END IF;
@@ -23223,7 +23435,7 @@ DECLARE op gridex_received_sources.prodat_recovery_operations%rowtype;
 BEGIN
  SELECT * INTO op FROM gridex_received_sources.prodat_recovery_operations WHERE id::text=NEW.source_operation_id AND kind IN ('contrl_correction','aperak_correction');
  IF NOT FOUND THEN RETURN NEW;END IF;
- IF NEW.company_id IS DISTINCT FROM op.company_id OR NEW.environment IS DISTINCT FROM op.environment OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') OR op.corrected_raw_payload IS DISTINCT FROM NEW.raw_payload THEN RAISE EXCEPTION 'prodat_recovery_bound_message_conflict';END IF;
+ IF NEW.company_id IS DISTINCT FROM op.company_id OR NEW.environment IS DISTINCT FROM op.environment OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id::text OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') OR op.corrected_raw_payload IS DISTINCT FROM NEW.raw_payload THEN RAISE EXCEPTION 'prodat_recovery_bound_message_conflict';END IF;
  INSERT INTO gridex_received_sources.prodat_recovery_messages(operation_id,message_id) VALUES(op.id,NEW.id);
  RETURN NEW;
 END $$;
@@ -23388,6 +23600,7 @@ BEGIN
   IF TG_OP <> 'INSERT' OR TG_TABLE_SCHEMA <> 'public' OR TG_TABLE_NAME <> 'ediel_messages' THEN
     RAISE EXCEPTION 'received_source_capture_invalid_owner' USING ERRCODE = '23514';
   END IF;
+  IF gridex_unattributed_intake.is_birth_v1(NEW,true) IS TRUE THEN RETURN NEW; END IF;
   IF NEW.direction = 'inbound' AND upper(coalesce(NEW.message_family, '')) = 'PRODAT'
      AND NEW.message_standard = 'edifact' THEN
     -- AFTER INSERT observes the final row after PR369's BEFORE trigger sealed
@@ -25916,7 +26129,7 @@ BEGIN
   SELECT * INTO STRICT op FROM gridex_received_sources.prodat_recovery_operations WHERE id=next_op AND company_id=c;
   IF (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR op.environment IS DISTINCT FROM m.environment
    OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.source_operation_id IS DISTINCT FROM op.id::text
-   OR m.original_message_id IS DISTINCT FROM op.original_message_id OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload
+   OR m.original_message_id IS DISTINCT FROM op.original_message_id::text OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload
    OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM op.corrected_payload_hash
    OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'prodat_recovery_origin_alias_changed';END IF;
   op_id:=next_op;
@@ -26261,7 +26474,7 @@ BEGIN
    PERFORM public.ediel_require_prodat_recovery_current_v1(p_company_id,m.id);
    SELECT * INTO original FROM public.ediel_messages WHERE id=op.original_message_id AND company_id=p_company_id FOR SHARE;
    original_wire:=gridex_received_sources.prodat_recovery_wire_v1(original.raw_payload);
-   IF original.id IS NULL OR m.original_message_id IS DISTINCT FROM original.id OR m.source_operation_id IS DISTINCT FROM op.id::text OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR op.corrected_raw_payload IS DISTINCT FROM m.raw_payload OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+   IF original.id IS NULL OR m.original_message_id IS DISTINCT FROM original.id::text OR m.source_operation_id IS DISTINCT FROM op.id::text OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR op.corrected_raw_payload IS DISTINCT FROM m.raw_payload OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
     OR original_wire->>'legalSender' IS DISTINCT FROM w->>'legalSender' OR original_wire->>'legalReceiver' IS DISTINCT FROM w->>'legalReceiver' OR jsonb_array_length(w->'objects') IS DISTINCT FROM 1 OR (w#>'{objects,0}'-'li'-'line') IS DISTINCT FROM (original_wire#>'{objects,0}'-'li'-'line') THEN RAISE EXCEPTION 'production_contract_recovery_source_scope_required';END IF;
    SELECT jsonb_agg(token->'elements'->1 ORDER BY token->>'index') INTO actual_dates FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2(m.raw_payload)) token WHERE token->>'tag'='DTM' AND token#>>'{elements,1,0}' IN('92','93','157');
    SELECT jsonb_agg(token->'elements'->1 ORDER BY token->>'index') INTO original_dates FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2(original.raw_payload)) token WHERE token->>'tag'='DTM' AND token#>>'{elements,1,0}' IN('92','93','157');
@@ -26369,7 +26582,7 @@ BEGIN
  PERFORM public.ediel_reserve_prodat_recovery_origin_v1(op.company_id,op.id,NEW.created_by,o.intent_id,o.outbound_request_id);
  IF o.operation_id IS NULL OR i.id IS NULL OR NEW.company_id IS DISTINCT FROM o.company_id OR NEW.intent_id IS DISTINCT FROM o.intent_id OR NEW.outbound_request_id IS DISTINCT FROM o.outbound_request_id
  OR NEW.environment IS DISTINCT FROM i.environment OR NEW.message_family IS DISTINCT FROM i.message_family OR NEW.message_code IS DISTINCT FROM i.message_code OR NEW.customer_id IS DISTINCT FROM i.customer_id
- OR NEW.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id THEN RAISE EXCEPTION 'prodat_recovery_private_origin_required';END IF;
+ OR NEW.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id::text THEN RAISE EXCEPTION 'prodat_recovery_private_origin_required';END IF;
  RETURN NEW;
 END $$;
 
@@ -27723,7 +27936,7 @@ END $$;
 --
 
 CREATE FUNCTION gridex_received_sources.switch_original_message_immutable_v1() RETURNS trigger
-    LANGUAGE plpgsql
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
 BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS NULL AND public.ediel_is_qualified_retention_transition_v1(OLD,NEW) THEN RETURN NEW;END IF;
@@ -30895,7 +31108,7 @@ BEGIN
   OR NEW.application_reference IS DISTINCT FROM i.application_reference OR NEW.sender_ediel_id IS DISTINCT FROM i.sender_ediel_id OR NEW.receiver_ediel_id IS DISTINCT FROM i.receiver_ediel_id
   OR NEW.sender_sub_address IS DISTINCT FROM i.sender_subaddress OR NEW.receiver_sub_address IS DISTINCT FROM i.receiver_subaddress
   OR NEW.communication_route_id IS DISTINCT FROM i.communication_route_id OR NEW.route_profile_id IS DISTINCT FROM i.route_profile_id
-  OR NEW.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR NEW.source_operation_id IS DISTINCT FROM o.id::text OR NEW.original_message_id IS DISTINCT FROM o.original_message_id
+  OR NEW.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR NEW.source_operation_id IS DISTINCT FROM o.id::text OR NEW.original_message_id IS DISTINCT FROM o.original_message_id::text
   OR NEW.switch_request_id IS DISTINCT FROM o.switch_id OR NEW.customer_id::text IS DISTINCT FROM b->>'customerId' OR NEW.metering_point_id::text IS DISTINCT FROM b->>'meteringPointId' OR NEW.site_id::text IS DISTINCT FROM b->>'siteId'
   OR own->>'li' IS DISTINCT FROM b->>'li' OR own->>'installationPoint' IS DISTINCT FROM b->>'pointId' OR own->>'installationAgency' IS DISTINCT FROM b->>'identityAgency'
   OR own->>'customerIdentity' IS DISTINCT FROM b->>'customerIdentity' OR own->>'customerQualifier' IS DISTINCT FROM b->>'customerQualifier' OR own->>'customerAgency' IS DISTINCT FROM '260' OR own->>'gridArea' IS DISTINCT FROM b->>'gridArea'
@@ -31258,6 +31471,498 @@ BEGIN
   INSERT INTO gridex_transport_exception.events(attempt_id,company_id,message_id,kind,facts) VALUES(attempt,c,mid,event_kind,r) ON CONFLICT(attempt_id,kind) DO NOTHING;
  END IF;
 END$$;
+
+--
+-- Name: inbound_email_attachments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inbound_email_attachments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    inbound_email_message_id uuid,
+    filename text,
+    mime_type text,
+    size_bytes bigint,
+    storage_path text,
+    raw_text text,
+    is_edifact_candidate boolean DEFAULT false NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: attachment_hash_v1(public.inbound_email_attachments); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.attachment_hash_v1(a public.inbound_email_attachments) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT gridex_unattributed_intake.sha_v1(jsonb_build_object('id',a.id,'mail',a.inbound_email_message_id,
+  'raw',gridex_unattributed_intake.sha_v1(a.raw_text),'filename',a.filename,'mime',a.mime_type,
+  'candidate',a.is_edifact_candidate,'size',a.size_bytes,'storage',a.storage_path)::text)
+$$;
+
+--
+-- Name: attachment_set_v1(uuid); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.attachment_set_v1(mail_id uuid) RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT gridex_unattributed_intake.sha_v1(coalesce(jsonb_agg(jsonb_build_object('id',a.id,
+  'hash',gridex_unattributed_intake.attachment_hash_v1(a)) ORDER BY a.id),'[]')::text)
+ FROM public.inbound_email_attachments a WHERE a.inbound_email_message_id=mail_id
+$$;
+
+--
+-- Name: capture_custody_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.capture_custody_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE r gridex_unattributed_intake.raw_births%rowtype;m public.inbound_email_messages%rowtype;
+BEGIN
+ IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'ediel_technical_custody_birth_only';END IF;
+ IF gridex_unattributed_intake.service_session_v1() IS NOT TRUE THEN RETURN NEW;END IF;
+ IF TG_TABLE_NAME='inbound_email_messages' THEN
+  INSERT INTO gridex_unattributed_intake.raw_births(inbound_email_message_id,snapshot_hash)
+   VALUES(NEW.id,gridex_unattributed_intake.raw_hash_v1(NEW));
+ ELSE
+  SELECT * INTO m FROM public.inbound_email_messages WHERE id=NEW.inbound_email_message_id FOR SHARE;
+  SELECT * INTO r FROM gridex_unattributed_intake.raw_births WHERE inbound_email_message_id=m.id;
+  IF r.inbound_email_message_id IS NULL OR r.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.raw_hash_v1(m) THEN RETURN NEW;END IF;
+  IF TG_TABLE_NAME='inbound_email_attachments' THEN
+   INSERT INTO gridex_unattributed_intake.attachment_births VALUES(NEW.id,m.id,gridex_unattributed_intake.attachment_hash_v1(NEW));
+  ELSIF TG_TABLE_NAME='inbound_ediel_parse_results' THEN
+   INSERT INTO gridex_unattributed_intake.parse_births VALUES(NEW.id,m.id,gridex_unattributed_intake.parse_hash_v1(NEW),
+    gridex_unattributed_intake.attachment_set_v1(m.id),gridex_unattributed_intake.selection_v1(NEW));
+  ELSE RAISE EXCEPTION 'ediel_technical_custody_owner_required';END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: complete_birth_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.complete_birth_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ PERFORM gridex_unattributed_intake.receipt_v1(NEW.source_message_id,NEW.actor_user_id);
+ RETURN NEW;
+END $$;
+
+--
+-- Name: complete_claim_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.complete_claim_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF NEW.protected_source_id IS NULL AND EXISTS(SELECT FROM gridex_unattributed_intake.physical_claims
+  WHERE physical_key=NEW.physical_key AND protected_source_id IS NULL AND claim_transaction=NEW.claim_transaction) THEN
+  RAISE EXCEPTION 'ediel_technical_intake_transient_probe_not_deleted' USING ERRCODE='23514';END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: guard_original_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.guard_original_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE mail_id uuid;old_mail_id uuid;old_json jsonb;new_json jsonb;
+BEGIN
+ IF TG_TABLE_NAME='ediel_messages' THEN
+  IF NOT EXISTS(SELECT FROM gridex_unattributed_intake.technical_births WHERE source_message_id=OLD.id) THEN
+   IF TG_OP='DELETE' THEN RETURN OLD;END IF;RETURN NEW;
+  END IF;
+  IF TG_OP='DELETE' THEN RAISE EXCEPTION 'ediel_technical_intake_original_immutable';END IF;
+  IF OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS NULL AND public.ediel_is_qualified_retention_transition_v1(OLD,NEW) THEN RETURN NEW;END IF;
+  old_json:=to_jsonb(OLD)-ARRAY['status','validation_report','contrl_status','aperak_status','utilts_err_status','ack_outcome',
+   'syntax_check_status','functional_check_status','failure_reason','parsed_at','validated_at','acknowledged_at','failed_at',
+   'ack_due_at','updated_at','updated_by','tenant_resolution_status','business_match_status','ack_status','processing_status',
+   'backend_automation_status','backend_automation_reason','contrl_due_at','business_response_due_at','response_overdue_at'];
+  new_json:=to_jsonb(NEW)-ARRAY['status','validation_report','contrl_status','aperak_status','utilts_err_status','ack_outcome',
+   'syntax_check_status','functional_check_status','failure_reason','parsed_at','validated_at','acknowledged_at','failed_at',
+   'ack_due_at','updated_at','updated_by','tenant_resolution_status','business_match_status','ack_status','processing_status',
+   'backend_automation_status','backend_automation_reason','contrl_due_at','business_response_due_at','response_overdue_at'];
+  IF old_json IS DISTINCT FROM new_json OR gridex_unattributed_intake.is_birth_v1(NEW) IS NOT TRUE THEN
+   RAISE EXCEPTION 'ediel_technical_intake_original_immutable' USING ERRCODE='23514';END IF;
+ ELSE
+  IF TG_TABLE_NAME='inbound_email_messages' THEN mail_id:=OLD.id;
+  ELSE
+   IF TG_OP<>'DELETE' THEN mail_id:=NEW.inbound_email_message_id;END IF;
+   IF TG_OP<>'INSERT' THEN old_mail_id:=OLD.inbound_email_message_id;END IF;
+  END IF;
+  IF EXISTS(SELECT FROM gridex_unattributed_intake.technical_births WHERE inbound_email_message_id IN(mail_id,old_mail_id)) THEN
+   IF TG_TABLE_NAME='inbound_email_messages' AND TG_OP='UPDATE' AND NEW.company_id IS NULL
+    AND gridex_unattributed_intake.raw_hash_v1(NEW)=gridex_unattributed_intake.raw_hash_v1(OLD) THEN RETURN NEW;END IF;
+   IF TG_TABLE_NAME='inbound_ediel_parse_results' AND TG_OP='UPDATE'
+    AND gridex_unattributed_intake.parse_hash_v1(NEW)=gridex_unattributed_intake.parse_hash_v1(OLD) THEN RETURN NEW;END IF;
+   RAISE EXCEPTION 'ediel_technical_intake_custody_immutable' USING ERRCODE='23514';
+  END IF;
+ END IF;
+ IF TG_OP='DELETE' THEN RETURN OLD;END IF;RETURN NEW;
+END $$;
+
+--
+-- Name: guard_physical_claim_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.guard_physical_claim_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF TG_OP='DELETE' AND OLD.protected_source_id IS NULL AND OLD.claim_transaction=txid_current() THEN RETURN OLD;END IF;
+ RAISE EXCEPTION 'ediel_technical_intake_physical_reservation_immutable' USING ERRCODE='23514';END $$;
+
+--
+-- Name: guard_physical_original_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.guard_physical_original_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE key text;
+BEGIN
+ IF NEW.direction IS DISTINCT FROM 'inbound' OR NEW.raw_payload IS NULL THEN RETURN NEW;END IF;
+ key:=gridex_unattributed_intake.physical_key_v1(gridex_ediel_technical_ack.envelope(NEW.raw_payload));
+ IF key IS NULL THEN RETURN NEW;END IF;
+ IF gridex_unattributed_intake.is_birth_v1(NEW,true) IS TRUE THEN
+  IF NOT EXISTS(SELECT FROM gridex_unattributed_intake.physical_claims
+    WHERE physical_key=key AND protected_source_id=NEW.id) THEN
+   RAISE EXCEPTION 'ediel_technical_intake_physical_reservation_required' USING ERRCODE='23514';END IF;
+ ELSE
+  -- A unique-index probe observes an existing protected reservation even if a
+  -- REPEATABLE READ caller's ordinary SELECT snapshot cannot see that birth.
+  BEGIN
+   INSERT INTO gridex_unattributed_intake.physical_claims VALUES(key,NULL,txid_current());
+  EXCEPTION WHEN unique_violation THEN
+   RAISE EXCEPTION 'ediel_technical_intake_physical_original_exists' USING ERRCODE='23505';
+  END;
+  DELETE FROM gridex_unattributed_intake.physical_claims WHERE physical_key=key
+   AND protected_source_id IS NULL AND claim_transaction=txid_current();
+ END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: immutable_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ RAISE EXCEPTION 'ediel_technical_intake_receipt_immutable' USING ERRCODE='23514';END $$;
+
+--
+-- Name: is_birth_v1(public.ediel_messages, boolean); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.is_birth_v1(m public.ediel_messages, pending boolean DEFAULT false) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT EXISTS(SELECT FROM gridex_unattributed_intake.technical_births b WHERE b.source_message_id=m.id
+  AND (NOT pending OR b.birth_transaction=txid_current()) AND m.company_id IS NULL AND m.resolved_company_id IS NULL
+  AND m.direction='inbound' AND m.message_standard='edifact' AND m.message_family=b.message_family AND m.message_code=b.message_code
+  AND m.environment=b.environment AND m.message_received_at=b.received_at AND m.inbound_email_message_id=b.inbound_email_message_id
+  AND m.mailbox_message_id=b.inbound_email_message_id::text
+  AND gridex_unattributed_intake.sha_v1(m.raw_payload)=b.payload_hash
+  AND gridex_ediel_technical_ack.envelope(m.raw_payload)=b.physical_envelope
+  AND m.customer_id IS NULL AND m.site_id IS NULL AND m.metering_point_id IS NULL AND m.grid_owner_id IS NULL
+  AND m.party_id IS NULL AND m.party_address_id IS NULL AND m.resolved_grid_owner_id IS NULL AND m.resolved_counterparty_id IS NULL
+  AND m.operation_id IS NULL AND m.intent_id IS NULL AND m.source_operation_id IS NULL AND m.outbound_request_id IS NULL
+  AND m.switch_request_id IS NULL AND m.grid_owner_data_request_id IS NULL AND m.grid_owner_information_request_id IS NULL
+  AND m.partner_export_id IS NULL AND m.related_message_id IS NULL AND m.communication_route_id IS NULL
+  AND m.canonical_rule_pack_id IS NULL AND m.execution_context_snapshot='{}'::jsonb)
+$$;
+
+--
+-- Name: inbound_ediel_parse_results; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inbound_ediel_parse_results (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    inbound_email_message_id uuid,
+    message_family text,
+    message_code text,
+    interchange_reference text,
+    transaction_reference text,
+    sender_ediel_id text,
+    sender_sub_address text,
+    receiver_ediel_id text,
+    receiver_sub_address text,
+    application_reference text,
+    parse_status text DEFAULT 'parsed'::text NOT NULL,
+    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    validation_report jsonb DEFAULT '{}'::jsonb NOT NULL,
+    raw_payload text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: parse_hash_v1(public.inbound_ediel_parse_results); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.parse_hash_v1(p public.inbound_ediel_parse_results) RETURNS text
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'utc'
+    AS $$
+ SELECT gridex_unattributed_intake.sha_v1((to_jsonb(p)-ARRAY['parse_status','validation_report'])::text)
+$$;
+
+--
+-- Name: physical_key_v1(jsonb); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.physical_key_v1(e jsonb) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT CASE WHEN e IS NOT NULL THEN gridex_unattributed_intake.sha_v1(jsonb_build_array(
+  e->'environment',e->'sender',e->'receiver',e->'applicationReference',e->'uciReference')::text) END
+$$;
+
+--
+-- Name: inbound_email_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inbound_email_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    mailbox_id uuid,
+    internet_message_id text,
+    from_address text,
+    to_address text,
+    subject text,
+    received_at timestamp with time zone,
+    raw_email_path text,
+    raw_email text,
+    raw_edifact_payload text,
+    body_text text,
+    body_html text,
+    has_attachments boolean DEFAULT false NOT NULL,
+    processing_status text DEFAULT 'received'::text NOT NULL,
+    dedupe_key text,
+    match_status text DEFAULT 'not_checked'::text NOT NULL,
+    match_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    error_message text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    environment text DEFAULT 'test'::text,
+    sender_ediel_id text,
+    receiver_ediel_id text,
+    interchange_reference text,
+    transaction_reference text,
+    external_reference text,
+    message_family text,
+    message_code text,
+    raw_message_sha256 text,
+    dedupe_scope text,
+    dedupe_reason text,
+    duplicate_of_id uuid,
+    ai_processing_actor_user_id uuid,
+    ai_processing_decision_id uuid
+);
+
+--
+-- Name: raw_hash_v1(public.inbound_email_messages); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.raw_hash_v1(m public.inbound_email_messages) RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'utc'
+    AS $$
+ SELECT gridex_unattributed_intake.sha_v1(jsonb_build_object(
+  'id',m.id,'mailbox',m.mailbox_id,'environment',m.environment,'receivedAt',m.received_at,
+  'raw',gridex_unattributed_intake.sha_v1(m.raw_email),
+  'projection',gridex_unattributed_intake.sha_v1(m.raw_edifact_payload),
+  'body',gridex_unattributed_intake.sha_v1(m.body_text),'html',gridex_unattributed_intake.sha_v1(m.body_html),
+  'hasAttachments',m.has_attachments,'mailboxScope',
+   (SELECT jsonb_build_object('id',b.id,'company',b.company_id,'environment',b.environment,
+    'shared',b.is_shared_platform_mailbox,'type',b.mailbox_type) FROM public.ediel_mailboxes b WHERE b.id=m.mailbox_id))::text)
+$$;
+
+--
+-- Name: receipt_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.receipt_v1(source_id uuid, actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE b gridex_unattributed_intake.technical_births%rowtype;m public.ediel_messages%rowtype;
+ endpoint gridex_ediel_technical_ack.sources%rowtype;
+BEGIN
+ SELECT * INTO b FROM gridex_unattributed_intake.technical_births WHERE source_message_id=source_id;
+ IF b.source_message_id IS NULL THEN RETURN NULL;END IF;
+ SELECT * INTO m FROM public.ediel_messages WHERE id=source_id FOR SHARE;
+ SELECT * INTO endpoint FROM gridex_ediel_technical_ack.sources WHERE source_message_id=source_id;
+ PERFORM gridex_unattributed_intake.require_custody_v1(b.inbound_email_message_id,b.parse_result_id);
+ IF m.id IS NULL OR gridex_unattributed_intake.is_birth_v1(m) IS NOT TRUE OR m.immutable_payload_hash IS DISTINCT FROM b.payload_hash
+  OR endpoint.source_message_id IS NULL OR endpoint.status<>'ready' OR endpoint.source_company_id IS NOT NULL
+  OR endpoint.environment IS DISTINCT FROM b.environment OR endpoint.payload_sha256 IS DISTINCT FROM b.payload_hash
+  OR endpoint.source_received_at IS DISTINCT FROM b.received_at
+  OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.physical_claims claim
+    WHERE claim.physical_key=gridex_unattributed_intake.physical_key_v1(b.physical_envelope)
+      AND claim.protected_source_id=b.source_message_id)
+  OR EXISTS(SELECT FROM public.inbound_email_messages mail JOIN public.ediel_mailboxes box ON box.id=mail.mailbox_id
+    WHERE mail.id=b.inbound_email_message_id AND box.company_id IS NOT NULL AND box.company_id IS DISTINCT FROM endpoint.company_id) THEN
+  RAISE EXCEPTION 'ediel_technical_intake_birth_required' USING ERRCODE='23514';
+ END IF;
+ PERFORM gridex_ediel_technical_ack.require_actor_v1(endpoint.company_id,b.environment,actor,'prepare');
+ RETURN jsonb_build_object('kind','unattributed_technical_intake','version',1,'disposition','technical_only_unattributed',
+  'sourceMessageId',source_id,'inboundEmailMessageId',b.inbound_email_message_id,'parseResultId',b.parse_result_id,
+  'companyId',NULL,'resolvedCompanyId',NULL,'technicalCompanyId',endpoint.company_id,'environment',b.environment,
+  'sourcePayloadHash',b.payload_hash,'receivedAt',b.received_at,'executionActorUserId',actor,'authorizesBusinessEffect',false);
+END $$;
+
+--
+-- Name: require_custody_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.require_custody_v1(mail_id uuid, parse_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.inbound_email_messages%rowtype;p public.inbound_ediel_parse_results%rowtype;
+ r gridex_unattributed_intake.raw_births%rowtype;b gridex_unattributed_intake.parse_births%rowtype;
+BEGIN
+ SELECT * INTO m FROM public.inbound_email_messages WHERE id=mail_id FOR SHARE;
+ SELECT * INTO p FROM public.inbound_ediel_parse_results WHERE id=parse_id AND inbound_email_message_id=mail_id FOR SHARE;
+ SELECT * INTO r FROM gridex_unattributed_intake.raw_births WHERE inbound_email_message_id=mail_id;
+ SELECT * INTO b FROM gridex_unattributed_intake.parse_births WHERE parse_result_id=parse_id;
+ PERFORM id FROM public.inbound_email_attachments WHERE inbound_email_message_id=mail_id ORDER BY id FOR SHARE;
+ IF m.id IS NULL OR p.id IS NULL OR r.inbound_email_message_id IS NULL OR b.parse_result_id IS NULL
+  OR b.inbound_email_message_id IS DISTINCT FROM mail_id OR b.selection_qualified IS NOT TRUE
+  OR r.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.raw_hash_v1(m)
+  OR b.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.parse_hash_v1(p)
+  OR b.attachment_set_hash IS DISTINCT FROM gridex_unattributed_intake.attachment_set_v1(mail_id)
+  OR gridex_unattributed_intake.selection_v1(p) IS NOT TRUE THEN
+  RAISE EXCEPTION 'ediel_technical_intake_original_custody_required' USING ERRCODE='23514';
+ END IF;
+END $$;
+
+--
+-- Name: require_service_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.require_service_v1() RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF gridex_unattributed_intake.service_session_v1() IS NOT TRUE THEN
+  RAISE EXCEPTION 'ediel_technical_intake_service_required' USING ERRCODE='42501';
+ END IF;
+END $$;
+
+--
+-- Name: selection_v1(public.inbound_ediel_parse_results); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.selection_v1(p public.inbound_ediel_parse_results) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.inbound_email_messages%rowtype;env jsonb;tokens jsonb;family text;code text;
+ wire text;raw_view text;prefix text;candidate text;n integer;choices text[]:='{}';
+BEGIN
+ SELECT * INTO m FROM public.inbound_email_messages WHERE id=p.inbound_email_message_id;
+ IF m.id IS NULL OR p.company_id IS NOT NULL OR p.message_family NOT IN('PRODAT','UTILTS')
+  OR m.received_at IS NULL OR m.environment NOT IN('test','production')
+  OR nullif(m.raw_email,'') IS NULL OR nullif(p.raw_payload,'') IS NULL
+  OR NOT EXISTS(SELECT FROM public.ediel_mailboxes box WHERE box.id=m.mailbox_id
+    AND box.is_active AND box.environment=m.environment)
+  OR octet_length(m.raw_email)>8388608 OR octet_length(p.raw_payload)>8388608
+  OR m.raw_email ~* '(content-transfer-encoding:[ \t]*(base64|quoted-printable)|application/(x-)?pkcs7|multipart/(encrypted|signed))'
+ THEN RETURN false;END IF;
+ env:=gridex_ediel_technical_ack.envelope(p.raw_payload);
+ tokens:=gridex_utilts_binding.wire_tokens_v1(p.raw_payload);
+ IF env IS NULL OR tokens IS NULL OR env->>'environment' IS DISTINCT FROM m.environment
+  OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNH')<>1 THEN RETURN false;END IF;
+ SELECT x#>>'{elements,2,0}' INTO family FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNH';
+ SELECT x#>>'{elements,1,0}' INTO code FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='BGM';
+ IF family IS DISTINCT FROM p.message_family OR code IS DISTINCT FROM p.message_code
+  OR p.sender_ediel_id IS DISTINCT FROM env#>>'{sender,0}' OR p.receiver_ediel_id IS DISTINCT FROM env#>>'{receiver,0}'
+  OR coalesce(p.sender_sub_address,'') IS DISTINCT FROM coalesce(env#>>'{sender,2}','')
+  OR coalesce(p.receiver_sub_address,'') IS DISTINCT FROM coalesce(env#>>'{receiver,2}','')
+  OR p.interchange_reference IS DISTINCT FROM env->>'interchangeReference'
+  OR coalesce(p.application_reference,'') IS DISTINCT FROM env->>'applicationReference'
+  OR p.parsed_payload->>'rawPayload' IS DISTINCT FROM p.raw_payload THEN RETURN false;END IF;
+ SELECT count(*) INTO n FROM public.inbound_email_attachments WHERE inbound_email_message_id=m.id;
+ IF n>128 OR (m.has_attachments AND n=0) OR EXISTS(
+  SELECT FROM public.inbound_email_attachments a LEFT JOIN gridex_unattributed_intake.attachment_births b ON b.attachment_id=a.id
+  WHERE a.inbound_email_message_id=m.id AND (b.attachment_id IS NULL OR b.inbound_email_message_id IS DISTINCT FROM m.id
+   OR b.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.attachment_hash_v1(a))) THEN RETURN false;END IF;
+ wire:=gridex_unattributed_intake.wire_view_v1(p.raw_payload);
+ raw_view:=gridex_unattributed_intake.wire_view_v1(m.raw_email);
+ prefix:=CASE WHEN left(wire,3)='UNA' THEN substr(wire,10,4) ELSE left(wire,4) END;
+ IF strpos(raw_view,wire)=0 OR length(prefix)<>4 OR left(prefix,3)<>'UNB'
+  OR (length(raw_view)-length(replace(raw_view,prefix,'')))/4<>1 THEN RETURN false;END IF;
+ FOR candidate IN SELECT unnest(ARRAY[m.raw_edifact_payload,m.body_text]) UNION ALL
+  SELECT a.raw_text FROM public.inbound_email_attachments a WHERE a.inbound_email_message_id=m.id LOOP
+  candidate:=gridex_unattributed_intake.wire_view_v1(candidate);
+  IF left(candidate,3) IN('UNA','UNB') THEN
+   IF gridex_ediel_technical_ack.envelope(candidate) IS NULL THEN RETURN false;END IF;
+   IF NOT candidate=ANY(choices) THEN choices:=array_append(choices,candidate);END IF;
+  END IF;
+ END LOOP;
+ -- Raw-only plaintext selection is still bound to the exact retained MIME.
+ RETURN (cardinality(choices)=0 OR choices=ARRAY[wire]) AND nullif(m.body_html,'') IS NULL;
+END $$;
+
+--
+-- Name: service_session_v1(); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.service_session_v1() RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT (current_setting('role',true)='service_role' OR session_user='service_role')
+  AND coalesce(nullif(current_setting('request.jwt.claim.role',true),''),'service_role')='service_role'
+  AND CASE WHEN nullif(current_setting('request.jwt.claims',true),'') IS NULL THEN true ELSE
+   jsonb_typeof(current_setting('request.jwt.claims',true)::jsonb)='object'
+   AND (NOT current_setting('request.jwt.claims',true)::jsonb ? 'role'
+    OR current_setting('request.jwt.claims',true)::jsonb->>'role'='service_role') END
+$$;
+
+--
+-- Name: sha_v1(text); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.sha_v1(s text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT encode(sha256(convert_to(s,'UTF8')),'hex')
+$$;
+
+--
+-- Name: wire_view_v1(text); Type: FUNCTION; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE FUNCTION gridex_unattributed_intake.wire_view_v1(s text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT btrim(replace(replace(s,E'\r\n',''),E'\n',''),E' \t')
+$$;
 
 --
 -- Name: absolute_v1(jsonb); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
@@ -40596,6 +41301,69 @@ $$;
 COMMENT ON FUNCTION public.cleanup_energy_geodata_staging_v1(p_retention_days integer, p_dry_run boolean) IS 'Dry-run-first cleanup of expired failed/superseded geodata staging payloads. Never targets importing or verified versions; service role only.';
 
 --
+-- Name: ediel_admit_unattributed_technical_source_v1(uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.inbound_email_messages%rowtype;p public.inbound_ediel_parse_results%rowtype;
+ old_source uuid;source_id uuid;env jsonb;born public.ediel_messages%rowtype;result jsonb;
+BEGIN
+ PERFORM gridex_unattributed_intake.require_service_v1();
+ -- The current production/PostgREST birth path is READ COMMITTED. A lock
+ -- cannot refresh an older RR snapshot of ordinary originals; hold instead.
+ IF current_setting('transaction_isolation') IS DISTINCT FROM 'read committed' THEN
+  RAISE EXCEPTION 'ediel_technical_intake_read_committed_required' USING ERRCODE='25000';END IF;
+ -- Serialize the actual physical-original universe, including ordinary writers,
+ -- not just this RPC. Use existing authority locks for endpoint/actor changes.
+ LOCK TABLE public.ediel_messages IN SHARE ROW EXCLUSIVE MODE;
+ LOCK TABLE public.inbound_email_attachments IN SHARE MODE;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ SELECT * INTO m FROM public.inbound_email_messages WHERE id=p_inbound_email_message_id FOR UPDATE;
+ SELECT source_message_id INTO old_source FROM gridex_unattributed_intake.technical_births WHERE inbound_email_message_id=m.id;
+ IF old_source IS NOT NULL THEN
+  result:=gridex_unattributed_intake.receipt_v1(old_source,p_actor_user_id);
+  IF result->>'sourcePayloadHash' IS DISTINCT FROM p_expected_payload_hash OR result->>'environment' IS DISTINCT FROM p_expected_environment THEN
+   RAISE EXCEPTION 'ediel_technical_intake_replay_scope_conflict' USING ERRCODE='23514';END IF;
+  RETURN result;
+ END IF;
+ SELECT * INTO p FROM public.inbound_ediel_parse_results WHERE id=p_parse_result_id AND inbound_email_message_id=m.id FOR UPDATE;
+ PERFORM gridex_unattributed_intake.require_custody_v1(m.id,p.id);
+ env:=gridex_ediel_technical_ack.envelope(p.raw_payload);
+ IF p_actor_user_id IS NULL OR p.company_id IS NOT NULL OR m.environment IS DISTINCT FROM p_expected_environment
+  OR gridex_unattributed_intake.sha_v1(p.raw_payload) IS DISTINCT FROM p_expected_payload_hash THEN
+  RAISE EXCEPTION 'ediel_technical_intake_scope_required' USING ERRCODE='23514';END IF;
+ IF EXISTS(SELECT FROM public.ediel_messages o CROSS JOIN LATERAL(
+  SELECT gridex_ediel_technical_ack.envelope(o.raw_payload)e)x WHERE o.direction='inbound'
+  AND x.e->>'environment'=env->>'environment' AND x.e->'sender'=env->'sender' AND x.e->'receiver'=env->'receiver'
+  AND x.e->>'applicationReference'=env->>'applicationReference' AND x.e->>'uciReference'=env->>'uciReference') THEN
+  RAISE EXCEPTION 'ediel_technical_intake_physical_original_exists' USING ERRCODE='23505';END IF;
+ source_id:=gen_random_uuid();
+ INSERT INTO gridex_unattributed_intake.technical_births VALUES(source_id,m.id,p.id,p_expected_payload_hash,m.environment,
+  m.received_at,env,p.message_family,p.message_code,p_actor_user_id,txid_current());
+ INSERT INTO gridex_unattributed_intake.physical_claims VALUES(
+  gridex_unattributed_intake.physical_key_v1(env),source_id,txid_current());
+ -- NULL here is unresolved legal staging, not the mailbox's technical owner.
+ UPDATE public.inbound_email_messages SET company_id=NULL WHERE id=m.id;
+ INSERT INTO public.ediel_messages(id,company_id,resolved_company_id,direction,message_standard,message_family,message_code,
+  environment,test_flag,status,transport_type,inbound_email_message_id,mailbox_message_id,message_received_at,raw_payload,
+  immutable_payload_hash,sender_ediel_id,sender_sub_address,receiver_ediel_id,receiver_sub_address,
+  parsed_unb_sender_ediel_id,parsed_unb_receiver_ediel_id,interchange_reference,transaction_reference,application_reference,
+  parsed_payload,validation_report,tenant_resolution_status,business_match_status,processing_status,created_by)
+ VALUES(source_id,NULL,NULL,'inbound','edifact',p.message_family,p.message_code,m.environment,
+  CASE WHEN m.environment='test' THEN 1 ELSE 0 END,'received','imap',m.id,m.id::text,m.received_at,p.raw_payload,
+  p_expected_payload_hash,p.sender_ediel_id,p.sender_sub_address,p.receiver_ediel_id,p.receiver_sub_address,
+  p.sender_ediel_id,p.receiver_ediel_id,p.interchange_reference,p.transaction_reference,p.application_reference,
+  p.parsed_payload,jsonb_build_object('status','routing_unresolved_manual_review','authorizesBusinessEffect',false),
+  'tenant_unresolved','blocked','tenant_unresolved',p_actor_user_id) RETURNING * INTO born;
+ result:=gridex_unattributed_intake.receipt_v1(born.id,p_actor_user_id);
+ IF result IS NULL THEN RAISE EXCEPTION 'ediel_technical_intake_birth_required';END IF;
+ RETURN result;
+END $$;
+
+--
 -- Name: ediel_advance_permission_deadlines_v1(uuid, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -41686,7 +42454,7 @@ BEGIN
  expected_reason:=CASE WHEN s.request_type='move_in' OR s.prodat_variant='LK' OR s.prodat_reason='Z23' THEN 'Z23' ELSE 'Z22' END;
  IF i.id IS NULL OR i.operation_id IS DISTINCT FROM op.id OR i.supplier_switch_request_id IS DISTINCT FROM s.id OR s.id IS NULL OR c.id IS NULL OR mp.id IS NULL OR r.id IS NULL OR w IS NULL OR m.direction IS DISTINCT FROM 'outbound' OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z03' OR m.status IS DISTINCT FROM 'draft'
   OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
-  OR m.switch_request_id IS DISTINCT FROM s.id OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM original.id OR m.environment IS DISTINCT FROM op.environment OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR m.immutable_payload_hash IS DISTINCT FROM op.corrected_payload_hash OR m.customer_id IS DISTINCT FROM s.customer_id OR m.site_id IS DISTINCT FROM coalesce(s.site_id,s.customer_site_id) OR m.metering_point_id IS DISTINCT FROM s.metering_point_id
+  OR m.switch_request_id IS DISTINCT FROM s.id OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM original.id::text OR m.environment IS DISTINCT FROM op.environment OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR m.immutable_payload_hash IS DISTINCT FROM op.corrected_payload_hash OR m.customer_id IS DISTINCT FROM s.customer_id OR m.site_id IS DISTINCT FROM coalesce(s.site_id,s.customer_site_id) OR m.metering_point_id IS DISTINCT FROM s.metering_point_id
   OR (s.site_id IS NOT NULL AND s.site_id IS DISTINCT FROM m.site_id) OR (s.customer_site_id IS NOT NULL AND s.customer_site_id IS DISTINCT FROM m.site_id) OR (s.contract_id IS NOT NULL AND s.contract_id IS DISTINCT FROM c.id) OR (s.customer_contract_id IS NOT NULL AND s.customer_contract_id IS DISTINCT FROM c.id)
   OR s.outbound_z03_message_id IS DISTINCT FROM original.id OR s.inbound_z04_message_id IS NOT NULL OR s.lifecycle_blocked IS DISTINCT FROM false OR (s.status IN('prepared','queued','submitted','failed','rejected')) IS NOT TRUE
   OR (r.payload->>'environment') IS DISTINCT FROM m.environment OR r.source_type IS DISTINCT FROM 'manual' OR r.source_id IS DISTINCT FROM i.id OR r.operation_id IS DISTINCT FROM op.id OR r.request_type IS DISTINCT FROM 'supplier_switch' OR r.customer_id IS DISTINCT FROM s.customer_id OR r.site_id IS DISTINCT FROM m.site_id OR r.metering_point_id IS DISTINCT FROM mp.id
@@ -41949,6 +42717,36 @@ CREATE FUNCTION public.ediel_capture_technical_syntax_ack_basis_v2(p_company_id 
 END$$;
 
 --
+-- Name: ediel_claim_beneficiary_exports_v1(uuid, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_claim_beneficiary_exports_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_limit integer DEFAULT 10) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE claims jsonb;
+BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ IF NOT EXISTS(SELECT FROM public.user_profiles u WHERE u.id=p_actor_user_id AND u.user_status='active')
+ OR NOT EXISTS(SELECT FROM public.company_memberships m WHERE m.company_id=p_beneficiary_company_id AND m.user_id=p_actor_user_id AND m.status='active' AND m.is_active AND m.accepted_at IS NOT NULL)
+ OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_beneficiary_company_id,'metering.read'),false) IS NOT TRUE
+ THEN RAISE EXCEPTION 'ediel_beneficiary_forbidden' USING ERRCODE='42501'; END IF;
+ IF p_limit IS NULL OR p_limit<1 OR p_limit>10 THEN RAISE EXCEPTION 'ediel_export_claim_limit_invalid'; END IF;
+ -- Ephemeral derived payloads are denied at expiry by read, and actually
+ -- removed on the next authorized worker pass. Job/audit references remain.
+ DELETE FROM gridex_ediel_exports.results WHERE beneficiary_company_id=p_beneficiary_company_id AND actor_user_id=p_actor_user_id AND expires_at<=clock_timestamp();
+ WITH selected AS (
+  SELECT id FROM gridex_ediel_exports.jobs WHERE beneficiary_company_id=p_beneficiary_company_id AND actor_user_id=p_actor_user_id
+   AND (status='queued' OR status='leased' AND lease_expires_at<=clock_timestamp())
+  ORDER BY created_at,id LIMIT p_limit FOR UPDATE SKIP LOCKED
+ ), claimed AS (
+  UPDATE gridex_ediel_exports.jobs j SET status='leased',lease_token=gen_random_uuid(),lease_expires_at=clock_timestamp()+interval '5 minutes'
+  FROM selected s WHERE j.id=s.id RETURNING j.id,j.lease_token
+ ) SELECT coalesce(jsonb_agg(jsonb_build_object('jobId',id,'leaseToken',lease_token) ORDER BY id),'[]'::jsonb) INTO claims FROM claimed;
+ RETURN claims;
+END $$;
+
+--
 -- Name: ediel_commit_duplicate_103_response_v1(uuid, uuid, uuid, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -42142,7 +42940,7 @@ BEGIN
  SELECT * INTO op FROM gridex_received_sources.prodat_recovery_operations WHERE id=p_operation_id AND company_id=p_company_id AND original_message_id=m.id AND kind='verified_transfer_loss' AND previous_attempt_id=p_previous_attempt_id;
  SELECT * INTO a FROM gridex_ediel_transport.attempts WHERE id=p_previous_attempt_id AND company_id=p_company_id AND message_id=m.id AND environment=m.environment FOR SHARE;
  IF op.id IS NULL OR op.environment IS DISTINCT FROM m.environment OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.immutable_rendered_at IS NULL OR a.id IS NULL OR p_new_attempt_id IS NULL OR p_new_attempt_id=p_previous_attempt_id OR op.original_payload_hash IS DISTINCT FROM m.immutable_payload_hash OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') OR (a.classification IN ('pre_connect_negative','explicit_negative','all_rejected')) IS NOT TRUE OR a.observed_at IS NULL
- OR NOT EXISTS(SELECT FROM gridex_ediel_transport.reservations r WHERE r.message_id=m.id AND r.attempt_id=p_previous_attempt_id AND r.state='observed') OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages ack WHERE ack.company_id=m.company_id AND ack.environment=m.environment AND ack.direction='inbound' AND ack.original_message_id=m.id AND ack.ack_outcome='positive')
+ OR NOT EXISTS(SELECT FROM gridex_ediel_transport.reservations r WHERE r.message_id=m.id AND r.attempt_id=p_previous_attempt_id AND r.state='observed') OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages ack WHERE ack.company_id=m.company_id AND ack.environment=m.environment AND ack.direction='inbound' AND ack.original_message_id=m.id::text AND ack.ack_outcome='positive')
  OR EXISTS(SELECT FROM gridex_ediel_transport.attempts prior WHERE prior.message_id=m.id AND (prior.classification IN ('accepted','partial','unknown') OR prior.entered_at IS NOT NULL AND prior.observed_at IS NULL)) THEN RETURN false;END IF;
  PERFORM gridex_received_sources.require_established_recovery_source_v1(p_company_id,op.id);
  INSERT INTO gridex_received_sources.prodat_recovery_attempts(operation_id,attempt_id) VALUES(op.id,p_new_attempt_id) ON CONFLICT DO NOTHING;
@@ -42760,6 +43558,57 @@ CREATE FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id uuid, p_
  PERFORM id FROM public.customers WHERE id=p_customer_id AND company_id=p_company_id FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'customer_record_customer_scope_required';END IF;
  RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('retentionClass',retention_class,'targetId',target_id,'sourceHash',source_hash,'journalRetainUntil',journal_retain_until,'personalDataAvailable',false) ORDER BY retention_class,target_id) FROM gridex_ediel_retention.record_tombstones WHERE company_id=p_company_id AND customer_id=p_customer_id),'[]');
 END$$;
+
+--
+-- Name: ediel_execute_beneficiary_export_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE j gridex_ediel_exports.jobs%rowtype; page jsonb; denied boolean:=false; finished timestamptz; result_deadline timestamptz;
+BEGIN
+ -- Consistent graph-before-job order. The lease uses the wall clock after
+ -- lock waits; transaction-start now() cannot revive an expired token.
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ SELECT * INTO j FROM gridex_ediel_exports.jobs WHERE id=p_job_id AND beneficiary_company_id=p_beneficiary_company_id AND actor_user_id=p_actor_user_id FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_export_not_found' USING ERRCODE='42501'; END IF;
+ IF j.status<>'leased' OR j.lease_token IS DISTINCT FROM p_lease_token OR j.lease_expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_export_lease_not_current'; END IF;
+ BEGIN
+  page:=public.ediel_beneficiary_series_page_v1(j.beneficiary_company_id,j.actor_user_id,j.grant_id,j.expected_grant_version,j.purpose,j.series_id,j.fields,j.start_at,j.end_at,j.page_limit,j.after_at,j.after_id);
+ EXCEPTION WHEN insufficient_privilege OR raise_exception THEN
+  IF SQLERRM=ANY(ARRAY['ediel_grant_not_current','ediel_beneficiary_forbidden','ediel_grant_basis_changed','ediel_assignment_not_authorized','ediel_projection_outside_grant','ediel_market_permission_not_approved','ediel_permission_source_not_current','ediel_permission_legal_actor_mismatch','ediel_series_outside_grant','ediel_series_source_actor_not_qualified','ediel_series_source_contract_mismatch','ediel_series_source_dso_not_qualified','ediel_permission_source_not_qualified','ediel_permission_object_not_approved','ediel_ack_current_captured_role_unavailable','ediel_technical_endpoint_unqualified']) THEN denied:=true;
+  ELSE RAISE; END IF;
+ END;
+ -- Source row locks can also wait inside projection. Fail atomically if the
+ -- token's deadline passed there; its potential receipt is rolled back too.
+ finished:=clock_timestamp();
+ IF j.lease_expires_at<=finished THEN RAISE EXCEPTION 'ediel_export_lease_not_current'; END IF;
+ IF denied THEN
+  UPDATE gridex_ediel_exports.jobs SET status='blocked',lease_token=NULL,lease_expires_at=NULL WHERE id=j.id;
+  IF j.lease_expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_export_lease_not_current'; END IF;
+  RETURN jsonb_build_object('jobId',j.id,'status','blocked');
+ END IF;
+ result_deadline:=finished+interval '1 hour';
+ INSERT INTO gridex_ediel_exports.results(job_id,beneficiary_company_id,actor_user_id,page,expires_at)
+ VALUES(j.id,j.beneficiary_company_id,j.actor_user_id,page,result_deadline);
+ -- A destination-table/trigger wait can also outlive the lease. This final
+ -- check rolls back both the new result and any projection receipt.
+ finished:=clock_timestamp();
+ IF j.lease_expires_at<=finished THEN RAISE EXCEPTION 'ediel_export_lease_not_current'; END IF;
+ UPDATE gridex_ediel_exports.jobs SET status='completed',completed_at=finished,result_expires_at=result_deadline,lease_token=NULL,lease_expires_at=NULL WHERE id=j.id;
+ -- UPDATE can itself wait for a table-lock upgrade. No terminal write is
+ -- accepted after the token's deadline; all earlier writes roll back too.
+ IF j.lease_expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_export_lease_not_current'; END IF;
+ RETURN jsonb_build_object('jobId',j.id,'status','completed');
+END $$;
+
+--
+-- Name: FUNCTION ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid) IS 'Single leased internal E66 beneficiary page export; current scope and private destination commit share the existing grant/source fence. No payload in worker response.';
 
 --
 -- Name: ediel_finance_copy_retention_basis_v1(uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -43988,6 +44837,31 @@ CREATE FUNCTION public.ediel_qualify_supply_rescission_prepared_original_v1(p_co
 END$$;
 
 --
+-- Name: ediel_queue_beneficiary_export_v1(uuid, uuid, uuid, uuid, bigint, text, uuid, text[], timestamp with time zone, timestamp with time zone, integer, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_queue_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_idempotency_key uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE j gridex_ediel_exports.jobs%rowtype;
+BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ -- Existing full actor/tenant/legal/source/grant filter, without a receipt or
+ -- cached result. Any transient values are discarded inside this transaction.
+ PERFORM gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2(p_beneficiary_company_id,p_actor_user_id,p_grant_id,p_expected_grant_version,p_purpose,p_series_id,p_fields,p_start,p_end,p_limit,p_after_at,p_after_id);
+ IF p_idempotency_key IS NULL THEN RAISE EXCEPTION 'ediel_export_key_required'; END IF;
+ INSERT INTO gridex_ediel_exports.jobs(beneficiary_company_id,actor_user_id,idempotency_key,grant_id,expected_grant_version,series_id,purpose,fields,start_at,end_at,page_limit,after_at,after_id)
+ VALUES(p_beneficiary_company_id,p_actor_user_id,p_idempotency_key,p_grant_id,p_expected_grant_version,p_series_id,p_purpose,p_fields,p_start,p_end,p_limit,p_after_at,p_after_id)
+ ON CONFLICT(beneficiary_company_id,actor_user_id,idempotency_key) DO NOTHING;
+ SELECT * INTO STRICT j FROM gridex_ediel_exports.jobs WHERE beneficiary_company_id=p_beneficiary_company_id AND actor_user_id=p_actor_user_id AND idempotency_key=p_idempotency_key;
+ IF ROW(j.grant_id,j.expected_grant_version,j.series_id,j.purpose,j.fields,j.start_at,j.end_at,j.page_limit,j.after_at,j.after_id)
+  IS DISTINCT FROM ROW(p_grant_id,p_expected_grant_version,p_series_id,p_purpose,p_fields,p_start,p_end,p_limit,p_after_at,p_after_id)
+ THEN RAISE EXCEPTION 'ediel_export_idempotency_scope_mismatch'; END IF;
+ RETURN jsonb_build_object('jobId',j.id,'status',j.status);
+END $$;
+
+--
 -- Name: ediel_queue_prodat_retry_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44064,6 +44938,30 @@ BEGIN
  result:=a.claims-ARRAY['companyId','legalActorId','legalSupplierEdielId','legalCompany','sourceProfile','retentionClass'];result:=result||jsonb_build_object('artifactId',a.id,'sourceReference',a.source_reference,'sourceVersion',a.source_version,'sourceHash',a.source_hash,'claimsHash',a.claims_hash,'mimeType','application/pdf','byteLength',octet_length(a.source_bytes),'status',state,'missing',missing);
  IF p_include_bytes THEN result:=result||jsonb_build_object('bytesBase64',replace(encode(a.source_bytes,'base64'),E'\n',''));END IF;RETURN result;
 END$$;
+
+--
+-- Name: ediel_read_beneficiary_export_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_read_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE j gridex_ediel_exports.jobs%rowtype; current_page jsonb; retained jsonb;
+BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ SELECT * INTO j FROM gridex_ediel_exports.jobs WHERE id=p_job_id AND beneficiary_company_id=p_beneficiary_company_id AND actor_user_id=p_actor_user_id FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_export_not_found' USING ERRCODE='42501'; END IF;
+ -- Complete current authority and immutable source proof again; no earlier
+ -- job completion, receipt or payload authorizes this read.
+ current_page:=public.ediel_beneficiary_series_page_v1(j.beneficiary_company_id,j.actor_user_id,j.grant_id,j.expected_grant_version,j.purpose,j.series_id,j.fields,j.start_at,j.end_at,j.page_limit,j.after_at,j.after_id);
+ IF j.status='completed' THEN
+  IF j.result_expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_export_expired'; END IF;
+  SELECT page INTO STRICT retained FROM gridex_ediel_exports.results WHERE job_id=j.id AND beneficiary_company_id=j.beneficiary_company_id AND actor_user_id=j.actor_user_id AND expires_at>clock_timestamp() FOR SHARE;
+  IF retained IS DISTINCT FROM current_page THEN RAISE EXCEPTION 'ediel_export_result_basis_changed'; END IF;
+ END IF;
+ RETURN jsonb_build_object('jobId',j.id,'status',j.status,'page',retained);
+END $$;
 
 --
 -- Name: ediel_read_bilateral_customer_source_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
@@ -44915,6 +45813,25 @@ CREATE FUNCTION public.ediel_read_transport_exception_v1(p_company_id uuid, p_me
     AS $$SELECT gridex_transport_exception.read_v1(p_company_id,p_message_id,p_actor_user_id,p_exception_id)$$;
 
 --
+-- Name: ediel_read_unattributed_technical_intake_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_read_unattributed_technical_intake_v1(p_inbound_email_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE source_id uuid;
+BEGIN
+ PERFORM gridex_unattributed_intake.require_service_v1();
+ IF (p_inbound_email_message_id IS NULL)=(p_source_message_id IS NULL) THEN
+  RAISE EXCEPTION 'ediel_technical_intake_exact_selector_required' USING ERRCODE='22023';END IF;
+ SELECT source_message_id INTO source_id FROM gridex_unattributed_intake.technical_births
+  WHERE (p_inbound_email_message_id IS NOT NULL AND inbound_email_message_id=p_inbound_email_message_id)
+   OR (p_source_message_id IS NOT NULL AND source_message_id=p_source_message_id);
+ RETURN gridex_unattributed_intake.receipt_v1(source_id,p_actor_user_id);
+END $$;
+
+--
 -- Name: ediel_read_z06f_reading_followup_v1(uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -45442,7 +46359,7 @@ BEGIN
  PERFORM gridex_received_sources.prelock_recovery_source_cohort_v1(p_company_id,op.id,p_message_id);
  SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id FOR SHARE;
  IF m.environment IS DISTINCT FROM op.environment OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT'
-  OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM op.original_message_id
+  OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM op.original_message_id::text
   OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'prodat_recovery_current_source_required';END IF;
  -- Source-only: actual sender/worker is authorized by its existing journal.
  -- An inactive historical creator cannot invalidate genuine immutable source.
@@ -45672,7 +46589,7 @@ BEGIN
  expected_operation:=o.switch_id;expected_request_source:=o.switch_id;expected_request_type:='supplier_switch_request';
  IF o.recovery_operation_id IS NOT NULL THEN
   SELECT operation.* INTO op FROM gridex_received_sources.prodat_recovery_messages link JOIN gridex_received_sources.prodat_recovery_operations operation ON operation.id=link.operation_id WHERE link.message_id=m.id AND operation.company_id=p_company_id;
-  IF op.id IS DISTINCT FROM o.recovery_operation_id OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR m.original_message_id IS DISTINCT FROM op.original_message_id THEN RAISE EXCEPTION 'switch_correction_current_operation_required';END IF;
+  IF op.id IS DISTINCT FROM o.recovery_operation_id OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR m.original_message_id IS DISTINCT FROM op.original_message_id::text THEN RAISE EXCEPTION 'switch_correction_current_operation_required';END IF;
   PERFORM public.ediel_require_prodat_recovery_current_v1(p_company_id,m.id);
   expected_operation:=op.id;expected_request_source:=o.intent_id;expected_request_type:='manual';
  END IF;
@@ -62316,6 +63233,7 @@ CREATE FUNCTION public.gridex_ediel_transport_copy_v1(p_company_id uuid, p_actor
 DECLARE m public.ediel_messages%rowtype; copies jsonb; entered_count integer;
 BEGIN
  IF p_company_id IS NULL OR p_actor_user_id IS NULL OR p_message_id IS NULL THEN RAISE EXCEPTION 'ediel_transport_copy_scope_required'; END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  IF NOT EXISTS(SELECT FROM public.company_memberships x WHERE x.company_id=p_company_id AND x.user_id=p_actor_user_id AND x.status='active' AND x.is_active AND x.accepted_at IS NOT NULL)
  OR NOT EXISTS(SELECT FROM public.user_profiles x WHERE x.id=p_actor_user_id AND x.user_status='active')
  OR NOT coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'communication.read'),false) THEN RAISE EXCEPTION 'ediel_transport_copy_forbidden' USING ERRCODE='42501'; END IF;
@@ -62343,7 +63261,7 @@ BEGIN
   ORDER BY e.entered_at,e.id LIMIT 50
  )
  SELECT (SELECT count(*) FROM entered),coalesce(jsonb_agg(jsonb_build_object('attemptId',q.id,'lane',q.lane,'companyId',q.company_id,'messageId',q.message_id,'environment',q.environment,'mimeArchiveRef',q.binding->>'mimeArchiveRef','mimeSha256',q.binding->>'mimeSha256','mimeLength',(q.binding->>'mimeLength')::bigint,'rfcMessageId',q.binding->>'rfcMessageId','mimePayloadSnapshotId',q.snapshot_id,'enteredAt',q.entered_at,'observedAt',q.observed_at,'smtpClassification',q.classification,'archiveReadbackRequired',true) ORDER BY q.entered_at,q.id),'[]'::jsonb) INTO entered_count,copies FROM qualified q;
- RETURN jsonb_build_object('status',CASE WHEN jsonb_array_length(copies)>0 THEN 'available' WHEN entered_count>0 THEN 'held' ELSE 'unavailable' END,'companyId',m.company_id,'messageId',m.id,'environment',m.environment,'copies',copies,'blocker',CASE WHEN entered_count>0 AND jsonb_array_length(copies)=0 THEN 'entered_mime_archive_binding_not_qualified' END,'authorizesResend',false,'deliveryProven',false);
+ RETURN jsonb_build_object('status',CASE WHEN jsonb_array_length(copies)>0 THEN 'available' WHEN entered_count>0 THEN 'held' ELSE 'unavailable' END,'companyId',m.company_id,'messageId',m.id,'environment',m.environment,'copies',copies,'blocker',CASE WHEN entered_count>0 AND jsonb_array_length(copies)=0 THEN 'entered_mime_archive_binding_not_qualified' END,'authorizesResend',false,'deliveryProven',false,'reconciliationCases',gridex_ediel_transport.read_reconciliation_cases_v1(m.company_id,m.environment,m.id));
 END $_$;
 
 --
@@ -90523,7 +91441,11 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
   end if;
   v_canonical := upper(coalesce(new.message_family,'')) in ('PRODAT','UTILTS','CONTRL','APERAK','UTILTS_ERR');
   if v_canonical then
-    if new.company_id is null then raise exception 'canonical_ediel_company_required' using errcode='23502'; end if;
+    if new.company_id is null then
+      if gridex_unattributed_intake.is_birth_v1(new,tg_op='INSERT') is not true then
+        raise exception 'canonical_ediel_company_required' using errcode='23502';
+      end if;
+    end if;
     if nullif(btrim(coalesce(new.environment,'')),'') is null then raise exception 'canonical_ediel_environment_required' using errcode='23502'; end if;
     if new.direction='outbound' then
       if new.canonical_rule_pack_id is null then
@@ -94758,6 +95680,61 @@ CREATE TABLE gridex_ediel_duplicate_responses.consumptions (
 ALTER TABLE ONLY gridex_ediel_duplicate_responses.consumptions FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: jobs; Type: TABLE; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE TABLE gridex_ediel_exports.jobs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    beneficiary_company_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    idempotency_key uuid NOT NULL,
+    grant_id uuid NOT NULL,
+    expected_grant_version bigint NOT NULL,
+    series_id uuid NOT NULL,
+    purpose text NOT NULL,
+    fields text[] NOT NULL,
+    start_at timestamp with time zone NOT NULL,
+    end_at timestamp with time zone NOT NULL,
+    page_limit integer NOT NULL,
+    after_at timestamp with time zone,
+    after_id uuid,
+    status text DEFAULT 'queued'::text NOT NULL,
+    lease_token uuid,
+    lease_expires_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    completed_at timestamp with time zone,
+    result_expires_at timestamp with time zone,
+    CONSTRAINT jobs_check CHECK ((end_at > start_at)),
+    CONSTRAINT jobs_check1 CHECK (((after_at IS NULL) = (after_id IS NULL))),
+    CONSTRAINT jobs_check2 CHECK (((after_at IS NULL) OR ((after_at >= start_at) AND (after_at < end_at)))),
+    CONSTRAINT jobs_check3 CHECK (((status = 'leased'::text) = ((lease_token IS NOT NULL) AND (lease_expires_at IS NOT NULL)))),
+    CONSTRAINT jobs_check4 CHECK (((status = 'leased'::text) OR ((lease_token IS NULL) AND (lease_expires_at IS NULL)))),
+    CONSTRAINT jobs_check5 CHECK (((status = 'completed'::text) = ((completed_at IS NOT NULL) AND (result_expires_at IS NOT NULL)))),
+    CONSTRAINT jobs_expected_grant_version_check CHECK ((expected_grant_version > 0)),
+    CONSTRAINT jobs_fields_check CHECK (((cardinality(fields) > 0) AND (array_position(fields, NULL::text) IS NULL))),
+    CONSTRAINT jobs_page_limit_check CHECK (((page_limit >= 1) AND (page_limit <= 500))),
+    CONSTRAINT jobs_purpose_check CHECK ((((length(purpose) >= 1) AND (length(purpose) <= 2000)) AND (length(btrim(purpose)) > 0))),
+    CONSTRAINT jobs_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'leased'::text, 'completed'::text, 'blocked'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: results; Type: TABLE; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE TABLE gridex_ediel_exports.results (
+    job_id uuid NOT NULL,
+    beneficiary_company_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    page jsonb NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT results_page_check CHECK ((jsonb_typeof(page) = 'object'::text))
+);
+
+ALTER TABLE ONLY gridex_ediel_exports.results FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: receipts; Type: TABLE; Schema: gridex_ediel_inbound_context; Owner: -
 --
 
@@ -96280,6 +97257,62 @@ CREATE TABLE gridex_ediel_transport.dsn_observations (
 );
 
 ALTER TABLE ONLY gridex_ediel_transport.dsn_observations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_case_events; Type: TABLE; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TABLE gridex_ediel_transport.reconciliation_case_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    case_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    actor_user_id uuid NOT NULL,
+    kind text NOT NULL,
+    origin text NOT NULL,
+    origin_id uuid NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT reconciliation_case_events_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT reconciliation_case_events_kind_check CHECK ((kind = 'opened'::text)),
+    CONSTRAINT reconciliation_case_events_origin_check CHECK ((origin = ANY (ARRAY['generic_observation'::text, 'sealed_result'::text, 'worker_claim_uncertain'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_cases; Type: TABLE; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TABLE gridex_ediel_transport.reconciliation_cases (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    lane text NOT NULL,
+    attempt_id uuid NOT NULL,
+    message_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    original_hash text NOT NULL,
+    binding_hash text NOT NULL,
+    mime_sha256 text NOT NULL,
+    mime_length bigint NOT NULL,
+    mime_archive_ref text NOT NULL,
+    mime_payload_snapshot_id uuid NOT NULL,
+    rfc_message_id text NOT NULL,
+    entered_at timestamp with time zone NOT NULL,
+    opened_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    reason text NOT NULL,
+    CONSTRAINT reconciliation_cases_binding_hash_check CHECK ((binding_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT reconciliation_cases_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT reconciliation_cases_lane_check CHECK ((lane = ANY (ARRAY['generic_journal'::text, 'sealed_z08'::text]))),
+    CONSTRAINT reconciliation_cases_mime_archive_ref_check CHECK ((length(mime_archive_ref) > 0)),
+    CONSTRAINT reconciliation_cases_mime_length_check CHECK ((mime_length > 0)),
+    CONSTRAINT reconciliation_cases_mime_sha256_check CHECK ((mime_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT reconciliation_cases_original_hash_check CHECK ((original_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT reconciliation_cases_reason_check CHECK ((reason = ANY (ARRAY['provider_outcome_unknown'::text, 'entry_unresolved_after_lease'::text]))),
+    CONSTRAINT reconciliation_cases_rfc_message_id_check CHECK ((length(rfc_message_id) > 0))
+);
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: reservations; Type: TABLE; Schema: gridex_ediel_transport; Owner: -
@@ -98938,6 +99971,82 @@ CREATE TABLE gridex_transport_exception.revocations (
 );
 
 ALTER TABLE ONLY gridex_transport_exception.revocations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: attachment_births; Type: TABLE; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TABLE gridex_unattributed_intake.attachment_births (
+    attachment_id uuid NOT NULL,
+    inbound_email_message_id uuid NOT NULL,
+    snapshot_hash text NOT NULL,
+    CONSTRAINT attachment_births_snapshot_hash_check CHECK ((snapshot_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_unattributed_intake.attachment_births FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: parse_births; Type: TABLE; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TABLE gridex_unattributed_intake.parse_births (
+    parse_result_id uuid NOT NULL,
+    inbound_email_message_id uuid NOT NULL,
+    snapshot_hash text NOT NULL,
+    attachment_set_hash text NOT NULL,
+    selection_qualified boolean NOT NULL,
+    CONSTRAINT parse_births_snapshot_hash_check CHECK ((snapshot_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_unattributed_intake.parse_births FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: physical_claims; Type: TABLE; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TABLE gridex_unattributed_intake.physical_claims (
+    physical_key text NOT NULL,
+    protected_source_id uuid,
+    claim_transaction bigint NOT NULL
+);
+
+ALTER TABLE ONLY gridex_unattributed_intake.physical_claims FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: raw_births; Type: TABLE; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TABLE gridex_unattributed_intake.raw_births (
+    inbound_email_message_id uuid NOT NULL,
+    snapshot_hash text NOT NULL,
+    observed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT raw_births_snapshot_hash_check CHECK ((snapshot_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_unattributed_intake.raw_births FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: technical_births; Type: TABLE; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TABLE gridex_unattributed_intake.technical_births (
+    source_message_id uuid NOT NULL,
+    inbound_email_message_id uuid NOT NULL,
+    parse_result_id uuid NOT NULL,
+    payload_hash text NOT NULL,
+    environment text NOT NULL,
+    received_at timestamp with time zone NOT NULL,
+    physical_envelope jsonb NOT NULL,
+    message_family text NOT NULL,
+    message_code text NOT NULL,
+    actor_user_id uuid NOT NULL,
+    birth_transaction bigint NOT NULL,
+    CONSTRAINT technical_births_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT technical_births_message_family_check CHECK ((message_family = ANY (ARRAY['PRODAT'::text, 'UTILTS'::text]))),
+    CONSTRAINT technical_births_payload_hash_check CHECK ((payload_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: contracts; Type: TABLE; Schema: gridex_utilts_binding; Owner: -
@@ -114950,90 +116059,6 @@ CREATE TABLE public.inbound_ediel_match_attempts (
 );
 
 --
--- Name: inbound_ediel_parse_results; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inbound_ediel_parse_results (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    inbound_email_message_id uuid,
-    message_family text,
-    message_code text,
-    interchange_reference text,
-    transaction_reference text,
-    sender_ediel_id text,
-    sender_sub_address text,
-    receiver_ediel_id text,
-    receiver_sub_address text,
-    application_reference text,
-    parse_status text DEFAULT 'parsed'::text NOT NULL,
-    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    validation_report jsonb DEFAULT '{}'::jsonb NOT NULL,
-    raw_payload text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
---
--- Name: inbound_email_attachments; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inbound_email_attachments (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    inbound_email_message_id uuid,
-    filename text,
-    mime_type text,
-    size_bytes bigint,
-    storage_path text,
-    raw_text text,
-    is_edifact_candidate boolean DEFAULT false NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
---
--- Name: inbound_email_messages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inbound_email_messages (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    mailbox_id uuid,
-    internet_message_id text,
-    from_address text,
-    to_address text,
-    subject text,
-    received_at timestamp with time zone,
-    raw_email_path text,
-    raw_email text,
-    raw_edifact_payload text,
-    body_text text,
-    body_html text,
-    has_attachments boolean DEFAULT false NOT NULL,
-    processing_status text DEFAULT 'received'::text NOT NULL,
-    dedupe_key text,
-    match_status text DEFAULT 'not_checked'::text NOT NULL,
-    match_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    error_message text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    environment text DEFAULT 'test'::text,
-    sender_ediel_id text,
-    receiver_ediel_id text,
-    interchange_reference text,
-    transaction_reference text,
-    external_reference text,
-    message_family text,
-    message_code text,
-    raw_message_sha256 text,
-    dedupe_scope text,
-    dedupe_reason text,
-    duplicate_of_id uuid,
-    ai_processing_actor_user_id uuid,
-    ai_processing_decision_id uuid
-);
-
---
 -- Name: inbound_operation_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -118352,8 +119377,7 @@ CREATE TABLE public.tenant_ediel_profiles (
     valid_to timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT tenant_ediel_profiles_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text)),
-    CONSTRAINT tenant_ediel_profiles_validity_order CHECK (((valid_to IS NULL) OR (valid_to >= valid_from)))
+    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text))
 );
 
 ALTER TABLE ONLY public.tenant_ediel_profiles FORCE ROW LEVEL SECURITY;
@@ -120279,6 +121303,34 @@ ALTER TABLE ONLY gridex_ediel_duplicate_responses.intents
     ADD CONSTRAINT intents_response_request_id_key UNIQUE (response_request_id);
 
 --
+-- Name: jobs jobs_beneficiary_company_id_actor_user_id_idempotency_key_key; Type: CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_beneficiary_company_id_actor_user_id_idempotency_key_key UNIQUE (beneficiary_company_id, actor_user_id, idempotency_key);
+
+--
+-- Name: jobs jobs_id_beneficiary_company_id_actor_user_id_key; Type: CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_id_beneficiary_company_id_actor_user_id_key UNIQUE (id, beneficiary_company_id, actor_user_id);
+
+--
+-- Name: jobs jobs_pkey; Type: CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_pkey PRIMARY KEY (id);
+
+--
+-- Name: results results_pkey; Type: CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.results
+    ADD CONSTRAINT results_pkey PRIMARY KEY (job_id);
+
+--
 -- Name: receipts receipts_pkey; Type: CONSTRAINT; Schema: gridex_ediel_inbound_context; Owner: -
 --
 
@@ -120998,6 +122050,34 @@ ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
 
 ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
     ADD CONSTRAINT dsn_observations_pkey PRIMARY KEY (id);
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_case_id_key; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_case_id_key UNIQUE (case_id);
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_pkey; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_pkey PRIMARY KEY (id);
+
+--
+-- Name: reconciliation_cases reconciliation_cases_company_id_environment_lane_attempt_id_key; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_company_id_environment_lane_attempt_id_key UNIQUE (company_id, environment, lane, attempt_id);
+
+--
+-- Name: reconciliation_cases reconciliation_cases_pkey; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_pkey PRIMARY KEY (id);
 
 --
 -- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
@@ -122629,6 +123709,62 @@ ALTER TABLE ONLY gridex_transport_exception.operations
 
 ALTER TABLE ONLY gridex_transport_exception.revocations
     ADD CONSTRAINT revocations_pkey PRIMARY KEY (approval_id);
+
+--
+-- Name: attachment_births attachment_births_pkey; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.attachment_births
+    ADD CONSTRAINT attachment_births_pkey PRIMARY KEY (attachment_id);
+
+--
+-- Name: parse_births parse_births_pkey; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.parse_births
+    ADD CONSTRAINT parse_births_pkey PRIMARY KEY (parse_result_id);
+
+--
+-- Name: physical_claims physical_claims_pkey; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.physical_claims
+    ADD CONSTRAINT physical_claims_pkey PRIMARY KEY (physical_key);
+
+--
+-- Name: physical_claims physical_claims_protected_source_id_key; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.physical_claims
+    ADD CONSTRAINT physical_claims_protected_source_id_key UNIQUE (protected_source_id);
+
+--
+-- Name: raw_births raw_births_pkey; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.raw_births
+    ADD CONSTRAINT raw_births_pkey PRIMARY KEY (inbound_email_message_id);
+
+--
+-- Name: technical_births technical_births_inbound_email_message_id_key; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births
+    ADD CONSTRAINT technical_births_inbound_email_message_id_key UNIQUE (inbound_email_message_id);
+
+--
+-- Name: technical_births technical_births_parse_result_id_key; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births
+    ADD CONSTRAINT technical_births_parse_result_id_key UNIQUE (parse_result_id);
+
+--
+-- Name: technical_births technical_births_pkey; Type: CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births
+    ADD CONSTRAINT technical_births_pkey PRIMARY KEY (source_message_id);
 
 --
 -- Name: contracts contracts_company_id_environment_source_message_id_transact_key; Type: CONSTRAINT; Schema: gridex_utilts_binding; Owner: -
@@ -126894,13 +128030,6 @@ ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_company_id_environment_market_valid_f_key UNIQUE (company_id, environment, market, valid_from);
 
 --
--- Name: tenant_ediel_profiles tenant_ediel_profiles_enabled_period_excl; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tenant_ediel_profiles
-    ADD CONSTRAINT tenant_ediel_profiles_enabled_period_excl EXCLUDE USING gist (company_id WITH =, environment WITH =, market WITH =, tstzrange(valid_from, valid_to, '[)'::text) WITH &&) WHERE (is_enabled);
-
---
 -- Name: tenant_ediel_profiles tenant_ediel_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -127203,6 +128332,36 @@ CREATE INDEX readsets_company_id_cutoff_at_id_idx ON gridex_correction_process.r
 CREATE INDEX outbound_prodat_scope_ack ON gridex_ediel_ack_guide.outbound_prodat_scopes USING btree (ack_message_id);
 
 --
+-- Name: beneficiary_export_actor_idx; Type: INDEX; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE INDEX beneficiary_export_actor_idx ON gridex_ediel_exports.jobs USING btree (actor_user_id);
+
+--
+-- Name: beneficiary_export_claim_idx; Type: INDEX; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE INDEX beneficiary_export_claim_idx ON gridex_ediel_exports.jobs USING btree (beneficiary_company_id, actor_user_id, created_at, id) WHERE (status = ANY (ARRAY['queued'::text, 'leased'::text]));
+
+--
+-- Name: beneficiary_export_grant_idx; Type: INDEX; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE INDEX beneficiary_export_grant_idx ON gridex_ediel_exports.jobs USING btree (grant_id);
+
+--
+-- Name: beneficiary_export_result_expiry_idx; Type: INDEX; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE INDEX beneficiary_export_result_expiry_idx ON gridex_ediel_exports.results USING btree (beneficiary_company_id, actor_user_id, expires_at);
+
+--
+-- Name: beneficiary_export_series_idx; Type: INDEX; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE INDEX beneficiary_export_series_idx ON gridex_ediel_exports.jobs USING btree (series_id);
+
+--
 -- Name: one_first_reception_per_original; Type: INDEX; Schema: gridex_ediel_inbound_receptions; Owner: -
 --
 
@@ -127219,6 +128378,12 @@ CREATE INDEX receptions_source_message ON gridex_ediel_inbound_receptions.recept
 --
 
 CREATE INDEX ediel_scoped_readiness_evidence_lookup ON gridex_ediel_readiness.evidence USING btree (company_id, dependency_hash, expires_at DESC);
+
+--
+-- Name: ediel_reconciliation_case_scope_idx; Type: INDEX; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE INDEX ediel_reconciliation_case_scope_idx ON gridex_ediel_transport.reconciliation_cases USING btree (company_id, environment, message_id, opened_at, id);
 
 --
 -- Name: ediel_transport_attempts_owner_idx; Type: INDEX; Schema: gridex_ediel_transport; Owner: -
@@ -139296,6 +140461,24 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_duplicate_resp
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_duplicate_responses.intents FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: results beneficiary_export_result_immutable; Type: TRIGGER; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE TRIGGER beneficiary_export_result_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_exports.results FOR EACH ROW EXECUTE FUNCTION gridex_ediel_exports.immutable_result_v1();
+
+--
+-- Name: results beneficiary_export_result_no_truncate; Type: TRIGGER; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE TRIGGER beneficiary_export_result_no_truncate BEFORE TRUNCATE ON gridex_ediel_exports.results FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_exports.immutable_result_v1();
+
+--
+-- Name: jobs beneficiary_export_scope_immutable; Type: TRIGGER; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE TRIGGER beneficiary_export_scope_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_exports.jobs FOR EACH ROW EXECUTE FUNCTION gridex_ediel_exports.immutable_scope_v1();
+
+--
 -- Name: receipts immutable_receipts; Type: TRIGGER; Schema: gridex_ediel_inbound_context; Owner: -
 --
 
@@ -140352,6 +141535,36 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_technical_ack.
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_technical_ack.syntax_facets FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_technical_ack.immutable();
 
 --
+-- Name: reconciliation_cases ediel_reconciliation_cases_immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_cases_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_transport.reconciliation_cases FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: reconciliation_cases ediel_reconciliation_cases_no_truncate; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_cases_no_truncate BEFORE TRUNCATE ON gridex_ediel_transport.reconciliation_cases FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: reconciliation_case_events ediel_reconciliation_events_immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_events_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_transport.reconciliation_case_events FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: reconciliation_case_events ediel_reconciliation_events_no_truncate; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_events_no_truncate BEFORE TRUNCATE ON gridex_ediel_transport.reconciliation_case_events FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: attempts ediel_reconciliation_generic_observed; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_generic_observed AFTER UPDATE ON gridex_ediel_transport.attempts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_observed_v1();
+
+--
 -- Name: dsn_observations immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -140686,6 +141899,12 @@ CREATE TRIGGER revocations_immutable BEFORE DELETE OR UPDATE ON gridex_network_r
 --
 
 CREATE TRIGGER revocations_no_truncate BEFORE TRUNCATE ON gridex_network_registry_sources.revocations FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: events ediel_reconciliation_sealed_result; Type: TRIGGER; Schema: gridex_outbound_dispatch; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_sealed_result AFTER INSERT ON gridex_outbound_dispatch.events FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_observed_v1();
 
 --
 -- Name: attempts immutable; Type: TRIGGER; Schema: gridex_outbound_dispatch; Owner: -
@@ -142170,6 +143389,78 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.o
 CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.revocations FOR EACH ROW EXECUTE FUNCTION gridex_transport_exception.immutable_v1();
 
 --
+-- Name: physical_claims gridex_complete_physical_claim; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER gridex_complete_physical_claim AFTER INSERT ON gridex_unattributed_intake.physical_claims DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.complete_claim_v1();
+
+--
+-- Name: technical_births gridex_complete_technical_birth; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER gridex_complete_technical_birth AFTER INSERT ON gridex_unattributed_intake.technical_births DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.complete_birth_v1();
+
+--
+-- Name: attachment_births immutable_receipt; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_unattributed_intake.attachment_births FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: parse_births immutable_receipt; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_unattributed_intake.parse_births FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: physical_claims immutable_receipt; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_unattributed_intake.physical_claims FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_physical_claim_v1();
+
+--
+-- Name: raw_births immutable_receipt; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_unattributed_intake.raw_births FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: technical_births immutable_receipt; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_unattributed_intake.technical_births FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: attachment_births immutable_truncate; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.attachment_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: parse_births immutable_truncate; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.parse_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: physical_claims immutable_truncate; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.physical_claims FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: raw_births immutable_truncate; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.raw_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: technical_births immutable_truncate; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.technical_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
 -- Name: contracts utilts_contract_immutable; Type: TRIGGER; Schema: gridex_utilts_binding; Owner: -
 --
 
@@ -143516,6 +144807,12 @@ CREATE TRIGGER ediel_positive_fixture_origin AFTER INSERT OR UPDATE OF raw_paylo
 CREATE TRIGGER ediel_production_state_sync_company_projection AFTER INSERT OR UPDATE OF state, approved_by, approved_at, paused_by, paused_at, pause_reason, blocked_reason, first_live_send_approved_by, first_live_send_approved_at ON public.ediel_production_state FOR EACH ROW EXECUTE FUNCTION public.canonical_sync_company_ediel_projection_v1();
 
 --
+-- Name: ediel_outbox ediel_reconciliation_worker_uncertain; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_worker_uncertain AFTER UPDATE OF status ON public.ediel_outbox FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_worker_uncertain_v1();
+
+--
 -- Name: ediel_send_locks ediel_requeue_outbox_after_send_lock_release; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -143700,6 +144997,54 @@ CREATE TRIGGER gridex_seal_received_ack_source BEFORE INSERT OR UPDATE ON public
 --
 
 CREATE TRIGGER gridex_seal_received_utilts_source BEFORE INSERT OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.seal_utilts_insert_v1();
+
+--
+-- Name: inbound_email_attachments gridex_technical_attachment_birth; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_attachment_birth AFTER INSERT ON public.inbound_email_attachments FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.capture_custody_v1();
+
+--
+-- Name: inbound_email_attachments gridex_technical_attachment_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_attachment_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.inbound_email_attachments FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_original_v1();
+
+--
+-- Name: ediel_messages gridex_technical_original_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_original_immutable BEFORE DELETE OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_original_v1();
+
+--
+-- Name: inbound_ediel_parse_results gridex_technical_parse_birth; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_parse_birth AFTER INSERT ON public.inbound_ediel_parse_results FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.capture_custody_v1();
+
+--
+-- Name: inbound_ediel_parse_results gridex_technical_parse_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_parse_immutable BEFORE DELETE OR UPDATE ON public.inbound_ediel_parse_results FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_original_v1();
+
+--
+-- Name: ediel_messages gridex_technical_protected_physical_original; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_protected_physical_original BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_physical_original_v1();
+
+--
+-- Name: inbound_email_messages gridex_technical_raw_birth; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_raw_birth AFTER INSERT ON public.inbound_email_messages FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.capture_custody_v1();
+
+--
+-- Name: inbound_email_messages gridex_technical_raw_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_technical_raw_immutable BEFORE DELETE OR UPDATE ON public.inbound_email_messages FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_original_v1();
 
 --
 -- Name: user_roles gridex_user_roles_scope_consistent; Type: TRIGGER; Schema: public; Owner: -
@@ -146405,6 +147750,41 @@ ALTER TABLE ONLY gridex_ediel_duplicate_responses.intents
     ADD CONSTRAINT intents_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id) ON DELETE RESTRICT;
 
 --
+-- Name: jobs jobs_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: jobs jobs_beneficiary_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_beneficiary_company_id_fkey FOREIGN KEY (beneficiary_company_id) REFERENCES public.companies(id);
+
+--
+-- Name: jobs jobs_grant_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_grant_id_fkey FOREIGN KEY (grant_id) REFERENCES public.ediel_data_access_grants(id);
+
+--
+-- Name: jobs jobs_series_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.jobs
+    ADD CONSTRAINT jobs_series_id_fkey FOREIGN KEY (series_id) REFERENCES public.meter_reading_series(id);
+
+--
+-- Name: results results_job_id_beneficiary_company_id_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_exports.results
+    ADD CONSTRAINT results_job_id_beneficiary_company_id_actor_user_id_fkey FOREIGN KEY (job_id, beneficiary_company_id, actor_user_id) REFERENCES gridex_ediel_exports.jobs(id, beneficiary_company_id, actor_user_id);
+
+--
 -- Name: receptions receptions_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_inbound_receptions; Owner: -
 --
 
@@ -147481,6 +148861,48 @@ ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
 
 ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
     ADD CONSTRAINT dsn_observations_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_case_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_case_id_fkey FOREIGN KEY (case_id) REFERENCES gridex_ediel_transport.reconciliation_cases(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_cases reconciliation_cases_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_cases reconciliation_cases_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_cases reconciliation_cases_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id) ON DELETE RESTRICT;
 
 --
 -- Name: reservations reservations_attempt_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
@@ -149994,6 +151416,48 @@ ALTER TABLE ONLY gridex_transport_exception.revocations
 
 ALTER TABLE ONLY gridex_transport_exception.revocations
     ADD CONSTRAINT revocations_approval_id_fkey FOREIGN KEY (approval_id) REFERENCES gridex_transport_exception.approvals(id);
+
+--
+-- Name: attachment_births attachment_births_inbound_email_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.attachment_births
+    ADD CONSTRAINT attachment_births_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES gridex_unattributed_intake.raw_births(inbound_email_message_id);
+
+--
+-- Name: parse_births parse_births_inbound_email_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.parse_births
+    ADD CONSTRAINT parse_births_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES gridex_unattributed_intake.raw_births(inbound_email_message_id);
+
+--
+-- Name: physical_claims physical_claims_protected_source_id_fkey; Type: FK CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.physical_claims
+    ADD CONSTRAINT physical_claims_protected_source_id_fkey FOREIGN KEY (protected_source_id) REFERENCES gridex_unattributed_intake.technical_births(source_message_id);
+
+--
+-- Name: technical_births technical_births_inbound_email_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births
+    ADD CONSTRAINT technical_births_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES public.inbound_email_messages(id);
+
+--
+-- Name: technical_births technical_births_parse_result_id_fkey; Type: FK CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births
+    ADD CONSTRAINT technical_births_parse_result_id_fkey FOREIGN KEY (parse_result_id) REFERENCES public.inbound_ediel_parse_results(id);
+
+--
+-- Name: technical_births technical_births_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE ONLY gridex_unattributed_intake.technical_births
+    ADD CONSTRAINT technical_births_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id) DEFERRABLE INITIALLY DEFERRED;
 
 --
 -- Name: contracts contracts_company_id_environment_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_utilts_binding; Owner: -
@@ -158576,6 +160040,18 @@ ALTER TABLE gridex_ediel_duplicate_responses.consumptions ENABLE ROW LEVEL SECUR
 ALTER TABLE gridex_ediel_duplicate_responses.intents ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: jobs; Type: ROW SECURITY; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE gridex_ediel_exports.jobs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: results; Type: ROW SECURITY; Schema: gridex_ediel_exports; Owner: -
+--
+
+ALTER TABLE gridex_ediel_exports.results ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: receipts; Type: ROW SECURITY; Schema: gridex_ediel_inbound_context; Owner: -
 --
 
@@ -159000,6 +160476,18 @@ ALTER TABLE gridex_ediel_transport.attempts ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_ediel_transport.dsn_observations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_case_events; Type: ROW SECURITY; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE gridex_ediel_transport.reconciliation_case_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_cases; Type: ROW SECURITY; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE gridex_ediel_transport.reconciliation_cases ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: reservations; Type: ROW SECURITY; Schema: gridex_ediel_transport; Owner: -
@@ -159948,6 +161436,36 @@ ALTER TABLE gridex_transport_exception.operations ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_transport_exception.revocations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: attachment_births; Type: ROW SECURITY; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE gridex_unattributed_intake.attachment_births ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: parse_births; Type: ROW SECURITY; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE gridex_unattributed_intake.parse_births ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: physical_claims; Type: ROW SECURITY; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE gridex_unattributed_intake.physical_claims ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: raw_births; Type: ROW SECURITY; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE gridex_unattributed_intake.raw_births ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: technical_births; Type: ROW SECURITY; Schema: gridex_unattributed_intake; Owner: -
+--
+
+ALTER TABLE gridex_unattributed_intake.technical_births ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: contracts; Type: ROW SECURITY; Schema: gridex_utilts_binding; Owner: -
@@ -178471,6 +179989,12 @@ GRANT USAGE ON SCHEMA gridex_transport_exception TO service_role;
 GRANT USAGE ON SCHEMA gridex_transport_exception TO gridex_ediel_transport_exception_owner;
 
 --
+-- Name: SCHEMA gridex_unattributed_intake; Type: ACL; Schema: -; Owner: -
+--
+
+GRANT USAGE ON SCHEMA gridex_unattributed_intake TO service_role;
+
+--
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
 --
 
@@ -180668,6 +182192,18 @@ REVOKE ALL ON FUNCTION gridex_ediel_duplicate_responses.source_for_execution_v1(
 REVOKE ALL ON FUNCTION gridex_ediel_duplicate_responses.source_v1(c uuid, source_id uuid, mail_id uuid, actor uuid) FROM PUBLIC;
 
 --
+-- Name: FUNCTION immutable_result_v1(); Type: ACL; Schema: gridex_ediel_exports; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_exports.immutable_result_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION immutable_scope_v1(); Type: ACL; Schema: gridex_ediel_exports; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_exports.immutable_scope_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION capture(); Type: ACL; Schema: gridex_ediel_inbound_context; Owner: -
 --
 
@@ -182264,11 +183800,41 @@ REVOKE ALL ON FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) FROM PUBL
 GRANT ALL ON FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) TO service_role;
 
 --
+-- Name: FUNCTION open_reconciliation_case_v1(p_lane text, p_attempt_id uuid, p_reason text, p_origin text, p_origin_id uuid); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.open_reconciliation_case_v1(p_lane text, p_attempt_id uuid, p_reason text, p_origin text, p_origin_id uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION read_dsn_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid); Type: ACL; Schema: gridex_ediel_transport; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_transport.read_dsn_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION gridex_ediel_transport.read_dsn_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION read_reconciliation_cases_v1(p_company_id uuid, p_environment text, p_message_id uuid); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.read_reconciliation_cases_v1(p_company_id uuid, p_environment text, p_message_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION reconciliation_append_only_v1(); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.reconciliation_append_only_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION reconciliation_observed_v1(); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.reconciliation_observed_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION reconciliation_worker_uncertain_v1(); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.reconciliation_worker_uncertain_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION record_dsn_v1(p_input jsonb); Type: ACL; Schema: gridex_ediel_transport; Owner: -
@@ -184675,6 +186241,146 @@ REVOKE ALL ON FUNCTION gridex_transport_exception.scope_v1(m public.ediel_messag
 REVOKE ALL ON FUNCTION gridex_transport_exception.stage_v1(i jsonb, r jsonb) FROM PUBLIC;
 
 --
+-- Name: TABLE inbound_email_attachments; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.inbound_email_attachments TO service_role;
+
+--
+-- Name: FUNCTION attachment_hash_v1(a public.inbound_email_attachments); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.attachment_hash_v1(a public.inbound_email_attachments) FROM PUBLIC;
+
+--
+-- Name: FUNCTION attachment_set_v1(mail_id uuid); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.attachment_set_v1(mail_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION capture_custody_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.capture_custody_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION complete_birth_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.complete_birth_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION complete_claim_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.complete_claim_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION guard_original_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.guard_original_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION guard_physical_claim_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.guard_physical_claim_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION guard_physical_original_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.guard_physical_original_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION immutable_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.immutable_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION is_birth_v1(m public.ediel_messages, pending boolean); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.is_birth_v1(m public.ediel_messages, pending boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_unattributed_intake.is_birth_v1(m public.ediel_messages, pending boolean) TO service_role;
+
+--
+-- Name: TABLE inbound_ediel_parse_results; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.inbound_ediel_parse_results TO service_role;
+
+--
+-- Name: FUNCTION parse_hash_v1(p public.inbound_ediel_parse_results); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.parse_hash_v1(p public.inbound_ediel_parse_results) FROM PUBLIC;
+
+--
+-- Name: FUNCTION physical_key_v1(e jsonb); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.physical_key_v1(e jsonb) FROM PUBLIC;
+
+--
+-- Name: TABLE inbound_email_messages; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.inbound_email_messages TO authenticated;
+GRANT ALL ON TABLE public.inbound_email_messages TO service_role;
+
+--
+-- Name: FUNCTION raw_hash_v1(m public.inbound_email_messages); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.raw_hash_v1(m public.inbound_email_messages) FROM PUBLIC;
+
+--
+-- Name: FUNCTION receipt_v1(source_id uuid, actor uuid); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.receipt_v1(source_id uuid, actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_custody_v1(mail_id uuid, parse_id uuid); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.require_custody_v1(mail_id uuid, parse_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_service_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.require_service_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION selection_v1(p public.inbound_ediel_parse_results); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.selection_v1(p public.inbound_ediel_parse_results) FROM PUBLIC;
+
+--
+-- Name: FUNCTION service_session_v1(); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.service_session_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION sha_v1(s text); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.sha_v1(s text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION wire_view_v1(s text); Type: ACL; Schema: gridex_unattributed_intake; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_unattributed_intake.wire_view_v1(s text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION absolute_v1(v jsonb); Type: ACL; Schema: gridex_utilts_binding; Owner: -
 --
 
@@ -185438,6 +187144,13 @@ REVOKE ALL ON FUNCTION public.cleanup_energy_geodata_staging_v1(p_retention_days
 GRANT ALL ON FUNCTION public.cleanup_energy_geodata_staging_v1(p_retention_days integer, p_dry_run boolean) TO service_role;
 
 --
+-- Name: FUNCTION ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text) TO service_role;
+
+--
 -- Name: FUNCTION ediel_advance_permission_deadlines_v1(p_actor_user_id uuid, p_company_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
 --
 
@@ -185739,6 +187452,13 @@ REVOKE ALL ON FUNCTION public.ediel_capture_technical_syntax_ack_basis_v2(p_comp
 GRANT ALL ON FUNCTION public.ediel_capture_technical_syntax_ack_basis_v2(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_phase text) TO service_role;
 
 --
+-- Name: FUNCTION ediel_claim_beneficiary_exports_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_claim_beneficiary_exports_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_claim_beneficiary_exports_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_limit integer) TO service_role;
+
+--
 -- Name: FUNCTION ediel_commit_duplicate_103_response_v1(p_company_id uuid, p_source_message_id uuid, p_inbound_email_message_id uuid, p_actor_user_id uuid, p_draft jsonb, p_smtp jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -185967,6 +187687,13 @@ GRANT ALL ON FUNCTION public.ediel_customer_record_retention_targets_v1(p_compan
 
 REVOKE ALL ON FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id uuid, p_customer_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id uuid, p_customer_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_finance_copy_retention_basis_v1(p_company_id uuid, p_actor_user_id uuid, p_retention_class text, p_target_id text); Type: ACL; Schema: public; Owner: -
@@ -186384,6 +188111,13 @@ REVOKE ALL ON FUNCTION public.ediel_qualify_supply_rescission_prepared_original_
 GRANT ALL ON FUNCTION public.ediel_qualify_supply_rescission_prepared_original_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION ediel_queue_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_idempotency_key uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer, p_after_at timestamp with time zone, p_after_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_queue_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_idempotency_key uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer, p_after_at timestamp with time zone, p_after_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_queue_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_idempotency_key uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer, p_after_at timestamp with time zone, p_after_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION ediel_queue_prodat_retry_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_operation_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -186403,6 +188137,13 @@ GRANT ALL ON FUNCTION public.ediel_read_actor_registry_batch_v1(p_actor_user_id 
 
 REVOKE ALL ON FUNCTION public.ediel_read_ai_purpose_source_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid, p_include_bytes boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_read_ai_purpose_source_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid, p_include_bytes boolean) TO service_role;
+
+--
+-- Name: FUNCTION ediel_read_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_read_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_read_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_read_bilateral_customer_source_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid, p_include_bytes boolean); Type: ACL; Schema: public; Owner: -
@@ -186764,6 +188505,13 @@ GRANT ALL ON FUNCTION public.ediel_read_technical_syntax_ack_route_v1(p_company_
 
 REVOKE ALL ON FUNCTION public.ediel_read_transport_exception_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_exception_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_read_transport_exception_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_exception_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_read_unattributed_technical_intake_v1(p_inbound_email_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_read_unattributed_technical_intake_v1(p_inbound_email_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_read_unattributed_technical_intake_v1(p_inbound_email_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_read_z06f_reading_followup_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_source_message_id uuid); Type: ACL; Schema: public; Owner: -
@@ -195670,25 +197418,6 @@ GRANT ALL ON TABLE public.gridex_verified_grid_owners_v TO service_role;
 --
 
 GRANT ALL ON TABLE public.inbound_ediel_match_attempts TO service_role;
-
---
--- Name: TABLE inbound_ediel_parse_results; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.inbound_ediel_parse_results TO service_role;
-
---
--- Name: TABLE inbound_email_attachments; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.inbound_email_attachments TO service_role;
-
---
--- Name: TABLE inbound_email_messages; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.inbound_email_messages TO authenticated;
-GRANT ALL ON TABLE public.inbound_email_messages TO service_role;
 
 --
 -- Name: TABLE inbound_operation_events; Type: ACL; Schema: public; Owner: -

@@ -1,0 +1,2 @@
+Initial read-only gh PR589 and head-filtered Actions request failed in default sandbox before HTTP: proxyconnect tcp: dial tcp 172.31.0.61:8080: socket: operation not permitted
+Both requests exited1. No GitHub state mutated.

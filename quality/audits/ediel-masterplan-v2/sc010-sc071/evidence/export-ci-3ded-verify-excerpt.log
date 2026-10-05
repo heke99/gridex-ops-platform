@@ -1,0 +1,2 @@
+Selected actual job-log excerpt only; source candidate3ded2c09e12e81777f7b5d4c37f4d9c411e9660e, verify111747518939, run37305332952. This is not the full raw log or a native execution receipt.
+2026-10-05T11:49:46.0711596Z - Migration is missing from checksum manifest: 20261005101500_ediel_beneficiary_export_jobs.sql (sha256=d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596)

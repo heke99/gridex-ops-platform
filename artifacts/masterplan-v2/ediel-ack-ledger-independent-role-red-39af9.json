@@ -1,0 +1,92 @@
+{
+  "capturePath": "/tmp/masterplan503-capture39/schema.sql",
+  "captureSha256": "052c4dc76d806b6d1506ff2153b6194ccd2227b779dd6ffb76fe6eb8c9248299",
+  "exactLoadedFunctionSha256": [
+    {
+      "name": "gridex_ediel_source_rules.read_ack_source_before_basis_v1",
+      "sha256": "1d1bafaef098df45dc02b009dd8e7e6249a033aafc2c5841beeaae50b790d1a0"
+    },
+    {
+      "name": "gridex_ediel_source_rules.require_v1",
+      "sha256": "5b570b14aefb7037eb56d62a5778aceab48ec7791ca6a183c03f3bce9514d1d6"
+    },
+    {
+      "name": "gridex_received_sources.append_validation_before_reference_profile_v1",
+      "sha256": "81fb6c6351ba6720308e54e5baa94398a26d49001cece6066256ad041efacf65"
+    },
+    {
+      "name": "gridex_received_sources.append_validation_before_unused_unh_v1",
+      "sha256": "d85e91aba06c615d6dfda13f07d79d40a549a9fe152eac6d72331c3510741dba"
+    },
+    {
+      "name": "gridex_received_sources.append_validation",
+      "sha256": "41b7ea66a4f370b00cd344432aa91403c55fcf69d92f859915941d9f2dc58941"
+    },
+    {
+      "name": "public.gridex_read_inbound_ack_source_v1",
+      "sha256": "83752a281cc6b4d69c831a83cac7077e2477e3609a8a6f77aaf0f5d64afd4095"
+    },
+    {
+      "name": "public.gridex_record_source_validation_v1",
+      "sha256": "e6ccfb3d8cf0f0489cc8ac3dcc87ea9fffa993fce13fc543720fe44626a95d7a"
+    }
+  ],
+  "proofScope": "Exact captured function bodies/ACLs; actual PostgreSQL role and SECURITY DEFINER execution. Minimal synthetic tables and finite wire/correlation ports; not an ingress/native acceptance proof.",
+  "initialRole": {
+    "current_user": "postgres",
+    "session_user": "postgres",
+    "selected_role": "none"
+  },
+  "directRole": {
+    "current_user": "service_role",
+    "session_user": "postgres",
+    "selected_role": "service_role"
+  },
+  "metadata": [
+    {
+      "function": "gridex_ediel_source_rules.read_ack_source_before_basis_v1",
+      "security_definer": true,
+      "owner": "postgres"
+    },
+    {
+      "function": "gridex_ediel_source_rules.require_v1",
+      "security_definer": true,
+      "owner": "postgres"
+    },
+    {
+      "function": "gridex_received_sources.append_validation",
+      "security_definer": true,
+      "owner": "postgres"
+    },
+    {
+      "function": "gridex_received_sources.append_validation_before_reference_profile_v1",
+      "security_definer": true,
+      "owner": "postgres"
+    },
+    {
+      "function": "gridex_received_sources.append_validation_before_unused_unh_v1",
+      "security_definer": true,
+      "owner": "postgres"
+    },
+    {
+      "function": "public.gridex_read_inbound_ack_source_v1",
+      "security_definer": false,
+      "owner": "postgres"
+    },
+    {
+      "function": "public.gridex_record_source_validation_v1",
+      "security_definer": false,
+      "owner": "postgres"
+    }
+  ],
+  "directPublicAckRead": "PASS: service_role entered actual public guard, actual private scope/hash/time reader and immutable original-witness getter returned the declared original.",
+  "actualPublicLedgerRed": {
+    "code": "42501",
+    "message": "service_role_required",
+    "where": "PL/pgSQL function public.gridex_read_inbound_ack_source_v1(uuid,text,uuid) line 4 at RAISE\nPL/pgSQL function gridex_received_sources.append_validation_before_reference_profile_v1(uuid,text,uuid,text,text) line 46 at assignment\nPL/pgSQL function gridex_received_sources.append_validation_before_unused_unh_v1(uuid,text,uuid,text,text) line 4 at assignment\nPL/pgSQL function gridex_received_sources.append_validation(uuid,text,uuid,text,text) line 4 at assignment\nPL/pgSQL function public.gridex_record_source_validation_v1(uuid,text,uuid,text,text) line 4 at RETURN"
+  },
+  "assessmentCountAfter": 0,
+  "declaredPortCallsBefore": 3,
+  "declaredPortCallsAfter": 3,
+  "verdict": "CONFIRMED: public service-role validation enters actual definer-owned append, nested invoker public ACK reader rejects definer current_user before private source parsing/correlation or assessment write."
+}

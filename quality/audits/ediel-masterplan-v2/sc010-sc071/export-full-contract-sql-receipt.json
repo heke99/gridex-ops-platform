@@ -1,0 +1,83 @@
+{
+  "recorded_utc": "2026-10-05T11:47:38.190531+00:00",
+  "source_parent": "8c79ab436279991b47eb717b1816cde32b0d2191",
+  "first_containing_commit": "f62a4d2587ccfbc94145fd9f125ace478b0855c4",
+  "producer_native_migration_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
+  "prior_SQL_qualification_commit": "737252ad7e8683b2ecd0c808e5d4a85bc776cf70",
+  "only_technical_delta": [
+    "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+    "__tests__/ediel-sc-010-beneficiary-export.test.ts"
+  ],
+  "source_sha256": {
+    "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs": "575ccd57eb12c5539aba0f118274b544c7820f048886e3e54da1da903cc02494",
+    "__tests__/ediel-sc-010-beneficiary-export.test.ts": "c3a53636c68c73149e6a4c0bc141db499bd3917de020eb08ffc7d7e77f536afa"
+  },
+  "verified_new_effects": [
+    "Exact multirow inclusive/exclusive captured window, limit2, tied-time valueId cursor through two actual queue/lease/execute/result jobs",
+    "Exact receipt beneficiary/actor/grant/version/series/purpose/fields/window/limit/cursor and no additional receipt on read",
+    "Actual changed source page denies retained original result_basis_changed and rolls back attempted receipt; complete retained result unchanged",
+    "Outside-grant date limits and invalid0/501 page limits denied without jobs/results/receipt/owner mutation",
+    "Actual beneficiary membership and user loss AFTER real lease durably blocks old token; original completed result/read/newqueue/claim forbidden without output/receipt/owner changes",
+    "Eligible distinct same-beneficiary actor cannot claim/execute/read original actor jobs; original leased job/retained results/receipts/owner rows preserved",
+    "Active real guarded grant update bumps2to3 while every scope/status/revocation field remains same; positive3 projection works; old captured2 lease durably blocked/cached result denied with no implicit upgrade and no output/receipt/owner changes"
+  ],
+  "verification": {
+    "final_SQL": "exit0;12 owned+107 inherited groups; evidence/export-sql-complete-scope-green.log",
+    "focused": "exit0;4files50PASS0failure/error/skips; actual finalSQL child12",
+    "tests_typecheck": "exit0; tsc --noEmit -p tsconfig.tests.json",
+    "scoped_lint": "exit0;eslint the two own changedtest paths",
+    "syntax_diff": "node --check own mjs and git diff --check exit0",
+    "earlier_runs": "attempt1 and firstfull-scope-green are genuine12PASS snapshots BEFORE last proof/retained-row assertions; not relabelled final-source",
+    "native": "4 unchanged824 SOURCE_REVIEWED, NOT_RUN; existing #574 owner accepted same-stack caller proposal5993523187; new parallel cases remain theirs",
+    "full_tagged_gate": {
+      "tested_composed_commit": "799f7b5567da7e30c8a852f64418f16ca23d365d",
+      "adopted_main": "505e20637d5b8e1bcffab5f1f1971154dec5622d",
+      "ids": 352,
+      "candidate_approved": 213,
+      "tagged_green": 232,
+      "tagged_failing": 0,
+      "untagged": 120,
+      "exit_code": 0,
+      "log": "evidence/export-current-composed-tagged.log"
+    },
+    "whole_SC010": "NOT_APPROVED",
+    "frozen_integrity": "exit0;33originalfiles/121rules/231acceptancecontracts; evidence references only"
+  },
+  "boundaries": [
+    "Same existing inherited single PGlite runner and real SQL projection/admin/queue/claim/execute/result functions",
+    "Synthetic accepted-storage/source/identity/legal fixtures remain finite, explicitly not native provenance",
+    "Existing gridex_actor_has_company_permission fixture always permits metering.read; no permission_override DENY witness claimed",
+    "Rows added only inside rolled-back own fixture transaction; real owner trigger used for version/history; snapshots follow legitimate authority changes",
+    "No source/product/SQLmigration/native/config or shared manifest/schema/type/fingerprint delta"
+  ],
+  "evidence_sha256": {
+    "export-sql-full-scope-attempt-1.log": "b7b2845040d675c1ab7a5ac7d773511cf499627c5c8f66fbff397e3ef4183c3d",
+    "export-sql-full-scope-green.log": "b7b2845040d675c1ab7a5ac7d773511cf499627c5c8f66fbff397e3ef4183c3d",
+    "export-sql-complete-scope-green.log": "b7b2845040d675c1ab7a5ac7d773511cf499627c5c8f66fbff397e3ef4183c3d",
+    "export-component-full-scope-green.log": "a9034de0622aea4d91927296ad0883fd582f2ceba2fb9c5a1567899657ef9dca",
+    "export-component-full-scope-junit.xml": "7db516e155e9e401afb6c0a75fde29b65c1138a9bcc3c869d510ae0b3a3168ac",
+    "export-full-scope-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "export-full-scope-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "export-current-composed-tagged.log": "48fe58ea1a98d1bf88c2daeeb315cb0b8c6647b8f2eff751c2eb3ef6cbb0779b",
+    "export-current-composed-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+  },
+  "actual_main_at_snapshot": {
+    "sha": "505e20637d5b8e1bcffab5f1f1971154dec5622d",
+    "rules_verified": 92,
+    "contracts_passed": 121,
+    "distinct_approved": 213
+  },
+  "next_action": "Publish new own source/current-main proof; review existing sole native workflow caller commit and consume actual4+owner3 receipts; retainedroot503 admission/capture/currentrequiredCI before fullSC010 approval/merge.",
+  "current_composed_commit": "799f7b5567da7e30c8a852f64418f16ca23d365d",
+  "adopted_current_main": "505e20637d5b8e1bcffab5f1f1971154dec5622d",
+  "technical_backup_ref": "codex/ediel-sc010-sc071-checkpoint-20261005",
+  "execution_commands": {
+    "SQL": "EDIEL_SQL_REPOSITORY=/workspace/gridex-sc010-sc071 EDIEL_PGLITE_MODULE=/workspace/gridex-sc010-sc071/node_modules/@electric-sql/pglite/dist/index.js /tmp/gridex-sc010-sc071-node22/node_modules/node/bin/node scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+    "focused": "/tmp/gridex-sc010-sc071-node22/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-sc-010-beneficiary-export.test.ts __tests__/ediel-sc-010-071-grant-revalidation.test.ts __tests__/ediel-beneficiary-projection-api.test.ts __tests__/ediel-beneficiary-projection-provenance.test.ts --reporter=default --reporter=junit --outputFile=quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-component-full-scope-junit.xml",
+    "types": "node22 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+    "lint": "node22 node_modules/eslint/bin/eslint.js __tests__/ediel-sc-010-beneficiary-export.test.ts scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+    "tagged": "PATH=/tmp/gridex-sc010-sc071-node22/node_modules/node/bin:$PATH node scripts/ediel-masterplan-test-coverage.cjs --check",
+    "integrity": "node22 scripts/check-ediel-masterplan-v2.cjs",
+    "syntax_diff": "node22 --check scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs; git diff --check"
+  }
+}

@@ -9,13 +9,13 @@ const fn=(name,f)=>{const s=file(f),a=s.indexOf(`CREATE FUNCTION ${name}`),b=s.i
 const raw=(ref,points=['A','B'],code='Z13',family='PRODAT',func='9')=>[`UNB+UNOC:3+12345:14+54321:14+261001:1200+${ref}++23-DDQ-PRODAT`,`UNH+1+${family}:D:97A:UN:E2SE6A`,`BGM+${code}+${ref}+${func}`,'NAD+FR+12345:160:SVK','NAD+DO+54321:160:SVK',...points.flatMap((p,i)=>[`LIN+${i+1}++${p}:::9`,`RFF+LI:LI-${p}`,'NAD+UD+5566778899:SE1:260','CCI++Z13','CAV+S17']),'UNT+20+1','UNZ+1+I'].join("'")+"'"
 try{
  await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid PRIMARY KEY);CREATE TABLE public.companies(id uuid PRIMARY KEY);
- CREATE TABLE public.ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_family text,message_code text,message_standard text,raw_payload text,immutable_payload_hash text,immutable_rendered_at timestamptz,original_message_id uuid,source_operation_id text,intent_id uuid,communication_route_id uuid,receiver_email text,route_profile_id uuid,contrl_status text,aperak_status text,ack_outcome text,execution_context_snapshot jsonb);
+ CREATE TABLE public.ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_family text,message_code text,message_standard text,raw_payload text,immutable_payload_hash text,immutable_rendered_at timestamptz,original_message_id text,source_operation_id text,intent_id uuid,communication_route_id uuid,receiver_email text,route_profile_id uuid,contrl_status text,aperak_status text,ack_outcome text,execution_context_snapshot jsonb);
  CREATE TABLE public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean,accepted_at timestamptz);CREATE TABLE public.user_profiles(id uuid,user_status text);
  CREATE TABLE public.declared_current_permissions(actor uuid,permission text);CREATE FUNCTION public.gridex_actor_has_company_permission(a uuid,c uuid,p text)RETURNS boolean LANGUAGE sql AS $$SELECT EXISTS(SELECT FROM public.declared_current_permissions WHERE actor=a AND permission=p)$$;
  CREATE FUNCTION public.canonical_tenant_operation_decision(uuid,text)RETURNS TABLE(allowed boolean)LANGUAGE sql AS $$SELECT true$$;
  CREATE FUNCTION public.ediel_require_scoped_capability_for_message_v1(uuid,uuid)RETURNS void LANGUAGE sql AS $$SELECT NULL::void$$;
  CREATE TABLE public.ediel_message_payloads(company_id uuid,ediel_message_id uuid,encrypted_payload_ref text,payload_kind text,metadata jsonb);
- CREATE TABLE public.ediel_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ediel_message_id uuid,company_id uuid,environment text,status text,current_send_attempt_id uuid,locked_by text,priority int,lock_key text UNIQUE,message_family text,message_code text,route_profile_id uuid,payload jsonb,queued_at timestamptz,created_by uuid,updated_by uuid);
+ CREATE TABLE public.ediel_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ediel_message_id uuid,company_id uuid,environment text,status text,current_send_attempt_id uuid,locked_by text,locked_at timestamptz,priority int,lock_key text UNIQUE,message_family text,message_code text,route_profile_id uuid,payload jsonb,queued_at timestamptz,created_by uuid,updated_by uuid);
  CREATE TABLE public.ediel_mailboxes(id uuid,company_id uuid,environment text,is_active boolean,is_shared_platform_mailbox boolean);
  CREATE SCHEMA gridex_outbound_dispatch;CREATE FUNCTION gridex_outbound_dispatch.mutate_v1(i jsonb)RETURNS jsonb LANGUAGE sql AS $$SELECT '{"scoped":false}'::jsonb$$;
  CREATE SCHEMA gridex_received_sources;CREATE SCHEMA gridex_ack_authority;CREATE SCHEMA gridex_service_permission;
@@ -44,6 +44,19 @@ try{
  await db.exec(file('20261001065415_ediel_recovery_current_service_source_bridge.sql'));checks++
  // Restore the authentic public service reader wrapper on new private delegate.
  await db.exec(fn('public.ediel_prodat_recovery_original_basis_v1','20260930181909_ediel_source_consumer_authority_bridges.sql'))
+ // The public lineage column is TEXT, exactly as the authentic schema.
+ // Finite fixture has five of the twelve current function targets. Select
+ // only those installed bodies; do not invent absent upstream owners. The
+ // genuine native replay applies the unchanged complete forward migration.
+ if(process.env.EDIEL_RECOVERY_REFERENCE_BASELINE!=='1'){
+  const alignment=file('20261004202548_ediel_recovery_text_original_reference_alignment.sql')
+  const fixtureAlignment=alignment.replace(') AS patches(signature,old_fragment,new_fragment)',') AS patches(signature,old_fragment,new_fragment) WHERE to_regprocedure(signature) IS NOT NULL')
+  assert.notEqual(fixtureAlignment,alignment)
+  await db.exec(fixtureAlignment)
+ }
+ // The finite generic/retry fixture has no sealed owner; its separate
+ // actual-owner lease fixture exercises that lane. Native applies all five.
+ if(process.env.EDIEL_WORKER_LEASE_BASELINE!=='1') await db.exec(file('20261004204256_ediel_worker_lease_current_provider_entry.sql').replace(') AS patches(signature,old_fragment,new_fragment)',') AS patches(signature,old_fragment,new_fragment) WHERE to_regprocedure(signature) IS NOT NULL'))
  await db.query('INSERT INTO public.companies VALUES($1)',[id(1)])
  for(const actor of[2,3,4,5]){await db.query("INSERT INTO auth.users VALUES($1);",[id(actor)]);await db.query("INSERT INTO public.user_profiles VALUES($1,'active')",[id(actor)]);await db.query("INSERT INTO public.company_memberships VALUES($1,$2,'active',true,now())",[id(1),id(actor)])}
  for(const [actor,p]of[[2,'communication.write'],[2,'communication.send'],[3,'ediel.send'],[4,'communication.send'],[5,'communication.write']])await db.query('INSERT INTO public.declared_current_permissions VALUES($1,$2)',[id(actor),p])
@@ -73,6 +86,9 @@ try{
  await acknowledge(11,31,['A']);const second=raw('SECOND',['A']);assert.equal((await prepare(5,21,11,31,second)).rows[0].b.status,'authorized');checks++;await message(12,second,'PRODAT',11,21)
  const own=(await basis(3,21)).rows[0].b;assert.equal(own.originalMessageId,id(11));assert.equal(own.sourceOriginMessageId,id(10));assert.equal(own.allowedObjects.length,1);checks++
  await db.query("UPDATE public.ediel_messages SET original_message_id=$2 WHERE id=$1",[id(11),id(12)]);await assert.rejects(basis(3,21),/origin_alias_changed/);checks++;await db.query('UPDATE public.ediel_messages SET original_message_id=$2 WHERE id=$1',[id(11),id(10)])
+ // Historical public references need not be UUID-shaped. Deny changed lineage
+ // without attempting an unsafe cast of the TEXT field.
+ await db.query("UPDATE public.ediel_messages SET original_message_id='historical-not-a-uuid' WHERE id=$1",[id(11)]);await assert.rejects(basis(3,21),/origin_alias_changed/);checks++;await db.query('UPDATE public.ediel_messages SET original_message_id=$2 WHERE id=$1',[id(11),id(10)])
  // Actual journal with real MIME-byte binding/archive boundary and current actor.
  const binding=async(msg,payload)=>({originalHash:(await db.query('SELECT immutable_payload_hash h FROM public.ediel_messages WHERE id=$1',[id(msg)])).rows[0].h,routeId:id(90),to:'peer@example.invalid',from:'own@example.invalid',payloadHash:(await db.query("SELECT encode(sha256(fixture.latin1_v1($1)),'hex')h",[payload])).rows[0].h,payloadLength:Buffer.byteLength(payload,'latin1'),mimeSha256:'b'.repeat(64),mimeLength:99,mimeArchiveRef:`storage://declared/${msg}.mime`,rfcMessageId:`<declared-${msg}@example.invalid>`,mimeMode:'attachment',encoding:'latin1',sourceRulePackEvidence:{}})
  const archive=async(msg,b)=>db.query('INSERT INTO public.ediel_message_payloads VALUES($1,$2,$3,\'raw_mime\',$4)',[id(1),id(msg),b.mimeArchiveRef,{archive_verified:true,archived_mime_sha256:b.mimeSha256,archived_mime_bytes:b.mimeLength,archived_rfc_message_id:b.rfcMessageId}])
@@ -92,7 +108,7 @@ try{
  assert.equal((await prepare(5,52,50,null,null,51)).rows[0].b.status,'authorized');checks++
  const queue=()=>db.query('SELECT public.ediel_queue_prodat_retry_v1($1,$2,$3,$4)b',[id(1),id(50),id(3),id(52)])
  const queued=(await queue()).rows[0].b;assert.equal(queued.status,'queued');checks++
- await db.query("UPDATE public.ediel_outbox SET status='sending',current_send_attempt_id=$2,locked_by='worker' WHERE id=$1",[queued.outboxId,id(54)])
+ await db.query("UPDATE public.ediel_outbox SET status='sending',locked_at=now(),current_send_attempt_id=$2,locked_by='worker' WHERE id=$1",[queued.outboxId,id(54)])
  const retryBasis=(await db.query('SELECT public.ediel_prodat_retry_outbox_basis_v1($1,$2,$3)b',[id(1),queued.outboxId,id(3)])).rows[0].b;assert.equal(retryBasis.previousAttemptId,id(51));checks++
  const owner={kind:'worker',outboxId:queued.outboxId,sendAttemptId:id(54),workerId:'worker'},retryBinding={...lostBinding,recoveryAuthorization:retryBasis}
  await assert.rejects(journal(50,3,53,'prepare',{owner,binding:{...retryBinding,mimeSha256:'c'.repeat(64)}}),/archive_not_qualified/);checks++
