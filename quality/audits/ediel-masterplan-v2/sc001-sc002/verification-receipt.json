@@ -2,7 +2,7 @@
   "schema": "ediel-sc001-sc002-evidence-v1",
   "generatedAt": "2026-10-05",
   "owner": "review_ten06",
-  "status": "TECHNICAL_PACKET_PENDING_INDEPENDENT_WHOLE_REVIEW",
+  "status": "INDEPENDENT_WHOLE_SC001_SC002_APPROVED_CODE_SCOPE",
   "baseHead": "507e8bfa20606be31933eea1582066267ff2577a",
   "baseTree": "20b492198c7b4bdbb5bec1634a42ee5cec978d47",
   "branch": "codex/ediel-sc001-sc002-own-market-identity-20261005",
@@ -4070,7 +4070,13 @@
     ],
     "deltaScope": "Z08/correction generic transport attempt continuation within the same archived MIME/provider call, below the selected public-origination/physical legal identity/current permission effects. No current full native/transport claim.",
     "nativeExternalSubstitutions": [
-      "synthetic authenticated issuer/legal representation facts",
+      "synthetic tenant legal actor/identifiers/roles/route/environment facts",
+      "synthetic issuer keys, representations, legal and source bytes",
+      "synthetic counterparty/network registry inputs",
+      "synthetic approved BRP registry ground",
+      "synthetic signed masterdata and requested-method declarations",
+      "synthetic manual POA facts",
+      "synthetic approved UTILTS issuer/transport/history grounds",
       "synthetic provider acceptance"
     ]
   },
@@ -4099,6 +4105,69 @@
     "Qualified selected current primary native witnesses provide real local source/archive/review/first-permission/original custody with synthetic external issuer/provider facts.",
     "No counterparty, market activation, live delivery, full current transport/native qualification or self approval."
   ],
-  "coverageUnchanged": true,
-  "productionSqlMigrationHelperNativeFixtureSharedMemoryUnchanged": true
+  "coverageUnchanged": false,
+  "productionSqlMigrationHelperNativeFixtureSharedMemoryUnchanged": true,
+  "approvalOnlyCoverageDelta": {
+    "ids": [
+      "SC-001",
+      "SC-002"
+    ],
+    "otherRowsExactlyPreserved": 350,
+    "metadataExactlyPreserved": true,
+    "technicalFrozenSourceInputsExactlyPreserved": 35
+  },
+  "independentApproval": {
+    "reviewedHead": "01fa51f991d95e63c3a16c94ce0f2643fa34ac7d",
+    "reviewedTree": "affeefa94325bbe2eb66e362311500ad060ab582",
+    "verdicts": {
+      "SC-001": "APPROVE",
+      "SC-002": "APPROVE"
+    },
+    "recordPath": "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-review.md",
+    "recordSha256": "3abb01d530a79606f6e6be61970f00a1d463043475018905ccb8f7b591995739",
+    "receiptPath": "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-receipt.json",
+    "receiptSha256": "be97234033699ebd64812c4754abf8021d1625c10c3e1db768f68973a311c9b6",
+    "freshReviewerExecution": {
+      "node": "22.23.3",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "error": 0,
+      "skip": 0
+    },
+    "noTechnicalSourceChangesOrRepeatedExecutionRequired": true
+  },
+  "publication": {
+    "pullRequest": 557,
+    "technicalHead": "01fa51f991d95e63c3a16c94ce0f2643fa34ac7d",
+    "remoteTechnicalHeadVerified": true,
+    "progressComment530": 5986965642,
+    "progressComment491": 5986967139,
+    "approvalPacketHead": "derived from final Git/PR metadata after this approval-only commit"
+  },
+  "approvalOnlyVerification": {
+    "specIntegrity": {
+      "checks": 29,
+      "passed": true,
+      "generatedTrackedResultRestored": true,
+      "rawOutput": "{\n  \"passed\": true,\n  \"checks\": 29,\n  \"failed\": [],\n  \"result\": \"/workspace/gridex-masterplan-sc001-sc002/docs/ediel/masterplan-v2/verification/spec_integrity_result.json\"\n}\n"
+    },
+    "supportedTagDiscovery": {
+      "method": "same /^\\s*\\/\\/\\s*masterplan:\\s*(.+)$/gm and ordinary __tests__/**/*.test.ts path as scripts/ediel-masterplan-test-coverage.cjs; existing fresh8-case PASS supplies execution. Full tagged-suite runner is reserved for mandatory current-head CI.",
+      "ids": [
+        "SC-001",
+        "SC-002"
+      ],
+      "passed": true
+    },
+    "diffCheckPassed": true,
+    "all725EnvelopeInputsUnchanged": true,
+    "all35TechnicalDirectFrozenInputsUnchanged": true,
+    "exactlyTwoCoverageRowsChanged": [
+      "SC-001",
+      "SC-002"
+    ],
+    "otherRowsUnchanged": 350,
+    "noSourceTestsNativeRerun": true
+  }
 }
