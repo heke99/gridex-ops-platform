@@ -11,6 +11,7 @@ import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {findMatchingGridOwnerDataRequest} from '@/lib/ediel/matching'
+import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 beforeEach(()=>{db.inValues=[];db.companies=[]})
 
 const run=(message:EdielMessageRow)=>runUtiltsRuntimeForMessage(message,{canonicalPolicy:resolveCanonicalEdielPolicy({family:'UTILTS',
@@ -42,5 +43,12 @@ describe('U-19 the PRODAT case reference is used for correlation where it can be
   db.rows=[]
   await expect(findMatchingGridOwnerDataRequest({...base,parsed_payload:{references:[{qualifier:'ZZZ',value:'OTHER'}]}} as unknown as EdielMessageRow)).resolves.toBeNull()
   expect(db.inValues).toEqual([])
+ })
+ it('binds through the actual parser output shape (references keyed by qualifier)',async()=>{
+  db.rows=[{id:'req-tn',company_id:'c1',external_reference:'PRODAT-CASE-1',metering_point_id:'mp'}]
+  const parsed=parseEdifactPayload(withReference("RFF+TN:PRODAT-CASE-1'").raw_payload!)
+  expect(parsed.references.TN).toEqual(['PRODAT-CASE-1'])
+  const hit=await findMatchingGridOwnerDataRequest({...base,parsed_payload:{references:parsed.references}} as unknown as EdielMessageRow)
+  expect(hit?.id).toBe('req-tn');expect(db.inValues).toEqual(['PRODAT-CASE-1'])
  })
 })

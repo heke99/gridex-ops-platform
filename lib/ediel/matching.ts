@@ -23,6 +23,11 @@ function messageCompanyId(message: EdielMessageRow): string | null {
 // correlation hint only, never a mandatory authorization key.
 function parsedProdatCaseReferences(message: EdielMessageRow): string[] {
   const references = (message.parsed_payload ?? {}).references
+  // edielEmailParser persists references keyed by qualifier: { TN: [...] }.
+  if (references && typeof references === 'object' && !Array.isArray(references)) {
+    const tn = (references as Record<string, unknown>).TN
+    return uniqueStrings(Array.isArray(tn) ? tn.map((value) => stringOrNull(value)) : [])
+  }
   if (!Array.isArray(references)) return []
   return uniqueStrings(references.map((reference) => {
     const entry = reference as { qualifier?: unknown; value?: unknown } | null
