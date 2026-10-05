@@ -220,12 +220,15 @@ describe('SC-055 wrong legal APERAK cannot mutate a targeted case or another ten
   })
 
   it('accepts the own legal tuple with a finite original-SQL receipt and already-bound case input', async () => {
+    const source = port.tables.ediel_messages.find(row => row.id === SOURCE && row.company_id === COMPANY)
+    if (!source || typeof source.raw_payload !== 'string' || source.raw_payload.length === 0) throw Error('SC055 own seeded source payload missing')
+    const sourcePayload = source.raw_payload
     const probe = await captureExistingSqlRunner()
     expect(probe.company).toBe(COMPANY); expect(probe.actor).toBe(ACTOR)
     // Actual unchanged runner receipt: ten direct and eight rejection checks.
     expect(probe.count).toBe(18)
     const { db } = probe
-    await db.query(`insert into public.ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_sent_at,immutable_rendered_at,immutable_payload_hash) values($1,$2,'test','outbound','UTILTS','E66',$3,'2026-09-30T11:00:00Z',now(),encode(sha256(convert_to($3,'UTF8')),'hex'))`, [SOURCE, COMPANY, sourceRaw()])
+    await db.query(`insert into public.ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_sent_at,immutable_rendered_at,immutable_payload_hash) values($1,$2,'test','outbound','UTILTS','E66',$3,'2026-09-30T11:00:00Z',now(),encode(sha256(convert_to($3,'UTF8')),'hex'))`, [SOURCE, COMPANY, sourcePayload])
     await db.query(`insert into public.ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at,status) values($1,$2,'test','inbound','APERAK','312',$3,'2026-09-30T12:00:00Z','received')`, [ACK, COMPANY, ackRaw()])
     // Canonical original admission/acceptance is an explicit finite setup port,
     // as in the original harness. This is not a native guide-admission claim.
@@ -252,7 +255,7 @@ describe('SC-055 wrong legal APERAK cannot mutate a targeted case or another ten
     expect(after.cases[1]).toEqual(before.cases[1])
     expect({ permissions: after.permissions, sites: after.sites, requests: after.requests, supply: after.supply }).toEqual({ permissions: before.permissions, sites: before.sites, requests: before.requests, supply: before.supply })
     const native = (await db.query<{ row: Row }>('select row_to_json(m) row from public.ediel_messages m where id=$1', [SOURCE])).rows[0].row
-    expect(native).toMatchObject({ raw_payload: sourceRaw(), aperak_status: 'received', status: 'acknowledged' })
+    expect(native).toMatchObject({ raw_payload: sourcePayload, aperak_status: 'received', status: 'acknowledged' })
     expect((await db.query<{ n: number }>('select count(*)::integer n from gridex_ack_authority.source_correlations where ack_message_id=$1 and source_message_id=$2', [ACK, SOURCE])).rows[0].n).toBe(1)
   }, 60_000)
 })
