@@ -1,3 +1,5 @@
+// masterplan: U-03, AT-U-03, U-02
+// masterplan: ACK-08, AT-ACK-08
 import { describe, expect, it } from 'vitest'
 import {
   decideUtiltsRuntimeAckPlan,
