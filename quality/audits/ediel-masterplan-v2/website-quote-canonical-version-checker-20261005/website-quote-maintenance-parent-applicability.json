@@ -1,0 +1,167 @@
+{
+  "schema": "website-quote-parent-applicability-v1",
+  "parent": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "tree": "64c93f935436a0c30db27fb86b5451d414984116",
+  "review_parent": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+  "all26_inputs_exact_reviewed": true,
+  "preserved_archive_head": "e8989663da86867eb3e018fdf5f660d2febf64e8",
+  "new_branch": "codex/website-quote-canonical-version-checker-20261005",
+  "inputs": [
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "git_blob": "9fc094c2dde8e6598dedd087321054d9cdd4cc9e",
+      "sha256": "b6f9b8bb6c90817fbbe5f6c0116fc700c0e13089617061c858285d36756fd568",
+      "bytes": 6593
+    },
+    {
+      "path": "scripts/lib/current-api-contract.cjs",
+      "git_blob": "ba7092e3fd61d5a94255fd5e91fec642494de886",
+      "sha256": "734e114a2c28ea7e01800313a40f745164a4dc13e5e10fca880e3c522795e7e2",
+      "bytes": 1687
+    },
+    {
+      "path": "scripts/finalize-openapi-release.cjs",
+      "git_blob": "b49b20fe46c4ed6c7a981e922b9448542d45de4f",
+      "sha256": "0ab12bc5f1175e44c347372fb9f3755bc4c14de21ed6b6a9b5ad9221446f0401",
+      "bytes": 51170
+    },
+    {
+      "path": "scripts/finalize-openapi-release.portal.cjs",
+      "git_blob": "85c370768a4b3ea1f624fc93907936de6eb86f4e",
+      "sha256": "bb13ef98aca256c208afb616342d64f781bdf5bacb5e113d0b2a9b7fc781b5af",
+      "bytes": 40572
+    },
+    {
+      "path": "lib/integrations/websiteIntegrationContract.ts",
+      "git_blob": "62aac262c761c7dcc8f0603ac04277b820e26ad8",
+      "sha256": "4c86cbf5cb90b826d275be2a92685d20aefa8d3aa6035fa94ddb8108d27e8ace",
+      "bytes": 5907
+    },
+    {
+      "path": "scripts/check-api-compatibility.cjs",
+      "git_blob": "413eada9cad1565e12bf5e34c3b50c726d99e0a6",
+      "sha256": "35571de9b6343cf9a04a5e703b0b2169b4991486c9a6904d8192b7919b7f54b1",
+      "bytes": 4228
+    },
+    {
+      "path": "scripts/verify-openapi-release.cjs",
+      "git_blob": "aa3c25d4392691d52c1fe0d8697ab2f3a79c9b99",
+      "sha256": "e6443b117f340ba2b4863b0b61d88f413df73fe014b97476acfc445fcf2354a9",
+      "bytes": 4593
+    },
+    {
+      "path": "scripts/check-api-documentation-version.cjs",
+      "git_blob": "ae0b119f8d5f17c57bb2784e8a463181d1700cf6",
+      "sha256": "c260f80d12559baf683bb7deb5370758e00978db150fcf29f5d193d481a1e95b",
+      "bytes": 8032
+    },
+    {
+      "path": "scripts/check-public-contract-runtime-openapi.cjs",
+      "git_blob": "2a82f67d5bcff49c16faed156534904dc6eba893",
+      "sha256": "f780b6430f96399f76b0a88c7a13610fc862c7ecef9bc783f4931fbdcf2e1472",
+      "bytes": 5762
+    },
+    {
+      "path": "package.json",
+      "git_blob": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "bytes": 40763
+    },
+    {
+      "path": "lib/api/publicRouteRegistry.ts",
+      "git_blob": "ab408af867a3e87a27060a4349691a7a01f49377",
+      "sha256": "f87dbf4e2526f78d42b20b8701cc9cdbd005caf61bda8a08e00d170d4789bbf5",
+      "bytes": 27290
+    },
+    {
+      "path": "app/developers/customer-portal-api/page.tsx",
+      "git_blob": "a74a16cff53dbb2aeb79480a380112c8e8a389aa",
+      "sha256": "f3f5dbee070ab8c54b9c538c490bee8a4b56d3c31fed6e6219e31491e6b42334",
+      "bytes": 27172
+    },
+    {
+      "path": "docs/gridex-staff-api.md",
+      "git_blob": "e6cce5bb556645f0406a2b41c8717cdb373af568",
+      "sha256": "01cec5a011771c8e6988078d281ef6a5089a2f73a3739d1425fb3d8888ab5154",
+      "bytes": 9707
+    },
+    {
+      "path": "docs/external-website-api-integration-guide.md",
+      "git_blob": "b5e48a1335d373271bdc05008b7b2efb29e5194b",
+      "sha256": "939a30973aae9e40ea42d6d4a35e6761cb922a5c07156d44de2cf933d272c08a",
+      "bytes": 10038
+    },
+    {
+      "path": "docs/gridex-customer-portal-api.md",
+      "git_blob": "dbe81b169fb89b4f1d749b0564eac7d6f165eee3",
+      "sha256": "f3bf4d3d8ca85cfcdd1ac4a621577d6f26181087f182a8c091d404d8add2e99a",
+      "bytes": 6818
+    },
+    {
+      "path": "docs/single-api-key-tenant-integration.md",
+      "git_blob": "5836c1e3dc82212c325c3dde0155664b0a89ba1f",
+      "sha256": "2fd90dd061fcf7a20d7142b98113d1fa8a3174711708d035a106cf787b11b136",
+      "bytes": 454
+    },
+    {
+      "path": "docs/fixtures/public-contracts-response-2026-10-04.1.json",
+      "git_blob": "64a4477af058b90b5f81a02bedee5402a3506f9f",
+      "sha256": "04e489a4b1430007bf1942025dc919f57a46933e47cfb26988bc1850bfb85688",
+      "bytes": 10123
+    },
+    {
+      "path": "docs/openapi/website-integration-v1.json",
+      "git_blob": "0c8333cfc4429def4b48de08a40e7487a4094aa7",
+      "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+      "bytes": 499787
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/website-integration-v1.json",
+      "git_blob": "0c8333cfc4429def4b48de08a40e7487a4094aa7",
+      "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+      "bytes": 499787
+    },
+    {
+      "path": "app/api/v1/openapi/2026-10-04.1/website-integration-v1.json/route.ts",
+      "git_blob": "271d3c62c0388e9ec467892976d1da5c440d442c",
+      "sha256": "a12992cc94cdbe2c7a1d45dca2470021dd912dbba576251b23fe4116c119fcda",
+      "bytes": 547
+    },
+    {
+      "path": "docs/openapi/customer-portal-v1.json",
+      "git_blob": "33ce667a6fc253f0d233e77fd5ac02b864a47738",
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "bytes": 491564
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json",
+      "git_blob": "33ce667a6fc253f0d233e77fd5ac02b864a47738",
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "bytes": 491564
+    },
+    {
+      "path": "app/api/v1/openapi/2026-10-04.1/customer-portal-v1.json/route.ts",
+      "git_blob": "cce3bbf64afda9c185086b88a6b633d8fcaffed1",
+      "sha256": "56f03150b6a596a04b31b514aeb94034dddd9e3380707471b9707677d5ddfa48",
+      "bytes": 531
+    },
+    {
+      "path": "docs/openapi/staff-v1.json",
+      "git_blob": "82e754b05f3d3b59e266991d328b3f5a8e87912a",
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "bytes": 374586
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/staff-v1.json",
+      "git_blob": "82e754b05f3d3b59e266991d328b3f5a8e87912a",
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "bytes": 374586
+    },
+    {
+      "path": "app/api/v1/openapi/2026-10-04.1/staff-v1.json/route.ts",
+      "git_blob": "9f4ee62706efe443dc56fdfe69f1d757319f6935",
+      "sha256": "fd038bf0cf130954df8df489dbfd14a43da3cc0d8e3d42d3d423709902d7e87b",
+      "bytes": 493
+    }
+  ]
+}

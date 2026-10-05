@@ -1,0 +1,20 @@
+
+> gridex-ops-platform@0.1.0 gridex:supplier-business-full-regression
+> npm run gridex:supplier-ombud-business-automation-regression && npm run gridex:supplier-remaining-business-regression
+
+
+> gridex-ops-platform@0.1.0 gridex:supplier-ombud-business-automation-regression
+> node scripts/gridex-supplier-ombud-business-automation-regression.cjs
+
+OK: business label exists for grid owner information request
+OK: business label exists for supplier switch
+OK: business label exists for validated E66 metering values
+OK: business label exists for negative APERAK
+OK: billing card exposes automatic billing status
+OK: billing card keeps the business-facing billing title
+OK: billing card delegates review and sending to the canonical Billing surface
+OK: billing card links to customer-scoped Billing review
+OK: billing card has no manual metering button
+OK: billing card does not expose the technical Ediel timeline
+OK: billing card does not expose raw underlay controls
+FAIL: customer page exposes the billing business surface

@@ -44,3 +44,23 @@ register-validation (evidensform version+snapshot), source-object-decisions (+ex
 CI-workflowen namnger nu varje felflagga med radnummer. #426 helt grön på f32e40b5.
 
 Godkännandekandidater 2026-10-04: se `candidates-2026-10-04.md` (inga godkända; luckor per effekt listade).
+
+
+## Historisk DB-01/DB-02-granskning i #520 — 2026-10-04
+
+Följande två originalrader är bevarade från [Claude-head `77749a55`](https://github.com/heke99/gridex-ops-platform/blob/77749a5551ff9ce01b4bf0f3bcdcb13e67a73508/quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md). De beskriver granskningen den 4 oktober, inte dagens godkännandestatus. Registret ovan och inkommande main-texter är bevarade; den ursprungliga daterade handover-raden finns en gång.
+
+| ID | Regel | Allvar | Historisk status | Ursprungligt bevis / åtgärd |
+|---|---|---|---|---|
+| F-DB-01 | DB-01 | medel | BEKRÄFTAD (fp-check 2026-10-04), öppen | tre aktivt skrivna ruttauktoriteter: `communication_routes` (primär, lib/ediel/core/routeRegistry.ts m.fl.), `platform_actor_routes` (lib/energy/gridOwnerRequests.ts:137, lib/ediel/certificates/actorCertificateRefresh.ts:453) och `ediel_party_addresses` (skrivs av app/admin/ediel/actors/actions.ts:720-740). `resolveEdielPartyRoute` (lib/ediel/partyRegistry.ts:153) saknar anropare = död läsväg, men tabellen underhålls fortfarande. Condition (identifiera auktoritet före nytt) är processkrav utan kodgrind. Kräver contract-plan (backfill→validate→contract) i egen serie, inte en liten PR |
+| F-DB-02 | DB-02 | medel | BEKRÄFTAD lucka (fp-check 2026-10-04), öppen | ca 13 sammansatta `(company_id, x)`-FK mot ~1080 UUID-only `references public.x(id)` i migrationerna; inga `EXCLUDE USING`-constraints för aktiva perioder; överlappande tenantprofiler fångas bara i efterhand av auditorn (20260827134553 EDIEL-006, kind audit). Regeln gäller alla tenantägda relationer och kan inte bevisas generellt; behöver inventering + per-tabell-PR:er |
+
+### Senare kvalificering — 2026-10-05
+
+F-DB-02:s breda slutsats från antalet sammansatta FK:er och avsaknad av `EXCLUDE USING` är inte belägg för att alla UUID-relationer saknar skydd. DB-02/AT-DB-02 kräver faktisk tenant+parent-kontroll, unik idempotens, tillämpliga datum-/aktörsrelationer och constraints/RPC som stoppar korskoppling och motstridiga aktiva perioder. De granskade källkedjorna har tenant-parent-triggers för mätserier/värden och rutter, sammansatta kund-/tjänstereferenser samt verkliga RPC-kontroller av ägd parent, kommandoreplay, aktör och period. Detta är kvalificering av namngivna effekter, inte ett generellt säkerhetsbesked för varje tabell eller UUID.
+
+Den konkreta luckan för överlappande aktiva tenantprofiler är åtgärdad i #535 genom `20261004223219_ediel_tenant_profile_interval_guard.sql`: kontroll av datumordning, låst förkontroll av äldre rader och partiell GiST-exkludering per bolag/miljö/marknad med halvöppna intervall. [Oberoende whole DB-02/AT-DB-02 APPROVE](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-6000893135) gäller exakt head `2fb524ff6f3413861a9c21142d867074d6f1906c`, tree `cd635c8ecee32e943943b16bca2e8c3955835fb7`. Den återanvänder källkvalificerade regressionsbevis och sex verkliga PostgreSQL-fall med 6 PASS / 0 FAIL / 0 SKIP vid producent-head `6a14022e`, inklusive konkurrerande commit/rollback och två äldre-data-stopp. Den äldre 5 PASS / 1 FAIL-körningen kvarstår som historisk RED.
+
+[Separat capture-only-kvalificering](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-6000652647) styrker käll-/output-/manifestkedjan. Capture-statusarna är fortsatt NOT_RUN; den körningen är inte nya beteendetester. Native-jobbet stoppade efter assertions vid dåvarande schemajämförelse. Ingen grön CI på import-head, generell tabellinventering eller produktionsauktoritet påstås. Denna dokumentationsintegration ändrar ingen täckningsrad: vid main `8d990374` är DB-02 NOT_VERIFIED och AT-DB-02 NOT_EXECUTED tills den tekniska ändringen faktiskt integreras och dess slutkontroller godkänns.
+
+F-DB-01 hanteras av sin separata ägare. Den senare statusen ovan, DB-01 PARTIAL och kvarvarande avvecklings-/auktoritetsgranskning gäller framför den historiska originalraden; #520 tillför ingen ny DB-01-implementation eller godkännande.

@@ -1,0 +1,49 @@
+{
+  "atUTC": "2026-10-05T17:49:27.769066+00:00",
+  "scope": "One clean team worktree from actual shared working main; final stable green main/tag remains owned by canonical writer",
+  "base": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "tree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+  "branch": "codex/ediel-v-vh-main-integration-base-20261005",
+  "worktree": "/workspace/gridex-ediel-v-vh-main-integration-base-20261005",
+  "worktreeStatus": "",
+  "actualOwnMergesIncluded": {
+    "583": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "589": "93d6defed00e6873b58559e0a9fffe9e67d72855",
+    "600": "f7df744d58fb6677daa075f5613facb80c65db71"
+  },
+  "own175BlobsExact": true,
+  "coverageIDs": 352,
+  "storedStatusCountsObservedOnly": {
+    "NOT_VERIFIED": 14,
+    "VERIFIED": 103,
+    "PARTIAL": 19,
+    "PASSED": 151,
+    "NOT_EXECUTED": 65
+  },
+  "ownWholeRows": [
+    {
+      "id": "AT-Z13V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z13VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "coverageSHA256": "a3cb8af71cf808f866727dc7066e9b2fae5d762dc804d0a76b7338252e58b0c5",
+  "newSourceEditsOrRuleClaims": false,
+  "finalGreenMainOrCommonTagClaim": false,
+  "priorAttempt": "Initial ledger-structure recognition exited2 before any branch/worktree mutation; corrected to authoritative rules+acceptance_contracts"
+}

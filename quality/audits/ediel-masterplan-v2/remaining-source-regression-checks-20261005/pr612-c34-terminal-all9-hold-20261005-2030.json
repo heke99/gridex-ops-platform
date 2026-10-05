@@ -1,0 +1,205 @@
+{
+  "schema": "gridex.readonly-ci-terminal-hold.v1",
+  "observed_at": "2026-10-05T20:29:39Z",
+  "observer": "/root/sc015_sc016_gate_failure",
+  "pr": 612,
+  "published_head_at_refresh": "c34c5648044078117740e27186ae66d06ab7286e",
+  "observed_head": "c34c5648044078117740e27186ae66d06ab7286e",
+  "tree": "56a76d27ebaaf62d16fbe85cc4cde2dc8ed484ba",
+  "pr_api_base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "pr_state": "open",
+  "draft": false,
+  "qualification": "ALL9 HOLD — frozen c34 attempt1 fully settled: eight CANCELLED, certificate FAILURE, zero SUCCESS.",
+  "counts": {
+    "required": 9,
+    "completed": 9,
+    "cancelled": 8,
+    "failure": 1,
+    "success": 0
+  },
+  "checks": [
+    {
+      "name": "pr-certificate",
+      "job_id": 111959192764,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-05T20:20:21Z",
+      "completed_at": "2026-10-05T20:20:42Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365697980/job/111959192764"
+    },
+    {
+      "name": "clean-migration-replay",
+      "job_id": 111950177002,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:23:07Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365698000/job/111950177002"
+    },
+    {
+      "name": "quality-release-gates",
+      "job_id": 111950176970,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:22:28Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365698000/job/111950176970"
+    },
+    {
+      "name": "smoke",
+      "job_id": 111950176920,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:13:46Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365697980/job/111950176920"
+    },
+    {
+      "name": "verify",
+      "job_id": 111950176777,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:18:35Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365698000/job/111950176777"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "job_id": 111950176629,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:20:14Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365698000/job/111950176629"
+    },
+    {
+      "name": "coverage",
+      "job_id": 111950176406,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:09:37Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365697980/job/111950176406"
+    },
+    {
+      "name": "browser-public",
+      "job_id": 111950176044,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:23:36Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365698001/job/111950176044"
+    },
+    {
+      "name": "targeted-regressions",
+      "job_id": 111950176032,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T19:47:48Z",
+      "completed_at": "2026-10-05T20:24:35Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365697953/job/111950176032"
+    }
+  ],
+  "runs": [
+    {
+      "id": 37365698000,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-05T20:23:08Z"
+    },
+    {
+      "id": 37365697980,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-05T20:20:43Z"
+    },
+    {
+      "id": 37365698001,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-05T20:23:38Z"
+    },
+    {
+      "id": 37365697953,
+      "head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-05T20:24:35Z"
+    }
+  ],
+  "cancelled_step_endpoint_results": {
+    "verify": [],
+    "quality": [],
+    "clean": [],
+    "upgrade": [],
+    "smoke": [],
+    "coverage": [],
+    "browser": [],
+    "targeted": []
+  },
+  "cancelled_execution_boundary": "Eight owned cancelled jobs all returned empty steps. Their started_at values are registration/queue timestamps, not an authenticated actual runner start. Cause of cancellation UNKNOWN.",
+  "certificate": {
+    "job_id": 111959192764,
+    "actual_started_at": "2026-10-05T20:20:21Z",
+    "completed_at": "2026-10-05T20:20:42Z",
+    "actual_checkout_sha_observed": true,
+    "failed_step": "Require deterministic PR gates to execute and pass",
+    "command": "node scripts/gridex-full-production-e2e.cjs --certificate=pr",
+    "terminal_error": "2026-10-05T20:20:40.5666709Z ##[error]Process completed with exit code 1.",
+    "preceding_prerequisite_error": "Unable to download artifact(s): Artifact not found for name: gridex-e2e-smoke-37365697980",
+    "download_step_metadata_conclusion": "success",
+    "actual_printed_inputs": {
+      "SMOKE_RESULT": "abandoned",
+      "COVERAGE_RESULT": "abandoned"
+    },
+    "source_defect": "NOT ESTABLISHED — no mandatory functional test/assertion execution failure is inferred from cancelled jobs or the certificate evidence gate."
+  },
+  "coderabbit": {
+    "id": 55637551753,
+    "state": "success",
+    "description": "Review skipped: manual review required for this OSS repository",
+    "qualification": "Status SUCCESS does not qualify nine mandatory check-runs; skipped review is not an authored code approval."
+  },
+  "first_error_receipt": {
+    "path": "/workspace/agent-review-checkpoints/pr612-c34-certificate-first-error-20261005-2027.json",
+    "sha256": "1f61d7c7378d3370c7fbcbedab5ea4af3f3815bd789eb0dfcc9ea8dcb2b8f528"
+  },
+  "private_raw_log": {
+    "path": "/workspace/agent-review-checkpoints/private/pr612-c34-certificate-job111959192764-attempt1-20261005.log.txt",
+    "bytes": 16642,
+    "sha256": "139aa18ad8c4802a8de6a1c131b33b79733dce4b47c8f1153da8218a83153b84",
+    "exact_decoded_log": true
+  },
+  "private_boundary": "Exact decoded certificate log remains 0600 in 0700 directory outside Git; only selected sanitized error/command/status metadata is publishable.",
+  "operations": {
+    "own_log_reads": 1,
+    "foreign_job_log_reads": 0,
+    "artifact_downloads": 0,
+    "reruns_or_dispatch_or_cancels": 0,
+    "local_test_or_native_runs": 0,
+    "source_or_fixture_edits": 0,
+    "github_writes": 0,
+    "merges": 0
+  },
+  "next_owner": "Root owns new published source-head allocation and natural qualification window, canonical first-merged ENV07/current-main/source carry, documentation and expected-head merge. Observer c34 polling is now complete; no global-main or foreign-owner watcher."
+}
