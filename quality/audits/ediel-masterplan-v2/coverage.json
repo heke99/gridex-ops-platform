@@ -1742,8 +1742,16 @@
     },
     {
       "id": "SC-010",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/beneficiaryExport.ts",
+        "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+        "app/api/ediel/beneficiary/exports/process/route.ts",
+        "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+        "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+        "__tests__/ediel-sc-010-beneficiary-export.test.ts",
+        "scripts/ediel-sc-010-beneficiary-export-native.test.ts"
+      ]
     },
     {
       "id": "SC-011",
