@@ -23,9 +23,14 @@ const mimeName = 'ENV-01 lossless bytes at every SMTP packaging boundary > MIME 
 const guardName = 'ENV-01 lossless bytes at every SMTP packaging boundary > the actual send path rejects before route, archive, attempt or provider effects'
 const tgtFile = '__tests__/ediel-prodat-register-tgt-workflow.test.ts'
 const tgtName = 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval'
-const reviewedBase = '498ebd1c31f449630ea2b630cf23381447d71ba6'
+const reviewedBase = '3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686'
 const treeSnapshot = spawnSync('git', ['ls-tree', '-r', '-z', '--full-tree', reviewedBase], { encoding: 'utf8' })
 if (treeSnapshot.status !== 0) throw Error('reviewed_base_fixture_unavailable')
+const ledgerFile = 'quality/audits/ediel-masterplan-v2/coverage.json'
+const ledgerSnapshot = spawnSync('git', ['show', reviewedBase + ':' + ledgerFile], { encoding: 'utf8' })
+if (ledgerSnapshot.status !== 0) throw Error('reviewed_ledger_fixture_unavailable')
+const approvedEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
+  '__tests__/ediel-ops-03-release-evidence.test.ts', '.github/workflows/full-e2e.yml']
 const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex')
 type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'run' | 'attempt' | 'job' | 'job_failed'
   | 'artifact' | 'artifact_head' | 'artifact_run' | 'expired' | 'digest' | 'artifact_attempt' | 'source'
@@ -35,7 +40,35 @@ type CoverageFault = 'document_missing' | 'document_conformance' | 'mime_missing
   | 'tgt_duplicate' | 'suite_name' | 'source' | 'workflow_source' | 'head' | 'attempt' | 'job' | 'job_failed'
   | 'artifact' | 'artifact_head' | 'artifact_run' | 'artifact_attempt' | 'digest' | 'expired' | 'latest_cancelled'
   | 'run_failed' | 'current_run' | 'current_job_failed' | 'runner_missing' | 'runner_corrupt'
-type Options = { fault?: Fault; selfAttested?: boolean; ddq?: boolean; dgi?: boolean; coverage?: boolean; coverageFault?: CoverageFault; nightly?: boolean; ciFailed?: boolean }
+type LedgerChange = 'approved' | 'foreign_rule_status' | 'foreign_at_status' | 'foreign_evidence' | 'spec' | 'metadata' | 'row_order' | 'missing' | 'extra'
+  | 'invalid_evidence' | 'duplicate_evidence' | 'evidence_order' | 'own_extra_field' | 'own_wrong_status' | 'one_row' | 'foreign_whitespace' | 'duplicate_key'
+  | 'invalid_json' | 'mode' | 'symlink' | 'deleted' | 'type'
+type Options = { fault?: Fault; selfAttested?: boolean; ddq?: boolean; dgi?: boolean; coverage?: boolean; coverageFault?: CoverageFault; nightly?: boolean; ciFailed?: boolean; ledgerChange?: LedgerChange }
+type LedgerRow = { id: string; status: string; evidence: string[]; [key: string]: unknown }
+function candidateLedger(change: LedgerChange) {
+  const ledger = JSON.parse(ledgerSnapshot.stdout) as { rules: LedgerRow[]; acceptance_contracts: LedgerRow[]; [key: string]: unknown }
+  const rule = ledger.rules.find(row => row.id === 'OPS-03')!, acceptance = ledger.acceptance_contracts.find(row => row.id === 'AT-OPS-03')!
+  rule.status = 'VERIFIED'; acceptance.status = 'PASSED'; rule.evidence = [...approvedEvidence]; acceptance.evidence = [...approvedEvidence]
+  if (change === 'foreign_rule_status') ledger.rules[0].status = ledger.rules[0].status === 'VERIFIED' ? 'NOT_VERIFIED' : 'VERIFIED'
+  if (change === 'foreign_at_status') ledger.acceptance_contracts[0].status = ledger.acceptance_contracts[0].status === 'PASSED' ? 'NOT_EXECUTED' : 'PASSED'
+  if (change === 'foreign_evidence') ledger.rules[0].evidence = [...ledger.rules[0].evidence, producer]
+  if (change === 'spec') ledger.spec_sha256 = 'e'.repeat(64)
+  if (change === 'metadata') ledger.scope = 'self-attested production conformance'
+  if (change === 'row_order') [ledger.rules[0], ledger.rules[1]] = [ledger.rules[1], ledger.rules[0]]
+  if (change === 'missing') ledger.acceptance_contracts.shift()
+  if (change === 'extra') ledger.rules.push({ id: 'self-attested-extra', status: 'VERIFIED', evidence: [...approvedEvidence] })
+  if (change === 'invalid_evidence') rule.evidence[0] = 'docs/forged-release.json'
+  if (change === 'duplicate_evidence') acceptance.evidence.push(approvedEvidence[0])
+  if (change === 'evidence_order') rule.evidence.reverse()
+  if (change === 'own_extra_field') rule.fullMatrixVerified = true
+  if (change === 'own_wrong_status') rule.status = 'PASSED'
+  if (change === 'one_row') { acceptance.status = 'NOT_EXECUTED'; acceptance.evidence = [] }
+  let bytes = JSON.stringify(ledger, null, 2) + '\n'
+  if (change === 'foreign_whitespace') bytes = bytes.replace('  "spec_version"', '    "spec_version"')
+  if (change === 'duplicate_key') bytes = bytes.replace('  "scope":', '  "scope": "forged ignored duplicate",\n  "scope":')
+  if (change === 'invalid_json') bytes += '{'
+  return bytes
+}
 type Evidence = {
   codeEvidence: string; fullCardVerification: string; formalEdielApproval: boolean; liveCounterpartyVerified: boolean
   levels: Record<string, { status: string }>; blockers: string[]
@@ -136,6 +169,11 @@ function consume(options: Options = {}) {
         const target = options.fault === 'setup_input' ? 'scripts/gridex-aud-003-clean-replay.sh'
           : options.fault === 'transitive_input' ? 'scripts/helpers/native-fixture-company-identity.ts' : 'lib/ediel/services/projection.ts'
         const records = treeSnapshot.stdout.split('\0').filter(Boolean).flatMap(record => {
+          if (options.ledgerChange && record.endsWith('\t' + ledgerFile)) {
+            if (options.ledgerChange === 'deleted') return []
+            const mode = options.ledgerChange === 'mode' ? '100755' : options.ledgerChange === 'symlink' ? '120000' : options.ledgerChange === 'type' ? '160000' : '100644'
+            return [mode + (options.ledgerChange === 'type' ? ' commit ' : ' blob ') + 'e'.repeat(40) + '\t' + ledgerFile]
+          }
           if (!record.endsWith('\t' + target)) return [record]
           if (options.fault === 'missing_input') return []
           if (options.fault === 'setup_input' || options.fault === 'transitive_input') return [record.replace(/[0-9a-f]{40}\t/, 'e'.repeat(40) + '\t')]
@@ -152,6 +190,7 @@ function consume(options: Options = {}) {
       }
       if (args[0] === 'show') {
         const file = args[1].slice(args[1].indexOf(':') + 1)
+        if (file === ledgerFile) return good(args[1].startsWith(reviewedBase + ':') || !options.ledgerChange ? ledgerSnapshot.stdout : candidateLedger(options.ledgerChange))
         const bytes = readFileSync(path.resolve(file))
         const changed = options.fault === 'source' && file === caseFile || options.coverageFault === 'source' && file === tgtFile
           || options.coverageFault === 'workflow_source' && file === '.github/workflows/full-e2e.yml'
@@ -335,4 +374,16 @@ it('coverage denies supplied CI failure despite authentic class and matrix resul
   const result = consume({ coverage: true, ciFailed: true })
   expect(result.verdict).toBe('RED'); expect(result.exit).toBe(1)
   expect(result.evidence.codeEvidence).toBe('incomplete')
+})
+it('ledger permits only the exact atomic OPS03 and AT promotion while preserving all 350 foreign rows and metadata bytes', () => {
+  const result = consume({ coverage: true, ledgerChange: 'approved' })
+  expect(result.evidence.codeEvidence).toBe('qualified')
+  expect(result.evidence.fullCardVerification).toBe('CODE_VERIFIED')
+  expect(result.evidence.caseEvidence).toHaveLength(6)
+})
+it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec', 'metadata', 'row_order', 'missing', 'extra', 'invalid_evidence', 'duplicate_evidence', 'evidence_order', 'own_extra_field', 'own_wrong_status', 'one_row', 'foreign_whitespace', 'duplicate_key', 'invalid_json', 'mode', 'symlink', 'deleted', 'type'] as const)('ledger holds %s despite authentic six-class results and exact-head CI', ledgerChange => {
+  const result = consume({ coverage: true, ledgerChange })
+  expect(result.evidence.caseEvidence ?? []).toEqual([])
+  expect(result.evidence.codeEvidence).toBe('incomplete')
+  expect(result.evidence.blockers).toContain('case_source_missing_or_unqualified')
 })

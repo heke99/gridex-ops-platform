@@ -53,9 +53,36 @@ const nativeCaseBindings = [
     effects: { DDQ: true, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 1 },
     ports: { postgres: 'real_local', postgrest: 'real_local', smtp: 'substituted', issuer: 'synthetic', tenantBootstrap: 'synthetic' } },
 ]
-const reviewedNativeInputBase = '498ebd1c31f449630ea2b630cf23381447d71ba6'
+const reviewedNativeInputBase = '3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686'
 const ownedNativeInputExceptions = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '.agent-memory/masterplan-ops03-checkpoint.md', '.github/workflows/full-e2e.yml']
+const coverageLedgerPath = 'quality/audits/ediel-masterplan-v2/coverage.json'
+const approvedOpsEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
+  '__tests__/ediel-ops-03-release-evidence.test.ts', '.github/workflows/full-e2e.yml']
+function ownedCoverageUpdate(command, candidateSha, before, after) {
+  if (!before || !after || before.type !== 'blob' || after.type !== 'blob' || before.mode !== '100644' || after.mode !== before.mode) return false
+  if (before.record === after.record) return true
+  const original = String(command('git', ['--no-replace-objects', 'show', reviewedNativeInputBase + ':' + coverageLedgerPath], 2 * 1024 * 1024))
+  const candidate = String(command('git', ['--no-replace-objects', 'show', candidateSha + ':' + coverageLedgerPath], 2 * 1024 * 1024))
+  const ledger = JSON.parse(original)
+  if (!Array.isArray(ledger.rules) || ledger.rules.length !== 121 || !Array.isArray(ledger.acceptance_contracts) || ledger.acceptance_contracts.length !== 231) return false
+  const rules = ledger.rules.filter(row => row.id === 'OPS-03'), acceptances = ledger.acceptance_contracts.filter(row => row.id === 'AT-OPS-03')
+  if (rules.length !== 1 || acceptances.length !== 1) return false
+  const rule = rules[0], acceptance = acceptances[0]
+  if (JSON.stringify(rule) !== JSON.stringify({ id: 'OPS-03', acceptance_id: 'AT-OPS-03', status: 'NOT_VERIFIED', evidence: [] })
+    || JSON.stringify(acceptance) !== JSON.stringify({ id: 'AT-OPS-03', status: 'NOT_EXECUTED', evidence: [] })) return false
+  // Two exact immutable row spans, not a fifth arbitrary content exception.
+  // Every foreign byte/order/key/metadata, including whitespace, stays intact.
+  // Equality to this expected text also rejects duplicate-key JSON ambiguity.
+  const rowBytes = row => JSON.stringify(row, null, 2).split('\n').map(line => '    ' + line).join('\n')
+  let expected = original
+  for (const [row, status] of [[rule, 'VERIFIED'], [acceptance, 'PASSED']]) {
+    const oldBytes = rowBytes(row), nextBytes = rowBytes({ ...row, status, evidence: approvedOpsEvidence })
+    if (expected.split(oldBytes).length !== 2) return false
+    expected = expected.replace(oldBytes, nextBytes)
+  }
+  return candidate === expected
+}
 function unchangedNativeExecutionInputs(command, candidateSha) {
   function tree(commit) {
     const text = String(command('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', commit], 5 * 1024 * 1024))
@@ -71,7 +98,9 @@ function unchangedNativeExecutionInputs(command, candidateSha) {
   const baseline = tree(reviewedNativeInputBase), candidate = tree(candidateSha)
   for (const name of new Set([...baseline.keys(), ...candidate.keys()])) {
     const before = baseline.get(name), after = candidate.get(name)
-    if (ownedNativeInputExceptions.includes(name)) {
+    if (name === coverageLedgerPath) {
+      if (!ownedCoverageUpdate(command, candidateSha, before, after)) return false
+    } else if (ownedNativeInputExceptions.includes(name)) {
       // Only reviewed content edits in these four regular files are exempt.
       // Deletions, symlinks or executable-bit changes are never exemptions.
       if (!after || after.type !== 'blob' || after.mode !== (before?.mode || '100644') || !['100644', '100755'].includes(after.mode)) return false
@@ -204,7 +233,9 @@ function consumeReviewedCodeEvidence(root, source, blockers, modes) {
     return { id: binding.id, status: 'qualified', sourceFile: binding.sourceFile, sourceSha256: binding.sourceSha256,
       classes: binding.classes, qualification: binding.qualification || 'reviewed_native_case',
       effects: binding.effects || { DDQ: false, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 0 }, ports: binding.ports,
-      inputSource: { reviewedBaseSha: reviewedNativeInputBase, comparison: 'immutable_tree_mode_type_blob_path', ownedExceptions: ownedNativeInputExceptions }, producer }
+      inputSource: { reviewedBaseSha: reviewedNativeInputBase, comparison: 'immutable_tree_mode_type_blob_path', ownedExceptions: ownedNativeInputExceptions,
+        allowedCoverageDelta: { path: coverageLedgerPath, rule: 'OPS-03:VERIFIED', acceptance: 'AT-OPS-03:PASSED', evidencePaths: approvedOpsEvidence,
+          comparison: 'atomic_two_row_spans_all_other_bytes_unchanged' } }, producer }
   }
   function cases(bindings, xml, producer) {
     const testcases = junitCases(xml)
