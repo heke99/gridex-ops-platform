@@ -219,3 +219,22 @@ Root will fresh-guard source/main/head/check identities and coordinate ONE
 normal expected-head merge when qualified; no duplicate observer or newrule.
 Combinedpublic34 source/captureinput prerequisites and solefinalMAINdoc/baseline
 adopter retain their existing owner scopes.
+
+
+Actual #611 is delivered22:38:35UTC atmain9538c481/treebad0f6ca, orderedparents
+b83+originale6ed. Original author authenticated9/9/fourparentSUCCESS and actual
+finalguard87bcaba2 at6116000071682, then took its existing sole normal merge
+turn. Root read only actualpublicPR/commit/13path metadata, not CI/rawpayload.
+All incoming13entries are ownMD/JSONcheckpoint/postmerge600evidence, with no
+source/test/SQL/generated/native/workflow/coverage change. Root genuinely
+adopted9538 once at9cbe4cc1, retaining all30owned/foreignmain tuples, then its
+solecommonhandover adds ONE611actualmarker; all38priorlines byte-exact,39unique.
+Original600 is not delivered twice. New authenticatedledger preserves true
+parents/tree/source/time and scopes inherited original qualification.
+
+#612actual6d sole observer reports8requiredSUCCESS/onlycleanRUNNING, nofailure.
+Originalproducerbaseb83 and currentPRbase9538 are distinguished: incoming611
+docs change no60direct/advisor/SQL/native input, so noheadchange/retry/duplicate
+observer is warranted. Root fresh-main/source guard will preserve all611entries
+before qualified612serialexpected-head merge. ExistingfinalcommonMAINadopter
+and fullbaselineobserver retain their work; no newrule ormain-greenclaim.
