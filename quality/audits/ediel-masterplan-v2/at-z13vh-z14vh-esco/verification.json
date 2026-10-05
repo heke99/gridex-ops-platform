@@ -38,7 +38,18 @@
     "testsTypeScript": "PASS current corrected files",
     "lint": "PASS currentZ13 and unchangedZ14 firstscope",
     "specIntegrity": "PASS33/121/231",
-    "supportedGate": "NOT_RUN_YET",
+    "supportedGate": {
+      "status": "PASS",
+      "executedHead": "1b57559dfd377ea4dcf969b5ff012a218c1c44b2",
+      "baseMain": "fff486f822001d35970f163507b10e17c3692f58",
+      "rawReceipt": "technical-candidate-supported-gate.json",
+      "ids": 352,
+      "storedApproved": 213,
+      "taggedGreen": 236,
+      "taggedFailing": 0,
+      "untagged": 116,
+      "wholeCardApprovalInferred": false
+    },
     "independentConcreteReview": "APPROVE bounded 2test files only; report independent-code-review.md; final published-head provenance pending",
     "native": "NOT_RUN",
     "physicalACK": "NOT_RUN",
@@ -84,6 +95,7 @@
   },
   "receiptSHA256": {
     "claim.json": "4ef73e26deb6ffca43a2a3b884745b7c8f38dad277fa595c99c9c9d09b02283b",
+    "execution-environment-attempts.json": "fc218285a539db7fa87d4de558d1ca366e876e4759da3ca65eeaef2563415085",
     "final-spec-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
     "final-tests-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "final-z13vh-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -99,6 +111,8 @@
     "retained-owner-dependencies/ack-continuation-review.json": "a65571e62c436fa12481debf0074d06a8f02380421a01e5972e122c07b5c626d",
     "retained-owner-dependencies/ack-owner-continuation.md": "ccb3d62f58b046a4dc674fe40793da552a5c9a39d914c60433ce327e44d1ead9",
     "retained-owner-dependencies/ack-source-review.md": "cf2f23728acb872def99c717ffab57cb69af6313a124de126e7df13ebc1efc56",
+    "technical-candidate-supported-gate.json": "3a504a9bfa574da4aa7a2638a67a77ad15e0659bb582392f422379114aeffc58",
+    "technical-candidate-supported-gate.log": "faf89be6c3f53541e5404f1feb7b6eed13fb187788b0816eb891dc5afa150dad",
     "whitespace-qualification.json": "0e2df12210d6c59b3d69ee74f694b9192d5a73b408667f4165ced00a6f6f5503",
     "z13vh-final-tests.log": "3cce10b0c2d054776366716e84d4308b29938b3d71093f45efb90b8568757668",
     "z13vh-final-tests.xml": "3485817c92682871f521741f08818b0d582203c6e7a5ef716c6a67e54080a2b3",
@@ -163,5 +177,8 @@
     "trackedManifestPaths": 36,
     "applicationConformanceAsserted": false,
     "productionReadinessAsserted": false
-  }
+  },
+  "technicalCommit": "1b57559dfd377ea4dcf969b5ff012a218c1c44b2",
+  "technicalTree": "47ad588053ec126507d4414b5195965b569916b7",
+  "prepublicationMain": "fff486f822001d35970f163507b10e17c3692f58"
 }
