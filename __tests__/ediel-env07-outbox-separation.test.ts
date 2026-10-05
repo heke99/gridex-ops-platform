@@ -30,7 +30,7 @@ beforeEach(() => {
     if (name !== 'claim_ediel_outbox_items') throw new Error(`Unexpected RPC: ${name}`)
     const rows = [...port.rows.values()].filter(row => (!args.p_company_id || args.p_company_id === row.company_id)
       && (!args.p_environment || args.p_environment === row.environment)).slice(0, Number(args.p_limit))
-    rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id })
+    rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id; row.locked_at = new Date().toISOString() })
     return { data: rows.map(row => ({ ...row })), error: null }
   })
   port.from.mockImplementation((table: string) => {
