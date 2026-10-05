@@ -1,0 +1,140 @@
+{
+  "reviewer": "/root/ten07_rule_review",
+  "date": "2026-10-05",
+  "decision": "APPROVE_COMPONENT",
+  "component": "declared-offset calendar arithmetic plus normalized-consumer restoration",
+  "source": {
+    "repository": "heke99/gridex-ops-platform",
+    "head": "0796a57181657d0c2b55dc4437f3ad5c6c8d88c3",
+    "tree": "2ac7762dd261c3b09e8bff83fecb118fb262decd",
+    "parent": "d3ba0e2322490846aff977ba366fd37e6c0e83b0",
+    "trusted_fetch": "git fetch --no-tags https://github.com/heke99/gridex-ops-platform.git 0796a57181657d0c2b55dc4437f3ad5c6c8d88c3",
+    "clean": true,
+    "blobs": [
+      {
+        "path": "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+        "git_blob": "dce74cde052e8554fe88dabab02f594d3eb8479e",
+        "sha256": "0fe6f8a8177906121691adc24616765aa2193927e9fbfd799c2752f343bda5f7"
+      },
+      {
+        "path": "lib/ediel/utilts/consumptionPreparation.ts",
+        "git_blob": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+        "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8"
+      },
+      {
+        "path": "lib/ediel/utilts/timezone.ts",
+        "git_blob": "ac5252ac61e7069873562bdaa17796194ff31e74",
+        "sha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+        "git_blob": "709cc15b0d26c59b208dcf7ab9ffda91ece614ac",
+        "sha256": "03750b76972afa7bf936fd0648e5a75998cdd30e345a8b948a79eb3294985d63"
+      },
+      {
+        "path": "lib/ediel/utilts/resolution.ts",
+        "git_blob": "6eb95bdc83fe8c80cbcf171381fdfc605faa0258",
+        "sha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498"
+      },
+      {
+        "path": "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
+        "git_blob": "8db4c575673033af73ef5a8012209ca7301d58e9",
+        "sha256": "df96cffba6f74f2aec9202396fbb2b150d41a13d6edd41dc3a89eaeb37bc6bf6"
+      },
+      {
+        "path": "__tests__/ediel-z06f-native-wire-grammar.test.ts",
+        "git_blob": "8a62e21bb98dd104ff3f85307925390ef2f8f4a3",
+        "sha256": "fda9239c45afb4c05ab12f61b2ceacc7483e6983f88faf69e8e55389b57eadd9"
+      },
+      {
+        "path": "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts",
+        "git_blob": "3435a81d610efb5a90ae43c7c003606c988b5e22",
+        "sha256": "7b39f1ed1490fe5521f4a13e6033794904f7a133de97f1984c6d44803fbeba6b"
+      }
+    ],
+    "inherited_main_blobs_equal": {
+      "__tests__/ediel-z06f-native-wire-grammar.test.ts": true,
+      "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts": true
+    }
+  },
+  "verification": {
+    "original_unchanged_normalized_runtime_consumer_probe": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "sha256": "de091cf19ea8d9e0b0db38884ac1cee6a42316c896883b70d325611e0e9a0837",
+      "path": "/tmp/primary-calendar-probe/normalized-consumer.test.ts",
+      "finite_port": "Existing point/customer matching only; runtime, policy, wire parsing, physical membership, preparation and contract validation are actual functions."
+    },
+    "requested_targeted_suites": {
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "files": 3,
+      "split": {
+        "monthly_runtime_to_preparation": 4,
+        "existing_grammar": 8,
+        "existing_daily_runtime_to_preparation": 9,
+        "calendar_helpers": 3
+      }
+    },
+    "artifacts": [
+      {
+        "path": "/workspace/agent-review-checkpoints/primary-0796-normalized-consumer.log",
+        "sha256": "8b1a7b015defed1a0d3155e20211f5af1426c1e3dcbe216aed8f20fbf3accf6a"
+      },
+      {
+        "path": "/workspace/agent-review-checkpoints/primary-0796-targeted.log",
+        "sha256": "13de21dfccdff378fc864f84d65ce38139275ef2240ad25168f7e9ffc60ef6d1"
+      }
+    ],
+    "diff_check": "PASS"
+  },
+  "frozen_literals": [
+    {
+      "id": "U-10",
+      "area": "Periodregler",
+      "kind": "Ediel/Handbok",
+      "applies_to": "Period 245 och upplösning508",
+      "trigger": "Periodvalidering",
+      "condition": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn.",
+      "on_pass": "Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
+      "on_failure": "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
+      "callsite_owner": "period validator",
+      "source": "U §3.6.18; bilaga2",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-U-10"
+    },
+    {
+      "id": "AT-U-10",
+      "name": "Regelkontrakt: U-10",
+      "given": "Period 245 och upplösning508",
+      "when": "Periodvalidering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "expected": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
+      "prohibited": "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
+      "rule_ids": [
+        "U-10"
+      ],
+      "layer": "Planerat regelbeteendeprov",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    }
+  ],
+  "qualification": {
+    "whole_U10_ATU10": "NOT_REAPPROVED_BY_THIS_COMPONENT_REVIEW",
+    "coverage_status_change": "NONE; existing VERIFIED/PASSED statuses retained, two evidence paths added",
+    "native_reception_persistence": "NOT_RUN_BY_THIS_REVIEWER",
+    "owner_reported_full_10212_suite": "NOT_INDEPENDENTLY_REPEATED",
+    "composed_root_head": "FRESH_REQUIRED_GATES_REMAIN",
+    "source_membership_authority": "UNCHANGED"
+  },
+  "preservation_source_analysis": [
+    "Absolute instant is invariant under declared-offset rendering.",
+    "Fixed duration hour/day arithmetic adds identical milliseconds after offset shift cancels.",
+    "Months and years step on restored declared fixed wall clock, including negative offsets.",
+    "Floating/no-declaration values are returned unchanged; empty input remains null.",
+    "The sole production caller obtains offset only from validated DTM735 format406 parser; missing/invalid required timezone remains guide-rejected.",
+    "No tenant attribution, accepted transaction membership, source quantity cursor, absolute-contract validator, or persistence call changes."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "decision": "APPROVE_SOURCE_COMPOSITION_CARRY",
+  "prior_composition_commit": "3388b82d4e0070f2e06cebcdfa7df8fb6b2c6d03",
+  "current_commit": "7dfccddd47897ddc2168cb6e99e159ba88c890a6",
+  "current_tree": "b09f82a157bbffbfd21c09be13fe5202440ec453",
+  "sole_owner_commit": "1753773679d85c30dde60934692a046888973035",
+  "changed_paths": [
+    ".agent-memory/handover.md",
+    ".agent-memory/open-blockers.md",
+    "__tests__/ediel-u-19-prodat-reference.test.ts",
+    "lib/ediel/matching.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "exact_owner_paths": [
+    ".agent-memory/open-blockers.md",
+    "__tests__/ediel-u-19-prodat-reference.test.ts",
+    "lib/ediel/matching.ts"
+  ],
+  "coverage_changes": [
+    "SC-035",
+    "SC-037"
+  ],
+  "prior_parent_approval_markers": 210,
+  "current_parent_approval_markers": 208,
+  "handover": "complete root bytes and every owner nonempty line retained",
+  "unmodified_by_delta": [
+    "all capture inputs and raw provenance",
+    "ACK source",
+    "P08 SQL",
+    "schema/types/fingerprint",
+    "all root5 forwards",
+    "native source/config and gateway/CLI"
+  ],
+  "scope": "Five-path immutable carry only; U19 behavior approval remains separate reviewer work; no test/capture/final CI qualification",
+  "original_review_files": "untouched",
+  "review_time_utc": "2026-10-05T03:48:10.975995+00:00"
+}

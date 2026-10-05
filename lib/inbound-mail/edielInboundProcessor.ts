@@ -1,5 +1,5 @@
 import { prepareDuplicate103Response } from '@/lib/ediel/inbound/duplicateResponses'
-import { InboundReceptionHeldError } from '@/lib/ediel/inbound/receptions'
+import { InboundReceptionHeldError, readUnattributedTechnicalIntake } from '@/lib/ediel/inbound/receptions'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
 import { parseDeliveryStatusReport } from './dsnDisposition'
@@ -84,6 +84,23 @@ export async function processInboundEmailMessage(input: {
   if (error) throw error
   const row = data as Record<string, unknown> | null
   if (!row) throw new Error('Inbound email hittades inte.')
+
+  // A born technical-only original never acquires business authority when a
+  // later registry lookup would resolve its legal party. Read before matchers.
+  const protectedIntake = await readUnattributedTechnicalIntake({
+    inboundEmailMessageId: input.inboundEmailMessageId,
+    actorUserId: input.actorUserId ?? null,
+  })
+  if (protectedIntake) {
+    await updateInboundEmailProcessingStatus({
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      companyId: null,
+      status: 'manual_review',
+      matchStatus: 'technical_only_unattributed',
+      matchPayload: { sourceMessageId: protectedIntake.sourceMessageId, authorizesBusinessEffect: false },
+    })
+    return { status: 'manual_review', companyId: null, parseResultId: protectedIntake.parseResultId }
+  }
 
   const quarantineDsn = async (raw: string,sourceField:DsnSourceField,attachmentId?:string|null) => {
     // The returned original cannot establish the report's tenant or authorize
@@ -242,6 +259,7 @@ export async function processInboundEmailMessage(input: {
     const unresolvedTenantStatus = tenant.status === 'ambiguous' ? 'ambiguous' : 'unassigned'
     await createUnresolvedInboundEdielMessage({
       companyId: tenant.companyId,
+      actorUserId: input.actorUserId ?? null,
       inboundEmailMessageId: input.inboundEmailMessageId,
       parseResultId,
       parsed,

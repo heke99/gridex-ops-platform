@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "reviewer": "/root/source_intake_export_union_review",
+  "recorded_at_utc": "2026-10-05T14:37:28.685071+00:00",
+  "verdict": "APPROVE_EXACT_BOUNDED_HELPER_INTERFACE_PROPOSAL_ONLY",
+  "public_proposal": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996407394",
+  "root_source_sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "writer_588_sha": "7453605e27b313309240184e8bd5f664bc156b8a",
+  "target": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+  "pins": {
+    "old_blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+    "old_sha256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194",
+    "patch_sha256": "b705390993dcb28fe9cf3fecdbaae52e6f17bfdeb7b70e995db0381a9d7c5da8",
+    "proposed_blob": "bdc078bbae5f52955c1e2a7544babeb92bf41c41",
+    "proposed_sha256": "65e2b6c559e187d864ece902ade76e49fe25dcea31ee9c20d4c08058c75cbdf1",
+    "existing_recount_blob": "d9e8beff57ce70e99b637675d1cf4044449913ae",
+    "existing_recount_sha256": "5f18ea75f3496e31727537ee13111a859e736c7faa48e4035517483d2a8efccb"
+  },
+  "actual_checks": {
+    "complete_four_hunk_in_memory_reconstruction": "PASS; old/patch/proposed SHA256 and Git blob IDs independently exact",
+    "full_helper_and_current_callers": "READ; four existing default test call sites plus four published588 F/G call sites, no options currently supplied",
+    "typescript_syntax_transpile": "PASS TypeScript5.9.3,0syntax errors,Node24.19.0; no disk source creation",
+    "compiled_js_sha256": "0edb6fc43ce79d99d6fbdb86a5bf24164ed0a34ff1abfae844cac78c4eb37bf0",
+    "semantic_project_typecheck": "NOT_RUN by this reviewer; root/writer retains required changed-source static gate",
+    "native_test_run": "NOT_RUN",
+    "source_edits": 0,
+    "production_edits": 0,
+    "ci_capture_runs": 0
+  },
+  "interface_review": {
+    "new_optional_third_argument": [
+      "transformRaw(raw):string",
+      "deferFirstApply:boolean",
+      "beforeFirstApply(Readonly<EdielMessageRow>):void|Promise<void>"
+    ],
+    "default_equivalence": "Absent options preserves exact originalRaw, no recount or observer, same real first apply/appliedCount1 assertion; unchanged return{message,apply}. Existing two-argument callers remain compatible.",
+    "transform_order": "Existing raw factory -> optional transform/recount -> existing fresh stamp/capture/native clock -> real canonical accepted assertions -> original received validation -> frozen source rulepack capture -> sourceOwner.finish -> actual structural source review -> cloned observer -> optional first apply",
+    "observer": "Runs once after actual accepted structural review, also in deferred mode. Receives structuredClone, no alias to source message or private authority. It is not called before later caller replay; throwing prevents helper first apply but does not roll back earlier source/review writes.",
+    "deferral": "Only suppresses existing helper first apply; returned apply closes over the existing real source/current actor and still enters approveSafeMasterdataChanges. No rejected/direction/fact-override authority is exposed.",
+    "recount": "Existing single-message release-aware tokenizer export; modifies physical UNT count only. No second codec or full encode roundtrip. Unsuitable for intentional malformed UNT/multiple-message probes.",
+    "source_authority": "All actual validation, frozen owner, review, immutable SQL/actor and permission guards remain; no production/source/RPC/schema/clock/config/capture change."
+  },
+  "limits": {
+    "field306": "Existing E22 vs retained original P26.A Z11/Z12 remains source-owner HOLD; proposal does not qualify either F/G intact controls as guide-valid",
+    "whole_effect_matrix": "Actual25-cell human matrix not published in supplied comment/588 packet and not supplied to this reviewer. Pointer requested from root; NOT_READ, no proxy approval. Public gap-map explicitly says representative deletions do not exhaust25 cells.",
+    "accepted_input_scope": "This helper remains acceptance-asserting. It does not by itself provide rejected capture/stored outbound direction/original first-reception/complete E66 or all R/D negatives. Existing owners retain these source contracts.",
+    "whole_AT_native": "Both F/G whole supplier ATs remain HELD/NOT_EXECUTED; no machine tags or coverage promotion",
+    "capture_inputs": "Helper is test-only and absent from all eight retained capture input paths; code compatibility is not a new actual native receipt."
+  },
+  "input_provenance": [
+    {
+      "sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "sha256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194"
+    },
+    {
+      "sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "path": "__tests__/helpers/recountEdifactUnt.ts",
+      "sha256": "5f18ea75f3496e31727537ee13111a859e736c7faa48e4035517483d2a8efccb"
+    },
+    {
+      "sha": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "path": "scripts/ediel-z06f-reading-followup-native.test.ts",
+      "sha256": "35b0b330d79a995fc350538c4e53ccf4b95b1fbaa723cf60adc09023172227eb"
+    },
+    {
+      "sha": "7453605e27b313309240184e8bd5f664bc156b8a",
+      "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+      "sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef"
+    },
+    {
+      "sha": "7453605e27b313309240184e8bd5f664bc156b8a",
+      "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+      "sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881"
+    },
+    {
+      "sha": "7453605e27b313309240184e8bd5f664bc156b8a",
+      "path": "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/native-gap-map.md",
+      "sha256": "ce06e4c37c9daac5941261f607875cae071b674f3e26f03da2fd50670feb262a"
+    }
+  ],
+  "ownership": "Existing588 writer alone applies exact frozen helper delta and extends its two owned F/G scripts; root carries that helper delta once through503 after actual changed-code qualification. Reviewer has no source writer claim.",
+  "remaining_review_requirement": "Obtain actual25-cell human matrix to complete parent-requested matrix reading; obtain actual owner/root semantic typecheck before implemented-source approval."
+}

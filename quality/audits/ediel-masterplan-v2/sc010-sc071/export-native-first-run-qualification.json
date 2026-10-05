@@ -1,0 +1,120 @@
+{
+  "scope": "bounded BASE-then-forward native feedback; not candidate canonical replay",
+  "workflow_checkout_sha": "44992cdd47f1e146315679749804697f6395f71c",
+  "workflow_checkout_tree": "16eed8e63f916b80c64f83d9b3f1712119a5abe2",
+  "workflow_run_id": "37305623231",
+  "base_checkout": {
+    "sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "tree": "f03ec10bec420c9013848be526595c5fbb0242b7",
+    "dependency_install": "candidate npm ci; BASE package.json and lock byte-identical"
+  },
+  "base_replay": {
+    "canonical_replay": "COMPLETED",
+    "base_sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "fingerprint": "9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b",
+    "official_ledger_count": 48,
+    "candidate_replay": "NOT_CLAIMED"
+  },
+  "producer_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
+  "declared_producer_overlays": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "1efcb1dda6673437f911f746a0409a43a513a720820e070abebed245072343f9",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+  },
+  "forward_source": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+  "forward_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+  "forward_execution": "COMPLETED",
+  "effective_runtime_inputs": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "1efcb1dda6673437f911f746a0409a43a513a720820e070abebed245072343f9",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+  },
+  "post_native_inputs": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "1efcb1dda6673437f911f746a0409a43a513a720820e070abebed245072343f9",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+  },
+  "registered_sc071_source": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0",
+  "effective_sc071_source": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+  "invoked_config": "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts",
+  "sc010_selected_config": "HASHED_OVERLAY; NOT_INVOKED",
+  "own_candidate_input_sha256": {
+    ".github/workflows/ediel-sc071-native.yml": "24a53b103530fb7600c94d45456aefda673d19c8720eb2e0fdfd1bdcf56361ec",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json": "5f361eb8cef07dbd760d65cc593185869d1a6aafd355d755c04ee72a4e670f08",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/export-races.patch": "a45ee4b477f23fee35446132c9cf93a3fd00d4de673a4c00b68eac100eb71948",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0"
+  },
+  "component_exit_code": 1,
+  "last_stage": "native",
+  "native_exit_code": 1,
+  "native_execution": "ATTEMPTED",
+  "expected_files": {
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6,
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4
+  },
+  "actual_files": {
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4,
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6
+  },
+  "expected_cases": 10,
+  "actual_cases": 10,
+  "unique_file_names": true,
+  "junit_counts": {
+    "failure": 2,
+    "error": 0,
+    "skipped": 0
+  },
+  "junit_parse_error": null,
+  "optional_evidence_parse_errors": {},
+  "official_ledger_unchanged": true,
+  "complete_ten_case_pass": false,
+  "post_forward_schema": "UNQUALIFIED_FOR_FINAL_CAPTURE",
+  "candidate_clean_upgrade_parity": "NOT_CLAIMED",
+  "ordinary_required_gates": "NOT_REPLACED",
+  "producer_admission_capture": "PENDING_COORDINATOR",
+  "whole_sc071": "UNAPPROVED",
+  "whole_sc010": "UNAPPROVED",
+  "leased_export_consumer": "NOT_QUALIFIED",
+  "external_issuer_smtp_and_route_session_ports": "FINITE_SYNTHETIC_FIXTURE",
+  "authentic_market_evidence": "NOT_PROVIDED",
+  "local_artifact_qualification": {
+    "qualified_utc": "2026-10-05T12:07:30.528362+00:00",
+    "artifact_id": 11343427856,
+    "ZIPsha256": "ab140ff44e32fcde4dd6210f6a1b00992269026f021cfeb4c1f9ee083c51b3ab",
+    "CRC_files": 15,
+    "artifact_link": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305623231/artifacts/11343427856",
+    "all_six_pre_and_post_runtime_hashes_match824": true,
+    "first_two_own_cases": "PASS actualnative",
+    "own_two_lease_wait_cases": "FAIL57014statement_timeout; finalrollbackassertionsnotexecuted after error assertion",
+    "SC071_six_cases": "PASS historical44992cdd effective33b7",
+    "repair": "ownnativeonly: snapshotsbeforetimer, shorter5sreallease, live-at-observed-wait assertion; specificerror/rollback unchanged; newactualnativeNOTRUN",
+    "repair_source_sha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+    "repair_verification": {
+      "source": "independently reviewed; no confirmed ownsetupdefect",
+      "tests_typecheck": "exit0;includesnative*.test.ts",
+      "scoped_lint": "exit0",
+      "native": "NOT_RUN updatedsource; original8/2FAIL preserved"
+    },
+    "preserved_files": [
+      "evidence/export-native-44992cdd-failed-receipt.json",
+      "evidence/export-native-44992cdd-failed-junit.xml",
+      "evidence/export-native-44992cdd-failed.log.gz",
+      "evidence/export-native-44992cdd-rpc-readiness.json"
+    ],
+    "new_test_no_effect_changes": "Only lease setup/timing and newlivewaitassertion changed; original firsttwo positive/revocation cases and productbytes unchanged"
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "review_scope": "Read-only current-main / exact owner source composition, before authentic new capture.",
+  "candidate": {
+    "commit": "18d99585c8d37db0becd2498237261a661389157",
+    "tree": "d2f3de63df59c97f8ea5a3c33461480f46bab06d"
+  },
+  "main": {
+    "commit": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "tree": "4acbd9b92cc689382aaa28e10468b609f6d135c4"
+  },
+  "export": {
+    "commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "tree": "722ac9cf84c1cf5cfd11fb163042b5de0d185787"
+  },
+  "intake": {
+    "commit": "7d42301009a551118bd8277045e39f1275e42bb3",
+    "tree": "33fa62b2b2961df6616e2590fd0df78db162e69e"
+  },
+  "checks": {
+    "preserved_main_migrations": 1067,
+    "new_migrations": {
+      "20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+      "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+    },
+    "runtime_admission": {
+      "preserved_all_inherited_checksums": true,
+      "only_two_new_exact_entries": true,
+      "files_count": 128
+    },
+    "export_owned_inputs": {
+      "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "__tests__/ediel-sc-010-beneficiary-export.test.ts": "c3a53636c68c73149e6a4c0bc141db499bd3917de020eb08ffc7d7e77f536afa",
+      "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs": "575ccd57eb12c5539aba0f118274b544c7820f048886e3e54da1da903cc02494",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+    },
+    "unchanged_export_inherited_manifest_inputs": 20,
+    "unchanged_extra_api_dependencies": 5,
+    "native_registration": {
+      "unchanged_guards_setup_timeouts": true,
+      "inherited_root_main_union": true,
+      "new_existing_owner_suites_only": [
+        "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+        "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+        "scripts/ediel-sc014-technical-intake-native.test.ts"
+      ],
+      "unique_total_includes": 54
+    },
+    "qualified_native_source_hashes": {
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "scripts/ediel-sc014-technical-intake-native.test.ts": "7388fe22df96a46ba580ef3a399995924f8f0da4fa2dc61390bd2a966410d824",
+      "scripts/ediel-sc014-technical-intake-native.config.ts": "2ac9aed51819b1daf1de83faf12d8934e1ab06070555cd47df2441347eae0243"
+    },
+    "qualified_historical_ten_case_inputs": {
+      "proof_commit": "e6e6c3dafe10426ecb364921ce0311d057a94270",
+      "run": 37310521982,
+      "artifact": 11345294346,
+      "junit_sha256": "d75c9d2cfb816629b0693891747192adaf9b070ac2ef260c39648ef15605cede",
+      "cases": {
+        "SC010": 4,
+        "SC071": 6
+      },
+      "candidate_effective_source_matches": true,
+      "scope": "Published qualified BASE7b-plus-forward artifact; not a new joined-candidate run."
+    },
+    "intake_other_production_files_exact_owner": 3,
+    "updater_union": "Exact protected owner admission; current two positive-ACK status filters and ordinary mailbox birth preserved.",
+    "intake_overridden_function_bodies": {
+      "public.gridex_validate_ediel_message_contract": {
+        "authentic_main_body_sha256": "d1424914392294194143274ee30b56cbda9ee638ea3d1cb077bb81ed1fe4effd",
+        "new_exact_owner_body_sha256": "cb4d6aa9100614d29f0dc8862e94762e36fdc698508c8e01639baef3e86ad4a4",
+        "only_difference": "protected technical-birth witness guard / national-capture exclusion"
+      },
+      "gridex_received_sources.capture_insert": {
+        "authentic_main_body_sha256": "69cee701d9e8345a966d0031579eee0063eb8d9760537221c8fa3a88230ec059",
+        "new_exact_owner_body_sha256": "e676171d6cec47d7c3e0c3573c6299f70aeb26bc8fcabd147c03d9248adc4795",
+        "only_difference": "protected technical-birth witness guard / national-capture exclusion"
+      }
+    },
+    "actual_numbered_tail": "20261005101500_ediel_beneficiary_export_jobs.sql",
+    "whole_main_staff_and_original_root_manifest_histories_preserved": true,
+    "generated_outputs_retained_raw_root329": {
+      "supabase/database.types.ts": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "supabase/schema.sql": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6",
+      "supabase/schema.fingerprint.json": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44"
+    }
+  },
+  "limits": [
+    "No unit or native run by this reviewer.",
+    "Historical source receipts are not relabelled as joined-candidate execution.",
+    "Current combined capture/typegen, clean/upgrade/current mandatory CI remain required.",
+    "No whole SC010, SC014 or SC071 approval or coverage promotion."
+  ]
+}

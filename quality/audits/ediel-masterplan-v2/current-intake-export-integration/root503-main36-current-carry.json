@@ -1,0 +1,63 @@
+{
+  "schema": "gridex-root503-minimum-current562-main36-extension/v1",
+  "verdict": "APPROVE_UNCHANGED_SOURCE_CAPTURE_INPUT_CARRY",
+  "created_at": "2026-10-05T14:45:24.207001+00:00",
+  "previous_receipt": "root503-main2579-current-carry.json",
+  "previous_receipt_sha256": "502d2fbbe71cecb4687aad5d05f745b76bb7e10b175d8ac73697a619f0956701",
+  "candidate": "13eb626db367a5af69b1c9caf3a82349233db76f",
+  "candidate_tree": "9efcd7d1b587a9449fca21b612377a5514fef18b",
+  "candidate_genuine_parents": [
+    "66774385a98b1e01ec8821ff3d2fd3a415cdf605",
+    "2579fa93b8008eb72ca2a77d074b551828d0be58"
+  ],
+  "main": "36e873fbac87695f9d3522086f721961824e29f9",
+  "main_tree": "a32ecc7e8760c056581385b233bd84c56f82d476",
+  "main_genuine_parents": [
+    "2579fa93b8008eb72ca2a77d074b551828d0be58",
+    "815307d0866da38e63439dd6fb116d25ffd23e89"
+  ],
+  "expected_conflict_free_union_tree": "92002a61970c451014962c22b9cb7ee7e3fea6e0",
+  "incoming_scope": {
+    "pr": 562,
+    "actual_cards": [
+      "SC-057",
+      "SC-059"
+    ],
+    "owner_head": "815307d0866da38e63439dd6fb116d25ffd23e89",
+    "paths": 28,
+    "added": 27,
+    "modified": 1,
+    "new_asserting_files": [
+      "__tests__/ediel-sc-057-registry-import-lifecycle.test.ts",
+      "__tests__/ediel-sc-059-registered-subaddress.test.ts"
+    ],
+    "other_paths": "Own SC057/SC059 checkpoint/quality records and two owned ledger rows; no inventory contents reproduced."
+  },
+  "only_existing_candidate_blob_changed": "quality/audits/ediel-masterplan-v2/coverage.json",
+  "all_other_candidate_blobs_preserved_exact": 7930,
+  "all27_incoming_added_paths_exact_main_and_owner": true,
+  "source_schema_migration_replay_runtime_inputs_unchanged": true,
+  "capture_import_and_approved_manifest_metadata_unchanged": true,
+  "capture_refresh_required_by_current_main_delta": false,
+  "authentic_capture_attribution": "Still5be3a902a61309e295d1f3b82f5ceb0996edb1dd/tree5c3e101cd3744b2479d9948c31183929755d83fb; no producer relabel, and all raw_NOT_RUN limits retained by reference.",
+  "coverage": {
+    "all352_ids_order_and_metadata_preserved": true,
+    "foreign346_rows_and_ordered_evidence_exact_main": true,
+    "six_root_rows_exact_prior_candidate": true,
+    "six_root_deltas": [
+      "TR-05",
+      "TR-10",
+      "SC-040",
+      "SC-063",
+      "AT-TR-05",
+      "AT-TR-10"
+    ],
+    "main_approved": 221,
+    "union_approved": 227
+  },
+  "retained_whitespace": "Previously recorded three #589 EOF blanks are unchanged same blobs; no normalization or new diff narrative.",
+  "incoming_required_checks": "Root independently verified all9 +CodeRabbit on exact815 head before actualmerge; reused root public5305996784303, no repeated check inventory.",
+  "root_public_merge_receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5996784303",
+  "github_merge_snapshot": "root503-main36-current-carry-github-snapshot.json",
+  "limits": "Tiny exact-tree/source/row carry only. Prior raw import/source proofs reused. No new runtime, native, capture, SQL, full test, tagger or whole-card review; no owner edits, push or merge. Root owns final same503 publication and actual current-head gates."
+}

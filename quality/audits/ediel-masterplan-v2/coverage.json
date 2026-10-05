@@ -1195,8 +1195,18 @@
     {
       "id": "TR-05",
       "acceptance_id": "AT-TR-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "TR-06",
@@ -1239,9 +1249,13 @@
     {
       "id": "TR-10",
       "acceptance_id": "AT-TR-10",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "quality/audits/ediel-masterplan-v2/transport.md",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md"
       ]
     },
     {
@@ -1942,8 +1956,18 @@
     },
     {
       "id": "SC-040",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "SC-041",
@@ -2179,8 +2203,16 @@
     },
     {
       "id": "SC-063",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/tr-10-sc-063-native-approval-20261004.md",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/test-ediel-tr-10-reconciliation.cjs",
+        "scripts/test-ediel-tr-10-worker-source.cjs",
+        "__tests__/ediel-tr-10-reconciliation-copy.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-0c526-receipt.json"
+      ]
     },
     {
       "id": "SC-064",
@@ -3194,8 +3226,18 @@
     },
     {
       "id": "AT-TR-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "AT-TR-06",
@@ -3233,9 +3275,13 @@
     },
     {
       "id": "AT-TR-10",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "quality/audits/ediel-masterplan-v2/transport.md",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md"
       ]
     },
     {

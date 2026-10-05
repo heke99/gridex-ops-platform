@@ -1,0 +1,111 @@
+{
+  "decision": "APPROVE_TEST_ONLY_SOURCE_AND_GATE_CARRY",
+  "reviewed_base507": "507e8bfa20606be31933eea1582066267ff2577a",
+  "actual_main_snapshots": {
+    "tr04_main": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+    "db01_main": "ebd77f59203d3d3b09ce6b613bf673fe3eb643ac"
+  },
+  "results": [
+    {
+      "pr": 558,
+      "head": "0f8e36d92851d5b80800ce8f0fc4c7921d0e07e9",
+      "tree": "c2ee55fc0cb6f547c72fdbef1a30a8bc4988b8d2",
+      "id": "SC-055",
+      "paths": [
+        ".agent-memory/masterplan-sc055-checkpoint.md",
+        "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+        "quality/audits/ediel-masterplan-v2/coverage.json"
+      ],
+      "test_sha256": "e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746",
+      "source_diff_against_507": "only test/checkpoint/own coverage row; no existing production/helper/SQL/config/generated changes",
+      "whole_approval": "retained prior independent approval recorded in own committed checkpoint; no second whole review/test run here",
+      "compositions": [
+        {
+          "base_label": "tr04_main",
+          "base": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+          "merge_tree": "759c590275e348d381b5098aec2c8849d662efeb",
+          "conflicts": false,
+          "paths": [
+            ".agent-memory/masterplan-sc055-checkpoint.md",
+            "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+            "quality/audits/ediel-masterplan-v2/coverage.json"
+          ],
+          "base_approvals": 183,
+          "composed_approvals": 184,
+          "all_other_rows_and_evidence_preserved": true
+        },
+        {
+          "base_label": "db01_main",
+          "base": "ebd77f59203d3d3b09ce6b613bf673fe3eb643ac",
+          "merge_tree": "d73eb732e888b26f667741ddd43913e2ced6b40e",
+          "conflicts": false,
+          "paths": [
+            ".agent-memory/masterplan-sc055-checkpoint.md",
+            "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+            "quality/audits/ediel-masterplan-v2/coverage.json"
+          ],
+          "base_approvals": 183,
+          "composed_approvals": 184,
+          "all_other_rows_and_evidence_preserved": true
+        }
+      ],
+      "required_exact_head_gates": "9 individually verified SUCCESS on current head; 10 scope-intended SKIPPED jobs separately recorded",
+      "limits": "No old native expanded to current main; no live sender, market, legal custody/RLS/concurrency inferred"
+    },
+    {
+      "pr": 552,
+      "head": "5f7a2d832224ca09c6836b81976f73635b95da1a",
+      "tree": "68f62e8c54e2e3de22550b4cb0b1339e69c5d2fb",
+      "id": "SC-021",
+      "paths": [
+        ".agent-memory/masterplan-sc021-checkpoint.md",
+        "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+        "quality/audits/ediel-masterplan-v2/coverage.json"
+      ],
+      "test_sha256": "0375ff5aa01b41b94b481100d1840332b15b92d20a9133daaea085989f0e965e",
+      "source_diff_against_507": "only test/checkpoint/own coverage row; no existing production/helper/SQL/config/generated changes",
+      "whole_approval": "retained prior independent approval recorded in own committed checkpoint; no second whole review/test run here",
+      "compositions": [
+        {
+          "base_label": "tr04_main",
+          "base": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+          "merge_tree": "48c9522273584588352352853968db055c37b6ed",
+          "conflicts": false,
+          "paths": [
+            ".agent-memory/masterplan-sc021-checkpoint.md",
+            "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+            "quality/audits/ediel-masterplan-v2/coverage.json"
+          ],
+          "base_approvals": 183,
+          "composed_approvals": 184,
+          "all_other_rows_and_evidence_preserved": true
+        },
+        {
+          "base_label": "db01_main",
+          "base": "ebd77f59203d3d3b09ce6b613bf673fe3eb643ac",
+          "merge_tree": "85e041edf797fbbfb8e34b1df1675c217e921783",
+          "conflicts": false,
+          "paths": [
+            ".agent-memory/masterplan-sc021-checkpoint.md",
+            "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+            "quality/audits/ediel-masterplan-v2/coverage.json"
+          ],
+          "base_approvals": 183,
+          "composed_approvals": 184,
+          "all_other_rows_and_evidence_preserved": true
+        }
+      ],
+      "required_exact_head_gates": "9 individually verified SUCCESS on current head; 10 scope-intended SKIPPED jobs separately recorded",
+      "limits": "No old native expanded to current main; no live sender, market, legal custody/RLS/concurrency inferred"
+    }
+  ],
+  "transitive_source_qualification": {
+    "tr04": "Only dsnClassifier/mimeStructure and owned DSN sources/capture/schema changed. SC055 calls processInboundAckMessage with a retained EDIFACT message; SC021 calls processInboundEdielMessage by explicit id. Their parsing, qualifier, current writer/permission and ACK source paths are source-identical. Generic flow imports mailbox polling, but actual selected entry does not invoke runInboundEdielMailEngine or DSN classification; mailbox engine is called in a separate poll/process wrapper after1250. No global transitive/native claim.",
+    "db01": "Added registry/admin retirement affects partyRegistry, reachable through config/sendContextConsistency/transport. The actually retained normalization/security/isAgtPortalProdatAddress helpers plus local clean/upper implementation are byte-identical; removed route resolver/address API is not a current production import at ebd (git grep). Admin page/actions are outside both callers. No test/helper/SQL/capture mutation."
+  },
+  "new_tests_or_workflows_run": false,
+  "no_source_or_coverage_mutations": true,
+  "no_github_merge_performed": true,
+  "fresh_before_each_merge": "Integrator must recheck live actual main and unchanged candidate head; this packet is bound to exact main6f/ebd trees",
+  "created_at": "2026-10-05T04:10:44.301151+00:00"
+}
