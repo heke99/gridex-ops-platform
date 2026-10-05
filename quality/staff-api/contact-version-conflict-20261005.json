@@ -1,0 +1,49 @@
+{
+  "status": "IMPLEMENTED_TARGETED_VERIFIED_FINAL_CAPTURE_NATIVE_CI_PENDING",
+  "base_commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+  "problem": "The deliberately raised contact_change_version_conflict40001 triggered PostgREST automatic retries instead of a timely409.",
+  "production_evidence": {
+    "synthetic_run": "eceb461e-c713-4ac2-ba1c-827ea5d6d55f",
+    "timing_passed": 4,
+    "main_passed": 48,
+    "main_total": 49,
+    "contact_conflict_occurrences": 4950,
+    "first_at": "2026-10-05T00:29:52.719Z",
+    "last_at": "2026-10-05T00:30:42.512Z",
+    "subsequent_deadlock_at": "2026-10-05T00:30:43.513Z",
+    "deadlock_boundary": "Still-retrying contact RPC client SHARE versus guaranteed synthetic-cleanup revocation transaction.",
+    "cleanup_catalog_and_three_strict_key_denials": "PASS",
+    "private_state_removed": true
+  },
+  "official_reference": "https://supabase.com/docs/guides/troubleshooting/high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions-77326b",
+  "forward": {
+    "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+    "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+    "old_body_sha256": "4c00ce8bffa2f89fe5627c05c2c05020e50046be5b4b08b01f9ca7e99c39b3e2",
+    "new_body_sha256": "dcc59600b4daa4a3dc25b5ff531ace5c9b4b6a7834408ed5751b5d82657bea54",
+    "only_body_change": "ERRCODE40001 becomesPT409 on the deliberately raised contact_change_version_conflict; message unchanged.",
+    "invariants": "Exact qualified predecessor or fixed-body hash only. OID, owner, ACL, security mode, search_path, permissions, locks, replay and all remaining body bytes preserved. No application mapping change."
+  },
+  "targeted_unit_verification": {
+    "red": {"failed": 1, "passed": 40, "total": 41, "failure": "Actual SQL returns40001 where nonretryablePT409 is required; five-table no-effects snapshot unchanged."},
+    "green": {"passed": 51, "total": 51, "files": 2},
+    "coverage": "Actual whole forward; staff_api/ops/phone/customer_api stale conflicts; unchanged full customer/contact/audit/domain/outbox rows; positive/replay; exact body/metadata preservation; repeat application; altered-source and security-mode refusal; PT409 adapter mapping and unrelated-message control; genuine40001 compatibility."
+  },
+  "native_verification": {
+    "status": "NOT_RUN",
+    "test": "scripts/staff-customer-write-native.test.ts",
+    "coverage": "ExactPT409/message catch with escaping unexpected-success sentinel, unchanged five-table snapshots and retained positive/replay/company/client guards."
+  },
+  "independent_forward_review": {
+    "status": "PASS_SOURCE_ONLY",
+    "receipt_sha256": "08f644b55624d3843fc1db6aa64d3cb7ecdf829cb6cf9955d87f0c861e83b99f"
+  },
+  "skill_routing": {
+    "active": ["systematic-debugging", "test-driven-development", "using-git-worktrees", "supabase", "verification-before-completion"],
+    "reason": "Confirmed SQL/RPC retry bug, isolated fix, test-first reproduction, migration and exact deployed acceptance.",
+    "conditional": ["finishing-a-development-branch", "requesting-code-review"],
+    "skipped": "No UI/React, broad audit, new architecture, dependency, email delivery, payment, AWS or market-rule change."
+  },
+  "release_gates": "Authentic current-prefix capture, exact final-head mandatory CI/native/upgrade, guarded merge, exact production deployment, apply only this new forward once, and complete synthetic acceptance with finally cleanup remain required. Prior green heads do not qualify this changed source.",
+  "scope_limits": "No original migration reapplication, real-company activation, real communication or positive invitation/contract-approval email claim."
+}

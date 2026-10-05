@@ -123,6 +123,7 @@
     "20261002180000_invoice_file_export.sql": "e60545189328b22e6c61f1604224b5c5b917fdafa82a401dd40638a3213f9083",
     "20261004165620_staff_user_role_id_nullability.sql": "efdc9d67fcb6e3edd6d77e97de0b5c79978a2b3673d6bad1607880b5cbe98510",
     "20261004205603_staff_customer_retention_read_prerequisite.sql": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
-    "20261004205816_support_attachment_quarantine_carrier.sql": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+    "20261004205816_support_attachment_quarantine_carrier.sql": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594",
+    "20261005004623_customer_contact_version_conflict_http409.sql": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
   }
 }

@@ -4,8 +4,10 @@ import { staffWriteNativeFixture } from './helpers/staff-write-native-fixture'
 it('native staff contact writes preserve attribution, reject foreign customers/clients and version conflicts',()=>{
   const f=staffWriteNativeFixture()
   expect(()=>f.run(`
+    INSERT INTO public.customer_contacts(company_id,customer_id,type,name,email,is_primary)
+      VALUES('${f.companyId}','${f.customerId}','primary','Synthetic native contact','before-contact@example.invalid',true);
     SELECT public.gridex_customer_contact_change_v1('${f.companyId}','${f.customerId}','staff','${f.actorId}','${f.clientId}',NULL,'staff_api',NULL,'{"email":"changed@example.invalid"}','{}','native-contact');
-    DO $$BEGIN
+    DO $$DECLARE before_stale jsonb; after_stale jsonb; BEGIN
       IF NOT EXISTS(SELECT FROM public.audit_logs WHERE company_id='${f.companyId}' AND entity_id='${f.customerId}'
         AND actor_user_id='${f.actorId}' AND metadata->>'channel'='staff_api' AND metadata->>'api_client_id'='${f.clientId}')
         OR NOT EXISTS(SELECT FROM public.domain_events WHERE company_id='${f.companyId}' AND aggregate_id='${f.customerId}'
@@ -19,10 +21,27 @@ it('native staff contact writes preserve attribution, reject foreign customers/c
         PERFORM public.gridex_customer_contact_change_v1('${f.companyId}','${f.customerId}','staff','${f.actorId}','${f.foreignClientId}',NULL,'staff_api',NULL,'{"email":"wrong-client@example.invalid"}','{}','native-wrong-client');
         RAISE EXCEPTION 'staff_foreign_client_allowed';
       EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+      SELECT jsonb_build_object(
+        'customer',(SELECT to_jsonb(c) FROM public.customers c WHERE c.company_id='${f.companyId}' AND c.id='${f.customerId}'),
+        'contacts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]'::jsonb) FROM public.customer_contacts c WHERE c.company_id='${f.companyId}' AND c.customer_id='${f.customerId}'),
+        'audit',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.id),'[]'::jsonb) FROM public.audit_logs a WHERE a.company_id='${f.companyId}'),
+        'domain',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]'::jsonb) FROM public.domain_events d WHERE d.company_id='${f.companyId}'),
+        'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]'::jsonb) FROM public.event_outbox o WHERE o.company_id='${f.companyId}')
+      ) INTO before_stale;
       BEGIN
-        PERFORM public.gridex_customer_contact_change_v1('${f.companyId}','${f.customerId}','staff','${f.actorId}','${f.clientId}',NULL,'staff_api','2000-01-01','{"email":"stale@example.invalid"}','{}','native-stale');
+        PERFORM public.gridex_customer_contact_change_v1('${f.companyId}','${f.customerId}','staff','${f.actorId}','${f.clientId}',NULL,'staff_api','2000-01-01','{"email":"stale@example.invalid"}','{"email":"stale-contact@example.invalid"}','native-stale');
         RAISE EXCEPTION 'staff_stale_contact_allowed';
-      EXCEPTION WHEN serialization_failure THEN NULL; END;
+      EXCEPTION WHEN SQLSTATE 'PT409' THEN
+        IF SQLSTATE IS DISTINCT FROM 'PT409' OR SQLERRM IS DISTINCT FROM 'contact_change_version_conflict' THEN RAISE; END IF;
+      END;
+      SELECT jsonb_build_object(
+        'customer',(SELECT to_jsonb(c) FROM public.customers c WHERE c.company_id='${f.companyId}' AND c.id='${f.customerId}'),
+        'contacts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]'::jsonb) FROM public.customer_contacts c WHERE c.company_id='${f.companyId}' AND c.customer_id='${f.customerId}'),
+        'audit',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.id),'[]'::jsonb) FROM public.audit_logs a WHERE a.company_id='${f.companyId}'),
+        'domain',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]'::jsonb) FROM public.domain_events d WHERE d.company_id='${f.companyId}'),
+        'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]'::jsonb) FROM public.event_outbox o WHERE o.company_id='${f.companyId}')
+      ) INTO after_stale;
+      IF after_stale IS DISTINCT FROM before_stale THEN RAISE EXCEPTION 'staff_stale_contact_wrote_effects'; END IF;
     END$$;
     SELECT public.gridex_customer_contact_change_v1('${f.companyId}','${f.customerId}','staff','${f.actorId}','${f.clientId}',NULL,'staff_api',NULL,'{"email":"changed@example.invalid"}','{}','native-contact');
     DO $$BEGIN
