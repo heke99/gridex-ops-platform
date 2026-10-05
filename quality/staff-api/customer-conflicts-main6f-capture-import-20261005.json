@@ -1,0 +1,102 @@
+{
+  "status": "PASS_CAPTURE_ONLY",
+  "import_applied": true,
+  "verified_at_utc": "2026-10-05T04:26:27.461127+00:00",
+  "pr": 553,
+  "source_commit": "8424820983ac007bdb57fd70237a8abc58a13506",
+  "remote_head": "8424820983ac007bdb57fd70237a8abc58a13506",
+  "tree": "3935e88eb302789f025a1ddcf56eaa36e5b51711",
+  "workflow_run": 37261957906,
+  "workflow_run_attempt": 1,
+  "artifact_id": 11325176661,
+  "archive_sha256": "8904b143cfd7c1a64f04774f622ff9b96ef735eadacbf3db5a2a70f0408b41b4",
+  "metadata_sha256": "fa413aa05d94546454640fe5e44c8579d8d78af7bd745513ee2ffef2cf139790",
+  "artifact_expires_at": "2026-10-19T04:08:24Z",
+  "exact_four_members_crc_and_published_digest_verified": true,
+  "all_eight_frozen_inputs_verified": true,
+  "latest_replay_migration": {
+    "name": "20261005010327_customer_identity_version_conflict_http409.sql",
+    "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+  },
+  "schema_delta": {
+    "function_changes": [
+      {
+        "function": "public.gridex_customer_contact_change_v1",
+        "source_migration": "20261005004623_customer_contact_version_conflict_http409.sql",
+        "qualified_before_body_sha256": "4c00ce8bffa2f89fe5627c05c2c05020e50046be5b4b08b01f9ca7e99c39b3e2",
+        "qualified_after_body_sha256": "dcc59600b4daa4a3dc25b5ff531ace5c9b4b6a7834408ed5751b5d82657bea54",
+        "only_change": "expected business-conflict SQLSTATE 40001 -> PT409"
+      },
+      {
+        "function": "public.gridex_decide_customer_identity_change_v1",
+        "source_migration": "20261005010327_customer_identity_version_conflict_http409.sql",
+        "qualified_before_body_sha256": "e91471965c7b4989c1c81a679e4c828656ddf0b997eb2d3e92731a76158ab272",
+        "qualified_after_body_sha256": "075b242bf2891fbe4cb5eaeaae043e97a6173fa27b3304ff1e719e28038618a0",
+        "only_change": "expected business-conflict SQLSTATE 40001 -> PT409"
+      }
+    ],
+    "all_other_schema_bytes_equal": true
+  },
+  "exact_source_migrations": [
+    {
+      "name": "20261005004623_customer_contact_version_conflict_http409.sql",
+      "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+    },
+    {
+      "name": "20261005010327_customer_identity_version_conflict_http409.sql",
+      "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+    }
+  ],
+  "migration_registration_union": {
+    "authenticated_input_paths": [
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json"
+    ],
+    "unique_registration_count": 1065,
+    "identical_duplicate_count": 136,
+    "conflicting_hashes_refused": true,
+    "new_forward_runtime_only_binding_retained": true
+  },
+  "fingerprint_delta": {
+    "canonical_sha256": "e0df2137bff1932befda04174fc777a15e608cf7445001a96ea0d5086481faf2",
+    "only_changed_section": "functions",
+    "all_counts_equal": true
+  },
+  "generated_outputs": [
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "bytes": 3679044,
+      "raw_bytes_equal_to_prior": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "f4297a57d311f6f734c7b8283b93639f5bf7f554937ebf413119fb3809e128e4",
+      "bytes": 11181024,
+      "raw_bytes_equal_to_prior": false
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "e6970798b7b3cb28582cd6a3b0cf8a34a6ad83a648cfd7a43302262ca6a71533",
+      "bytes": 3625,
+      "raw_bytes_equal_to_prior": false
+    }
+  ],
+  "raw_capture_receipt_sha256": "3dfacf6463b6f3a0d08222167fbc722f48b7ae12458908ec1091ded2c2a9ba0f",
+  "prior_manifest_sha256": "f3f10a8aa967fcefad07323bfa498867727f86203925ab14f5b5f29105424c2c",
+  "prior_current_capture_preserved_compactly": true,
+  "existing_inherited_main_provenance_preserved": true,
+  "inherited_main_provenance_fields": [
+    "upstream_main_manifest",
+    "superseded_capture",
+    "capture_artifact"
+  ],
+  "inherited_main_provenance_canonical_sha256": "c93e9d2e561cb668c237f6b85ba5d20f2672a1db9f2b535d51d6ea36d14318fa",
+  "no_entire_manifest_nested_again": true,
+  "qualification": "Capture-only. Fresh exact-head full native/browser/upgrade/parity/application CI remains mandatory after import.",
+  "native_tests": "NOT_RUN",
+  "browser_tests": "NOT_RUN",
+  "type_schema_comparison": "NOT_RUN",
+  "upgrade_parity": "NOT_RUN"
+}

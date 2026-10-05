@@ -1,0 +1,5 @@
+{
+  "encoding": "UTF-8 exact captured stdout/stderr",
+  "raw_text": "\n/workspace/gridex-masterplan-sc004-sc006/scripts/test-ediel-ten-07-scoped-projection.cjs\n  0:0  warning  File ignored because of a matching ignore pattern. Use \"--no-ignore\" to disable file ignore settings or use \"--no-warn-ignored\" to suppress this warning\n\n\u2716 1 problem (0 errors, 1 warning)\n\n",
+  "raw_text_sha256": "06197c45e47dfbd70ed11d0cbdb97c9cfa367b752138f3916749ffc99ece1320"
+}

@@ -1,0 +1,73 @@
+{
+  "scope": "Two independently refuted review-only scenarios; no product/test/coverage/schema/shared-memory edit",
+  "localSourceCommit": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "qualifiedMainCommit": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+  "publicationMainObservation": "1c151dd0bacc1add8e6795219c64c6716d48a455",
+  "inputReferences": 157,
+  "uniqueInputs": 109,
+  "perReportInputs": {
+    "SC-037.md": 43,
+    "SC-052.md": 57,
+    "SC-037-refutation.md": 17,
+    "SC-052-refutation.md": 40
+  },
+  "reportSha256": {
+    "SC-037.md": "508abee8504cef243f6490a54f6594e64da773c4658c6d755937ee60090d42b5",
+    "SC-052.md": "d8bf27834de80e63ff82ccbc4c38f0347d1ae7b4333597634300f50b14f7da64",
+    "SC-037-refutation.md": "2675120308011f809bf1f1426beae93cc5e1b56e8f8def07617124f0bc12febd",
+    "SC-052-refutation.md": "7959563ebe77f980e55fff0e46d75ccfbdd5d35ac708dcb2fd00c542b4af260c"
+  },
+  "conclusions": {
+    "SC-037": "PARTIAL; independently confirmed bounded static legacy second-sweep projection/completion timing gap, no runtime effect reproduction",
+    "SC-052": "PARTIAL; static physical503 omission and service-only source-positive-path gap; proposed pure ESCO wrongS02 production send blocked on traced route/source/sink path"
+  },
+  "independentReview": {
+    "SC-037": "separate /root/sc037_refutation; effective triggers/current producer/canonical activation counter-guards traced",
+    "SC-052": "separate /root/sc035_refutation; actual legacy finalizer/supplier source/canonical witness/outbox/native and TS capability/provider gates traced",
+    "root": "157 input references and five current-main test blobs verified; old P11 script excluded; frozen source/receipt limitations retained"
+  },
+  "localChecks": [
+    {
+      "command": "SHA256 verification of four review/refutation input maps",
+      "result": "157 references/109 unique inputs; zero mismatches"
+    },
+    {
+      "command": "Git blob qualification of five current-main ordinary/native source files",
+      "result": "all match local source bytes and current remote blob"
+    },
+    {
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "result": "33 original files/121 rules/231 contracts; reference integrity only"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "historicalReceipts": {
+    "head": "01b11f55af710c3e6aad1f5a433631a88c702047",
+    "qualityJob": 111688500429,
+    "nativeJob": 111688500421,
+    "meaning": "Finite existing assertions only, not current-main/new-head CI/whole SC037 or SC052/native clock/market acceptance"
+  },
+  "ownerHandoff": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992830290",
+  "SC036StoredApprovalDispute": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992400012",
+  "priorPacketState": {
+    "571Head": "aa16ae7734adf56747a1e302413450a5ba9996cd",
+    "571IndependentCorrectionReview": 5413308876,
+    "579Head": "eea173c457783af56f08da49693e3fae4f3805cc",
+    "579SubstantiveBotReview": "requested after rate-reset window5992930445; not assumed completed",
+    "requiredCI": "clean replay still pending for both; no merge"
+  },
+  "runtimeLimits": [
+    "No dependency/native install or new runtime test",
+    "Git shell proxy unreachable; connector reads/publication available",
+    "Original PDFs unavailable; retained frozen source custody only"
+  ],
+  "publication": {
+    "status": "technical_packet_ready_for_draft_review",
+    "sourceApproval": false,
+    "coveragePromotion": false,
+    "mergePerformed": false
+  }
+}

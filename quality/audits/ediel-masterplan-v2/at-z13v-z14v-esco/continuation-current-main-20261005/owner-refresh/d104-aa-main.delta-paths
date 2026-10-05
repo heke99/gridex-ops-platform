@@ -1,0 +1,16 @@
+A	.agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/baseline.json
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/comment-only-source-qualification.json
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/current-main-composition.json
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/field-306-source-qualification.json
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/native-gap-map.md
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/native-registration.patch
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/plan.md
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/preflight-snapshot.json
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/retained-source-request.md
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/review.md
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/scoped-lint.log
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/scripts-types.log
+A	quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/verification-receipt.json
+A	scripts/ediel-at-z06f-supplier-acceptance-native.test.ts
+A	scripts/ediel-at-z06g-supplier-acceptance-native.test.ts

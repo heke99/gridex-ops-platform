@@ -1,0 +1,85 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005
+
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 24ms
+   → expected [ { …(4) } ] to deeply equal []
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required LIN in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required RFF:LI in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required RFF:Z05 in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required NAD:UD in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required NAD:IT in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > refuses DGI application reference in the actual Z02 policy
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds absent candidate references without enqueuing or mutation
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds ambiguous candidate references without enqueuing or mutation
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds foreign-only candidate references without enqueuing or mutation
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete correlation proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete payload proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete snapshot proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete atomic applied proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete atomic receipt proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > does not promote a blocked job even with a complete-looking result
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > does not promote a needs_review job even with a complete-looking result
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > propagates a declared actor-port denial before any request query or worker effect
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds worker enqueue failure without replacing a verified snapshot
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 5ms
+   → expected [ { …(4) } ] to deeply equal []
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required LIN in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required RFF:LI in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required RFF:Z05 in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required NAD:UD in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required NAD:IT in the real field consumer
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > refuses DGI application reference in the actual Z02 policy
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds absent candidate references without enqueuing or mutation
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds ambiguous candidate references without enqueuing or mutation
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds foreign-only candidate references without enqueuing or mutation
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete correlation proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete payload proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete snapshot proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete atomic applied proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete atomic receipt proof and allows review only
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > does not promote a blocked job even with a complete-looking result
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > does not promote a needs_review job even with a complete-looking result
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > propagates a declared actor-port denial before any request query or worker effect
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds worker enqueue failure without replacing a verified snapshot
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint
+ ↓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation
+AssertionError: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "code": "UNSM_COMPONENT_CARDINALITY_INVALID",
++     "description": "PRODAT:D:97A:UN: NAD/C082 har fler komponentpositioner än dess egen directory.",
++     "severity": "error",
++     "title": "Full versionsbunden UNSM-grammatik",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:125:91
+    123|   it('decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and ne…
+    124|     const row = message(profile)
+    125|     expect(validateEdifactSyntax(row).issues.filter(issue => issue.sev…
+       |                                                                                           ^
+    126|     expect(validateEdifactSyntax(row).ok).toBe(true)
+    127|     expect(fieldIssues(profile).filter(issue => issue.blocking)).toEqu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 42 skipped (44)
+   Start at  13:35:05
+   Duration  2.20s (transform 1.61s, setup 31ms, import 1.89s, tests 32ms, environment 0ms)
+

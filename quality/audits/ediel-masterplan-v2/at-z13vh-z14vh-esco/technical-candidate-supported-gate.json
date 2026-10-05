@@ -1,0 +1,18 @@
+{
+  "executedHead": "1b57559dfd377ea4dcf969b5ff012a218c1c44b2",
+  "executedTree": "47ad588053ec126507d4414b5195965b569916b7",
+  "baseMain": "fff486f822001d35970f163507b10e17c3692f58",
+  "cwd": "/workspace/gridex-ediel-at-z13vh-z14vh-esco-20261005",
+  "command": [
+    "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "scripts/ediel-masterplan-test-coverage.cjs",
+    "--check"
+  ],
+  "nodeVersion": "v22.23.0",
+  "startedAtUTC": "2026-10-05T13:06:05.349089+00:00",
+  "environment": "Authorized network/subprocess environment; existing shared dependency tree and exact lock SHA93ab57ed; no install",
+  "finishedAtUTC": "2026-10-05T13:08:46.850091+00:00",
+  "exitCode": 0,
+  "rawLog": "technical-candidate-supported-gate.log",
+  "rawLogSHA256": "faf89be6c3f53541e5404f1feb7b6eed13fb187788b0816eb891dc5afa150dad"
+}

@@ -1,0 +1,338 @@
+{
+  "rule": "SC-068",
+  "createdAt": "2026-10-05T13:56:44.646439+00:00",
+  "cwd": "/workspace/gridex-masterplan-sc051-sc068",
+  "headAtFinalRun": "3c4294b0e803043ef6cc8dba36049402d4e6b8a4",
+  "ownedFile": {
+    "path": "/workspace/gridex-masterplan-sc051-sc068/__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+    "sha256": "573a70c3055939fcef3764af2d21fabcaac98e3a3dabee249a224ce09b344760",
+    "additions": 171,
+    "deletions": 0,
+    "retainedOriginal7DefinitionBlockByteEqual": true,
+    "baselineFileSha256": "c8a2ac0972c674af61135eb18f1c4c8c8455b661ab93291490a871e45ff90299",
+    "definitionBlockSha256": "3af465f3f2692db74a020503d9b65d1e7d94185e2ddbbbbf7364b6db638e8dab"
+  },
+  "commands": [
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs ./node_modules/.bin/vitest run __tests__/ediel-sc-068-reference-authority-boundary.test.ts --pool=threads --maxWorkers=2 --reporter=default --reporter=junit --outputFile.junit=/tmp/sc068-owned-focused.xml",
+      "exit": 0,
+      "includedFiles": [
+        "__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+      ],
+      "testsPassed": 8,
+      "inheritedLegalMechanicsGroupsPassed": 20,
+      "installedBodyAssertionsPassed": 12,
+      "log": "/tmp/sc068-owned-focused.log",
+      "junit": "/tmp/sc068-owned-focused.xml",
+      "logSha256": "5ed498d938fc335b2894d41c26c4a48985833b58fa88a786ba3b6444f65230d9",
+      "junitSha256": "6de987d29a497aa9a53192037d5ddfb187ba7b64a02c964f1ff82f9c1b46b602"
+    },
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH ./node_modules/.bin/tsc -p /tmp/sc068-owned-types.json --pretty false",
+      "exit": 0,
+      "includedFiles": [
+        "/workspace/gridex-masterplan-sc051-sc068/__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+      ],
+      "transitiveImportsChecked": true,
+      "log": "/tmp/sc068-owned-types.log",
+      "config": "/tmp/sc068-owned-types.json",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "configSha256": "ce602444f5c41aad71e00bd414d6e14e40edbc720232b82f3647e5aa22fa4aa3"
+    },
+    {
+      "command": "PATH=/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin:$PATH ./node_modules/.bin/eslint __tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "exit": 0,
+      "includedFiles": [
+        "__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+      ],
+      "log": "/tmp/sc068-owned-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "git diff --check -- __tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "exit": 0,
+      "includedFiles": [
+        "__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+      ]
+    }
+  ],
+  "actualResult": {
+    "referenceHash": "2dc339b3cd05f63d940014bb346855b40f57d0ff47565010652760fa8afca6c9",
+    "testControl": "ready",
+    "productionReceipt": "held",
+    "actualPublicSourceCapture": "ediel_inbound_legal_context_required",
+    "unchangedProductionOriginal": true,
+    "unchangedBusinessSinks": true,
+    "native": "NOT_RUN",
+    "assessmentIssuerGuideActorPorts": "finite diagnostic only; no qualified production source witness",
+    "ownerProof": [
+      {
+        "name": "gridex_ediel_inbound_context.derive_before_received_err_response_v1",
+        "installedBodySha256": "0e10cee1995e253786966552bca70e2b95f33974c0bca61136a2254600fecd7a",
+        "capturedBodySha256": "0e10cee1995e253786966552bca70e2b95f33974c0bca61136a2254600fecd7a",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_inbound_context.derive",
+        "installedBodySha256": "2cec2eb8da8da50341eff100e9486de7bc50cf59f932da2e89353b826d86bbc4",
+        "capturedBodySha256": "2cec2eb8da8da50341eff100e9486de7bc50cf59f932da2e89353b826d86bbc4",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_inbound_context.require_before_received_err_response_v1",
+        "installedBodySha256": "283b70e8ddda03c11668273c31df1d3c097a2a9e3fc7d1c1c7543fc4e6ef8358",
+        "capturedBodySha256": "283b70e8ddda03c11668273c31df1d3c097a2a9e3fc7d1c1c7543fc4e6ef8358",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_inbound_context.require_v1",
+        "installedBodySha256": "f728a41d2b267ac46b9c78c233494bc6d5a111f7d448541de6538d0fe286e777",
+        "capturedBodySha256": "f728a41d2b267ac46b9c78c233494bc6d5a111f7d448541de6538d0fe286e777",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_inbound_context.capture",
+        "installedBodySha256": "1974840b990f4d6424b34e52b057a845fc41123ea8b8b13ae9b506579644cdec",
+        "capturedBodySha256": "1974840b990f4d6424b34e52b057a845fc41123ea8b8b13ae9b506579644cdec",
+        "exactBody": true
+      },
+      {
+        "name": "public.ediel_require_inbound_legal_context_v1",
+        "installedBodySha256": "ef448ea9e997867cb3f1bbb3b6804781216dc3ee75247a783c8c45cc87492878",
+        "capturedBodySha256": "ef448ea9e997867cb3f1bbb3b6804781216dc3ee75247a783c8c45cc87492878",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_received_sources.seal_utilts_insert_v1",
+        "installedBodySha256": "f0d8ffb7b0625ed18d7c488f0008d5cab4d84e54181a6b5b0209b311b79612e5",
+        "capturedBodySha256": "f0d8ffb7b0625ed18d7c488f0008d5cab4d84e54181a6b5b0209b311b79612e5",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_source_rules.capture_before_outbound_owner_v1",
+        "installedBodySha256": "86d9c395a38430396461d8b7e3fbc03d915c0d2ec0b6ac663534108ac8b7e424",
+        "capturedBodySha256": "86d9c395a38430396461d8b7e3fbc03d915c0d2ec0b6ac663534108ac8b7e424",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_source_rules.capture_before_native_ack_guide_v1",
+        "installedBodySha256": "c49e4085a0d35be2b0335ff5e3b07cacbcddc09f2051b1717c5c53f698936a11",
+        "capturedBodySha256": "c49e4085a0d35be2b0335ff5e3b07cacbcddc09f2051b1717c5c53f698936a11",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_source_rules.capture_v1",
+        "installedBodySha256": "fdab95af5ec87ef5b7b00a023a6fd63300bd7c3a4f523ad109d30511b91e830c",
+        "capturedBodySha256": "fdab95af5ec87ef5b7b00a023a6fd63300bd7c3a4f523ad109d30511b91e830c",
+        "exactBody": true
+      },
+      {
+        "name": "gridex_ediel_source_rules.probe_v1",
+        "installedBodySha256": "2c355f2fbbb8d310740d22efe4d74c93ce15efdee5e2ec30cb7c75128cfed147",
+        "capturedBodySha256": "2c355f2fbbb8d310740d22efe4d74c93ce15efdee5e2ec30cb7c75128cfed147",
+        "exactBody": true
+      },
+      {
+        "name": "public.ediel_probe_source_rule_pack_capture_v1",
+        "installedBodySha256": "19fa120c782ad27f8ad40f5b982fbd9acff0c17cb71317fefbf0e9f7d6991d5f",
+        "capturedBodySha256": "19fa120c782ad27f8ad40f5b982fbd9acff0c17cb71317fefbf0e9f7d6991d5f",
+        "exactBody": true
+      }
+    ]
+  },
+  "capturedTableDeclarations": [
+    {
+      "name": "gridex_received_err_response.receipts",
+      "capturedDdlSha256": "8ea6ca8a5b42af8fbac7d6cbac127685e3a9dd34141cd8f6ddf963f7b47c6355",
+      "captureCount": 1,
+      "installedWithoutBodyOrDdlModification": true,
+      "initialRows": 0,
+      "proofScope": "exact captured declaration used for type/empty-branch fixture; no native schema/RLS replay claim"
+    },
+    {
+      "name": "gridex_ediel_source_rules.receipts",
+      "capturedDdlSha256": "f94cb4d67eff4487a25b829be385bda4aaf74cc72d5c7b42a519e00085b13fba",
+      "captureCount": 1,
+      "installedWithoutBodyOrDdlModification": true,
+      "initialRows": 0,
+      "proofScope": "exact captured declaration used for type/empty-branch fixture; no native schema/RLS replay claim"
+    },
+    {
+      "name": "gridex_received_sources.validation_assessments",
+      "capturedDdlSha256": "e4cd17d156a656856f9ce7e645a426f4a1ab642f1366e1cf0626c2639182e6dd",
+      "captureCount": 1,
+      "installedWithoutBodyOrDdlModification": true,
+      "initialRows": 0,
+      "proofScope": "exact captured declaration used for type/empty-branch fixture; no native schema/RLS replay claim"
+    },
+    {
+      "name": "public.ediel_rule_packs",
+      "capturedDdlSha256": "66ce07dd05bc2e8f609b5fa8b7ebe93c3a06db05ea09f0290c03097039309367",
+      "captureCount": 1,
+      "installedWithoutBodyOrDdlModification": true,
+      "initialRows": 0,
+      "proofScope": "exact captured declaration used for type/empty-branch fixture; no native schema/RLS replay claim"
+    },
+    {
+      "name": "public.ediel_message_profiles",
+      "capturedDdlSha256": "09149949ccdbeb257a8af0b7cf386b6b42254df2de560635dac681df40a80130",
+      "captureCount": 1,
+      "installedWithoutBodyOrDdlModification": true,
+      "initialRows": 0,
+      "proofScope": "exact captured declaration used for type/empty-branch fixture; no native schema/RLS replay claim"
+    },
+    {
+      "name": "public.ediel_rule_pack_sources",
+      "capturedDdlSha256": "213c7b1370cbaf46061c16ad74a9df374e2d486ee309c709455e4d33aca595f6",
+      "captureCount": 1,
+      "installedWithoutBodyOrDdlModification": true,
+      "initialRows": 0,
+      "proofScope": "exact captured declaration used for type/empty-branch fixture; no native schema/RLS replay claim"
+    }
+  ],
+  "actualReadOnlyInputs": [
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/scripts/ediel-source-legal-context-sql-regression.mjs",
+      "sha256": "77edce83f1f1618c1c75c004329047af2ab92383466ff4664655228c0f694ab6",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/supabase/schema.sql",
+      "sha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "sha256": "702de664dad9aa919bb6cfa5d94e4ae7ff457083fdb91c7ab05b7b1441a5736f",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "sha256": "bd352ab2cdd941706fdf9ac1f1ecd1d15a8060e8464984180260e1b7d77a409c",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/core/runtimeDecision.ts",
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/core/receivedSourceValidationLedger.ts",
+      "sha256": "df98572339726111c2e426ac39e4286b211e3597f32bc66c22980a35e8877789",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "sha256": "ebb418e69ce1fffe312c6f038fc096de60135100e5e352550b1a1ffcfe799d44",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/core/sourceRulePackEvidence.ts",
+      "sha256": "3371d022731b5b5b8527f0f00e09093032d9abc2a8ba964b06ed61a81bd07dec",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/tenant/sourceLegalContext.ts",
+      "sha256": "571695a3cd4c8dc7f103b52c977b5963fac568c14b17bc62b60a018b17c149d1",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/lib/ediel/services/authorization.ts",
+      "sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/__tests__/helpers/utiltsFinalValidationFixture.ts",
+      "sha256": "da83819be8f1b2e9d37355cafdc66faa2eb2e8d76465fc722078b359b16a5d4d",
+      "exactHeadBytes": true
+    },
+    {
+      "path": "/workspace/gridex-masterplan-sc051-sc068/__tests__/helpers/utiltsObservationHandoff.ts",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad",
+      "exactHeadBytes": true
+    }
+  ],
+  "finiteRetentionPort": {
+    "sql": "CREATE FUNCTION public.ediel_is_qualified_retention_transition_v1(public.ediel_messages,public.ediel_messages)\n      RETURNS boolean LANGUAGE sql AS $$SELECT false$$;",
+    "sha256": "0eacda16efe1a36a01032cbc2b65b499447b05f5bc28629e0bb386d322f3892a",
+    "result": false,
+    "meaning": "fresh INSERT can never authorize retention erasure; not actual retention acceptance"
+  },
+  "finitePorts": [
+    "retained existing PGlite tenant/role/identity fixture tables and captured canonical catalog projection",
+    "favorable current membership, user profile, metering.write input (actual TS permission consumer)",
+    "favorable issuer namespace, selected guide registry and v4 diagnostic assessment receipt only; no legal/source acceptance or production source witness",
+    "existing matching IO and monitored customer/meter/billing sinks; unexpected customer/permission/supply storage ports throw",
+    "separate retention-transition false input on fresh insert",
+    "reduced existing message-table columns plus six empty actual captured table declarations; not full native schema/RLS"
+  ],
+  "actualPath": "unchanged harness -> exact current SQL seal + legal derive/capture/require -> actual TS legal consumer; actual public UTILTS policy effect consumer -> actual opaque final owner/ledger with favorable finite diagnostic inputs -> real public source-pack RPC as service_role -> exact source-pack delegates -> genuine current legal require denial -> existing internal review return -> zero business sinks",
+  "runtimeHarness": "unchanged existing script copied only in memory, one guarded hook before report, source import.meta URLs resolved against original path; no tracked/generated harness file changes",
+  "fixtureCorrections": [
+    {
+      "label": "missing current seal retention dependency",
+      "exit": 1,
+      "retainedOriginalTestsPassed": 7,
+      "log": "/tmp/sc068-owned-initial-fixture.log",
+      "logSha256": "e19347e8dce2025de683e06e2306665f94a206265caaaeb20003374d12fe993a",
+      "junit": "/tmp/sc068-owned-initial-fixture.xml",
+      "junitSha256": "e66f1bd07f68040766f368167f1d9958759ac81f950d72c9fe1061eaf4d48c71",
+      "classification": "fixture/oracle correction; no production source mutation or reproduced business effect"
+    },
+    {
+      "label": "test query used wrong receipt column",
+      "exit": 1,
+      "retainedOriginalTestsPassed": 7,
+      "log": "/tmp/sc068-owned-second-fixture.log",
+      "logSha256": "8737d41ad7d1dd2d15d18a99cb386a987fe42a7659fd9ead1d3429c0ace69940",
+      "junit": "/tmp/sc068-owned-second-fixture.xml",
+      "junitSha256": "3a4836c93fd8ce3d97cf01dc480bd317e256e42364921399fe489a65dae16992",
+      "classification": "fixture/oracle correction; no production source mutation or reproduced business effect"
+    },
+    {
+      "label": "PGlite Date object differs from SDK JSON timestamp representation",
+      "exit": 1,
+      "retainedOriginalTestsPassed": 7,
+      "log": "/tmp/sc068-owned-third-fixture.log",
+      "logSha256": "7ba59deab917087e1242cf34c56f961fb444c4455b87753ac41e2f6424cb0183",
+      "junit": "/tmp/sc068-owned-third-fixture.xml",
+      "junitSha256": "e1db10f36fa1c0c13b0d388a706b6d32b4100e75d97c6226a3c2633eafd1ee88",
+      "classification": "fixture/oracle correction; no production source mutation or reproduced business effect"
+    },
+    {
+      "label": "oracle expected throw while actual consumer returns lawful internal review hold",
+      "exit": 1,
+      "retainedOriginalTestsPassed": 7,
+      "log": "/tmp/sc068-owned-fourth-fixture.log",
+      "logSha256": "7c504674de87241cfebd4481bc10541bfc784a8a0a87564e424786c00b192407",
+      "junit": "/tmp/sc068-owned-fourth-fixture.xml",
+      "junitSha256": "c18a77977b42654f6156be4a7343ab6edbd1ca7b74a62c2d8c81a47d82bd3d76",
+      "classification": "fixture/oracle correction; no production source mutation or reproduced business effect"
+    }
+  ],
+  "effectBounds": {
+    "productionTreatmentOriginalRawHash": "2dc339b3cd05f63d940014bb346855b40f57d0ff47565010652760fa8afca6c9",
+    "sameWireTestControl": "ready",
+    "productionLegalReceipt": "held",
+    "productionLegalReason": "ediel_inbound_legal_context_required",
+    "productionSourcePackRows": 0,
+    "customerMeterBillingPermissionSupplySinkChanges": 0,
+    "meterBillingRequestCompletionProviderAckStatusCalls": 0,
+    "consumptionOwnerCalls": 0,
+    "originalAndHeldReceiptUnchanged": true
+  },
+  "limits": [
+    "Synthetic TEST reference constructed once from unchanged existing energy fixture; no authentic TGT/original-market corpus claim.",
+    "Full native PostgreSQL replay and downstream positive customer/permission/supply/billing storage not run.",
+    "Full v4 SQL assessment owner not installed; its hostile favorable diagnostic result is an explicit port.",
+    "Current public source-pack RPC and complete selected ordinary inbound negative delegate chain are genuinely installed; outbound/received-ERR branches are outside this finite fixture.",
+    "No genuine production source witness or legal approval was supplied or inferred.",
+    "Original 7 copied-diagnostic/SMTP cases retain their existing finite/historical limitations."
+  ],
+  "mutations": "only the owned test tracked path; no source/helper/SQL/config/schema/coverage writes, staging, commit or GitHub"
+}

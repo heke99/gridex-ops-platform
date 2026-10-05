@@ -1,0 +1,13 @@
+A	.agent-memory/masterplan-sc013-sc020-checkpoint.md
+M	__tests__/ediel-ack-source-correlation.test.ts
+M	__tests__/ediel-permission-market-consumers.test.ts
+M	__tests__/ediel-permission-process-order.test.ts
+M	__tests__/ediel-tenant-qualified-ack-routing.test.ts
+M	quality/audits/ediel-masterplan-v2/coverage.json
+A	quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log
+A	quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip
+A	quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-clean-selected-failure.txt
+A	quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-head-gates.json
+A	quality/audits/ediel-masterplan-v2/sc013-sc020-integration/verification-receipt.json
+M	scripts/ediel-esco-pre-storage-sql-regression.mjs
+M	scripts/ediel-service-administration-sql-regression.mjs

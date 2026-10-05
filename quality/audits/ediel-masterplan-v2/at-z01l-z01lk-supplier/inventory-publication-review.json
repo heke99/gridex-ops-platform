@@ -1,0 +1,8 @@
+{
+  "action": "github_create_blob base64 complete compressed open-PR inventory",
+  "result": "REJECTED by automatic approval review",
+  "reason": "may contain sensitive repository metadata; explicit destination export authorization not established",
+  "saferAlternative": "complete inventory retained locally in ignored evidence; public test/docs contain only limited ownership summaries, counts and hashes",
+  "retryOrWorkaroundAttempted": false,
+  "testPublicationBlocked": false
+}

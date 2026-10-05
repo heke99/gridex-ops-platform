@@ -1,0 +1,15 @@
+{
+  "cwd": "/workspace/gridex-ediel-at-z13vh-z14vh-esco-20261005",
+  "node_version": "v22.23.0",
+  "args": [
+    "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "__tests__/ediel-at-z14vh-esco-profile.test.ts",
+    "--reporter=default",
+    "--reporter=junit",
+    "--outputFile.junit=/tmp/gridex-z14vh-attempt-1.xml",
+    "--maxWorkers=2"
+  ],
+  "exit_code": 0
+}

@@ -1,0 +1,15 @@
+{
+  "executed_at": "2026-10-05T15:21:51.509926+00:00",
+  "command": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
+    "--maxWorkers=1",
+    "--reporter=default",
+    "--reporter=junit",
+    "--outputFile.junit=quality/audits/ediel-masterplan-v2/at-z09b-z09d-supplier/final-junit.xml"
+  ],
+  "exit_code": 0,
+  "test_sha256": "b553d8541af9e7987e566dc9c315f26e9e6b05512743d889deccfd4b986ef422"
+}

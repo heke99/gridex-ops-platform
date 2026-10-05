@@ -1,0 +1,14 @@
+{
+  "scope": "finite Supabase CLI SECRET_KEY custody format control only",
+  "canonical_redactor_sha256": "db285c16dc62542028d497e805a5d8315ed6183ead8d9564982ea1a80164fb74",
+  "red_result": "sb_secret prefix remains after canonical CLI redaction; local status key SECRET_KEY is not in SENSITIVE",
+  "real_token_used": false,
+  "native_test_result": "NOT_QUALIFIED",
+  "actual_failed_ci": {
+    "run": 37293845384,
+    "job": 111710327615,
+    "head": "f75cdd7d7c785a4ee28351d5819a82cae849a05e",
+    "failure": "sc071_redaction_incomplete_no_artifact_published",
+    "artifact_published": false
+  }
+}

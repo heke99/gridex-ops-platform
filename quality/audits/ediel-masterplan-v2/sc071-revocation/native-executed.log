@@ -1,0 +1,14 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/runner/work/gridex-ops-platform/gridex-ops-platform[39m
+
+ [32m✓[39m scripts/ediel-sc-071-projection-revocation-native.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 6945[2mms[22m[39m
+   [33m[2m✓[22m[39m writer-first real grant revocation COMMIT serializes before projection, including a retained page [33m 2481[2mms[22m[39m
+   [33m[2m✓[22m[39m writer-first real grant revocation ROLLBACK serializes before projection, including a retained page [33m 2210[2mms[22m[39m
+   [33m[2m✓[22m[39m reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions [33m 2252[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m   Start at [22m 10:22:03
+[2m   Duration [22m 9.03s[2m (transform 1.52s, setup 29ms, import 1.94s, tests 6.94s, environment 0ms)[22m
+
+JUNIT report written to /home/runner/work/gridex-ops-platform/gridex-ops-platform/sc071-native-working/native-junit.xml
