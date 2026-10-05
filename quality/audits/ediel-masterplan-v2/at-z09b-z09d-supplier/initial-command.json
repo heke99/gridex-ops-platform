@@ -1,0 +1,16 @@
+{
+  "executed_at": "2026-10-05T15:17:34.979427+00:00",
+  "command": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
+    "--maxWorkers=1",
+    "--reporter=default",
+    "--reporter=junit",
+    "--outputFile.junit=quality/audits/ediel-masterplan-v2/at-z09b-z09d-supplier/initial-junit.xml"
+  ],
+  "exit_code": 1,
+  "test_sha256": "702c29abd7d307b356e184371cd9ede0a5cad7200cd128508591deedeccce020",
+  "scope": "actual application coupling; finite IO; no native/whole proof"
+}
