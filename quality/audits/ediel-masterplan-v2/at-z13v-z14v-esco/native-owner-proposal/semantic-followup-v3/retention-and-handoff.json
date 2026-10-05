@@ -1,0 +1,296 @@
+{
+  "atUTC": "2026-10-05T14:19:25.993436+00:00",
+  "sourceStaticBasis": "2a96780497eb102527f514103c608f0ec0b3a1a3",
+  "originalManifestSHA256": "7f90bce822db84b5fa1b8f3a256344ace93114d8ef54e7362c0c2ba1a0e5e0ab",
+  "originalFileCount": 42,
+  "retention": [
+    {
+      "originalRelativePath": "README.md",
+      "retainedRelativePath": "README.md",
+      "bytes": 3124,
+      "sha256": "10dec3707cf803144e87c6ffaa604a8d23fe4b1633489d9cd467d1d1505a26a8"
+    },
+    {
+      "originalRelativePath": "attempt1-node24/attempt-summary.json",
+      "retainedRelativePath": "attempt1-node24/attempt-summary.json",
+      "bytes": 377,
+      "sha256": "726e72b78612977d2b688449eb32dce237c7facb94e5525db3bc709a4fd2130b"
+    },
+    {
+      "originalRelativePath": "attempt1-node24/check-overlay.cjs",
+      "retainedRelativePath": "attempt1-node24/check-overlay.cjs.txt",
+      "bytes": 7013,
+      "sha256": "056f5b6150be4e192b7d67d77f1bbbd74b793b28cda40e001dec52c10f75825f"
+    },
+    {
+      "originalRelativePath": "attempt1-node24/environment-reconstruction.json",
+      "retainedRelativePath": "attempt1-node24/environment-reconstruction.json",
+      "bytes": 1078,
+      "sha256": "2f9dc84fc0504f02fab0ba906a0718eba093488cdded89ea0a373b2cf243c117"
+    },
+    {
+      "originalRelativePath": "attempt1-node24/stdout-stderr.txt",
+      "retainedRelativePath": "attempt1-node24/stdout-stderr.txt",
+      "bytes": 1092,
+      "sha256": "97993e006e1df4c8ae9a34286dcde0886375188b49d0be18f5fa317386c63a1f"
+    },
+    {
+      "originalRelativePath": "attempt1-node24/tool-result.json",
+      "retainedRelativePath": "attempt1-node24/tool-result.json",
+      "bytes": 1251,
+      "sha256": "2da406443bd2f2e3e72bf572ad3c8bc3d8deaef19ca8aa1b3872ffa5c5e41e8f"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/check-overlay.cjs",
+      "retainedRelativePath": "attempt2-node22/check-overlay.cjs.txt",
+      "bytes": 7489,
+      "sha256": "7acb64d984861b6ead67caa415cff48ef00ae88205864f8e2e05f02f8236887f"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/command.json",
+      "retainedRelativePath": "attempt2-node22/command.json",
+      "bytes": 450,
+      "sha256": "a3afa9d182933f34d0054e565050c999cf978673b797f287d2337444a2d58c79"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/compiler-options.json",
+      "retainedRelativePath": "attempt2-node22/compiler-options.json",
+      "bytes": 636,
+      "sha256": "078d7889e05e19ba9fbc98ccf53fac21738083c92363dfcf8d38b3d52f0ea54a"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/diagnostics.json",
+      "retainedRelativePath": "attempt2-node22/diagnostics.json",
+      "bytes": 2805,
+      "sha256": "2e4158232b280a8eeea43cb1a4638c1a61beac04a497531fdbf7e43c8a45ccdd"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/diagnostics.txt",
+      "retainedRelativePath": "attempt2-node22/diagnostics.txt",
+      "bytes": 1324,
+      "sha256": "460f4bbecf4083ee4efdeff57ad26ddde4fd24db918cc9850e3e93510e7e1392"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/published-v2-candidate.ts",
+      "retainedRelativePath": "attempt2-node22/published-v2-candidate.ts.txt",
+      "bytes": 84198,
+      "sha256": "b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/published-v2-notes.md",
+      "retainedRelativePath": "attempt2-node22/published-v2-notes.md",
+      "bytes": 9931,
+      "sha256": "f60d57c1a9bc838bd00bf039bf2c9c1e1b107db47fb80be9af30abd2da0de554"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/published-v2.patch",
+      "retainedRelativePath": "attempt2-node22/published-v2.patch",
+      "bytes": 13007,
+      "sha256": "f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/receipt.json",
+      "retainedRelativePath": "attempt2-node22/receipt.json",
+      "bytes": 21417,
+      "sha256": "1c3be125580442ff42643b9165640d2d937d06e5ae4412c5d955eced721778c9"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/semantic-result.json",
+      "retainedRelativePath": "attempt2-node22/semantic-result.json",
+      "bytes": 332,
+      "sha256": "c466d22523083933fa0bbd670f333c94b0754e25a3ffdbb93bf9a27c0e4d06ca"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/source-input-manifest.json",
+      "retainedRelativePath": "attempt2-node22/source-input-manifest.json",
+      "bytes": 387536,
+      "sha256": "6a4f07d4a4ae81ed8785e4ae4a5308c25fd2a9f04a53293ee951baa9869d0e7b"
+    },
+    {
+      "originalRelativePath": "attempt2-node22/stdout.txt",
+      "retainedRelativePath": "attempt2-node22/stdout.txt",
+      "bytes": 1562,
+      "sha256": "a13b5687f682489e5827f4c98a7138e5aa89d94dcdde2f8a9cde36768c1ecca1"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/check-overlay-v3.cjs",
+      "retainedRelativePath": "attempt3-v3-node22/check-overlay-v3.cjs.txt",
+      "bytes": 7524,
+      "sha256": "8aad3d655fb091785803169016f098cf51b07d18c74040a646df62029a45f312"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/command.json",
+      "retainedRelativePath": "attempt3-v3-node22/command.json",
+      "bytes": 531,
+      "sha256": "b436760f0690a1ef6999db1925166af029804ff447a4a508f0ed6a72ed3480b5"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/compiler-options.json",
+      "retainedRelativePath": "attempt3-v3-node22/compiler-options.json",
+      "bytes": 636,
+      "sha256": "078d7889e05e19ba9fbc98ccf53fac21738083c92363dfcf8d38b3d52f0ea54a"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/diagnostics.json",
+      "retainedRelativePath": "attempt3-v3-node22/diagnostics.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/diagnostics.txt",
+      "retainedRelativePath": "attempt3-v3-node22/diagnostics.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/receipt.json",
+      "retainedRelativePath": "attempt3-v3-node22/receipt.json",
+      "bytes": 21479,
+      "sha256": "0b4b88c73cf31b505ce3fc6ea00343cfedf61c06f6f8ec747753308521e28752"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/semantic-result.json",
+      "retainedRelativePath": "attempt3-v3-node22/semantic-result.json",
+      "bytes": 332,
+      "sha256": "ca52ae3d9fae22b58689a3466b6a553773c16c155c311946228ffda14aa65e56"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/source-input-manifest.json",
+      "retainedRelativePath": "attempt3-v3-node22/source-input-manifest.json",
+      "bytes": 387536,
+      "sha256": "0c72adfbdf5a297e3fbbd9765c65742745355fa5f5014d2e4607c221aa8064b5"
+    },
+    {
+      "originalRelativePath": "attempt3-v3-node22/stdout.txt",
+      "retainedRelativePath": "attempt3-v3-node22/stdout.txt",
+      "bytes": 237,
+      "sha256": "b57abe3c469b6266b5f3211d9124f41356066d8f6eca412420137a42c9045ead"
+    },
+    {
+      "originalRelativePath": "check-overlay-v3.cjs",
+      "retainedRelativePath": "check-overlay-v3.cjs.txt",
+      "bytes": 7524,
+      "sha256": "8aad3d655fb091785803169016f098cf51b07d18c74040a646df62029a45f312"
+    },
+    {
+      "originalRelativePath": "check-overlay.cjs",
+      "retainedRelativePath": "check-overlay.cjs.txt",
+      "bytes": 7489,
+      "sha256": "7acb64d984861b6ead67caa415cff48ef00ae88205864f8e2e05f02f8236887f"
+    },
+    {
+      "originalRelativePath": "first-semantic-finding.md",
+      "retainedRelativePath": "first-semantic-finding.md",
+      "bytes": 2370,
+      "sha256": "efb260f657e49167d60a7a3a90d56d2c7351d0c50fce90bae1ecf43deb3121df"
+    },
+    {
+      "originalRelativePath": "git-provenance-after.json",
+      "retainedRelativePath": "git-provenance-after.json",
+      "bytes": 613,
+      "sha256": "63856e02191d996874ef8dbf197c3dc1d59cc8758bab9f98427bcdf074d7a4c0"
+    },
+    {
+      "originalRelativePath": "git-provenance-before.json",
+      "retainedRelativePath": "git-provenance-before.json",
+      "bytes": 1057,
+      "sha256": "781614b64dc817fd9d1739d657b9c1733f8fce3a369ddc63f7b54c4830e97b87"
+    },
+    {
+      "originalRelativePath": "peer-overload-review-initial-preserved.md",
+      "retainedRelativePath": "peer-overload-review-initial-preserved.md",
+      "bytes": 4131,
+      "sha256": "47b9c2003c36512d9225fb41a7ef5e143569c07f1705c109c8238a140c6b9178"
+    },
+    {
+      "originalRelativePath": "peer-overload-review.md",
+      "retainedRelativePath": "peer-overload-review.md",
+      "bytes": 4131,
+      "sha256": "47b9c2003c36512d9225fb41a7ef5e143569c07f1705c109c8238a140c6b9178"
+    },
+    {
+      "originalRelativePath": "peer-v3-final-review.md",
+      "retainedRelativePath": "peer-v3-final-review.md",
+      "bytes": 6691,
+      "sha256": "3527cae66e8fcec01a7c3b0689b63ea5b6791159fef2c5d456cc0e2aa75ae11c"
+    },
+    {
+      "originalRelativePath": "preserved-attempts-manifest-v1.json",
+      "retainedRelativePath": "preserved-attempts-manifest-v1.json",
+      "bytes": 2824,
+      "sha256": "6a7134beb5234af9b4032c8f22c86b19559c05799d8761c9d3ea62527013d306"
+    },
+    {
+      "originalRelativePath": "proposal-v3-candidate.ts.txt",
+      "retainedRelativePath": "proposal-v3-candidate.ts.txt",
+      "bytes": 84198,
+      "sha256": "a82ca826ae7b9ab25ff83bf7b4af5c0fa42533edf543ac808f30ae9b1909d0c3"
+    },
+    {
+      "originalRelativePath": "proposal-v3-notes.md",
+      "retainedRelativePath": "proposal-v3-notes.md",
+      "bytes": 14433,
+      "sha256": "9f3b531002a45cb26b8b782e08c96f0934096bd2767438e924376f4976f03065"
+    },
+    {
+      "originalRelativePath": "proposal-v3.patch",
+      "retainedRelativePath": "proposal-v3.patch",
+      "bytes": 13007,
+      "sha256": "d473e4ebc134e60cf6f5088ef8dc116bff671a643a90e002a1a42781ef09ac1d"
+    },
+    {
+      "originalRelativePath": "retained-inputs-after-check.json",
+      "retainedRelativePath": "retained-inputs-after-check.json",
+      "bytes": 2102,
+      "sha256": "5b78fc29d030bc0199013e119cdb7b5bc28f9a09da2c4b520a2f8482ca13b1ce"
+    },
+    {
+      "originalRelativePath": "v2-to-v3-overload-only.diff",
+      "retainedRelativePath": "v2-to-v3-overload-only.diff",
+      "bytes": 1544,
+      "sha256": "2acb07fb84a0df9bb86c1384a1fa9a81e27d723013e094fd06c9de09e03ba888"
+    },
+    {
+      "originalRelativePath": "v2-v3-input-comparison.json",
+      "retainedRelativePath": "v2-v3-input-comparison.json",
+      "bytes": 716,
+      "sha256": "3d213f0be99062625a80dac1ec3f5f61cdfb313e9ae8d5a27fd2eb87a558176b"
+    }
+  ],
+  "driverCandidateSuffix": "Original executable-looking receipt copies retained as .txt; exact bytes unchanged, no extra native discovered test or new harness",
+  "v2Status": "Actual semantic FAIL9; superseded for apply, original published bytes retained",
+  "v3Status": "Semantic PASS0 / peer APPROVE_PROPOSAL_ONLY / native NOT_RUN",
+  "fullPatch503": "NOT_EXECUTED: automatic approval review rejected external sensitive-data egress; no bypass/indirect publication",
+  "minimalContract530Handoff": {
+    "actuallyPosted": true,
+    "id": 5996337761,
+    "url": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5996337761",
+    "content": "Status/hash-only reduced payload, independently reviewed overload-order correction against existing published V583 proposal; full exact packet local"
+  },
+  "closed583Push": "NOT_PERFORMED",
+  "VH589HeadMutationCIRestart": "NOT_PERFORMED",
+  "nativeProductImportsDBProviderExecution": "NOT_RUN",
+  "whitespace": {
+    "actualRawStagedExitCode": 2,
+    "onlyFinding": "attempt2-node22/stdout.txt:11 preserved compiler failed-output blank EOF",
+    "rawLog": "raw-staged-whitespace-check.log",
+    "explicitExclusion": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/attempt2-node22/stdout.txt",
+    "rawBytesNotTrimmed": true,
+    "filteredCommand": "git diff --cached --check -- . :(exclude)quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/attempt2-node22/stdout.txt"
+  },
+  "sameDestinationResolvedPublication": {
+    "actualComment": 5996672127,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996672127",
+    "priorRejection": "Preserved firstattempt NOT_EXECUTED, not overwritten",
+    "qualification": "Repo public/privatefalse metadata; unauthenticated exactpublicpriorSHAf9367af5; only publicoverloaddeclaration order differs",
+    "newReview": "Same destination/fullpayload action reconsidered after evidence disproves private-source premise; ACCEPTED / ACTUALLY_POSTED",
+    "noBypass": "No indirect publishing/tool workaround",
+    "native": "NOT_RUN",
+    "status530ActuallyPosted": 5996697300,
+    "publicPriorSourceReuse": "Unauthenticated bytes remain in /tmp; exactduplicate already durably retained as attempt2-node22/published-v2.patch. Header/visibility/newproof saved without second identical sourcecopy",
+    "actualRawStagedWhitespaceExitCode": 2,
+    "rawWhitespaceDiagnostic": "Actual HTTP headers contain CRLF and terminal blankline; preserve exactrawheader. Initial tool artifact copy had one extraEOFline beyond sentcomment; corrected to exactsentbody, no source/publication change.",
+    "whitespaceExplicitExcluded": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/gridex-z14-v3-public-prior-patch.headers",
+    "actualHeaderSHA256": "e4ad927708d0ca4acff608db3727cf30f2f105ac2884084ee52cc72e0f9b7035"
+  }
+}

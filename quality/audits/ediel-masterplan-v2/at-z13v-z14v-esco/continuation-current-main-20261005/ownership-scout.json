@@ -1,0 +1,353 @@
+{
+  "kind": "READ_ONLY_NEXT_INDEPENDENT_PAIR_OWNERSHIP_SCOUT",
+  "initialSnapshotUTC": "2026-10-05 14:40:52 UTC",
+  "finalReadBatchStartedUTC": "2026-10-05 14:55:08 UTC",
+  "main": {
+    "sha": "d10402d5028021794994e6d5d61622de61d08b57",
+    "tree": "ddbd102d384349dc25f46c845e0ec26fe67f785b",
+    "parents": [
+      "36e873fbac87695f9d3522086f721961824e29f9",
+      "757008e7567faad924e6668292485555fb7db397"
+    ],
+    "coverageBlob": "668a0a83370b3b8242a9c6178038b2254441c95f",
+    "rows": 352,
+    "approvedStored": 222,
+    "remaining": 130,
+    "ruleCount": 121,
+    "acceptanceCount": 231,
+    "frozenRulesBlob": "2108c9c297457c288364b9ed669809aedd21e21e",
+    "frozenAcceptanceBlob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+  },
+  "boards": {
+    "530": 291,
+    "491": 455,
+    "503": 43,
+    "latest530": 5997005674,
+    "latest503": 5996976419
+  },
+  "openPRInventory": {
+    "count": 68,
+    "filenames": 5612,
+    "exactUnchangedHeadReuse": 55,
+    "freshNewOrChangedHeadReads": 13,
+    "availableLedgers": 54,
+    "unknownLedgers": [
+      {
+        "number": 273,
+        "head": "db363e68b889d5a20e4ccdd41a3639b9be72c021",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 227,
+        "head": "0100e37804c9ce12e12fb7ca185f42eb0c9f5877",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 225,
+        "head": "0da02472501602e9b266506d301129a06153218d",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 223,
+        "head": "3df05ae222af6186c031ddf9ab056653bb574132",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 216,
+        "head": "5f459a9a2ccb4fe41c8171449fc7a88d1733b52c",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 214,
+        "head": "deaf07da1782a2ec8872704e8912f25ff1bc5dd3",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 211,
+        "head": "d565885b3ea438abb00a4135a6b32bbba5c121aa",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 208,
+        "head": "19ff12f0576cde247b154f34358930936e84e1de",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 206,
+        "head": "3523adfbae0b0f2d1dd43b130ac54acff656c8c2",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 204,
+        "head": "c82b1e65ad6ae2b046080958235697f3004bd91b",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 157,
+        "head": "de47f8a9684f81f7e7b3735d34e0130620be06fe",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 150,
+        "head": "90c41bb6ffbbde8c29d5798e8e3fb337ac76edb8",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 148,
+        "head": "17704bff4308ca955416df27b2fc3451f62f8c90",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      },
+      {
+        "number": 146,
+        "head": "08cbe8db46cca71fea8279f9c8e3677d8119854c",
+        "status": "NOT_FOUND_UNKNOWN",
+        "clearance": "NOT_CLEARED"
+      }
+    ],
+    "reuseBaseline": "/tmp/gridex-z02l-z02lk-preclaim-race.json 2026-10-05 13:41/13:43 UTC; only exact matching heads and matching raw Git ledger blob/text SHA256 reused",
+    "paths": "final-exact-head-paths.json",
+    "ledgerRows": "final-exact-head-ledgers.json"
+  },
+  "decision": "NO_CLEARED_NEW_FULL_CARD_PAIR",
+  "newPair": null,
+  "allRemainingCardsStatus": "NOT_CLEARED; this does not assert that every remaining card has a proved exclusive literal-ID claimant",
+  "claimantIdentityRule": "Do not conflate chats using root. This chat receipts5996337761/5996409226/5996443033/5996560557/5996697300; its V3hand-off5996672127. Other Z03/Z04/Z05 and5997005674 retain exact comment/session scope.",
+  "preservedRetainedRecords": {
+    "Z02": [
+      5995184621,
+      5995430181,
+      5995519019,
+      5996039657
+    ],
+    "Z03": [
+      5995705023
+    ],
+    "Z05": [
+      5996398059,
+      5996702321,
+      5996914572
+    ],
+    "Z04SharedJoin": [
+      5996750544
+    ],
+    "SC011SC023": [
+      5986382740
+    ],
+    "Z15VZ15VH": [
+      5993069271
+    ],
+    "FGNative": [
+      5994768280,
+      5995812046,
+      5996407394
+    ],
+    "sharedSourceCapture": [
+      5996923739
+    ],
+    "integrationCarry": [
+      5996822471,
+      5996849410,
+      5997005674
+    ]
+  },
+  "v3RetainedOwnerResponse": "No later same-proposal application/freeze/native effect response to5996672127 observed through5035996976419. Sourcec5af saysFG excluded/IMP05 held; no V3production verdict inferred.",
+  "conditionalReadOnlyProposal": {
+    "requirement": [
+      "DB-05",
+      "AT-DB-05"
+    ],
+    "sourceOwner": "Claude session_011iqKUHUejdrDzQDBYR89SU; claude/magical-cerf-55zxau",
+    "request": {
+      "board": 530,
+      "id": 5996804236,
+      "created_at": "2026-10-05T14:43:30Z",
+      "updated_at": "2026-10-05T14:43:30Z"
+    },
+    "announcedFreeze": {
+      "commit": "a4d0c06bfda1be2662a9814f37d5f4d811b9e659",
+      "tree": "cea99b52001a8d4518d3c84bf48eac528693bd0c"
+    },
+    "observedBranch": {
+      "commit": "10a9cb05e40cbe1692266f7e73bc12e75cc9212b",
+      "tree": "946149c8a39bb93e4378abdb189fde3a5b4657e2",
+      "technicalDeltaPaths": [
+        ".github/workflows/ediel-db04-native.yml",
+        "__tests__/db-05-hard-delete-guard.test.ts",
+        "quality/audits/ediel-masterplan-v2/db04-query-plan/native.config.ts",
+        "scripts/db-05-hard-delete-guard-native.test.ts",
+        "scripts/migration-history-manifest.json",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql"
+      ],
+      "technicalDeltaPathCount": 6
+    },
+    "newReviewAllocation": {
+      "board": 530,
+      "id": 5997005674,
+      "created_at": "2026-10-05T14:54:45Z",
+      "updated_at": "2026-10-05T14:54:45Z",
+      "verdict": "ALREADY_ALLOCATED_BY_RETAINED_COORDINATOR; named reviewer/scope not public in inspected comment; do not begin a second whole-card review without exact handoff."
+    },
+    "priorInventoryMustReuse": [
+      5984833129,
+      5984909400,
+      5985012928,
+      5985029921
+    ],
+    "priorObservationQualification": "5985029921 explicitly refutes the historical JSON-purpose/expiry RED as a DB05 card defect; all residual-class/competent legal maximum semantics remain proof gaps, not invented automatic deletion obligations.",
+    "proofPaths": [
+      "quality/audits/ediel-masterplan-v2/db05/FINDING-F-DB-05-01.md",
+      "quality/audits/ediel-masterplan-v2/db05/hard-delete-cascade-repro.mjs",
+      ".agent-memory/masterplan-db04-db05-checkpoint.md",
+      "__tests__/db-05-hard-delete-guard.test.ts",
+      "scripts/test-ediel-db-05-retention.cjs",
+      "scripts/ediel-retention-sql-regression.mjs",
+      "scripts/ediel-record-retention-sql-regression.mjs",
+      "scripts/db-05-hard-delete-guard-native.test.ts",
+      "scripts/db-05-tenant-offboarding-native.test.ts",
+      "scripts/ediel-customer-retention-native.test.ts"
+    ],
+    "rawReceiptLimits": "Native37316852211/82de2b4/3case PASS claimed by existing owner, not independently downloaded or re-executed here. Announced workflow uploads onlydb04-working/plans.json, not replay/session/native logs/JUnit/source input receipt. DB05qualitydir has finding/repro only, no raw first-run/full verification receipt. Current6path delta changes guard/native assertions; old native is not execution of10a."
+  },
+  "limitations": [
+    "Snapshot is timebound and no authorization to claim/merge or proof of all full cards.",
+    "No CI/native tests, artifact download, code/test/source/schema/runtime rerun or external publication.",
+    "No implicit source ownership transfer from merged historical PRs, empty ledger rows, tags, generic green or claimant aliases.",
+    "DB05 future review remains PROPOSAL_PENDING_EXACT_FREEZE_AND_EXISTING_REVIEWER_HANDOFF, now allocated by5997005674.",
+    "Comparisons36e...a4 are merge-base based (ahead11/behind53); not exact current-main composition qualification."
+  ],
+  "rawEvidenceManifest": [
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/acceptance.json",
+      "bytes": 150754,
+      "sha256": "dae0288dc620cb26e44e79ab8d8fe96cb22794f129c4a8f91eee370346e4e616"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/comments.json",
+      "bytes": 3559037,
+      "sha256": "2302d2fb5c63496e30efb9b10944c9ace6dce4f3bb361dc0f20d083278d974fd"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/current-exact-head-ledgers.json",
+      "bytes": 962387,
+      "sha256": "103963986d6ed980fe7b59f11fccf5d37c10670475fed99a3f7699ad76b2e648"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/current-exact-head-paths.json",
+      "bytes": 385166,
+      "sha256": "94e3ecaa812ae9f3011535e4e125c5daa66ea5e1e705c274e49be94599aa242c"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/db05Provenance.json",
+      "bytes": 301595,
+      "sha256": "05a1f1de578dde16185376e6300cd1c9e43f5ea947e4a11370b3747cb0572b6e"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/deltas.json",
+      "bytes": 1461001,
+      "sha256": "c53a3217a03b2c572ed2496c69bcc8dad791a916e21066dc820d1969895e4629"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/endComments.json",
+      "bytes": 3624152,
+      "sha256": "a1d5bdd9fe4b0945e03cc59ae6481532262a76d313909e5db80953dbaec34e4c"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/endGuard.json",
+      "bytes": 6497218,
+      "sha256": "185f007581d8b2d95dd9f8aa24c9699e85e4f2f165eb864f426465394c14a25d"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/endOpen.json",
+      "bytes": 1469514,
+      "sha256": "23690e1410311e745c2bbb5559e39716c5defecef5d5d63595e0d2ff6401053f"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/fallbackReads.json",
+      "bytes": 971648,
+      "sha256": "d04035fca6dabcdb6959f7ac9765942520d92fdb65ce65b14521ead701ff96fb"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/final-comments.json",
+      "bytes": 3606310,
+      "sha256": "3cf94241c95ab054df9b2e831f63cabb375b8f0c3a6d2176849d79e01272f68f"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/final-exact-head-ledgers.json",
+      "bytes": 942501,
+      "sha256": "7454eb46313131a05eef36250c624f4e15367d98e722b7823459c7731a573304"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/final-exact-head-paths.json",
+      "bytes": 389783,
+      "sha256": "bf3fb06523dba249f6872d9ee16cddf4574b7065f1729192809eb224332edd63"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/final-refresh.json",
+      "bytes": 7370869,
+      "sha256": "0202e655c19bde6c660de58ad84a788f0d824baad753d7e069f8418c828a60ad"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/finalMainCoverage.json",
+      "bytes": 109468,
+      "sha256": "fec4cd6b8398a9cb7ea54864f749d5047c66ec6cd818b57f27a7eee21cb929a5"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/finalMainPins.json",
+      "bytes": 1369513,
+      "sha256": "dc28d34280c4c6986521c44180651fa5fee5540dee5fe12fc7f08ca4a66dd238"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/finalPRs.json",
+      "bytes": 207601,
+      "sha256": "5dfe7939032900c1ab80a9dadae0fef9cf642ebb1831c47bf1a28224184425e4"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/initial.json",
+      "bytes": 4428531,
+      "sha256": "289c6341bcdbc6f23d12199c0aa4533e86cb35da22d75448b34271d26a1c0dbb"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/mainCoverage.json",
+      "bytes": 108502,
+      "sha256": "5c7242a86096919968a1691189f1e077058bb036aa7302c9a985127dddc346cc"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/prs.json",
+      "bytes": 258476,
+      "sha256": "5d2ba15693cebd4aeb5e1dde89a681ed35a7ae5b94e05c471b8ed9d55a69e798"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/remaining-130-full-contract-clearance-map.json",
+      "bytes": 296272,
+      "sha256": "6536a927e435244fe7c4ee615b3c2466c2be74dc7b0fb62de8f744b322b076b4"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/remaining-main-approved-in-open-heads.json",
+      "bytes": 1685,
+      "sha256": "bd65a74f74a203f1819875cdd58b0a9dbf91e30c317d3950a136af7828bfe0bf"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/rules.json",
+      "bytes": 91488,
+      "sha256": "ed0acb236b2ffd49c154883f3cf16c6b169fec89e01937ad86c0adcefeeb1279"
+    },
+    {
+      "path": "/tmp/gridex-next-pair-scout-20261005/secondReads.json",
+      "bytes": 558893,
+      "sha256": "fd5bb4bd4bf93c5b0de46b248f62e9dc533ee89bbb035fedef330d58638d74b1"
+    }
+  ]
+}
