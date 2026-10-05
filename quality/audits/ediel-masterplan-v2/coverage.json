@@ -1506,8 +1506,12 @@
     },
     {
       "id": "SC-013",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        ".agent-memory/masterplan-sc013-sc020-checkpoint.md"
+      ]
     },
     {
       "id": "SC-014",
@@ -1549,8 +1553,14 @@
     },
     {
       "id": "SC-020",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-permission-market-consumers.test.ts",
+        "__tests__/ediel-permission-process-order.test.ts",
+        "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+        "scripts/ediel-service-administration-sql-regression.mjs",
+        ".agent-memory/masterplan-sc013-sc020-checkpoint.md"
+      ]
     },
     {
       "id": "SC-021",
