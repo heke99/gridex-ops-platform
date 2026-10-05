@@ -6,9 +6,9 @@ const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
 
-// OPS03 records actual runner artifacts separately from ordinary CI GREEN.
-// This channel supplies step execution evidence, not Ediel acceptance, native
-// scope qualification or an authenticated external counterparty receipt.
+// OPS03 records runner execution custody separately from ordinary CI GREEN.
+// Individual source-reviewed cases use authenticated existing artifacts below;
+// neither channel implies an external counterparty or portal approval.
 function checkoutSource(root) {
   function git(args) {
     const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 })
@@ -31,6 +31,313 @@ function runnerArtifactPaths(report) {
     return row.log_file.slice('e2e-artifacts/'.length)
   })
   return ['gridex-e2e-report.json', 'gridex-e2e-junit.xml', ...logs]
+}
+
+// Reviewed individual assertions, not filenames or producer-supplied labels.
+// The native owners retain their fixture/SQL/capture interfaces. Changing any
+// pinned assertion/port source requires reviewing this narrow descriptor again.
+const nativeCaseBindings = [
+  { id: 'native_dgi_two_missions', sourceFile: 'scripts/ediel-sc-003-005-service-native.test.ts',
+    sourceSha256: '2989d5d7b6d0ee85ae450dcbaed3204f72ed92fb277d9ec245798c5aa637c0db',
+    name: 'SC003/SC005 legal provider DGI uses one permission and one E66 storage/disposition/physical ACK for two independently valid scoped missions',
+    sources: [['scripts/fixtures/ediel-service-evidence-native.ts', '136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0']],
+    classes: ['integration', 'tenant_e2e'],
+    effects: { DDQ: false, DGI: true, multipleTenants: true, crossTenantAssignments: true, tenantCountLowerBound: 2 },
+    ports: { postgres: 'real_local', postgrest: 'real_local', smtp: 'substituted', issuer: 'synthetic', tenantBootstrap: 'synthetic' } },
+  { id: 'native_ddq_mixed_partition', sourceFile: 'scripts/ediel-prodat-mixed-native.test.ts',
+    sourceSha256: '2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6',
+    name: 'the partition owner commits only the full-guide own object and its one complete mixed BGM34 reply is routed and queued',
+    sources: [['scripts/helpers/ediel-normal-switch-native-fixture.ts', 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'],
+      ['scripts/helpers/ediel-mixed-prodat-native-wire.ts', '205e06a7d4a94aeabd4ef9e64c8b0953a558a8fea0844a96213a322eb968126a']],
+    classes: ['integration'],
+    effects: { DDQ: true, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 1 },
+    ports: { postgres: 'real_local', postgrest: 'real_local', smtp: 'substituted', issuer: 'synthetic', tenantBootstrap: 'synthetic' } },
+]
+const reviewedNativeInputBase = 'b83b284467c8e0fcaa277706a708706e0a705068'
+const ownedNativeInputExceptions = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
+  '.agent-memory/masterplan-ops03-checkpoint.md', '.github/workflows/full-e2e.yml']
+const coverageLedgerPath = 'quality/audits/ediel-masterplan-v2/coverage.json'
+const approvedOpsEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
+  '__tests__/ediel-ops-03-release-evidence.test.ts', '.github/workflows/full-e2e.yml']
+function ownedCoverageUpdate(command, candidateSha, before, after) {
+  if (!before || !after || before.type !== 'blob' || after.type !== 'blob' || before.mode !== '100644' || after.mode !== before.mode) return false
+  if (before.record === after.record) return true
+  const original = String(command('git', ['--no-replace-objects', 'show', reviewedNativeInputBase + ':' + coverageLedgerPath], 2 * 1024 * 1024))
+  const candidate = String(command('git', ['--no-replace-objects', 'show', candidateSha + ':' + coverageLedgerPath], 2 * 1024 * 1024))
+  const ledger = JSON.parse(original)
+  if (!Array.isArray(ledger.rules) || ledger.rules.length !== 121 || !Array.isArray(ledger.acceptance_contracts) || ledger.acceptance_contracts.length !== 231) return false
+  const rules = ledger.rules.filter(row => row.id === 'OPS-03'), acceptances = ledger.acceptance_contracts.filter(row => row.id === 'AT-OPS-03')
+  if (rules.length !== 1 || acceptances.length !== 1) return false
+  const rule = rules[0], acceptance = acceptances[0]
+  if (JSON.stringify(rule) !== JSON.stringify({ id: 'OPS-03', acceptance_id: 'AT-OPS-03', status: 'NOT_VERIFIED', evidence: [] })
+    || JSON.stringify(acceptance) !== JSON.stringify({ id: 'AT-OPS-03', status: 'NOT_EXECUTED', evidence: [] })) return false
+  // Two exact immutable row spans, not a fifth arbitrary content exception.
+  // Every foreign byte/order/key/metadata, including whitespace, stays intact.
+  // Equality to this expected text also rejects duplicate-key JSON ambiguity.
+  const rowBytes = row => JSON.stringify(row, null, 2).split('\n').map(line => '    ' + line).join('\n')
+  let expected = original
+  for (const [row, status] of [[rule, 'VERIFIED'], [acceptance, 'PASSED']]) {
+    const oldBytes = rowBytes(row), nextBytes = rowBytes({ ...row, status, evidence: approvedOpsEvidence })
+    if (expected.split(oldBytes).length !== 2) return false
+    expected = expected.replace(oldBytes, nextBytes)
+  }
+  return candidate === expected
+}
+function unchangedNativeExecutionInputs(command, candidateSha) {
+  function tree(commit) {
+    const text = String(command('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', commit], 5 * 1024 * 1024))
+    if (!text.endsWith('\0')) throw Error('input_tree_incomplete')
+    const entries = new Map()
+    for (const entry of text.slice(0, -1).split('\0')) {
+      const match = /^([0-7]{6}) (blob|commit) ([0-9a-f]{40})\t([^\0]+)$/.exec(entry)
+      if (!match || entries.has(match[4])) throw Error('input_tree_invalid')
+      entries.set(match[4], { mode: match[1], type: match[2], record: entry })
+    }
+    return entries
+  }
+  const baseline = tree(reviewedNativeInputBase), candidate = tree(candidateSha)
+  for (const name of new Set([...baseline.keys(), ...candidate.keys()])) {
+    const before = baseline.get(name), after = candidate.get(name)
+    if (name === coverageLedgerPath) {
+      if (!ownedCoverageUpdate(command, candidateSha, before, after)) return false
+    } else if (ownedNativeInputExceptions.includes(name)) {
+      // Only reviewed content edits in these four regular files are exempt.
+      // Deletions, symlinks or executable-bit changes are never exemptions.
+      if (!after || after.type !== 'blob' || after.mode !== (before?.mode || '100644') || !['100644', '100755'].includes(after.mode)) return false
+    } else if (!before || !after || before.record !== after.record) return false
+  }
+  if (String(command('git', ['--no-replace-objects', 'ls-files', '--others', '--exclude-standard', '-z']))) return false
+  // These existing managed channels are not new source exceptions: npm ci
+  // installs lock-bound dependencies; workflow coverage and certificates put
+  // generated reports/downloads in the two gitignored output directories.
+  // Ignore rules alone cannot authorize another helper/config/SQL/runtime file.
+  const ignored = command('git', ['--no-replace-objects', 'ls-files', '--others', '--ignored', '--exclude-standard', '-z', '--', '.',
+    ':(exclude)node_modules', ':(exclude)coverage', ':(exclude)e2e-artifacts'])
+  return String(ignored) === ''
+}
+// Source-reviewed code cases: synthetic ports are explicit and never become
+// live delivery, SQL integration or formal portal-approval assertions.
+const coverageCaseBindings = [
+  { id: 'coverage_mime_code', sourceFile: '__tests__/ediel-transport-byte-integrity.test.ts',
+    sourceSha256: '8552b2921e1b76aa77f9a6181db117ca9e04366f57233e76e151cd605b70d530',
+    name: 'ENV-01 lossless bytes at every SMTP packaging boundary > MIME mode 1 preserves Swedish ISO8859-1 bytes',
+    classes: ['unit', 'transport'], qualification: 'code_modelling',
+    ports: { mimeBuilder: 'real_pure_function', encoding: 'real_node_buffer', database: 'not_entered', provider: 'not_entered' } },
+  { id: 'coverage_send_guard_code', sourceFile: '__tests__/ediel-transport-byte-integrity.test.ts',
+    sourceSha256: '8552b2921e1b76aa77f9a6181db117ca9e04366f57233e76e151cd605b70d530',
+    name: 'ENV-01 lossless bytes at every SMTP packaging boundary > the actual send path rejects before route, archive, attempt or provider effects',
+    classes: ['unit', 'transport'], qualification: 'code_modelling',
+    ports: { sendGuard: 'real_product_function', acceptedProjection: 'modeled_rpc', databaseEffects: 'fail_traps', providerEffects: 'fail_traps' } },
+  { id: 'coverage_tgt_code', sourceFile: '__tests__/ediel-prodat-register-tgt-workflow.test.ts',
+    sourceSha256: 'bfb52aa18f28f62794546d881a798bc2d979dc532bced44c0564741aa95d81ed',
+    name: 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval',
+    classes: ['TGT'], qualification: 'code_modelling', ports: { stateMachine: 'real_product_function', messages: 'synthetic', portal: 'not_entered' } },
+]
+const coverageWorkflowSha256 = '42a35bb82504b2fe8b54692212464b22b85271040d0388ed9c66318f71eecefa'
+const documentBinding = { id: 'coverage_document_integrity', sourceFile: 'scripts/check-ediel-masterplan-v2.cjs',
+  sourceSha256: '4ed209736d9aa05ca07e56943bb043b62e36f26069a96771c34d03f90a96591c',
+  classes: ['document'], qualification: 'specification_integrity_and_evidence_references_only', ports: { filesystem: 'real_local' } }
+const documentOutput = { scope: 'specification integrity and evidence references only', originalFiles: 33, rules: 121,
+  acceptanceContracts: 231, applicationConformanceAsserted: false, productionReadinessAsserted: false }
+function consumeReviewedCodeEvidence(root, source, blockers, modes) {
+  const repository = process.env.GITHUB_REPOSITORY
+  const caseEvidence = []
+  let ciQualified = false
+  if (!repository || !source.candidateSha || !source.candidateTree || !source.checkoutClean) return { caseEvidence, ciQualified }
+  function command(executable, args, maxBuffer = 2 * 1024 * 1024) {
+    const result = spawnSync(executable, args, { cwd: root, timeout: 15000, maxBuffer })
+    if (result.status !== 0 || result.stdout == null) throw Error('case_source_command_failed')
+    return result.stdout
+  }
+  const apiCache = new Map(), sourceCache = new Map()
+  function api(endpoint) {
+    if (!apiCache.has(endpoint)) apiCache.set(endpoint, JSON.parse(String(command('gh', ['api', '--hostname', 'github.com', '--method', 'GET', 'repos/' + repository + '/' + endpoint]))))
+    return apiCache.get(endpoint)
+  }
+  function sourceMatches(file, digest) {
+    if (!sourceCache.has(file)) sourceCache.set(file, sha256(command('git', ['--no-replace-objects', 'show', source.candidateSha + ':' + file], 5 * 1024 * 1024)))
+    return sourceCache.get(file) === digest
+  }
+  function inventory(endpoint, key) {
+    const value = api(endpoint)
+    if (!Array.isArray(value[key]) || !Number.isSafeInteger(value.total_count) || value.total_count < 0 || value.total_count > value[key].length) throw Error('case_inventory_incomplete')
+    return value[key]
+  }
+  function identity(run, workflow) {
+    return run.head_sha === source.candidateSha && run.path === workflow && run.repository?.full_name === repository && run.head_repository?.full_name === repository
+      && Number.isSafeInteger(run.repository.id) && run.repository.id > 0 && run.head_repository.id === run.repository.id
+      && Number.isSafeInteger(run.id) && run.id > 0 && Number.isSafeInteger(run.run_attempt) && run.run_attempt > 0
+      && Number.isSafeInteger(run.run_number) && run.run_number > 0
+  }
+  function latestRun(runs, workflow) {
+    const matches = runs.filter(run => run.path === workflow && ['pull_request', 'push'].includes(run.event))
+    if (!matches.length || !matches.every(run => Number.isSafeInteger(run.run_number) && run.run_number > 0)) throw Error('case_run_identity_invalid')
+    const latestNumber = Math.max(...matches.map(run => run.run_number)), latest = matches.filter(run => run.run_number === latestNumber)
+    if (latest.length !== 1 || !identity(latest[0], workflow)) throw Error('case_latest_run_ambiguous_or_unqualified')
+    return latest[0]
+  }
+  function jobs(run) { return inventory('actions/runs/' + run.id + '/attempts/' + run.run_attempt + '/jobs?per_page=100', 'jobs') }
+  function successfulJob(run, name) {
+    const selected = jobs(run).filter(job => job.name === name && job.run_id === run.id && job.run_attempt === run.run_attempt)
+    if (selected.length !== 1 || selected[0].status !== 'completed' || selected[0].conclusion !== 'success'
+      || !Number.isSafeInteger(selected[0].id) || selected[0].id <= 0) throw Error('case_job_not_qualified')
+    return selected[0]
+  }
+  function readArtifact(run, job, artifactName, consume) {
+    let directory
+    try {
+      const selected = inventory('actions/runs/' + run.id + '/artifacts?per_page=100', 'artifacts').filter(artifact => artifact.name === artifactName && artifact.expired === false
+        && artifact.workflow_run?.id === run.id && artifact.workflow_run.head_sha === source.candidateSha
+        && artifact.workflow_run.repository_id === run.repository.id && artifact.workflow_run.head_repository_id === run.head_repository.id)
+      if (selected.length !== 1) throw Error('case_artifact_not_unique')
+      const artifact = selected[0], created = Date.parse(artifact.created_at), started = Date.parse(job.started_at), ended = Date.parse(job.completed_at)
+      // Artifact metadata lacks an attempt number. Its upload must lie inside
+      // this exact successful producer job's execution window, never an old run.
+      if (![created, started, ended].every(Number.isFinite) || started > ended || created < started || created > ended
+        || !Number.isSafeInteger(artifact.id) || artifact.id <= 0 || !Number.isSafeInteger(artifact.size_in_bytes)
+        || artifact.size_in_bytes <= 0 || artifact.size_in_bytes > 64 * 1024 * 1024 || !/^sha256:[0-9a-f]{64}$/.test(artifact.digest || '')) throw Error('case_artifact_binding_invalid')
+      const archive = command('gh', ['api', '--hostname', 'github.com', '--method', 'GET', 'repos/' + repository + '/actions/artifacts/' + artifact.id + '/zip'], 64 * 1024 * 1024)
+      const archiveHash = sha256(archive)
+      if (artifact.digest !== 'sha256:' + archiveHash || archive.length !== artifact.size_in_bytes) throw Error('case_artifact_digest_mismatch')
+      directory = fs.mkdtempSync(path.join(root, 'e2e-artifacts', 'ops03-download-'))
+      const archivePath = path.join(directory, 'source.zip')
+      fs.writeFileSync(archivePath, archive)
+      const entries = String(command('unzip', ['-Z1', archivePath])).trim().split(/\r?\n/)
+      function read(name) {
+        if (entries.filter(entry => entry === name).length !== 1) throw Error('case_artifact_member_not_unique')
+        return String(command('unzip', ['-p', archivePath, name], 8 * 1024 * 1024))
+      }
+      const producer = { repository, workflow: run.path, job: job.name, runId: String(run.id), runAttempt: String(run.run_attempt),
+        artifactId: String(artifact.id), artifactSha256: archiveHash }
+      return consume(read, producer)
+    } finally { if (directory) fs.rmSync(directory, { recursive: true, force: true }) }
+  }
+  function junitCases(xml) {
+    if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw Error('case_junit_entity_forbidden')
+    const { XMLParser, XMLValidator } = require('fast-xml-parser')
+    if (XMLValidator.validate(xml) !== true) throw Error('case_junit_invalid')
+    // The locked decoder accepts numeric prefixes and drops prohibited scalar
+    // values. Check complete attribute references before it can rename a case.
+    function attributeReferences(value) {
+      for (let at = value.indexOf('&'); at !== -1;) {
+        const end = value.indexOf(';', at + 1)
+        if (end === -1) throw Error('case_junit_reference_invalid')
+        const token = value.slice(at + 1, end)
+        if (!/^(?:amp|lt|gt|quot|apos)$/.test(token)) {
+          const numeric = /^#(?:([0-9]+)|x([0-9a-fA-F]+))$/.exec(token)
+          if (!numeric) throw Error('case_junit_reference_invalid')
+          const cp = numeric[1] === undefined ? Number.parseInt(numeric[2], 16) : Number(numeric[1])
+          if (!Number.isSafeInteger(cp) || !(cp === 9 || cp === 10 || cp === 13 ||
+            (cp >= 0x20 && cp <= 0xD7FF) || (cp >= 0xE000 && cp <= 0xFFFD) ||
+            (cp >= 0x10000 && cp <= 0x10FFFF))) throw Error('case_junit_reference_invalid')
+        }
+        at = value.indexOf('&', end + 1)
+      }
+    }
+    // Comments, CDATA and processing instructions contain literal text rather
+    // than attributes; quoted > and < within a value must not split its tag.
+    for (let at = 0; (at = xml.indexOf('<', at)) !== -1;) {
+      const terminator = xml.startsWith('<!--', at) ? '-->' : xml.startsWith('<![CDATA[', at) ? ']]>' : xml.startsWith('<?', at) ? '?>' : null
+      if (terminator) {
+        const end = xml.indexOf(terminator, at + 2)
+        if (end === -1) throw Error('case_junit_invalid')
+        at = end + terminator.length
+        continue
+      }
+      for (at++; at < xml.length && xml[at] !== '>'; at++) {
+        if (xml[at] !== '"' && xml[at] !== "'") continue
+        const end = xml.indexOf(xml[at], at + 1)
+        if (end === -1) throw Error('case_junit_invalid')
+        attributeReferences(xml.slice(at + 1, end))
+        at = end
+      }
+      at++
+    }
+    // Decode standard attribute references (Vitest emits &gt; in suite names)
+    // after rejecting all DOCTYPE/ENTITY declarations above.
+    const parsed = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', processEntities: true,
+      // This locked parser couples numeric references to htmlEntities. Supply
+      // only XML's five predefined names, never the larger HTML entity set.
+      htmlEntities: { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }, parseAttributeValue: false }).parse(xml)
+    const testcases = []
+    function collect(node) {
+      if (!node || typeof node !== 'object') return
+      for (const [key, value] of Object.entries(node)) {
+        const values = Array.isArray(value) ? value : [value]
+        if (key === 'testcase') testcases.push(...values)
+        else values.forEach(collect)
+      }
+    }
+    collect(parsed)
+    return testcases
+  }
+  function qualified(binding, producer) {
+    return { id: binding.id, status: 'qualified', sourceFile: binding.sourceFile, sourceSha256: binding.sourceSha256,
+      classes: binding.classes, qualification: binding.qualification || 'reviewed_native_case',
+      effects: binding.effects || { DDQ: false, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 0 }, ports: binding.ports,
+      inputSource: { reviewedBaseSha: reviewedNativeInputBase, comparison: 'immutable_tree_mode_type_blob_path', ownedExceptions: ownedNativeInputExceptions,
+        allowedCoverageDelta: { path: coverageLedgerPath, rule: 'OPS-03:VERIFIED', acceptance: 'AT-OPS-03:PASSED', evidencePaths: approvedOpsEvidence,
+          comparison: 'atomic_two_row_spans_all_other_bytes_unchanged' } }, producer }
+  }
+  function cases(bindings, xml, producer) {
+    const testcases = junitCases(xml)
+    return bindings.flatMap(binding => {
+      try {
+        if (!sourceMatches(binding.sourceFile, binding.sourceSha256) || !(binding.sources || []).every(([file, digest]) => sourceMatches(file, digest))) throw Error('case_assertions_changed')
+        const selected = testcases.filter(testcase => testcase.classname === binding.sourceFile && testcase.name === binding.name)
+        if (selected.length !== 1 || ['failure', 'error', 'skipped'].some(key => Object.prototype.hasOwnProperty.call(selected[0], key))) throw Error('case_result_missing_or_failed')
+        return [qualified(binding, { ...producer, junitSha256: sha256(xml) })]
+      } catch { blockers.push('case_result_missing_or_unqualified:' + binding.id); return [] }
+    })
+  }
+  try {
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) throw Error('case_repository_invalid')
+    const remote = String(command('git', ['config', '--get', 'remote.origin.url'])).trim().replace(/\.git$/, '')
+    if (remote !== 'https://github.com/' + repository && remote !== 'git@github.com:' + repository) throw Error('case_repository_mismatch')
+    if (!unchangedNativeExecutionInputs(command, source.candidateSha)) throw Error('case_execution_inputs_changed')
+    const commit = api('git/commits/' + source.candidateSha)
+    if (commit.sha !== source.candidateSha || commit.tree?.sha !== source.candidateTree) throw Error('case_commit_mismatch')
+    const runs = inventory('actions/runs?head_sha=' + source.candidateSha + '&per_page=100', 'workflow_runs')
+    try {
+      const workflow = '.github/workflows/ops-hardening.yml'
+      if (!sourceMatches(workflow, 'eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261')
+        || !sourceMatches('scripts/ediel-source-owner-native.config.ts', '722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56')) throw Error('case_producer_source_changed')
+      const run = latestRun(runs, workflow)
+      if (run.status !== 'completed' || run.conclusion !== 'success') throw Error('case_latest_run_not_qualified')
+      caseEvidence.push(...readArtifact(run, successfulJob(run, 'clean-migration-replay'), 'gridex-rem-002-clean-replay', (read, producer) => cases(nativeCaseBindings, read('rem002-native-junit.xml'), producer)))
+    } catch { blockers.push('case_artifact_missing_or_unqualified:native') }
+    try {
+      const workflow = '.github/workflows/full-e2e.yml'
+      if (!sourceMatches(workflow, coverageWorkflowSha256)) throw Error('case_producer_source_changed')
+      const run = latestRun(runs, workflow)
+      const ownRun = String(run.id) === source.runId && String(run.run_attempt) === source.runAttempt
+      // A PR certificate runs inside its own in-progress workflow, after the
+      // coverage job. Nightly reuses latest PR/push coverage on this same head;
+      // it never runs a second coverage producer or substitutes an older head.
+      if (!(run.status === 'completed' && ['success', 'failure'].includes(run.conclusion))
+        && !(ownRun && run.status === 'in_progress' && run.conclusion === null)) throw Error('case_latest_run_not_qualified')
+      caseEvidence.push(...readArtifact(run, successfulJob(run, 'coverage'), 'gridex-coverage-' + run.id, (read, producer) => {
+        const results = cases(coverageCaseBindings, read('ediel-unit-junit.xml'), producer)
+        try {
+          if (!sourceMatches(documentBinding.sourceFile, documentBinding.sourceSha256)) throw Error('document_checker_changed')
+          const bytes = read('ediel-document-integrity.json'), output = JSON.parse(bytes)
+          if (!output || Object.keys(output).length !== Object.keys(documentOutput).length || !Object.entries(documentOutput).every(([key, value]) => output[key] === value)) throw Error('document_result_not_qualified')
+          results.push(qualified(documentBinding, { ...producer, command: 'node scripts/check-ediel-masterplan-v2.cjs', outputSha256: sha256(bytes) }))
+        } catch { blockers.push('case_result_missing_or_unqualified:' + documentBinding.id) }
+        return results
+      }))
+      const current = runs.filter(row => identity(row, workflow) && String(row.id) === source.runId && String(row.run_attempt) === source.runAttempt)
+      if (current.length !== 1) throw Error('current_ci_run_not_authenticated')
+      const ciRun = current[0], pr = modes.length === 1 && modes[0] === 'smoke'
+      if (pr && (!ownRun || ciRun.event !== 'pull_request') || !pr && !['schedule', 'workflow_dispatch'].includes(ciRun.event)) throw Error('current_ci_mode_not_authenticated')
+      if (!(ciRun.status === 'in_progress' && ciRun.conclusion === null) && !(ciRun.status === 'completed' && ciRun.conclusion === 'success')) throw Error('current_ci_run_not_passed')
+      if (!ownRun && !(run.status === 'completed' && run.conclusion === 'success')) throw Error('coverage_ci_run_not_passed')
+      for (const name of pr ? ['smoke', 'coverage'] : ['full', 'runtime-staging', 'real-customer-staging']) successfulJob(ciRun, name)
+      ciQualified = true
+    } catch { blockers.push('case_artifact_missing_or_unqualified:coverage') }
+  } catch { blockers.push('case_source_missing_or_unqualified') }
+  if (!ciQualified) blockers.push('authenticated_ci_not_passed')
+  return { caseEvidence, ciQualified }
 }
 function assembleEdielReleaseEvidence(root, ciPassed, modes) {
   const source = checkoutSource(root), blockers = []
@@ -67,15 +374,33 @@ function assembleEdielReleaseEvidence(root, ciPassed, modes) {
       return { mode, status: 'unqualified', sourceReference }
     }
   })
-  // No producer in this workflow currently qualifies the complete Ediel case
-  // matrix. Keep those obligations missing rather than accept caller-supplied
-  // cases, infer roles from step names or turn specification JSON into E2E.
+  // Individual results through the authenticated existing producer channel may
+  // establish only the source-reviewed classes/effects of those exact cases.
+  const { caseEvidence, ciQualified } = consumeReviewedCodeEvidence(root, source, blockers, modes)
   const levels = Object.fromEntries(['document', 'unit', 'integration', 'tenant_e2e', 'transport', 'TGT']
     .map(level => [level, { status: 'missing', qualification: 'not_established_by_runner_step_results' }]))
-  blockers.push(...Object.keys(levels).map(level => 'evidence_level_missing_or_unqualified:' + level), 'scope_matrix_incomplete')
-  return { ...source, sourceAuthentication: 'same_workflow_artifact_channel', codeEvidence: 'incomplete', fullCardVerification: 'NOT_VERIFIED',
+  for (const level of Object.keys(levels)) {
+    const cases = caseEvidence.filter(row => row.classes.includes(level))
+    const transportComplete = level !== 'transport' || ['coverage_mime_code', 'coverage_send_guard_code'].every(id => cases.some(row => row.id === id))
+    if (cases.length && transportComplete) levels[level] = { status: 'qualified', qualification: level === 'document' ? documentBinding.qualification
+      : ['transport', 'TGT'].includes(level) ? 'code_modelling' : 'reviewed_individual_code_case',
+      ...(level === 'transport' ? { effectClass: 'transport_code' } : level === 'TGT' ? { effectClass: 'TGT_code' } : {}), caseReferences: cases.map(row => row.id) }
+    else blockers.push('evidence_level_missing_or_unqualified:' + level)
+  }
+  const scopeMatrix = { tenantIds: [], DDQ: caseEvidence.some(row => row.effects.DDQ), DGI: caseEvidence.some(row => row.effects.DGI),
+    crossTenantAssignments: caseEvidence.some(row => row.effects.crossTenantAssignments) }
+  const tenantCountLowerBound = Math.max(0, ...caseEvidence.map(row => row.effects.tenantCountLowerBound))
+  if (tenantCountLowerBound) scopeMatrix.tenantCountLowerBound = tenantCountLowerBound
+  if (!(scopeMatrix.DDQ && scopeMatrix.DGI && scopeMatrix.crossTenantAssignments && tenantCountLowerBound >= 2)) blockers.push('scope_matrix_incomplete')
+  // All six authenticated code classes, aggregate native matrix, immutable
+  // source, current CI jobs and runner custody are necessary together. Neither
+  // specification JSON nor modeled external ports authenticate market approval.
+  const complete = ciPassed && ciQualified && Object.values(levels).every(level => level.status === 'qualified')
+    && scopeMatrix.DDQ && scopeMatrix.DGI && scopeMatrix.crossTenantAssignments && tenantCountLowerBound >= 2
+    && executions.length === modes.length && executions.every(execution => execution.status === 'qualified')
+  return { ...source, sourceAuthentication: 'github_run_job_artifact_and_immutable_tree', codeEvidence: complete ? 'qualified' : 'incomplete', fullCardVerification: complete ? 'CODE_VERIFIED' : 'NOT_VERIFIED',
     formalEdielApproval: false, liveCounterpartyVerified: false, levels,
-    scopeMatrix: { tenantIds: [], DDQ: false, DGI: false, crossTenantAssignments: false }, executions, blockers }
+    activationGates: { liveTransport: 'NOT_OBSERVED', formalTGT: 'NOT_OBSERVED' }, scopeMatrix, executions, caseEvidence, blockers }
 }
 
 const certificateMode = process.argv.find(arg => arg.startsWith('--certificate='))?.split('=')[1]
