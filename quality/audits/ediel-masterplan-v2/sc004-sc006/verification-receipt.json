@@ -1,0 +1,1034 @@
+{
+  "purpose": "Full frozen SC004/SC006 evidence-only packet awaiting independent review; no coverage approval",
+  "main_base_sha": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+  "branch": "codex/ediel-sc004-sc006-beneficiary-evidence-20261005",
+  "claim_urls": [
+    "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5986030533",
+    "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5986061662"
+  ],
+  "scenario_ids": [
+    "SC-004",
+    "SC-006"
+  ],
+  "coverage_changed": false,
+  "production_migrations_source_authority_shared_memory_changed": false,
+  "packet_inputs_sha256": {
+    "__tests__/ediel-service-administration.test.ts": "7c9e8d9f595b1f9c4203762119acb376cd25bf1e3828b878215f46cad6fd214c",
+    "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs": "96a28b97f2ecb66dc079c3ccb209dae21e6c12a0d5d8412d025607dfdfaebc4c",
+    "scripts/test-ediel-ten-07-scoped-projection.cjs": "c36799e45f34a9cc4067bc54c5d5eb2e6a87c87af9e1f62dc42b3381faee5ae0",
+    "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs": "9ebd3baab79413cf05c87b800fb215fd5616a21efc44de8f2aa890f25696f2fe",
+    "scripts/ediel-service-grant-set-sql-regression.mjs": "69ea70ab89fe9bc1dfe29fab29856b7f270aa205d901113fc66cd7063224ca01",
+    "scripts/ediel-positive-ack-service-scope-sql-regression.mjs": "a00e29e3e4e92cecee7417972e6ed75d33242cc4673ab2f73ab228e94551928a",
+    "scripts/ediel-service-administration-sql-regression.mjs": "b8e6102285022d3a74a3954e313e70524dd1140c24032873562a50cd7e22c9ec",
+    "scripts/ediel-transport-copy-sql-regression.mjs": "301c20b4a2b87433e037202df7ed3778025e511a417954d1d9db6f6f39141554"
+  },
+  "frozen_inputs_sha256": {
+    "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+    "docs/ediel/masterplan-v2/registers/acceptance_tests.json": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "quality/audits/ediel-masterplan-v2/coverage.json": "122aea1dbac878f2cf65616f785612074ed58a1b8a89cfcc03bc3834582e9c92"
+  },
+  "latest_current_body_proof": {
+    "method": "Actual installed pg_proc.prosrc trim equality against final committed schema, not a replacement validator",
+    "functions": [
+      "public.ediel_beneficiary_series_page_v1",
+      "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2",
+      "gridex_ediel_ack_replay.require_current_source_role_v2",
+      "gridex_ediel_ack_replay.lock_current_graph_v2"
+    ],
+    "latest_graph_lock_source": "20261001004953_ediel_current_company_permission_denies.sql",
+    "ports": [
+      "Finite reduced schemas including empty user_permission_overrides",
+      "Parent substituted gridex_actor_has_company_permission, source_authority_fixture, captured source context, accepted contract/storage/ACK and reviewed assignment evidence"
+    ],
+    "limit": "Actual current consumer effects, not native reception/legal/RLS authority"
+  },
+  "native_reuse": {
+    "run_id": 37219122360,
+    "artifact_id": 11310821113,
+    "source_sha": "f4a0fb4398a79f5777824123142c82aeeb8338ec",
+    "zip_sha256": "470c1eed5afd99678c2d5ab2c7fa108bc33384cc873fb5ecab5cf9cb4f820076",
+    "junit_sha256": "e3d61b376c876c49fc2aed4f6ed61c6f9f16b8dfb110141a65fd94479c9ccb73",
+    "case": "literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18",
+    "class": "scripts/ediel-service-evidence-native.test.ts",
+    "selected_result": "PASS; no failure/error/skip children; time7.600511159",
+    "qualified_source_files": [
+      {
+        "path": "lib/ediel/services/administration.ts",
+        "native_and_current_sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "byte_equal": true
+      },
+      {
+        "path": "lib/ediel/services/commands.ts",
+        "native_and_current_sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "byte_equal": true
+      },
+      {
+        "path": "lib/ediel/services/authorization.ts",
+        "native_and_current_sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+        "byte_equal": true
+      },
+      {
+        "path": "lib/ediel/services/projection.ts",
+        "native_and_current_sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "byte_equal": true
+      },
+      {
+        "path": "lib/ediel/services/evidenceReview.ts",
+        "native_and_current_sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+        "byte_equal": true
+      },
+      {
+        "path": "lib/ediel/services/permissionOrigin.ts",
+        "native_and_current_sha256": "7b06e95ef84ef762d538cf7938bb60a019c210531701ff95f0af3cade31a5062",
+        "byte_equal": true
+      },
+      {
+        "path": "lib/ediel/services/periodicReason.ts",
+        "native_and_current_sha256": "8a4e80cec04496e6a1dd049994be90a18c11992dff4c595d4df6da3bb09fce74",
+        "byte_equal": true
+      },
+      {
+        "path": "scripts/ediel-service-evidence-native.test.ts",
+        "native_and_current_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "byte_equal": true
+      },
+      {
+        "path": "scripts/helpers/utiltsConsumptionParties.ts",
+        "native_and_current_sha256": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5",
+        "byte_equal": true
+      },
+      {
+        "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+        "native_and_current_sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/schema.sql",
+        "native_and_current_sha256": "7f5b50a6d944dc32e176defddcff49f221d378a10565beba8eebb817ece51f51",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001065415_ediel_recovery_current_service_source_bridge.sql",
+        "native_and_current_sha256": "c6c069b55e7254960320a78f88f82f1d69e8638f8132d082790549d5ac2e0788",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql",
+        "native_and_current_sha256": "a29947c7e39e2cec87c59074ced5edcaccd7bd2ca0a44617066b9f766dcce7e9",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "native_and_current_sha256": "842cf2a8342f4164dd61e7d7ca2e2eb577b7cbb844e978c49be141ad5720a3af",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+        "native_and_current_sha256": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930162005_ediel_service_permission_origination_v1.sql",
+        "native_and_current_sha256": "a6035a99da12ea91942896868971baa50c20ecf36974600c19206f8d9c49fa79",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001041436_ediel_service_evidence_source_permission_terms.sql",
+        "native_and_current_sha256": "a5c2de7691cb27932aa46036d79b96e768690f61627a68b19a77f13bdc8b6252",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930235816_ediel_service_permission_source_requested_method.sql",
+        "native_and_current_sha256": "a1bd74ef686f14861093b688939f6199d46539a1c9853db75d74a1ba844524ae",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "native_and_current_sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql",
+        "native_and_current_sha256": "f769f77de088b02f6484133ea5afa1df2fa6fbbc3b0f26adb280e504ac8b1b50",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261002235000_ediel_service_permission_context_service_grant.sql",
+        "native_and_current_sha256": "0b7b0011603fde2ddd84d3d47081440f2466a27e1cdf835e33928d1ba611d057",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql",
+        "native_and_current_sha256": "43cee9e2fa33c3710b4d15291e4f384433c4b45ecfcb30fdff1955b2be24645f",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
+        "native_and_current_sha256": "99b0d6fda03afe1ecb9a8b3814a18d3127e657f1aaa3fbfd76543da7473124fa",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001004953_ediel_current_company_permission_denies.sql",
+        "native_and_current_sha256": "3a83ea9f98a75c8bed50eed150fd6101df5e3ac3418696f79ccc88708bb9f665",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+        "native_and_current_sha256": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+        "native_and_current_sha256": "c14ed560924522b748e879e1187b7e7793d95ea2ae69e9a97cda7b727f93a689",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930231958_ediel_atomic_ack_owner_persistence.sql",
+        "native_and_current_sha256": "8cdd3bb9cdc6e8b08a68f5e6335e21fe752b82c2cfbd890a9ac5b2f07437ead9",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20260930235702_ediel_positive_ack_service_scope.sql",
+        "native_and_current_sha256": "d9732b398dfc86386f6e6406279444e7a3dc775fa01135bd9fecfa7edee30c9e",
+        "byte_equal": true
+      },
+      {
+        "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "native_and_current_sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece",
+        "byte_equal": true
+      }
+    ],
+    "final_schema_overload_qualification": {
+      "exact_function_overloads": 2057,
+      "unchanged": 2057,
+      "changed": [],
+      "old_schema_sha256": "7f5b50a6d944dc32e176defddcff49f221d378a10565beba8eebb817ece51f51",
+      "current_schema_sha256": "7f5b50a6d944dc32e176defddcff49f221d378a10565beba8eebb817ece51f51"
+    },
+    "relevant_final_owner_bodies": [
+      {
+        "name": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2",
+        "native_body_sha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+        "current_body_sha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.capture_positive_service_scope_v1",
+        "native_body_sha256": "fe4bebef2881d840f61e144f0fcbff7e06fc35dea6d8ea5f2a500c881c8183cd",
+        "current_body_sha256": "fe4bebef2881d840f61e144f0fcbff7e06fc35dea6d8ea5f2a500c881c8183cd",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.create_scope_v2",
+        "native_body_sha256": "31b86287d1ed57763f299d61047c3874b1472cdbe1d0d1821a4cfb384ff32a3d",
+        "current_body_sha256": "31b86287d1ed57763f299d61047c3874b1472cdbe1d0d1821a4cfb384ff32a3d",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.create_v1",
+        "native_body_sha256": "979ccc1015bca9729d01fbb5d5d05f6abb82f3d008741517bdf0cabc6cfd0a8b",
+        "current_body_sha256": "979ccc1015bca9729d01fbb5d5d05f6abb82f3d008741517bdf0cabc6cfd0a8b",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.current_service_grant_set_v2",
+        "native_body_sha256": "e922f03d93748fb2677eed6ca2f224f1f88a8e7716c9c3a8a75ee8f7f8c18353",
+        "current_body_sha256": "e922f03d93748fb2677eed6ca2f224f1f88a8e7716c9c3a8a75ee8f7f8c18353",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.lock_current_graph_v2",
+        "native_body_sha256": "75d3cba19b5a346914933fca2345250cd98667fa07c37e35930a3a02fc4cf321",
+        "current_body_sha256": "75d3cba19b5a346914933fca2345250cd98667fa07c37e35930a3a02fc4cf321",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.positive_service_scope_projection_v1",
+        "native_body_sha256": "efee5482f3eac49c94c685b26af7fb216a75bf2deca6644429428058a74e316a",
+        "current_body_sha256": "efee5482f3eac49c94c685b26af7fb216a75bf2deca6644429428058a74e316a",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.positive_service_scope_projection_v2",
+        "native_body_sha256": "efd6038a62293c6f94a85aa96ea18e11dfe2d0143371e05626fe701bea0fe688",
+        "current_body_sha256": "efd6038a62293c6f94a85aa96ea18e11dfe2d0143371e05626fe701bea0fe688",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.prodat_permission_scope_projection_v2",
+        "native_body_sha256": "354e2658e34f052df7750411accb723a84a67fbd219d596a5eb87134c8865363",
+        "current_body_sha256": "354e2658e34f052df7750411accb723a84a67fbd219d596a5eb87134c8865363",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.read_exact_v2",
+        "native_body_sha256": "92d3b3f86d895a62afa287a495512fbf051d12516019dd6af82936573ebf7f2d",
+        "current_body_sha256": "92d3b3f86d895a62afa287a495512fbf051d12516019dd6af82936573ebf7f2d",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.read_scope_v2",
+        "native_body_sha256": "6c78e2ac4870e911cdfa826911ab483d6b8808d61377a6c40a0f47aafbdff3cf",
+        "current_body_sha256": "6c78e2ac4870e911cdfa826911ab483d6b8808d61377a6c40a0f47aafbdff3cf",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.read_v1",
+        "native_body_sha256": "46f1daaf98552918858915ea8252a857f7f09f10cc33096a499cc7a83bb01223",
+        "current_body_sha256": "46f1daaf98552918858915ea8252a857f7f09f10cc33096a499cc7a83bb01223",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_common_guide_v2",
+        "native_body_sha256": "8fd7935411010ab1468ad416329547d4b7e63f7a4a20b64a7a02fce40733e9d5",
+        "current_body_sha256": "8fd7935411010ab1468ad416329547d4b7e63f7a4a20b64a7a02fce40733e9d5",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_common_own_v2",
+        "native_body_sha256": "83f34d0d580bf591c6c9565b656ded4ddcea3a2b93561c718d38ee299059c9bc",
+        "current_body_sha256": "83f34d0d580bf591c6c9565b656ded4ddcea3a2b93561c718d38ee299059c9bc",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_current_service_actor_v1",
+        "native_body_sha256": "ba481df95572739e08515fed31df531add35435cd1c553c70c078273535d6d6b",
+        "current_body_sha256": "ba481df95572739e08515fed31df531add35435cd1c553c70c078273535d6d6b",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_current_source_role_v2",
+        "native_body_sha256": "d2f6006b69f21372d3c6c4e5d003d67f47c96cef40d3c7fe78502288738a0bb4",
+        "current_body_sha256": "d2f6006b69f21372d3c6c4e5d003d67f47c96cef40d3c7fe78502288738a0bb4",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_positive_service_scope_v1",
+        "native_body_sha256": "1e2d338ec0fc4b632e3f3529cef800825623a24098273412fc3f357a0c515dd9",
+        "current_body_sha256": "1e2d338ec0fc4b632e3f3529cef800825623a24098273412fc3f357a0c515dd9",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_readonly_guide_v2",
+        "native_body_sha256": "2f93aa3f3e5af36fe6419f23f9421f96662fa3ad58c2eb1beb4bb3e1cad7e2dc",
+        "current_body_sha256": "2f93aa3f3e5af36fe6419f23f9421f96662fa3ad58c2eb1beb4bb3e1cad7e2dc",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.require_readonly_prodat_ledger_v2",
+        "native_body_sha256": "47ec64c291f950747d69862a81da719b4c214129d69f42f9c5fdca30e0c15e5b",
+        "current_body_sha256": "47ec64c291f950747d69862a81da719b4c214129d69f42f9c5fdca30e0c15e5b",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_ack_replay.service_scope_immutable_v1",
+        "native_body_sha256": "6cbade26e578d5644f41241a16f0411bc267001e1864d1b17d5f0cf1ba8cb09a",
+        "current_body_sha256": "6cbade26e578d5644f41241a16f0411bc267001e1864d1b17d5f0cf1ba8cb09a",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.actor_current_v1",
+        "native_body_sha256": "9b0a02755ffcf12472b4262eead7f19f5393414b3649115ab5674a1421e188b7",
+        "current_body_sha256": "9b0a02755ffcf12472b4262eead7f19f5393414b3649115ab5674a1421e188b7",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.assignment_assessment_basis_v1",
+        "native_body_sha256": "b3a07ba3abcd26908a45c5c4f66764afaab89bcb23cc221805ef8b5899a6f306",
+        "current_body_sha256": "b3a07ba3abcd26908a45c5c4f66764afaab89bcb23cc221805ef8b5899a6f306",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.current_periodic_reason_agreement_v1",
+        "native_body_sha256": "4d376bc28ebcba09af0591823959f17fc8001de6b278ef773d0a01985899268d",
+        "current_body_sha256": "4d376bc28ebcba09af0591823959f17fc8001de6b278ef773d0a01985899268d",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.evidence_basis_v1",
+        "native_body_sha256": "8f4a40cb12bdd683a9f391fb9d1b747b761ced7a46c0d29699171f1ea8b0005c",
+        "current_body_sha256": "8f4a40cb12bdd683a9f391fb9d1b747b761ced7a46c0d29699171f1ea8b0005c",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.evidence_receipt_row_v1",
+        "native_body_sha256": "17249994029269afc653ac9b20a8d5b2e12602744af5d8b81ef601540f9dc215",
+        "current_body_sha256": "17249994029269afc653ac9b20a8d5b2e12602744af5d8b81ef601540f9dc215",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.evidence_terms_v1",
+        "native_body_sha256": "126aaeb930833491df99398b0106a8e59b142dc09756ee050eed17527dd95680",
+        "current_body_sha256": "126aaeb930833491df99398b0106a8e59b142dc09756ee050eed17527dd95680",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.immutable_v1",
+        "native_body_sha256": "37a2e3c61200a4eba69a94e44521c11974ba9f7571ce4819ffd8de99b2fb729f",
+        "current_body_sha256": "37a2e3c61200a4eba69a94e44521c11974ba9f7571ce4819ffd8de99b2fb729f",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.lock_evidence_graph_v1",
+        "native_body_sha256": "476262c087991e614eb6835db624ff159c80a9c4acdec6407eb11603dd9a6871",
+        "current_body_sha256": "476262c087991e614eb6835db624ff159c80a9c4acdec6407eb11603dd9a6871",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.lock_periodic_reason_graph_v1",
+        "native_body_sha256": "4f2b02976263077e65fb0db39f8567d2f519445321af0bd4735045c14aface12",
+        "current_body_sha256": "4f2b02976263077e65fb0db39f8567d2f519445321af0bd4735045c14aface12",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.periodic_reason_immutable_v1",
+        "native_body_sha256": "9f564aa440a3f35c423f01d00d4fccfa215fd99a09e2146c6fb1c084dc64b299",
+        "current_body_sha256": "9f564aa440a3f35c423f01d00d4fccfa215fd99a09e2146c6fb1c084dc64b299",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.periodic_reason_projection_v1",
+        "native_body_sha256": "908cdfba2df3fcc7c1a540e2037d9f993d76433c62c58e05db4eba2d74614602",
+        "current_body_sha256": "908cdfba2df3fcc7c1a540e2037d9f993d76433c62c58e05db4eba2d74614602",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.projection_receipt_immutable_v1",
+        "native_body_sha256": "b4e2298f7aebee647f6bed47c5625abd3487eb6d4a5637c11eb1d4531817ca0f",
+        "current_body_sha256": "b4e2298f7aebee647f6bed47c5625abd3487eb6d4a5637c11eb1d4531817ca0f",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.receipt_current_v1",
+        "native_body_sha256": "4abed418be1617027a113025cacda3908915a292cacf3ef06e8019cdbcee0cd8",
+        "current_body_sha256": "4abed418be1617027a113025cacda3908915a292cacf3ef06e8019cdbcee0cd8",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.receipt_hmac_sha256_v1",
+        "native_body_sha256": "13482d7882183583edb5c713c79671c5308eee6092bb67df2fe9159911a19f3d",
+        "current_body_sha256": "13482d7882183583edb5c713c79671c5308eee6092bb67df2fe9159911a19f3d",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.require_periodic_outcome_v1",
+        "native_body_sha256": "56a7566b82bf66460eb6f4a6f7728546951a51d84fe9c591beff419f834b62ca",
+        "current_body_sha256": "56a7566b82bf66460eb6f4a6f7728546951a51d84fe9c591beff419f834b62ca",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.require_periodic_reason_v1",
+        "native_body_sha256": "d7cd12c95b7a76bd986fb4a7623eff9d7f3eb6eaf4b6e4f4a7f02178e01e8c8c",
+        "current_body_sha256": "d7cd12c95b7a76bd986fb4a7623eff9d7f3eb6eaf4b6e4f4a7f02178e01e8c8c",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.review_before_source_timing_v1",
+        "native_body_sha256": "3f197efed78dd5fc4eb7c1032c75cdb2d7b954a4a5ddc70fe58c1df87821bf53",
+        "current_body_sha256": "3f197efed78dd5fc4eb7c1032c75cdb2d7b954a4a5ddc70fe58c1df87821bf53",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.review_current_v1",
+        "native_body_sha256": "d6225f3ba10fa567ee0505851b88d79c3970e7e9b3ecab986d348548c4680439",
+        "current_body_sha256": "d6225f3ba10fa567ee0505851b88d79c3970e7e9b3ecab986d348548c4680439",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.revocation_lock_v1",
+        "native_body_sha256": "dd14db0817628065f00c54b2cf0c2847ccd13c85c46f5824f715f0a58e4037b6",
+        "current_body_sha256": "dd14db0817628065f00c54b2cf0c2847ccd13c85c46f5824f715f0a58e4037b6",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.scoped_review_permission_v1",
+        "native_body_sha256": "1bbcfb3ab23d599c41fb2b22a30e97d027f0a5ed42e01a66e5a40407361fcb74",
+        "current_body_sha256": "1bbcfb3ab23d599c41fb2b22a30e97d027f0a5ed42e01a66e5a40407361fcb74",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.signed_periodic_reason_claims_v1",
+        "native_body_sha256": "5677a7e29733f32f7b4be9ad7b8ef26f739bc63fbc722de4482b41618a02bf6f",
+        "current_body_sha256": "5677a7e29733f32f7b4be9ad7b8ef26f739bc63fbc722de4482b41618a02bf6f",
+        "equal": true
+      },
+      {
+        "name": "gridex_ediel_services.verified_evidence_guard_v1",
+        "native_body_sha256": "f4d6ebcc5aec5c7f17f32b7fcc44e4bdf5c89c027611ca2827842fdf2da26969",
+        "current_body_sha256": "f4d6ebcc5aec5c7f17f32b7fcc44e4bdf5c89c027611ca2827842fdf2da26969",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.coordinate_before_manual_resolution_v1",
+        "native_body_sha256": "ca6c91c2ec2eed5ad19e6ec19cab5b3de7141cc9162611efdeef7330372c0e88",
+        "current_body_sha256": "ca6c91c2ec2eed5ad19e6ec19cab5b3de7141cc9162611efdeef7330372c0e88",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.coordinate_before_source_timing_v1",
+        "native_body_sha256": "1b3a6c6b25acf18b3125d7342b480906ab7ac1e6173024709cdc2a2eee1f6c49",
+        "current_body_sha256": "1b3a6c6b25acf18b3125d7342b480906ab7ac1e6173024709cdc2a2eee1f6c49",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.immutable_v1",
+        "native_body_sha256": "913f7758cb23122ec72a719e5254e949170bf15002a6e449ef088697c6d58644",
+        "current_body_sha256": "913f7758cb23122ec72a719e5254e949170bf15002a6e449ef088697c6d58644",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.manual_hold_v1",
+        "native_body_sha256": "ce0f91d2f112bf95c0b7810686983e37eb23f809781163a596dda7cac3650e44",
+        "current_body_sha256": "ce0f91d2f112bf95c0b7810686983e37eb23f809781163a596dda7cac3650e44",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.permission_matches_assignment_v1",
+        "native_body_sha256": "cf5b2aa22020a46aef8eb345f45b9e8a53edc8e53dac3daab6cc9a8cbebe0937",
+        "current_body_sha256": "cf5b2aa22020a46aef8eb345f45b9e8a53edc8e53dac3daab6cc9a8cbebe0937",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.permission_originals_for_tuple_v1",
+        "native_body_sha256": "d2b570c97df4d9562454d159469b9e7f09f8e1abde339a9e53f8c40574c4708f",
+        "current_body_sha256": "d2b570c97df4d9562454d159469b9e7f09f8e1abde339a9e53f8c40574c4708f",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.record_scope_v1",
+        "native_body_sha256": "29cad5cbf1786aaed822428a143d95e9ce684d4093cebd1fd389556d9b6da5ad",
+        "current_body_sha256": "29cad5cbf1786aaed822428a143d95e9ce684d4093cebd1fd389556d9b6da5ad",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.require_manual_actor_v1",
+        "native_body_sha256": "baad5aedd855a08adf6477220e2bc6eb9a322e5379a62ead4a60c82c9b70956b",
+        "current_body_sha256": "baad5aedd855a08adf6477220e2bc6eb9a322e5379a62ead4a60c82c9b70956b",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.scope_guard_v1",
+        "native_body_sha256": "7de08dda15fe0a23a32f9de2e471d8156efc8e3c4d14b5e6cd80e97d7c53b247",
+        "current_body_sha256": "7de08dda15fe0a23a32f9de2e471d8156efc8e3c4d14b5e6cd80e97d7c53b247",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_administration.scope_v1",
+        "native_body_sha256": "8ac01ef5b2288c43c9a719d28fffe4c1f6a9ed59ee3336fb12a54b6c432bad05",
+        "current_body_sha256": "8ac01ef5b2288c43c9a719d28fffe4c1f6a9ed59ee3336fb12a54b6c432bad05",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.bind_agreement_reference_v1",
+        "native_body_sha256": "69e825c923ccff8d31b8597eb5be781e20973d7e4ad5fb9033b5c99c95fbbee7",
+        "current_body_sha256": "69e825c923ccff8d31b8597eb5be781e20973d7e4ad5fb9033b5c99c95fbbee7",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.bind_message_v1",
+        "native_body_sha256": "7107173a22a004f37c83906e88c590639da590992ceb8a98d030840537cc0d2a",
+        "current_body_sha256": "7107173a22a004f37c83906e88c590639da590992ceb8a98d030840537cc0d2a",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.bind_requested_method_v1",
+        "native_body_sha256": "9d96f3843b3916217f8acc76e28f0e7d7e266c673a0f95bcd2e855aa9a3d8b4b",
+        "current_body_sha256": "9d96f3843b3916217f8acc76e28f0e7d7e266c673a0f95bcd2e855aa9a3d8b4b",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_before_agreement_reference_v1",
+        "native_body_sha256": "86001552ccd6617bb7d827d95d6b79e826902b8682c19e4fab7ded747e525a7a",
+        "current_body_sha256": "86001552ccd6617bb7d827d95d6b79e826902b8682c19e4fab7ded747e525a7a",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_before_requested_method_v1",
+        "native_body_sha256": "57be284c8329a1f1ac05a5bba5de9246224e8a3ae1a36aa4e8a9572a55122aa6",
+        "current_body_sha256": "57be284c8329a1f1ac05a5bba5de9246224e8a3ae1a36aa4e8a9572a55122aa6",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_before_source_timing_v1",
+        "native_body_sha256": "ca0e96fd4123859f7e78a0825a3890f7f4dfeb37b3e88b9aa7e928e77140f619",
+        "current_body_sha256": "ca0e96fd4123859f7e78a0825a3890f7f4dfeb37b3e88b9aa7e928e77140f619",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_source_agreement_v1",
+        "native_body_sha256": "46648b17e0d658bea1184abd3debe29930613515f3a69cf3ea5cfe9965a1ffa6",
+        "current_body_sha256": "46648b17e0d658bea1184abd3debe29930613515f3a69cf3ea5cfe9965a1ffa6",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_source_base_v1",
+        "native_body_sha256": "bdee8d9aa66c75dfde6f391abdef52dc3845e984ee695f8ab9b5fcfb8ada0ad5",
+        "current_body_sha256": "bdee8d9aa66c75dfde6f391abdef52dc3845e984ee695f8ab9b5fcfb8ada0ad5",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_source_v1",
+        "native_body_sha256": "69c34ebab093194d65092edf0d43d1296c088921b255c8b9dbdbedd4634bb514",
+        "current_body_sha256": "69c34ebab093194d65092edf0d43d1296c088921b255c8b9dbdbedd4634bb514",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.context_v1",
+        "native_body_sha256": "fe4fa6caf3213c8e0fe38295e4b85075eef8aab592b6aba8ad6991de67bc33b7",
+        "current_body_sha256": "fe4fa6caf3213c8e0fe38295e4b85075eef8aab592b6aba8ad6991de67bc33b7",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.current_request_timing_v1",
+        "native_body_sha256": "9400f1b4dcf3c1dcf7dcd55630182ddf7ebf8ed11202ead8cdd0dd87cb3017ae",
+        "current_body_sha256": "9400f1b4dcf3c1dcf7dcd55630182ddf7ebf8ed11202ead8cdd0dd87cb3017ae",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.evaluate_request_period_v1",
+        "native_body_sha256": "4cc024170f16c3b9e1251b9889056d04612c43a12c2cf3ad5823f01807682c2d",
+        "current_body_sha256": "4cc024170f16c3b9e1251b9889056d04612c43a12c2cf3ad5823f01807682c2d",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.lock_request_writer_v1",
+        "native_body_sha256": "64d82c1534ae652f6a623cf0346c18e5086f441d103dce3ee2a7f62fae735e18",
+        "current_body_sha256": "64d82c1534ae652f6a623cf0346c18e5086f441d103dce3ee2a7f62fae735e18",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.origin_immutable_v1",
+        "native_body_sha256": "c89822b0fd5833d43971aac583e16d56e883e6584e687590a153469ddb2ed6e5",
+        "current_body_sha256": "c89822b0fd5833d43971aac583e16d56e883e6584e687590a153469ddb2ed6e5",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.recovery_operation_before_current_service_v1",
+        "native_body_sha256": "4cdf70e2434b62b4ff73813918e65eda3cc7a868760952ec505461abcbb71e1c",
+        "current_body_sha256": "4cdf70e2434b62b4ff73813918e65eda3cc7a868760952ec505461abcbb71e1c",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.request_timing_source_v1",
+        "native_body_sha256": "b5345de963e9853fbe332acce00b4978bb1d1e356aeb8cc4fa488cd1bbe8d55b",
+        "current_body_sha256": "b5345de963e9853fbe332acce00b4978bb1d1e356aeb8cc4fa488cd1bbe8d55b",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.require_agreement_reference_v1",
+        "native_body_sha256": "79360e046654192c68d40c974f860fba6c74d36d7acbaa894768d28b4fbeb4b4",
+        "current_body_sha256": "79360e046654192c68d40c974f860fba6c74d36d7acbaa894768d28b4fbeb4b4",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.require_current_before_agreement_reference_v1",
+        "native_body_sha256": "fe1b7a343e0e3ec2a59464577c04cd7cb242bba7f801751eb68c35c32947f87b",
+        "current_body_sha256": "fe1b7a343e0e3ec2a59464577c04cd7cb242bba7f801751eb68c35c32947f87b",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.require_current_before_requested_method_v1",
+        "native_body_sha256": "fa87196643e5e958efbedf63224261a8b1a9ba55fb750e3123d8a78ffec81b53",
+        "current_body_sha256": "fa87196643e5e958efbedf63224261a8b1a9ba55fb750e3123d8a78ffec81b53",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.require_original_current_v1",
+        "native_body_sha256": "d6e9eb6f49eb64af36e48ba00f3b9ede3b9535152bb2b7da007ca5dda49134a0",
+        "current_body_sha256": "d6e9eb6f49eb64af36e48ba00f3b9ede3b9535152bb2b7da007ca5dda49134a0",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.require_original_source_current_v1",
+        "native_body_sha256": "e6218ed372f01076e5456ef9005b1bdf3a1c8ded6b3988abe42546a9ec4dd7fd",
+        "current_body_sha256": "e6218ed372f01076e5456ef9005b1bdf3a1c8ded6b3988abe42546a9ec4dd7fd",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.require_requested_method_v1",
+        "native_body_sha256": "787d6cd362aa5f0ea9fb04411f7110a973348e42b49485beeda08d933dd40545",
+        "current_body_sha256": "787d6cd362aa5f0ea9fb04411f7110a973348e42b49485beeda08d933dd40545",
+        "equal": true
+      },
+      {
+        "name": "gridex_service_permission.reserve_v1",
+        "native_body_sha256": "a7fa6636b40d3ad38fbe791ecd19b5242ade59fde668beed4366835923d1b345",
+        "current_body_sha256": "a7fa6636b40d3ad38fbe791ecd19b5242ade59fde668beed4366835923d1b345",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.absolute_v1",
+        "native_body_sha256": "90e0e47ef31ef0f8b613397e604df0303ed0b9700ce5b6b1d755bdcb37191dae",
+        "current_body_sha256": "90e0e47ef31ef0f8b613397e604df0303ed0b9700ce5b6b1d755bdcb37191dae",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.canonical_decimal_v2",
+        "native_body_sha256": "12e9229b3ab1e640d54c3bf2815eefc29f35fca6adca665a4426b374cd92371b",
+        "current_body_sha256": "12e9229b3ab1e640d54c3bf2815eefc29f35fca6adca665a4426b374cd92371b",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.check_metering_result_v1",
+        "native_body_sha256": "8583e78c73610ba6e77e84c0730082deb3b426aafbfc418b7d124833ecdce8f7",
+        "current_body_sha256": "8583e78c73610ba6e77e84c0730082deb3b426aafbfc418b7d124833ecdce8f7",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.decimal_rules_v1",
+        "native_body_sha256": "40ccff2e50f113e4413db74cf8fb10183e3de5e2d52c58c38a1553169438147c",
+        "current_body_sha256": "40ccff2e50f113e4413db74cf8fb10183e3de5e2d52c58c38a1553169438147c",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.esco_local_time_v1",
+        "native_body_sha256": "8627749aa0ac928f282befe5f786aced5af1c119311d9f1c7b85a52ff44c5c8e",
+        "current_body_sha256": "8627749aa0ac928f282befe5f786aced5af1c119311d9f1c7b85a52ff44c5c8e",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.exact_keys_v1",
+        "native_body_sha256": "a02289cbcfa0f637909c1c978140d6a899bc05e33d7d5cf29683c38ab42a4802",
+        "current_body_sha256": "a02289cbcfa0f637909c1c978140d6a899bc05e33d7d5cf29683c38ab42a4802",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.guard_source_v1",
+        "native_body_sha256": "25bad5d8d249e4fcfd41f5a8b9e593efbea65849cfc6549f50014bf858959d20",
+        "current_body_sha256": "25bad5d8d249e4fcfd41f5a8b9e593efbea65849cfc6549f50014bf858959d20",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.immutable_v1",
+        "native_body_sha256": "cea9862620fb3062c9c61fc2fc97eae780797bf5d84333c6b5eb5113f58d616e",
+        "current_body_sha256": "cea9862620fb3062c9c61fc2fc97eae780797bf5d84333c6b5eb5113f58d616e",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.legacy_retry_item_v1",
+        "native_body_sha256": "0586242e8d8a449a35293146067a449aeadf21689b2da5f304f438a05117224a",
+        "current_body_sha256": "0586242e8d8a449a35293146067a449aeadf21689b2da5f304f438a05117224a",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.lock_attribution_v1",
+        "native_body_sha256": "7c86bdc3c0bb583994ba936e7dc11eaa0e7bfe169f1f7d4cbedc81ba9a4cfb0d",
+        "current_body_sha256": "7c86bdc3c0bb583994ba936e7dc11eaa0e7bfe169f1f7d4cbedc81ba9a4cfb0d",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.lock_storage_graph_v1",
+        "native_body_sha256": "f949ad8d5c5001995de611181e09b7ca37759e901640c9724b416150d65a2c3e",
+        "current_body_sha256": "f949ad8d5c5001995de611181e09b7ca37759e901640c9724b416150d65a2c3e",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.persist_consumption_before_actor_v1",
+        "native_body_sha256": "a3c729f3a25b58ecdeb2a8acb3b4e844fde74a3ca21201db76011a887d7fcb82",
+        "current_body_sha256": "a3c729f3a25b58ecdeb2a8acb3b4e844fde74a3ca21201db76011a887d7fcb82",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.persist_consumption_before_precision_v1",
+        "native_body_sha256": "2771766988ac40df2613f603e474333469a53a8a08545a1706a2f42fc7d6316f",
+        "current_body_sha256": "2771766988ac40df2613f603e474333469a53a8a08545a1706a2f42fc7d6316f",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.persist_series_legacy_v1",
+        "native_body_sha256": "45c99b287b87a59dfee6c8e36289bd4d9da630a1b31c0db5e98ee23e08d300a1",
+        "current_body_sha256": "45c99b287b87a59dfee6c8e36289bd4d9da630a1b31c0db5e98ee23e08d300a1",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.persist_series_v1",
+        "native_body_sha256": "c36437d8c703996de84ddfe16cf3cf94113642632d959f6f8c98309dd95a3d82",
+        "current_body_sha256": "c36437d8c703996de84ddfe16cf3cf94113642632d959f6f8c98309dd95a3d82",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.persist_series_v2",
+        "native_body_sha256": "73a63ece72366c2223f8abe17b333ed2639a5c3e86f1cfed04640fcb28ca2f66",
+        "current_body_sha256": "73a63ece72366c2223f8abe17b333ed2639a5c3e86f1cfed04640fcb28ca2f66",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.preserve_committed_projection_v1",
+        "native_body_sha256": "89bdfa7571f08a39a4c2b9cac41ead54ef854a3b9d78281d93f9e564a1029e62",
+        "current_body_sha256": "89bdfa7571f08a39a4c2b9cac41ead54ef854a3b9d78281d93f9e564a1029e62",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.require_current_esco_storage_v1",
+        "native_body_sha256": "1c30339d0297b5a067793e43d2d021b04adddcb7506ceae54988ce32101785a0",
+        "current_body_sha256": "1c30339d0297b5a067793e43d2d021b04adddcb7506ceae54988ce32101785a0",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.require_execution_actor_v1",
+        "native_body_sha256": "ab4f81cc5a4073ad93d4e8e88a07687a59f80e008d92aecd233bf5c075015085",
+        "current_body_sha256": "ab4f81cc5a4073ad93d4e8e88a07687a59f80e008d92aecd233bf5c075015085",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.require_positive_storage_authority_v1",
+        "native_body_sha256": "b32c143a6372e89df4ebc4c58a5c60190b0210a3fdba48efcd2f9bd08227e792",
+        "current_body_sha256": "b32c143a6372e89df4ebc4c58a5c60190b0210a3fdba48efcd2f9bd08227e792",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.source_context_v1",
+        "native_body_sha256": "646702274ee5a7c104faee659d7fd135e9e75e3411f8ea6c50d10393805394e1",
+        "current_body_sha256": "646702274ee5a7c104faee659d7fd135e9e75e3411f8ea6c50d10393805394e1",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.stored_contract_v1",
+        "native_body_sha256": "74030ca2d73c52e6318a38544ad24b0d5b1a4bdc22cefa5287d7b728c10562ed",
+        "current_body_sha256": "74030ca2d73c52e6318a38544ad24b0d5b1a4bdc22cefa5287d7b728c10562ed",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.supported_point_v1",
+        "native_body_sha256": "0b0ff39f582d548c70c06e7e158d219ee9976db7b2686abf5e504608a0b21aa8",
+        "current_body_sha256": "0b0ff39f582d548c70c06e7e158d219ee9976db7b2686abf5e504608a0b21aa8",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.unowned_regulating_object_v1",
+        "native_body_sha256": "f2639e556c4e9a8b84baeb80490b4ebf37a88f31814d8f188c2b921c80472967",
+        "current_body_sha256": "f2639e556c4e9a8b84baeb80490b4ebf37a88f31814d8f188c2b921c80472967",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.valid_rejected_item_v3",
+        "native_body_sha256": "e6a0d681ebef3e0512cd8a0b714043111580b2073d534d69991562191529d142",
+        "current_body_sha256": "e6a0d681ebef3e0512cd8a0b714043111580b2073d534d69991562191529d142",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.valid_transaction_reference_v2",
+        "native_body_sha256": "cbb4c2e17341328e7ddd29bf0c5921d52fef5aa76ed608cf9f604e33705ab3c0",
+        "current_body_sha256": "cbb4c2e17341328e7ddd29bf0c5921d52fef5aa76ed608cf9f604e33705ab3c0",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.validate_contract_base_v1",
+        "native_body_sha256": "3ffb440822b6da78b9c53603fb4671d83ead250f1d3dee97fc9af07f3d1b895a",
+        "current_body_sha256": "3ffb440822b6da78b9c53603fb4671d83ead250f1d3dee97fc9af07f3d1b895a",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.validate_contract_v1",
+        "native_body_sha256": "a2a4caefe7b2a0de50d8366fc9f69b205ff36332b711f3ec1bccdb7dc12e2d61",
+        "current_body_sha256": "a2a4caefe7b2a0de50d8366fc9f69b205ff36332b711f3ec1bccdb7dc12e2d61",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.validate_decimal_source_v2",
+        "native_body_sha256": "7d662281527e7a1717fe3aa3e848c8c7041e6a649d1749dd7684aa7f49ed7ccc",
+        "current_body_sha256": "7d662281527e7a1717fe3aa3e848c8c7041e6a649d1749dd7684aa7f49ed7ccc",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.validate_legacy_contract_v1",
+        "native_body_sha256": "3327c9a969853008910be0f6751c60803e28ac590d3c9de925b93b5083d09373",
+        "current_body_sha256": "3327c9a969853008910be0f6751c60803e28ac590d3c9de925b93b5083d09373",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.validate_rejected_contract_v3",
+        "native_body_sha256": "ca3091e92287336b926bd6c93c9ff5f22741c31be51667fd50e59f56ecbc4764",
+        "current_body_sha256": "ca3091e92287336b926bd6c93c9ff5f22741c31be51667fd50e59f56ecbc4764",
+        "equal": true
+      },
+      {
+        "name": "gridex_utilts_binding.wire_tokens_v1",
+        "native_body_sha256": "5ab1c1f6c18e19c8cc4861809d8615c3b5c5d77a52f16dd3bb39dec060f30cde",
+        "current_body_sha256": "5ab1c1f6c18e19c8cc4861809d8615c3b5c5d77a52f16dd3bb39dec060f30cde",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_beneficiary_series_page_v1",
+        "native_body_sha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+        "current_body_sha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_coordinate_service_permission_v1",
+        "native_body_sha256": "5ebfa3180d67375f56f0d20c0d10e6c016c26566fb1dfb01bb1614fada325ada",
+        "current_body_sha256": "5ebfa3180d67375f56f0d20c0d10e6c016c26566fb1dfb01bb1614fada325ada",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_permission_source_is_current_v1",
+        "native_body_sha256": "30a99caef7fa0c122e787364c4af259ef597bbebb4208b194943039c3be2d833",
+        "current_body_sha256": "30a99caef7fa0c122e787364c4af259ef597bbebb4208b194943039c3be2d833",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_administration_command_v1",
+        "native_body_sha256": "cf396b368bd04ac291d33cfdde28d4b2f0f0a81c0dbf980419406d48bb261179",
+        "current_body_sha256": "cf396b368bd04ac291d33cfdde28d4b2f0f0a81c0dbf980419406d48bb261179",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_administration_read_v1",
+        "native_body_sha256": "1ace7fb596f624a6c104970b72c4506e27b70b9d60819c12f680f1c19dc59c8b",
+        "current_body_sha256": "1ace7fb596f624a6c104970b72c4506e27b70b9d60819c12f680f1c19dc59c8b",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_assignment_assessment_v1",
+        "native_body_sha256": "22afa6337ee3f7d5cb1d9bc4f188937aa58082e40214f19f0b8435d2a6befac2",
+        "current_body_sha256": "22afa6337ee3f7d5cb1d9bc4f188937aa58082e40214f19f0b8435d2a6befac2",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_evidence_immutable_basis_v1",
+        "native_body_sha256": "045f6bf5b7ec71df812aa8d30e305a58acd2cd52edbb5a70fb2c6eb582270b05",
+        "current_body_sha256": "045f6bf5b7ec71df812aa8d30e305a58acd2cd52edbb5a70fb2c6eb582270b05",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_history_record_v1",
+        "native_body_sha256": "7fe865d9b0c43273dee8ea815e817003da89ce6e6c3e2b33c2ec926e4cccf419",
+        "current_body_sha256": "7fe865d9b0c43273dee8ea815e817003da89ce6e6c3e2b33c2ec926e4cccf419",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_permission_manual_context_v1",
+        "native_body_sha256": "0877c48909b7d0d28ebba1c0206e9a09c1b93991740715fc0e1df54a26880ef2",
+        "current_body_sha256": "0877c48909b7d0d28ebba1c0206e9a09c1b93991740715fc0e1df54a26880ef2",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_permission_manual_options_v1",
+        "native_body_sha256": "0a17cc6262eb283d9bfd822d9fc5b058a9c881ca4981008c3672872bbe82d3f2",
+        "current_body_sha256": "0a17cc6262eb283d9bfd822d9fc5b058a9c881ca4981008c3672872bbe82d3f2",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_permission_message_basis_v1",
+        "native_body_sha256": "d14f208921a6b3ca6ce81324c4b5bbc415e92e74dc6f3f142eb3478e7cfd6948",
+        "current_body_sha256": "d14f208921a6b3ca6ce81324c4b5bbc415e92e74dc6f3f142eb3478e7cfd6948",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_permission_origin_v1",
+        "native_body_sha256": "be559657dbac13e3b0bb7ad30cdf57fce94ff4c29e8a4c5a9e1aef732bacfe62",
+        "current_body_sha256": "be559657dbac13e3b0bb7ad30cdf57fce94ff4c29e8a4c5a9e1aef732bacfe62",
+        "equal": true
+      },
+      {
+        "name": "public.ediel_service_scope_guard_v1",
+        "native_body_sha256": "9e1cfb0a75031405ec18c7f511e79e2f37e1ab3cc369d6b80772cab23e1f695f",
+        "current_body_sha256": "9e1cfb0a75031405ec18c7f511e79e2f37e1ab3cc369d6b80772cab23e1f695f",
+        "equal": true
+      }
+    ],
+    "transitive_TS_qualification": {
+      "total": 359,
+      "unchanged": 351,
+      "changed": [
+        {
+          "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+          "native_sha256": "bf8136741de13e1c617330853b428958df7c7ff83d8f4236229ca8def2cdbd80",
+          "current_sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/core/edifactEncoding.ts",
+          "native_sha256": "b9bb995a1a6072a74125bcbcc5be912ed524dcc991a8b00ddee018ded6822806",
+          "current_sha256": "77e74f0a9d7b9ec54ed8c82b087cddce9d33541585c6bd4ad901ccc629bd76b3",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+          "native_sha256": "9628d9e8f436674b860a0ede0ff8fe5039c74c72cd8d579ba87a791d820d7fbe",
+          "current_sha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/core/productionGuards.ts",
+          "native_sha256": "f8e14161ed4f2a45e5247b6464b676795da562f5d1c419749f4fc80a683cf66a",
+          "current_sha256": "061914f493794ac2b6799b963c74ca13fdd6251665e25d6587699a7e5ad45364",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/routeProfileProductionReadiness.ts",
+          "native_sha256": "f34f512b36d0d0442ac4f9c3617b2cc38e8ba4878d727f751dba1c1f4c7f66b5",
+          "current_sha256": "9126dd1453b38f5d0bc93aa5fb15bdc6ddaf32b4c35cc3f84f03653971b1fc42",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/core/routeRegistry.ts",
+          "native_sha256": "e12ae4c6d2cbc3f2e645fbcafa5e5ab14b8cc88bbb0d880e2d4786e6d080bfa6",
+          "current_sha256": "e9e36c9c2b99b2cb8086523b9ad0787830ce7777e5773c5c3de8d00d9f75441a",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/prodat/builders/profileRenderer.ts",
+          "native_sha256": "4c750f2015596a39b64e88e496bea845dca32a9bc1f6e56454cdf708d711de2b",
+          "current_sha256": "7d5eff3c51ecb817a1378d55e5821dc437017e41849bb256671d15db16471c95",
+          "equal": false
+        },
+        {
+          "path": "lib/ediel/prodat/render/segments.ts",
+          "native_sha256": "5e0b6e24dc5fc82901a266f5a983fb2b14c2164b29061da973ffcf2db078ad47",
+          "current_sha256": "b30fa5058cc1757be9ad3d52b56264c8b08ecd56fd3a660c0442e4053cd16ebe",
+          "equal": false
+        }
+      ],
+      "method": "Recursive local from/import/require resolution from native file, with normalized repo paths; compare exact Git source/current bytes",
+      "limit": "351 unchanged dependencies qualify receipt/assignment/coordinator/grant/read effects. Eight later upstream transport/UNOC/certificate changes do not modify those owners but no fresh complete current native chain is claimed."
+    },
+    "external_ports": [
+      "Synthetic issuer key and declared external issuer/representation facts, not genuine legal market custody",
+      "External SMTP provider mocked only; actual SQL owners/archives/review/canonical validation/physical ACK/storage/projections execute in original native run"
+    ],
+    "complete_scope": "Same actual market permission, independent archived/reviewed missions, one E66 accepted series/contract+physicalACK/two sealed grant scopes; end one real public assignment, ended grant denied, other current read succeeds, entire shared permission/upstream effects unchanged, zeroZ18 and provider calls remain1"
+  },
+  "fresh_checks": [
+    {
+      "name": "actual_public_caller",
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-service-administration.test.ts",
+      "result": "9/9 PASS, 0 skip",
+      "log_sha256": "6e295413612823b90b3bdb7e1395bad835fa0191386b76e9a74a6b001139e725"
+    },
+    {
+      "name": "supported_current_SQL_wrapper",
+      "command": "node --experimental-vm-modules --test --test-reporter=tap scripts/test-ediel-ten-07-scoped-projection.cjs",
+      "result": "2/2 PASS, 0 skip; scoped17+identity/current-body proof, separate14 transport-copy checks",
+      "log_sha256": "d9b3822642f1ebe92bfbb7ca228ded02581b0950be8086ab543f33bb61e6e2ec"
+    },
+    {
+      "name": "direct_SQL_output",
+      "command": "EDIEL_SQL_REPOSITORY=<own root> EDIEL_PGLITE_MODULE=<installed PGlite> node scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+      "result": "PASS23 ACK scope +21 grant set +11 provenance +17 scoped +SC004 +48 parent admin; original assertions retained",
+      "log_sha256": "fc683c0a546c68be7db1f84078cfd36bb76044ae43ecf721fdbabf3b3ac60945"
+    },
+    {
+      "name": "tests_TypeScript",
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.tests.json --noEmit",
+      "result": "PASS exit0, no diagnostics",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "scoped_ESLint",
+      "command": "node node_modules/eslint/bin/eslint.js __tests__/ediel-service-administration.test.ts scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+      "result": "PASS exit0, no diagnostics",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "frozen_integrity",
+      "command": "python3 docs/ediel/masterplan-v2/verification/verify_spec.py",
+      "result": "PASS29; generated result restored",
+      "log_sha256": "dda12fc789b66266baac11edb258690283986e4fa2fa160ac481d3a2a740a773"
+    }
+  ],
+  "environment_note": "Initial wrapper child spawn EPERM under default process restrictions; same unchanged wrapper passes with authorized child/network permission. No assertion was weakened. Node24.19.0; no broad/full/native rerun.",
+  "publication": "Push-ready on owned branch; draft PR against main; independent whole-scenario review and root mandatory current-head gates pending. Exact final Git head is reported externally to avoid self-referential receipt hashing.",
+  "technical_freeze_sha": "9c730fe0b08315a3cdf4ac22f875d550f8580cf8",
+  "technical_freeze_tree": "1263d6ae769ad0fada94d06985dd0af59d3092d5"
+}
