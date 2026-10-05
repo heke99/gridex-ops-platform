@@ -20,3 +20,9 @@
 - DB-05 guard native PASS: service_role 23001 on company and customer; rows, audit kept; both triggers enabled.
 - DB-05 offboarding native PASS (canonical_transition_tenant_lifecycle): outsider 42501; unsettled billing -> tenant_closure_blocked with nothing changed; after settling: closed, api client revoked, webhook disabled, portal identity disabled, sessions 0; customer, email, customer_events, seeded audit kept, transition audit +2; hard delete after close still 23001.
 - Remaining for DB-05 approval: (1) link retention-class purge proof (ediel-retention-sql-regression.mjs, ediel-record-retention-sql-regression.mjs, both PASS locally) into a tagged test the coverage scanner sees; (2) root decision on native-test approvals (same as DB-04); (3) root regenerates schema.sql/types for the migration. Status: CI-green on branch, not reviewed, not merged, coverage unchanged.
+
+## 2026-10-05 ~13:50Z DB-05 tagged green @1a31a7d
+- New scripts/test-ediel-db-05-retention.cjs (tag DB-05, AT-DB-05) runs ediel-retention-sql-regression.mjs (9 PASS) and ediel-record-retention-sql-regression.mjs (10 PASS); __tests__/db-05-hard-delete-guard.test.ts tagged.
+- `npm run ediel:masterplan-v2:test-coverage -- --check` exit 0: 352 IDs, 213 approved, 236 tagged green, 0 failing; DB-05/AT-DB-05 listed "tagged green, not yet approved".
+- coverage.json NOT changed. Approval waits on: independent review of the whole card, root schema.sql/types regen for migration 20261005130000, and root answer on native-only evidence (DB-04).
+- Next: request independent review on #530; nothing else claimed.
