@@ -227,3 +227,43 @@ This footer alone changes the final documentation commit; root now publishes
 normally and requires fresh exact-head ordinary CI. Earlier1f npm-test FAILURE
 is retained historically and is not relabeled PASS. No full/native/capture rerun
 or hosted action was dispatched by this local composition.
+
+
+## Root final website-cluster composition, 20:38 UTC
+
+Actual admitted main2964415adec9e36932583e95f8506437d262c507 has one5cde
+parent: #608 was squash-delivered. Its original ENV07 blob45437dfb and canonical
+SC068 blob2f32623b are retained exactly. The alternative #610 proposal was
+closed as superseded by its original owner; its historical CI is not acceptance.
+
+Normal main carry producedb9e57ba0bb14841ba6a775679911cb27df206159
+(parentsad2110e4,2964415a); normal merge of the independently reviewed local
+primary-client commit3985896f83f53acadd6d3c210a03b43445aacd04 produced
+fa570d02c2d6ee4744acc958be1ddd91eac2d2b9/treeb36cfee5d8ea41915b65b2fbbdf5242d9e5eea85.
+Only eleven owned paths differ from main; all8,620foreign mode/type/blob entries,
+entire coverage, SQL, generated/provenance/runtime and admitted fixtures match
+that actual main. Source-only peer SC047 approved this exact composition in
+/tmp/gridex-pr606-296-primary-composition-independent-review-20261005.{md,json}.
+
+The added five-path primary-client fix preserves SQL's exact projected JSON text
+semantics and active-before-paused selection under row caps. Both actual summary
+and server action choose the eligible production primary; a secondary cannot
+supply its rate. Malformed/missing text projections fail closed. Actual provisioning
+and canonical RPC/SQL authority are unchanged. The standalone local398 history,
+original branches and all earlier qualification remain preserved.
+
+One required bounded qualification of this changed composition completed with
+195 tests PASS across15files (20:30:42 UTC,17.82seconds). App and test TypeScript
+both completed exit0 with no diagnostics. Scoped ESLint exit0: zero errors and
+the same two pre-existing unused-variable warnings. Logs are
+/tmp/gridex-pr606-296-primary-composed-{tests,app-types,test-types,lint}-20261005.log.
+The independent primary five-path source freeze0189726d and63actual-consumer
+cases plus12existing hardening PASS are preserved; there is no native write or
+query-to-RPC atomicity claim. Original150/148/146 unique remaining criteria HOLD.
+
+This append changes only this own checkpoint; its full earlier prefix and all
+other ten owned blobs remain exact. Root publishes on existing #606, requires
+fresh ordinary resulting-head CI, and uses the retained serial-main merger lane.
+Oldad211 ENV07/full-coverage failures remain historical; no full/native/capture,
+hosted activation, new primary PR, replacement fixture or extra producer was
+run by this composition.
