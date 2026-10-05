@@ -26,8 +26,13 @@
     {
       "id": "GOV-03",
       "acceptance_id": "AT-GOV-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/versionSelector.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/core/ackSourceRulePackEvidence.ts",
+        "__tests__/ediel-gov-03-aperak-source-family.test.ts"
+      ]
     },
     {
       "id": "GOV-04",
@@ -281,8 +286,20 @@
     {
       "id": "ENV-01",
       "acceptance_id": "AT-ENV-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/smime.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "__tests__/ediel-env01-unoc-text.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-envelope-byte-integrity.test.ts",
+        ".agent-memory/masterplan-env01-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-02",
@@ -535,12 +552,16 @@
     {
       "id": "P-15",
       "acceptance_id": "AT-P-15",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-received-structure-reader.test.ts",
         "__tests__/ediel-received-structure-reader-boundaries.test.ts",
         "__tests__/ediel-prodat-registers.test.ts",
-        "__tests__/ediel-structural-safe-apply-source.test.ts"
+        "__tests__/ediel-structural-safe-apply-source.test.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/sources/qualifiedCustomerStructure.ts",
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
       ]
     },
     {
@@ -914,11 +935,14 @@
     {
       "id": "U-09",
       "acceptance_id": "AT-U-09",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-utilts-consumption-contract.test.ts",
         "__tests__/ediel-utilts-quantity-precision.test.ts",
-        "__tests__/ediel-utilts-s02-required-scope.test.ts"
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/consumptionEstimate.ts",
+        "__tests__/ediel-u-09-estimate-never-actual.test.ts"
       ]
     },
     {
@@ -927,7 +951,11 @@
       "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
-        "__tests__/ediel-u-10-interval-count.test.ts"
+        "__tests__/ediel-u-10-interval-count.test.ts",
+        "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
+        "lib/ediel/utilts/resolution.ts",
+        "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts"
       ]
     },
     {
@@ -1067,8 +1095,15 @@
     {
       "id": "TR-06",
       "acceptance_id": "AT-TR-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "TR-07",
@@ -1221,8 +1256,18 @@
     {
       "id": "OPS-02",
       "acceptance_id": "AT-OPS-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/operations/processNextAction.ts",
+        "lib/customer-operations/customerCardWorkflow.ts",
+        "lib/customer-operations/infoRequestProcessQueue.ts",
+        "app/admin/customers/[id]/page.part-4.tsx",
+        "app/admin/work-queue/page.tsx",
+        "components/admin/customers/CustomerBusinessActionsCard.tsx",
+        "components/admin/customers/CustomerDataRequestsCard.tsx",
+        "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
+        "__tests__/ediel-process-next-action.test.ts"
+      ]
     },
     {
       "id": "OPS-03",
@@ -1625,8 +1670,12 @@
     },
     {
       "id": "SC-049",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-u-08-esco-partial-structure.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts",
+        "lib/ediel/utiltsEngine.ts"
+      ]
     },
     {
       "id": "SC-050",
@@ -1640,8 +1689,12 @@
     },
     {
       "id": "SC-052",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+        "__tests__/ediel-u-06-request-application-reference.test.ts",
+        "lib/ediel/rulebook/utiltsApplicationReference.ts"
+      ]
     },
     {
       "id": "SC-053",
@@ -1680,8 +1733,15 @@
     },
     {
       "id": "SC-060",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "SC-061",
@@ -1790,8 +1850,13 @@
     },
     {
       "id": "AT-GOV-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/versionSelector.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/core/ackSourceRulePackEvidence.ts",
+        "__tests__/ediel-gov-03-aperak-source-family.test.ts"
+      ]
     },
     {
       "id": "AT-GOV-04",
@@ -1987,8 +2052,20 @@
     },
     {
       "id": "AT-ENV-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/smime.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "__tests__/ediel-env01-unoc-text.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-envelope-byte-integrity.test.ts",
+        ".agent-memory/masterplan-env01-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-02",
@@ -2184,8 +2261,12 @@
     },
     {
       "id": "AT-P-15",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-received-structure-reader.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
+      ]
     },
     {
       "id": "AT-P-16",
@@ -2452,15 +2533,21 @@
     },
     {
       "id": "AT-U-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-u-09-estimate-never-actual.test.ts"
+      ]
     },
     {
       "id": "AT-U-10",
       "status": "PASSED",
       "evidence": [
         "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
-        "__tests__/ediel-u-10-interval-count.test.ts"
+        "__tests__/ediel-u-10-interval-count.test.ts",
+        "__tests__/ediel-utilts-monthly-resolution-offset.test.ts",
+        "lib/ediel/utilts/resolution.ts",
+        "__tests__/ediel-utilts-monthly-consumption-offset.test.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts"
       ]
     },
     {
@@ -2580,8 +2667,15 @@
     },
     {
       "id": "AT-TR-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "AT-TR-07",
@@ -2716,8 +2810,18 @@
     },
     {
       "id": "AT-OPS-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/operations/processNextAction.ts",
+        "lib/customer-operations/customerCardWorkflow.ts",
+        "lib/customer-operations/infoRequestProcessQueue.ts",
+        "app/admin/customers/[id]/page.part-4.tsx",
+        "app/admin/work-queue/page.tsx",
+        "components/admin/customers/CustomerBusinessActionsCard.tsx",
+        "components/admin/customers/CustomerDataRequestsCard.tsx",
+        "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
+        "__tests__/ediel-process-next-action.test.ts"
+      ]
     },
     {
       "id": "AT-OPS-03",

@@ -63,7 +63,7 @@ function requestBlockerDetail(request: CustomerInfoRequestRow, key: string): str
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function simpleStatus(request: CustomerInfoRequestRow): {
+export function simpleStatus(request: CustomerInfoRequestRow): {
   label: string;
   className: string;
   description: string;
@@ -113,9 +113,11 @@ function simpleStatus(request: CustomerInfoRequestRow): {
     case "waiting_for_z02":
     case "manual_review_required":
       return {
-        label: value === "manual_review_required" ? "Uppgiftsbegäran kräver granskning" : "Svar inväntas",
+        label: value === "manual_review_required" ? "Uppgiftsbegäran kräver granskning" : "Registrerad som skickad",
         className: "bg-amber-100 text-amber-700",
-        description: "Systemet väntar på svar eller granskning.",
+        description: value === "manual_review_required"
+          ? "Begäran behöver granskas."
+          : "Registrerad status för begäran. Vad systemet väntar på och nästa åtgärd visas från processbeslutet i kundöversikten.",
       };
     case "z02_received":
     case "completed":

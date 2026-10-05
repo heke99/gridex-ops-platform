@@ -5,7 +5,7 @@
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
   "latest_migration": "20261004175536_ediel_dsn_encoded_source_identity.sql",
   "latest_migration_schema_effect": "Actual composed staff499 + TEN09 + TR04 forward prefix captured in run37229361560 at98da39ab; all three generated artifacts imported byte-for-byte. Native/browser/upgrade/parity remain separate mandatory gates.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-04T19:56:15.893941+00:00",
@@ -102,5 +102,46 @@
     "published_artifact_digest": "sha256:f5d80f256f4b57e895a9a1be3adf396a8ff29f749695a631fc5c4a1ea49c7600",
     "raw_receipt_sha256": "414dc3694b4663935782b360d357086522eeb651a763f152cfe80cca1ff12dba"
   },
-  "composition_note": "Actual composed prefix capture complete; final-head required native/browser/upgrade/parity remain pending."
+  "composition_note": "Actual merged main507 (#4910796 and #500858) and retained TR04 source5016bb are composed. Original501 capture object and its three generated raw artifacts are retained unchanged; this is not a fresh composed capture. Staff205603/205816 and DSN175536 source are preserved. Authentic composed-prefix capture and required current-head native/browser/upgrade/schema/type/parity gates remain pending.",
+  "upstream_main_manifest": {
+    "commit": "507e8bfa20606be31933eea1582066267ff2577a",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "502cb4515098eaa4aa8c9b593cd3c8520e773e42",
+    "sha256": "ec3346fe4b0ebb28ca1054437f3434e3819120b6a192a9df730dd5b2ede208f3",
+    "capture_checkout_sha": null,
+    "purpose": "immutable original main provenance pointer; no relabeled capture"
+  },
+  "current_prefix_verification": {
+    "kind": "mandatory_actual_composed_head_proof",
+    "parents": [
+      "6bb3cdd9a2cb13e07d40d4aba09fdada96a2ba8e",
+      "507e8bfa20606be31933eea1582066267ff2577a"
+    ],
+    "latest_source_migration": "20261004205816_support_attachment_quarantine_carrier.sql",
+    "retained_dsn_manifest": {
+      "commit": "6bb3cdd9a2cb13e07d40d4aba09fdada96a2ba8e",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "b5c1acc2994e4ef9803c87d5bedc6cadf2608961",
+      "sha256": "7b378aaa36e27bb7c23eaada44a5a496727a8c41f205e0d94f7555a83ae7fb6d"
+    },
+    "source_migrations": [
+      {
+        "name": "20261004175536_ediel_dsn_encoded_source_identity.sql",
+        "sha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985"
+      },
+      {
+        "name": "20261004205603_staff_customer_retention_read_prerequisite.sql",
+        "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+      },
+      {
+        "name": "20261004205816_support_attachment_quarantine_carrier.sql",
+        "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+      }
+    ],
+    "requirements": [
+      "Bind actual checkout head/tree, all eight replay inputs, latest migration and three generated raw outputs.",
+      "Import only genuine changed capture bytes; preserve original501 and main capture origins.",
+      "Current required clean and upgrade native/browser/schema/type/parity and release checks must pass."
+    ]
+  }
 }

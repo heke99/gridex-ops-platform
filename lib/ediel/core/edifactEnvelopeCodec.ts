@@ -1,4 +1,4 @@
-import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
+import { assertEdifactUnocText } from '@/lib/ediel/core/edifactEncoding'
 import { edifactMessageReferenceMaximum } from '@/lib/ediel/core/edifactReferenceConstraints'
 import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -75,8 +75,23 @@ function trimOrNull(value: unknown): string | null {
 }
 
 function sanitizeSegment(value: string): string {
-  const segment = String(value ?? '').replace(/\r?\n/g, '').trimStart()
+  const original = String(value ?? '')
+  const segment = original.replace(/\r?\n/g, '').trimStart()
   if (!segment) throw new Error('edifact_empty_business_segment')
+  // Builders may supply presentation CRLF around a terminated segment. Only
+  // that framing can be removed; inline CRLF belongs to the original value.
+  let data = ''
+  let inSegment = false
+  let released = false
+  for (const char of original) {
+    if ((char === '\r' || char === '\n') && !inSegment && !released) continue
+    data += char
+    if (released) { released = false; continue }
+    if (char === DEFAULT_UNA.releaseCharacter) { released = true; inSegment = true }
+    else if (char === DEFAULT_UNA.segmentTerminator) inSegment = false
+    else if (char !== ' ') inSegment = true
+  }
+  assertEdifactUnocText(data)
   const tag = segment.split('+', 1)[0]?.toUpperCase()
   if (tag && ENVELOPE_TAGS.has(tag)) {
     throw new Error(`edifact_business_segment_contains_envelope_tag:${tag}`)
@@ -186,6 +201,17 @@ function parseParty(parts: string[]): {
 
 export class EdifactEnvelopeCodec {
   static encode(input: EdifactEnvelopeEncodeInput): string {
+    // Validate original values before trim/newline normalization can erase an
+    // unsupported source character. No conversion or source mutation is allowed.
+    for (const value of [input.sender, input.receiver, input.senderQualifier, input.receiverQualifier,
+      input.senderSubAddress, input.receiverSubAddress, input.interchangeReference, input.applicationReference]) {
+      if (value != null) assertEdifactUnocText(value)
+    }
+    for (const message of input.messages) {
+      for (const value of [message.messageReference, message.messageTypeToken]) {
+        assertEdifactUnocText(value)
+      }
+    }
     if (input.messages.length === 0) throw new Error('edifact_at_least_one_message_required')
     if (typeof input.acknowledgementRequest !== 'boolean') {
       throw new Error('edifact_acknowledgement_request_required')
@@ -209,7 +235,7 @@ export class EdifactEnvelopeCodec {
       `UNZ+${input.messages.length}+${escapeEdifactData(interchangeReference)}`,
     ]
     const payload = `${serializeUna(una)}${segments.map(segment => `${encodeCanonicalSegment(segment, una)}${una.segmentTerminator}`).join('')}`
-    assertEdifactLatin1Representable(payload)
+    assertEdifactUnocText(payload)
     return payload
   }
 

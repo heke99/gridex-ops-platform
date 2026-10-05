@@ -1,7 +1,8 @@
-import {beforeEach,describe,expect,it,vi} from 'vitest'
-const io=vi.hoisted(()=>({registry:vi.fn(),runtime:vi.fn(),take:vi.fn(),unavailable:false,functional:false}))
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
+const io=vi.hoisted(()=>({registry:vi.fn(),runtime:vi.fn(),take:vi.fn(),rpc:vi.fn(),unavailable:false,functional:false}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:io.registry}))
 vi.mock('@/lib/ediel/utiltsEngine',()=>({runUtiltsRuntimeForMessage:io.runtime,takeUtiltsRuntimeOwner:io.take}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
 import {resolveCanonicalRuntimeDecisionWithRegistry,finalizeCanonicalUtiltsRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 
@@ -12,7 +13,16 @@ function runtime(){if(io.functional)return {validation:{classification:'processa
  ackPlan:{shouldSendAperak:true,aperakOutcome:'negative',aperakApplicationErrors:[error],utiltsHeaderRejection:{applicationErrors:[error]},reason:'Actual own header error',shouldSendUtiltsErr:false,...(io.unavailable?{aperakSourceTextUnavailable:true}:{})},
 }}
 beforeEach(()=>{io.unavailable=false;io.functional=false;io.runtime.mockReset();io.take.mockReset();io.registry.mockReset();io.runtime.mockImplementation(runtime);io.take.mockImplementation(value=>value);
+ // This projection-only test declares the missing source-read port as held,
+ // not qualified market authority. The actual issuer owner still validates it.
+ io.rpc.mockReset();io.rpc.mockResolvedValue({data:null,error:null})
  io.registry.mockResolvedValue({profileKey:'utilts_e66',databaseProfileKey:'UTILTS:E66:E5SE5A:3',messageProfileId:'p',rulePackId:'r',sourceHash:'a'.repeat(64),originalVersion:'25-A-3:r3',originalSnapshot:{rulePack:{id:'r',guide_version:'25-A-3',guide_revision:'3'},messageProfile:{id:'p',profile_key:'UTILTS:E66:E5SE5A:3'},guideSources:[]}})
+})
+afterEach(()=>{
+ const message=energyHandoffMessage()
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('gridex_read_utilts_issuer_identity_authority_v1',{
+  p_company_id:message.company_id,p_message_id:message.id,
+ })
 })
 describe('same-invocation UTILTS physical-header projection',()=>{
  it('retains only actual own national functional response details through initial and final without another rule pass',async()=>{
