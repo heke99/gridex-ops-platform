@@ -1,6 +1,6 @@
 # SC-021 — durable denial to prescribed processing ACK
 
-Status: FROZEN for parent/independent review at 2026-10-05 00:40 UTC. Four coupled behavioral cases PASS; no scenario promotion or whole ESCO-05/native/live approval inferred.
+Status: whole SC-021 code-contract APPROVE after parent review and independent exact-source execution; current-head CI and merge remain pending.
 
 ## Ownership and immutable baseline
 
@@ -100,3 +100,10 @@ env PATH=/tmp/masterplan-tr06-node-cache/_npx/d18f28baf1132559/node_modules/node
 - No confirmed product defect; earlier failures were explicitly documented fixture/source-port/typing construction failures. No production/SQL/shared fixture changes, acceptance tags, coverage, commits or pushes.
 
 Next action: root and independent reviewer inspect both frozen files/whole SC021 literal and execute the focused four cases once if needed; retain the explicit finite-port/Integration mechanics boundary when deciding scenario promotion. No whole ESCO-05, native admission/durability/authentic source/RLS/TGT/certification, or live counterparty/send approval follows from this packet. Do not mutate this frozen packet without finding-specific coordination.
+
+
+## Root independent approval and publication boundary — 2026-10-05
+
+The unchanged two-file owner freeze was committed as `24b66bd0f58db4095d9fc7d7334b8f2ea2ebe12c`, tree `209b3b10f21d594c2f7dd1552113ae594cde170c`. Parent inspected the complete frozen given/when/expected/prohibited and actual producer/consumer chain, not just mock call counts. A detached exact-commit reviewer checkout executed the focused four cases once: **4/4 plus61 original SQL and15 composition checks PASS**, no skips. Test/checkpoint hashes before/after equal the owner freeze. Independent log `/tmp/masterplan-sc021-independent-four.log`, SHA256 `30c130f17f9d5870be7d9b51265e9bf6f14ae63aad5a84c579bfb020beabddc8`; reviewer checkout remains clean.
+
+Whole scenario code APPROVE: valid A13/A76 have distinct durable denials, accepted syntax/application and receipt-derived prescribed positive CONTRL/APERAK/ERC100 with actual queued IDs/physical LI/hash. Missing or wrong-source national-guide IO holds the business ACK while the independent legitimate CONTRL remains; no fabricated negative, permission/access/supply/original rewrite. Only the first-line SC-021 tag and this scenario's PASSED evidence row are promoted; every assertion and other row remains unchanged. ESCO-05/AT and all native/market/source-custody/SMTP qualifications remain separately owned and unpromoted. Next: supported tag/spec checks, publish the three-file packet, require all nine final-head CI gates and the retained shared merge window. No monthly variant or foreign coverage is imported.

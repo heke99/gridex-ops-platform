@@ -1090,8 +1090,15 @@
     },
     {
       "id": "SC-021",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql"
+      ]
     },
     {
       "id": "SC-022",

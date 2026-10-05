@@ -1,4 +1,4 @@
-// SC-021 candidate: current SQL + actual coordinator/ACK consumers; no native/live authority claim.
+// masterplan: SC-021
 import { createHash } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
