@@ -153,5 +153,15 @@
   "remainingOwners": {
     "SC-010": "grant-revalidation-20261005, claim5991253973",
     "SC-071": "revocation-20261005, claim5991278834; explicit handoff5991386261"
-  }
+  },
+  "adoptedMain": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "currentSourceCompositionCommit": "9c169d20e18337140f0b289516479a12fa073c40",
+  "currentMainCarry": {
+    "reviewedInputs": 19,
+    "unchanged": 18,
+    "changedOnly": "quality/audits/ediel-masterplan-v2/coverage.json",
+    "coverage": "adopted byte-exact from current main; no owned approval edit",
+    "proof": "each source compared via git show origin/main:path and SHA-256 against reviewed receipt; all technical files unchanged"
+  },
+  "currentCi": "PENDING_PUBLICATION; no exact-head CI or main merge is claimed"
 }
