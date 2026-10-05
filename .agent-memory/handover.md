@@ -1,3 +1,10 @@
+## Actual documentation deliveries — 2026-10-05T18:15:00Z
+
+Actual601/602 are recorded exactly once from GitHub commit/PR custody, consuming retained requests5306000092590/6000168488. Current996 is a working base; the separate SC068 fixture correction remains author-exclusive and pending actual admission. Frozen913 remains8/9 with authentic clean running. Final common baseline/tag writer is unchanged.
+
+- ACTUAL MAIN MERGE PR #601: `1aeccc7cc92c10c8e6781026e42e834d25023802`; tree `ff36e85baf79d62ea81fb9abf85517264515bfa3`; parents `8451f013837c8b4b198ad2c5490cc2a54ab847ff` + `3ced652fbe3e7e13f2411a0bec4a5754c7c53d9f`; documentation only, no rule promotion. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/601).
+- ACTUAL MAIN MERGE PR #602: `99676683338e11e60666345782609a822de9181e`; tree `0b1d98ccac00c4cb84e2385bcfc44c09d693fc42`; parents `1aeccc7cc92c10c8e6781026e42e834d25023802` + `d51028b12c1a43184ef35da1f3ec0f7c1a8c9076`; documentation only, no rule promotion. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/602).
+
 ## Actual next serial deliveries — 2026-10-05T17:55:00Z
 
 Four additional actual main deliveries, authenticated from first-parent history, recorded once. Consumes sole common-writer requests5305998669478 and5999925375. Main8451 stores254 approvals. Source913 is still frozen at8/9 required success; this record is not final-main CI/tag certification. Earlier eighteen actual lines remain exact below.
