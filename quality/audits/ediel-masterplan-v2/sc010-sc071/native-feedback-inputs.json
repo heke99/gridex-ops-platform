@@ -41,11 +41,12 @@
   ],
   "ordinary_candidate_gates": "remain mandatory FAIL/PENDING until retained root admission and authentic capture; unchanged",
   "owner_acceptance": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993523187",
-  "latest_actual_main_example": "607ea6773ac9bdcbd97d3801276cea1a896a8398; owner pins chosen BASE and authentic replay receipts independently",
+  "latest_actual_main_example": "505e20637d5b8e1bcffab5f1f1971154dec5622d; owner independently pins authentic BASE and exact complete replay inputs",
   "own_expected_native_case_names": [
     "SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload",
     "SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values",
     "SC010 lease expires during a real results write lock wait and rolls back result, completion and receipt together",
     "SC010 lease expires during a real jobs write lock wait and rolls back result, completion and receipt together"
-  ]
+  ],
+  "input_review_ack": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993759827"
 }
