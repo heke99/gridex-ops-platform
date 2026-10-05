@@ -1,0 +1,11 @@
+{"head":"2a96780497eb102527f514103c608f0ec0b3a1a3","compiler":"5.9.3","node":"v22.23.0","rootCount":113,"sourceFileCount":1591,"overlayReads":0,"overlaySources":1,"errorCount":9,"targetErrorCount":9,"nonTargetErrorCount":0,"exitCode":1}
+scripts/ediel-service-evidence-native.test.ts(428,92): error TS2339: Property 'grantId' does not exist on type 'void'.
+scripts/ediel-service-evidence-native.test.ts(428,221): error TS2339: Property 'grantId' does not exist on type 'void'.
+scripts/ediel-service-evidence-native.test.ts(444,25): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+scripts/ediel-service-evidence-native.test.ts(444,82): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+scripts/ediel-service-evidence-native.test.ts(460,48): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+scripts/ediel-service-evidence-native.test.ts(479,25): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+scripts/ediel-service-evidence-native.test.ts(479,73): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+scripts/ediel-service-evidence-native.test.ts(496,25): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+scripts/ediel-service-evidence-native.test.ts(496,73): error TS2345: Argument of type 'NativeQualification' is not assignable to parameter of type 'void'.
+

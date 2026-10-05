@@ -1,0 +1,12 @@
+--- published-v2-candidate.ts
++++ proposal-v3-candidate.ts
+@@ -143,8 +143,8 @@
+ type NativeZ14Received={permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow;decision:Awaited<ReturnType<typeof resolveCanonicalRuntimeDecisionWithRegistry>>}
+ type NativeQualification=Omit<NativeZ14Received,'decision'>&{grantId:string;representationIds:string[];artifacts:string[];hash:string}
+ type NativeZ14Hook={beforeEncode:(segments:string[],permissionId:string)=>string[];onReceived?:(input:NativeZ14Received)=>Promise<void>}
++async function qualify(f:Awaited<ReturnType<typeof seed>>,shared:undefined,evidence:undefined,hook:NativeZ14Hook&{onReceived:(input:NativeZ14Received)=>Promise<void>}):Promise<void>
+ async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},evidence?:Awaited<ReturnType<typeof archiveReviewEvidence>>,hook?:NativeZ14Hook&{onReceived?:undefined}):Promise<NativeQualification>
+-async function qualify(f:Awaited<ReturnType<typeof seed>>,shared:undefined,evidence:undefined,hook:NativeZ14Hook&{onReceived:(input:NativeZ14Received)=>Promise<void>}):Promise<void>
+ async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},evidence?:Awaited<ReturnType<typeof archiveReviewEvidence>>,hook?:NativeZ14Hook):Promise<NativeQualification|void>{
+  if(hook&&shared)throw Error('native_z14_probe_requires_fresh_request')
+  const {hash,receiptIds,artifacts}=evidence??await archiveReviewEvidence(f)

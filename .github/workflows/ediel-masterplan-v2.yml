@@ -5,6 +5,7 @@ on:
       - 'lib/ediel/**'
       - 'lib/inbound-mail/**'
       - '__tests__/ediel-*.test.ts'
+      - 'scripts/ediel-*.test.ts'
       - '__tests__/fixtures/prodat-register.ts'
       - '__tests__/fixtures/prodat-ud.ts'
       - 'docs/ediel/masterplan-v2/**'

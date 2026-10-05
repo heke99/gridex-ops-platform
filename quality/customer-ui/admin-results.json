@@ -1,0 +1,61 @@
+{
+  "scenarios": [
+    {
+      "name": "support contact entry preserves customer, phone defaults and idempotency",
+      "passed": true
+    },
+    {
+      "name": "support status requires an explicit choice and retains tenant scope",
+      "passed": true
+    },
+    {
+      "name": "support closed required fields reveal and focus before submission",
+      "passed": true
+    },
+    {
+      "name": "switch blocker remains visible and only ready switch offers completion",
+      "passed": true
+    },
+    {
+      "name": "switch menu retains validation action and fits mobile viewport",
+      "passed": true
+    },
+    {
+      "name": "switch status form retains all values and explicit save payload",
+      "passed": true
+    },
+    {
+      "name": "website blockers and next step remain visible before opening details",
+      "passed": true
+    },
+    {
+      "name": "website secondary submit action retains application and return link",
+      "passed": true
+    },
+    {
+      "name": "invoice creation consequence and billing month remain visible and scoped",
+      "passed": true
+    },
+    {
+      "name": "invoice file history exposes all three original download formats in bounded menu",
+      "passed": true
+    },
+    {
+      "name": "company legal deficiencies stay visible and nested details reveal invalid email",
+      "passed": true
+    },
+    {
+      "name": "company settings preserve edits when sections close and all form payload fields",
+      "passed": true
+    },
+    {
+      "name": "company deep link opens the requested section",
+      "passed": true
+    },
+    {
+      "name": "dashboard count failures remain visible before expanding details",
+      "passed": true
+    }
+  ],
+  "uncaughtErrors": []
+}

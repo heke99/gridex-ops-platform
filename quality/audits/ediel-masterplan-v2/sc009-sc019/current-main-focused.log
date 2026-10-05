@@ -1,0 +1,13 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc009-sc019-integration
+
+ ✓ __tests__/ediel-beneficiary-projection-provenance.test.ts (10 tests) 33ms
+ ✓ __tests__/billing-canonical-gate.test.ts (11 tests) 95ms
+ ✓ __tests__/tenant-ediel-identity-completeness.test.ts (11 tests) 44ms
+
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+   Start at  13:59:07
+   Duration  1.45s (transform 689ms, setup 101ms, import 880ms, tests 172ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-masterplan-sc009-sc019-integration/quality/audits/ediel-masterplan-v2/sc009-sc019/current-main-focused.xml

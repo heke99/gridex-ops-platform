@@ -25,6 +25,7 @@ describe('live canonical inbound persistence: synthetic native observation ports
   expect(await createInboundEdielMessage(input())).toBe(u(5))
   const inserted=h.queries.find(q=>q.table==='ediel_messages'&&q.method==='insert')!.value as Record<string,unknown>
   expect(inserted.raw_payload).toBe(raw);expect(inserted).not.toHaveProperty('original_message_id');expect(inserted.message_received_at).toBe('2026-10-01T00:00:00.000Z')
+  expect(inserted).toMatchObject({inbound_email_message_id:u(10),mailbox_message_id:u(10)})
   expect(h.rpc).toHaveBeenCalledWith('ediel_record_inbound_reception_v1',{p_company_id:u(1),p_message_id:u(5),p_actor_user_id:u(3),p_inbound_email_message_id:u(10),p_parse_result_id:u(20)})
   expect(h.queries.filter(q=>q.method==='update')).toEqual([])
  })

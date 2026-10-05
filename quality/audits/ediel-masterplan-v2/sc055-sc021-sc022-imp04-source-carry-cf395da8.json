@@ -1,0 +1,175 @@
+{
+  "decision": "APPROVE_IMP04_SOURCE_CARRY",
+  "base_main": "ebd77f59203d3d3b09ce6b613bf673fe3eb643ac",
+  "new_main": "cf395da8ca25348c01c478ce2b96b92d318affb0",
+  "new_main_tree": "51968bea95a168e3f0b9d1c2ce9239f84f90d97f",
+  "production_paths": [
+    "lib/ediel/testing/selftest.ts",
+    "lib/ediel/utilts.ts",
+    "lib/inbound-mail/smokeTests.ts"
+  ],
+  "delta_relevance": "selftest simulation UNT serializers/exports and smoke sample UNT/exports are never invoked by these cases. utilts.ts outbound draft absent subaddresses now null; that module can be statically reachable through generic inbound/kernel imports, but the changed outboundUTILTS builder is not called by SC055 existingACK/case, SC021 PRODAT\u2192CONTRL/APERAK, or SC022 internal expectations/tasks. Parsing/validation exports are unchanged.",
+  "results": [
+    {
+      "pr": 558,
+      "head": "0f8e36d92851d5b80800ce8f0fc4c7921d0e07e9",
+      "scenario": "SC-055",
+      "decision": "APPROVE_SOURCE_CARRY",
+      "owned_paths": [
+        ".agent-memory/masterplan-sc055-checkpoint.md",
+        "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+        "quality/audits/ediel-masterplan-v2/coverage.json"
+      ],
+      "test_sha256": "e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746",
+      "prior_whole_approval": "retained committed checkpoint; not re-executed",
+      "unchanged_selected_paths": [
+        {
+          "path": "lib/ediel/flows/inboundAckProcessing.ts",
+          "sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+          "git_blob": "c5aee26bd5fc281c2de5a749794ce3d1b344e0d2"
+        },
+        {
+          "path": "lib/ediel/ack/sourceCorrelation.ts",
+          "sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+          "git_blob": "2df0a9ec7647ed3953892a3c3d54238aaf0282b2"
+        },
+        {
+          "path": "lib/ediel/ack/committedInboundAck.ts",
+          "sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+          "git_blob": "51ec84a1bd2516a4d596ab77be0912715db7c4c0"
+        },
+        {
+          "path": "lib/ediel/db.ts",
+          "sha256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0",
+          "git_blob": "0771e4a820f7a9563bd5856b2d080a3fe83a6507"
+        },
+        {
+          "path": "lib/customer-cases/db.ts",
+          "sha256": "c424f867a878982f687b4418a718f7f807ddf9bfbe7019ad7856fb36a11f2dd3",
+          "git_blob": "8b9b010180eeac6d8ddf8407235f1b67e8f804d5"
+        },
+        {
+          "path": "lib/ediel/actorTestingEngine.ts",
+          "sha256": "4884e73b8406fceb5d6f29fe05f80a8750a0d6ef537852704d31b5e89db032d0",
+          "git_blob": "b08408a8af636b6d14c89a7a8caa41acb877beac"
+        },
+        {
+          "path": "scripts/ediel-ack-source-sql-regression.mjs",
+          "sha256": "a852666fb0d7805e0fb67ab7a7752c4b0ad3c50ff0bbd08d81d6868d96cfcb52",
+          "git_blob": "f001e11de2d03caa5495182549555555005f0785"
+        }
+      ]
+    },
+    {
+      "pr": 552,
+      "head": "5f7a2d832224ca09c6836b81976f73635b95da1a",
+      "scenario": "SC-021",
+      "decision": "APPROVE_SOURCE_CARRY",
+      "owned_paths": [
+        ".agent-memory/masterplan-sc021-checkpoint.md",
+        "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+        "quality/audits/ediel-masterplan-v2/coverage.json"
+      ],
+      "test_sha256": "0375ff5aa01b41b94b481100d1840332b15b92d20a9133daaea085989f0e965e",
+      "prior_whole_approval": "retained committed checkpoint; not re-executed",
+      "unchanged_selected_paths": [
+        {
+          "path": "lib/ediel/flows/inboundProcessing.ts",
+          "sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+          "git_blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5"
+        },
+        {
+          "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+          "sha256": "a2ddbcc4e917e3bce8100241d48aec026ec56297d905eca9383bfe5a83873ed4",
+          "git_blob": "3338e7b097e37d3ab88818644ddfdb8ce526e1b7"
+        },
+        {
+          "path": "lib/ediel/permissions/permissionMarketTransition.ts",
+          "sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+          "git_blob": "9d9a7fc2912706b8fd1db2a1ac45e7262d6455d4"
+        },
+        {
+          "path": "lib/ediel/ack/prepareSourceAckDraft.ts",
+          "sha256": "1145b125d2a493374ba55f6ce2e35044a54fa1f30784194b5e6f9cbe485172ef",
+          "git_blob": "1ca0b15de5134e72a80961ba8754ec72617057d5"
+        },
+        {
+          "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+          "sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+          "git_blob": "d909b4918756b08122ca8bd6c35f2b7477d1b844"
+        },
+        {
+          "path": "scripts/ediel-partial-permission-source-sql-regression.mjs",
+          "sha256": "26660b53d3480c5b7b353a8e2e0f073c32ba344bff04b5dd84e1fa29f8b0066f",
+          "git_blob": "8244e0d86f4ec9dd551a679718c5f7cc7c9aea11"
+        },
+        {
+          "path": "scripts/ediel-prodat-permission-final-response-composition.mjs",
+          "sha256": "b3ea441613d0a73d8ba29c6708f12f1828e77980ed61817a3d9ccc4bd6bfe1a2",
+          "git_blob": "e546be1517297c6e30adc306043ebbe767de51e6"
+        }
+      ]
+    },
+    {
+      "pr": 554,
+      "head": "578738988d72515628e734400fd9fcfc59ebe8e8",
+      "scenario": "SC-022",
+      "decision": "APPROVE_SOURCE_CARRY",
+      "owned_paths": [
+        ".agent-memory/masterplan-sc022-checkpoint.md",
+        "__tests__/ediel-sc-022-overdue-contact-effects.test.ts",
+        "quality/audits/ediel-masterplan-v2/coverage.json"
+      ],
+      "test_sha256": "bff7df749eff39bbac079a9da6ad942101764bbff0cfbf1511eb6ba779a2b045",
+      "prior_whole_approval": "retained committed checkpoint; not re-executed",
+      "unchanged_selected_paths": [
+        {
+          "path": "lib/ediel/businessExpectations.ts",
+          "sha256": "22e6c99c085507ebb78db13c06d161f970a96d97d7518dc92e11e6808ccaa945",
+          "git_blob": "eaf42737f78dd29647de5b16a74d9a3f8da4db54"
+        },
+        {
+          "path": "lib/ediel/operations/businessExpectationSweep.ts",
+          "sha256": "bb8b005ec18a37140d69ba9e5840f96ff611c5a2155a6adbece63d9998c4f08e",
+          "git_blob": "004ed323eed8603651621dc93f0b4dcd6f12cc6f"
+        },
+        {
+          "path": "lib/inbound-mail/inboundOverdueMonitor.ts",
+          "sha256": "094629eea908951716cd73c3a32451ea6b4078e4fc3668e2c85993a4adabf33b",
+          "git_blob": "072e50c991f071f4b4aa34584008e9453ac2989e"
+        },
+        {
+          "path": "lib/operations/db.ts",
+          "sha256": "07fd2a8500ed88a3b6b6adab410a3ff7a3c2d36827d90eff3f57641232d7cb51",
+          "git_blob": "5eeeea802e4f3179c8f17654c290ede51acbe355"
+        },
+        {
+          "path": "lib/operations/taskResolution.ts",
+          "sha256": "dc1ce364cd424b30246cffa637f42dbb38a9562e31ef5e27f418d8455d110224",
+          "git_blob": "ae8c514d779dc76b615e561348d24f9c51268246"
+        },
+        {
+          "path": "lib/ediel/core/canonicalMessage.ts",
+          "sha256": "d74394e5574a1b54dca57b73fb2f7fbb44b7b0087a727743e1e79361414f983f",
+          "git_blob": "13b3d58361f33c2975ccd0c102d87f366a473677"
+        },
+        {
+          "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+          "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+          "git_blob": "18a4b4359d40d9972e06b5b438a65e5f699815fa"
+        }
+      ]
+    }
+  ],
+  "capture_sql_native_source": "No new SQL/config/native/generated/capture-input mutations in IMP04 delta",
+  "independent_test_only_row_after558": "SC055 test/checkpoint/own row does not change SC021 consumer; integrator must preserve actual current main ledger then add only SC021 row",
+  "root_owns": [
+    "live actualmain/head",
+    "merge-tree fullsource/ledger preservation",
+    "required gates",
+    "GitHub merge"
+  ],
+  "new_tests_native_full_workflows": false,
+  "source_tests_coverage_shared_memory_edits": false,
+  "created_at": "2026-10-05T04:23:14.569396+00:00"
+}

@@ -1,0 +1,48 @@
+{
+  "recorded_at": "2026-10-05T14:40:07.947956+00:00",
+  "baseline_RED_commit": "d8d2a6c19c4c04d73b46465e14cd3d90642513c1",
+  "source_sha256": "8e810fd5caca5ea235207795d0fd1a7cc19b943a680faae32cc6e2a78d11aa43",
+  "test_sha256": "2a076859c7ef7abea5d7aebfa68bd20e28817a97b4668db3cd9bc97b8e8729f4",
+  "all_unique": 89,
+  "own_unique": 40,
+  "existing": 49,
+  "passed": 89,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "exit": 0,
+  "source_scope_claim": 5996702321,
+  "coordinator": 5996704425,
+  "source_delta": "remove cached customer/point scopes bypass; reuse existing exact own endingPeriodScopes",
+  "all_other_executable_slices_unchanged": true,
+  "old_fixture_adaptations": [
+    {
+      "path": "__tests__/ediel-closure-legacy-case.test.ts",
+      "old_sha": "e8c7e5ea2e4d46d68253bad5aada4d83febfafb16fd2433ff06a14e5f6404344",
+      "new_sha": "b14215a0d9a5023dd524f1f7897474019be5976242f52dd384819a4a41b910af",
+      "delta": "only finite fluent .in and own returned period-row setup; all assertions/native ports byte-identical"
+    },
+    {
+      "path": "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+      "old_sha": "8eff977a75575f5d1165c673eb646b82515774a90fc2cd498b8aafd53f34e9d4",
+      "new_sha": "f2103c81c6da36fc55c796f5ebffb4fd64b0ddde3777699fdc647a3f705f4bed",
+      "delta": "only finite fluent .in and own returned period-row setup; all assertions/native ports byte-identical"
+    }
+  ],
+  "whole_accepted_outer_native_ACK_proof": "NOT_EXECUTED",
+  "current_CI": "NOT_RUN for unpublished repaired candidate",
+  "static_checks": {
+    "types": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p quality/audits/ediel-masterplan-v2/at-z05l-z05lk-supplier/tsconfig.component.json",
+      "scope": "own test and transitive app source types",
+      "actual_session": 31380,
+      "exit": 0
+    },
+    "lint": {
+      "command": "node node_modules/eslint/bin/eslint.js __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts __tests__/ediel-closure-legacy-case.test.ts __tests__/ediel-bilateral-prodat-supply-consumer.test.ts lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "actual_session": 14779,
+      "exit": 0,
+      "warnings": 0
+    }
+  }
+}

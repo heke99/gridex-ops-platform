@@ -1,0 +1,161 @@
+{
+  "recorded_at": "2026-10-05T14:47:13.278124+00:00",
+  "RED_checkpoint": "d8d2a6c19c4c04d73b46465e14cd3d90642513c1",
+  "actual_main_adopted": "36e873fbac87695f9d3522086f721961824e29f9",
+  "genuine_main_adoption_commit": "e0ec0f1b754c1899204a4cd5389d9c0fc40efd7f",
+  "claims": [
+    5996398059,
+    5996702321
+  ],
+  "coordinator": 5996704425,
+  "source": {
+    "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+    "sha256": "8e810fd5caca5ea235207795d0fd1a7cc19b943a680faae32cc6e2a78d11aa43",
+    "delta": "ONLY remove cached customer/point ternary; existing own-company/returned-ID lookup reused"
+  },
+  "test": {
+    "path": "__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts",
+    "sha256": "2a076859c7ef7abea5d7aebfa68bd20e28817a97b4668db3cd9bc97b8e8729f4",
+    "own_unique": 40,
+    "unchanged_from_RED": true
+  },
+  "result": {
+    "actual_unique": 89,
+    "passed": 89,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "exit": 0,
+    "own": 40,
+    "existing": 49
+  },
+  "commands": {
+    "suite": {
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts __tests__/ediel-closure-legacy-case.test.ts __tests__/ediel-bilateral-prodat-supply-consumer.test.ts __tests__/ediel-supply-market-consumers.test.ts __tests__/ediel-supply-end-followup.test.ts __tests__/ediel-prodat-lifecycle.test.ts --reporter=verbose --reporter=junit --outputFile=quality/audits/ediel-masterplan-v2/at-z05l-z05lk-supplier/repaired-junit.xml",
+      "actual_session": 91185,
+      "exit": 0
+    },
+    "types": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p quality/audits/ediel-masterplan-v2/at-z05l-z05lk-supplier/tsconfig.component.json",
+      "scope": "own test and transitive app source types",
+      "actual_session": 31380,
+      "exit": 0
+    },
+    "lint": {
+      "command": "node node_modules/eslint/bin/eslint.js __tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts __tests__/ediel-closure-legacy-case.test.ts __tests__/ediel-bilateral-prodat-supply-consumer.test.ts lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "actual_session": 14779,
+      "exit": 0,
+      "warnings": 0
+    }
+  },
+  "environment": {
+    "node": "22.23.0",
+    "vitest": "4.1.9",
+    "package_lock": "unchanged"
+  },
+  "independent_review": {
+    "path": "source-fix-review.md",
+    "sha256": "20490ba279db34400cadec7e016448b9109a763c548d5837ac7c57225c73c07f",
+    "verdict": "APPROVE exact bounded app repair only"
+  },
+  "old_fixture_adaptations": [
+    {
+      "path": "__tests__/ediel-closure-legacy-case.test.ts",
+      "old_sha": "e8c7e5ea2e4d46d68253bad5aada4d83febfafb16fd2433ff06a14e5f6404344",
+      "new_sha": "b14215a0d9a5023dd524f1f7897474019be5976242f52dd384819a4a41b910af",
+      "delta": "only finite fluent .in and own returned period-row setup; all assertions/native ports byte-identical"
+    },
+    {
+      "path": "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+      "old_sha": "8eff977a75575f5d1165c673eb646b82515774a90fc2cd498b8aafd53f34e9d4",
+      "new_sha": "f2103c81c6da36fc55c796f5ebffb4fd64b0ddde3777699fdc647a3f705f4bed",
+      "delta": "only finite fluent .in and own returned period-row setup; all assertions/native ports byte-identical"
+    }
+  ],
+  "raw_files": {
+    "corrected-run.log": {
+      "sha256": "a81d87ab401988bacec8c6fb94c9916f2a081c92da4f12f00e12f5d20cbecfce",
+      "bytes": 21206
+    },
+    "corrected-junit.xml": {
+      "sha256": "24375c5353481311892ac8fa210b444a2999914afea247fa2a98c171e3a07b49",
+      "bytes": 24663
+    },
+    "first-run.log": {
+      "sha256": "3aa01dfeadf2a18b226c8d2f5627daadb44d16c390d2c6de6aa40d4930bd5c64",
+      "bytes": 17449
+    },
+    "first-junit.xml": {
+      "sha256": "32705c67b5003d5347289287b6a8c73666541eeb3f176064b454ea6c8a99b427",
+      "bytes": 20191
+    },
+    "first-test.sha256": {
+      "sha256": "2a0998ad6c1af909b841c7416f09a98f7eb2d370b3ce6ba461e4be6909043bac",
+      "bytes": 65
+    },
+    "red-result-qualification.json": {
+      "sha256": "6e954c8dc146299058451ba00838851c5265c1195c924362244cbf970ebaf9c1",
+      "bytes": 2706
+    },
+    "red-input-preservation.json": {
+      "sha256": "b58a92f139518a6be6bd39f95e1e1c12eb099a42da460f95f8566d2c3ed4da44",
+      "bytes": 7737
+    },
+    "repaired-run.log": {
+      "sha256": "ebce443caa4f10ca98af3002b8d0b7f7e88c383cb41a3b0beb405f2eb1079b0b",
+      "bytes": 14945
+    },
+    "repaired-junit.xml": {
+      "sha256": "a9bb753969107c5157f949d3177d95b7318dfc752ea8a59b65c783f691999df6",
+      "bytes": 22932
+    },
+    "repaired-result-qualification.json": {
+      "sha256": "d8cdc9988a14dee40610cb06b1de510d88a092a4d9f79abe84b3359527535b39",
+      "bytes": 2207
+    },
+    "typecheck-repaired.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "lint-repaired.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "source-facit-review.md": {
+      "sha256": "0b2dc2f8c09032d40957700bfb3b00be9d251da5f4a7480f204a9caa6e76c022",
+      "bytes": 18382
+    },
+    "runtime-refutation-review.md": {
+      "sha256": "a50d2079bb3bf0a9aff3027cdafdac214776c44f25c7d2309cb02eaac476e269",
+      "bytes": 10091
+    },
+    "source-fix-review.md": {
+      "sha256": "20490ba279db34400cadec7e016448b9109a763c548d5837ac7c57225c73c07f",
+      "bytes": 7046
+    },
+    "current-main-adoption.json": {
+      "sha256": "e445bd99d9b6f75ac4fb0ac00298c6f803bbd71a976d44f3594940b16127ef50",
+      "bytes": 595
+    },
+    "current-main36e-adoption.json": {
+      "sha256": "1e3d5a66cb43f2e0d578bbcf75a71f6821e8bdbaf9b23d413368dce52ddda5f0",
+      "bytes": 4524
+    }
+  },
+  "coverage": {
+    "own_changes": false,
+    "sha256": "fec4cd6b8398a9cb7ea54864f749d5047c66ec6cd818b57f27a7eee21cb929a5",
+    "foreign_adopted_main_equal": true,
+    "whole_pair": "unchanged NOT_EXECUTED []"
+  },
+  "main_delta_receipt_reuse": "39 reviewed unaffected pins+all runtime/SQL/config/pkg/frozen exact; only foreign TEN07 harness/scripts and new tests/docs; not imported/run by89, no repeat",
+  "whole_accepted_outer_native_ACK_proof": "NOT_EXECUTED",
+  "required_CI": "new published candidate pending",
+  "remaining_limits": [
+    "conditional R/D/role and accepted own correlation effects not all asserted",
+    "site/switch/null-point cache interactions unchanged",
+    "native receipt versus later Legacy task interaction not executed",
+    "declared missing/foreign applied DTO reachability and adversarial duplicate global UUID limited",
+    "original PDF/HB numeric clause custody not newly qualified"
+  ]
+}

@@ -17,6 +17,7 @@ import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {validateProdatMeterChange} from './prodatMeterChangePolicy'
+import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
@@ -423,13 +424,12 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     ...(parsed?.errors ?? []).map((description) => issue({ severity: 'error', code: 'PARSER_ERROR', title: 'Parserfel', description })),
     ...(parsed?.warnings ?? []).map((description) => issue({ severity: 'warning', code: 'PARSER_WARNING', title: 'Parser-varning', description })),
   ]
-  // The actual raw admission path uses the same source-owned 0062 bound as
-  // the codec and envelope validator. This does not select a guide or grant
-  // acceptance to other syntax/profile defects.
+  // Raw admission shares the source-owned0062 bound and0035 test marker
+  // with envelope validation. These service diagnostics never select a guide.
   if (input.rawPayload && parsed?.rawSegments.some(segment => segment.startsWith('UNH'))) {
     parserIssues.push(...validateEdifactEnvelope(input.rawPayload).issues
-      .filter(entry => entry.code === 'message_reference_length_invalid')
-      .map(entry => issue({ severity: entry.severity, code: entry.code, title: 'EDIFACT-meddelandereferens', description: entry.message })))
+      .filter(entry => entry.code === 'message_reference_length_invalid' || entry.code === 'unb_test_indicator_invalid')
+      .map(entry => issue({ severity: entry.severity, code: entry.code, title: entry.code === 'unb_test_indicator_invalid' ? 'EDIFACT-testindikator' : 'EDIFACT-meddelandereferens', description: entry.message })))
   }
 
   if (!parsed) {
@@ -480,6 +480,8 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     }
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
+    const transactionReasonIssues=family==='PRODAT'
+      ? evaluateProdatTransactionReason({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload)}).issues : []
     // Missing/invalid root policy metadata must not hide source-derived D
     // defects behind the legacy intentional-invalid-test escape hatch.
     const protectedDependentIssues = family === 'PRODAT' && input.mode === 'send'
@@ -507,7 +509,7 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
       }
     }
     const authorityIssue=reportingAuthorityIssue(error)??prodatDateEventAuthorityIssue(error)
-    const issues = [...parserIssues, ...gasIssues, ...deathIssues, ...protectedDependentIssues, ...protectedRegisterIssues, ...(authorityIssue?[authorityIssue]:[]), issue({
+    const issues = [...parserIssues, ...transactionReasonIssues, ...gasIssues, ...deathIssues, ...protectedDependentIssues, ...protectedRegisterIssues, ...(authorityIssue?[authorityIssue]:[]), issue({
       severity: 'error',
       code: description.startsWith('prodat_register_evidence_') ? 'PRODAT_REGISTER_EVIDENCE_INVALID' : 'CANONICAL_POLICY_VALIDATION_FAILED',
       ...(description.startsWith('prodat_register_evidence_') ? {scope:'prodat_register' as const} : {}),

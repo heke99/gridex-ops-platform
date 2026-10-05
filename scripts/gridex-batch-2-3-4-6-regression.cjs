@@ -67,6 +67,7 @@ assert(syncRoute.includes("customer_sync.write"), 'Portal sync must require writ
 
 const intake = read('app/admin/customers/intake/page.tsx')
 assert(intake.includes('customerFlowOnly: true'), 'Batch 3 customer intake must use verified actor filters')
-assert(intake.includes('Fullmakt/Ediel'), 'Batch 3 intake wizard must include Fullmakt/Ediel step')
+const intakeForm = read('components/admin/customers/CustomerIntakeForm.tsx')
+assert(intakeForm.includes('5. Dokument och fullmakt'), 'Batch 3 intake form must retain the document and power-of-attorney section')
 
 console.log('✅ Gridex Batch 2+3+4+6 regression passed')

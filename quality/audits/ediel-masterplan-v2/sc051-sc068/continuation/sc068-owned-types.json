@@ -1,0 +1,19 @@
+{
+  "extends": "/workspace/gridex-masterplan-sc051-sc068/tsconfig.tests.json",
+  "compilerOptions": {
+    "incremental": false,
+    "typeRoots": [
+      "/workspace/gridex-masterplan-sc051-sc068/node_modules/@types"
+    ],
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "/workspace/gridex-masterplan-sc051-sc068/__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+  ],
+  "exclude": [
+    "/workspace/gridex-masterplan-sc051-sc068/node_modules",
+    "/workspace/gridex-masterplan-sc051-sc068/.next"
+  ]
+}

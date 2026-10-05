@@ -1,3 +1,7 @@
+## Actual root503 source adoption — 2026-10-05T17:14:00Z
+
+Actual local source composition `105b8b87af0b1f02a8f82b869495703fb5ec8d5a`, tree `1aa8738a7c0db47a4ee5754e02f78060c3bb45fe`, parents332065bf + main826779dd; retains genuine reviewed F3 writer10f4 and checkpoint062. All346 foreign rows retained; candidate247 stored approvals. Same PR503 publication/current CI remains next; no actual503 main merge or final baseline claim. This is the single root503 source-adoption handover; foreign main merge receipts remain with their assigned serial operators/common baseline writer.
+
 ## Aktuell arbetsgren — 2026-10-02 (gäller före allt nedan)
 
 Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426 mot main, HEAD `0f61f08f57aedc6c0cc6a442829e16cc75064e67`. main (#425/#427/#428/#429) är inmergad i grenen (257eacbc). Användaren beslutade: EN PR, inga omskrivna migrationer, merga #426 när CI är grön och fortsätt sedan masterplan v2. Före faktisk merge: bekräfta deploy-migrationsordning (grenens migrationer har tidsstämplar före main:s 20261001210000 → `db push` kräver --include-all) och att merge inte kör produktionsmigration utan separat tillstånd.
@@ -1082,6 +1086,7 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #426 HELT GRÖN på f32e40b5 (alla 10 jobb, inkl. clean-migration-replay). Nästa: bygg om del 2-stacken (2a–2f) + del 3 från detta huvud och öppna PR:er i ordning.
 - 2026-10-04 Split av #426 publicerad som staplade utkast-PR:er från gröna f32e40b5: #483 2a core → #484 2b TEN/ESCO/AI → #485 2c ACK → #486 2d UTILTS → #487 2e PRODAT → #488 2f retention+schema/typer/manifest → #489 3 UI/browser/workflows (träd == #426). Merge i ordning; lägre PR:er är inte självständigt gröna. Därefter: produktionsmigrationer (dry-run BEGIN/ROLLBACK), defekter F-OPS-02/F-ENV-01/F-GOV-03 två i taget.
 - 2026-10-04 Kandidatgranskning: TEN-01/02/05/06, U-04, U-14 ej godkända (effektluckor, se candidates-2026-10-04.md). Överlämning till nästa agent; prompt i chatten och i next-actions.md.
+- 2026-10-04 #504: ENV-01/AT-ENV-01 VERIFIED/PASSED, merge `7b41db2361bb5b02e5772f8744c57839a82242b4`; fryst head `ccc7b04f` samtliga tillämpliga GitHub-grindar PASS inklusive clean replay, lokal helsvit 9928/9928, oberoende kortgranskning APPROVE och faktisk main-integration 114/114. Mergat träd `a5fb2b6c` är exakt det verifierade; kvitto https://github.com/heke99/gridex-ops-platform/pull/504#issuecomment-5984203416. Ingen SQL/migrationsändring; #508/#512 behåller separata ägare och väntar egna grindar.
 - 2026-10-04 IMP-04 + ENV-03 (+AT) godkända (gren claude/env-03-imp-04): UTILTS-byggaren hittar inte längre på subadress; selftest/smoke-UNT beräknas. Kända gamla röda strängregressioner (oförändrade på main): gridex-utilts-completion-regression 'threads resolved environment', ediel-parsing-tenant-hardening-regression.
 - 2026-10-04 TEN-01, AT-TEN-01, TEN-02, AT-TEN-02 godkända (__tests__/ediel-ten-01-02-identity-gate.test.ts), gren claude/cool-tesla-2pmyua; inga nya fynd.
 - 2026-10-04 #491: upgrade-replay-bas = #489:s merge 2bc65ea (ägarbeslut A1; d30fa02 finns ej i main), parity-only replay när inga nya migrationer. TEN-05, AT-TEN-05, TEN-06, AT-TEN-06 godkända (`__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts`); TEN-06-defekt åtgärdad: PRODAT/UTILTS utan exakt en NAD+DO/MR föll tillbaka på UNB-mottagaren som juridisk mottagare (hålls nu olöst, `inboundLegalReceiverEdielId`). Prod-dry-run blockerad: PROD_DB_READONLY_URL saknas som env i containern, db-värden endast IPv6.
@@ -1133,6 +1138,112 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 ÄGARBESLUT P-08: giltig mottagning = nätägarens positiva APERAK på vår bundna Z09D -> bekräfta egen produktionsavtalshändelse. Migration 20261004190000 (wip/p08-p15, pushas efter #491-merge).
 - 2026-10-04 (wip/p08-p15): P-15 (+AT) godkänd; U-09 (+AT) godkänd; P-08 implementerad (PARTIAL tills native).
 - 2026-10-04 ACK-01-fynd (Codex #503 variant): canonicalInboundAckStatusUpdater skrev ej existerande kolumner syntax_status/application_status; borttagna + schematest (RED utan fix). inboundStatusUpdater.ts ägs av Codex #503.
+- 2026-10-04 OPS-02 (+AT) godkänd i #507: kundkort + arbetskö styrs av processbeslutet och hålls utan beslut; badge rättad; automation/normalizeSimpleRequestStatus falsklarm (registrering vid utskick).
+- 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
+- 2026-10-04 SC-049 PASSED (wip): E61/E62 bara vid verklig avvikelse mot erhållen struktur; ESCO utan struktur får inga.
+
+- 2026-10-04 Codex #497 mergad cbefde67712a7ad4e018abf688d1d2e242a61faf: TEN-07/ESCO-10/11 granskade, exact59c alla CI-gates PASS; artefakt11312755477 verifierad native605/605, ESCO3/3, service29/29, browser/schema/types/upgrade PASS.
+- 2026-10-04 Codex #498 mergad 33aeb7f7311f97ac7aece0c6e2bdfc8cb0597023: TR-01/02 mottagarguard och SMTP-bevis, independent full-card clear, exact648 alla CI-gates PASS; Claude behåller P/U/TEN och sina aktiva memory-filer.
+
+- 2026-10-04 Correction for merged#497: rawJUnit605TOTAL=604PASS+1unrelatedincidentSKIP,0FAIL/ERROR; ESCO3/3/service29/29 noSKIP and allrequiredjobsgreen. Earlier605/605 shorthand inaccurate; approvals/mergecbefde67 unchanged (GitHub4915983932824).
+- 2026-10-04 ÄGARBESLUT P-08: giltig mottagning = nätägarens positiva APERAK på vår bundna Z09D -> bekräfta egen produktionsavtalshändelse. Migration 20261004190000 (wip/p08-p15, pushas efter #491-merge).
+- 2026-10-04 (wip/p08-p15): P-15 (+AT) godkänd; U-09 (+AT) godkänd; P-08 implementerad (PARTIAL tills native).
+- 2026-10-04 ACK-01-fynd (Codex #503 variant): canonicalInboundAckStatusUpdater skrev ej existerande kolumner syntax_status/application_status; borttagna + schematest (RED utan fix). inboundStatusUpdater.ts ägs av Codex #503.
+
+## Codex TR05/TR10 coordination — 2026-10-04T21:12Z
+
+Root composes reviewed ten07f97 whole-CONTRL proof and published ten088791 uncertainty cases into #503. Genuine33b9 native is6PASS9FAIL, not approved: six failures establish actual resolved intake birth-selector omission; unswept claim actually sends. Ten06 owns only typed resolved mailbox birth binding and independent real first/replay/duplicate tests; unresolved routing remains TEN owner. Root owns current post-row-lock lease guard (finite55/13), actual lock-wait expiry/guide-retirement proofs, final28-case native configuration, checksum and authentic composed capture. Existing valid #500858/#5016bb clean gates continue unchanged. No duplicate Claude source patch: canonical ACK260fa reused exactly; no primary-owner current-task/checkpoint overwritten. Details/exact artifacts/hashes and next action in masterplan-codex-retry-checkpoint.md. Full-card approval awaits genuine composed proof; no production/hosted send or migration.
+
+
+Codex TR05/TR10 update2026-10-04T21:48Z (root exclusive, #503):
+Genuine39native28total16PASS12FAIL; no approval. ten07 independently reproduces
+actual seven-function definer→public ACK invoker42501 with zero assessments.
+RootCLI214144 exact private original+witness bridge, SHAed925604…765f6b,
+finite28PASS, reviewer no blocker; public facade/catalogmetadata preserved.
+ten06 public canonical send/read fixture, ten08 old-archive-ID+boundbyte fixture,
+root actualforeignmixedunknown/intervalspacing/ledgerdiagnostic: no duplicate
+producer/auth bypass. Capture39bytes imported unchanged; new214144 capturepending.
+Parent500/501 all-green/frozen; respect491 prioritywindow and P08union capture.
+See own masterplan-codex-retry-checkpoint.md and GitHub491comments5984651618/5984680584.
+
+
+Codex TR05/TR10 update2026-10-04T22:18Z (#503 rootexclusive):
+Actual0c28native18PASS10FAIL; all9casePASS. IndependentcompleteSC063 APPROVE
+on verified0c rawproof→onlySC063PASSED samePR, all351otherrows unchanged.
+Later incomingACKpointer-link fails existingINVoker immutableguard privateREAD;
+CLI220429 ONLYSECURITYDEFINER, finite44PASS+independentreview no blocker, original
+18fields/retention/callerRLS/privateACL/body preserved. Sourcefixture grantsboth
+WRITE+SEND+READ; rowlocktest targetsactualentry and2s DBexpiry, no prodtimeouts.
+0ccapturebytes+rawreceipts importedexact;220429 capturepending. Finite9/9PASS,
+1066/969 migrations/fullcontracts/typeschecksPASS. Rootparent500/501 unchanged;
+primary491812 window respected after507. Allsource/evidence/ownmemory publish
+together, no fullTR05/TR10 approval untilgenuine required effects.
+
+2026-10-04T22:25Z Codex TR05/TR10 two-rule lanes: postSC063 supported-tag gate
+170approved/186tagged-green/0failing out of352 PASS. OnlySC063 is newly approved;
+other351 coverage rows unchanged. Retained reviewers own disjoint fixture/role
+checks; current Claude reservations remain authoritative in491 comments. Root
+publishes functional220429+actualreceipts+fixtures+this approval together; no
+status-only push and no merge during the renewed491/812 priority window.
+
+2026-10-04T22:55Z Codex current05c6 genuine28:23PASS5FAIL, allTR10case9,
+firstreception2 andtruelease-lockP0001 refusal PASS. IndependentcompleteTR10/AT
+APPROVE now promoted only2rows withfunctionalTR05 currentcustomer/address+
+independentcontractinvoicee handoff; no originalfact/validator/privatebypass.
+Authentic220429 capture imported exactbytes/receipts, finalmainunion stillpending.
+Primary491812 cleanFAILURE; soleP-owner calendar9433 reusedexactlybeforefresh
+native. No sourceleftonlylocalafterpublication; rootholds500/501prioritywindow.
+NexttwoSC008/017 ten06; separateTR08realTLS20PASS/TR09newnative9pending ten08+
+child, nowholeTR08approval. Each ownscope/checkpoint/sourceclaim in491, noTEN/
+P/U/ACK/DB/GOV/IMP overlap. Complete detailsrootretrycheckpoint/currentaudit.
+
+2026-10-04T22:58Z rootgateway/fullunit9984/9984PASS779files, supportedtag172/
+186green/0failing PASS, appTS/ownedlint/ratchet2251/diffPASS. Then soleClaude
+calendar9433 cherry-picked a7633802; all3blobsidentical/calendar9PASS, no second
+variant and no fabricated fullnewhead result. Freshactual28/native and ordinary
+currentheadallgreen/mainunion stillpending. Functionalpublication next.
+
+
+## Codex TR05/TR10 — 2026-10-04T23:39Z published-packet handover
+
+Actual95428 run37242322595/artifact11318736222 is24PASS4FAIL0ERROR0SKIP;
+root+ten07 verified exacttree/9inputs/rawZIP91baa90d983ac4b2a85199c7e4835c376a703c0bf9c72ec217963d294d374ae4.
+Fresh customer/address/invoicee gateway now reaches prepared corrections;
+remaining failures are incorrect existing-LI length/newness and network draft-
+stage fixture expectations. Minimal two-fixture correction is independently
+reviewed: preserve valid oldLI (P an..35), retain freshBGM/intent/request/
+message and fullqueue/replay/history assertions; actual source withdrawal now
+practised between prepare and queue, demanding exact P0001/currentcontract-
+network failure, stabledraft/switch/effects/originals,0newoutbox/SMTP1. Scoped
+TS/lint/diffPASS; no source/SQL/coverage/frozen changes. TR05/AT/SC040 pending
+newgenuine28, TR10/AT/SC063 approved172onroot only. Rawreceipt/nativeZIP and
+independent quality/audits/ediel-masterplan-v2/tr-05-current-queue-boundary-review-954-20261004.md published together.
+Actual954220 capture37242322548/artifact11318366511 has all3 outputs byte-
+identical authentic05c6; exacttree/8inputs/latestmigration checked. Finalmain/
+P08 actualunioncapture/mandatorygates stillrequired; no newheavyfull claim.
+
+Separate541fbd SC00817 independentlyAPPROVED76branch approved, ready; next
+SC007/066 owner ten06 claimed4915985559317, draft547dc3 technicalpacket,
+sc007_sc066_review independent fullcard reviewer. Native497sameGSRN reuse
+sourcequalified; actualhistory→intent→CSV and realreconcileSQL preserve all
+six masterdata tables and source/investigation provenance, declaredports.
+Separate5451c6a genuine13 rerun37244105508 pending after authenticatedb167
+13=4PASS9FAIL testfixture/schema/OpenSSL fixes. Root/ten08 reserve onlyexact
+previousCrl.ts read-only portability diagnosis pendingdirectconsumerRED, no
+duplicatecertificateowner orcryptoedit. FullTR08 missingactualStrato policy/
+authenticatedlaterhop/receiverSPF; useraskedforsources async, no secrets.
+Continue independent lanes. Primary4919433 freeze+cleanpending/order preserved;
+source/tag/approval unions and SC036 canonical+legacy bothrequired. No meaningful
+work left onlylocal: publishcompletepackets/ownmemory via trustedGitHub,
+comments forinterimstatus. Nextgenuine28/13→wholecardreview→currentmain
+composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
+
+2026-10-05T00:55Z Codex #503: complete independent TR05/AT/SC040 APPROVE at d4/tree9404, authentic run37244708321/artifact11319786242 ZIP6b865270909fb8db03155316e25bd6a302f59258aef201806f09ab5c6276a5c1:28/28PASS0SKIP. This approval-only packet publishes raw proof/full matrix and ONLY3ownrows (other349exact); root175approved, main9dc74. TR10/AT/SC063 prior approvals retained; source/native/SQL unchanged. Separate5451b TR09/ATapproved13/13, TR08 external-sourceblocked. SC004/006551 independent review and SC003/005 exact new-file claims active. Primary4910796 causalfix component independently APPROVED original2/2+bounded24/24, completeU10/native qualification not expanded; exactreview/receipt/rawlogs retained. SolePowner retained. Final actualmain/P08 source/coverage/tag union, truecapture and mandatorycurrenthead allgreen required before coordinated authorizedmerge. No performedmerge claim.
+
+2026-10-05T01:34Z Codex503 sourceunion root6b+primary0796/main9dc:189published-parent approvals preserved; primary sharedmemory exact, bothhandovertails kept. Three conflicts resolved; scriptTS caught leftover9433helperfixture→exactprimary/main repair, independent sourceunionAPPROVE. Fresh37targeted/app+scripts types/spec33/121/231/migrations1068/971/contract/typehash/diffPASS. Root6b supportedgate175/186green/0fail PASS after concreteEPERMpermission correction, originalreceipts/logs archived. Generatedcapture origin unchanged/pendingactualcombinedcapture; no currentnative/browser/parity/allgreen/mainmerge claim. SC004/006551ccf approved; SC003/005555 newcouplednative1pending; nextSC001/002claimedten06, SC011/023externalenv02retained. Primary P08/SC036bothpaths unpublisheduntil491merge; notduplicated. Final currentheadcapture+allmandatoryCI and coordinatedmainmerge remain next.
+
+2026-10-05T02:08Z root: actual GitHub merges491→b83 and500→507 completed after their unchanged exact-head required greens. Main183/352 is the complete parent approval union. Sole-owned501 now composes main507 and retained6bb DSN source; original501 generated bytes/capture retained, one provenance conflict resolved with pending=true and immutable main pointer. New actual source-prefix capture/current mandatory qualification required before501 main merge. Primary published side-source and root503 follow agreed order; no duplicate calendar, service or DSN implementation.
+
 - 2026-10-04 U-19 (+AT) VERIFIED på wip/p08-p15: RFF+TN (fält 226) som valfri, tenant-scopad korrelationsnyckel i findMatchingGridOwnerDataRequest. Landar efter #491.
 - 2026-10-04 P-06 (+AT) och U-11 (+AT) VERIFIED på wip/p08-p15 efter genomläsning av masterplanen (E012 resp. §9/G02). Landar efter #491.
 - 2026-10-04 SC-050 + SC-053 PASSED på wip/p08-p15 (88/96 → E87 trots lika energisumma; NULL≠0 med kvalitet 46/21, QTY220≠136).
@@ -1146,14 +1257,21 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 SC-043 PASSED (wip). SC-039 pågår: inget befintligt prov för kancellering före original.
 - 2026-10-04 OPS-02 (+AT) godkänd i #507: kundkort + arbetskö styrs av processbeslutet och hålls utan beslut; badge rättad; automation/normalizeSimpleRequestStatus falsklarm (registrering vid utskick).
 - 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
+- 2026-10-04 Claim-tavla för masterplan v2 införd: issue #530 (Claude + Codex), regel 8 i AGENTS.md. Läs/claima där innan kod.
 - 2026-10-04 DB-01 PARTIAL (gren claude/db-01, ägarbeslut fasa ut): adminformuläret skriver inte längre till ediel_party_addresses, död resolver borttagen; kvar avvecklingsmigration + granskning ediel_parties vs platform_market_actors. Mergas först efter #491 (merge-fönster).
 - 2026-10-04 SC-049 PASSED (wip): E61/E62 bara vid verklig avvikelse mot erhållen struktur; ESCO utan struktur får inga.
-
-2026-10-05T02:08Z root: actual GitHub merges491→b83 and500→507 completed after their unchanged exact-head required greens. Main183/352 is the complete parent approval union. Sole-owned501 now composes main507 and retained6bb DSN source; original501 generated bytes/capture retained, one provenance conflict resolved with pending=true and immutable main pointer. New actual source-prefix capture/current mandatory qualification required before501 main merge. Primary published side-source and root503 follow agreed order; no duplicate calendar, service or DSN implementation.
 - 2026-10-05 #556 review: U-19 fixed (parser record shape, fcaa0317). U-11 got a declared E97 preserve/remove test through the real filter. P-06 now runs the real requestMissingFacilityInformation flow (protected identity → needs_review/blocked, no outbox, no PoA event). SC-036 downgraded to PARTIAL (gap in open-blockers).
 - 2026-10-05 #556: SC-035 and SC-037 downgraded to PARTIAL after review (gaps in open-blockers).
 - 2026-10-05 #556: SC-048 downgraded to PARTIAL after review.
 - 2026-10-05 #556: SC rows → PARTIAL; #556 now carries rule cards + fixes only.
+
+2026-10-05 root: #501 merged6f6c9d87 after exact4b required greens; actual merge tree equals qualified4b, no production migration.
+
+2026-10-05 root: #558 SC055 mergedf9576530 after whole approval/current-green/actualmaincf395 carry; retained all prior evidence, checked tree47877d9d.
+
+2026-10-05 root: #552 SC021 mergedeacb6c7c after whole approval/current-green/actualmainf957 carry; retainedSC055/all main evidence, checked treecb633a04.
+
+2026-10-05 root: #554 SC022 mergedf86a0c5d after whole approval/current-green/actualmaineacb carry; retainedSC021/SC055/all main evidence, checked tree060d81a9; main190/352.
 - 2026-10-05 #556: U-19 caller fix 531e32b4 independently approved (review 5988350281); SC-043 and SC-044 restored to PASSED after independent qualification of their complete code effects.
 - 2026-10-05 SC-050 PASSED: fixture now a full +0100 winter day (2026-01-15), 88/96 with equal energy sum → E87 + UTILTS-ERR planned; complete day → no codes.
 - 2026-10-05 SC-048 PASSED: E50 source finalized through createUtiltsRuntimeAcks → one physical UTILTS ERR with E50 on RFF+TN OWN-E50, no E10, no master-data rows; valid-time contrast gives no codes.
@@ -1161,3 +1279,46 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-05 SC-045 PASSED per independent Codex whole-literal APPROVE (#530 5991575077): existing gateway unit case + native header-rejection case (clean artifact 11334955859); only tag/row added.
 - 2026-10-05 SC-031 defect fixed (Codex finding 5991392412): createOrUpdateInboundProdatCase called validateProdatRegisterPayload without direction, so a received ignorable X field (QTY+31/field 213) threw PRODAT_REGISTER_STRUCTURE_INVALID. Direction now passed; outbound prohibition retained. SC-031 stays PARTIAL (case/business fields unchanged, raw/hash, physical ACK, outgoing builder omission still to assert).
 - 2026-10-05 SC-034 progress: first LIN 2 and global order 1,3,2 now run through processInboundEdielMessage → one persisted negative P-APERAK 27/FTX 314, no effects, stable retry. Still PARTIAL: native good-sibling/no-partial case + current native receipt. SC-046 progress: 512-only and 532-only late-older contrasts in the U-04 SQL regression. Still PARTIAL: physical positive APERAK and no billing mutation through the real E66 consumer.
+
+- 2026-10-05 root: #555 SC003/SC005 merged61e84d8d after independent whole approval, exact4354669f requiredCI+focusednative green and current-main source carry; qualifiedtree890d2f7e, no production apply.
+
+- 2026-10-05 main integration: #556 7edef87ee226ff91f87c92465244410da04b5a5a — Merge PR #556: P-08, U-19, P-06, U-11, U-02 and SC-036 fix; actual tree bd4759d8f5aad9b0c9b43511277b3244612d2d69; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #553 985724f58ef15e222cf4d3b2e1c643c674852106 — Merge pull request #553 from heke99/codex/staff-contact-version-conflict; actual tree 0b8ad8d2272f77a346781a13b909aa0cdcc9b8d1; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #563 01b11f55af710c3e6aad1f5a433631a88c702047 — Merge PR #563: SC-050 (+0100) and SC-048 (E50 through the ACK gateway); actual tree cc0b6412e13c04f6baa3413957c7b609aeba74be; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #568 0dab92006d2ce17db21774e17d983b9a407b1a47 — Merge PR #568: SC-036 real Z04 first, then the late positive ACK; actual tree b8d41fd2b75c0b5f375f483353ebca1a4ea90c2a; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #567 fb11952a105adc62b62a89ea70a19c9ad030ad22 — Merge PR #567: approve SC042 APERAK family separation; actual tree fcb872555f7fa85af5ec5dadc055885aac0d48db; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #572 63a34e1c9b5e08dcf5440ee5ebc1cd2b703bc28d — Merge pull request #572 from heke99/codex/ediel-sc010-sc071-revocation-evidence-20261005; actual tree ba643b59a046706fc4ad7bc154d3fd98ba47f7c4; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #569 4ac9c6412ff4a84ea4dd65833b5d4897172f278c — Merge PR #569: approve SC072 independent common mapping; actual tree dc963da6a305633d0c74029a12c48a41604426d1; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #575 cf72b8958f2fdc7016752de0da7d7f08dd365c55 — Merge PR #575: preserve SC046/SC047 qualified review handoff; actual tree 4891ad27f53aab20bc109eaf0e8a6ab8c2ba25a7; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #573 1c151dd0bacc1add8e6795219c64c6716d48a455 — Merge PR #573: preserve qualified SC038/SC045 review handoff; actual tree ef7b5a3375e645a965e04e6becef000ce6d1dc83; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #549 52b24213b13baac4259b68e1abdbea5e7bc5af2e — Merge pull request #549: qualify SC058 masterplan scenario; actual tree 4c2e665c0ad8dbd06e1b3e5b320811692385a48a; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #550 85b6d6602ab0d060a86702847641156470f73234 — Merge pull request #550: qualify SC069 masterplan scenario; actual tree 6e073dcaf6fc30a33adb21414c16253b73ab9e79; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #577 b9a6ceb0139decc3ee70105a9d2b30911c53e713 — Merge pull request #577: qualify SC053/SC054 review evidence; actual tree e45c6d700be84d39ad44f7a6e65b57ee1b260810; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #580 1fca4e5bc6926b8502bc84e39195fff81e7616e4 — Merge PR #580: SC-031 inbound direction fix; SC-045 PASSED; actual tree 45180c7f1cfa2b6bc87c3480942a70d7b141b45e; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #565 e1ddc78f0334ca7705a056dd2da0965df775adfb — Merge pull request #565: qualify SC012 masterplan behaviour; actual tree 2d778bcfb208cb06a5fecb279ac3382378f4c850; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #524 60b2c7a7d511c2b5f1b234da3851e1bf719b70f8 — Merge pull request #524: qualify OPS05 failure disposition; actual tree 4895b8590c81b910b33d56f204920f930b03c182; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #574 7b9218da2c7f71f4373bcc9189715c0043a8cb31 — Merge pull request #574 from heke99/codex/ediel-sc010-sc071-revocation-20261005; actual tree f03ec10bec420c9013848be526595c5fbb0242b7; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #579 607ea6773ac9bdcbd97d3801276cea1a896a8398 — Merge pull request #579 from heke99/codex/ediel-sc035-sc039-review-20261005; actual tree 644572d89d175c6f04233387e9c2c9f978aec7dd; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #571 505e20637d5b8e1bcffab5f1f1971154dec5622d — Merge pull request #571 from heke99/codex/ediel-sc031-sc034-review-20261005; actual tree 15dfee3a76d8c18934e2f1f6a8215f099038df6a; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #539 112df63aaa5aeb1d4eddcee46f3d7a5aa2f59eae — Merge pull request #539: qualify bounded IMP05 component; actual tree 042e8867d65b1e8c84a094af46ec8b69b9141eb1; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #546 76d4587163c02035d0c5d858bb68113a79311033 — Merge pull request #546: qualify bounded OPS03 release evidence component; actual tree c3d24892826b3874011aad3a993d11b8440627f6; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #581 d2adff9a1219125b6bccfed5aee4782243e09851 — Merge pull request #581 from heke99/codex/ediel-sc037-sc052-review-20261005; actual tree c1618140a29514633117c6dac0cfc6afe19d1891; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #582 498ebd1c31f449630ea2b630cf23381447d71ba6 — Merge PR #582: SC-034 sequence faults through the processor; SC-046 512/532 contrasts; actual tree 62e4ddccfccda6950f6194c3414be912a703cb7e; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #584 fff486f822001d35970f163507b10e17c3692f58 — Merge pull request #584 from heke99/codex/ediel-at-z09f-z09g-supplier-20261005; actual tree 82fec813af9a2184259e419a0adbaf4563c2ffe8; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #586 683b3e60b67f71293cd44c14d591f877474f0f88 — Merge pull request #586 from heke99/codex/ediel-sc071-export-feedback-20261005; actual tree d19954dc674406f425d3e3f40805b9ab0eb5af12; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #583 a8c991c1672d97cb03486a15ca34a16d1b2814e3 — Merge pull request #583 from heke99/codex/ediel-at-z13v-z14v-esco-20261005; actual tree 4acbd9b92cc689382aaa28e10468b609f6d135c4; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #585 cfcee6877f57c4ff52265cafc6a8a1fa5692a714 — Merge pull request #585: qualify Z15V/VH ESCO profiles without whole approval; actual tree 779cc833d9f160a9892a33e598e8a828e38b209d; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #557 665e6e9be107caae63ed79e3044cc2e41afe5269 — Merge pull request #557 from heke99/codex/ediel-sc001-sc002-own-market-identity-20261005; actual tree 0a1f2e65b1de79503f814cc4de2a823c6940adfa; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #560 3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686 — Merge pull request #560 from heke99/codex/ediel-sc018-sc056-service-and-incident-evidence-20261005; actual tree e222e54afb45d25f2988eaf283274527ad413f0c; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #589 93d6defed00e6873b58559e0a9fffe9e67d72855 — Merge pull request #589 from heke99/codex/ediel-at-z13vh-z14vh-esco-20261005; actual tree f49ae22d0deb1d41ab0f6695a370067f6ed663cd; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #590 7b158e79ca58fdf7a9b3a77ece035c6b81790bbd — Merge pull request #590 from heke99/codex/ediel-at-z01l-z01lk-supplier-20261005; actual tree 00612b25336ee545defa14695f439537accd2dde; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #551 2579fa93b8008eb72ca2a77d074b551828d0be58 — Merge pull request #551 from heke99/codex/ediel-sc004-sc006-beneficiary-evidence-20261005; actual tree d05a67b8e566720e0579e59287262e426c0c7584; owner source/evidence retained, no production apply.
+- 2026-10-05 main integration: #562 36e873fbac87695f9d3522086f721961824e29f9 — Merge pull request #562 from heke99/codex/ediel-sc057-sc059-registry-evidence-20261005; actual tree a32ecc7e8760c056581385b233bd84c56f82d476; owner source/evidence retained, no production apply.
+- 2026-10-05 SC-047 stays PARTIAL (review 5994883822: inbound receiver/role admission not executed jointly; gateway test kept): gateway fixture runs real matchUtiltsTransactionsForTenant (object only in a foreign tenant → unmatched) → runtime E10 (syntax/guide pass) → createUtiltsRuntimeAcks → one physical UTILTS ERR E10 on RFF+TN OWN-E10; foreign/own data unchanged; own-tenant contrast matches with no codes. Removing the company filter turns it red.
+- 2026-10-05 SC-034 native: z04-ack-native gains complete-first-lin-two and complete-global-order-132 (all objects otherwise complete) → BGM 27/FTX 314, no case/switch/supply, stable replay. Promoted to PASSED; verified only by CI clean-migration-replay (no local Docker).
+
+- 2026-10-05 main integration: #587 d10402d5028021794994e6d5d61622de61d08b57 — actual parents36e873fb +757008e7, tree ddbd102d384349dc25f46c845e0ec26fe67f785b; SC034 PASSED, SC047 PARTIAL evidence only; no production apply.
+
+- 2026-10-05 main integration: #588 aa271e14b8a39145dca04aa1433dd54be88f44bd — actual parentsd10402d5 +7453605e, tree b519b3271f5bdd41bc3aac794b607420b5b725f5; F/G proposal-only release, whole AT/native HELD, helper continuation excluded; no production apply.
+
+- 2026-10-05 main integration: #548 cf275d78d252bdaa8e49fb4e5f65afaa61bf0128 — actual parents aa271e14 +99af2133, tree80d5b295ceae1c65b57b924a42e259897b5412cd; SC013/SC020 PASSED, nine exact-head gates plus CodeRabbit SUCCESS, main222→224; 350 foreign rows and7,788 paths exact; no production apply.

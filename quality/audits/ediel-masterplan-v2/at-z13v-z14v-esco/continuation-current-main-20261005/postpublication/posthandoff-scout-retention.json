@@ -1,0 +1,40 @@
+{
+  "atUTC": "2026-10-05T15:42:52.329881+00:00",
+  "scope": "Single incremental posthandoff owner-response window; no global rescout or new claim",
+  "files": [
+    {
+      "sourcePath": "/tmp/gridex-v3-posthandoff-owner-response-scout.md",
+      "retainedPath": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/posthandoff-owner-response-scout.md",
+      "bytes": 4007,
+      "sha256": "6ac6ba435a4edf4691bb548a29cb372c535185b9472cca9052d94829838bfcb2"
+    },
+    {
+      "sourcePath": "/tmp/gridex-v3-posthandoff-owner-response-scout.json",
+      "retainedPath": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/posthandoff-owner-response-scout.json",
+      "bytes": 66677,
+      "sha256": "6383a8c1be2876bff4584f4c5ad898921c27357e8c728239101b26754b03c0af"
+    }
+  ],
+  "nextOwner": "Retained503 applies/runs original v3 after source/admission qualifies",
+  "verdict": "NO_NEW_CLEARED_TASK; no retained-owner application/native result observed",
+  "latestBoardReadUTC": "2026-10-05T15:38:30Z",
+  "eligibleUpdates": 22,
+  "newPollOrTestCompilerNativeRun": false,
+  "rawStagedWhitespaceExit": 2,
+  "wrapperAssertionExit": 1,
+  "rawDiagnostic": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/posthandoff-owner-response-scout.md:28: new blank line at EOF.\n",
+  "rawSourceBytesPreserved": true,
+  "filteredCheckCommand": [
+    "git",
+    "diff",
+    "--cached",
+    "--check",
+    "--",
+    ".",
+    ":(exclude)quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/posthandoff-owner-response-scout.md"
+  ],
+  "filteredCheckExit": 0,
+  "filteredCheckStdout": "",
+  "filteredCheckStderr": "",
+  "qualification": "Only exact preserved agent report EOF excluded; generated checkpoint/JSON passes. Raw failure remains failed."
+}

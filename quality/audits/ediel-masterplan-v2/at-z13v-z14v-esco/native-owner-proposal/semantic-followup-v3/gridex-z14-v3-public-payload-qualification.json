@@ -1,0 +1,20 @@
+{
+  "atUTC": "2026-10-05T14:36:07.091784+00:00",
+  "sameDestinationRepository": "heke99/gridex-ops-platform PR503",
+  "authenticatedRepositoryMetadata": {
+    "private": false,
+    "visibility": "public"
+  },
+  "unauthenticatedHTTPSPriorPublishedPatch": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/proposal-v2.patch",
+  "unauthenticatedHTTPHeaderFile": "/tmp/gridex-z14-v3-public-prior-patch.headers",
+  "actualPriorPublicBytesSHA256": "f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238",
+  "correctedPatchSHA256": "d473e4ebc134e60cf6f5088ef8dc116bff671a643a90e002a1a42781ef09ac1d",
+  "changedLines1based": [
+    19,
+    20
+  ],
+  "changedContent": "Only order of two existing already-public overload declarations; all remaining patch bytes unchanged",
+  "noPrivateImplementationPayload": "Full patch is public prior source with two existing rows reordered; new static result/status/hash metadata contains no secrets or private complete PRinventory",
+  "reasonForSameActionReview": "Original rejection private-proposal/sensitive-egress premise disproved by unauthenticated exactbyte/publicvisibility evidence; not an indirect execution or workaround",
+  "originalReviewRejectionStillRetained": true
+}

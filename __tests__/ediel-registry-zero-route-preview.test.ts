@@ -1,3 +1,4 @@
+// masterplan: IMP-01, AT-IMP-01
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const io = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), audit: vi.fn(), revalidate: vi.fn(), admin: vi.fn(), writes: [] as Array<{ table: string; row: Record<string, unknown> }> }))

@@ -3,7 +3,71 @@
 -- reception and configured-route owners; never reconstruct historical custody.
 BEGIN;
 LOCK TABLE public.ediel_mailboxes,public.inbound_email_messages,
- gridex_ediel_inbound_receptions.receptions IN SHARE ROW EXCLUSIVE MODE;
+ gridex_ediel_inbound_receptions.receptions,gridex_unattributed_intake.raw_births
+ IN SHARE ROW EXCLUSIVE MODE;
+
+-- The protected intake intentionally has no legal company or ordinary
+-- reception. Its existing raw INSERT authority freezes the original mailbox
+-- here in the same transaction; never scan or attest earlier mutable mail.
+CREATE TABLE gridex_ediel_inbound_receptions.technical_mailbox_births (
+ inbound_email_message_id uuid PRIMARY KEY REFERENCES gridex_unattributed_intake.raw_births,
+ raw_snapshot_hash text NOT NULL CHECK (raw_snapshot_hash ~ '^[a-f0-9]{64}$'),
+ mailbox_id uuid NOT NULL,
+ environment text NOT NULL CHECK (environment IN ('test','production')),
+ mailbox_company_id uuid,
+ mailbox_shared boolean NOT NULL,
+ smtp_address text NOT NULL CHECK (smtp_address ~ '^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'),
+ observed_at timestamptz NOT NULL
+);
+ALTER TABLE gridex_ediel_inbound_receptions.technical_mailbox_births ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gridex_ediel_inbound_receptions.technical_mailbox_births FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON gridex_ediel_inbound_receptions.technical_mailbox_births FROM PUBLIC,anon,authenticated,service_role;
+
+CREATE FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1() RETURNS trigger
+ LANGUAGE plpgsql SECURITY INVOKER SET search_path TO pg_catalog AS $$
+DECLARE mail public.inbound_email_messages%rowtype;box public.ediel_mailboxes%rowtype;
+BEGIN
+ IF TG_OP<>'INSERT' OR TG_TABLE_SCHEMA<>'gridex_unattributed_intake' OR TG_TABLE_NAME<>'raw_births'
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_birth_owner_required';END IF;
+ SELECT * INTO mail FROM public.inbound_email_messages WHERE id=NEW.inbound_email_message_id FOR SHARE;
+ SELECT * INTO box FROM public.ediel_mailboxes WHERE id=mail.mailbox_id FOR SHARE;
+ -- Missing SMTP holds the later return route, not storage of original mail.
+ IF mail.id IS NULL OR box.id IS NULL OR (mail.environment IN ('test','production')) IS NOT TRUE
+  OR box.environment IS DISTINCT FROM mail.environment OR box.is_active IS NOT TRUE
+  OR NEW.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.raw_hash_v1(mail)
+  OR box.email_address IS NULL OR btrim(box.email_address)!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+ THEN RETURN NEW;END IF;
+ INSERT INTO gridex_ediel_inbound_receptions.technical_mailbox_births(
+  inbound_email_message_id,raw_snapshot_hash,mailbox_id,environment,mailbox_company_id,mailbox_shared,smtp_address,observed_at)
+ VALUES(mail.id,NEW.snapshot_hash,box.id,mail.environment,box.company_id,box.is_shared_platform_mailbox,btrim(box.email_address),NEW.observed_at);
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1() FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER ediel_original_technical_mailbox_birth AFTER INSERT ON gridex_unattributed_intake.raw_births
+ FOR EACH ROW EXECUTE FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1();
+CREATE TRIGGER immutable_receipt BEFORE UPDATE OR DELETE ON gridex_ediel_inbound_receptions.technical_mailbox_births
+ FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.technical_mailbox_births
+ FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+-- The invoker trigger inherits the actual existing definer's authority.
+-- Assert compatible ownership instead of adding grants or a new definer.
+DO $birth_owner$
+DECLARE authority oid;
+BEGIN
+ SELECT proowner INTO STRICT authority FROM pg_proc
+  WHERE oid='gridex_unattributed_intake.capture_custody_v1()'::regprocedure AND prosecdef;
+ IF authority IS DISTINCT FROM (SELECT proowner FROM pg_proc
+   WHERE oid='gridex_ediel_technical_ack.select_configured_reply_route_v2(uuid,jsonb,text,text,text,integer)'::regprocedure)
+  OR authority IS DISTINCT FROM (SELECT proowner FROM pg_proc
+   WHERE oid='gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1()'::regprocedure AND NOT prosecdef)
+  OR authority IS DISTINCT FROM (SELECT relowner FROM pg_class
+   WHERE oid='gridex_ediel_inbound_receptions.technical_mailbox_births'::regclass)
+  OR NOT EXISTS(SELECT FROM pg_trigger WHERE tgrelid='public.inbound_email_messages'::regclass
+   AND tgfoid='gridex_unattributed_intake.capture_custody_v1()'::regprocedure
+   AND tgname='gridex_technical_raw_birth' AND tgenabled IN ('O','A'))
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_birth_authority_required';END IF;
+END $birth_owner$;
 
 DO $capture$
 DECLARE f regprocedure:='public.ediel_record_inbound_reception_v1(uuid,uuid,uuid,uuid,uuid)'::regprocedure;
@@ -48,14 +112,58 @@ BEGIN
  THEN RAISE EXCEPTION 'ediel_imp05_current_ack_route_owner_required';END IF;
  needle:='candidate_profile_ids uuid[];env text;';
  IF (length(body)-length(replace(body,needle,'')))/length(needle)<>1 THEN RAISE EXCEPTION 'ediel_imp05_ack_declaration_boundary_changed';END IF;
- body:=replace(body,needle,needle||'original public.ediel_messages%rowtype;reception gridex_ediel_inbound_receptions.receptions%rowtype;original_box public.ediel_mailboxes%rowtype;birth_smtp text;');
+ body:=replace(body,needle,needle||'original public.ediel_messages%rowtype;reception gridex_ediel_inbound_receptions.receptions%rowtype;original_box public.ediel_mailboxes%rowtype;birth_smtp text;technical_birth record;smtp_birth gridex_ediel_inbound_receptions.technical_mailbox_births%rowtype;common_basis jsonb;');
  needle:='LOCK TABLE public.communication_routes,public.ediel_route_profiles,public.ediel_transport_profiles IN SHARE MODE;';
  IF (length(body)-length(replace(body,needle,'')))/length(needle)<>1 THEN RAISE EXCEPTION 'ediel_imp05_ack_current_route_boundary_changed';END IF;
- replacement:=$sql$SELECT * INTO original FROM public.ediel_messages WHERE id=msg AND company_id=c FOR SHARE;
+ replacement:=$sql$SELECT * INTO original FROM public.ediel_messages WHERE id=msg AND (company_id=c OR company_id IS NULL) FOR SHARE;
  IF original.id IS NULL OR original.direction IS DISTINCT FROM 'inbound' OR original.environment IS DISTINCT FROM env
   OR nullif(original.mailbox_message_id,'') IS NULL OR nullif(original.raw_payload,'') IS NULL
   OR e->>'sourceHash' IS DISTINCT FROM encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex')
  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+ IF original.company_id IS NULL THEN
+  IF gridex_unattributed_intake.is_birth_v1(original) IS NOT TRUE
+   OR gridex_ediel_technical_ack.require_source_v1(c,original.id) IS DISTINCT FROM e
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  IF reply_family='APERAK' THEN
+   common_basis:=gridex_ediel_common_header.require_v1(c,env,original.id);
+   PERFORM gridex_ediel_common_header.require_current_scope_v1(common_basis);
+   IF e->>'sourceHash' IS DISTINCT FROM common_basis->>'sourceHash'
+    OR e->>'syntaxAssessmentId' IS DISTINCT FROM common_basis->>'syntaxAssessmentId'
+   THEN RAISE EXCEPTION 'ediel_common_header_route_basis_mismatch';END IF;
+  END IF;
+  SELECT * INTO technical_birth FROM gridex_unattributed_intake.technical_births WHERE source_message_id=original.id FOR SHARE;
+  PERFORM gridex_unattributed_intake.require_custody_v1(technical_birth.inbound_email_message_id,technical_birth.parse_result_id);
+  IF NOT EXISTS(SELECT FROM gridex_ediel_technical_ack.sources source
+   WHERE source.source_message_id=original.id AND source.company_id=c AND source.source_company_id IS NULL
+    AND source.status='ready' AND source.environment=env AND source.payload_sha256=e->>'sourceHash'
+    AND source.source_received_at=original.message_received_at)
+   OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.physical_claims claim
+    WHERE claim.protected_source_id=original.id
+     AND claim.physical_key=gridex_unattributed_intake.physical_key_v1(technical_birth.physical_envelope))
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  SELECT * INTO smtp_birth FROM gridex_ediel_inbound_receptions.technical_mailbox_births
+   WHERE inbound_email_message_id=technical_birth.inbound_email_message_id AND environment=env FOR SHARE;
+  birth_smtp:=smtp_birth.smtp_address;
+  IF smtp_birth.inbound_email_message_id IS NULL OR birth_smtp IS NULL
+   OR birth_smtp!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+   OR lower(btrim(current_smtp_from)) IS DISTINCT FROM lower(birth_smtp)
+   OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.raw_births raw
+    WHERE raw.inbound_email_message_id=smtp_birth.inbound_email_message_id
+     AND raw.snapshot_hash=smtp_birth.raw_snapshot_hash AND raw.observed_at=smtp_birth.observed_at)
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
+  SELECT box.* INTO original_box FROM public.ediel_mailboxes box
+   JOIN public.inbound_email_messages mail ON mail.mailbox_id=box.id
+   WHERE mail.id=technical_birth.inbound_email_message_id AND box.id=smtp_birth.mailbox_id
+    AND original.mailbox_message_id=mail.id::text AND original.inbound_email_message_id=mail.id
+    AND mail.company_id IS NULL AND mail.environment=env AND box.environment=env AND box.is_active
+    AND (box.company_id=c OR box.company_id IS NULL)
+    AND box.company_id IS NOT DISTINCT FROM smtp_birth.mailbox_company_id
+    AND box.is_shared_platform_mailbox IS NOT DISTINCT FROM smtp_birth.mailbox_shared
+   FOR SHARE OF box,mail;
+  IF original_box.id IS NULL THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  -- Recheck complete custody after the mailbox lock, including mailbox_type.
+  PERFORM gridex_unattributed_intake.require_custody_v1(technical_birth.inbound_email_message_id,technical_birth.parse_result_id);
+ ELSE
  SELECT * INTO reception FROM gridex_ediel_inbound_receptions.receptions
   WHERE source_message_id=original.id AND company_id=c AND environment=env
    AND classification='first_reception' AND inbound_email_message_id::text=original.mailbox_message_id FOR SHARE;
@@ -78,6 +186,7 @@ BEGIN
     OR reception.transport_source_snapshot->'originalMailboxShared'='true'::jsonb)
   FOR SHARE OF box,mail;
  IF original_box.id IS NULL THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+ END IF;
  $sql$||needle;
  body:=replace(body,needle,replacement);
  definition:=pg_get_functiondef(f);

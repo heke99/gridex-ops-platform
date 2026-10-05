@@ -1,0 +1,18 @@
+{
+  "scope": "read-only native-result consumer interface design",
+  "scanner_source_commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "scanner_owner": "retained root",
+  "reader_owner_handoff": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995110582",
+  "scanner_decision": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995884138",
+  "reader_handshake": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995927534",
+  "current_advertised_reader_branch": "codex/ediel-ops03-complete-20261005",
+  "current_advertised_reader_source_status": "NOT_FETCHABLE: direct REST branch404, exact git ls-remote empty; API behavior unverified",
+  "published_reader_support": "orchestrator-step custody only; individual native case consumption unavailable in published source",
+  "proposed_existing_file_seam": "readVerifiedIndividualCaseResults({repository,candidateSha,candidateTree,qualificationRefs,github})",
+  "existing_reader_file": "scripts/gridex-full-production-e2e.cjs",
+  "existing_scanner_file": "scripts/ediel-masterplan-test-coverage.cjs",
+  "new_producer_manifest_emitter_runner": false,
+  "tests_native_ci_executed_by_reviewer": false,
+  "whole_card_approval": false,
+  "next": "OPS03 owner publish immutable existing reader/seam, or adapt only owned runner/consumer tests; root integrates only scanner consumption after review. Native owners supply existing exact executed-case/source/effect pins."
+}

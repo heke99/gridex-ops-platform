@@ -1,0 +1,15 @@
+
+ RUN  v4.1.9 /workspace/gridex-at-p04-parent-applicability
+
+ ✓ __tests__/ediel-at-p04-parent-applicability.test.ts (42 tests) 1632ms
+ ✓ __tests__/ediel-prodat-z14-negative-context.test.ts (41 tests) 1660ms
+ ✓ __tests__/ediel-prodat-dependent-z14-boundaries.test.ts (21 tests) 1200ms
+     ✓ all real send paths protect missing and forbidden Z14 cells against override flags  380ms
+ ✓ __tests__/ediel-prodat-dependent-z14.test.ts (83 tests) 3699ms
+
+ Test Files  4 passed (4)
+      Tests  187 passed (187)
+   Start at  13:21:39
+   Duration  7.24s (transform 5.97s, setup 73ms, import 9.09s, tests 8.19s, environment 1ms)
+
+JUNIT report written to /workspace/gridex-at-p04-parent-applicability/quality/audits/ediel-masterplan-v2/at-p04-parent-applicability/evidence/final-junit.xml

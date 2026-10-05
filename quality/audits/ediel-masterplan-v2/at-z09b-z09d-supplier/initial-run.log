@@ -1,0 +1,98 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z09b-z09d-supplier-20261005
+
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts (48 tests | 3 failed) 159ms
+     ✓ returns the initial source HOLD before route, intent, request or finalization 6ms
+     ✓ re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request 6ms
+     ✓ keeps first reservation HOLD before renderer/version or finalizer 2ms
+     × keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance 66ms
+     ✓ rejects company drift in the intent fetched by the actual gateway before fresh source/reservation 3ms
+     ✓ rejects event drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects family drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects code drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects canonical route company drift before intent/request creation 1ms
+     ✓ rejects canonical route environment drift before intent/request creation 1ms
+     ✓ rejects canonical route legalActor drift before intent/request creation 1ms
+     ✓ rejects canonical route legalSender drift before intent/request creation 1ms
+     ✓ rejects canonical route recipient drift before intent/request creation 1ms
+     ✓ rejects canonical route supplierRole drift before intent/request creation 1ms
+     ✓ uses actual intent validation to hold mutated application-reference metadata before fresh source 1ms
+     ✓ propagates a fresh source RPC error without rendering or queueing 2ms
+     ✓ returns the initial source HOLD before route, intent, request or finalization 1ms
+     ✓ re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request 2ms
+     ✓ keeps first reservation HOLD before renderer/version or finalizer 2ms
+     × keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance 24ms
+     ✓ rejects company drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects event drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects family drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects code drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects canonical route company drift before intent/request creation 1ms
+     ✓ rejects canonical route environment drift before intent/request creation 1ms
+     ✓ rejects canonical route legalActor drift before intent/request creation 1ms
+     ✓ rejects canonical route legalSender drift before intent/request creation 1ms
+     ✓ rejects canonical route recipient drift before intent/request creation 0ms
+     ✓ rejects canonical route supplierRole drift before intent/request creation 1ms
+     ✓ uses actual intent validation to hold mutated application-reference metadata before fresh source 1ms
+     ✓ propagates a fresh source RPC error without rendering or queueing 2ms
+     ✓ returns the initial source HOLD before route, intent, request or finalization 0ms
+     ✓ re-reads the source in the actual gateway and keeps a fresh HOLD after preliminary intent/request 1ms
+     ✓ keeps first reservation HOLD before renderer/version or finalizer 1ms
+     × keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance 14ms
+     ✓ rejects company drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects event drift in the intent fetched by the actual gateway before fresh source/reservation 1ms
+     ✓ rejects family drift in the intent fetched by the actual gateway before fresh source/reservation 0ms
+     ✓ rejects code drift in the intent fetched by the actual gateway before fresh source/reservation 0ms
+     ✓ rejects canonical route company drift before intent/request creation 1ms
+     ✓ rejects canonical route environment drift before intent/request creation 1ms
+     ✓ rejects canonical route legalActor drift before intent/request creation 0ms
+     ✓ rejects canonical route legalSender drift before intent/request creation 0ms
+     ✓ rejects canonical route recipient drift before intent/request creation 0ms
+     ✓ rejects canonical route supplierRole drift before intent/request creation 0ms
+     ✓ uses actual intent validation to hold mutated application-reference metadata before fresh source 0ms
+     ✓ propagates a fresh source RPC error without rendering or queueing 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts > actual B preparer → gateway HOLD coupling > keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance
+AssertionError: expected [ …(16) ] to include 'BGM+Z09+31C920F3C17B5C+9'
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts:180:18
+    178|     expect(params.draft).toMatchObject({ companyId, intentId, sourceOp…
+    179|     const wire = tokenizeEdifact(params.draft.rawPayload).segments.map…
+    180|     expect(wire).toContain('BGM+Z09+' + savedIntent!.interchangeRefere…
+       |                  ^
+    181|     if (profile.label === 'B') {
+    182|       expect(wire).toContain('NAD+Z02+22222:160:SVK')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts > actual D signed preparer → gateway HOLD coupling > keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance
+AssertionError: expected [ …(16) ] to include 'BGM+Z09+58928FEF0FBBCC+9'
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts:180:18
+    178|     expect(params.draft).toMatchObject({ companyId, intentId, sourceOp…
+    179|     const wire = tokenizeEdifact(params.draft.rawPayload).segments.map…
+    180|     expect(wire).toContain('BGM+Z09+' + savedIntent!.interchangeRefere…
+       |                  ^
+    181|     if (profile.label === 'B') {
+    182|       expect(wire).toContain('NAD+Z02+22222:160:SVK')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts > actual D ceased preparer → gateway HOLD coupling > keeps second reservation HOLD after a fresh-source rendered draft, with no lifecycle or queue advance
+AssertionError: expected [ …(16) ] to include 'BGM+Z09+E5DE2E414E5C06+9'
+ ❯ __tests__/ediel-at-z09b-z09d-supplier-profile.test.ts:180:18
+    178|     expect(params.draft).toMatchObject({ companyId, intentId, sourceOp…
+    179|     const wire = tokenizeEdifact(params.draft.rawPayload).segments.map…
+    180|     expect(wire).toContain('BGM+Z09+' + savedIntent!.interchangeRefere…
+       |                  ^
+    181|     if (profile.label === 'B') {
+    182|       expect(wire).toContain('NAD+Z02+22222:160:SVK')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 45 passed (48)
+   Start at  15:17:31
+   Duration  3.21s (transform 2.31s, setup 32ms, import 2.83s, tests 159ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z09b-z09d-supplier-20261005/quality/audits/ediel-masterplan-v2/at-z09b-z09d-supplier/initial-junit.xml

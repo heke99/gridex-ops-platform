@@ -1,3 +1,4 @@
+// masterplan: GOV-05, AT-GOV-05
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 

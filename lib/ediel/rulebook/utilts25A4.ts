@@ -99,6 +99,18 @@ export const UTILTS_25_A_4_POLICY: UtiltsProcessabilityPolicy = {
   },
 }
 
+for (const policy of [UTILTS_25_A_3_POLICY, UTILTS_25_A_4_POLICY]) {
+  Object.freeze(policy.activeOutboundMessageCodes)
+  Object.freeze(policy.historicalReceiveOnlyMessageCodes)
+  Object.freeze(policy.removedFieldNumbers)
+  Object.freeze(policy.removedRejectionReasonCodes)
+  Object.freeze(policy.removedTransactionReasonCodes)
+  Object.freeze(policy.source)
+  Object.freeze(policy.structuralComparisonSource.sections)
+  Object.freeze(policy.structuralComparisonSource)
+  Object.freeze(policy)
+}
+
 function isoDate(value: string): string {
   const normalized = String(value ?? '').trim().slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) throw new Error('utilts_reference_date_invalid')

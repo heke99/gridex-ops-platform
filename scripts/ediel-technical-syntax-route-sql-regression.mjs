@@ -90,6 +90,29 @@ try{
  await db.exec(transition.slice(transition.indexOf('CREATE FUNCTION gridex_received_sources.permission_transition_immutable_v1()'),transition.indexOf('CREATE TRIGGER permission_transition_immutable')))
  await db.exec(sqlSource('20261001000459_ediel_immutable_inbound_reception_response_requests.sql'))
  await db.exec(sqlSource('20261001060131_ediel_inbound_reception_actual_original_columns.sql'))
+ // The attributed cases do not mint protected intake custody. Load only the
+ // actual unused birth relation/trigger authorities required by the forward;
+ // the separate NULL-intake suite executes their genuine protected path.
+ const schema=readFileSync(new URL('../supabase/schema.sql',import.meta.url),'utf8')
+ const definition=(kind,name)=>{
+  const start=schema.indexOf(`CREATE ${kind} ${name}`)
+  if(start<0)throw Error(`Missing actual ${kind} ${name}`)
+  if(kind==='TABLE')return schema.slice(start,schema.indexOf('\n);',start)+3)
+  const match=/\bAS (\$[\w]*\$)/.exec(schema.slice(start))
+  if(!match)throw Error(`Missing actual function body ${name}`)
+  const body=start+match.index+match[0].length,end=schema.indexOf(`${match[1]};`,body)
+  if(end<0)throw Error(`Missing actual function end ${name}`)
+  return schema.slice(start,end+match[1].length+1)
+ }
+ await db.exec('create schema gridex_unattributed_intake')
+ await db.exec(definition('TABLE','gridex_unattributed_intake.raw_births ('))
+ for(const match of schema.matchAll(/ALTER TABLE ONLY gridex_unattributed_intake\.raw_births\n[\s\S]*?;/g)){
+  if(/ADD CONSTRAINT .* PRIMARY KEY \(/.test(match[0]))await db.exec(match[0])
+ }
+ for(const name of ['service_session_v1','capture_custody_v1','immutable_v1'])await db.exec(definition('FUNCTION',`gridex_unattributed_intake.${name}(`))
+ const rawTriggerStart=schema.indexOf('CREATE TRIGGER gridex_technical_raw_birth ')
+ if(rawTriggerStart<0)throw Error('Missing actual protected raw-birth trigger')
+ await db.exec(schema.slice(rawTriggerStart,schema.indexOf(';',rawTriggerStart)+1))
  await db.exec("create or replace function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as 'select $3 in(''communication.send'',''communication.write'',''communication.read'',''ediel_testing.write'')'")
  await db.exec("update ediel_route_profiles set message_family='CONTRL',business_code='CONTRL';update ediel_transport_profiles set sender_email='current@example.test'")
  const receive=async(n,address,boxCompany=uid(1),shared=false,application='')=>{

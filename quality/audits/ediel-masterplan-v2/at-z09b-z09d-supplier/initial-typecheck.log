@@ -1,0 +1,4 @@
+__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts(116,5): error TS2322: Type '{ id: string; validationStatus: "validated"; renderStatus: "not_rendered"; outboxStatus: "not_queued"; companyId: string; environment: EdielIntentEnvironment; ... 34 more ...; routeProfile?: { applicationReference?: string | null; actorRole?: string | null; companyRole?: string | null; } | null; }' is not assignable to type 'EdielMessageIntent'.
+  Types of property 'market' are incompatible.
+    Type 'EdielIntentMarket | undefined' is not assignable to type 'EdielIntentMarket'.
+      Type 'undefined' is not assignable to type 'EdielIntentMarket'.

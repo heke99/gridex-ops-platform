@@ -148,10 +148,9 @@ function cciCavMap(
       continue
     }
     if (segment.tag !== 'CAV' || !current) continue
-    const components = canonicalComposite(segment, 1, una)
-      .map((part) => clean(part)?.toUpperCase() ?? null)
-      .filter((part): part is string => Boolean(part))
-    const value = components[0] ?? null
+    // C889 positions are part of the wire contract. An omitted first value
+    // cannot acquire a later code/list/free-text component's meaning.
+    const value = canonicalFirstComponent(segment, 1, una)?.toUpperCase() ?? null
     if (value) result[current] = [...(result[current] ?? []), value]
   }
 

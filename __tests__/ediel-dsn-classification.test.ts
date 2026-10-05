@@ -7,7 +7,15 @@ import { isDeliveryStatusNotification } from '@/lib/inbound-mail/dsnClassifier'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), task: vi.fn(), tenant: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: mocks.from } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
+  from: mocks.from,
+  rpc: async (name: string, args: Record<string, unknown>) => {
+    if (name !== 'ediel_read_unattributed_technical_intake_v1') throw new Error(`Undeclared DSN fixture RPC: ${name}`)
+    expect(args).toEqual({ p_inbound_email_message_id: 'mail1', p_source_message_id: null, p_actor_user_id: null })
+    // This ordinary mail has no protected technical birth; null grants no authority.
+    return { data: null, error: null }
+  },
+} }))
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater', () => ({
   updateInboundEmailProcessingStatus: mocks.update,
   createParseResult: vi.fn(), createInboundEdielMessage: vi.fn(),

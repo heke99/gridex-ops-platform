@@ -1,7 +1,10 @@
 // Focused SQL compilation/source/atomic/immutable checks, not native replay.
 // Inherited persisted-contract lookup and rule/legal basis are explicit fixture
 // authorities; their production implementations require separate own evidence.
+// DB-06 / AT-DB-06: exercise the actual protected billing input boundary. The
+// seeded price/rule/supply ports do not certify production authority or custody.
 import { pathToFileURL, fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
 const { PGlite } = await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href)
@@ -66,15 +69,118 @@ await service('select public.gridex_set_metering_billing_gate($1,$2,$3,$4)',[com
 const underlay={customer_id:customer,metering_point_id:point,supply_period_id:supply,contract_id:contract,pricing_snapshot_id:price,contract_price_snapshot_id:price,price_plan_version_id:priceVersion,pricing_snapshot:{price:'original'},underlay_year:2026,underlay_month:7,billing_period_start:observation.periodStart,billing_period_end:observation.periodEnd,energy_direction:'consumption',settlement_type:'invoice',total_kwh:observation.quantity,status:'validated',readiness_status:'ready'}
 const items=[{source_normalized_metering_value_id:value,quantity:observation.quantity,quantity_kwh:observation.quantity,product_code:'8716867000030',register_code:'REG',unit:'kWh',period_start:observation.periodStart,period_end:observation.periodEnd}]
 async function store(u=underlay,i=items){return(await service('select public.gridex_store_billing_underlay($1,$2,$3,null) id',[company,u,i])).rows[0].id}
+async function noFinalizedEffects(){
+ const totals=(await db.query(`select (select count(*) from public.billing_underlays) underlays,
+  (select count(*) from public.billing_underlay_items) items,
+  (select count(*) from gridex_billing_source.underlay_bindings) bindings,
+  (select count(*) from gridex_billing_source.correction_journal) corrections`)).rows[0]
+ assert.deepEqual(totals,{underlays:0,items:0,bindings:0,corrections:0})
+}
+// Cached individual eligibility cannot promote a forecast, aggregate or DGI
+// original into a finalized invoice input, even with a retained write contract.
+for (const [code,applicationReference,quantityType] of [
+ ['S02','23-DDQ-S02-S','135'],['E31','23-DDQ-E31-T','136'],['E66','23-DGI-E66-T','136'],
+]) {
+ const original=raw.replace('23-DDQ-E66-T',applicationReference).replace('BGM+E66::260',`BGM+${code}::260`).replace('QTY+136:',`QTY+${quantityType}:`)
+ await db.query('update public.ediel_messages set message_code=$1,raw_payload=$2 where id=$3',[code,original,source])
+ assert.equal((await basis()).qualified,false)
+ await rejects(()=>service('select public.gridex_set_metering_billing_gate($1,$2,$3,$4)',[company,meter,value,gate]),/qualified_final_source_required/)
+ await rejects(()=>store(),/qualified_source_mismatch/)
+ await noFinalizedEffects()
+}
+await db.query('update public.ediel_messages set message_code=$1,raw_payload=$2 where id=$3',['E66',raw,source])
+// Every required dimension has a refusal contrast before the first final lock.
+for (const original of [raw.replace('QTY+136:','QTY+135:'),raw.replace('8716867000030','8716867000047'),raw.replace("QTY+136:9007199254740993'","QTY+136:9007199254740993'STS+8+56'")]) {
+ await db.query('update public.ediel_messages set raw_payload=$1 where id=$2',[original,source])
+ await rejects(()=>store(),/qualified_source_mismatch/)
+ await noFinalizedEffects()
+}
+await db.query('update public.ediel_messages set raw_payload=$1 where id=$2',[raw,source])
+await db.query("update public.normalized_metering_values set revision_status='superseded' where id=$1",[value])
+assert.equal((await basis()).qualified,false)
+await rejects(()=>store(),/qualified_source_mismatch/)
+await db.query("update public.normalized_metering_values set revision_status='current' where id=$1",[value])
+await db.query('update public.metering_values set is_current=false where id=$1',[meter])
+await rejects(()=>store(),/qualified_source_mismatch/)
+await db.query('update public.metering_values set is_current=true where id=$1',[meter])
+await rejects(()=>store(underlay,[{...items[0],product_code:'8716867000047'}]),/qualified_source_mismatch/)
+await rejects(()=>store(underlay,[{...items[0],period_end:'2026-07-31T22:01:00.000Z'}]),/qualified_source_mismatch/)
+await rejects(()=>store({...underlay,customer_id:point}),/supply_contract_price_basis_required/)
+await db.query("update public.customer_supply_periods set end_date='2026-07-30' where id=$1",[supply])
+await rejects(()=>store(),/supply_contract_price_basis_required/)
+await db.query('update public.customer_supply_periods set end_date=null where id=$1',[supply])
+await db.exec('update public.fixture_authorities set legal_available=false')
+await rejects(()=>store(),/qualified_supply_source_required/)
+await db.exec('update public.fixture_authorities set legal_available=true')
+await rejects(()=>store({...underlay,price_plan_version_id:contract}),/supply_contract_price_basis_required/)
+const originalPriceVersion=(await db.query('select * from public.price_plan_versions where id=$1',[priceVersion])).rows[0]
+for (const update of ['locked_at=null','content_sha256=null',"status='draft'"]) {
+ await db.exec(`update public.price_plan_versions set ${update}`)
+ await rejects(()=>store(),/supply_contract_price_basis_required/)
+ await db.query('update public.price_plan_versions set locked_at=$1,content_sha256=$2,status=$3 where id=$4',
+  [originalPriceVersion.locked_at,originalPriceVersion.content_sha256,originalPriceVersion.status,priceVersion])
+}
+await rejects(()=>store({...underlay,pricing_snapshot:{price:'replacement'}}),/supply_contract_price_basis_required/)
+await db.query("update public.contract_price_snapshots set valid_to='2026-07-30' where id=$1",[price])
+await rejects(()=>store(),/supply_contract_price_basis_required/)
+await db.query('update public.contract_price_snapshots set valid_to=null where id=$1',[price])
+await noFinalizedEffects()
 await rejects(()=>store({...underlay,total_kwh:'9007199254740992'}),/exact_total_mismatch/)
 await rejects(()=>store({...underlay,energy_direction:'production'}),/qualified_source_mismatch/)
 const id=await store();assert.equal(await store(),id);assert.equal((await db.query('select total_kwh::text from public.billing_underlays')).rows[0].total_kwh,observation.quantity);count++
+const locked=(await db.query('select *,source_basis::text source_basis_text,exact_total_kwh::text exact_total from gridex_billing_source.underlay_bindings where underlay_id=$1',[id])).rows[0]
+const lockedValue=locked.source_basis.values[0]
+assert.equal(locked.company_id,company);assert.equal(locked.exact_total,observation.quantity)
+assert.equal(locked.source_basis.values.length,1)
+assert.equal(lockedValue.normalizedValueId,value);assert.equal(lockedValue.sourceMessageId,source)
+assert.equal(lockedValue.quantityType,'136');assert.equal(lockedValue.quantityKwh,observation.quantity)
+assert.equal(lockedValue.productCode,'8716867000030');assert.equal(lockedValue.registerCode,'REG')
+assert.equal(lockedValue.quality,null);assert.equal(lockedValue.qualityEstablished,true)
+assert.equal(lockedValue.revisionNumber,1);assert.equal(lockedValue.supplyPeriodId,supply)
+assert.equal(lockedValue.observationOrdinal,0)
+assert.equal(lockedValue.sourcePayloadHash,createHash('sha256').update(raw).digest('hex'))
+const retainedContractText=(await db.query('select contract::text body from public.fixture_contracts')).rows[0].body
+assert.equal(lockedValue.contractHash,createHash('sha256').update(retainedContractText).digest('hex'))
+assert.deepEqual(locked.source_basis.supply,{qualified:true,periodId:supply,marketStateVersion:1})
+assert.equal(locked.source_basis.contractId,contract);assert.equal(locked.source_basis.contractStatus,'active')
+assert.equal(new Date(locked.source_basis.start).toISOString(),observation.periodStart)
+assert.equal(new Date(locked.source_basis.end).toISOString(),observation.periodEnd)
+assert.equal(locked.source_basis.price.id,price);assert.equal(locked.source_basis.price.contract_id,contract)
+assert.equal(locked.source_basis.price.price_plan_version_id,priceVersion)
+assert.deepEqual(locked.source_basis.price.snapshot_json,{price:'original'})
+assert.equal(locked.source_basis.priceVersionHash,originalPriceVersion.content_sha256)
+assert.equal(locked.source_basis_hash,createHash('sha256').update(locked.source_basis_text).digest('hex'))
+assert.ok(Number.isFinite(new Date(locked.finalized_at).getTime()));count++
+async function finalizedSnapshot(){return(await db.query(`select jsonb_build_object(
+ 'underlay',(select to_jsonb(u) from public.billing_underlays u where id=$1),
+ 'items',(select jsonb_agg(to_jsonb(i) order by id) from public.billing_underlay_items i where billing_underlay_id=$1),
+ 'binding',(select to_jsonb(b) from gridex_billing_source.underlay_bindings b where underlay_id=$1)) original`,[id])).rows[0].original}
+const lockedOriginal=await finalizedSnapshot()
 await rejects(()=>db.query('update public.billing_underlays set total_kwh=1 where id=$1',[id]),/finalized_underlay_immutable/)
+await rejects(()=>db.query('update public.billing_underlays set pricing_snapshot=$1 where id=$2',[{price:'replacement'},id]),/finalized_underlay_immutable/)
 await rejects(()=>db.query('delete from public.billing_underlay_items where billing_underlay_id=$1',[id]),/finalized_items_immutable/)
 await rejects(()=>db.query('update gridex_billing_source.underlay_bindings set exact_total_kwh=1'),/immutable/)
 let proof=(await service('select public.gridex_read_billing_underlay_source_basis_v1($1,$2) p',[company,[id]])).rows[0].p[0];assert.equal(proof.qualified,true);assert.equal(proof.correctionRequired,false);count++
 await db.exec('update public.fixture_authorities set legal_available=false');assert.equal((await service('select public.gridex_read_billing_underlay_source_basis_v1($1,$2) p',[company,[id]])).rows[0].p[0].qualified,false);count++;await db.exec('update public.fixture_authorities set legal_available=true')
 await db.query(`insert into public.normalized_metering_values(id,company_id,source_message_id,previous_value_id) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',$1,$2,$3)`,[company,source,meter]);proof=(await service('select public.gridex_read_billing_underlay_source_basis_v1($1,$2) p',[company,[id]])).rows[0].p[0];assert.equal(proof.correctionRequired,true);assert.equal((await db.query('select count(*) c from gridex_billing_source.correction_journal')).rows[0].c,1);count++
+const newSource='cccccccc-cccc-4ccc-8ccc-cccccccccccc',newValue='dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+await db.query('insert into public.ediel_messages values($1,$2,$3,$4,$5,$6,$7,$8)',[newSource,company,'test','inbound','UTILTS','E66',raw.replace('BGM+E66::260+D+9','BGM+E66::260+NEW-DATA+9'),'validated'])
+await db.query('insert into public.normalized_metering_values(id,company_id,source_message_id,previous_value_id) values($1,$2,$3,$4)',[newValue,company,newSource,value])
+const journals=(await db.query('select * from gridex_billing_source.correction_journal order by new_normalized_value_id')).rows
+assert.equal(journals.length,2)
+for (const journal of journals) {
+ assert.equal(journal.company_id,company);assert.equal(journal.underlay_id,id)
+ assert.equal(journal.previous_normalized_value_id,value);assert.equal(journal.old_source_basis_hash,locked.source_basis_hash)
+ assert.equal(journal.new_source_message_id,journal.new_normalized_value_id===newValue?newSource:source)
+ assert.ok(Number.isFinite(new Date(journal.created_at).getTime()))
+}
+assert.deepEqual(journals.map(j=>j.new_normalized_value_id),['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',newValue])
+assert.deepEqual(await finalizedSnapshot(),lockedOriginal);count++
+await rejects(()=>db.exec('update gridex_billing_source.correction_journal set old_source_basis_hash=repeat(\'0\',64)'),/immutable/)
+await rejects(()=>db.exec('delete from gridex_billing_source.correction_journal'),/immutable/)
+proof=(await service('select public.gridex_read_billing_underlay_source_basis_v1($1,$2) p',[company,[id]])).rows[0].p[0]
+assert.equal(proof.correctionRequired,true);assert.equal(proof.sourceBasisHash,locked.source_basis_hash)
+assert.deepEqual(await finalizedSnapshot(),lockedOriginal);count++
 await rejects(()=>service('select public.gridex_create_billing_export_run($1,$2)',[{company_id:company},[{billing_underlay_id:id,status:'ready'}]]),/finalized_source_basis_required/)
 await db.exec('set role authenticated');try{await rejects(()=>db.query('select public.gridex_read_billing_source_values_v1($1,$2)',[company,[value]]),/permission denied/)}finally{await db.exec('reset role')}
 console.log(`Focused PostgreSQL billing source/decimal/scope/finalization/correction/ACL checks: ${count} PASS`)

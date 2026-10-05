@@ -1,0 +1,604 @@
+{
+  "schema": "gridex-masterplan-minimum-current-main-carry/v1",
+  "reviewedAt": "2026-10-05T13:40:19.942088+00:00",
+  "reviewer": "/root/sc001_sc002_sc018_sc056_carry",
+  "pr": 560,
+  "head": "0ad71de342f1f59ef140525622c3c1d8bc38c699",
+  "headTree": "6e2a032cd6eb3629cf216f1cfc50f2c0736d7b30",
+  "actualMain": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "mainTree": "4acbd9b92cc689382aaa28e10468b609f6d135c4",
+  "previousMain": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "mergeTree": "a1cff9615aedb8f634ade28336215650383f73e0",
+  "verdicts": {
+    "SC-018": "APPROVE_BOUNDED_CURRENT_MAIN_SOURCE_CARRY",
+    "SC-056": "APPROVE_BOUNDED_CURRENT_MAIN_SOURCE_CARRY"
+  },
+  "priorCarryRecord": {
+    "path": "/workspace/agent-review-checkpoints/sc018-sc056-pr560-0ad-minimum-carry-receipt.json",
+    "sha256": "d5ea21153cfdf1e77c1feb5349e8c7f9bf0168f03c42c4d33aa2c7ca1fd8fd3d"
+  },
+  "originalWholeRecord": {
+    "reviewPath": "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
+    "reviewSha256": "344d2cea8d0206e1b93b35fed8500044fdea3672c932f5f541db9a9954519cb6",
+    "receiptPath": "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
+    "receiptSha256": "de6a09870707ca6292e53bdd0a50c0e1d8d02dc60dbb55d1caa44237bac8e988"
+  },
+  "headInputsStillExact": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "headSha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "mainSha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "headSha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "mainSha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "headSha256": "add9820b839e1a69b3812e070833b69fb92c49850f407cd734bf81496f4e39d9",
+      "mainSha256": "802c6a5ffccb19a511db0e6b4c534d817412f6cf482b253965a261c082456a24"
+    },
+    {
+      "path": "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+      "headSha256": "8612d2a3e528988dcc57f15c8a5c297bfe392a7ee2fff1fceb238ac3490b7d91",
+      "mainSha256": null
+    },
+    {
+      "path": "scripts/ediel-sc-018-manual-service-context-sql-regression.mjs",
+      "headSha256": "da931f80e25409dbeddde1a8f378532247324a8a18ae8b443e6533f337c7a541",
+      "mainSha256": null
+    },
+    {
+      "path": "scripts/test-ediel-sc-018-056-service-incident.cjs",
+      "headSha256": "d490c343f7f7a9ed208116b0b9c2d2e987cd05a0bd6e65fa579828afab276a8c",
+      "mainSha256": null
+    },
+    {
+      "path": "app/admin/customers/[id]/actions.ts",
+      "headSha256": "c5227ccf73d399b38db6f28047bdaaa861001d914c1ab3ddbb8fc62883ff6814",
+      "mainSha256": "c5227ccf73d399b38db6f28047bdaaa861001d914c1ab3ddbb8fc62883ff6814"
+    },
+    {
+      "path": "app/admin/customers/[id]/actions.part-1.ts",
+      "headSha256": "c8528504cfa70bdc00b9448e8f292332fa70721d3be5cc43eba665119a1fb390",
+      "mainSha256": "c8528504cfa70bdc00b9448e8f292332fa70721d3be5cc43eba665119a1fb390"
+    },
+    {
+      "path": "app/admin/customers/[id]/actions.part-3.ts",
+      "headSha256": "fddf6373ed1cd76ff0647e555aeadc109a2f4db581de4a34a9a8ef64c0bb7165",
+      "mainSha256": "fddf6373ed1cd76ff0647e555aeadc109a2f4db581de4a34a9a8ef64c0bb7165"
+    },
+    {
+      "path": "app/admin/customers/[id]/actions.part-4.ts",
+      "headSha256": "261aa11e0764c0b8618a37fc2a8ab911ae94e641a46918f8deda8ac9c36a8257",
+      "mainSha256": "261aa11e0764c0b8618a37fc2a8ab911ae94e641a46918f8deda8ac9c36a8257"
+    },
+    {
+      "path": "lib/tenant/entityGuards.ts",
+      "headSha256": "bfd77a544ad92a931e3ef80eee5adadc74445585133b4656334e6a7b4a6ae24d",
+      "mainSha256": "bfd77a544ad92a931e3ef80eee5adadc74445585133b4656334e6a7b4a6ae24d"
+    },
+    {
+      "path": "lib/tenant/adminScope.ts",
+      "headSha256": "ceea0f50ef043fc2a89384a9d6eacd6b1c45d7f1c35a917f0faceaaa25c1083e",
+      "mainSha256": "ceea0f50ef043fc2a89384a9d6eacd6b1c45d7f1c35a917f0faceaaa25c1083e"
+    },
+    {
+      "path": "lib/tenant/scope.ts",
+      "headSha256": "dad0d989403d00ea5bc5e72c86e2a6eae69ba0edadb0a2853214087dc8bd8910",
+      "mainSha256": "dad0d989403d00ea5bc5e72c86e2a6eae69ba0edadb0a2853214087dc8bd8910"
+    },
+    {
+      "path": "lib/admin/masterdataPermissions.ts",
+      "headSha256": "495008a8c7b70b431f27d09ad36efe7aaab8c3a02d45d516542a4859541473e4",
+      "mainSha256": "495008a8c7b70b431f27d09ad36efe7aaab8c3a02d45d516542a4859541473e4"
+    },
+    {
+      "path": "lib/ediel/services/manualPermission.ts",
+      "headSha256": "3e8851356cd847a52f0642594ebfaca9d547fea50ba957941158d43923eb4731",
+      "mainSha256": "3e8851356cd847a52f0642594ebfaca9d547fea50ba957941158d43923eb4731"
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "headSha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "mainSha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0"
+    },
+    {
+      "path": "lib/ediel/flows/prodatServicePermission.ts",
+      "headSha256": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c",
+      "mainSha256": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c"
+    },
+    {
+      "path": "app/api/ediel/business-incidents/route.ts",
+      "headSha256": "9d4f086f107ab4e362c30b0ac5475afeab4ef74f30d1b7ed7494bf7307d0e13a",
+      "mainSha256": "9d4f086f107ab4e362c30b0ac5475afeab4ef74f30d1b7ed7494bf7307d0e13a"
+    },
+    {
+      "path": "lib/ediel/incidents/freshBusinessIncident.ts",
+      "headSha256": "e0a3de9e2496fece5ca2ff1a0997cea543c2099e1a58db7c9f949641bd2b4c93",
+      "mainSha256": "e0a3de9e2496fece5ca2ff1a0997cea543c2099e1a58db7c9f949641bd2b4c93"
+    },
+    {
+      "path": "lib/ediel/production/requestedChangeHttp.ts",
+      "headSha256": "a9ed063351ac352371b4d0f048f4434e625e65f1b4592902998628a3882916c7",
+      "mainSha256": "a9ed063351ac352371b4d0f048f4434e625e65f1b4592902998628a3882916c7"
+    },
+    {
+      "path": "scripts/ediel-service-manual-sql-regression.mjs",
+      "headSha256": "b817a4102a5f727cf3a34d11225f4034f1662617bb6f1290b3151e372278c611",
+      "mainSha256": "b817a4102a5f727cf3a34d11225f4034f1662617bb6f1290b3151e372278c611"
+    },
+    {
+      "path": "scripts/ediel-fresh-business-incident-native.test.ts",
+      "headSha256": "386b8f69b6bf6dc6e24c8ebfbd44a948ac852225e4da690f335b303bce1f151f",
+      "mainSha256": "386b8f69b6bf6dc6e24c8ebfbd44a948ac852225e4da690f335b303bce1f151f"
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "headSha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "mainSha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "headSha256": "ed529f341c4d631b60d08016c18b4e2584ea592c2144f4f74d8735c0dfc6984d",
+      "mainSha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6"
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "headSha256": "45698f2d4b494902a864efff0dee733ae7ee039b7a29b863da1a08ac1ec6ed1e",
+      "mainSha256": "45698f2d4b494902a864efff0dee733ae7ee039b7a29b863da1a08ac1ec6ed1e"
+    },
+    {
+      "path": "lib/ediel/transport/outboundAttempt.ts",
+      "headSha256": "3a3505ded65fa001f8b71a7a3bbdffc8a8948a97f7c5295ac2e1ed7c1ccfc1ff",
+      "mainSha256": "3a3505ded65fa001f8b71a7a3bbdffc8a8948a97f7c5295ac2e1ed7c1ccfc1ff"
+    }
+  ],
+  "selectedSqlOwners": [
+    {
+      "name": "gridex_service_administration.scope_v1",
+      "retainedInstalledBodySha256": "8ac01ef5b2288c43c9a719d28fffe4c1f6a9ed59ee3336fb12a54b6c432bad05",
+      "mainBodySha256": "8ac01ef5b2288c43c9a719d28fffe4c1f6a9ed59ee3336fb12a54b6c432bad05",
+      "equal": true
+    },
+    {
+      "name": "gridex_service_administration.permission_matches_assignment_v1",
+      "retainedInstalledBodySha256": "cf5b2aa22020a46aef8eb345f45b9e8a53edc8e53dac3daab6cc9a8cbebe0937",
+      "mainBodySha256": "cf5b2aa22020a46aef8eb345f45b9e8a53edc8e53dac3daab6cc9a8cbebe0937",
+      "equal": true
+    },
+    {
+      "name": "gridex_service_administration.permission_originals_for_tuple_v1",
+      "retainedInstalledBodySha256": "d2b570c97df4d9562454d159469b9e7f09f8e1abde339a9e53f8c40574c4708f",
+      "mainBodySha256": "d2b570c97df4d9562454d159469b9e7f09f8e1abde339a9e53f8c40574c4708f",
+      "equal": true
+    },
+    {
+      "name": "gridex_service_administration.require_manual_actor_v1",
+      "retainedInstalledBodySha256": "baad5aedd855a08adf6477220e2bc6eb9a322e5379a62ead4a60c82c9b70956b",
+      "mainBodySha256": "baad5aedd855a08adf6477220e2bc6eb9a322e5379a62ead4a60c82c9b70956b",
+      "equal": true
+    },
+    {
+      "name": "gridex_service_administration.manual_hold_v1",
+      "retainedInstalledBodySha256": "ce0f91d2f112bf95c0b7810686983e37eb23f809781163a596dda7cac3650e44",
+      "mainBodySha256": "ce0f91d2f112bf95c0b7810686983e37eb23f809781163a596dda7cac3650e44",
+      "equal": true
+    },
+    {
+      "name": "gridex_service_administration.coordinate_before_manual_resolution_v1",
+      "retainedInstalledBodySha256": "ca6c91c2ec2eed5ad19e6ec19cab5b3de7141cc9162611efdeef7330372c0e88",
+      "mainBodySha256": "ca6c91c2ec2eed5ad19e6ec19cab5b3de7141cc9162611efdeef7330372c0e88",
+      "equal": true
+    },
+    {
+      "name": "gridex_service_administration.coordinate_before_source_timing_v1",
+      "retainedInstalledBodySha256": "1b3a6c6b25acf18b3125d7342b480906ab7ac1e6173024709cdc2a2eee1f6c49",
+      "mainBodySha256": "1b3a6c6b25acf18b3125d7342b480906ab7ac1e6173024709cdc2a2eee1f6c49",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_coordinate_service_permission_v1",
+      "retainedInstalledBodySha256": "5ebfa3180d67375f56f0d20c0d10e6c016c26566fb1dfb01bb1614fada325ada",
+      "mainBodySha256": "5ebfa3180d67375f56f0d20c0d10e6c016c26566fb1dfb01bb1614fada325ada",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_resolve_service_permission_command_v1",
+      "retainedInstalledBodySha256": "280258f1314a8eaf795327ab375f155cd8c0139644f566ae90bff96fdeb6bb8c",
+      "mainBodySha256": "280258f1314a8eaf795327ab375f155cd8c0139644f566ae90bff96fdeb6bb8c",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_service_permission_manual_context_v1",
+      "retainedInstalledBodySha256": "0877c48909b7d0d28ebba1c0206e9a09c1b93991740715fc0e1df54a26880ef2",
+      "mainBodySha256": "0877c48909b7d0d28ebba1c0206e9a09c1b93991740715fc0e1df54a26880ef2",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_business_incidents.actor_v2",
+      "retainedInstalledBodySha256": "49318137f5ef204c3efe76ba73e0680512530a5773b1067a0ad770657c27d15b",
+      "mainBodySha256": "49318137f5ef204c3efe76ba73e0680512530a5773b1067a0ad770657c27d15b",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_business_incidents.immutable_v1",
+      "retainedInstalledBodySha256": "eaa511e521488b78550ab72970724143cf3edfdda064be181aeda507dbd93a57",
+      "mainBodySha256": "eaa511e521488b78550ab72970724143cf3edfdda064be181aeda507dbd93a57",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_business_incidents.inspect_ack_v1",
+      "retainedInstalledBodySha256": "6ebc546360f7d54b658e48c1c7a4e6a0eab5b4350910bb59e5404e10e07fbd22",
+      "mainBodySha256": "6ebc546360f7d54b658e48c1c7a4e6a0eab5b4350910bb59e5404e10e07fbd22",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_business_incidents.original_read_v2",
+      "retainedInstalledBodySha256": "6cf103f1ceb943051df3cd7330c570461d5f02bf2d1136b47250c8a0a1599349",
+      "mainBodySha256": "6cf103f1ceb943051df3cd7330c570461d5f02bf2d1136b47250c8a0a1599349",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_business_incidents.original_v1",
+      "retainedInstalledBodySha256": "1cbb269268cdd74114097bc39c7bcfbf6187c8e3bca5ffdd2734d7df771260bf",
+      "mainBodySha256": "1cbb269268cdd74114097bc39c7bcfbf6187c8e3bca5ffdd2734d7df771260bf",
+      "equal": true
+    },
+    {
+      "name": "gridex_ediel_business_incidents.result_v1",
+      "retainedInstalledBodySha256": "e2ec71cc0e57044f3f747190bd264ad892dbb6624eafae34f6dfc0580b23785f",
+      "mainBodySha256": "e2ec71cc0e57044f3f747190bd264ad892dbb6624eafae34f6dfc0580b23785f",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_fresh_business_incident_access_v1",
+      "retainedInstalledBodySha256": "4a3c5e78dccc7e6fcd08bb5413094d27d8989d4c2c746b0c8edcc23408612885",
+      "mainBodySha256": "4a3c5e78dccc7e6fcd08bb5413094d27d8989d4c2c746b0c8edcc23408612885",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_read_fresh_business_incident_v1",
+      "retainedInstalledBodySha256": "88871c4966853509aba7909c998a5e276741c737374be1436d2d0dab7aecda03",
+      "mainBodySha256": "88871c4966853509aba7909c998a5e276741c737374be1436d2d0dab7aecda03",
+      "equal": true
+    },
+    {
+      "name": "public.ediel_report_fresh_business_incident_v1",
+      "retainedInstalledBodySha256": "36b68209fc5b94ae1cf25915d76e9dd930c4dca5c05764bd1b7e787ba2f5886e",
+      "mainBodySha256": "36b68209fc5b94ae1cf25915d76e9dd930c4dca5c05764bd1b7e787ba2f5886e",
+      "equal": true
+    }
+  ],
+  "previousDeclaredStaticEnvelopeIntersection": [
+    "lib/ediel/core/runtimeDecision.ts",
+    "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+    "lib/ediel/inboundCases.ts",
+    "lib/ediel/matching.ts",
+    "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+    "lib/ediel/security/outboundRecipientCertificate.ts",
+    "lib/ediel/services/authorization.ts",
+    "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+    "lib/inbound-mail/inboundStatusUpdater.ts"
+  ],
+  "changedSourceEffects": [
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "mainSha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "previousMainSha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "effectQualification": "Native selected Z14/E66 enter the unchanged accepted success branch. Changes attach failureDisposition and PRODAT internal_review to existing policy/evidence failure branches, retaining manual_review and only independently qualified negative responses; they create no source, grant, positive ACK or send authority."
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "mainSha256": "2248ac210b846e116eb5e313e20e7673dd53e7877604be0a363ae703b370ce54",
+      "previousMainSha256": "e90a22a838d861ca699ff00d0f231f766b050005d44c799d48abff8e68909df7",
+      "effectQualification": "Optional TN correlation now receives the already resolved own point. Public selected Z03/Z13 origination does not invoke this link entry. Selected native E66 explicitly supplies actual transaction/point matches to consumption preparation and persistence without linkInboundUtiltsMessageCanonically."
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "mainSha256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+      "previousMainSha256": "a53ff6e8e95d3d65cfe02f95afaedf3ac7d67a26241aea9fe6b2009a97fd1174",
+      "effectQualification": "Only the non-structural inbound case wrapper now explicitly passes inbound/outbound direction to register validation. Selected order generation uses separate outbound renderers. Native service Z14 uses canonical runtime/permission transition and E66 uses explicit consumption preparation, without this wrapper."
+    },
+    {
+      "path": "lib/ediel/matching.ts",
+      "mainSha256": "d99c779b0313235e672d35d5a4b080eb3a49915c6d062dba13f0634ea345608c",
+      "previousMainSha256": "308bbdc52a24fe04ecf6433a4ead122ce8cfbbeb46cbe65fa090f2844507dff7",
+      "effectQualification": "TN qualifier parsing, limit2 ambiguity rejection and same-point fallback are inside findMatchingGridOwnerDataRequest. None of the selected order/manual/incident entries or original selected native flow invokes that matcher; explicit qualified native matches remain unchanged. No tenant filter or authority was removed."
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "mainSha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+      "previousMainSha256": "72ab4f6836154c74a4dcd8e3fefec92fc31bb5da6800318707b591f51f44bf0e",
+      "effectQualification": "Optional direction is forwarded only by validateProdatRegisterPayload. Existing default validation remains when callers omit it; inbound X/D-false ignore policy is selected by the changed case wrapper. Selected public origination/native canonical runtime and incident owners do not acquire authority from ignored fields."
+    },
+    {
+      "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+      "mainSha256": "b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7",
+      "previousMainSha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+      "effectQualification": "Signed Subject/SAN email must match actual smtpTo in the required S/MIME certificate set. Original selected native send explicitly uses smtpMimeMode nodemailer-attachment; transport dispatch branches to certificate resolution only for ediel-smime-enveloped. Public selected tests stop at finite queue/finalizer ports. No old proof is extended to S/MIME."
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "mainSha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "previousMainSha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "effectQualification": "The selected Z13 preparation and customer-card manual bridge reach this boundary. Membership/profile/permission queries, exact predicates, await ordering and original rejection messages are byte-preserved. Only two Error constructors become EdielExecutionFailure security_quarantine; it extends Error and messages remain the strings asserted by selected denial tests. Valid calls return as before; invalid calls still throw before source/RPC/intent/queue effects. No selected caller catches and converts these errors to a national negative or authorization."
+    },
+    {
+      "path": "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "mainSha256": "46ffcae646308bda20efcab6fd0b13beed8b1f1af0793ddcc416ee3492261f6b",
+      "previousMainSha256": "d4584532e262641c25800aa96e45c3e9442e6d6fb235a227d62c54eb5d6e9943",
+      "effectQualification": "Positive inbound ACK request updates now exclude already confirmed/business_response_received requests. Selected native SC056 creates and sends an original outbound positive APERAK through canonical kernel/atomic SQL; it never consumes an inbound ACK through this updater. Public incident POST/GET owners are unchanged."
+    },
+    {
+      "path": "lib/inbound-mail/inboundStatusUpdater.ts",
+      "mainSha256": "af0a2ba13dbc60a387407e39e3d72f0bb07d38e9541b036e0368177ce669a3bc",
+      "previousMainSha256": "afa6c446e79913fa0925083938ee94e341d679aa93a0cfabb95997217a18523e",
+      "effectQualification": "The same positive inbound ACK status guard is applied to legacy safe updates; unresolved intake adds mailbox_message_id. Selected public order/manual/incident entries and selected native explicit received-source/ACK owners invoke neither changed update branch. Prior original/archive/ACK effects remain owned by unchanged source SQL."
+    },
+    {
+      "path": "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "mainSha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1",
+      "previousMainSha256": null,
+      "effectQualification": "New immutable private confirmation table/trigger fires after aperak_status UPDATE but returns unless accepted outbound PRODAT Z09 with current own bound production event. Selected Z03/Z13/UTILTS E66/outbound APERAK messages cannot pass the Z09 family/code predicate, so no new confirmation/table/authority effect occurs in these witnesses. All selected SQL bodies and metadata outside the explicitly read schema delta remain unchanged."
+    },
+    {
+      "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+      "mainSha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+      "previousMainSha256": null,
+      "effectQualification": "Only the exact known contact-change stale-version exception changes40001 toPT409, with whole pg_proc metadata/source hashes checked. Selected customer-card manual request does not call contact mutation; selected normal/native supplier origination and incident owners do not call it. Source ownership and writes are unchanged."
+    },
+    {
+      "path": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+      "mainSha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
+      "previousMainSha256": null,
+      "effectQualification": "Only exact known identity-decision stale-version exception changes40001 toPT409; existing definer/approval/takeover/staff actor boundaries are hash/metadata-preserved. These selected entries do not decide identity changes. No selected relation/grant/ACK function is replaced."
+    },
+    {
+      "path": "supabase/schema.sql",
+      "mainSha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+      "previousMainSha256": "df8644bdb58bddbbfd23e30de4deb6fd909ea01f963c071aedc9059ccdb540bf",
+      "effectQualification": "Current complete snapshot differs from old f86 by the private P08 confirmation function/table/constraints/triggers/RLS/ACL plus exactly the two staff exception codes above. Extracted11 supplier/service and19 manual/incident selected bodies retain their original installed0796 hashes. Complete schema equality to0796 and current installed-schema execution are not claimed."
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "mainSha256": "10a1a07a4678506462e037be4f23c8f2dab729dc560addb219892ef57830dac7",
+      "previousMainSha256": "f6651048f3325a3ea5b256bea2805c80510c45a5d3f3dea3bfe37be506c1ca1b",
+      "effectQualification": "Current committed fingerprint differs with the main P08/staff prefix. Merge adopts it byte-exact from current main. This review does not regenerate, borrow, reinterpret or claim a fresh capture."
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "mainSha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "previousMainSha256": "583ea4dfa2ef8281150f17c7d41ad8350b0c065e7621e3482d4b50cba2d203d9",
+      "effectQualification": "Only SC003/005 service-native suite was added sincef86; all prior selections remain. Original0796 selected witnesses retain original run/job/config provenance. No old result is relabelled as the expanded current suite."
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "mainSha256": "50409111bf3440b2e74df6e06f1bea48e9c8cb7039732b192a23303cb5c82054",
+      "previousMainSha256": "14dd9f7cff1cf54dbd4575165b9048638c64ea1be4de7e6ee81a95184ece4779",
+      "effectQualification": "Main changed workflow remains byte-exact in both proposed merge trees. Original0796 artifact provenance is unchanged and bounded to that run; it does not certify new full-E2E workflow execution. Exact owner-head checks are read separately from actual check-runs API."
+    }
+  ],
+  "mergeUnion": {
+    "all352IdsPreserved": true,
+    "all350ForeignParsedRowsIncludingEvidenceExactlyMain": true,
+    "own2RowsExactlyOwnerHead": true,
+    "topLevelMetadataExactlyMain": true,
+    "ownEvidencePathsExist": true,
+    "completeAppLibSqlSchemaConfigWorkflowAndHelperTreeExactlyMain": true,
+    "changedPathsAgainstMain": [
+      "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json",
+      "quality/audits/ediel-masterplan-v2/sc018-sc056/checkpoint.md",
+      "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
+      "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
+      "quality/audits/ediel-masterplan-v2/sc018-sc056/verification-receipt.json",
+      "scripts/ediel-sc-018-manual-service-context-sql-regression.mjs",
+      "scripts/test-ediel-sc-018-056-service-incident.cjs"
+    ],
+    "mainApprovedRowMarkers": 213,
+    "mergedApprovedRowMarkers": 215
+  },
+  "actualOwnerHeadGates": {
+    "observedAt": "2026-10-05T13:29:00Z",
+    "pr": {
+      "number": 560,
+      "head": "0ad71de342f1f59ef140525622c3c1d8bc38c699",
+      "headRef": "codex/ediel-sc018-sc056-service-and-incident-evidence-20261005",
+      "baseRef": "main",
+      "apiBaseSha": "507e8bfa20606be31933eea1582066267ff2577a",
+      "state": "open",
+      "draft": false,
+      "mergeable": null,
+      "mergeable_state": "unknown"
+    },
+    "checks": [
+      {
+        "id": 111614063322,
+        "name": "pr-certificate",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111614063322",
+        "completed_at": "2026-10-05T04:20:06Z"
+      },
+      {
+        "id": 111612918579,
+        "name": "clean-migration-replay",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620707/job/111612918579",
+        "completed_at": "2026-10-05T05:09:07Z"
+      },
+      {
+        "id": 111612918570,
+        "name": "verify",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620707/job/111612918570",
+        "completed_at": "2026-10-05T04:18:43Z"
+      },
+      {
+        "id": 111612918568,
+        "name": "upgrade-migration-replay",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620707/job/111612918568",
+        "completed_at": "2026-10-05T04:25:23Z"
+      },
+      {
+        "id": 111612918315,
+        "name": "quality-release-gates",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620707/job/111612918315",
+        "completed_at": "2026-10-05T04:23:23Z"
+      },
+      {
+        "id": 111612840463,
+        "name": "crawl-production-readonly",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620662/job/111612840463",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839903,
+        "name": "real-customer-staging",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111612839903",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839833,
+        "name": "full",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111612839833",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839745,
+        "name": "nightly-release-certificate",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111612839745",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839683,
+        "name": "runtime-staging",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111612839683",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839659,
+        "name": "staging-quality-certificate",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620559/job/111612839659",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839650,
+        "name": "browser-staging",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620559/job/111612839650",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839548,
+        "name": "zap-staging-baseline",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620559/job/111612839548",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839422,
+        "name": "k6-staging-load",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620559/job/111612839422",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612839308,
+        "name": "k6-staging-soak",
+        "status": "completed",
+        "conclusion": "skipped",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620559/job/111612839308",
+        "completed_at": "2026-10-05T04:14:19Z"
+      },
+      {
+        "id": 111612838835,
+        "name": "smoke",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111612838835",
+        "completed_at": "2026-10-05T04:17:29Z"
+      },
+      {
+        "id": 111612838700,
+        "name": "coverage",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620703/job/111612838700",
+        "completed_at": "2026-10-05T04:19:59Z"
+      },
+      {
+        "id": 111612838605,
+        "name": "targeted-regressions",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620598/job/111612838605",
+        "completed_at": "2026-10-05T04:18:20Z"
+      },
+      {
+        "id": 111612838461,
+        "name": "browser-public",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37262620559/job/111612838461",
+        "completed_at": "2026-10-05T04:16:44Z"
+      }
+    ],
+    "status": {
+      "state": "success",
+      "statuses": [
+        {
+          "context": "CodeRabbit",
+          "state": "success",
+          "target_url": null
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "originalNativeProducer": "0796a57181657d0c2b55dc4437f3ad5c6c8d88c3",
+    "sameDeclaredFinitePortsAndOriginalLimits": true,
+    "SC056UniqueNativePassAccounting": "5PASS1 intentional phaseSKIP plus1PASS5 unselected phaseSKIP; six unique native passes, not one zero-skip run",
+    "freshNativeCurrentSchemaCaptureOrExternalExecutionClaim": false,
+    "newTestsRun": 0,
+    "wholeNativeOrBroadReruns": 0,
+    "sourceOwnerOrCoverageMutations": 0
+  },
+  "limits": [
+    "Qualification is exactmain/ownerhead read-only source carry within original whole approval finite ports, not full current native replay or external authority.",
+    "API base SHA is historical507 despite baseRef main; actual main is independently Git/API qualifieda8c991c1.",
+    "Old owner-head CI is allgreen; no new integration-tree CI execution is claimed. Root owns actual head/main freshness, publication, current gates and merge."
+  ],
+  "skillRouting": {
+    "activated": [
+      "using-superpowers",
+      "differential-review",
+      "verification-before-completion"
+    ],
+    "reason": "Surgical changed source/SQL/effect carry and exact Git/API gate verification; no production modification.",
+    "skipped": "No performance/UI/new feature/debugging/test implementation or broad audit triggers."
+  }
+}
