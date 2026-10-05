@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "status": "DIRECT_EXISTING_STATIC_CHECKER_27_PASS_ON_ACTUAL_MAIN296",
+  "owner": "/root/sc004_sc006_integrate",
+  "allocation": "Same sole billing checker continuation; root authorized actual608 postimage carry and one direct run.",
+  "actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "actual_main_tree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+  "actual_main_single_parent": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "prior_public_source": "4ddd37513995c033c4a6d98430255051a07d277b",
+  "genuine_source_merge": "da6fb6aaeabd5d79135feaf4620bd312788c961c",
+  "genuine_source_merge_tree": "94d0a624d06160564d0106686ae093d02006491e",
+  "genuine_source_merge_parents": [
+    "4ddd37513995c033c4a6d98430255051a07d277b",
+    "2964415adec9e36932583e95f8506437d262c507"
+  ],
+  "changed_prior_UI_inputs": [
+    {
+      "path": "app/admin/customers/[id]/page.part-4.tsx",
+      "before_sha256": "79efa21a185685a4ef12276ec6af4daff51f0ac268cbd21227fc1ea1929d27d4",
+      "after_sha256": "97066bd93aaf65129ae8d78e0f82115c6ca60ee5467ddb71d3ee3c3bb706983c"
+    },
+    {
+      "path": "app/admin/billing/page.tsx",
+      "before_sha256": "ce8a9688680969b48111b6a2e199b4a04c11cdef253eaa1c68a74d1302db9c8c",
+      "after_sha256": "84b29f4b4beb341958d6ae942aa35531f0bc8f64bc35731b3e9b2f539318e448"
+    }
+  ],
+  "qualification": {
+    "archived_raw_source_carry_sha256": "df141aec4d57cd334ba7e145255551d570f4ce0ce1b38b14419adf2b361112db",
+    "other_prior_nonchecker_inputs_exact_count": 14,
+    "all16_nonchecker_current_inputs_exact_actual_main296": true,
+    "four_complete_source_blocks_exact": [
+      {
+        "name": "customer_auth_scope_and_billing_loaders",
+        "sha256": "e750f2e9561f148cf9ebb0d7d5e12c9c75cfc516219d1f5f4b45d0db64b505c3",
+        "byte_exact_old_to_actual_main": true
+      },
+      {
+        "name": "actual_returned_billing_AST_section_props",
+        "sha256": "2b2bc5b9f26f8066d29eceded7a2b33c13dd2c711385426f3bec39ea1e7d075c",
+        "byte_exact_old_to_actual_main": true
+      },
+      {
+        "name": "canonical_billing_read_company_customer_scope",
+        "sha256": "4c0d3b46ac2ec7b5464e7018a8d5a8634cd0f58d0821b76d220395b117204c63",
+        "byte_exact_old_to_actual_main": true
+      },
+      {
+        "name": "canonical_billing_actual_approval_form_gate",
+        "sha256": "3514d3adf99fc3f41ff2a6888046a76ff36bdb0c3da3ee26f43ddfee07a9179f",
+        "byte_exact_old_to_actual_main": true
+      }
+    ],
+    "customer_UI_delta": "Workspace grouping/navigation and presentation changed; actual billing return child and customer-company auth/loaders are exact.",
+    "canonical_Billing_delta": "Presentation/download/settings changed; read/company/customer scope and actual approval form gate are exact.",
+    "retained_helpers": "Actual value facade/card bindings and read/export/actor/approval/source/readiness/dispatch helpers are unchanged source inputs.",
+    "root60_input_delta": {
+      "path": "/workspace/agent-review-checkpoints/root-next-main296-source-input-delta.json",
+      "sha256": "4074a796099f7d8020f4975b00b7a1603617e17dfd2c5727a8178b9b1b57de7b",
+      "parent_report": "Only two of60 drift; other58/SQL/all8 generator inputs exact. Not rerun/re-exported by this owner."
+    },
+    "native_browser_provider_behavior_execution": false
+  },
+  "checker": {
+    "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+    "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1",
+    "exact_prior_public_checker": true,
+    "actual_assertions": 27,
+    "other26_assertions_and_original_EOF": "Exact prior4ddd file preserved; no checker edit in this carry.",
+    "peer_ready_v3_sha256": "d8f8430cc4035ff896b81323fd1cbfaabbd79d3409d56f7666d0b8be183ec218",
+    "prior_publication_boundary_ready_sha256": "719864b087095901f6bf6607f405669629e1b9677fd1bca5268057449d748057"
+  },
+  "original_five_paths_preserved": [
+    {
+      "path": ".agent-memory/supplier-billing-surface-characterization-checkpoint-20261005.md",
+      "sha256": "035e36ff0cd15d9c4dc9b99dd0eda601e609606b6b856d71f47ee234fc519dc6",
+      "exact_prior4ddd": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-characterization-20261005/raw-evidence-index.json",
+      "sha256": "d6ad5b05688c7e79cad266c322290353b755670c991df61972aa3fc61a536ebf",
+      "exact_prior4ddd": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-characterization-20261005/raw-evidence.zip",
+      "sha256": "e4b7082a6fc6f588404e495a4b30dfcc180bae22b4ab733985aaa8d133fb80ea",
+      "exact_prior4ddd": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-characterization-20261005/verification.json",
+      "sha256": "caa5b417bddb323c83e9f65208f5c5ba677d02689677742d739d019a1a62f59a",
+      "exact_prior4ddd": true
+    },
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1",
+      "exact_prior4ddd": true
+    }
+  ],
+  "actual608_fixture_preserved": {
+    "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+    "sha256": "78f4065d8e2d4fa8fd633332736c4eac0abf3909eb0078bc0f3f931d07625a3a",
+    "git_blob": "45437dfbf60867dd70d96c28f38874a63bd3c374",
+    "exact_actual608_main296": true,
+    "unmerged610_variant_adopted": false,
+    "executed": false
+  },
+  "source_inputs_current_merge": [
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "git_blob": "5cf6582348ca687c442daaac1b3ee4d7215fea95",
+      "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.tsx",
+      "git_blob": "a1406ab680e5d09b7856a243d4885fe01e06554f",
+      "sha256": "0a5fa04dc76bd7022da9d56d34f661d8253b5d93d9437715f45fa79a09e7a962"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-4.tsx",
+      "git_blob": "da8de9840ea7e132b51895b2da806f7e7c847a20",
+      "sha256": "97066bd93aaf65129ae8d78e0f82115c6ca60ee5467ddb71d3ee3c3bb706983c"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "git_blob": "20c061c5db5e604e870774df81138ffccd618674",
+      "sha256": "08d9f7e00d8609e65471097775cc2dc5a560218675f2fe1e12be9b309ff30358"
+    },
+    {
+      "path": "components/admin/customers/CustomerBillingMeteringCard.tsx",
+      "git_blob": "877631ce8ca23b502086b2088bc9f5dd02315c28",
+      "sha256": "c860ed450637f41fc43ba72592cae6227d1db224381cee9af3ff9783955717d5"
+    },
+    {
+      "path": "components/admin/customers/billing-metering/shared.tsx",
+      "git_blob": "afc5d5964c8b329f7d4f1c48e1eaed6657af02b5",
+      "sha256": "f8d5edabd9355abfbab271ee949b5d00ae1365484ecd93bc98f184de05bf86b9"
+    },
+    {
+      "path": "lib/cis/db.ts",
+      "git_blob": "c9218f0c6ea320c33d4533ab428df3dcb626765c",
+      "sha256": "6dd58a8234456890d390387ac1badd04e936d96adc2e474ba8c24e18f59d9f0f"
+    },
+    {
+      "path": "lib/cis/db-data.ts",
+      "git_blob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9",
+      "sha256": "5299216751a3f5e644b0917197fd5ed493c8c69ece86426cf9979d9856e22464"
+    },
+    {
+      "path": "lib/cis/db-outbound.ts",
+      "git_blob": "1ec9079d4fc7d7f64968fca4ca1b959619bfa5ac",
+      "sha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a"
+    },
+    {
+      "path": "lib/admin/guards.ts",
+      "git_blob": "2850dcc28d699c593a7acabd95bb986080998a37",
+      "sha256": "ac7cb38d188e18672e294ac662c3e4401e4167d9cf9e61846c960a954ffc10ca"
+    },
+    {
+      "path": "lib/tenant/adminScope.ts",
+      "git_blob": "293e7897629990ce1d9256dc0d8fc17134871c59",
+      "sha256": "ceea0f50ef043fc2a89384a9d6eacd6b1c45d7f1c35a917f0faceaaa25c1083e"
+    },
+    {
+      "path": "lib/tenant/scope.ts",
+      "git_blob": "c468c2d3bc6a2f97791db73ac33907f747a3b272",
+      "sha256": "dad0d989403d00ea5bc5e72c86e2a6eae69ba0edadb0a2853214087dc8bd8910"
+    },
+    {
+      "path": "app/admin/billing/page.tsx",
+      "git_blob": "842a02144eb2a84ebbde6bcab8226a663f1c2bbf",
+      "sha256": "84b29f4b4beb341958d6ae942aa35531f0bc8f64bc35731b3e9b2f539318e448"
+    },
+    {
+      "path": "app/admin/billing/actions.ts",
+      "git_blob": "f2c01b5be7b931438cce6bcc3046b009ace6fccf",
+      "sha256": "4214d6be8787168bbc4ecdd89a0012d03a4757bf39904e501fbf8a4982a07585"
+    },
+    {
+      "path": "lib/auth/requirePermissionServer.ts",
+      "git_blob": "2794abffaa4207941b6ed6ea5bcb77feac5f5f89",
+      "sha256": "52372b8fec00993e1e152ef6735b761ec93690049bfb2c116ea358f96d9e6736"
+    },
+    {
+      "path": "lib/billing/invoiceReviewData.ts",
+      "git_blob": "d15e77b2d3554bb4917843d7756afc46271537a5",
+      "sha256": "1fcbceb9a2482f5f2a0ef95ab441ffb28bc7f869a313193c9f7552c0152929cb"
+    },
+    {
+      "path": "lib/billing/invoiceApprovedDispatch.ts",
+      "git_blob": "e63aecb07c6d9909bf3dab533274ae7a2d601950",
+      "sha256": "532608401c20578e22c0fddaa4934d7954347a4f38b6aaa02797db0b7fbfbd4c"
+    }
+  ],
+  "existing_direct_CJS": {
+    "runs_this_two_input_drift": 1,
+    "command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+    "cwd": "/workspace/gridex-supplier-billing-surface-fix-20261005",
+    "actual_exit": 0,
+    "actual_tool_chunk": "3c52f9",
+    "actual_wall_seconds": 0.29955007,
+    "OK": 27,
+    "FAIL": 0,
+    "skips": 0,
+    "raw_sha256": "885c0697deebd8cc937f6fbb70a146048b0489ec17228b7b0dd86b3a8f6246ea",
+    "tool_metadata_sha256": "3482a12affe30fb4ef3a2dac0f9faab2089821bac90ebe45f7c0d05544c1aebf",
+    "raw_same_as_prior_run": true,
+    "provenance": "Identical output bytes from a new authorized run on genuine changed source; actual execution metadata separately archived."
+  },
+  "raw_evidence": {
+    "archive": "raw-evidence.zip",
+    "archive_sha256": "01070d72ed148aa5cd3258dc7692f029baabfbdb06365a39e70a8df371ed05ef",
+    "index": "raw-evidence-index.json",
+    "index_sha256": "fdcbc019a579e8181420d2829ec630b1b6b815c03712538e7f582383f7533115",
+    "entry_count": 3,
+    "byte_exact": true
+  },
+  "limits": {
+    "full_supplierchain_green_claim": false,
+    "main845_full_supplier_actual_first_cause": "UNKNOWN; not relabeled by this scoped checker result.",
+    "new_product_UI_SQL_fixture_coverage_shared_memory_edits": 0,
+    "fullchain_native_browser_CI_capture_harness_runs": 0,
+    "network_fetch_push_PR_dispatch": 0,
+    "new_guard_proposal_or_checker_fix": 0
+  },
+  "handoff": "Local genuine carry and new own receipt only; root retains source publication, serial merge, CI/capture and current-main guard."
+}
