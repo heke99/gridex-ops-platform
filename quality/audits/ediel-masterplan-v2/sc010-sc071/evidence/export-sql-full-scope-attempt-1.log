@@ -1,0 +1,18 @@
+Actual positive ACK service-scope SQL consumer: 23 PASS; synthetic source/storage dependencies, NOT native/legal approval proof
+Grant-set forward SQL: 21 PASS; finite synthetic source/accepted/review fixtures, NOT native/legal approval proof
+PASS export positive enqueue establishes a reachable real queue
+PASS export exact request replay and changed-request collision
+PASS export wrong tenant, purpose, fields and actor cannot queue
+PASS export claim is actor/tenant scoped and yields one opaque token
+PASS export wrong and expired leases cannot produce output; reclaim rotates token
+PASS export execute writes one internal result using current DGI projection; worker response contains no values
+PASS export captured multi-row window, page limit and tied cursor survive queue, lease and result read
+PASS export beneficiary membership or user loss after lease blocks execution and retained results
+PASS export active grant version drift blocks the old captured lease and cached result without upgrading it
+PASS export service credentials have no private-table access or public anonymous execute
+PASS export current source role or technical endpoint loss after enqueue blocks actual execution without output
+PASS export active enqueue then actual revoke then lease blocks export and cached result reads
+Beneficiary export SQL: 12 PASS; actual queue/lease/current projection/internal result, finite upstream fixtures, NOT native concurrent proof
+Projection replay SQL: 4 PASS plus same OID/ACL; real forward owner, bounded synthetic dependencies, NOT native races/legal approval
+Projection provenance SQL: 11 PASS; actual receipt consumer with finite synthetic source/review/storage dependencies, NOT native/legal approval
+PASS 48 targeted service administration PostgreSQL checks; synthetic owner/helper fixtures, not native/legal evidence
