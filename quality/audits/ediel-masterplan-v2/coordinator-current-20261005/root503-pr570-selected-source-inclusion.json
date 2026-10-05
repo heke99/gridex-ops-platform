@@ -1,0 +1,159 @@
+{
+  "scope": "Selected public-source inclusion and one delivery path; actual main admission still pending503",
+  "inputs": {
+    "owner": {
+      "pr": 570,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/570",
+      "head": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+      "tree": "722ac9cf84c1cf5cfd11fb163042b5de0d185787"
+    },
+    "frozen_root": {
+      "pr": 503,
+      "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+      "tree": "44ce48b1e0aa47b68a273af1d92196670e01c663",
+      "migration_tree": "400fe39e86fc8f7fe89f87ff70e84c24a1b1b88e"
+    },
+    "fixed_main": {
+      "head": "99676683338e11e60666345782609a822de9181e",
+      "tree": "0b1d98ccac00c4cb84e2385bcfc44c09d693fc42",
+      "identity": "Exact996 comparison supplied by parent and fetched only in private review clone; no advancing current-main observation."
+    }
+  },
+  "selected_production_paths": [
+    {
+      "path": "lib/ediel/services/beneficiaryExport.ts",
+      "versions": {
+        "9b50b1b9a5aae19e9cabead09c92af4e0443c44c": {
+          "git_blob": "aabfad4fdc77543499696b487749ca17cc7551a5",
+          "sha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f"
+        },
+        "9132a6ed4649e8b17aba4270417c649939c3e0c4": {
+          "git_blob": "aabfad4fdc77543499696b487749ca17cc7551a5",
+          "sha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f"
+        },
+        "99676683338e11e60666345782609a822de9181e": "ABSENT"
+      },
+      "root913_equals_owner": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+      "versions": {
+        "9b50b1b9a5aae19e9cabead09c92af4e0443c44c": {
+          "git_blob": "dee129d6b74f414de53422f0fdd37954167d8b65",
+          "sha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed"
+        },
+        "9132a6ed4649e8b17aba4270417c649939c3e0c4": {
+          "git_blob": "dee129d6b74f414de53422f0fdd37954167d8b65",
+          "sha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed"
+        },
+        "99676683338e11e60666345782609a822de9181e": "ABSENT"
+      },
+      "root913_equals_owner": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+      "versions": {
+        "9b50b1b9a5aae19e9cabead09c92af4e0443c44c": {
+          "git_blob": "e318e716f66fd19e8aec57e8c1638502e1d537bd",
+          "sha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af"
+        },
+        "9132a6ed4649e8b17aba4270417c649939c3e0c4": {
+          "git_blob": "e318e716f66fd19e8aec57e8c1638502e1d537bd",
+          "sha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af"
+        },
+        "99676683338e11e60666345782609a822de9181e": "ABSENT"
+      },
+      "root913_equals_owner": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/process/route.ts",
+      "versions": {
+        "9b50b1b9a5aae19e9cabead09c92af4e0443c44c": {
+          "git_blob": "eb2f5e838a78f4f3075424262be4f4c4c9dc0524",
+          "sha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49"
+        },
+        "9132a6ed4649e8b17aba4270417c649939c3e0c4": {
+          "git_blob": "eb2f5e838a78f4f3075424262be4f4c4c9dc0524",
+          "sha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49"
+        },
+        "99676683338e11e60666345782609a822de9181e": "ABSENT"
+      },
+      "root913_equals_owner": true
+    },
+    {
+      "path": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+      "versions": {
+        "9b50b1b9a5aae19e9cabead09c92af4e0443c44c": {
+          "git_blob": "89cd272d5cfa50b572f847687e1103d1d0224df8",
+          "sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+        },
+        "9132a6ed4649e8b17aba4270417c649939c3e0c4": {
+          "git_blob": "89cd272d5cfa50b572f847687e1103d1d0224df8",
+          "sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+        },
+        "99676683338e11e60666345782609a822de9181e": "ABSENT"
+      },
+      "root913_equals_owner": true
+    }
+  ],
+  "packet_counts": {
+    "published_changed_path_count": 67,
+    "root913_byte_exact_path_count": 67,
+    "raw_evidence_path_count": 40,
+    "all_owner_raw_evidence_retained_byte_exact": true
+  },
+  "forward_admission": {
+    "path": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+    "sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "root913_presence": "BYTE_EXACT",
+    "runtime_registration_path": "scripts/migration-history-manifest.runtime.additions.json",
+    "runtime_manifest_sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+    "runtime_registered_hash": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "root913_capture_manifest": {
+      "path": "scripts/supabase-types-manifest.json",
+      "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+      "composition_capture_pending": false,
+      "admitted_migration_hash": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "authentic_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+      "run": "37319901610",
+      "artifact": 11351030885,
+      "purpose": "Existing genuine5be composed capture includes exactd0e4; current913 clean/upgrade and admission gates separately owned and not observed."
+    }
+  },
+  "existing_qualified_execution": {
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/570#issuecomment-5994688422",
+    "updated_at": "2026-10-05T12:43:44Z",
+    "body_sha256": "65c057b8beee74ea5796578717b41a896c85db242080f891651371d79782fef2",
+    "run": 37310521982,
+    "job": 111764517709,
+    "workflow_caller_prefix": "f7fc20f7",
+    "artifact": 11345294346,
+    "zip_sha256": "90787405c69fa0ab78e6682834968ca9b7dbe2943a16ccb101c768f86023d991",
+    "actual_unique_cases": "6SC071+4SC010,10PASS/0FAIL/0ERROR/0SKIP",
+    "qualified_input": "9b50 six overlays, corrected native14611, effectiveSC07133b7/confige18a and unchangedd0e4SQL; real installed RPC readiness and unchanged before/after source inputs as original owner qualified.",
+    "this_review_action": "Public original qualification reused, no raw artifact download/reparse/rerun or independent native reapproval."
+  },
+  "historical_native": {
+    "path": "quality/audits/ediel-masterplan-v2/sc010-sc071/export-native-first-run-qualification.json",
+    "sha256": "69096765e5f1bf2ae0a4d2a40561262ac31a80d8ccf1dde974537f502a1de386",
+    "native_execution": "ATTEMPTED",
+    "actual_cases": 10,
+    "junit_counts": {
+      "failure": 2,
+      "error": 0,
+      "skipped": 0
+    },
+    "interpretation": "Historical44992cdd8PASS/2FAIL remains immutable, including failure-before-final-rollback assertions; later sole10 result does not relabel it."
+  },
+  "decision": {
+    "additional570_source_delta_needed_for_frozen913": false,
+    "genuine_later_bytes_interpretation": "No production supersedure needed: all five intended owner production blobs are exact in913. Native supporting overlays use qualified corrected lease setup and effectiveSC071 bytes; registration/capture/history are coordinator integration files.",
+    "is570_already_delivered_to_main996": false,
+    "after503_admission": "Root may document570 source delivered once actual merged503 includes these exact intended blobs and final qualified integrated guards. Root alone decides whether PR570 remains necessary or is closed/superseded; no action is taken here.",
+    "SC010_or_SC071_whole_promotion": "NONE; existing scenario/whole reviewers retain authority.",
+    "533_535_599_or_baseline_ownership": "NONE; source owners and sole final baseline writer unchanged."
+  },
+  "public_coordination": "5706000541788",
+  "tests_native_artifact_CI_reruns": 0,
+  "reviewer_receipt_sha256": "d666d24b1116d9903f117f2bf05247d8b68e012751e7b64fe51b642f557cf851"
+}
