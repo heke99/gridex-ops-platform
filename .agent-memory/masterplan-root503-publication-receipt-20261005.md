@@ -165,3 +165,36 @@ Independent current61-path publication guard is active; original finite results,
 old raw/HOLD evidence and terminalc34 are unchanged. One current resulting-head
 ordinaryCI/expected-head merge is next, distinct from unresolved full73-source,
 Staff/input/canonical fixtures, twoinbound/IMP05 and finalcapture/main-baseline.
+
+
+Finish-existing boundary reconfirmed directly by the user and publicly recorded
+5306004269706: finish all already-produced agent work, qualified serial normal
+merges and accurate main baseline; do not start new Masterplan rules/clusters or
+automatic next pair. Retained original owners confirmed same scope in6004322443
+and6004343252. The final common MAIN metadata/baseline writer remains original
+5998471335/5998550376; own queue6001341283 supplies the latest owned delta only.
+
+Existing612 public preparation ref is now6d69aea82bf1f2e7fab048e024fff3339c2f3477,
+normal773→6d fast-forward authenticated by GitHub. Exact raw audit-control driver
+is archived unchanged; no active checker/lint-rule change. Genuine actual773
+quality/lint first cause and actual full local lint0errors/125warnings are public
+sanitary/indexed evidence, privateCIrawlog excluded. Independent bounded custody
+48bae517 is preserved on that same public preparation branch. Actual612PR stays
+773 while old clean replay runs; after terminal settlement samePR fast-forward
+and sole newhead all9 are still pending. No old failure/success is transferred.
+
+Existing combined source public ref now34e98e2f08638da0b6cc34cb522499883e528b33
+genuinely adopts actualb83 through5d513072 parents4aa+b83, then owned source-only
+receipt/checkpoint supplements. Peerf6622ffb READY and rootc0362a9a verify all
+11incoming606paths,42priorowned tuples,8621foreignmain entries,347foreignfullrows
+and352order/mainmetadata exact. SQL1075/eightgenerator/raw3/fullmanifest/history
+unchanged; candidate276 versus actualmain271 remains prepared coverage only.
+Staff current4dc canonicalSC068/source/native/input release and original IMP05
+corrective freeze remain owner prerequisites; no held schema or private source
+report is admitted, no intermediate capture is run.
+
+Final common adopter should consume public advisor9bb exactseven docs6004142444
+and already-public SC0102eefa6f0 exact65OWNdocs6004361913 through its retained
+queue after refreshing actual target preimages and qualification. This root
+creates no competing docsPR/tag/mainbaselineobserver. Actual main remainsb83
+with38uniqueACTUALmarkers; no additional actual-main delivery is invented.
