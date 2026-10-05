@@ -1,4 +1,6 @@
-// IMP-05 recipient/address component only; return-path/history remain separate.
+// masterplan: IMP-05, AT-IMP-05
+// Collective IMP05 proof with recipient-readiness and route-version-readiness;
+// this suite supplies signed leaf/address controls, not market activation.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielCertificateTrustAuthority } from '@/lib/ediel/security/certificateTrust'
 import { createSyntheticEdielRecipientFixture } from './helpers/syntheticEdielRecipientFixture'

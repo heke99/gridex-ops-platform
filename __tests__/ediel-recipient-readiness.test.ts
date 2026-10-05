@@ -1,4 +1,5 @@
-// masterplan: TR-06, AT-TR-06
+// masterplan: TR-06, AT-TR-06, IMP-05, AT-IMP-05
+// Collective IMP05 proof with address-binding and route-version-readiness.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielCertificateTrustAuthority } from '@/lib/ediel/security/certificateTrust'
 import { createSyntheticEdielRecipientFixture } from './helpers/syntheticEdielRecipientFixture'

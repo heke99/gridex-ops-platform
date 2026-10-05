@@ -159,3 +159,16 @@ unchanged. HistoricalNOT_RUN/capturepending retained. Rawreceipt retainedbyteexa
 with no repeated product/AST/control/test/native/CI/capture or IMP admission.
 Next existing step remains actualselected-input freeze/ONEauthenticunioncapture
 and resulting-head qualification/normalmerge; newMasterplan work staysstopped.
+
+
+Provisional publicIMP05d020 EIGHTpath correction is genuinely composed as a
+CANDIDATE only under sameexisting5036003057061 intake. All8originalpostimages
+exact; originalcorrective49f forward registered once in additions;1078priorSQL
+unchanged, candidate1079. No main/native/sourceapproval or originalscopedtest
+SUCCESS is inferred. Root246finitepublicreview+6bb exactSIX currentpreimages
+qualify source applicability only; old1f8/6caHOLD and privateoldreports untouched.
+Currentprefix manifest preserves earlier1078verification whole and everycurrent/
+olderorigin/captureflag; compositionpendingTRUE. Originalauthor/testlane retains
+repairs/results; rootonlyowns genuine resultingunion capture/native/ordinarygates,
+which mustpass beforeactualdelivery. This finishes already-produced source, with
+no new Masterplan rule, duplicateoriginaltester or additionalcapture.

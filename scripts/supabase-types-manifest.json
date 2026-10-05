@@ -118,15 +118,21 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "qualified_source_union_authentic_capture_pending",
-    "actual_main": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
-    "qualified_gov_db_sc010_source": "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
-    "released_staff_source": "ebf380da2528b6a32a17f94ca245835726babca4",
-    "status": "SOURCE_COMPOSED_CAPTURE_AND_RESULTING_HEAD_GATES_PENDING",
+    "kind": "provisional_final_union_requires_resulting_head_qualification",
+    "actual_main": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+    "qualified_gov_db_sc010_staff_oracle_source": "4f065a727eace6347af4d887ca3f4d069d20c415",
+    "provisional_IMP05_source": "d020d7ec804d827615487d43f4f59f3ba33eca0c",
+    "corrective_forward": {
+      "name": "20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+      "sha256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab"
+    },
+    "original_IMP05_scoped_result": "NOT_OBSERVED_NO_SUCCESS_INFERRED",
+    "status": "CANDIDATE_COMPOSED_CAPTURE_AND_RESULTING_HEAD_GATES_PENDING",
     "requirements": [
       "Guard actual source/input/migration vector before the ONE genuine final union capture; reconcile real movement.",
       "Capture exact final chosen prefix using PG17.6/pg_dump17.11/SupabaseCLI2.101.0 and import raw3 unchanged.",
-      "Original exact current-head ordinary/native/upgrade/parity/baseline owners qualify the resulting union; neither oldcff nor5be is that execution."
+      "Original exact current-head ordinary/native/upgrade/parity/baseline owners qualify the resulting union; neither oldcff nor5be is that execution.",
+      "Do not admit this provisional corrective source to main until genuine current-union ordinary/native/type-schema/upgrade-parity qualification."
     ]
   },
   "superseded_capture": {
@@ -281,7 +287,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "Current actual-mainfc + qualified GovDB + exact released Staffebf source union; ONE final authentic combined-prefix capture pending. Historical cff1076 and5be capture flags retain their original scopes.",
+  "composition_capture_pending_scope": "Actualmain53b3 + qualified GovDB/SC010/Staffebf and originalTWO7232 + provisional publicIMP05d020 source candidate; ONE final authentic unioncapture/resulting-head qualification pending. No original scoped IMP05 test success is inferred.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -3120,5 +3126,18 @@
       "sha256",
       "source_latest_migration"
     ]
-  }
+  },
+  "pre_IMP05_provisional_current_prefix_verification": {
+    "kind": "qualified_source_union_authentic_capture_pending",
+    "actual_main": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
+    "qualified_gov_db_sc010_source": "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
+    "released_staff_source": "ebf380da2528b6a32a17f94ca245835726babca4",
+    "status": "SOURCE_COMPOSED_CAPTURE_AND_RESULTING_HEAD_GATES_PENDING",
+    "requirements": [
+      "Guard actual source/input/migration vector before the ONE genuine final union capture; reconcile real movement.",
+      "Capture exact final chosen prefix using PG17.6/pg_dump17.11/SupabaseCLI2.101.0 and import raw3 unchanged.",
+      "Original exact current-head ordinary/native/upgrade/parity/baseline owners qualify the resulting union; neither oldcff nor5be is that execution."
+    ]
+  },
+  "pre_IMP05_provisional_capture_pending_scope": "Current actual-mainfc + qualified GovDB + exact released Staffebf source union; ONE final authentic combined-prefix capture pending. Historical cff1076 and5be capture flags retain their original scopes."
 }

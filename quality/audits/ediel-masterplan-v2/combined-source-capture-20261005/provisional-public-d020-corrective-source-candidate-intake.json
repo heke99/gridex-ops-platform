@@ -1,0 +1,33 @@
+{
+  "scope": "PROVISIONAL_PUBLIC_CORRECTIVE_SOURCE_CANDIDATE_ONLY_NOT_MAIN_NATIVE_APPROVAL",
+  "existing_combined_base": "4f065a727eace6347af4d887ca3f4d069d20c415",
+  "original_IMP05_source": "d020d7ec804d827615487d43f4f59f3ba33eca0c",
+  "original_IMP05_tree": "3f3a8fc92381fca92dde915e172e6785bba17cd5",
+  "original_IMP05_ordered_parents": [
+    "1f8b55ee89b531f720bfd1ff6098f88f585f0f41",
+    "b83b284467c8e0fcaa277706a708706e0a705068"
+  ],
+  "source_owned_paths": [
+    ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+    "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+    "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+    "__tests__/ediel-recipient-address-binding.test.ts",
+    "__tests__/ediel-recipient-readiness.test.ts",
+    "scripts/ediel-scoped-readiness-sql-regression.mjs",
+    "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+    "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql"
+  ],
+  "all_eight_postimages_exact_original": true,
+  "source_only_fix_review_sha256": "246e9b890f6cf6255a3f4431341797023cf615ac8f298a53c207a131a4d06a1a",
+  "all_six_existing_preimages_identity_sha256": "6bb0901f33243fa64bc3fb363beb2322a43f48ba447f366671f680ff9370a8ae",
+  "forward_name": "20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+  "forward_sha256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+  "SQL_candidate_files": 1079,
+  "all_previous_1078_SQL": "UNCHANGED",
+  "prior_manifests_and_origin_envelopes": "PRESERVED",
+  "original_scoped_test_result": "NOT_OBSERVED",
+  "required_current_union_gates": "ONE_AUTHENTIC_CAPTURE_ORDINARY_CLEAN_UPGRADE_NATIVE_TYPE_SCHEMA_PARITY",
+  "old_6ca_forward": "EXCLUDED_HISTORICAL_HOLD",
+  "new_source_implementation_or_masterplan_rule": false,
+  "before_routing": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-6003057061"
+}
