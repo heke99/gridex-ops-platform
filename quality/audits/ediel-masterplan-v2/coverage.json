@@ -1953,8 +1953,14 @@
     },
     {
       "id": "SC-069",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-069-scope-inbound.test.ts",
+        "lib/ediel/scopedCapabilityReadiness.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/productionReadiness.part-3.ts",
+        "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql"
+      ]
     },
     {
       "id": "SC-070",
