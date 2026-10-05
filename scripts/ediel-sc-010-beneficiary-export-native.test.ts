@@ -112,14 +112,16 @@ it.each([{ table: 'results', mode: 'SHARE ROW EXCLUSIVE' }, { table: 'jobs', mod
   expect(claimed.error).toBeNull(); expect(claimed.data).toHaveLength(1)
   const lease = claimed.data[0] as { jobId: string; leaseToken: string }
   expect(lease.jobId).toBe(queued.jobId)
-  // Set before taking the jobs SHARE lock, which would itself block UPDATE.
-  // The generous margin leaves time to establish and observe the real wait.
-  sql(`UPDATE gridex_ediel_exports.jobs SET lease_expires_at=clock_timestamp()+interval '15 seconds' WHERE id=${lit(queued.jobId)} AND lease_token=${lit(lease.leaseToken)}`)
+  // Collect snapshots before starting the short, real database lease window.
+  // A fifteen-second window let native PostgREST cancel the statement first.
+  const originals = s.originals(), receipts = s.receipts(), results = s.results()
   const blocker = spawn('psql', [NATIVE_ESCO_DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { stdio: ['pipe', 'pipe', 'pipe'], env: nativeLockProcessEnv() })
   const lock = nativeLockProcess(blocker, { marker: 'export-result-locked', markerError: 'native_export_result_lock_timeout' })
   let running: Promise<Awaited<ReturnType<typeof supabaseService.rpc>>> | undefined
-  const originals = s.originals(), receipts = s.receipts(), results = s.results()
   try {
+    // Set before taking jobs SHARE, which would itself block this UPDATE.
+    // Keep the specific lease error; an earlier statement timeout is a failure.
+    sql(`UPDATE gridex_ediel_exports.jobs SET lease_expires_at=clock_timestamp()+interval '5 seconds' WHERE id=${lit(queued.jobId)} AND lease_token=${lit(lease.leaseToken)}`)
     blocker.stdin.write(`BEGIN;LOCK TABLE gridex_ediel_exports.${table} IN ${mode} MODE;SELECT 'export-result-locked';\n`)
     await lock.ready
     // No authority, output or receipt is seeded; actual expiry is observed.
@@ -132,6 +134,7 @@ it.each([{ table: 'results', mode: 'SHARE ROW EXCLUSIVE' }, { table: 'jobs', mod
       await new Promise(resolve => setTimeout(resolve, 25))
     }
     expect(observed, 'real RPC must reach its destination before lease expires').toBe(true)
+    expect(sql<boolean>(`SELECT to_jsonb(clock_timestamp()<lease_expires_at) FROM gridex_ediel_exports.jobs WHERE id=${lit(queued.jobId)}`), 'lease must still be live when the real write wait is observed').toBe(true)
     let expired = false
     for (let n = 0; n < 800; n++) {
       expired = sql<boolean>(`SELECT to_jsonb(lease_expires_at<=clock_timestamp()) FROM gridex_ediel_exports.jobs WHERE id=${lit(queued.jobId)}`)

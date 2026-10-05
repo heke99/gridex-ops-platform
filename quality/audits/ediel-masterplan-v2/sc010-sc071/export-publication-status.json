@@ -1,5 +1,5 @@
 {
-  "recorded_utc": "2026-10-05T11:54:16.938507+00:00",
+  "recorded_utc": "2026-10-05T12:17:10.416032+00:00",
   "source_candidate": "3ded2c09e12e81777f7b5d4c37f4d9c411e9660e",
   "PR": "https://github.com/heke99/gridex-ops-platform/pull/570",
   "ready_for_review": true,
@@ -165,16 +165,16 @@
     "proof": "evidence/export-ci-3ded-verify-excerpt.log",
     "proof_sha256": "0f14bc0f2487c524ed20eff51134811bbd52384b18d978a65013c7d5d2fa9438"
   },
-  "native": "4unchanged824 SOURCE_REVIEWED/NOT_RUN; retainedowner preparing existingcaller6SC071+4SC010 after explicit ACCEPT5993523187",
+  "native": "Actual 44992cdd run: 8 PASS / 2 FAIL, zero error/skip. SC071 six and SC010 first two passed. Both SC010 lease-wait cases hit statement timeout; final rollback assertions were not reached. Repaired native source 14611ac1 is independently reviewed and types/lint passed; repaired native NOT_RUN.",
   "shared_admission_capture": "retainedroot503; PENDING; no takeover",
   "whole_SC010": "NOT_APPROVED",
   "whole_SC071": "outsideourscope;NOT_APPROVED HERE",
   "ownership_board": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5993861168",
-  "native_owner_handoff": "https://github.com/heke99/gridex-ops-platform/pull/574#issuecomment-5993759827",
-  "documentation_ref": "codex/ediel-sc010-sc071-checkpoint-20261005; current followup metadata only, source3ded stable",
+  "native_owner_handoff": "https://github.com/heke99/gridex-ops-platform/pull/586#issuecomment-5994097972",
+  "documentation_ref": "A genuine own native test change is pending publication to existing PR570. Previous source3ded checks remain attributed to3ded; old failed native evidence remains immutable.",
   "merged": false,
   "external": "NOT_RUN",
-  "next_action": "Review exact nativeowner caller/receipts and requiredcurrentCI; root503 authenticadmission/capture then fullSC010 row/currentCI/integration",
+  "next_action": "Publish the reviewed own native timing repair as immutable source; supply six extraction hashes to retained PR586 owner; qualify its actual same-workflow 6+4 rerun. Root503 admission/capture and final current-head gates remain required.",
   "historical_publication8c79_snapshot": {
     "recorded_utc": "2026-10-05T11:12:10Z",
     "source_candidate": "8c79ab436279991b47eb717b1816cde32b0d2191",
@@ -460,5 +460,7 @@
       "next_action": "publish exact own12-group proof, carry currentmain/currenttaggedgate, review accepted owner caller/native",
       "documentation_ref": "new own-test proof requires source follow-up; prior documentation-only checkpoint plan superseded"
     }
-  }
+  },
+  "historical_3ded_native_status": "4unchanged824 SOURCE_REVIEWED/NOT_RUN; retainedowner preparing existingcaller6SC071+4SC010 after explicit ACCEPT5993523187",
+  "native_first_run_qualification": "export-native-first-run-qualification.json"
 }
