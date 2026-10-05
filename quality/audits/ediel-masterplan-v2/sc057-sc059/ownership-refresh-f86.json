@@ -1,0 +1,469 @@
+{
+  "main": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "commentCounts": {
+    "491": 451,
+    "530": 82
+  },
+  "lastComments": {
+    "491": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5988096915",
+    "530": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5988095824"
+  },
+  "openPrHeads": [
+    {
+      "number": 560,
+      "head": "0ad71de342f1f59ef140525622c3c1d8bc38c699",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-sc018-sc056-service-and-incident-evidence-20261005",
+      "title": "test(ediel): approve separate ESCO service and post-ACK incident scenarios"
+    },
+    {
+      "number": 559,
+      "head": "145c5ce9b4a40bfd7058b8d85413c2827234c9b7",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-sc015-sc016-permission-evidence-20261005",
+      "title": "test(ediel): approve SC015 pending coordination and SC016 scoped grants"
+    },
+    {
+      "number": 557,
+      "head": "7e00e5a50b3eef141e7eb54c53bb2f05f3a44087",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-sc001-sc002-own-market-identity-20261005",
+      "title": "test(ediel): approve SC001 own DDQ and SC002 own DGI orders"
+    },
+    {
+      "number": 556,
+      "head": "7e67c0ab819e78e50e02e3a5515ad03d8473d911",
+      "base": "cf395da8ca25348c01c478ce2b96b92d318affb0",
+      "branch": "claude/cool-tesla-2pmyua",
+      "title": "Ediel masterplan v2: P-08, P-06/U-11, U-19, U-02 and SC-036 fix"
+    },
+    {
+      "number": 555,
+      "head": "4354669fe14146ad2f14e8828098917ff78a6ce6",
+      "base": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+      "branch": "codex/ediel-sc003-sc005-provider-projection-evidence-20261005",
+      "title": "test(ediel): approve SC003 and SC005 with coupled native cardinality"
+    },
+    {
+      "number": 553,
+      "head": "6e8663806ccd182baee239c80354d20d4fdb4ee2",
+      "base": "eacb6c7cb473b2130e668479e0c176d456766e61",
+      "branch": "codex/staff-contact-version-conflict",
+      "title": "fix(staff-api): return stale customer writes as HTTP 409"
+    },
+    {
+      "number": 551,
+      "head": "ccf72878eeac3b6f02e5a6206bf148d229776b8b",
+      "base": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+      "branch": "codex/ediel-sc004-sc006-beneficiary-evidence-20261005",
+      "title": "test(ediel): approve SC004 SaaS access and SC006 isolated assignment end"
+    },
+    {
+      "number": 550,
+      "head": "58da12b0fa6572b10e8d7177617d0699f9760ce9",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-sc069-scope-inbound-20261004",
+      "title": "test(ediel): approve SC-069 scoped renewal and continued inbound ACK"
+    },
+    {
+      "number": 549,
+      "head": "509a133f2478844e6a7859fc10866e5b3b55ac65",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-sc058-market-smtp-20261004",
+      "title": "test(ediel): approve SC-058 EL SMTP isolation with actual source consumers"
+    },
+    {
+      "number": 548,
+      "head": "dc77ef07ca05feefc852cddfcfe663cbccd07eb8",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-sc013-sc020-evidence-20261004",
+      "title": "test(ediel): approve SC-013 actor correlation and SC-020 waiting access"
+    },
+    {
+      "number": 547,
+      "head": "2c2883812e8422f8155d036c9b0400ac3ec33f2f",
+      "base": "fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c",
+      "branch": "codex/ediel-sc007-sc066-proof-20261004",
+      "title": "test(ediel): prove SC-007 denial and SC-066 reconciliation history"
+    },
+    {
+      "number": 546,
+      "head": "62a8e8107445e082ca4169ad64244c33cc023b68",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-ops03-release-evidence-20261004",
+      "title": "fix(ediel): bind release artifact evidence to the actual checkout"
+    },
+    {
+      "number": 545,
+      "head": "1b7702efc7386567eebc646e856e8af4f612219b",
+      "base": "954e57fb2bb5cc2afb719298e8b626210c1fd277",
+      "branch": "codex/ediel-tr08-tr09-evidence-20261004",
+      "title": "fix(ediel): reject unverified prior CRL signatures and exercise transport reserves"
+    },
+    {
+      "number": 544,
+      "head": "7bd40bd0179a5929b00875911a9744aace14470c",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-sc009-sc019-evidence-20261004",
+      "title": "test(ediel): approve SC-009 delegation and SC-019 billing examination"
+    },
+    {
+      "number": 543,
+      "head": "29b63436ccc5b9cf37a6c7521d799ee196e2281f",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/tr-08-relay-trace",
+      "title": "feat(ediel): TR-08 leveransspår via återläsning från egen testbrevlåda (PARTIAL)"
+    },
+    {
+      "number": 542,
+      "head": "c250c94124c6af7fd39c7b716b617bee997d56b9",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/db-02-tenant-fk-inventory",
+      "title": "DB-02 steg 1: tenant-FK-inventering + ratchet-grind"
+    },
+    {
+      "number": 541,
+      "head": "fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-sc008-sc017-proof-20261004",
+      "title": "test(ediel): prove SC-008 raw scope and tag SC-017 correlation"
+    },
+    {
+      "number": 540,
+      "head": "1eb4560b1038a3df23ba3032f080c77efb5a5e2c",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/gov-01-rule-metadata",
+      "title": "GOV-01: normativ regelmetadata (fail closed) + immutabel publicering med granskningsspår"
+    },
+    {
+      "number": 539,
+      "head": "789b928ad39fa4514743ee453b08ed7bc7e9ea80",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-imp05-recipient-address-binding-20261004",
+      "title": "fix(ediel): bind recipient certificates to the supplied SMTP mailbox"
+    },
+    {
+      "number": 538,
+      "head": "1578d763b6cccc0af19abfa10d89bd1d0aa7524c",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/db-01-pr1-expand",
+      "title": "DB-01 PR 1 – Expand: plattformsroute-kolumner på communication_routes"
+    },
+    {
+      "number": 537,
+      "head": "8cf8cc914beb07723e7efc6f747dc0f996364389",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/gov-05-gov-06",
+      "title": "fix(ediel): GOV-05 graceåterfall för APERAK/UTILTS_ERR, GOV-06 explicit utilts-beslut"
+    },
+    {
+      "number": 536,
+      "head": "bd12b6b7857b290af19bcd9c0c1a303cad3bf7c4",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/tr-09-smime-all-families",
+      "title": "fix(ediel): TR-09 kräver S/MIME för alla meddelandefamiljer i produktion"
+    },
+    {
+      "number": 535,
+      "head": "99456309214d412b67f2222b0f69108124e94d48",
+      "base": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+      "branch": "codex/ediel-db02-tenant-parent-inventory-20261004",
+      "title": "fix(ediel): prevent contradictory enabled profile periods (DB-02)"
+    },
+    {
+      "number": 534,
+      "head": "02d05fa05ea0748030263033d2b329cf3b871f56",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-db06-billing-basis-inventory-20261004",
+      "title": "test(ediel): verify DB-06 locked billing inputs and corrections"
+    },
+    {
+      "number": 533,
+      "head": "cfe7e00347ba738f5a800a942316d0ad620579d4",
+      "base": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+      "branch": "codex/ediel-gov08-original-fixture-authority-20261004",
+      "title": "fix(ediel): hold contradictory GOV-08 test-original outcomes"
+    },
+    {
+      "number": 532,
+      "head": "361421e43c5e7b8e6a8445eee17d941bb71b61b2",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-db03-validation-inventory-20261004",
+      "title": "test(ediel): approve DB-03 versioned correction history"
+    },
+    {
+      "number": 531,
+      "head": "bc598bafc7383eaccd2153c172b3d7e629a48198",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/agents-claim-board",
+      "title": "docs(agents): obligatorisk claim-tavla för masterplan v2 (#530)"
+    },
+    {
+      "number": 529,
+      "head": "a272a04660b52701aae683a6d37e3702a1472ecf",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/imp-02-imp-03",
+      "title": "fix(ediel): IMP-02/IMP-03 – apply binds to reviewed snapshot, drop market-less resolver"
+    },
+    {
+      "number": 526,
+      "head": "4f063408309a1ddc83e04d7fe00cc4ca00116a21",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-imp03-05-route-history-inventory-20261004",
+      "title": "test(ediel): verify IMP-03 registry snapshot workflow"
+    },
+    {
+      "number": 525,
+      "head": "0a77f104c129baa337800d859207e555a1055cc5",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-imp02-market-family-evidence-20261004",
+      "title": "test(ediel): approve registry market and family preservation (IMP-02)"
+    },
+    {
+      "number": 524,
+      "head": "9f2277f5b0fc0dd37bdc6bb1213733aafb25c5ca",
+      "base": "507e8bfa20606be31933eea1582066267ff2577a",
+      "branch": "codex/ediel-ops05-failure-disposition-20261004",
+      "title": "fix(ediel): preserve OPS-05 failure and incident effects"
+    },
+    {
+      "number": 522,
+      "head": "577b3d2b602fd580d69beca21303aedfbffb12f1",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-gov05-coherent-guide-evidence-20261004",
+      "title": "test(ediel): verify GOV-05 coherent inbound guide transition"
+    },
+    {
+      "number": 521,
+      "head": "8fc3dd68e320b70d659b744dc79327e89f1e0ba8",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-gov06-explicit-time-decision-20261004",
+      "title": "fix(ediel): coherent GOV-06 time decisions before UTILTS effects"
+    },
+    {
+      "number": 520,
+      "head": "77749a5551ff9ce01b4bf0f3bcdcb13e67a73508",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "claude/db-01-db-02",
+      "title": "docs(ediel): fp-check DB-01/DB-02 — bekräftade luckor, ej godkända"
+    },
+    {
+      "number": 519,
+      "head": "804c29cd3e12f106ade57a665ded9754a0b39180",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-imp01-unreadable-company-20261004",
+      "title": "fix(ediel): reject unreadable registry companies (IMP-01)"
+    },
+    {
+      "number": 517,
+      "head": "19305aa5b3f9c16a0fcc08f60e8d50951bcb733d",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "branch": "codex/ediel-env06-field223-wire-guard-20261004",
+      "title": "fix(ediel): validate ENV-06 wire transaction reasons"
+    },
+    {
+      "number": 516,
+      "head": "32744b637abf84a3a6ac828e1782ae313a29d973",
+      "base": "a40b5732cefcc781e737a6970f69681f77a74a03",
+      "branch": "codex/ediel-env08-fixed-normal-time-20261004",
+      "title": "fix(ediel): encode UTILTS draft instants in fixed CET (ENV-08)"
+    },
+    {
+      "number": 515,
+      "head": "8abd0cf92be0656d04cb5bfae63752e4f566a269",
+      "base": "a40b5732cefcc781e737a6970f69681f77a74a03",
+      "branch": "codex/ediel-env05-environment-isolation-20261004",
+      "title": "fix(ediel): enforce ENV-05 physical test flag and approve isolation evidence"
+    },
+    {
+      "number": 514,
+      "head": "8f7077ca47ad584495883b98842c963767457209",
+      "base": "a40b5732cefcc781e737a6970f69681f77a74a03",
+      "branch": "codex/ediel-env07-compatible-batching-20261004",
+      "title": "test(ediel): approve ENV-07 compatible PRODAT batch separation"
+    },
+    {
+      "number": 513,
+      "head": "6655470b13f33c0ad8c5a096cb6ccb8219b534b2",
+      "base": "85508863e9f1263400770d2c635986c4caefc34b",
+      "branch": "codex/ediel-sc041-envelope-evidence-20261004",
+      "title": "test(ediel): approve CONTRL envelope serialization (SC-041)"
+    },
+    {
+      "number": 512,
+      "head": "1e0b6c0f4817339aa2075354cb29c80675748b65",
+      "base": "33aeb7f7311f97ac7aece0c6e2bdfc8cb0597023",
+      "branch": "codex/ediel-env10-family-release-evidence-20261004",
+      "title": "test(ediel): verify ENV-10 family and release field locators"
+    },
+    {
+      "number": 508,
+      "head": "10ff12bb97238e25032dee758e437f0f4bd29929",
+      "base": "33aeb7f7311f97ac7aece0c6e2bdfc8cb0597023",
+      "branch": "codex/ediel-env02-position-stability-20261004",
+      "title": "fix(ediel): preserve ENV-02 CAV positions in canonical projections"
+    },
+    {
+      "number": 503,
+      "head": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+      "base": "4b2245416df6d268c48db32ff6f01915396af94d",
+      "branch": "codex/ediel-tr05-recovery-20261004",
+      "title": "fix(ediel): qualify fresh recovery and unknown-attempt reconciliation (TR-05/TR-10)"
+    },
+    {
+      "number": 482,
+      "head": "86d2a86e6bc34adbe7e13a97069964a4ccab314c",
+      "base": "2c8e283e4fb6b232fe4e249352e33e8baeff14b1",
+      "branch": "feat/staff-support-api-2026-10-03",
+      "title": "Add API-only staff support, current RBAC and dedicated credentials"
+    },
+    {
+      "number": 424,
+      "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "base": "3c7342c64c83b705e85c18f300705166a1732ad6",
+      "branch": "codex/ediel-master-v2-integration-20261001",
+      "title": "Integrera hela Ediel masterplan v2: källägda producenter och skyddade konsumenter"
+    },
+    {
+      "number": 423,
+      "head": "604e339922b9fa0eb449dbd1ef720c49a8b5cafa",
+      "base": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "branch": "codex/ediel-ci-integrated-replay-20260930",
+      "title": "Ediel CI: isolated integrated recovery replay"
+    },
+    {
+      "number": 422,
+      "head": "3c20d8e0b11edc859752e4e894fc346080022bb4",
+      "base": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+      "branch": "codex/tenantservice-api-structure-20260929",
+      "title": "API/OPS: customer commands, purchase intent and canonical contract guards"
+    },
+    {
+      "number": 421,
+      "head": "3c7342c64c83b705e85c18f300705166a1732ad6",
+      "base": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "branch": "codex/ediel-v2-identity-e035-owner-20260928",
+      "title": "Ediel masterplan v2: integrate full source-backed code phase (draft)"
+    },
+    {
+      "number": 418,
+      "head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+      "base": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+      "branch": "codex/tenantservice-api-ops-20260928",
+      "title": "Tenantservice: portal access, support pagination and audit"
+    },
+    {
+      "number": 335,
+      "head": "a39ce436d68327d021e126c1c4ade7404c3db0b3",
+      "base": "dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f",
+      "branch": "codex/ediel-v2-dependent-ud-20260919",
+      "title": "Ediel v2 D: source-bound Z06/Z09 UD parents and ten customer fields"
+    },
+    {
+      "number": 310,
+      "head": "e961135199f292b8210884f07de3b616a670161a",
+      "base": "de098106c26d90069758cf1f753a94b073789ef2",
+      "branch": "codex/gridex-parity-remediation-20260905",
+      "title": "[PAUSED] Canonical replay, schema and generated types — resume from e9611351"
+    },
+    {
+      "number": 273,
+      "head": "db363e68b889d5a20e4ccdd41a3639b9be72c021",
+      "base": "8dd3b2dea76c1f4d14d6c55a57cd96580d620414",
+      "branch": "fix/invoice-test-preflight-object-order",
+      "title": "Fix Fakturatest E66 preflight object ordering"
+    },
+    {
+      "number": 227,
+      "head": "0100e37804c9ce12e12fb7ca185f42eb0c9f5877",
+      "base": "dcfca0ae654e5ceaa2ff9d505d722b8f9e696ddc",
+      "branch": "cursor/codebase-health-and-stability-4a83",
+      "title": "fix: wire platform dashboard aggregate on /admin after #226"
+    },
+    {
+      "number": 225,
+      "head": "0da02472501602e9b266506d301129a06153218d",
+      "base": "3c0eb9e805d8c76cac30b3f621ca123e73412332",
+      "branch": "cursor/facility-intake-review-3c0eb9e",
+      "title": "Fix website facility intake supplier-switch identity alignment"
+    },
+    {
+      "number": 223,
+      "head": "3df05ae222af6186c031ddf9ab056653bb574132",
+      "base": "9eeeafb71a5c55757fdb3ab60305c7c51251b15a",
+      "branch": "cursor/codebase-health-and-stability-26ff",
+      "title": "fix: harden post-performance-stack auth fail-closed and tenant_reference capture"
+    },
+    {
+      "number": 216,
+      "head": "5f459a9a2ccb4fe41c8171449fc7a88d1733b52c",
+      "base": "453975bc7f322df96e4a15e45bf3ea24d00b2304",
+      "branch": "cursor/codebase-health-and-stability-5a48",
+      "title": "fix: harden post-#215 auth fail-closed and tenant_reference capture"
+    },
+    {
+      "number": 214,
+      "head": "deaf07da1782a2ec8872704e8912f25ff1bc5dd3",
+      "base": "9e16073dac2c547f717f58425514c16154954596",
+      "branch": "cursor/codebase-health-and-stability-a1a0",
+      "title": "fix: preserve tenant_reference when parallel public-contract load fails"
+    },
+    {
+      "number": 211,
+      "head": "d565885b3ea438abb00a4135a6b32bbba5c121aa",
+      "base": "47248f0fcbd3495dff6f04d7449ad9e128e8c782",
+      "branch": "cursor/codebase-health-and-stability-b6d9",
+      "title": "fix: harden post-#210 Papilite/OPS precision residuals"
+    },
+    {
+      "number": 208,
+      "head": "19ff12f0576cde247b154f34358930936e84e1de",
+      "base": "f98619978ea8485aca2a91287f77e3ab042b95e0",
+      "branch": "cursor/codebase-health-and-stability-4d87",
+      "title": "fix: harden postal-centroid residuals after #207"
+    },
+    {
+      "number": 206,
+      "head": "3523adfbae0b0f2d1dd43b130ac54acff656c8c2",
+      "base": "3f1a905cacfd228838ae4b3d8ed123a89b989f7b",
+      "branch": "cursor/codebase-health-and-stability-e60a",
+      "title": "fix: harden Papilite/SVK energy resolution residuals after #205"
+    },
+    {
+      "number": 204,
+      "head": "c82b1e65ad6ae2b046080958235697f3004bd91b",
+      "base": "c27a6ac1bc8ffff597655c6c45b081a209b9a22d",
+      "branch": "cursor/codebase-health-and-stability-650d",
+      "title": "fix: harden post-#203 manual inbound apply and correlation residuals"
+    },
+    {
+      "number": 157,
+      "head": "de47f8a9684f81f7e7b3735d34e0130620be06fe",
+      "base": "c320b66a7e08e4d3421a2c6d4d9b75ca7f34b11e",
+      "branch": "agent/full-e2e-main-green-20260817",
+      "title": "fix: make Full E2E certification green"
+    },
+    {
+      "number": 150,
+      "head": "90c41bb6ffbbde8c29d5798e8e3fb337ac76edb8",
+      "base": "c5a5501a5fc5d2d23099de33dc507604dee6b708",
+      "branch": "cursor/codebase-health-and-stability-7053",
+      "title": "fix(health): close post-#149 go-live + Ediel package identity residuals"
+    },
+    {
+      "number": 148,
+      "head": "17704bff4308ca955416df27b2fc3451f62f8c90",
+      "base": "c575624534aa4bb3daf2458c1e839b568dbda010",
+      "branch": "cursor/codebase-health-and-stability-e446",
+      "title": "fix: post-#147 go-live hash binding + primary client + Processa om residuals"
+    },
+    {
+      "number": 146,
+      "head": "08cbe8db46cca71fea8279f9c8e3677d8119854c",
+      "base": "73936c7c4688e0428dcf751920021c70059fb43c",
+      "branch": "cursor/codebase-health-and-stability-4764",
+      "title": "fix(inbound): Processa om terminal sync + actionable review reasons"
+    }
+  ],
+  "scope": "Fresh65metadata/82+451comment delta after original complete71metadata+51head coverage/file inventory; original claim held, no competing057/059 claim. Currentmain adopted before technical edits; no inferred fresh coverage fetch for all65."
+}
