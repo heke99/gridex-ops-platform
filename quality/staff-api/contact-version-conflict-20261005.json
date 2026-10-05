@@ -1,5 +1,5 @@
 {
-  "status": "IMPLEMENTED_TARGETED_VERIFIED_PRIOR_CAPTURE_RETAINED_MAIN6F_COMBINED_CAPTURE_PENDING",
+  "status": "IMPLEMENTED_TARGETED_VERIFIED_AUTHENTIC_MAIN6F_CAPTURE_IMPORTED_FINAL_CI_PENDING",
   "base_commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
   "problem": "The deliberately raised contact_change_version_conflict40001 triggered PostgREST automatic retries instead of a timely409.",
   "production_evidence": {
@@ -103,18 +103,18 @@
   },
   "authentic_capture": {
     "status": "PASS_CAPTURE_ONLY_IMPORTED",
-    "workflow_run": 37260842526,
-    "artifact_id": 11324487263,
-    "source_commit": "aa1a4df009262b9793616e511073977d4fe32e8b",
-    "remote_head": "aa1a4df009262b9793616e511073977d4fe32e8b",
-    "tree": "f67ca2c182149321f601f2cd8bed78218db8479c",
-    "archive_sha256": "17541251651d1b77694b6a17c5bb67162e7d8f450fadf7d4788d93f21ddbd13d",
-    "independent_review_sha256": "6b2e42b47f9408a7b933d1e86ed5a4807bd40c1fe4429289cf944d228476fe0f",
-    "importer_history_independent_review_sha256": "dc1ebbe3ca8d34029b53cf9502f90f61b4f0f49c6aa298caff301a24689ca3f9",
-    "import_receipt": "quality/staff-api/customer-conflicts-main-integrated-capture-import-20261005.json",
-    "raw_receipt": "quality/staff-api/customer-conflicts-main-integrated-capture-receipt-20261005.json",
-    "scope": "Authentic combined current-main prefix. Whole schema delta versus raw main507 baseline is only the two pinned deliberate SQLSTATE changes. Types remain byte-identical; TEN09 and all other main schema bytes preserved. Fresh resulting-head native/browser/upgrade and full CI still mandatory.",
-    "qualification": "Historical main507 capture only; fresh main6f combined capture required."
+    "workflow_run": 37261957906,
+    "artifact_id": 11325176661,
+    "source_commit": "8424820983ac007bdb57fd70237a8abc58a13506",
+    "remote_head": "8424820983ac007bdb57fd70237a8abc58a13506",
+    "tree": "3935e88eb302789f025a1ddcf56eaa36e5b51711",
+    "archive_sha256": "8904b143cfd7c1a64f04774f622ff9b96ef735eadacbf3db5a2a70f0408b41b4",
+    "independent_review_sha256": "c3b93811cbaefb89d1273a2fdf0f2ae229665cda0d7c8eda63da5be3fdf0965b",
+    "importer_history_independent_review_sha256": "dbc9411efb0aa8a2c4de8d825423005e25508343362f507f66390e0472409ac3",
+    "import_receipt": "quality/staff-api/customer-conflicts-main6f-capture-import-20261005.json",
+    "raw_receipt": "quality/staff-api/customer-conflicts-main6f-capture-receipt-20261005.json",
+    "scope": "Authentic combined main6f prefix. Whole raw schema delta versus main6f is only the two pinned deliberate SQLSTATE changes. Types unchanged; DSN, TEN09 and all other main schema bytes preserved.",
+    "qualification": "Capture origin842 only. Fresh resulting final-head mandatory CI, raw capture parity, native and upgrade remain required."
   },
   "main_integration": {
     "main_commit": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
@@ -123,8 +123,9 @@
     "raw_generated_baseline_source": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
     "new_inherited_migration": "20261004175536_ediel_dsn_encoded_source_identity.sql",
     "prior_staff_import_source": "019d09abb96e47f7ceff068a5a7c5efb7c7d4d69",
-    "capture": "NOT_RUN_FOR_MAIN6F_COMBINED_PREFIX",
-    "fresh_final_head_CI": "NOT_RUN"
+    "capture": "PASS_CAPTURE_ONLY_IMPORTED",
+    "fresh_final_head_CI": "NOT_RUN",
+    "independent_composition_review_sha256": "f4c6dee66363249154db37906dadecc86a0539f56612533096856eab455bb19c"
   },
   "prior_staff_prefix_capture": {
     "status": "PASS_CAPTURE_ONLY_IMPORTED",
