@@ -268,8 +268,22 @@
     {
       "id": "IMP-03",
       "acceptance_id": "AT-IMP-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/actor-registry/registrySnapshotDiff.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "lib/ediel/routeMaterializer.ts",
+        "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "scripts/ediel-registry-import-native.test.ts",
+        "scripts/ediel-registry-route-certificate-native.test.ts",
+        ".agent-memory/masterplan-imp03-05-checkpoint.md"
+      ]
     },
     {
       "id": "IMP-04",
@@ -2333,8 +2347,22 @@
     },
     {
       "id": "AT-IMP-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/registrySnapshotDiff.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "lib/ediel/routeMaterializer.ts",
+        "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "scripts/ediel-registry-import-native.test.ts",
+        "scripts/ediel-registry-route-certificate-native.test.ts",
+        ".agent-memory/masterplan-imp03-05-checkpoint.md"
+      ]
     },
     {
       "id": "AT-IMP-04",
