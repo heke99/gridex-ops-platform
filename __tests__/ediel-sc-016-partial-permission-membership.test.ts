@@ -8,7 +8,10 @@ import {beforeAll,describe,expect,it} from 'vitest'
 type Proof={checks:number;scope:string;source:{status:string;manifestObjects:string[];sites:string[];committedEffects:number;sourceHash:string;registryUnchanged:boolean;rawAndSealUnchanged:boolean;idempotentReplay:boolean;noAutomaticGrant:boolean};callers:{automatic:boolean;sdk:boolean;manual:boolean;hostileManualSitesIgnored:boolean;foreignAndInactiveHeld:boolean;sourceOnlyRpc:boolean};grant:{activeObjects:string[];separateApprovalRequired:boolean;refused:{objects:string[];status:string;missing:string[];accessGranted:boolean}[]};owners:{signature:string;migration:string;lastExplicitDefinition:string;definitionSha256:string;installedBodySha256:string;exactBody:boolean}[]}
 let proof:Proof
 beforeAll(()=>{
- const run=spawnSync(process.execPath,[resolve('scripts/ediel-sc-016-approved-object-sql-regression.mjs')],{cwd:process.cwd(),env:process.env,encoding:'utf8',timeout:60000,maxBuffer:2*1024*1024})
+ const env={...process.env}
+ // The SQL runner changes cwd; retain CI's guard using its repository path.
+ if(env.NODE_OPTIONS)env.NODE_OPTIONS=env.NODE_OPTIONS.replaceAll('--require=./scripts/lib/unit-loopback-network-boundary.cjs',`--require=${JSON.stringify(resolve('scripts/lib/unit-loopback-network-boundary.cjs'))}`)
+ const run=spawnSync(process.execPath,[resolve('scripts/ediel-sc-016-approved-object-sql-regression.mjs')],{cwd:process.cwd(),env,encoding:'utf8',timeout:60000,maxBuffer:2*1024*1024})
  expect(run.error,run.stderr).toBeUndefined()
  expect(run.status,run.stdout+'\n'+run.stderr).toBe(0)
  const lines=run.stdout.split('\n').filter(line=>line.startsWith('SC016_RESULT '))

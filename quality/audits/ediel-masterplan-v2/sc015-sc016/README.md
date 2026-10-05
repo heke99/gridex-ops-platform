@@ -1,5 +1,15 @@
 # SC015 / SC016 focused evidence
 
+Current CI repair: the genuine145c quality job failed before SC016 SQL because
+an inherited relative NODE_OPTIONS preload could not resolve after the unchanged
+runner changed its execution-child cwd. The owned test now resolves that same
+guard to the absolute repository path. Identical CI options reproduce RED, then
+3/3 PASS with zero skips; the guard still refuses external sockets. Assertions,
+SQL owners, product/helpers/workflows and all352 coverage rows are unchanged.
+The other31 bounded inputs retain the original manifest bytes. See
+`ci-preload-correction-receipt.json` for the necessary input delta, raw reproduction
+and genuine failure excerpt. Current-head ordinary CI remains pending.
+
 Base: actual merged main `507e8bfa20606be31933eea1582066267ff2577a`.
 Claims: #530 comments5986941347/5987058901 and #491 comments5986942920/5987060310.
 Whole independent review APPROVES both complete frozen code effects at the

@@ -38,7 +38,7 @@
   },
   "native": "NOT_RUN",
   "authentic_market_legal_acceptance": "NOT_PROVEN",
-  "ordinary_current_head_CI": "PENDING",
+  "ordinary_current_head_CI": "Previous145c failed before SQL; corrected current head PENDING",
   "full_suite": "NOT_RUN_in_this_packet",
   "input_manifest": "source-manifest.json",
   "evidence": [
@@ -131,6 +131,8 @@
     ],
     "other350_row_objects_unchanged": true,
     "all32_bounded_technical_inputs_equal_f2081c55": true,
-    "native_RLS_concurrency_prefix_external_custody_not_inferred": true
-  }
+    "native_RLS_concurrency_prefix_external_custody_not_inferred": true,
+    "qualification": "These equality facts describe the original145c documentation-only packet. Current SC016 environment-only input delta and other31 exact inputs are qualified separately in ci-preload-correction-receipt.json."
+  },
+  "current_necessary_environment_correction": "ci-preload-correction-receipt.json"
 }

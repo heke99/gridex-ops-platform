@@ -73,3 +73,13 @@ IMP01/02/03 519/525/526 andhandoff529 reviewedSnapshotHash. No duplicate produce
 validator/schema/helper edit. SC018/056 retainedten06; SC035/037 primaryreviewer;
 P08/SC036 andallotheractive sourceowners retained. Currentf208 technicalfreeze
 kept: nooptional temporaryfile robustness change without concrete gateverkan.
+
+2026-10-05 actual145c CI failure run37257463137/job111597574441: SC016 inherited
+relative NODE_OPTIONS preload fails before SQL after unchanged execution child
+changes cwd to scripts. Other10225tests PASS. Root authorized exact own fixture
+repair: only testchildenv rewrites the existing guard token to an absolute repo
+path; no guard removal, assertion/SQL/helper/product/workflow change. Same CI
+preload REDexit1/3skipped -> GREEN3PASS0skip; scoped types/lint0, external socket
+still denied before connection. Current352rowobjects and other31inputbytes exact;
+original f208 whole review retained with explicit environment-only delta receipt.
+No full/native rerun. Corrected-head ordinary CI pending; root owns main/gates.
