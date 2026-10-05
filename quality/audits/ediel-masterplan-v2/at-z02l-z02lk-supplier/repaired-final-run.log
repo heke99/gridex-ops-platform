@@ -1,0 +1,81 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005
+
+ ✓ __tests__/ediel-inbound-route-business-response.test.ts > inbound route business-response matching > allows canonical Z02 as the business response to a configured PRODAT Z01 route 3ms
+ ✓ __tests__/ediel-inbound-route-business-response.test.ts > inbound route business-response matching > keeps exact message-code routes valid 1ms
+ ✓ __tests__/ediel-inbound-route-business-response.test.ts > inbound route business-response matching > does not turn unrelated PRODAT codes into route evidence 0ms
+ ✓ __tests__/ediel-inbound-route-business-response.test.ts > inbound route business-response matching > fails closed for unknown families on a mismatched code 0ms
+ ✓ __tests__/z02-atomic-worker-convergence.test.ts > canonical Z02 atomic worker convergence > accepts only the complete DB gate chain 2ms
+ ✓ __tests__/z02-atomic-worker-convergence.test.ts > canonical Z02 atomic worker convergence > does not run the legacy second app-layer core apply from the worker 1ms
+ ✓ __tests__/z02-atomic-worker-convergence.test.ts > canonical Z02 atomic worker convergence > derives price area from canonical platform registry and guards stale snapshots 1ms
+ ✓ __tests__/ediel-customer-response-projection.test.ts > customer timeline preserves independent receipts and business response > never fabricates either ACK from an actual business response 10ms
+ ✓ __tests__/ediel-customer-response-projection.test.ts > customer timeline preserves independent receipts and business response > a technical receipt cannot prove an application receipt or business response 1ms
+ ✓ __tests__/ediel-customer-response-projection.test.ts > customer timeline preserves independent receipts and business response > keeps an actual negative receipt visible even after a business response 0ms
+ ✓ __tests__/ediel-prodat-lifecycle.test.ts > PRODAT exact profiles and state machines > does not create a supply period for Z04C 3ms
+ ✓ __tests__/ediel-prodat-lifecycle.test.ts > PRODAT exact profiles and state machines > creates supply only for accepted Z04L 1ms
+ ✓ __tests__/ediel-prodat-lifecycle.test.ts > PRODAT exact profiles and state machines > creates supply only for accepted Z04LK 0ms
+ ✓ __tests__/ediel-prodat-lifecycle.test.ts > PRODAT exact profiles and state machines > requires explicit Z08H end date and closure reason 2ms
+ ✓ __tests__/ediel-prodat-lifecycle.test.ts > PRODAT exact profiles and state machines > classifies the dated inbound Z06G review without supply mutation 4ms
+ ✓ __tests__/z02-raw-receipt-before-verification.test.ts > Z02 receipt is not verification > does not write verified payload or link customer/site before canonical gates 3ms
+ ✓ __tests__/z02-raw-receipt-before-verification.test.ts > Z02 receipt is not verification > fails closed when DB does not return atomic proof 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 54ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > the actual outer inbound entry skips an outbound Z02 before business processing 5ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > actual tenant resolver compares physical recipient with supplier DTO 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > actual tenant resolver compares physical recipient with esco-only DTO 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > actual tenant resolver compares physical recipient with wrong-legal DTO 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > actual tenant resolver compares physical recipient with wrong-transport DTO 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required LIN in the real field consumer 11ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required RFF:LI in the real field consumer 10ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required RFF:Z05 in the real field consumer 14ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required NAD:UD in the real field consumer 7ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required NAD:IT in the real field consumer 6ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > refuses DGI application reference in the actual Z02 policy 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification 6ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds absent candidate references without enqueuing or mutation 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds ambiguous candidate references without enqueuing or mutation 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds foreign-only candidate references without enqueuing or mutation 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete correlation proof and allows review only 5ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete payload proof and allows review only 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete snapshot proof and allows review only 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete atomic applied proof and allows review only 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete atomic receipt proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > does not promote a blocked job even with a complete-looking result 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > does not promote a needs_review job even with a complete-looking result 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > propagates a declared actor-port denial before any request query or worker effect 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds worker enqueue failure without replacing a verified snapshot 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 10ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > the actual outer inbound entry skips an outbound Z02 before business processing 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > actual tenant resolver compares physical recipient with supplier DTO 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > actual tenant resolver compares physical recipient with esco-only DTO 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > actual tenant resolver compares physical recipient with wrong-legal DTO 0ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > actual tenant resolver compares physical recipient with wrong-transport DTO 1ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required LIN in the real field consumer 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required RFF:LI in the real field consumer 6ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required RFF:Z05 in the real field consumer 6ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required NAD:UD in the real field consumer 6ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required NAD:IT in the real field consumer 7ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > refuses DGI application reference in the actual Z02 policy 0ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds absent candidate references without enqueuing or mutation 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds ambiguous candidate references without enqueuing or mutation 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds foreign-only candidate references without enqueuing or mutation 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete correlation proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete payload proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete snapshot proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete atomic applied proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete atomic receipt proof and allows review only 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > does not promote a blocked job even with a complete-looking result 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > does not promote a needs_review job even with a complete-looking result 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > propagates a declared actor-port denial before any request query or worker effect 0ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds worker enqueue failure without replacing a verified snapshot 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result 3ms
+
+ Test Files  6 passed (6)
+      Tests  71 passed (71)
+   Start at  14:05:33
+   Duration  6.16s (transform 5.51s, setup 92ms, import 7.09s, tests 289ms, environment 1ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005/quality/audits/ediel-masterplan-v2/at-z02l-z02lk-supplier/repaired-final-junit.xml

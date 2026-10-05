@@ -1,0 +1,38 @@
+{
+  "readMain": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "board530Comments": 90,
+  "board491Comments": 453,
+  "openPrHeads": 69,
+  "changedPathsRead": 5178,
+  "coverageHeadsRead": 55,
+  "preLedger404Heads": [
+    273,
+    227,
+    225,
+    223,
+    216,
+    214,
+    211,
+    208,
+    206,
+    204,
+    157,
+    150,
+    148,
+    146
+  ],
+  "laterBoard530Comments": 106,
+  "earlierClaim": 5991253973,
+  "explicitSc071Handoff": 5991386261,
+  "acceptedHandoffAndReleasedSc010": 5991584319,
+  "sc010OwnerPr": 570,
+  "sc010OwnerHead": "7a894c3b7938daf9bbbab7680f71ca5911aefc9c",
+  "sc071OwnedFiles": [
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+    ".agent-memory/masterplan-sc071-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/**"
+  ],
+  "sharedNativeIncludeClearance": "PENDING",
+  "finalPrepublicationBoard530Comments": 115,
+  "currentMainBase": "01b11f55af710c3e6aad1f5a433631a88c702047"
+}

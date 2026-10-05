@@ -54,6 +54,7 @@ describe('applyCustomerContactChange (P2b adapter)', () => {
   })
 
   it.each([
+    [{ code: 'PT409', message: 'contact_change_version_conflict' }, 'version_conflict'],
     [{ code: '40001', message: 'contact_change_version_conflict' }, 'version_conflict'],
     [{ code: 'P0002', message: 'customer_not_found_in_scope' }, 'not_found'],
     [{ code: '42501', message: 'contact_change_customer_archived' }, 'customer_archived'],
@@ -70,15 +71,18 @@ describe('applyCustomerContactChange (P2b adapter)', () => {
     await expect(promise).rejects.toMatchObject({ code })
   })
 
-  it('rethrows unknown database errors unchanged in kind', async () => {
-    rpc.mockResolvedValue({ data: null, error: { code: '08006', message: 'connection failure' } })
+  it.each([
+    { code: '08006', message: 'connection failure' },
+    { code: 'PT409', message: 'unrelated_business_conflict' },
+  ])('rethrows unrelated database errors unchanged in kind: %o', async error => {
+    rpc.mockResolvedValue({ data: null, error })
     const { applyCustomerContactChange, ContactChangeTransactionError } = await import('@/lib/customer-service/contactChangeTransaction')
     const promise = applyCustomerContactChange({
       companyId: COMPANY, customerId: CUSTOMER, actor: { kind: 'staff', userId: 'u1' }, channel: 'ops',
       expectedUpdatedAt: null, customerPatch: {}, contactPatch: {},
     })
     await expect(promise).rejects.not.toBeInstanceOf(ContactChangeTransactionError)
-    await expect(promise).rejects.toMatchObject({ code: '08006' })
+    await expect(promise).rejects.toMatchObject(error)
   })
 })
 

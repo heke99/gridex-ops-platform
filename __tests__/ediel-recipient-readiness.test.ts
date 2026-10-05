@@ -71,7 +71,7 @@ const companyId = '10000000-0000-4000-8000-000000000001'
 const otherCompanyId = '20000000-0000-4000-8000-000000000002'
 const receiverEdielId = '91100'
 let fixture: ReturnType<typeof createSyntheticEdielRecipientFixture>
-beforeAll(() => { fixture = createSyntheticEdielRecipientFixture() })
+beforeAll(() => { fixture = createSyntheticEdielRecipientFixture({ subjectEmail: 'synthetic-receiver@example.invalid' }) })
 afterAll(() => { fixture?.dispose() })
 
 function authority(): EdielCertificateTrustAuthority {

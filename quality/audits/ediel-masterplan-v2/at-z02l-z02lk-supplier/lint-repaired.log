@@ -1,0 +1,6 @@
+
+/workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005/lib/ediel/flows/inboundBusinessStateMachineLegacy.ts
+  55:16  warning  'strictUpdate' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
+

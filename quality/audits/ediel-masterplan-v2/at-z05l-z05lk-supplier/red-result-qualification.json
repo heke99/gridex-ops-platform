@@ -1,0 +1,59 @@
+{
+  "test_sha256": "2a076859c7ef7abea5d7aebfa68bd20e28817a97b4668db3cd9bc97b8e8729f4",
+  "actual_unique": 40,
+  "passed": 34,
+  "failed": 6,
+  "errors": 0,
+  "skipped": 0,
+  "exit": 1,
+  "failed_cases": [
+    {
+      "name": "AT-Z05 'L' supplier ('Z22') > cached customer and point hints cannot replace the committed ending-period task scope",
+      "first_message": "AssertionError: expected { id: 'generated-5', \u2026(16) } to match object { \u2026(2) }"
+    },
+    {
+      "name": "AT-Z05 'L' supplier ('Z22') > an unresolvable missing returned period cannot gain a task from cached hints",
+      "first_message": "AssertionError: expected [ { id: 'generated-6', \u2026(16) } ] to deeply equal []"
+    },
+    {
+      "name": "AT-Z05 'L' supplier ('Z22') > an unresolvable foreign-only returned period cannot gain a task from cached hints",
+      "first_message": "AssertionError: expected [ { id: 'generated-7', \u2026(16) } ] to deeply equal []"
+    },
+    {
+      "name": "AT-Z05 'LK' supplier ('Z23') > cached customer and point hints cannot replace the committed ending-period task scope",
+      "first_message": "AssertionError: expected { id: 'generated-12', \u2026(16) } to match object { \u2026(2) }"
+    },
+    {
+      "name": "AT-Z05 'LK' supplier ('Z23') > an unresolvable missing returned period cannot gain a task from cached hints",
+      "first_message": "AssertionError: expected [ { id: 'generated-13', \u2026(16) } ] to deeply equal []"
+    },
+    {
+      "name": "AT-Z05 'LK' supplier ('Z23') > an unresolvable foreign-only returned period cannot gain a task from cached hints",
+      "first_message": "AssertionError: expected [ { id: 'generated-14', \u2026(16) } ] to deeply equal []"
+    }
+  ],
+  "source_changed": false,
+  "qualification": "actual app facade/source adapter + finite RPC/table IO only; accepted outer/native source/persisted impact/whole unapproved",
+  "trailing_assertions_in_failed_cases": "unreached, uncredited",
+  "first_run": "40/24PASS/16FAIL, parser compact-date oracle/IT consumer layer/missing single DTO adapter corrected; all raw bytes preserved",
+  "static_checks": {
+    "typecheck": {
+      "exit": 0,
+      "actual_session": 85108,
+      "log": "typecheck-red.log"
+    },
+    "lint": {
+      "exit": 0,
+      "warnings": 0,
+      "actual_session": 57080,
+      "log": "lint-red.log"
+    }
+  },
+  "source_facit_review": {
+    "path": "source-facit-review.md",
+    "sha256": "0b2dc2f8c09032d40957700bfb3b00be9d251da5f4a7480f204a9caa6e76c022"
+  },
+  "fresh_main_adoption": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+  "unchanged_runtime_receipt_reused": true,
+  "source_fix": "not edited; independent refutation and exact ownership audit ongoing"
+}
