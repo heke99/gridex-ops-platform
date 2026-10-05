@@ -1392,13 +1392,25 @@
   "acceptance_contracts": [
     {
       "id": "SC-001",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-receipt.json"
+      ]
     },
     {
       "id": "SC-002",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-receipt.json"
+      ]
     },
     {
       "id": "SC-003",
