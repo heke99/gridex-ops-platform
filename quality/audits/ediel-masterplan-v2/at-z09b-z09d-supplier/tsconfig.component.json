@@ -1,0 +1,5 @@
+{
+  "extends": "../../../../tsconfig.tests.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["../../../../__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts"]
+}

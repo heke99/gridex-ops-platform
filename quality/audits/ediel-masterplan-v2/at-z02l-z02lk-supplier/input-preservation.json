@@ -1,0 +1,147 @@
+{
+  "base": "fff486f822001d35970f163507b10e17c3692f58",
+  "current_main": "683b3e60b67f71293cd44c14d591f877474f0f88",
+  "reviewed_inputs": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "reviewed": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "actual": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_message_cases.json",
+      "reviewed": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "actual": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_fields.json",
+      "reviewed": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "actual": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json",
+      "reviewed": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "actual": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json",
+      "reviewed": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "actual": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+      "reviewed": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+      "actual": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/prodat/parser.ts",
+      "reviewed": "2deb1745cf6054b8ea7741b63d5acbcc9f62ea81e10f2001556bb8ee4c25354e",
+      "actual": "2deb1745cf6054b8ea7741b63d5acbcc9f62ea81e10f2001556bb8ee4c25354e",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "reviewed": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+      "actual": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+      "equal": true
+    },
+    {
+      "path": "lib/onboarding/inboundEdielLinking.ts",
+      "reviewed": "b323a5027388b4d99c2687860415443f218c7289921adfbbe8e23888c70df8ee",
+      "actual": "b323a5027388b4d99c2687860415443f218c7289921adfbbe8e23888c70df8ee",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "reviewed": "1d3e51de42176234867d4e1546447c36eae44222e8d0ae04bed6e2db36f5d3be",
+      "actual": "1d3e51de42176234867d4e1546447c36eae44222e8d0ae04bed6e2db36f5d3be",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "reviewed": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "actual": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "reviewed": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "actual": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/tenant/sourceLegalContext.ts",
+      "reviewed": "571695a3cd4c8dc7f103b52c977b5963fac568c14b17bc62b60a018b17c149d1",
+      "actual": "571695a3cd4c8dc7f103b52c977b5963fac568c14b17bc62b60a018b17c149d1",
+      "equal": true
+    },
+    {
+      "path": "lib/customer-operations/automation.part-2.ts",
+      "reviewed": "5333edd4d72f8d721ca023cfc7d52ac5c89887ebe5708bb29caca4536163a756",
+      "actual": "5333edd4d72f8d721ca023cfc7d52ac5c89887ebe5708bb29caca4536163a756",
+      "equal": true
+    },
+    {
+      "path": "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql",
+      "reviewed": "f53ecc981b357c2423578a592702bc7291046a262d24bc7fc6b247693d0acd65",
+      "actual": "f53ecc981b357c2423578a592702bc7291046a262d24bc7fc6b247693d0acd65",
+      "equal": true
+    },
+    {
+      "path": "supabase/migrations/20261001022917_ediel_z02_native_actor_and_source_authority.sql",
+      "reviewed": "255f613a52aaf3fcd936dab53f5048479d11fa361ae090d0b64bd5bc6b6ee1c2",
+      "actual": "255f613a52aaf3fcd936dab53f5048479d11fa361ae090d0b64bd5bc6b6ee1c2",
+      "equal": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-register.ts",
+      "reviewed": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+      "actual": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+      "equal": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-identity.ts",
+      "reviewed": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c",
+      "actual": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c",
+      "equal": true
+    },
+    {
+      "path": "__tests__/helpers/originalRuleWitnessFixture.ts",
+      "reviewed": "0835d6aa20b07ef04846cc151d4caa33d2c0bff743387b3d800300fe84b303b9",
+      "actual": "0835d6aa20b07ef04846cc151d4caa33d2c0bff743387b3d800300fe84b303b9",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "reviewed": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "actual": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "reviewed": "22f6ea98e4696de4c2a4dd8a1de52dc5b23e19e20a8e0d654d411f680f63bfba",
+      "actual": "22f6ea98e4696de4c2a4dd8a1de52dc5b23e19e20a8e0d654d411f680f63bfba",
+      "equal": true
+    },
+    {
+      "path": "__tests__/ediel-inbound-verified-tenant-context.test.ts",
+      "reviewed": "bf17efae1f5a7681931a5ed89615a581717e4e094046b69f35c10540c9410309",
+      "actual": "bf17efae1f5a7681931a5ed89615a581717e4e094046b69f35c10540c9410309",
+      "equal": true
+    },
+    {
+      "path": "__tests__/tenant-ediel-identity-completeness.test.ts",
+      "reviewed": "d4c9007c6a36a00f071f4ed39b8f7d6116084a929571a1e70687d8258cfe2908",
+      "actual": "d4c9007c6a36a00f071f4ed39b8f7d6116084a929571a1e70687d8258cfe2908",
+      "equal": true
+    }
+  ],
+  "package_lock_coverage_equal_to_current_main": true,
+  "new_test_sha256": "b2278560af93c1779c3630daa2b47e2a89886d7688f08906b0b9647e1ef8149e",
+  "source_files_modified": []
+}

@@ -1,3 +1,7 @@
+## Actual root503 source adoption — 2026-10-05T17:14:00Z
+
+Actual local source composition `105b8b87af0b1f02a8f82b869495703fb5ec8d5a`, tree `1aa8738a7c0db47a4ee5754e02f78060c3bb45fe`, parents332065bf + main826779dd; retains genuine reviewed F3 writer10f4 and checkpoint062. All346 foreign rows retained; candidate247 stored approvals. Same PR503 publication/current CI remains next; no actual503 main merge or final baseline claim. This is the single root503 source-adoption handover; foreign main merge receipts remain with their assigned serial operators/common baseline writer.
+
 ## Aktuell arbetsgren — 2026-10-02 (gäller före allt nedan)
 
 Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426 mot main, HEAD `0f61f08f57aedc6c0cc6a442829e16cc75064e67`. main (#425/#427/#428/#429) är inmergad i grenen (257eacbc). Användaren beslutade: EN PR, inga omskrivna migrationer, merga #426 när CI är grön och fortsätt sedan masterplan v2. Före faktisk merge: bekräfta deploy-migrationsordning (grenens migrationer har tidsstämplar före main:s 20261001210000 → `db push` kräver --include-all) och att merge inte kör produktionsmigration utan separat tillstånd.
@@ -1308,6 +1312,8 @@ composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
 - 2026-10-05 main integration: #590 7b158e79ca58fdf7a9b3a77ece035c6b81790bbd — Merge pull request #590 from heke99/codex/ediel-at-z01l-z01lk-supplier-20261005; actual tree 00612b25336ee545defa14695f439537accd2dde; owner source/evidence retained, no production apply.
 - 2026-10-05 main integration: #551 2579fa93b8008eb72ca2a77d074b551828d0be58 — Merge pull request #551 from heke99/codex/ediel-sc004-sc006-beneficiary-evidence-20261005; actual tree d05a67b8e566720e0579e59287262e426c0c7584; owner source/evidence retained, no production apply.
 - 2026-10-05 main integration: #562 36e873fbac87695f9d3522086f721961824e29f9 — Merge pull request #562 from heke99/codex/ediel-sc057-sc059-registry-evidence-20261005; actual tree a32ecc7e8760c056581385b233bd84c56f82d476; owner source/evidence retained, no production apply.
+- 2026-10-05 SC-047 stays PARTIAL (review 5994883822: inbound receiver/role admission not executed jointly; gateway test kept): gateway fixture runs real matchUtiltsTransactionsForTenant (object only in a foreign tenant → unmatched) → runtime E10 (syntax/guide pass) → createUtiltsRuntimeAcks → one physical UTILTS ERR E10 on RFF+TN OWN-E10; foreign/own data unchanged; own-tenant contrast matches with no codes. Removing the company filter turns it red.
+- 2026-10-05 SC-034 native: z04-ack-native gains complete-first-lin-two and complete-global-order-132 (all objects otherwise complete) → BGM 27/FTX 314, no case/switch/supply, stable replay. Promoted to PASSED; verified only by CI clean-migration-replay (no local Docker).
 
 - 2026-10-05 main integration: #587 d10402d5028021794994e6d5d61622de61d08b57 — actual parents36e873fb +757008e7, tree ddbd102d384349dc25f46c845e0ec26fe67f785b; SC034 PASSED, SC047 PARTIAL evidence only; no production apply.
 

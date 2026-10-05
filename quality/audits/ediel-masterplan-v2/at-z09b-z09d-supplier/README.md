@@ -1,0 +1,15 @@
+# Z09B / Z09D supplier application HOLD coupling
+
+This NEW test couples the existing preparers, gateways, source RPC adapters, pure intent validator, renderers and physical tokenizer. Earlier BRP reference tests mock the gateway; production-original intake tests mock the preparer. Existing source/native/P08/ACK/history owners are unchanged (claims #5305997296939 / #5035997299471).
+
+The three synthetic profiles are B, D signed and D ceased. Each tests initial source HOLD, fresh source HOLD, first reservation HOLD, and second reservation HOLD. Route and fetched-intent scope drift, actual DDQ validation and fresh RPC error add refusal controls. Second reservation HOLD allows the finite finalizer's already created bound draft and forbids lifecycle/outbox progression; rollback is not claimed.
+
+Finite IO boundaries: RPC authority/results, canonical route resolution, intent/request persistence, version resolution, finalizer storage and outbox observation. The existing filter-aware Supabase fake is reused with one local fluent returns() transport adapter. Unknown tables/RPC calls fail. Intent validation is imported from the actual engine, not replaced with an always-valid result. Preliminary request creation is observed at its port; the foreign request lookup row remains unchanged.
+
+Initial→fresh BRP/date/version DTO differences are synthetic adversarial consumption controls: the actual renderer must use the fresh DTO. They do not prove that a native immutable D event can legitimately change its contractual boundary, that either authorized DTO is admitted, or that a real revocation race was executed. Source authority and reachability remain native-owner requirements.
+
+Frozen acceptance/case/rule literals and source pins are in ownership-and-contract-scout.json. Both entire AT rows remain NOT_EXECUTED with empty evidence. B calendar-month notice and dated history/all delivery relations, D genuine production activation/confirmation, physical own CONTRL/APERAK, all R/D checks, native direction/source/correlation refusal, RLS/transactions/concurrency and actual queue/SMTP/market effects remain unproved here. This suite does not qualify TEN05/P01/ENV06 as whole rules. Complete original P/HB PDFs were not reacquired.
+
+Raw history is preserved. Initial test702c29ab:48/45PASS/3FAIL, because the exact BGM oracle omitted required field313 `+AB`; initial typecheck exposed optional finite DTO market. Corrected testa2e38452:48/45PASS/3FAIL, because exact FR/DO literals omitted country (frozen207/208). Both reached second reservation HOLD/finite draft before their first failed wire assertion; later assertions in those three executions were unreached. Only the NEW fixture/oracles were corrected; production source never changed. Each types/lint receipt applies only to its recorded test hash.
+
+Final execution and qualified source/test/raw hashes are recorded in verification-receipt.json. New CI and independent review have their own status; local finite results are never native or whole-card approval.

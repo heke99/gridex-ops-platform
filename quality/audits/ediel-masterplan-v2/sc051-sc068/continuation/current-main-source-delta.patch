@@ -1,0 +1,292 @@
+diff --git a/lib/ediel/core/runtimeDecision.ts b/lib/ediel/core/runtimeDecision.ts
+index 3c6a278c..9f2e3c7e 100644
+--- a/lib/ediel/core/runtimeDecision.ts
++++ b/lib/ediel/core/runtimeDecision.ts
+@@ -530,7 +530,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
+     }
+     addNegativeAperakIfAllowed({family:String(canonical.family),code:canonical.messageCode,responsePlan,
+       reason:description,...(qualified && projected ? {applicationErrors:projected.applicationErrors} : {})})
+-    return buildResult({
++    const result = buildResult({
+       canonical,
+       policy: null,
+       utiltsBusinessOutcome: null,
+@@ -543,6 +543,8 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
+       decisionTrace: [...decisionTrace, `Canonical policy: blockerad (${description}).`],
+       syntax,
+     })
++    result.validationReport.failureDisposition = failureDisposition
++    return result
+   }
+ 
+   let utiltsFunctionalValidation: ReceivedUtiltsFunctionalValidation | undefined
+@@ -819,9 +821,16 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
+         && Boolean(response.applicationErrors?.length)
+         && response.applicationErrors!.every(isQualifiedProdatApplicationError))
+     const failureDisposition=classifyEdielFailure(error)
++    const prodatProcessingDisposition:ProdatProcessingDisposition|undefined=selectedFamily==='PRODAT'
++      ? {kind:'internal_review',reasons:[
++        ...(base.prodatProcessingDisposition?.reasons??[]),
++        {code:'code' in failureDisposition?failureDisposition.code:'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE',sourceRule:'OPS-05',reason:description},
++      ]}
++      : undefined
+     const decisionTrace = [...base.decisionTrace, `DB evidence gate: blockerad (${description}).`]
+     const validationReport = {
+       ...base.validationReport,
++      ...(prodatProcessingDisposition?{prodatProcessingDisposition}:{}),
+       applicationDecision: 'manual_review',
+       functionalDecision: 'manual_review',
+       failureDisposition,
+@@ -832,6 +841,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
+     }
+     const held:CanonicalRuntimeDecision={
+       ...base,
++      ...(prodatProcessingDisposition?{prodatProcessingDisposition}:{}),
+       applicationDecision: 'manual_review',
+       functionalDecision: 'manual_review',
+       issues,
+diff --git a/lib/ediel/flows/utiltsDataRequest.part-1.ts b/lib/ediel/flows/utiltsDataRequest.part-1.ts
+index 249622be..c2083462 100644
+--- a/lib/ediel/flows/utiltsDataRequest.part-1.ts
++++ b/lib/ediel/flows/utiltsDataRequest.part-1.ts
+@@ -911,7 +911,13 @@ export async function linkInboundUtiltsMessageCanonically(params: {
+     meteringPointId,
+     companyId: params.message.company_id ?? null,
+   })
+-  const matchedDataRequest = await findMatchingGridOwnerDataRequest(params.message)
++  // Give the correlator the point resolved here so a reference hit naming
++  // another point is not bound (U-19).
++  const matchedDataRequest = await findMatchingGridOwnerDataRequest(
++    meteringPointId && !params.message.metering_point_id
++      ? { ...params.message, metering_point_id: meteringPointId }
++      : params.message,
++  )
+ 
+   await linkEdielMessage({
+     actorUserId: params.actorUserId,
+diff --git a/lib/ediel/inboundCases.ts b/lib/ediel/inboundCases.ts
+index a7148061..55b59cce 100644
+--- a/lib/ediel/inboundCases.ts
++++ b/lib/ediel/inboundCases.ts
+@@ -398,7 +398,7 @@ export async function createOrUpdateInboundProdatCase(params: {
+   if(structural){
+     if(!application||application.headerDecision!=='accepted')throw new Error('structural_apply_complete_own_application_required')
+   }else{
+-    const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload)})
++    const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload),direction:params.message.direction==='outbound'?'outbound':'inbound'})
+     if (registerIssues.some(issue => issue.blocking)) throw new Error('PRODAT_REGISTER_STRUCTURE_INVALID: ' + registerIssues.map(issue=>issue.description).join(' | '))
+   }
+   const parsed = parseInboundProdatBusinessData(params.message)
+diff --git a/lib/ediel/matching.ts b/lib/ediel/matching.ts
+index 08796dbe..9c4e597f 100644
+--- a/lib/ediel/matching.ts
++++ b/lib/ediel/matching.ts
+@@ -19,6 +19,22 @@ function messageCompanyId(message: EdielMessageRow): string | null {
+   return stringOrNull(message.company_id)
+ }
+ 
++// U-19: an RFF+TN PRODAT case reference (field 226) is an optional
++// correlation hint only, never a mandatory authorization key.
++function parsedProdatCaseReferences(message: EdielMessageRow): string[] {
++  const references = (message.parsed_payload ?? {}).references
++  // edielEmailParser persists references keyed by qualifier: { TN: [...] }.
++  if (references && typeof references === 'object' && !Array.isArray(references)) {
++    const tn = (references as Record<string, unknown>).TN
++    return uniqueStrings(Array.isArray(tn) ? tn.map((value) => stringOrNull(value)) : [])
++  }
++  if (!Array.isArray(references)) return []
++  return uniqueStrings(references.map((reference) => {
++    const entry = reference as { qualifier?: unknown; value?: unknown } | null
++    return String(entry?.qualifier ?? '').trim().toUpperCase() === 'TN' ? stringOrNull(entry?.value) : null
++  }))
++}
++
+ function parsedText(message: EdielMessageRow, ...keys: string[]): string[] {
+   const payload = message.parsed_payload ?? {}
+   return uniqueStrings(keys.map((key) => stringOrNull(payload[key])))
+@@ -221,6 +237,7 @@ export async function findMatchingGridOwnerDataRequest(
+     stringOrNull(message.external_reference),
+     stringOrNull(message.transaction_reference),
+     ...parsedText(message, 'externalReference', 'transactionReference'),
++    ...parsedProdatCaseReferences(message),
+   ])
+ 
+   if (references.length > 0) {
+@@ -230,11 +247,15 @@ export async function findMatchingGridOwnerDataRequest(
+       .eq('company_id', companyId)
+       .in('external_reference', references)
+       .order('created_at', { ascending: false })
+-      .limit(1)
++      .limit(2)
+ 
+     if (byReference.error) throw byReference.error
+-    const hit = (byReference.data?.[0] as GridOwnerDataRequestRow | undefined) ?? null
+-    if (hit) return hit
++    // external_reference is not unique per company: bind only an unambiguous
++    // hit that does not name another metering point than the one resolved.
++    const hits = (byReference.data ?? []) as GridOwnerDataRequestRow[]
++    const hit = hits.length === 1 ? hits[0] : null
++    const hitPoint = stringOrNull((hit as { metering_point_id?: unknown } | null)?.metering_point_id)
++    if (hit && (!meteringPointId || !hitPoint || hitPoint === meteringPointId)) return hit
+   }
+ 
+   if (!meteringPointId) return null
+diff --git a/lib/ediel/rulebook/prodatRegisterPolicy.ts b/lib/ediel/rulebook/prodatRegisterPolicy.ts
+index 8e0c9069..4bcaea5a 100644
+--- a/lib/ediel/rulebook/prodatRegisterPolicy.ts
++++ b/lib/ediel/rulebook/prodatRegisterPolicy.ts
+@@ -166,9 +166,11 @@ export function validateProdatRegisterPolicy(input: {
+ export function validateProdatRegisterPayload(input: {
+   code:string; rawSegments:readonly string[]; una?:EdifactServiceStringAdvice;
+   facts?:ProdatDependentConditionFacts; requireConditions?:boolean; applicationReference?:string|null;
++  /** P119: a received message ignores X/D-false fields instead of rejecting them. */
++  direction?:'inbound'|'outbound';
+ }): EdielRulebookIssue[] {
+   const rules = canonicalProdat26AFieldRules(input.code).filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
+-  const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse'},rules)
++  const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse',direction:input.direction},rules)
+   if (input.requireConditions) issues.push(...validateProdatRegisterPolicy({...input,rules,requireIndependentInventory:true}).issues)
+   return issues
+ }
+diff --git a/lib/ediel/security/outboundRecipientCertificate.ts b/lib/ediel/security/outboundRecipientCertificate.ts
+index 8eef646e..26c4ed40 100644
+--- a/lib/ediel/security/outboundRecipientCertificate.ts
++++ b/lib/ediel/security/outboundRecipientCertificate.ts
+@@ -229,7 +229,7 @@ export function recipientCertificateTrustBlocker(): string {
+  * latest-row or explicit-id shortcut may silently discard a required leaf. */
+ export async function verifyRequiredRecipientCertificateSet(input: {
+   rows: readonly CertificateRow[]; scope: EdielCertificateTrustScope & {
+-    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null
++    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null; smtpTo?: string | null
+   }; authority: EdielCertificateTrustAuthority; now?: Date
+ }): Promise<readonly OutboundRecipientCertificateLeaf[]> {
+   const now = input.now ?? new Date(), required = input.authority.recipientFingerprints
+@@ -251,6 +251,13 @@ export async function verifyRequiredRecipientCertificateSet(input: {
+     if (blocker || !evaluateCertificateStatus(row,now).isUsableForSmime || !text(row.id)) return held(blocker ?? 'Obligatoriskt mottagarcertifikat är inte giltigt i aktuell scope.')
+     const trustEvidence = await verifyEdielCertificateTrust({scope:input.scope,leafPem:pem,authority:input.authority,now})
+     if (!trustEvidence.verified) return held(trustEvidence.code)
++    const smtpTo = text(input.scope.smtpTo)?.toLowerCase()
++    if (!smtpTo) return held('receiver_certificate_smtp_target_missing')
++    // A.4.2 binds the actual mailbox to signed Subject email or SAN RFC822.
++    // Mutable row labels and opaque source references cannot supply this fact.
++    let boundEmail: string | undefined
++    try { boundEmail = new X509Certificate(pem).checkEmail(smtpTo, { subject: 'always' }) } catch { /* Unusable target stays held. */ }
++    if (!boundEmail) return held('receiver_certificate_smtp_identity_unqualified')
+     leaves.push({id:text(row.id)!,publicCertificatePem:pem,subject:textFrom(row,'subject','subject'),issuer:textFrom(row,'issuer','issuer'),
+       serialNumber:new X509Certificate(pem).serialNumber,fingerprintSha256:fingerprint,ownerEdielId:inferOwnerEdielId(row),ownerSubaddress:inferOwnerSubaddress(row),usage:inferUsage(row),purpose:inferPurpose(row),environment:inferEnvironment(row),raw:row,trustEvidence})
+   }
+@@ -313,7 +320,7 @@ export async function resolveOutboundRecipientCertificate(input: {
+   }
+ 
+   const now = new Date()
+-  const scope = { companyId, receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment }
++  const scope = { companyId, receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment, smtpTo: input.smtpTo }
+   let data: CertificateRow | null = null
+   let candidateRows: CertificateRow[] = []
+   if (certificateId) {
+diff --git a/lib/ediel/services/authorization.ts b/lib/ediel/services/authorization.ts
+index 823913b2..b575ca35 100644
+--- a/lib/ediel/services/authorization.ts
++++ b/lib/ediel/services/authorization.ts
+@@ -1,4 +1,5 @@
+ import { supabaseService } from '@/lib/supabase/service'
++import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
+ import type { EdielServiceAssessment } from './types'
+ 
+ /** The server reads scoped evidence and current actor facts. UI booleans are never authority. */
+@@ -29,8 +30,8 @@ export async function assertEdielTenantActor(input: {
+   ])
+   // Schema/network errors remain errors, even if another permission succeeded.
+   for (const result of [membership, profile, ...permissionResults]) if (result.error) throw result.error
+-  if(!membership.data||membership.data.company_id!==input.companyId||membership.data.user_id!==input.actorUserId||membership.data.status!=='active'||membership.data.is_active!==true||!membership.data.accepted_at||!profile.data||profile.data.id!==input.actorUserId||profile.data.user_status!=='active')throw new Error('ediel_tenant_actor_forbidden')
+-  if (!permissionResults.some(result => result.data === true)) throw new Error('ediel_tenant_permission_forbidden')
++  if(!membership.data||membership.data.company_id!==input.companyId||membership.data.user_id!==input.actorUserId||membership.data.status!=='active'||membership.data.is_active!==true||!membership.data.accepted_at||!profile.data||profile.data.id!==input.actorUserId||profile.data.user_status!=='active')throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_TENANT_ACTOR_FORBIDDEN'},'ediel_tenant_actor_forbidden')
++  if (!permissionResults.some(result => result.data === true)) throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'},'ediel_tenant_permission_forbidden')
+ }
+ 
+ export type EdielTenantActorPermission = 'communication.read'|'communication.write'|'ediel_testing.write'|'ediel.send'|'communication.send'|'metering.read'|'metering.write'|'customers.write'
+diff --git a/lib/inbound-mail/canonicalInboundAckStatusUpdater.ts b/lib/inbound-mail/canonicalInboundAckStatusUpdater.ts
+index bc271289..a6e87f4d 100644
+--- a/lib/inbound-mail/canonicalInboundAckStatusUpdater.ts
++++ b/lib/inbound-mail/canonicalInboundAckStatusUpdater.ts
+@@ -180,6 +180,8 @@ async function persistInboundAck(input: {
+   return id
+ }
+ 
++export const OUTBOUND_BUSINESS_RESPONSE_STATUSES = '("confirmed","business_response_received")'
++
+ async function updateOutboundAck(input: {
+   companyId: string
+   inboundEdielMessageId: string | null
+@@ -197,7 +199,7 @@ async function updateOutboundAck(input: {
+ 
+   if (input.outboundMatch.entityType === 'outbound_request') {
+     outboundRequestId = input.outboundMatch.entityId
+-    await supabaseService.from('outbound_requests').update({
++    const request = supabaseService.from('outbound_requests').update({
+       status: classification.family === 'CONTRL'
+         ? negative ? 'syntax_rejected' : 'syntax_accepted'
+         : negative ? 'application_rejected' : 'application_accepted',
+@@ -207,6 +209,9 @@ async function updateOutboundAck(input: {
+       failed_at: negative ? nowIso() : null,
+       updated_at: nowIso(),
+     }).eq('company_id', input.companyId).eq('id', outboundRequestId)
++    // A positive ACK arriving after the business response (e.g. Z04 before
++    // APERAK) completes only the ACK columns; it never rolls back the request.
++    await (negative ? request : request.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
+   } else if (input.outboundMatch.entityType === 'ediel_message') {
+     outboundRequestId = typeof outbound.outbound_request_id === 'string' ? outbound.outbound_request_id : null
+   }
+diff --git a/lib/inbound-mail/inboundStatusUpdater.ts b/lib/inbound-mail/inboundStatusUpdater.ts
+index d6531c41..204b43ba 100644
+--- a/lib/inbound-mail/inboundStatusUpdater.ts
++++ b/lib/inbound-mail/inboundStatusUpdater.ts
+@@ -1,3 +1,4 @@
++import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
+ import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
+ import { recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
+ import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+@@ -523,6 +524,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
+     business_match_status: 'blocked',
+     processing_status: resolutionStatus,
+     inbound_email_message_id: input.inboundEmailMessageId,
++    mailbox_message_id: input.inboundEmailMessageId,
+     message_received_at: nowIso(),
+     parsed_at: nowIso(),
+     failure_reason: null,
+@@ -991,7 +993,7 @@ export async function applySafeInboundStatusUpdate(input: {
+   if (input.parsed.messageFamily === 'CONTRL') {
+     const isNegative = isNegativeContrL(input.parsed)
+     if (input.outboundMatch.entityType === 'outbound_request') {
+-      await supabaseService
++      const ackRequest = supabaseService
+         .from('outbound_requests')
+         .update({
+           status: isNegative ? 'syntax_rejected' : 'syntax_accepted',
+@@ -1003,6 +1005,8 @@ export async function applySafeInboundStatusUpdate(input: {
+         })
+         .eq('id', input.outboundMatch.entityId)
+         .eq('company_id', input.companyId)
++      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
++      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
+ 
+       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
+@@ -1028,7 +1032,7 @@ export async function applySafeInboundStatusUpdate(input: {
+   if (input.parsed.messageFamily === 'APERAK') {
+     const isNegative = isNegativeAperak(input.parsed)
+     if (input.outboundMatch.entityType === 'outbound_request') {
+-      await supabaseService
++      const ackRequest = supabaseService
+         .from('outbound_requests')
+         .update({
+           status: isNegative ? 'application_rejected' : 'application_accepted',
+@@ -1040,6 +1044,8 @@ export async function applySafeInboundStatusUpdate(input: {
+         })
+         .eq('id', input.outboundMatch.entityId)
+         .eq('company_id', input.companyId)
++      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
++      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
+ 
+       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })

@@ -1,0 +1,14 @@
+lib/ediel/prodat/builders/profileRenderer.ts:164:    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
+lib/ediel/prodat/builders/z09.ts:99:    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
+lib/ediel/prodat/engine.ts:95:    mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
+lib/ediel/prodat/engine.ts:204:    mode: input.portalSnapshot ? 'catalog_evidence' : 'send',
+lib/ediel/rulebook/validator.ts:383:    mode:input.mode==='send'&&input.bilateralDraftQualification?'parse':input.mode==='send'?'catalog_evidence':'parse',
+lib/ediel/rulebook/canonicalRulePackRegistry.ts:262:      mode: 'catalog_evidence',
+lib/ediel/rulebook/canonicalRulePackRegistry.ts:272:    mode: 'catalog_evidence',
+lib/ediel/rulebook/utilts25A4.ts:2:export type UtiltsMessageUseMode = 'live_inbound' | 'outbound' | 'historical_replay'
+lib/ediel/rulebook/utilts25A4.ts:135:    if (input.mode === 'historical_replay') return
+lib/ediel/rulebook/canonicalEdielPolicy.ts:50:export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay' | 'catalog_evidence'
+lib/ediel/rulebook/canonicalEdielPolicy.ts:179: * `catalog_evidence` is intentionally non-operational: it may resolve a static
+lib/ediel/rulebook/canonicalEdielPolicy.ts:218:    const bilateralCapabilityVerified = mode === 'catalog_evidence'
+lib/ediel/rulebook/canonicalEdielPolicy.ts:325:      mode: mode === 'historical_replay' ? 'historical_replay' : input.direction === 'outbound' ? 'outbound' : 'live_inbound',
+lib/ediel/rulebook/canonicalEdielPolicy.ts:332:    if (input.direction === 'outbound' && family === 'UTILTS' && mode !== 'catalog_evidence') {

@@ -1,5 +1,24 @@
 # Root503: existing PR repair and shared baseline
 
+## Current root503 integration — 2026-10-05T17:14:00Z
+
+Active work: finish existing PR #503 and the coordinated reviewed PR merge wave, then qualify one shared main baseline. The user's instruction supersedes the old blanket merge freeze for necessary existing PR fixes. GitHub #530 remains the reservation board; each retained author owns its files and each PR has one CI reader/serial merger.
+
+Root503 has genuinely adopted main `826779dd798e81c0f2a0a854fb3cb810ddbc5598` (241 stored approvals) and independently approved F3 writer `10f4e393`, producing source composition `105b8b87af0b1f02a8f82b869495703fb5ec8d5a`, tree `1aa8738a7c0db47a4ee5754e02f78060c3bb45fe`. Its ordered 352-ID register has 247 stored approvals (99 VERIFIED + 148 PASSED), including its six own rows, with all 346 foreign full rows/evidence preserved. These stored statuses do not assert new native or market acceptance. #512/#516/#519/#526/#598 are actual existing main deliveries, not queued merges.
+
+The old published c5 clean replay failed F3 with 11 NULL-company originals, seven events and one unresolved item; their 19 individual identities remain UNKNOWN. The fix recognizes only immutable private technical birth via existing actual is_birth_v1(m,false), and only diagnostics attached through their own source key/environment. Missing authority and all unqualified NULL rows still fail. Other executable tenant gates and eight original application cases remain exact. Genuine finite before-fix proof: 56 PASS/2 valid-positive FAIL; after-fix: 58/58 PASS. Independent source/effect APPROVE is sealed; actual composed 58/58 and earlier adopted-parser 99/99 pass. Frozen 33 originals/121 rules/231 contracts and 1073 immutable migrations pass. Full current native/clean/upgrade/browser/mandatory CI is pending this publication and must pass before merge.
+
+The existing CI repair also consumes the retained author's one-line native-test PR path-filter proposal #5035999057103. It preserves every other workflow byte/job/permission and creates no additional native producer. Authentic generated outputs still come from producer5be, run37319901610/job111796010070/artifact11351030885, with raw types88cf/schema0d73/fingerprintfee8 and approved origin metadata d5. Original capture execution flags remain NOT_RUN. All historical raw origins and failed observations are retained.
+
+Immutable current source reviews and raw focused logs are in `quality/audits/ediel-masterplan-v2/root503-f3-current-main-20261005/`; the previously published 41-member checkpoint archive remains adopted. Private IMP05 export remains pending its explicit user reply after automatic review rejection and is excluded. Existing DB05 #599 coupled post-close correction remains author-owned; #532/#534/#521/#594 and other serial slots retain their owners. Root does not duplicate their edits, native runs or inventories.
+
+Next: publish this reviewed composition once on the existing #503 branch without force, observe all nine required checks on that exact head, fix any real residual failure in its retained lane, and merge only after fresh source/main/head guards. Other authors continue their already allocated PR fixes during CI. The designated common baseline writer records one actual stable-main CI window/tag after the merge wave; this root checkpoint is not a completed baseline certificate. Older snapshots below remain historical.
+
+
+## Preserved previous checkpoint
+
+# Root503: existing PR repair and shared baseline
+
 The user now explicitly requests that existing reviewed PRs become green and merge into main, with all agents coordinated, before establishing a new shared baseline. This supersedes the old blanket freeze for necessary existing PR repairs and integrations. No new rule cluster is opened. The public scope and ownership record is #4915998832810.
 
 ## Exclusive work and coordination

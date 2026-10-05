@@ -256,8 +256,18 @@
     {
       "id": "IMP-01",
       "acceptance_id": "AT-IMP-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/types.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "__tests__/ediel-actor-registry-source.test.ts",
+        "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-zero-route-preview.test.ts"
+      ]
     },
     {
       "id": "IMP-02",
@@ -268,8 +278,22 @@
     {
       "id": "IMP-03",
       "acceptance_id": "AT-IMP-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/actor-registry/registrySnapshotDiff.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "lib/ediel/routeMaterializer.ts",
+        "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "scripts/ediel-registry-import-native.test.ts",
+        "scripts/ediel-registry-route-certificate-native.test.ts",
+        ".agent-memory/masterplan-imp03-05-checkpoint.md"
+      ]
     },
     {
       "id": "IMP-04",
@@ -307,8 +331,18 @@
     {
       "id": "ENV-02",
       "acceptance_id": "AT-ENV-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactTokenizer.ts",
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/edifactValidation.ts",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "__tests__/ediel-env02-positional-ast.test.ts",
+        ".agent-memory/masterplan-env02-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-03",
@@ -355,8 +389,23 @@
     {
       "id": "ENV-08",
       "acceptance_id": "AT-ENV-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/prodat/render/dates.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/utilts/resolution.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/sources/sourceOwnerWire.ts",
+        "lib/ediel/sources/receivedSourceOwnerSession.ts",
+        "lib/ediel/sources/sourceOwnerPersistence.ts",
+        "__tests__/ediel-env08-fixed-normal-time.test.ts",
+        "__tests__/ediel-source-owner-runtime.test.ts",
+        "__tests__/ediel-source-owner-processor.test.ts"
+      ]
     },
     {
       "id": "ENV-09",
@@ -1336,8 +1385,19 @@
     {
       "id": "ENV-10",
       "acceptance_id": "AT-ENV-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/unsmGrammar.generated.json",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "__tests__/ediel-env10-family-release-locators.test.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-prodat-dependent-z06-product.test.ts",
+        "__tests__/ediel-prodat-characteristic-preflight.test.ts",
+        "__tests__/ediel-utilts-profile-own-scope.test.ts",
+        ".agent-memory/masterplan-env10-checkpoint.md"
+      ]
     },
     {
       "id": "ACK-10",
@@ -1494,8 +1554,18 @@
     },
     {
       "id": "SC-009",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/normalizeActor.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "lib/ediel/tenant/tenantEdielIdentityEvidence.ts",
+        "lib/ediel/tenant/resolveInboundTenant.ts",
+        "__tests__/tenant-ediel-identity-completeness.test.ts",
+        "__tests__/tenant-ediel-identity-evidence.test.ts",
+        "__tests__/ediel-inbound-verified-tenant-context.test.ts",
+        ".agent-memory/masterplan-sc009-sc019-checkpoint.md"
+      ]
     },
     {
       "id": "SC-010",
@@ -1520,8 +1590,12 @@
     },
     {
       "id": "SC-013",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        ".agent-memory/masterplan-sc013-sc020-checkpoint.md"
+      ]
     },
     {
       "id": "SC-014",
@@ -1530,13 +1604,23 @@
     },
     {
       "id": "SC-015",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-015-pending-provider-request.test.ts",
+        "scripts/test-ediel-sc-015-016-permissions.cjs",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-016",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+        "scripts/test-ediel-sc-015-016-permissions.cjs",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-017",
@@ -1558,13 +1642,33 @@
     },
     {
       "id": "SC-019",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "lib/ediel/services/projectionRequest.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/sourceBasis.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "__tests__/billing-canonical-gate.test.ts",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        ".agent-memory/masterplan-sc009-sc019-checkpoint.md"
+      ]
     },
     {
       "id": "SC-020",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-permission-market-consumers.test.ts",
+        "__tests__/ediel-permission-process-order.test.ts",
+        "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+        "scripts/ediel-service-administration-sql-regression.mjs",
+        ".agent-memory/masterplan-sc013-sc020-checkpoint.md"
+      ]
     },
     {
       "id": "SC-021",
@@ -1723,8 +1827,9 @@
     },
     {
       "id": "SC-034",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "scripts/ediel-z04-ack-native.test.ts",
         "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/prodat/prodatAckMessageFunction.ts"
@@ -1848,6 +1953,7 @@
       "id": "SC-047",
       "status": "PARTIAL",
       "evidence": [
+        "__tests__/ediel-utilts-err-gateway.test.ts",
         "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.part-1.ts",
         "lib/ediel/matching.ts"
@@ -1882,8 +1988,15 @@
     },
     {
       "id": "SC-051",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.md",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/approval-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green-final.xml"
+      ]
     },
     {
       "id": "SC-052",
@@ -2055,8 +2168,15 @@
     },
     {
       "id": "SC-068",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.md",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/independent-whole-review.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/approval-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-focused.xml"
+      ]
     },
     {
       "id": "SC-069",
@@ -2285,8 +2405,18 @@
     },
     {
       "id": "AT-IMP-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/types.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "__tests__/ediel-actor-registry-source.test.ts",
+        "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-zero-route-preview.test.ts"
+      ]
     },
     {
       "id": "AT-IMP-02",
@@ -2295,8 +2425,22 @@
     },
     {
       "id": "AT-IMP-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/registrySnapshotDiff.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "app/admin/ediel/actors/actions.ts",
+        "lib/ediel/routeMaterializer.ts",
+        "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "__tests__/ediel-atomic-registry-import.test.ts",
+        "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "scripts/ediel-registry-import-native.test.ts",
+        "scripts/ediel-registry-route-certificate-native.test.ts",
+        ".agent-memory/masterplan-imp03-05-checkpoint.md"
+      ]
     },
     {
       "id": "AT-IMP-04",
@@ -2330,8 +2474,18 @@
     },
     {
       "id": "AT-ENV-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactTokenizer.ts",
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/edifactValidation.ts",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "__tests__/ediel-env02-positional-ast.test.ts",
+        ".agent-memory/masterplan-env02-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-03",
@@ -2372,8 +2526,23 @@
     },
     {
       "id": "AT-ENV-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/prodat/render/dates.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/utilts/resolution.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/sources/sourceOwnerWire.ts",
+        "lib/ediel/sources/receivedSourceOwnerSession.ts",
+        "lib/ediel/sources/sourceOwnerPersistence.ts",
+        "__tests__/ediel-env08-fixed-normal-time.test.ts",
+        "__tests__/ediel-source-owner-runtime.test.ts",
+        "__tests__/ediel-source-owner-processor.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-09",
@@ -2418,8 +2587,14 @@
     },
     {
       "id": "AT-P-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/prodat/prodatPartyFields.ts",
+        "__tests__/ediel-at-p04-parent-applicability.test.ts"
+      ]
     },
     {
       "id": "AT-P-05",
@@ -3145,8 +3320,19 @@
     },
     {
       "id": "AT-ENV-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/unsmGrammar.generated.json",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "__tests__/ediel-env10-family-release-locators.test.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-prodat-dependent-z06-product.test.ts",
+        "__tests__/ediel-prodat-characteristic-preflight.test.ts",
+        "__tests__/ediel-utilts-profile-own-scope.test.ts",
+        ".agent-memory/masterplan-env10-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ACK-10",
