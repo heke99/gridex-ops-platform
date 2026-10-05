@@ -1751,8 +1751,10 @@
     },
     {
       "id": "SC-045",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-utilts-err-gateway.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
         "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.ts"
       ]
