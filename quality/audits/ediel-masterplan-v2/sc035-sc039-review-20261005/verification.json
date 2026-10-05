@@ -1,0 +1,30 @@
+{
+  "scope": "Fresh document/input integrity only; no runtime scenario conformance",
+  "baseline": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "reports": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc035-sc039-review-20261005/SC-035-refutation.md",
+      "inputHashes": 20,
+      "sha256": "2f1c558d8c38362ecaacab28860053df25639abb9f2496a579102f3a11802d27"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc035-sc039-review-20261005/SC-035.md",
+      "inputHashes": 45,
+      "sha256": "f6117698fb897ec4f3e7950b793cc2dfae4f4c47742313273a0a96f419d77822"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc035-sc039-review-20261005/SC-039.md",
+      "inputHashes": 35,
+      "sha256": "94e6315ac2cb6ef95acdc543a219b1d259d842676532666a6ce217f0bdea4006"
+    }
+  ],
+  "totalInputReferences": 100,
+  "uniqueInputPaths": 80,
+  "allInputHashesMatch": true,
+  "ordinaryExcerpts": 9,
+  "ordinaryInputBlobs": 7,
+  "priorPacketCurrentMainQualification": 61,
+  "trackedSourceDiffEmpty": true,
+  "runtimeExperimentRun": false,
+  "wholeScenarioPromotions": []
+}

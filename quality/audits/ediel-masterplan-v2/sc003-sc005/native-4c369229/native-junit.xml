@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="1" failures="0" errors="0" time="10.701268343">
+    <testsuite name="scripts/ediel-sc-003-005-service-native.test.ts" timestamp="2026-10-05T01:41:38.981Z" hostname="runnervm8df0l" tests="1" failures="0" errors="0" skipped="0" time="10.701268343">
+        <testcase classname="scripts/ediel-sc-003-005-service-native.test.ts" name="SC003/SC005 legal provider DGI uses one permission and one E66 storage/disposition/physical ACK for two independently valid scoped missions" time="10.699844975">
+        </testcase>
+    </testsuite>
+</testsuites>
