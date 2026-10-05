@@ -1,0 +1,19 @@
+{
+  "base": "fff486f822001d35970f163507b10e17c3692f58",
+  "claim": 5994688282,
+  "author": "/root/z01_profile_implementer",
+  "status": "DONE_WITH_CONCERNS",
+  "parameterExpandedCasesAuthored": 9,
+  "runtimeTestsExecutedLocally": 0,
+  "runtimeStatus": "NOT_RUN: node_modules absent",
+  "syntax": "Node24 stripTypeScriptTypes + experimental VM modules PASS (imports not linked)",
+  "source": "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+  "sourceSha256": "fadb4ba613fcfee8904c4fd47f58311b9a0e420411c4a2478e5e56ba75280989",
+  "sourceGitBlob": "f9a3816f49908726e2e68f6d981e73640ce5d0e9",
+  "originalIgnoredReportSha256": "40de88b43c3493ed879e2c693270d69b0949bfa202b0a570056c1add85dbc51e",
+  "selectedSourcePinsVerified": 71,
+  "reportHashesVerified": 5,
+  "inventoryDecompressedBytes": 394106,
+  "wholeApproval": false,
+  "coverageEdited": false
+}
