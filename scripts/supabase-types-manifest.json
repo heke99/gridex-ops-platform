@@ -217,14 +217,14 @@
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
   "capture_artifact": {
-    "artifact_id": 11325200901,
-    "workflow_run_id": 37260943445,
-    "workflow_job_id": 111607846726,
+    "artifact_id": 11351030885,
+    "workflow_run_id": 37319901610,
+    "workflow_job_id": 111796010070,
     "job_conclusion": "success",
-    "github_actions_digest": "sha256:9353629de11059586e05caf1957d35e31d6e382a22f8b704d21feac380cfb657",
-    "zip_path": "artifacts/masterplan-v2/ediel-root503-329-composed-capture.zip",
-    "raw_receipt_path": "artifacts/masterplan-v2/ediel-root503-329-composed-capture-receipt.json",
-    "raw_receipt_sha256": "cb3d361a01e7e311dcff36cd499fdcea1586ef7e22d85e10587278c1cb2bd13d"
+    "github_actions_digest": "sha256:37a62b7ae4a3e061863226ec07e5030e5df2346fd5b458ce4821b3c726f799ee",
+    "zip_path": "artifacts/masterplan-v2/ediel-root503-5be-intake-export-capture.zip",
+    "raw_receipt_path": "artifacts/masterplan-v2/ediel-root503-5be-intake-export-capture-receipt.json",
+    "raw_receipt_sha256": "b6feb36446d02d772dc939446b997732d6138bd9b1d78121aaee809471070df8"
   },
   "inherited_main7edef_current_prefix_verification": {
     "kind": "mandatory_actual_composed_head_proof",
@@ -937,6 +937,24 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
+    "producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "run": 37319901610,
+    "artifact": 11351030885,
+    "files": {
+      "supabase/database.types.ts": "88cf7de264a01c68ba51d6b57f69aac451068cabc0f20f88362d748793ce7b5e",
+      "supabase/schema.sql": "0d733d1ebe663805028817315f66e0e4f6c6740f832a988133c12596e2bd0857",
+      "supabase/schema.fingerprint.json": "fee88a983a91dd6e222d14dec461332521ad99065c773412e701d8039c7912bc"
+    },
+    "current_composition_qualification": "Authentic capture imported and source/input carry approved; current candidate clean replay and parity gates remain mandatory. Capture native/browser/comparison/upgrade flags remain NOT_RUN."
+  },
+  "pre_intake_export_capture_manifest": {
+    "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "67639291a885174f64c9dbbe735f9c890e31d91e",
+    "sha256": "20d0cb061ae7d5eb834599e61a5d1d5f8cf695f00ddc9043613c8590deeb2d1a",
+    "purpose": "Exact immutable pre-import provenance; original root329 and staff/P08 origins retained."
+  },
+  "retained_preimport_active_generated_outputs_origin": {
     "producer": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
     "run": 37260943445,
     "artifact": 11325200901,
@@ -947,11 +965,14 @@
     },
     "current_composition_qualification": "PENDING authentic new source capture; no current-native/parity claim"
   },
-  "pre_intake_export_capture_manifest": {
-    "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
-    "path": "scripts/supabase-types-manifest.json",
-    "git_blob": "67639291a885174f64c9dbbe735f9c890e31d91e",
-    "sha256": "20d0cb061ae7d5eb834599e61a5d1d5f8cf695f00ddc9043613c8590deeb2d1a",
-    "purpose": "Exact immutable pre-import provenance; original root329 and staff/P08 origins retained."
+  "retained_preimport_capture_artifact": {
+    "artifact_id": 11325200901,
+    "workflow_run_id": 37260943445,
+    "workflow_job_id": 111607846726,
+    "job_conclusion": "success",
+    "github_actions_digest": "sha256:9353629de11059586e05caf1957d35e31d6e382a22f8b704d21feac380cfb657",
+    "zip_path": "artifacts/masterplan-v2/ediel-root503-329-composed-capture.zip",
+    "raw_receipt_path": "artifacts/masterplan-v2/ediel-root503-329-composed-capture-receipt.json",
+    "raw_receipt_sha256": "cb3d361a01e7e311dcff36cd499fdcea1586ef7e22d85e10587278c1cb2bd13d"
   }
 }
