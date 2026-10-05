@@ -1,0 +1,200 @@
+{
+  "purpose": "independent_complete_TR05_AT_SC040_code_behaviour_approval",
+  "reviewed_at": "2026-10-05T00:42:02.185546+00:00",
+  "decision": {
+    "TR-05": "APPROVE",
+    "AT-TR-05": "APPROVE",
+    "SC-040": "APPROVE"
+  },
+  "checkout_sha": "d4ef9378713b4254647881234b030d18d7dd92ac",
+  "checkout_tree": "940428087796968e6571a2f6ee5409b7829f9add",
+  "workflow_run_id": "37244708321",
+  "workflow_job_id": "111560181612",
+  "artifact_id": "11319786242",
+  "zip_path": "/workspace/attachments/fceb531c-45bd-47cd-8a26-260f19c11b59/tr05-native-d4-current-green.zip",
+  "zip_sha256": "6b865270909fb8db03155316e25bd6a302f59258aef201806f09ab5c6276a5c1",
+  "outputs_sha256": {
+    "native-junit.xml": "0b670a088349fbd3b4c267f2f9b420c0f81dea27db054642d8a2bd7f97b41531",
+    "receipt.json": "0ce4614e80f128406deb855e3a148bba59350c26a94dc5289cdfcdae8dc9725e",
+    "native.log": "1d2076ee2e3e2f27699e7d5c57a6c46d2b2352a254433129a09d62ad51ab9c84"
+  },
+  "input_git_verification": {
+    "scripts/ediel-tr-05-recovery-native.test.ts": {
+      "sha256": "3dec85216ea9f79f6d1155926288405fe97086424c4e7358d60b4243ff04b463",
+      "git_blob": "273312f2f84c072653126fd7764724736b1d70b1",
+      "verified": true
+    },
+    "scripts/ediel-tr-10-reconciliation-native.test.ts": {
+      "sha256": "11cb0e9e4050d7a4f671da11727de7f8c9381df5481645dfefddd9f9e73e1db3",
+      "git_blob": "64734a04ae810618453a1e94652c048ce02cea8d",
+      "verified": true
+    },
+    "scripts/ediel-ack-first-reception-native.test.ts": {
+      "sha256": "9da4053f09fcae9f68558925c77e360d759f6bf38612f13bb292ef17ae7c5f46",
+      "git_blob": "90485bfc33d13cc926c04900f73ef0db91220f9a",
+      "verified": true
+    },
+    "lib/inbound-mail/inboundStatusUpdater.ts": {
+      "sha256": "aabdd68ad40d93a26c28e2306cf128a5ad29d9939e9442a605b8c864904c1657",
+      "git_blob": "1be9e27b4f4b514d74cb38960a8912a153ac7eec",
+      "verified": true
+    },
+    "scripts/ediel-source-owner-native.config.ts": {
+      "sha256": "07ef4b84cfc45cf78a2fe9ed16daf7da26d5029ef1b1292545e28ba8aa99b03c",
+      "git_blob": "3fe8a4e44ddbc8b3e69236a4f6cd0b59913501a8",
+      "verified": true
+    },
+    "scripts/gridex-aud-003-clean-replay.sh": {
+      "sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "git_blob": "92bdaa70dee6caffe7b7b7e2c5360eb5a3d2ba9e",
+      "verified": true
+    },
+    "scripts/migration-history-manifest.json": {
+      "sha256": "c96bcd39b28ab6d8f9fd44cb9e0bd2da5dd717d19c77e175588f008cd09b1332",
+      "git_blob": "82e6b1751ee86013910213c8a978029a81f3059b",
+      "verified": true
+    },
+    "scripts/migration-history-manifest.additions.json": {
+      "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "git_blob": "01d7e2eee0ec052bbcc497a157a699403c86fc12",
+      "verified": true
+    },
+    "scripts/migration-history-manifest.runtime.additions.json": {
+      "sha256": "a30e2dd5e2a6fc60b0136750591548abc9a0e17be4b459022506f1f3936a962d",
+      "git_blob": "02e62a3abbb93b7416029a43fe6d9b2d0cd067a1",
+      "verified": true
+    }
+  },
+  "native_exit_code": 0,
+  "native_suites": [
+    {
+      "name": "scripts/ediel-ack-first-reception-native.test.ts",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "CONTRL actual intake binds its first retained mail, replays stably and holds an identical new reception",
+        "APERAK actual intake binds its first retained mail, replays stably and holds an identical new reception"
+      ]
+    },
+    {
+      "name": "scripts/ediel-tr-05-recovery-native.test.ts",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "received contrl drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged",
+        "received aperak27 drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged",
+        "received aperak34 drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged",
+        "actual correction preparation denies omitted/foreign objects and a prepared correction cannot queue after current actor revocation",
+        "a genuinely observed SMTP rejection permits one actual worker retry and preserves the previous attempt and archived original",
+        "a queued definite-loss retry rechecks actual revoked network-source authority before worker provider entry",
+        "a prepared correction cannot queue after its actual current network source is withdrawn",
+        "fresh correction finalization denies a retired actual guide activation after a qualified negative ACK",
+        "a prepared correction consumes current public mandate authority and cannot send after the actual POA is revoked",
+        "an actual provider-entered unobserved attempt and expired timer cannot grant retry authority",
+        "the actual sweep of a declared expired public SLA row cannot create recovery/outbox/provider effects for absent, accepted, foreign-mixed or uncertain attempts",
+        "a real after-DATA unknown worker result is retained and worker restart cannot resend or authorize recovery",
+        "an expired actual pre-entry worker lease is held and its stale identity cannot enter SMTP",
+        "lease expiry while the real worker awaits SMTP cannot re-enter, and its late accepted receipt only reconciles the same original",
+        "an actual accepted journal survives failed DB projection and repairs with its frozen clock without another SMTP call",
+        "an unswept expired genuine claim cannot reach the provider with its old worker identity",
+        "a genuine worker blocked on its claimed row cannot enter SMTP when its lease expires during the lock wait"
+      ]
+    },
+    {
+      "name": "scripts/ediel-tr-10-reconciliation-native.test.ts",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "actual after-DATA unknown publishes exactly one technical case atomically with the immutable observed attempt",
+        "real lease sweep while SMTP is pending opens one unresolved-entry case; late acceptance derives current outcome and preserves opening",
+        "expired genuine pre-entry claim does not create a submission-unknown case",
+        "known accepted journal with a public projection fault does not manufacture SMTP uncertainty",
+        "publisher failure rolls back the actual observation and opening but keeps the committed no-resend entry; sweep can later publish",
+        "held archive still projects the immutable case, while revoked and foreign scoped readers get no case or bytes",
+        "native private cases/opening logs have RLS, no application DML/helper authority and immutable owner history",
+        "genuine H sealed unknown result opens before its result witness and preserves every protected source",
+        "actual sealed worker entry/witness supports crash tracking and a later witnessed outcome without mutating the opening"
+      ]
+    }
+  ],
+  "total": {
+    "tests": 28,
+    "passed": 28,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "frozen_literals": {
+    "docs/ediel/masterplan-v2/registers/rules.json": {
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "rows": [
+        {
+          "id": "TR-05",
+          "area": "Omsändning",
+          "kind": "Ediel/Handbok",
+          "applies_to": "PRODAT-omsändning/rättelse",
+          "trigger": "Fel eller timeout",
+          "condition": "Omsändning tillåts vid verifierad överföringsförlust. Negativ CONTRL medför rättelse av hela meddelandet; negativ APERAK följer särskild rättelse med nytt BGM-id.",
+          "on_pass": "Bevara lineage och pröva aktuell anvisning på nytt.",
+          "on_failure": "En utgången timer ensam är inget tillstånd till automatisk ny sändning.",
+          "callsite_owner": "retry coordinator",
+          "source": "P §4.1 s.107–108; §3.2; T §1.4",
+          "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+          "implementation_status": "Ej verifierad",
+          "test_id": "AT-TR-05"
+        }
+      ]
+    },
+    "docs/ediel/masterplan-v2/registers/acceptance_tests.json": {
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "rows": [
+        {
+          "id": "SC-040",
+          "name": "Rättelse efter negativ APERAK",
+          "given": "En identifierad del av ett eget PRODAT har avvisats.",
+          "when": "Rätta uppgiften och skapa en tillåten ny sändning.",
+          "expected": "Nytt BGM-id och spårbar relation till det oförändrat arkiverade originalet.",
+          "prohibited": "Återanvänd inte meddelandeidentiteten från den avvisade sändningen.",
+          "rule_ids": [
+            "TR-05"
+          ],
+          "layer": "Integration/E2E",
+          "execution_status": "Inte körd mot systemet",
+          "evidence": ""
+        },
+        {
+          "id": "AT-TR-05",
+          "name": "Regelkontrakt: TR-05",
+          "given": "PRODAT-omsändning/rättelse",
+          "when": "Fel eller timeout – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+          "expected": "Omsändning tillåts vid verifierad överföringsförlust. Negativ CONTRL medför rättelse av hela meddelandet; negativ APERAK följer särskild rättelse med nytt BGM-id. → Bevara lineage och pröva aktuell anvisning på nytt.",
+          "prohibited": "En utgången timer ensam är inget tillstånd till automatisk ny sändning.",
+          "rule_ids": [
+            "TR-05"
+          ],
+          "layer": "Planerat regelbeteendeprov",
+          "execution_status": "Inte körd mot systemet",
+          "evidence": ""
+        }
+      ]
+    }
+  },
+  "source_change_since_prior_complete_954_review": "No production changes; two exact native fixture hunks plus retained evidence and memory only. Bounded meaningful correction reached all three positive queue/replay assertions.",
+  "scope": "Actual local native producers, parser/intake/source ledger/correlation, canonical correction finalization, current source/queue/worker/journal/lease and protected copy reads. Remote reply/SMTP results and upstream tenant/network/mail fixture inputs are declared synthetic.",
+  "multi_object": "Actual finite final assessor/public prepare two-object full-CONTRL/subset/non-interchange and APERAK failed-only proofs supplement actual sent singleton ingress/correction chain. No genuine multi-object origination claimed.",
+  "not_approved": [
+    "external market or counterparty delivery",
+    "whole current main/composed candidate",
+    "native browser/full app suite/current composed clean-upgrade parity",
+    "TR08",
+    "TR09",
+    "primary unresolved U10 normalized consumer"
+  ],
+  "remaining_gates": "Final exact composed-head CI plus authentic current capture and required clean/upgrade native replay/parity remain mandatory; no suite rerun by reviewer."
+}

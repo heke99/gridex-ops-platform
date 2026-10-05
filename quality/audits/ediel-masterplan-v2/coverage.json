@@ -1061,8 +1061,18 @@
     {
       "id": "TR-05",
       "acceptance_id": "AT-TR-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "TR-06",
@@ -1584,8 +1594,18 @@
     },
     {
       "id": "SC-040",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "SC-041",
@@ -2587,8 +2607,18 @@
     },
     {
       "id": "AT-TR-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "AT-TR-06",
