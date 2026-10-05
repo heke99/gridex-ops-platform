@@ -1,0 +1,58 @@
+{
+  "scope": "Actual own PR600 merge and foreign-byte preservation, not final green main/tag/whole-card proof",
+  "atUTC": "2026-10-05T17:37:46.747145+00:00",
+  "pr": 600,
+  "url": "https://github.com/heke99/gridex-ops-platform/pull/600",
+  "head": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+  "merge": "f7df744d58fb6677daa075f5613facb80c65db71",
+  "mergedAtUTC": "2026-10-05T17:36:37Z",
+  "parents": [
+    "37b06fd31d91b23671c6f62fd459b6eb7635d605",
+    "52a0e77cbf4816d2f55cfea083b29888632c374c"
+  ],
+  "tree": "4050d46715dfc6699a71a298e1c42617e3823855",
+  "matchesPremergeExpectedParentAndTree": true,
+  "ownPaths": 175,
+  "allOwnBlobsExact52a": true,
+  "foreignMainEntriesExact": 8055,
+  "mainParentEntries": 8057,
+  "mergedEntries": 8230,
+  "coverageBlob": "4c0427ecc90c153442d5a00357aea6b4faa551df",
+  "coverageSHA256": "aabbe7c528504e5c50aaa68d73464fe52a0e384167a17025de2a8cdddc945ac6",
+  "coverageIDs": 352,
+  "observedStatusCounts": {
+    "NOT_VERIFIED": 16,
+    "VERIFIED": 100,
+    "PARTIAL": 21,
+    "PASSED": 148,
+    "NOT_EXECUTED": 67
+  },
+  "ownWholeRows": [
+    {
+      "id": "AT-Z13V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z13VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "observedLatestMain": "f7df744d58fb6677daa075f5613facb80c65db71",
+  "isAncestorOfLatestMain": true,
+  "ownWorktreeHead": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+  "ownWorktreeStatus": "",
+  "singlePremergeGuardSHA256": "b01c718fae314f56ec86d3d2c1d3c3029fd56f0273006734af0e38090980579d",
+  "noDuplicate583589HandoverOrCommonTag": true
+}
