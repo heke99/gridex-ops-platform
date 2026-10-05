@@ -1,0 +1,194 @@
+{
+  "schema": "gridex-next7d-actual296-public-preparation-source-only-guard/v1",
+  "verdict": "READY_EXACT_PUBLIC_PREPARATION_REF_ONLY_CURRENT_CI_AND_MAIN_DELIVERY_PENDING",
+  "created_at": "2026-10-05T20:55:16.657932+00:00",
+  "candidate": "7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4",
+  "candidate_tree": "3850062dcfe445b89c4d8df72e5b83c75254c6b1",
+  "single_parent": "40d2deb34f148ea1a110c2678a58755f02081496",
+  "genuine_adopted_actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "genuine_current_merge_chain": [
+    {
+      "commit": "6dcbc4fe1ecf05eba60e070af161f9de3f429c5c",
+      "ordered_parents": [
+        "3a19b42804f76d6fe25d6dc5c30fbc1401cf8724",
+        "2964415adec9e36932583e95f8506437d262c507"
+      ]
+    },
+    {
+      "commit": "40d2deb34f148ea1a110c2678a58755f02081496",
+      "ordered_parents": [
+        "6dcbc4fe1ecf05eba60e070af161f9de3f429c5c",
+        "0f624276562efc03a73c3b0bc520eca577b39fbb"
+      ]
+    },
+    {
+      "commit": "0f624276562efc03a73c3b0bc520eca577b39fbb",
+      "ordered_parents": [
+        "da6fb6aaeabd5d79135feaf4620bd312788c961c"
+      ]
+    },
+    {
+      "commit": "da6fb6aaeabd5d79135feaf4620bd312788c961c",
+      "ordered_parents": [
+        "4ddd37513995c033c4a6d98430255051a07d277b",
+        "2964415adec9e36932583e95f8506437d262c507"
+      ]
+    }
+  ],
+  "exact_original_current_component_packets": [
+    {
+      "owner": "original612",
+      "public_frozen_head": "c34c5648044078117740e27186ae66d06ab7286e",
+      "tree": "56a76d27ebaaf62d16fbe85cc4cde2dc8ed484ba",
+      "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "path_count": 20,
+      "all_packet_blobs_modes_exact": true
+    },
+    {
+      "owner": "website_quote",
+      "public_frozen_head": "60758f26d649ff320f2da757712b0ce777080efe",
+      "tree": "dfbee73265d0fcfd16cc451efee85945fa05e99f",
+      "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "path_count": 9,
+      "all_packet_blobs_modes_exact": true
+    },
+    {
+      "owner": "supplier_billing_current_main",
+      "public_frozen_head": "0f624276562efc03a73c3b0bc520eca577b39fbb",
+      "tree": "642bd3f610612d1145b15a87dcb8effd0d1be6a8",
+      "base": "2964415adec9e36932583e95f8506437d262c507",
+      "path_count": 9,
+      "all_packet_blobs_modes_exact": true
+    }
+  ],
+  "component_paths": 38,
+  "root_own_docs": 9,
+  "total_changed_paths_from_actual296": 47,
+  "root_own_path_mode_blob_pinset_sha256": "75e1d829b66ac02a8390773cb48330c97a2bdb94f375dc009454ea6dd4387fc0",
+  "all_four_existing_checkers_exact_original3a": true,
+  "checker_SHA_pins": [
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1"
+    },
+    {
+      "path": "scripts/gridex-supplier-remaining-business-regression.cjs",
+      "sha256": "1937ab14b3ff9fd84e4c1f2f762c477b135b87fb632ffd248d068f851798f7b3"
+    },
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2"
+    },
+    {
+      "path": "scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+      "sha256": "bb4faff930d887bc0065c62ff95df3308e88ad379d5b14656c43672c262d83af"
+    }
+  ],
+  "read_input_boundary": {
+    "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-main296-component-readset.json",
+    "sha256": "3e103f935de9e75a72c80433cc1954ffec513c54ce2092129d4652b9f05c2286",
+    "actual_unique_files": 60,
+    "all60_SHA_gitblob_candidate_source_actual296_current_owner_heads_exact": true,
+    "owner_counts_including_shared_inputs": {
+      "original612": 20,
+      "website_quote": 25,
+      "supplier_billing_current_main": 16
+    },
+    "old_billing_role_alias_to_current_same_author_head": {
+      "supplier_billing": "supplier_billing_current_main"
+    },
+    "only_prior_two_UI_input_drifts": [
+      "app/admin/billing/page.tsx",
+      "app/admin/customers/[id]/page.part-4.tsx"
+    ],
+    "other58_old_input_SHA_exact": true,
+    "meaningful_author_current27_and_fresh_peer_cd64_reused": true,
+    "actual60_pinset_sha256": "855d08f995298f82f4c893400e6a1a5071d2b40cfdc4fa39daa401729a9898b7"
+  },
+  "foreign_main": {
+    "exact_foreign_path_count": 8623,
+    "all_paths_blobs_modes_entries_exact_actual296": true,
+    "path_mode_blob_pinset_sha256": "017ddc71cc31b89cf3e143ace4731b508d9adba1026922f4154b0552185ee04c",
+    "production_SQL_generated_native_workflows_test_entries_package_coverage_exact": true,
+    "coverage_all352_rows_order_evidence_metadata_unchanged": true,
+    "approval_promotions": 0
+  },
+  "first_ENV07_admission": {
+    "PR": 608,
+    "actual_main": "2964415adec9e36932583e95f8506437d262c507",
+    "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+    "whole_first_postimage_gitblob": "45437dfbf60867dd70d96c28f38874a63bd3c374",
+    "sha256": "78f4065d8e2d4fa8fd633332736c4eac0abf3909eb0078bc0f3f931d07625a3a",
+    "full_body_exact_actualmain": true,
+    "610_closed_historical_superseded_no_alternative_hunk": true
+  },
+  "public_receipt_custody": {
+    "historical3a_guard2e58_and_readset8a998_exact_retained_superseded_for_current2UIinputs": true,
+    "five_selected_JSON_pins": [
+      {
+        "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/next3a-main5c-component-source-only-historical-guard.json",
+        "sha256": "2e58f664a6851c812c50b0dfa91010f413ee5681d49b7871c8e53b0d3ff9840f",
+        "blob": "e01959968225ce661de1139201a5c5df49b79cd7"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-main296-existing-block-boundaries.json",
+        "sha256": "954116290561715b6384e27b86d7acc11933bcce0e286e438e79a82e88e6f846",
+        "blob": "b533d1b3c013820de2838dbb700903141054600e"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-0f624-main296-publication-carry-independent-ready.json",
+        "sha256": "cd64fdf2db366aaa76d8553fb9b8730cf121ab1512d734e2276f2ed45b2a3e8c",
+        "blob": "2f4a94ebdb79c40930715262198b9f41cbc776e7"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-c34-terminal-all9-hold-20261005-2030.json",
+        "sha256": "1706e9867fe5075131ba2d6ed183d156345cf4e2f1aadd7d01ded47cc10e3825",
+        "blob": "75d4dab5cb81d449e2c09752ec1164722e370dc1"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-c34-certificate-first-error-20261005-2027.json",
+        "sha256": "1f61d7c7378d3370c7fbcbedab5ea4af3f3815bd789eb0dfcc9ea8dcb2b8f528",
+        "blob": "f8d717370eece04bb52d1549fd9e38e68013d364"
+      }
+    ],
+    "current_billing_peer_sha256": "cd64fdf2db366aaa76d8553fb9b8730cf121ab1512d734e2276f2ed45b2a3e8c",
+    "original_applied_peer719864_and_archive_qualifier_packet_exact_old_and_current_heads": true,
+    "current_billing_raw3_blobs_exact_public0f": true,
+    "current_billing_ZIP_sha256_reused_from_qualified_peer": "01070d72ed148aa5cd3258dc7692f029baabfbdb06365a39e70a8df371ed05ef",
+    "no_ZIP_open_decompression_CRC_whole_AST_or_proposal_review_repeated": true
+  },
+  "separate_finite_result_reuse": {
+    "billing_actual296": "One original-author meaningful27PASS/0FAIL/0SKIP on unchanged checker/current inputs; finite source-checker scope only.",
+    "supplier": "Original35PASS/five static negatives on exact inputs.",
+    "quote": "Original supportedNode22 focused exit0 on exact inputs.",
+    "Z01": "Original18staticPASS/real6PASS6SKIP; skips retained.",
+    "no_combined_fullchain_native_browser_wholemain_green": true
+  },
+  "old612CI_privacy_boundary": {
+    "frozen_original_head": "c34c5648044078117740e27186ae66d06ab7286e",
+    "terminal_old_counts": {
+      "required": 9,
+      "completed": 9,
+      "cancelled": 8,
+      "failure": 1,
+      "success": 0
+    },
+    "qualification": "Oldc34 HOLD8CANCELLED+certificateFAILURE/0SUCCESS; not current7d all9 qualification.",
+    "sanitary_first_error_sha256": "1f61d7c7378d3370c7fbcbedab5ea4af3f3815bd789eb0dfcc9ea8dcb2b8f528",
+    "terminal_old_receipt_sha256": "1706e9867fe5075131ba2d6ed183d156345cf4e2f1aadd7d01ded47cc10e3825",
+    "consistent_exact_private_rawlog_metadata_outsideGit": true,
+    "declared_private_file_directory_permissions": {
+      "file": "0600",
+      "directory": "0700"
+    },
+    "private_rawlog_not_read_copied_exported_or_committed_by_reviewer": true,
+    "classification": "Certificate execution gate lacked prerequisite smoke evidence after abandoned smoke/coverage; no production/source/test assertion failure inferred."
+  },
+  "pending": {
+    "advisor": "Original author still preparing; no advisor input or second implementation.",
+    "original612": "Frozen c34 remains unchanged; oldCI settled with HOLD.",
+    "scope_of_READY": "Only ONE public preparation ref source/read-input/metadata readiness.",
+    "current_resulting_all9_ordinary_source_admission_main_delivery": "PENDING; no current pass/main-green or final-plan claim."
+  },
+  "limits": "Immutable7d source byteguard at actual296, using already-qualified currentbilling peer/raw3 and original component source/AST/ZIP/proposal scopes. No test/runtime/native/CI/full/artifact/log/capture/fetch/source/index/ref/sharedmemory/GitHub call/mutation, newPR,612 headpush or merge. Source packets matched by immutable Git blob identity without reading packet log bodies or opening archives. Own minimal immutable public-safe JSON only. Root alone retains publicprep ref, advisor intake, necessary currentordinary qualification and delivery."
+}

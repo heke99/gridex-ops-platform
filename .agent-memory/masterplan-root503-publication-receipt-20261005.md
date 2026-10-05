@@ -82,3 +82,28 @@ and actual certificate exit1 are recorded by one own log reader; cancellation
 causes/actual starts remain UNKNOWN and no product defect is inferred. Sole
 observer is idle awaiting the new announced published head; no old-CI polling,
 rerun/cancel, broad artifact/private-log export or duplicate fixture repair.
+
+
+Current actual296 source preparation is independently publication READY at
+7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4/tree3850062d, publicly verified on
+codex/remaining-source-regression-checks-20261005. Exact38 original packet
+paths plus9 owned records preserve four checker bodies; all60 current inputs
+and8623 foreign main paths are exact. JSON152a12d2 is retained byte-exact.
+Original billing same-author current296 head0f624276 is also publicly verified
+on its existing characterization branch. Its unchanged checker passed ONE
+meaningful current27 assertion run, and peer cd64 closes only the two changed
+UI inputs. No old result is relabelled as current. Existing #612 remains frozen
+c34 until the original advisor and any explicitly released oracle packets are
+ready for one same-PR source intake. No second CI observer or source PR.
+
+SC010 original public29dce5f is genuinely merged once into combined-source8f851413;
+its independent bounded publication guard is pending. Main271 to candidate276
+changes only SC010 plus the four existing Gov/DB rows, all347 foreign complete
+rows remain exact, and SQL1075/generator inputs are unchanged. This is prepared
+source, not actual main row admission. Staffa249 freeze receipt182b3f91 is being
+published in the same combined owned audit; its input proof does not replace
+original author release/native/whole or canonical actual608 fixture reconciliation.
+IMP05 public intake routing #5036002804058 requests the original author public
+whole/source/native handoff; the forward is not yet admitted and private exports
+remain excluded. Root asks the retained Staff oracle correction author for an
+explicit two-hunk intake release through existing612 at #5786002824872.
