@@ -45,3 +45,20 @@ Actual #515/#531/#517/#547 deliveries are now authenticated with direct PR and G
 The corrected supplier supply/ACK and Z01 existing checkers are now PUBLIC in PR #612, exact head c34c5648044078117740e27186ae66d06ab7286e on genuine main38aa. Independent proposed-source and publication reviews are retained in its20-path packet: two existing CJS files and18 owned documentation paths. Supported Node22 actual supplier35/35 and Z01 static18 plus unchanged real Vitest6PASS/6SKIP are finite qualification only. The sole612 ordinary-CI observer is sc015_sc016_gate_failure; current all-nine qualification and guarded merge remain required. The first supplier billing child remains separately unqualified, with source-only stale facade-marker proof and proposal in independent review. No complete supplier/main/masterplan acceptance is claimed.
 
 ONE public combined source writer branch is verified at b61f2b9737fafc2763e6ea7806b71c773239472e. Its independently guarded source932a194c adopts actual main4a with public Gov533eca and DB53578 inputs; all1073 historical SQL stay exact, plus two retained forwards give1075. Current generated files retain authentic historical5be outputs and explicit composition_capture_pending=true. Staff578 latest e081 input-only intake is allocated to source_intake_export_union_review; original author retains source/native/whole qualification. Conditional combined Gov/DB/Staff would1078 SQL. Held599 and private IMP05 stay excluded. No combined capture/native/full dispatch, certified common baseline or final tag is claimed; the existing exclusive MAIN-adoption writer receives this owned metadata queue.
+
+Actual #564 documentation delivery is authenticated directly at5cde8094, tree9706bb68,
+ordered parents38aa7345+d057d3e7, and recorded once. There are36 unique actual main
+markers; all35 earlier lines and existing receipt bytes remain exact. Coordinator
+genuinely adopts this main. The original qualified eight applicable CI checks and
+source-qualified targeted exclusion are retained; no SKIPPED=PASS or SC014/native
+promotion is introduced. Narrow independent tenantWebsite/go-live ownership at
+5306002041596 is mirrored once in the common handover; its original owner keeps
+source and qualification, with historical150 remaining open for other residuals.
+
+Combined preparation is now public6f5a4dae, including actualmain38 with carrye4de81f4
+and Staff e081 input8f65763f raw JSON receipts preserved byte-exact. Capture remains
+pending. PR612c34 coverage job111950176406 was actually CANCELLED with zero executed
+steps; the enclosing run and other seven jobs remained queued at20:11. The cause
+and actual runner start are UNKNOWN, not a source/test failure. Sole observer keeps
+all-nine HOLD; no rerun/cancel/log/fixture action is performed by root. Canonical
+ENV07 first-admission/serial queue remains with610's original owner.
