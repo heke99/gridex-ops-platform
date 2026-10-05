@@ -1,3 +1,4 @@
+// masterplan: ACK-07, AT-ACK-07
 // Mechanical gateway tests. Native private receipt/wire tests are a separate gate.
 import {createHash} from 'node:crypto'
 import {beforeEach,describe,expect,it,vi} from 'vitest'

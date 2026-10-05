@@ -741,7 +741,7 @@ it('outbound S/MIME archive is durable before provider entry and binds exact raw
  const before=await getEdielMessageById(f.messageId,{companyId:f.companyId});expect(before).not.toBeNull()
  // A synthetic CA-issued recipient leaf with a fresh CRL, published by the
  // external certificate-authority owner (S/MIME requires trust and revocation).
- const trust=publishSyntheticRecipientTrust({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',receiverEdielId:before!.receiver_ediel_id!})
+ const trust=publishSyntheticRecipientTrust({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',receiverEdielId:before!.receiver_ediel_id!,recipientEmail:'recipient@example.invalid'})
  const pem=trust.leafPem,cert=new X509Certificate(pem)
  sql(`INSERT INTO public.ediel_certificates(id,company_id,certificate_fingerprint,secret_reference,status,environment,subject,issuer,serial_number,fingerprint_sha256,public_certificate_pem,valid_from,valid_to,owner_ediel_id,message_family,message_type,purpose,usage)
  VALUES(${literal(certificateId)},${literal(f.companyId)},${literal(cert.fingerprint256)},'public://synthetic','active','test',${literal(cert.subject)},${literal(cert.issuer)},${literal(cert.serialNumber)},${literal(cert.fingerprint256)},${literal(pem)},${literal(new Date(cert.validFrom).toISOString())},${literal(new Date(cert.validTo).toISOString())},${literal(before!.receiver_ediel_id)},'PRODAT','PRODAT','encryption','outbound_recipient');

@@ -1,0 +1,22 @@
+{
+  "initialStagedDiffCheck": "FAIL exit2: extra EOF blank line in two copied ownership reports",
+  "originalsPreserved": true,
+  "corrections": [
+    {
+      "name": "ownership-final-race.md",
+      "originalPath": "/tmp/gridex-next-profile-final-race.md",
+      "originalSha256": "54d02889887b834035e6fb4e352d54dd3c1e5ee7d709ef8592d1feb6d6e867d1",
+      "publicSha256": "0a52114d3cc67b13afac61a784ecf00a987112ddec35f0af2da7b7c3e1a4fc38",
+      "change": "remove one extra EOF blank line; text facts unchanged"
+    },
+    {
+      "name": "ownership-scout.md",
+      "originalPath": "/tmp/gridex-next-profile-ownership-scout.md",
+      "originalSha256": "bf1aebd3d59b59242fdcd7ead1d841eb256248660a8711cc1d8aa3f463d8d38c",
+      "publicSha256": "e2eeee7ea904f770cbdf4071d15833737e12e7375e785215979f777540164d9c",
+      "change": "remove one extra EOF blank line; text facts unchanged"
+    }
+  ],
+  "unpublishedInitialTree": "3e0d33534e49b65993569d2f932fef8874eeb074",
+  "sourceChanged": false
+}

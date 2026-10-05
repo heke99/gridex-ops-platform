@@ -1,0 +1,40 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z13v-z14v-esco-20261005
+
+ ✓ __tests__/ediel-at-z14v-esco-profile.test.ts (11 tests) 364ms
+ ❯ __tests__/ediel-at-z13v-esco-profile.test.ts (13 tests | 1 failed) 178ms
+     ✓ joins the actual DGI/S17 draft, identityless LIN and source authority without changing its input 57ms
+     ✓ holds tenant changes against the same rendered original 17ms
+     ✓ holds environment changes against the same rendered original 10ms
+     ✓ holds direction changes against the same rendered original 9ms
+     × holds legalRecipient changes against the same rendered original 16ms
+     ✓ holds technicalSender changes against the same rendered original 12ms
+     ✓ holds application changes against the same rendered original 13ms
+     ✓ holds mutated LI in the actual draft against independent source facts 10ms
+     ✓ holds mutated ANJ in the actual draft against independent source facts 9ms
+     ✓ holds mutated customer in the actual draft against independent source facts 7ms
+     ✓ holds mutated end in the actual draft against independent source facts 9ms
+     ✓ holds mutated purpose in the actual draft against independent source facts 7ms
+     ✓ refuses birthdate-only identity and absent source method/agreement before a draft is returned 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z13v-esco-profile.test.ts > Z13V source-bound profile and its permission boundary > holds legalRecipient changes against the same rendered original
+AssertionError: expected [Function] to throw an error
+ ❯ __tests__/ediel-at-z13v-esco-profile.test.ts:93:144
+     91|     if (change === 'technicalSender') row.sender_ediel_id = '99999'
+     92|     if (change === 'application') row.application_reference = '23-DDQ-…
+     93|     expect(() => assertReportingAuthority({ code: 'Z13', rawSegments: …
+       |                                                                                                                                                ^
+     94|     expect(io.rpc).not.toHaveBeenCalled(); expect(io.from).not.toHaveB…
+     95|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 23 passed (24)
+   Start at  10:42:46
+   Duration  3.30s (transform 3.41s, setup 49ms, import 4.41s, tests 542ms, environment 1ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z13v-z14v-esco-20261005/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/initial-tests.xml

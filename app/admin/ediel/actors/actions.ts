@@ -9,7 +9,6 @@ import { applyActorRegistryRecords, decodeRegistryUpload, readActorRegistryPrior
 import type { ParsedActorRegistryActor } from '@/lib/actor-registry/types'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 
@@ -609,7 +608,6 @@ export async function saveEdielPartyRegistryEntryAction(formData: FormData) {
   const roles = normalizeRolesForParty(formData)
   const status = value(formData, 'status') ?? 'needs_verification'
   const source = value(formData, 'source') ?? 'manual'
-  const addressSource = source === 'import' ? 'manual' : source
   const partyType = primaryPartyType(roles)
   const requestedVisibleToCustomerFlow = boolValue(formData, 'visibleToCustomerFlow')
   const visibleToCustomerFlow = requestedVisibleToCustomerFlow && customerFlowVisibilityAllowed(roles, status)
@@ -649,97 +647,29 @@ export async function saveEdielPartyRegistryEntryAction(formData: FormData) {
 
   if (partyResult.error) throw partyResult.error
 
+  // DB-01: routes live only in platform_actor_routes (Ediel-rutter). The legacy
+  // ediel_party_addresses table is phased out: it is no longer written here and
+  // no routing reads it. The SMTP address is only used for the certificate lookup.
   const messageFamily = (value(formData, 'messageFamily') ?? 'PRODAT').toUpperCase()
-  const businessCode = value(formData, 'businessCode')?.toUpperCase() ?? null
   const environment = value(formData, 'environment') ?? 'test'
   const subaddress = value(formData, 'subaddress')?.toUpperCase() ?? null
   const smtpAddress = value(formData, 'smtpAddress')
-  const transportSecurityMode = normalizeTransportSecurityMode(
-    value(formData, 'transportSecurityMode') ??
-      (roles.includes('grid_owner') && messageFamily === 'PRODAT' ? 'required_encrypted' : 'needs_verification'),
-  )
-
-  if (smtpAddress) {
-    let receiverCertificateId = value(formData, 'receiverCertificateId')
-    let certificateLookupSummary: Record<string, unknown> | null = null
-    const shouldLookupCertificate = boolValue(formData, 'lookupCertificateOnSave') || boolValue(formData, 'fetchCertificateOnSave')
-    if (!receiverCertificateId && shouldLookupCertificate && messageFamily === 'PRODAT') {
-      const lookup = await fetchReceiverCertificatesFromExpisoft({
-        smtpEmail: smtpAddress,
-        edielId,
-        subaddress,
-        partyId: partyResult.data.id,
-        forceRefresh: true,
-      })
-      const firstValid = lookup.certificates.find((certificate) => certificate.status === 'valid' && certificate.certificateId)
-      receiverCertificateId = firstValid?.certificateId ?? lookup.certificates.find((certificate) => certificate.certificateId)?.certificateId ?? null
-      certificateLookupSummary = {
-        lookupEmail: lookup.lookupEmail,
-        certificatesFound: lookup.certificatesFound,
-        validCount: lookup.certificates.filter((certificate) => certificate.status === 'valid').length,
-        selectedCertificateId: receiverCertificateId,
-        ldapUrl: lookup.ldapUrl,
-      }
-    }
-
-    const effectiveTransportSecurityMode = messageFamily === 'PRODAT' && receiverCertificateId
-      ? normalizeTransportSecurityMode('required_encrypted')
-      : transportSecurityMode
-
-    const addressPayload = {
-      party_id: partyResult.data.id,
-      ediel_id: edielId,
-      qualifier: value(formData, 'qualifier') ?? 'ZZ',
+  let certificateLookupSummary: Record<string, unknown> | null = null
+  const shouldLookupCertificate = boolValue(formData, 'lookupCertificateOnSave') || boolValue(formData, 'fetchCertificateOnSave')
+  if (smtpAddress && shouldLookupCertificate && messageFamily === 'PRODAT') {
+    const lookup = await fetchReceiverCertificatesFromExpisoft({
+      smtpEmail: smtpAddress,
+      edielId,
       subaddress,
-      message_family: messageFamily,
-      message_type: messageFamily,
-      business_code: businessCode,
-      environment,
-      smtp_address: smtpAddress,
-      transport_security_mode: effectiveTransportSecurityMode,
-      requires_subaddress: boolValue(formData, 'requiresSubaddress') || Boolean(subaddress),
-      certificate_required: boolValue(formData, 'certificateRequired') || effectiveTransportSecurityMode === 'required_encrypted',
-      receiver_certificate_id: receiverCertificateId,
-      status: value(formData, 'addressStatus') ?? (effectiveTransportSecurityMode === 'needs_verification' ? 'needs_verification' : 'active'),
-      source: addressSource,
-      last_verified_at: value(formData, 'lastVerifiedAt') ?? (source === 'manual_verified' || source === 'grid_owner_confirmation' ? now : null),
-      valid_from: value(formData, 'validFrom'),
-      valid_to: value(formData, 'validTo'),
-      metadata: {
-        createdFrom: 'admin_ediel_party_registry',
-        partyType,
-        requestedVisibleToCustomerFlow,
-        visibilityWasAccepted: visibleToCustomerFlow,
-        certificateLookup: certificateLookupSummary,
-      },
-      updated_by: context.userId,
-      updated_at: now,
+      partyId: partyResult.data.id,
+      forceRefresh: true,
+    })
+    certificateLookupSummary = {
+      lookupEmail: lookup.lookupEmail,
+      certificatesFound: lookup.certificatesFound,
+      validCount: lookup.certificates.filter((certificate) => certificate.status === 'valid').length,
+      ldapUrl: lookup.ldapUrl,
     }
-
-    let existingAddressQuery = supabaseService
-      .from('ediel_party_addresses')
-      .select('id')
-      .eq('party_id', partyResult.data.id)
-      .eq('environment', environment)
-      .eq('message_family', messageFamily)
-    existingAddressQuery = businessCode
-      ? existingAddressQuery.eq('business_code', businessCode)
-      : existingAddressQuery.is('business_code', null)
-    const existingAddress = await existingAddressQuery
-      .maybeSingle()
-
-    if (existingAddress.error && existingAddress.error.code !== 'PGRST116') throw existingAddress.error
-
-    const addressResult = existingAddress.data?.id
-      ? await supabaseService
-          .from('ediel_party_addresses')
-          .update(addressPayload)
-          .eq('id', existingAddress.data.id)
-      : await supabaseService
-          .from('ediel_party_addresses')
-          .insert({ ...addressPayload, created_by: context.userId })
-
-    if (addressResult.error) throw addressResult.error
   }
 
   await logAdminActionAndUsage({
@@ -751,7 +681,7 @@ export async function saveEdielPartyRegistryEntryAction(formData: FormData) {
     label: roles.includes('grid_owner') ? 'Nätägare verifierad eller uppdaterad' : 'Ediel-aktör verifierad eller uppdaterad',
     billable: status === 'verified',
     billingUnit: 'actor_verification',
-    metadata: { edielId, roles, partyType, visibleToCustomerFlow, source, messageFamily, environment, subaddress },
+    metadata: { edielId, roles, partyType, visibleToCustomerFlow, source, messageFamily, environment, subaddress, certificateLookup: certificateLookupSummary },
   })
 
   revalidatePath('/admin/ediel/actors')

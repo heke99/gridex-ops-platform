@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "base": "fff486f822001d35970f163507b10e17c3692f58",
+  "base_tree": "82fec813af9a2184259e419a0adbaf4563c2ffe8",
+  "observed_at": "2026-10-05T13:06:10.364640+00:00",
+  "whole_acceptance": "HELD",
+  "native": "NOT_RUN",
+  "native_reason": "Retained #503 suite registration and owned stack qualification pending; no native test or second harness executed.",
+  "own_rows": [
+    {
+      "id": "AT-Z06F-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z06G-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "machine_tags": false,
+  "authored_native_files": [
+    {
+      "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+      "sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef",
+      "case_count": 2
+    },
+    {
+      "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+      "sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881",
+      "case_count": 2
+    }
+  ],
+  "static_results": [
+    {
+      "name": "scoped-lint",
+      "command": "node node_modules/eslint/bin/eslint.js scripts/ediel-at-z06f-supplier-acceptance-native.test.ts scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+      "runtime": "/workspace/.cache/gridex-npm-20261005/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "runtime_version": "v22.23.3",
+      "exit_code": 0,
+      "status": "PASS",
+      "observed_completed_at": "2026-10-05T13:06:10.364640+00:00",
+      "log": "scoped-lint.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Static authored-file lint"
+    },
+    {
+      "name": "scripts-types",
+      "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false -p tsconfig.scripts.json",
+      "runtime": "/workspace/.cache/gridex-npm-20261005/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "runtime_version": "v22.23.3",
+      "exit_code": 0,
+      "status": "PASS",
+      "observed_completed_at": "2026-10-05T13:06:10.364640+00:00",
+      "log": "scripts-types.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "All TypeScript scripts selected by existing tsconfig.scripts.json; no emit or incremental artifacts"
+    }
+  ],
+  "review": {
+    "reviewer": "/root/review_saved_packets",
+    "verdict": "APPROVE bounded proposal/design only; guide-valid inherited positive control HELD",
+    "exact_hashes": [
+      {
+        "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "sha256": "89ca2e0499ae87b9b4185a4cea8b64ba751669af6066f3eb76838e31bea782ef",
+        "case_count": 2
+      },
+      {
+        "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+        "sha256": "153e639244a8246f4876479dbd8eb712436facc71887368b120d61203c202881",
+        "case_count": 2
+      }
+    ],
+    "execution": "NOT_RUN",
+    "source_qualified_to": "fff486f822001d35970f163507b10e17c3692f58",
+    "post_freeze_source_limitation": "field-306-source-qualification.json"
+  },
+  "review_correction": {
+    "initial_F_sha256": "be258a1de8640a5b2019a3712368c4da2f48d7366c1142dfb22397322c8da8db",
+    "initial_G_sha256": "79b928250485676f286c3e9cabc1ab57edc2e69b7cba23a8adaeed0d7215ffaa",
+    "finding": "Public ACK profile omitted mailbox/smtp_host/smtp_port required by installed configured-reply selector.",
+    "resolution": "Derive mailbox, SMTP host and port from actual edielSmtpConfig(); active EDIFACT public profile input only. No protected authority/readiness/grants were inserted.",
+    "initial_native_execution": "NOT_RUN",
+    "initial_static_execution": "NOT_RUN",
+    "final_verification": "Final frozen files only were linted and typechecked once."
+  },
+  "additional_review_source_pins": [
+    {
+      "path": "lib/ediel/mailReadiness.ts",
+      "blob": "6c36ac521f5f3eb82800f53ac8c1bf930e900e63",
+      "sha256": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453"
+    },
+    {
+      "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
+      "blob": "c0f587525fbea1c44d799a21b7af5f4c7b18298b",
+      "sha256": "2e8bf00c3e8bf3127313ad46ddd8d0e3c23abd13dfbdce4ffc7da0f7e2a68058"
+    },
+    {
+      "path": "supabase/migrations/20260930215206_ediel_common_negative_source_route.sql",
+      "blob": "fca26bcbd97166997b51449b9ca35d0e25226839",
+      "sha256": "e8061e06a2f74c56d0bb338c4cace44f5112913dde2c73e2e3ee067999bd136a"
+    }
+  ],
+  "receipt_limits": [
+    "Existing fixture applies F/G before returning; approval tests retained application and real case/ACK consumers, not first application.",
+    "Four authored cases are not four executed cases. Actual SQL/ACK/case/authorization remain unmocked; synthetic nodemailer acceptance is an external producer port and proves no transport or legal authority.",
+    "Caller tenant/actor/selection/LIN/denial checks do not prove physical input role/direction/RD/correlation/mutation refusal or ignored UD.",
+    "F pending expectation is not the complete subsequent UTILTS/meter-value chain. Existing E66 suite was not duplicated.",
+    "Static and ordinary CI success do not approve either whole acceptance row.",
+    "Inherited field306 E22 is not qualified against retained original P26.A Z11/Z12 witnesses; source/native owners retain canonical code-list and fixture correction."
+  ],
+  "retained_native_registration_proposal": {
+    "file": "native-registration.patch",
+    "sha256": "fcb0ba7863cc3a9229769b84389d7ca4dad6f127e9dbeb6f664207d3e90c47d5",
+    "target": "scripts/ediel-source-owner-native.config.ts",
+    "target_sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+    "applied": false,
+    "git_apply_check_exit": 0,
+    "owner": "503 retained native/config coordinator"
+  },
+  "preflight_snapshot_sha256": "3a971d4b06e983cb965ceaeed0d2209435180e08d187e4e649038b6a12c2ff31",
+  "ci": "NEW_CORRECTION_NOT_PUBLISHED; initial58ee checks are historical",
+  "main_integration": "NOT_MERGED",
+  "historical_initial_published_head": "58ee11ef80a754ae31266f8440c555e4359a2723",
+  "historical_initial_local_freeze": "2a4c5102cda483adb3b2d8449cb9be4c4179fcdd",
+  "comment_only_requalification": {
+    "proof": "comment-only-source-qualification.json",
+    "original_lint_typecheck_files": [
+      {
+        "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "sha256": "48d5df1dc0d75514f5d7a99ded9890f3db47ba291f1f290b8301a45df46b0455",
+        "case_count": 2
+      },
+      {
+        "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+        "sha256": "42dc82d2f003c3631cb6509b7a4811ee5f54a73d270789a5f1551187bc1b833b",
+        "case_count": 2
+      }
+    ],
+    "executable_syntax_unchanged": true,
+    "source_dependencies_runtime_and_lock_unchanged": true,
+    "reuse_scope": "Original static lint/types only, qualified by unchanged executable syntax and dependencies; native still NOT_RUN. No original CI transferred to new head."
+  }
+}
