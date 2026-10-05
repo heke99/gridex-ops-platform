@@ -1520,8 +1520,12 @@
     },
     {
       "id": "SC-013",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        ".agent-memory/masterplan-sc013-sc020-checkpoint.md"
+      ]
     },
     {
       "id": "SC-014",
@@ -1563,8 +1567,14 @@
     },
     {
       "id": "SC-020",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-permission-market-consumers.test.ts",
+        "__tests__/ediel-permission-process-order.test.ts",
+        "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+        "scripts/ediel-service-administration-sql-regression.mjs",
+        ".agent-memory/masterplan-sc013-sc020-checkpoint.md"
+      ]
     },
     {
       "id": "SC-021",
@@ -1723,8 +1733,9 @@
     },
     {
       "id": "SC-034",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "scripts/ediel-z04-ack-native.test.ts",
         "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/prodat/prodatAckMessageFunction.ts"
@@ -1848,6 +1859,7 @@
       "id": "SC-047",
       "status": "PARTIAL",
       "evidence": [
+        "__tests__/ediel-utilts-err-gateway.test.ts",
         "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.part-1.ts",
         "lib/ediel/matching.ts"

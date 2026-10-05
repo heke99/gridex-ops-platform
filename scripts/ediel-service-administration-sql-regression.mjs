@@ -70,6 +70,22 @@ try{
  await db.exec(`INSERT INTO company_memberships VALUES('${uid(2)}','${uid(20)}','active',true,now());INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,execution_context_snapshot,raw_payload) VALUES('${uid(202)}','${uid(1)}','test','inbound','PRODAT','Z14','{}',NULL),('${uid(210)}','${uid(1)}','test','inbound','UTILTS','E66','{"receiverActorId":"FORGED-PUBLIC-PROFILE"}',$wire$UNB+UNOC:3+54321:ZZ+21660:ZZ+260930:1200+S'UNH+1+UTILTS:D:23A:UN:E5SE2A'NAD+MS+54321:160:SVK'UNT+3+1'UNZ+1+S'$wire$);INSERT INTO meter_reading_series(id,company_id,source_ediel_message_id,message_code,series_kind,external_metering_point_id,product_id,period_start,period_end) VALUES('${uid(211)}','${uid(1)}','${uid(210)}','E66','actual','point-a','8716867000030','2026-01-01','2027-01-01');INSERT INTO gridex_utilts_binding.contracts VALUES('${uid(211)}','${uid(1)}','${uid(210)}','tx',${json(contract)});INSERT INTO gridex_ediel_inbound_context.fixture VALUES('${uid(1)}','${uid(210)}',${json(basis)});`)
  const page=()=>db.query(`SELECT ediel_beneficiary_series_page_v1('${uid(2)}','${uid(20)}','${grant.grantId}',2,'analysis','${uid(211)}',ARRAY['quantity'],'2026-01-01','2026-02-01') result`)
  assert.deepEqual((await page()).rows[0].result.rows,[]);checks++
+ // SC020: actual retained reader over the existing qualified finite source;
+ // current filtered reader keeps the same permission-phase predicate.
+ await db.exec('BEGIN');try{
+  await db.query('INSERT INTO meter_reading_values(id,company_id,series_id,reading_at,quantity,unit) VALUES($1,$2,$3,$4,$5,$6)',[uid(212),uid(1),uid(211),'2026-01-02','123.45','KWH'])
+  assert.deepEqual((await page()).rows[0].result.rows,[{quantity:'123.45'}])
+  await db.query("UPDATE metering_permissions SET status='z13_sent' WHERE id=$1",[uid(201)])
+  const readStateSql="SELECT jsonb_build_object('permissions',(SELECT jsonb_agg(p ORDER BY p.id) FROM metering_permissions p),'sites',(SELECT jsonb_agg(s ORDER BY s.id) FROM metering_permission_sites s),'grants',(SELECT jsonb_agg(g ORDER BY g.id) FROM ediel_data_access_grants g),'series',(SELECT jsonb_agg(s ORDER BY s.id) FROM meter_reading_series s),'values',(SELECT jsonb_agg(v ORDER BY v.id) FROM meter_reading_values v)) state"
+  const waitingState=(await db.query(readStateSql)).rows[0].state;let disclosed
+  await db.exec('SAVEPOINT waiting_read')
+  await assert.rejects(async()=>{disclosed=(await page()).rows[0].result},/ediel_market_permission_not_approved/)
+  await db.exec('ROLLBACK TO SAVEPOINT waiting_read')
+  assert.equal(disclosed,undefined)
+  assert.equal((await db.query('SELECT status FROM metering_permissions WHERE id=$1',[uid(201)])).rows[0].status,'z13_sent')
+  assert.deepEqual((await db.query(readStateSql)).rows[0].state,waitingState)
+ }finally{await db.exec('ROLLBACK')}
+ checks++;console.log('SC020 actual retained READ phase: 1 PASS; active quantity123.45 disclosed, z13_sent denied, no data or scope/storage effects; finite fixture, not latest whole-RPC/native proof')
  await db.exec(`UPDATE gridex_ediel_inbound_context.fixture SET basis=basis||'{"legalActorId":"${uid(999)}"}'`);await assert.rejects(page(),/source_actor_not_qualified/);checks++
  await db.exec(`UPDATE gridex_ediel_inbound_context.fixture SET basis=${json(basis)};DELETE FROM gridex_ediel_inbound_context.fixture`);await assert.rejects(page(),/historical_identity_basis_unavailable/);checks++
  await db.exec(`INSERT INTO gridex_ediel_inbound_context.fixture VALUES('${uid(1)}','${uid(210)}',${json(basis)});UPDATE metering_permission_sites SET end_at='2026-01-15'`);await assert.rejects(page(),/object_not_approved/);checks++
