@@ -1,3 +1,9 @@
+## Actual SC008/SC017 delivery — 2026-10-05T19:17:55Z
+
+Actual541 is authenticated by direct GitHub PR and commit tree/ordered-parent custody. The earlier503/603/609 source, sole admittedSC068 postimage and350foreign rows remain under the original producer's qualified review. Current97b3 is a working source base; root takes no duplicate merge/CI turn. Final full-main/baseline/tag and whole-plan completion remain unfinished.
+
+- ACTUAL MAIN MERGE PR #541: `97b3f81c9954f3b320dd2900f0adb8d0b2610574`; tree `e5504cfea3f1006c8b2d578ea1ef47c646d48fa1`; ordered parents `4b179ee45dce580142f0684e330675fe9e033d69` + `4f96cb99e11660ca8c8faa000b139ce2860be0aa`; original source/whole/CI qualification retained. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/541).
+
 ## Actual documentation and rule deliveries — 2026-10-05T19:06:06Z
 
 Actual607/603/609 are independently authenticated through public PR state and Git commit tree/ordered parents, and recorded once by the retained common handover writer. Current4b179ee4 is a working source base.603 admits SC011 and the sole authoritative a7SC068 postimage; SC023 stays HELD/NOT_EXECUTED and untagged.609 admits GOV01/AT only and preserves that same fixture. Existing source authors/CI observers and ONE final common baseline/tag writer remain unchanged. Current-main full green and whole-masterplan completion are not claimed.
