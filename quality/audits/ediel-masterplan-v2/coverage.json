@@ -1569,8 +1569,20 @@
     },
     {
       "id": "SC-011",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatPermissionLifecycle.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-service-grant-set-sql-regression.mjs",
+        "__tests__/ediel-permission-own-partition.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc011-sc023/independent-review-d05b479a.md",
+        "quality/audits/ediel-masterplan-v2/sc011-sc023/independent-review-d05b479a.json",
+        ".agent-memory/masterplan-sc011-sc023-checkpoint.md"
+      ]
     },
     {
       "id": "SC-012",
