@@ -1,7 +1,7 @@
 // Bounded SC014 qualification, not an approval tag. Actual current admission
-// and technical-source functions execute in WASM PostgreSQL. The finite DB
-// transport, permission service and fetched MIME input do not establish native
-// RLS, mailbox credentials, legal mandate, SMTP or a safe raw-mail ACK authority.
+// prospective custody and technical-source functions execute in WASM
+// PostgreSQL. The finite DB/permission/MIME ports do not establish native
+// full-trigger/RLS/FK, mailbox credentials, legal mandate, SMTP or SEND authority.
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,6 +23,7 @@ vi.mock('@/lib/supabase/service', () => {
   class Query {
     filters: Array<{ key: string; operator: string; value: unknown }> = []
     one = false; exact = false; maximum = 10000; operation = 'select'; value: Row | Row[] = {}; columns = '*'
+    conflictKey: string | null = null
     constructor(readonly table: string) {}
     select(columns = '*', options?: { count?: string }) { this.columns = columns; this.exact = options?.count === 'exact'; return this }
     eq(key: string, value: unknown) { this.filters.push({ key, operator: '=', value }); return this }
@@ -35,6 +36,10 @@ vi.mock('@/lib/supabase/service', () => {
     single() { this.one = true; return this }
     maybeSingle() { this.one = true; return this }
     insert(value: Row | Row[]) { this.operation = 'insert'; this.value = value; return this }
+    upsert(value: Row, options: { onConflict: string; ignoreDuplicates: boolean }) {
+      if (this.table !== 'ediel_outbox' || options.onConflict !== 'lock_key' || !options.ignoreDuplicates) throw Error('Undeclared upsert')
+      this.conflictKey = options.onConflict; return this.insert(value)
+    }
     update(value: Row) { this.operation = 'update'; this.value = value; return this }
     then(onfulfilled: (value: unknown) => unknown, onrejected: (reason: unknown) => unknown) {
       return Promise.resolve().then(async () => {
@@ -56,14 +61,15 @@ vi.mock('@/lib/supabase/service', () => {
             for (const value of Array.isArray(this.value) ? this.value : [this.value]) {
               const entries = Object.entries(value).filter(([, item]) => item !== undefined)
               const tokens = entries.map(([, item]) => parameter(item))
-              rows.push(...(await port.db.query<Row>(`insert into public.${this.table} (${entries.map(([key]) => column(key)).join(',')}) values (${tokens.join(',')}) returning *`, parameters)).rows)
+              const conflict = this.conflictKey ? ` on conflict (${column(this.conflictKey)}) do nothing` : ''
+              rows.push(...(await asService(() => port.db!.query<Row>(`insert into public.${this.table} (${entries.map(([key]) => column(key)).join(',')}) values (${tokens.join(',')})${conflict} returning *`, parameters))).rows)
               parameters.length = 0
             }
           } else if (this.operation === 'update') {
             const entries = Object.entries(this.value).filter(([, item]) => item !== undefined)
-            rows = (await port.db.query<Row>(`update public.${this.table} set ${entries.map(([key, item]) => `${column(key)}=${parameter(item)}`).join(',')}${predicate} returning *`, parameters)).rows
+            rows = (await asService(() => port.db!.query<Row>(`update public.${this.table} set ${entries.map(([key, item]) => `${column(key)}=${parameter(item)}`).join(',')}${predicate} returning *`, parameters))).rows
           } else {
-            rows = (await port.db.query<Row>(`select * from public.${this.table}${predicate} limit ${this.maximum}`, parameters)).rows
+            rows = (await asService(() => port.db!.query<Row>(`select * from public.${this.table}${predicate} limit ${this.maximum}`, parameters))).rows
           }
           const count = rows.length
           if (this.table === 'inbound_email_messages' && this.columns.includes('ediel_mailboxes')) {
@@ -96,12 +102,14 @@ import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { prepareSourceAckDraft } from '@/lib/ediel/ack/prepareSourceAckDraft'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { readPersistedEdielTechnicalContrlBasis } from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { ownerSource, OWNER, ownerId } from './helpers/sourceOwnerFixtures'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
+const intakeMigrationSql = readFileSync('supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql', 'utf8')
 const tables = ['ediel_messages', 'inbound_email_messages', 'inbound_email_attachments', 'inbound_ediel_parse_results', 'inbound_processing_jobs',
   'ediel_mailboxes', 'tenant_actor_identifiers', 'tenant_counterparty_relations', 'platform_actor_identifiers', 'ediel_actor_settings', 'ediel_route_profiles',
-  'companies', 'company_memberships', 'user_profiles', 'communication_routes', 'ediel_transport_profiles']
+  'companies', 'company_memberships', 'user_profiles', 'communication_routes', 'ediel_transport_profiles', 'ediel_unresolved_items', 'ediel_message_events', 'ediel_outbox']
 function definition(kind: 'TABLE' | 'FUNCTION' | 'TYPE', name: string) {
   const start = schema.indexOf(`CREATE ${kind} ${name}`)
   if (start < 0) throw Error(`Missing actual ${kind} ${name}`)
@@ -131,6 +139,11 @@ const guideInsert = guideSql.slice(guideStart, guideEnd + "'::jsonb value) editi
 const guideVersion = 'a30473a34535076e12e46386563adb3fa36431a0e7a245fc1be666c5737e8708'
 // Named finite transport only: every result is produced by current SQL below.
 const rpcArguments: Record<string, string[]> = {
+  ediel_read_technical_source_endpoint_v2: ['p_source_message_id', 'p_actor_user_id', 'p_phase'],
+  ediel_capture_technical_syntax_ack_basis_v2: ['p_company_id', 'p_message_id', 'p_actor_user_id', 'p_phase'],
+  ediel_record_technical_syntax_facet_v2: ['p_company_id', 'p_source_message_id', 'p_source_payload_hash', 'p_facts_text', 'p_actor_user_id', 'p_phase'],
+  ediel_admit_unattributed_technical_source_v1: ['p_inbound_email_message_id', 'p_parse_result_id', 'p_actor_user_id', 'p_expected_payload_hash', 'p_expected_environment'],
+  ediel_read_unattributed_technical_intake_v1: ['p_inbound_email_message_id', 'p_source_message_id', 'p_actor_user_id'],
   gridex_actor_has_company_permission: ['p_actor_user_id', 'p_company_id', 'p_permission'],
   gridex_read_outbound_acks_for_source_v2: ['p_source_message_id', 'p_ack_family', 'p_actor_user_id', 'p_phase'],
   ediel_read_outbound_ack_replay_v1: ['p_company_id', 'p_environment', 'p_source_message_id', 'p_actor_user_id', 'p_ack_family', 'p_sequence_field', 'p_sequence_value'],
@@ -170,6 +183,27 @@ async function captureKnownSyntax() {
 }
 async function configuredRoute(actorId = actor, smtp = assertEdielSmtpReadiness(), sourceId = OWNER.source) {
   return asService(async () => (await port.db!.query<{ value: Row }>('select public.ediel_read_technical_syntax_ack_route_v1($1,$2,$3,$4,$5,$6) value', [OWNER.company, actorId, sourceId, smtp.from, smtp.host, smtp.port])).rows[0].value)
+}
+async function installUnattributedTechnicalIntake() {
+  const db = port.db!
+  // Real references and the unchanged tenant-link/national-capture guards
+  // accompany the forward migration. This remains selected SQL evidence;
+  // the complete native trigger/RLS graph is a separate qualification.
+  for (const table of ['ediel_messages', 'inbound_email_messages', 'inbound_email_attachments', 'inbound_ediel_parse_results', 'ediel_mailboxes', 'companies', 'user_profiles']) {
+    for (const match of schema.matchAll(new RegExp(`ALTER TABLE ONLY public\\.${table}\\n[\\s\\S]*?;`, 'g'))) {
+      if (/ADD CONSTRAINT .* PRIMARY KEY \(/.test(match[0])) await db.exec(match[0])
+    }
+  }
+  for (const name of ['wire_tokens_bounded_v1', 'closure_wire_tokens_v1', 'source_wire_point_v1']) await db.exec(definition('FUNCTION', `gridex_received_sources.${name}(`))
+  await db.exec(definition('TABLE', 'gridex_received_sources.sources ('))
+  for (const name of ['gridex_received_sources.capture_insert(', 'gridex_received_sources.capture_utilts_insert_v1(', 'public.gridex_ediel_message_inbound_email_tenant_guard(']) await db.exec(definition('FUNCTION', name))
+  for (const trigger of ['gridex_capture_received_prodat_source', 'gridex_capture_received_utilts_source', 'trg_ediel_message_inbound_email_tenant_guard']) {
+    const start = schema.indexOf(`CREATE TRIGGER ${trigger} `), end = schema.indexOf(';', start)
+    if (start < 0 || end < 0) throw Error(`Missing actual trigger ${trigger}`)
+    await db.exec(schema.slice(start, end + 1))
+  }
+  if (!intakeMigrationSql.trim()) throw Error('Forward technical intake migration is not implemented')
+  await db.exec(intakeMigrationSql)
 }
 async function installCurrentAtomicCustody() {
   const db = port.db!
@@ -224,11 +258,10 @@ beforeEach(async () => {
     customer_sites: [{ id: OWNER.site, company_id: ownerId(999), customer_id: OWNER.customer }],
     metering_points: [{ id: OWNER.point, company_id: ownerId(999), site_id: OWNER.site, meter_point_id: OWNER.external }],
     customer_permissions: [{ id: ownerId(998), company_id: ownerId(999), status: 'active' }],
-    ediel_outbox: [{ id: ownerId(997), company_id: ownerId(999), status: 'pending' }],
   }
   const db = new PGlite(); port.db = db
   for (const [key, value] of Object.entries({ EDIEL_EMAIL_PROVIDER: 'strato', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'configured@example.invalid', EDIEL_SMTP_HOST: 'smtp.example.invalid', EDIEL_SMTP_PORT: '465', EDIEL_SMTP_USER: 'finite-account', EDIEL_SMTP_PASS: 'synthetic-not-a-credential' })) vi.stubEnv(key, value)
-  await db.exec(`create role service_role; create schema extensions; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide;
+  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide;
     -- PGlite crypto port: same PostgreSQL sha256 bytes, not an admission verdict.
     create function extensions.digest(bytea,text) returns bytea language sql immutable as 'select sha256($1)';
     -- Declared finite native permission service. Real current actor/profile/
@@ -237,6 +270,9 @@ beforeEach(async () => {
   for (const name of ['public.gridex_normalize_org_number(', 'public.gridex_new_external_tenant_reference(']) await db.exec(definition('FUNCTION', name))
   await db.exec(definition('TYPE', 'public.ediel_environment_type AS ENUM ('))
   for (const table of tables) await db.exec(definition('TABLE', `public.${table} (`))
+  const outboxIndexStart = schema.indexOf('CREATE UNIQUE INDEX ediel_outbox_lock_key_uidx ')
+  if (outboxIndexStart < 0) throw Error('Missing actual outbox lock key index')
+  await db.exec(schema.slice(outboxIndexStart, schema.indexOf(';', outboxIndexStart) + 1))
   await db.exec(definition('TABLE', 'gridex_ediel_technical_ack.sources ('))
   for (const table of ['gridex_ediel_technical_ack.replies', 'gridex_ediel_technical_ack.syntax_facets', 'gridex_received_sources.validation_assessments',
     'gridex_ediel_ack_guide.editions', 'gridex_ediel_ack_guide.source_bindings', 'gridex_ediel_ack_guide.edition_extensions', 'gridex_ediel_ack_guide.err_reason_source_editions']) await db.exec(definition('TABLE', `${table} (`))
@@ -258,7 +294,10 @@ beforeEach(async () => {
     if (start < 0 || end < 0) throw Error(`Missing actual trigger ${trigger}`)
     await db.exec(schema.slice(start, end + 1))
   }
-  await db.exec('grant usage on schema public,gridex_ediel_technical_ack to service_role; grant select on all tables in schema public,gridex_ediel_technical_ack to service_role;')
+  await db.exec('grant usage on schema public,gridex_ediel_technical_ack to service_role; grant select,insert,update,delete on all tables in schema public to service_role; grant select on all tables in schema gridex_ediel_technical_ack to service_role;')
+  // A foreign public queue row is a finite transport fixture, never ACK
+  // custody. Its complete retry/transport state must survive own preparation.
+  await db.query(`insert into public.ediel_outbox(id,company_id,ediel_message_id,message_family,message_code,environment,status,lock_key,payload) values($1,$2,$3,'CONTRL','CONTRL','production','queued','SC014-foreign-transport',$4)`, [ownerId(997), ownerId(999), ownerId(996), JSON.stringify({ foreignRetry: 'unchanged' })])
   await db.query('insert into companies(id,name) values($1,$2)', [OWNER.company, 'Synthetic technical mailbox owner'])
   await db.query('insert into user_profiles(id) values($1)', [actor])
   await db.query('insert into company_memberships(company_id,user_id,accepted_at) values($1,$2,$3)', [OWNER.company, actor, '2026-01-01T00:00:00Z'])
@@ -270,12 +309,30 @@ beforeEach(async () => {
 afterEach(async () => { await port.db?.close(); port.db = null; vi.unstubAllEnvs() })
 
 describe('SC014 actual intake/admission qualification', () => {
-  it('stages real MIME with a known technical mailbox but unknown legal NAD, without an admitted source or guessed customer', async () => {
+  it('requires the actual service session and each present JWT role without hiding contradictory claims', async () => {
+    await installCurrentAtomicCustody()
+    await installUnattributedTechnicalIntake()
+    await asService(async () => {
+      const read = () => port.db!.query<{ value: Row | null }>('select public.ediel_read_unattributed_technical_intake_v1(null,$1,$2) value', [ownerId(999999), actor])
+      expect((await read()).rows[0].value).toBeNull()
+      await port.db!.query("select set_config('request.jwt.claim.role','service_role',false),set_config('request.jwt.claims',$1,false)", [JSON.stringify({ role: 'authenticated' })])
+      await expect(read()).rejects.toMatchObject({ message: 'ediel_technical_intake_service_required', code: '42501' })
+      await port.db!.query("select set_config('request.jwt.claim.role','authenticated',false),set_config('request.jwt.claims',$1,false)", [JSON.stringify({ role: 'service_role' })])
+      await expect(read()).rejects.toMatchObject({ message: 'ediel_technical_intake_service_required', code: '42501' })
+      await port.db!.query("select set_config('request.jwt.claim.role','service_role',false),set_config('request.jwt.claims',$1,false)", [JSON.stringify({ role: 'service_role' })])
+      expect((await read()).rows[0].value).toBeNull()
+    })
+  })
+  it('holds previously stored unattested MIME with unknown legal NAD without backfilling a source or guessing a customer', async () => {
     expect(unknownLegalWire).not.toBe(knownWire)
     expect(validateEdifactSyntax({ ...ownerSource(), environment: 'production', test_flag: 0, raw_payload: unknownLegalWire })).toMatchObject({ ok: true, grammarQualification: 'qualified' })
     const before = structuredClone(port.business)
     const mailbox = (await rows('ediel_mailboxes'))[0] as unknown as EdielMailboxRow
     const stored = await storeMailboxFetchMessage({ mailbox, actorUserId: actor, message: { source: Buffer.from(mime(unknownLegalWire)), internalDate: new Date('2026-10-05T00:00:00Z') } })
+    // The real original was stored before the prospective custody migration.
+    // Its mutable public bytes must never acquire retrospective authority.
+    await installCurrentAtomicCustody()
+    await installUnattributedTechnicalIntake()
     const received = (await rows('inbound_email_messages'))[0]
     expect(received).toMatchObject({ id: stored.id, company_id: OWNER.company, environment: 'production', raw_email: mime(unknownLegalWire), raw_edifact_payload: unknownLegalWire })
     expect((await rows('inbound_processing_jobs'))[0]).toMatchObject({ inbound_email_message_id: stored.id, company_id: OWNER.company, status: 'queued' })
@@ -291,8 +348,9 @@ describe('SC014 actual intake/admission qualification', () => {
     expect(physical).toEqual((await port.db!.query<{ value: Row }>('select gridex_ediel_technical_ack.envelope($1) value', [knownWire])).rows[0].value)
     expect(await rows('tenant_actor_identifiers')).toHaveLength(1)
     expect((await rows('tenant_actor_identifiers'))[0]).toMatchObject({ company_id: OWNER.company, environment: 'production', actor_id: OWNER.actor, identifier_type: 'EdielId', identifier_value: '54321', valid_to: null })
-    expect(port.errors).toHaveLength(1)
-    expect(port.errors[0]).toMatchObject({ table: 'ediel_messages', error: { message: 'canonical_ediel_company_required', code: '23502' } })
+    expect(port.errors).toEqual([])
+    expect(await rows('gridex_unattributed_intake.raw_births')).toEqual([])
+    expect(await rows('gridex_unattributed_intake.technical_births')).toEqual([])
     expect(await rows('ediel_messages')).toEqual([])
     expect(await rows('gridex_ediel_technical_ack.sources')).toEqual([])
     expect(await listEdielMessageIdsForInboundEmails([stored.id])).toEqual([])
@@ -303,7 +361,7 @@ describe('SC014 actual intake/admission qualification', () => {
     expect(port.business).toEqual(before)
     expect(port.queries.filter(query => Object.hasOwn(port.business, query.table))).toEqual([])
     expect(port.attemptedTables.filter(table => !tables.includes(table) || Object.hasOwn(port.business, table))).toEqual([])
-    expect(port.queries.filter(query => query.operation !== 'select').map(query => query.table)).toEqual(['inbound_email_messages', 'inbound_processing_jobs', 'inbound_ediel_parse_results', 'ediel_messages', 'inbound_email_messages'])
+    expect(port.queries.filter(query => query.operation !== 'select').map(query => query.table)).toEqual(['inbound_email_messages', 'inbound_processing_jobs', 'inbound_ediel_parse_results', 'inbound_email_messages'])
     expect((parsed.validation_report as Row).tenantResolution).toMatchObject({ companyId: null })
     expect((await rows('ediel_mailboxes'))[0]).toEqual(mailbox)
   })
@@ -399,6 +457,8 @@ describe('SC014 actual intake/admission qualification', () => {
   })
 
   it('admits fresh unknown-legal intake only as a protected technical original and persists its prescribed CONTRL without business attribution', async () => {
+    await installCurrentAtomicCustody()
+    await installUnattributedTechnicalIntake()
     const syntax = validateEdifactSyntax({ ...ownerSource(), environment: 'production', test_flag: 0, raw_payload: unknownLegalWire })
     expect(syntax).toMatchObject({ ok: true, grammarQualification: 'qualified' })
     const beforeBusiness = structuredClone(port.business)
@@ -426,7 +486,6 @@ describe('SC014 actual intake/admission qualification', () => {
     expect(sourceRow.immutable_payload_hash).toBe(createHash('sha256').update(unknownLegalWire, 'utf8').digest('hex'))
     await asService(() => port.db!.query('select public.ediel_record_technical_syntax_facet_v2($1,$2,$3,$4,$5,$6)', [OWNER.company, source.id, sourceRow.immutable_payload_hash, facts, actor, 'prepare']))
     await asService(() => port.db!.query('select public.ediel_capture_technical_syntax_ack_basis_v2($1,$2,$3,$4)', [OWNER.company, source.id, actor, 'prepare']))
-    await installCurrentAtomicCustody()
     const beforeSource = structuredClone(source)
     const prepared = await prepareSourceAckDraft({ actorUserId: actor, sourceMessage: source, ackFamily: 'CONTRL', outcome: 'positive' })
     expect(prepared.kind).toBe('draft')
@@ -440,5 +499,61 @@ describe('SC014 actual intake/admission qualification', () => {
     expect(port.business).toEqual(beforeBusiness)
     expect(await rows('gridex_ediel_outbound_owner.witnesses')).toEqual([])
     expect(await rows('gridex_ediel_outbound_owner.consumptions')).toEqual([])
+  })
+
+  it('keeps a protected original technical-only across reprocessing, later transactions and ordinary-source operations', async () => {
+    await installCurrentAtomicCustody()
+    await installUnattributedTechnicalIntake()
+    const mailbox = (await rows('ediel_mailboxes'))[0] as unknown as EdielMailboxRow
+    const beforeBusiness = structuredClone(port.business)
+    const beforeOutbox = await rows('ediel_outbox')
+    const stored = await storeMailboxFetchMessage({ mailbox, actorUserId: actor, message: { source: Buffer.from(mime(unknownLegalWire)), internalDate: new Date('2026-10-05T00:00:00Z') } })
+    const first = await processInboundEmailMessage({ inboundEmailMessageId: stored.id, actorUserId: actor })
+    const [sourceId] = await listEdielMessageIdsForInboundEmails([stored.id])
+    expect(sourceId).toBeTruthy()
+    const original = (await rows('ediel_messages')).find(row => row.id === sourceId)!
+    const births = await rows('gridex_unattributed_intake.technical_births')
+    const repeated = await processInboundEmailMessage({ inboundEmailMessageId: stored.id, actorUserId: actor })
+    expect(repeated).toMatchObject({ companyId: null, parseResultId: first.parseResultId })
+    expect(await rows('inbound_ediel_parse_results')).toHaveLength(1)
+    expect(await listEdielMessageIdsForInboundEmails([stored.id])).toEqual([sourceId])
+    await processInboundEdielMessage({ actorUserId: actor, edielMessageId: sourceId })
+    expect((await rows('ediel_messages')).find(row => row.id === sourceId)).toEqual(original)
+    const acks = (await rows('ediel_messages')).filter(row => row.direction === 'outbound')
+    expect((await rows('ediel_message_events')).filter(row => (row.event_payload as Row | null)?.blockedBy === 'canonical_inbound_ack_guard')).toEqual([])
+    expect(acks, JSON.stringify(await rows('ediel_message_events'))).toEqual([expect.objectContaining({ message_family: 'CONTRL', related_message_id: sourceId, company_id: OWNER.company })])
+    expect(await rows('ediel_outbox')).toEqual([...beforeOutbox, expect.objectContaining({ ediel_message_id: acks[0].id, source_message_id: sourceId, company_id: OWNER.company, status: 'queued' })])
+    expect(port.attemptedTables.filter(table => Object.hasOwn(port.business, table))).toEqual([])
+    expect(port.business).toEqual(beforeBusiness)
+    // This UPDATE is a separate actual SQL transaction from the source birth.
+    await asService(() => port.db!.query('update public.ediel_messages set validation_report=$2 where id=$1', [sourceId, JSON.stringify({ diagnostic: 'later technical review' })]))
+    expect((await rows('ediel_messages')).find(row => row.id === sourceId)).toMatchObject({ company_id: null, resolved_company_id: null, raw_payload: unknownLegalWire })
+    expect(await rows('gridex_unattributed_intake.technical_births')).toEqual(births)
+    await expect(asService(() => port.db!.query('update public.ediel_messages set company_id=$2,resolved_company_id=$2 where id=$1', [sourceId, OWNER.company]))).rejects.toMatchObject({ code: '23514' })
+    // The existing canonical NULL guard runs before the later identity guard.
+    await expect(asService(() => port.db!.query('update public.ediel_messages set inbound_email_message_id=$2 where id=$1', [sourceId, ownerId(999999)]))).rejects.toMatchObject({ message: 'canonical_ediel_company_required', code: '23502' })
+    await expect(asService(() => port.db!.query('delete from public.ediel_messages where id=$1', [sourceId]))).rejects.toMatchObject({ message: 'ediel_technical_intake_original_immutable' })
+    // A later legally known producer cannot add a second protected physical
+    // interchange, even when its NAD differs from the held legal projection.
+    await expect(admitKnownSource()).rejects.toMatchObject({ message: 'ediel_technical_intake_physical_original_exists', code: '23505' })
+    const distinctWire = knownWire.replace('+I++23-DDQ-PRODAT', '+DISTINCT++23-DDQ-PRODAT').replace('UNZ+1+I', 'UNZ+1+DISTINCT')
+    expect(distinctWire).not.toBe(knownWire)
+    await port.db!.query(`insert into public.ediel_messages(id,company_id,direction,message_standard,message_family,message_code,environment,raw_payload,message_received_at) values($1,$2,'inbound','edifact','PRODAT','Z04','production',$3,'2026-10-05T00:00:00Z')`, [OWNER.source, OWNER.company, distinctWire])
+    expect((await port.db!.query<Row>('delete from public.ediel_messages where id=$1 returning id', [OWNER.source])).rows).toEqual([{ id: OWNER.source }])
+    expect((await rows('ediel_messages')).filter(row => row.direction === 'inbound')).toHaveLength(1)
+  })
+
+  it('holds technical admission outside the supported READ COMMITTED transaction boundary', async () => {
+    await installCurrentAtomicCustody()
+    await installUnattributedTechnicalIntake()
+    const mailbox = (await rows('ediel_mailboxes'))[0] as unknown as EdielMailboxRow
+    const stored = await storeMailboxFetchMessage({ mailbox, actorUserId: actor, message: { source: Buffer.from(mime(unknownLegalWire)), internalDate: new Date('2026-10-05T00:00:00Z') } })
+    await port.db!.exec("set default_transaction_isolation='repeatable read'")
+    const result = await processInboundEmailMessage({ inboundEmailMessageId: stored.id, actorUserId: actor })
+    expect(result).toMatchObject({ status: 'manual_review', companyId: null })
+    expect(await rows('gridex_unattributed_intake.technical_births')).toEqual([])
+    expect(await rows('gridex_unattributed_intake.physical_claims')).toEqual([])
+    expect(await rows('ediel_messages')).toEqual([])
+    await expect(asService(() => port.db!.query('select public.ediel_admit_unattributed_technical_source_v1($1,$2,$3,$4,$5)', [stored.id, result.parseResultId, actor, createHash('sha256').update(unknownLegalWire).digest('hex'), 'production']))).rejects.toMatchObject({ message: 'ediel_technical_intake_read_committed_required', code: '25000' })
   })
 })
