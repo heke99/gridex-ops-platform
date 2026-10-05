@@ -76,16 +76,19 @@ const extension = String.raw`
   const acl=(await db.query("SELECT has_table_privilege('service_role','gridex_ediel_exports.results','SELECT') r,has_table_privilege('service_role','gridex_ediel_exports.jobs','INSERT') w,has_function_privilege('authenticated','public.ediel_read_beneficiary_export_v1(uuid,uuid,uuid)','EXECUTE') a")).rows[0]
   assert.deepEqual(acl,{r:false,w:false,a:false})
  })
- await exportCheck('current source role loss after enqueue blocks actual execution without output',async()=>{
-  await db.exec('BEGIN')
-  try{
-   const later=await queue(uid(806))
-   await db.exec('UPDATE tenant_ediel_profiles SET is_enabled=false')
-   const before=await ownerSnapshot(),receipts=await receiptCount(),outputs=await count('gridex_ediel_exports.results')
-   const current=(await claim())[0];assert.equal(current.jobId,later.jobId)
-   assert.deepEqual(await execute(later.jobId,current.leaseToken),{jobId:later.jobId,status:'blocked'})
-   assert.equal(await count('gridex_ediel_exports.results'),outputs);assert.equal(await receiptCount(),receipts);assert.deepEqual(await ownerSnapshot(),before)
-  }finally{await db.exec('ROLLBACK')}
+ await exportCheck('current source role or technical endpoint loss after enqueue blocks actual execution without output',async()=>{
+  for(const loss of ['UPDATE tenant_ediel_profiles SET is_enabled=false','UPDATE tenant_actor_identifiers SET valid_to=now()']){
+   await db.exec('BEGIN')
+   try{
+    const later=await queue(uid(806))
+    await db.exec(loss)
+    const before=await ownerSnapshot(),receipts=await receiptCount(),outputs=await count('gridex_ediel_exports.results')
+    const current=(await claim())[0];assert.equal(current.jobId,later.jobId)
+    assert.deepEqual(await execute(later.jobId,current.leaseToken),{jobId:later.jobId,status:'blocked'})
+    assert.equal((await db.query('SELECT status FROM gridex_ediel_exports.jobs WHERE id=$1',[later.jobId])).rows[0].status,'blocked')
+    assert.equal(await count('gridex_ediel_exports.results'),outputs);assert.equal(await receiptCount(),receipts);assert.deepEqual(await ownerSnapshot(),before)
+   }finally{await db.exec('ROLLBACK')}
+  }
  })
  await exportCheck('active enqueue then actual revoke then lease blocks export and cached result reads',async()=>{
   await db.exec('BEGIN')

@@ -4,7 +4,7 @@
   "branch": "codex/ediel-sc010-sc071-grant-revalidation-20261005",
   "source_main": "0dab92006d2ce17db21774e17d983b9a407b1a47",
   "pre_freeze_head": "3e37ebda679449b6336818b367abf48abd15300c",
-  "producer_commit": "read the commit that first adds the exact producer hashes; this receipt does not self-hash a later metadata commit",
+  "producer_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
   "owned_scenario": "SC-010",
   "released_scenario_owner": {
     "SC-071": "revocation-20261005; #574 accepted dependency5992281152"
@@ -129,5 +129,6 @@
     "path": "evidence/export-component-red.log.gz",
     "decompressed_sha256": "a6b08d003ec2dd43c886e4437a63aaa811deaffc7e3d09eb539b5075bf8aa8e0",
     "reason": "preserve exact original bytes including terminal whitespace without source diff whitespace failures"
-  }
+  },
+  "later_qualified_sql_test_followup": "export-continuation-receipt.json; original source/log hashes remain historical and unchanged"
 }

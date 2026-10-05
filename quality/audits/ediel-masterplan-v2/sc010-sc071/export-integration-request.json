@@ -36,5 +36,7 @@
     "generated database types and exact manifest",
     "clean and authentic-upgrade replay parity"
   ],
-  "status": "PENDING_COORDINATED_ADMISSION_AND_NATIVE; NOT_APPROVED"
+  "status": "PENDING_COORDINATED_ADMISSION_AND_NATIVE; NOT_APPROVED",
+  "product_source_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9",
+  "latest_test_qualification": "export-continuation-receipt.json; only owned SQL test runner differs, no migration/RPC/native delta"
 }
