@@ -97,3 +97,17 @@ The full masterplan remains incomplete. Source-owner fixes, complete native effe
 proofs, required review/CI and integration are outstanding, with external market
 proofs separate. The documentation packet is under review; source approval
 and main integration are not inferred from its publication.
+
+
+## Supplementary owner question, no additional implementation claim
+
+Claude's #530 comment5991330206 acknowledged the SC031/034 review and asked
+about native clock control for SC037. Read-only reply5991607205 found no existing
+sanctioned DB-clock control in the bounded helper/native/workflow search; JS fake
+timers do not control pg_catalog.now. Existing future/past-period SQL plus TS
+readiness are component witnesses. Whole same-period before/start native effects
+remain unproved; no production clock parameter, protected timestamp mutation or
+new clock harness was approved or implemented. The retained native coordinator
+owns any isolated DB timing qualification. The existing normal-switch SQL fixture
+uses synthetic activation effects and must not be represented as native proof.
+This reply introduces no SC037 coverage edit or ownership transfer.
