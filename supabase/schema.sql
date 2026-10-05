@@ -127590,7 +127590,7 @@ ALTER TABLE ONLY public.tenant_staff_actor_anchors
 --
 
 ALTER TABLE ONLY public.tenant_staff_actor_anchors
-    ADD CONSTRAINT tenant_staff_actor_anchors_invitation_id_key UNIQUE (invitation_id);
+    ADD CONSTRAINT tenant_staff_actor_anchors_invitation_id_key UNIQUE (invitation_id, company_id);
 
 --
 -- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -127625,7 +127625,7 @@ ALTER TABLE ONLY public.tenant_staff_identity_bindings
 --
 
 ALTER TABLE ONLY public.tenant_staff_identity_bindings
-    ADD CONSTRAINT tenant_staff_identity_bindings_invitation_id_key UNIQUE (invitation_id);
+    ADD CONSTRAINT tenant_staff_identity_bindings_invitation_id_key UNIQUE (invitation_id, company_id);
 
 --
 -- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -127653,7 +127653,7 @@ ALTER TABLE ONLY public.tenant_staff_identity_deliveries
 --
 
 ALTER TABLE ONLY public.tenant_staff_identity_deliveries
-    ADD CONSTRAINT tenant_staff_identity_deliveries_invitation_id_key UNIQUE (invitation_id);
+    ADD CONSTRAINT tenant_staff_identity_deliveries_invitation_id_key UNIQUE (invitation_id, company_id);
 
 --
 -- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_pkey; Type: CONSTRAINT; Schema: public; Owner: -

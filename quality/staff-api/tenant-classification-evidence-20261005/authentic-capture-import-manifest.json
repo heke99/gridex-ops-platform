@@ -1,0 +1,38 @@
+{
+  "status": "AUTHENTIC_CLASSIFICATION_RAW3_IMPORT_AND_INDEPENDENT_REVIEW_PASS_FINAL_EXACT_HEAD_CI_PENDING",
+  "created_at_utc": "2026-10-05T16:55:31.386235+00:00",
+  "capture_source_head": "a315f2f96f4d0ed249e0b8621289c5d8aba275d4",
+  "capture_source_tree": "0da2e5b25028f4f5b1136718697fd2323005c115",
+  "producer_run": 37341406566,
+  "artifact_id": 11358368604,
+  "zip_sha256": "96e3a8f876d11887acbadb1ce8248ebc07d219fc065ee9225287d642e7430d73",
+  "artifact_raw3_sha256": {
+    "database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "schema.sql": "3b962356454ec5abd66f1bd155c7076f1d52522d27060c0d5d43c424b2d14f30",
+    "schema.fingerprint.json": "4ab388cd791565a5a4a415f394b7f8bc9fb53c3a19dadaf3ccdc805446d75f48"
+  },
+  "canonical_schema_fingerprint": "128b9a9975ecca5785b75c9abe08f9d4c8568cff8703cde15abdfb57598644e2",
+  "schema_delta": "Exactly three preserved-name UNIQUE(invitation_id) constraints add company_id; every other dump byte and section count is unchanged. Only constraint/index fingerprint hashes change.",
+  "type_bytes_unchanged": true,
+  "receipts_sha256": {
+    "tenant-classification-capture-pilot-source-witness.json": "876927b344134cebb584ecc25b67ed681b1965b4dab5cb168fcc0130223acc94",
+    "tenant-classification-capture-verification.json": "f7d3f6e3b9054f10864a9123503167f742d217d4ecfb050a79fbc01aadbccba8",
+    "tenant-classification-capture-import-applied.json": "d67f4e387255e921fe773acc9cc12d5bc90aff756c1991e33989ddfc096b5f7f",
+    "tenant-classification-a315-capture-importer-independent-review.json": "51928f4fc73ccfc5c2caf4b70dfdfb829f8b6e29358d32f7efa8a846f6ae101a"
+  },
+  "import_helper_sha256": "d4de73226ec55f9ac977eb34f2b49e384d0a9a2a8960957d913f104bfaca4e3f",
+  "all_historical_provenance_preserved": true,
+  "checks": {
+    "aggregate_migrations_integrity_contract_types": "PASS_1069_FILES_972_GROUPS",
+    "independent_artifact_import_review": "PASS_ZERO_CRITICAL_IMPORTANT",
+    "diff_check": "PASS"
+  },
+  "pending": [
+    "Full mandatory CI and native clean/true ancestor upgrade/parity on final published source after this import."
+  ],
+  "hosted_writes": 0,
+  "limits": [
+    "The authentic producer explicitly records native/browser/type-comparison/upgrade NOT_RUN; this import never converts those flags to acceptance.",
+    "No hosted enrollment, real email, deployment or domain activation."
+  ]
+}
