@@ -1,3 +1,10 @@
+## Aktuellt läge — 2026-10-05 (gäller före allt nedan, ersätter 2026-10-04-avsnitten om #426)
+
+- #426 är STÄNGD (ej mergad); staplingen #483–#489 + #490 är mergad i main. "Merge i ordning"/"draft"-raderna nedan är historik.
+- Coverage på main `4ac9c64`: 91/121 regler VERIFIED, 116/231 kontrakt PASSED (inte 55). Öppet: DB-01..06, GOV-01/04/05/06/08, IMP-01/02/03/05, ENV-02/05/06/07/08/10, OPS-03/04/05, TR-05/08/09/10, TEN-09, P-08.
+- Produktionsmigrationer: uppgiften "ingen applicerad" är daterad 2026-10-04 och ej omverifierad; kontrollera mot produktionsschemat innan något antas.
+- Nästa: välj kluster enligt AGENTS.md "Shared work" (öppna PR:ar ~30, mest SC-bevis) och fortsätt regel för regel.
+
 ## ENV-03 + IMP-04 — 2026-10-04 (claude/env-03-imp-04)
 
 - Godkända (+AT). GOV-03 i #505, OPS-02 i #507. Nästa lediga: DB-01 fp-check (kolla #491).

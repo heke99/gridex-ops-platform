@@ -1,3 +1,7 @@
+## Aktuellt läge — 2026-10-05 (ersätter 2026-10-01-överlämningen nedan; äldre avsnitt är historik)
+
+Main `4ac9c64`. #426 är stängd/ej mergad och ersatt av #483–#490 (alla mergade). Coverage: regler 91/121 VERIFIED, kontrakt 116/231 PASSED; klara kluster ESCO, ACK, U, AI. Senaste avslutade OPS hardening-push på main: `8f3b42f` (2026-10-04, success, inkl. native). Push-körningar efter det är cancelled av concurrency; native på exakt `4ac9c64` är inte bevisad. Detaljer: `.agent-memory/handover.md`.
+
 ## Sparad överlämning — 2026-10-01 (aktuell)
 
 Användaren bad om commit/sammanfogning/publicering och ny chatt. Runtime/integrationsversion `d396c2284f692a84dc961ee04935acb40a69c908`, tree `f20f8d843042f8b725c417c4e55670bf4d2227ad`, branch `codex/ediel-composed-rules-20261001`; senare dokument-HEAD läses från Git. P15, OPS/ACK134500 och H142000 med terminal expression-materialization är färdiga och real-mergade. Slutkandidat inte fryst, qualifiedCodeSha=NULL och heavy/final qualification NOT_RUN. Main/#310/#418/#422 orörda; ingen ny PR.

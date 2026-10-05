@@ -1,16 +1,9 @@
-## Aktuell arbetsgren — 2026-10-02 (gäller före allt nedan)
+## Aktuellt läge — 2026-10-05 (ersätter 2026-10-02-sektionen om #426)
 
-Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426 mot main, HEAD `0f61f08f57aedc6c0cc6a442829e16cc75064e67`. main (#425/#427/#428/#429) är inmergad i grenen (257eacbc). Användaren beslutade: EN PR, inga omskrivna migrationer, merga #426 när CI är grön och fortsätt sedan masterplan v2. Före faktisk merge: bekräfta deploy-migrationsordning (grenens migrationer har tidsstämplar före main:s 20261001210000 → `db push` kräver --include-all) och att merge inte kör produktionsmigration utan separat tillstånd.
-
-Gjort denna session (alla pushade): forward-migrationer 142610–142690 och 20261001220000 (switch-send, PRODAT primär objektfacett-cykel, retention-purge inkl. storage, dispatch LK wire identity); TS-fixar Z03 (processType, outbound_request_id, originalVersion, subadress); fixturrättningar (UTILTS-förbrukning 1→67/143, retention 3/3, closure-wire 46/46, mixed delvis); datumfixtur för svensk midnatt (0f61f08f); radbudget (helpers/utiltsConsumptionParties.ts).
-
-CI: smoke/verify/targeted/browser-public/tenant-integrity gröna. Röda: clean-migration-replay (hela native-sviten är absolut grind), coverage+quality-release-gates (datumfel, rättat i 0f61f08f — verifiera), pr-certificate (aggregat). Senaste fulla lokala native (före fixar): 387/583 fel.
-
-Nästa åtgärd: (1) läs CI för 0f61f08f; (2) fortsätt native-kluster: UTILTS-förbrukning 505-återanvändning (18, bedöm testavsikt), initial-owner-context (9), R1–R4; sedan correction-context, source-owner, S02, bilateral H, service-evidence; (3) full native-körning i lokal harness; (4) frysning: autentisk typ/schema-baslinje från ren replay; (5) när all CI grön: merge #426 enligt villkoren ovan, därefter nästa masterplan-steg (leveransmatris F0–F7).
-
-Lokal harness: `/tmp/claude-0/native-harness-ref.sh` (HARNESS_HOLD=1; släpp med `touch /tmp/claude-0/release`), native: `PATH=/tmp/claude-0/bin:$PATH GRIDEX_NATIVE_STATUS=/tmp/claude-0/runner/status.json npx vitest run --config scripts/ediel-source-owner-native.config.ts <fil>`. Fyndregister: quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json.
-
-Skill-routing: aktiva — systematic-debugging (varje rött test till rotorsak), verification-before-completion (inget "klart" utan körning), supabase + supabase-postgres-best-practices (forward-migrationer, RLS/grants), test-driven-development (fixturer före kod), fp-check (före produktfix), receiving-code-review/finishing-a-development-branch (vid merge). Villkorliga: variant-analysis (samma felklass i andra buckets, NATIVE-OPEN-10), security-threat-model vid nya grants. Överhoppade: web-design-guidelines, performance-*, writing-skills — ingen UI/prestanda/skill-ändring i scope.
+- **#426 är STÄNGD, inte mergad** (stängd 2026-10-04 08:14, head `a8d0ec7` finns inte i main). Den delades i #483–#489 (2a core, 2b TEN/ESCO/AI, 2c ACK, 2d UTILTS, 2e PRODAT, 2f retention, 3 UI) + #490 (handover). Ingen åtgärd kvar på #426; "merga #426" och "387/583 native-fel" är inaktuella.
+- **Verifierad CI:** på #426:s sista head var clean/upgrade-migration-replay, quality-release-gates, coverage, verify, smoke, targeted, tenant-integrity, browser-public och pr-certificate gröna. Senaste *avslutade* OPS hardening-push på main är `8f3b42f` (2026-10-04 16:35, success, inkl. hela native-sviten). Push-körningarna för main-merge efter det (inkl. `4ac9c64`, #569) är CANCELLED av concurrency-gruppen när nästa merge landade, så `4ac9c64` har ingen egen avslutad main-CI. Kontrollerad evidens för den är respektive PR:s gröna pre-merge-CI. Native-sviten på exakt `4ac9c64` är alltså INTE bevisad på main; verifiera med nästa avslutade main-körning.
+- **Täckning (coverage.json på main `4ac9c64`):** regler 91/121 VERIFIED (25 NOT_VERIFIED, 5 PARTIAL); kontrakt 116/231 PASSED (97 NOT_EXECUTED, 18 PARTIAL). Klara kluster: ESCO, ACK, U, AI. Öppet: DB-01..06, GOV-01/04/05/06/08, IMP-01/02/03/05, ENV-02/05/06/07/08/10, OPS-03/04/05, TR-05/08/09/10, TEN-09, P-08.
+- **Nästa åtgärd:** välj ett kluster enligt "Shared work" (kolla öppna PR:ar, nu ~30, mestadels SC-bevis) och fortsätt regel för regel.
 
 ## Sparad överlämning — 2026-10-01 (aktuell)
 
