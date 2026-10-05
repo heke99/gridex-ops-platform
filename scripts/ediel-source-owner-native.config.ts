@@ -44,6 +44,7 @@ export default defineConfig({
     'scripts/ediel-customer-retention-native.test.ts',
     'scripts/ediel-transport-exception-native.test.ts',
     'scripts/ediel-service-evidence-native.test.ts',
+    'scripts/ediel-sc-003-005-service-native.test.ts',
     'scripts/ediel-esco-10-11-projection-native.test.ts',
     'scripts/ediel-dsn-source-native.test.ts',
     'scripts/ediel-regulated-supply-ground-native.test.ts',

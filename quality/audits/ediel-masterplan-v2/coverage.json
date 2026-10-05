@@ -1383,8 +1383,17 @@
     },
     {
       "id": "SC-003",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/sc003-sc005-independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/sc003-sc005-independent-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/native-4c369229/receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/native-4c369229/native-junit.xml",
+        "scripts/ediel-sc-003-005-service-native.test.ts",
+        "__tests__/ediel-sc-003-provider-legal-dgi.test.ts",
+        "__tests__/ediel-sc-005-shared-dgi-projections.test.ts"
+      ]
     },
     {
       "id": "SC-004",
@@ -1401,8 +1410,17 @@
     },
     {
       "id": "SC-005",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/sc003-sc005-independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/sc003-sc005-independent-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/native-4c369229/receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc003-sc005/native-4c369229/native-junit.xml",
+        "scripts/ediel-sc-003-005-service-native.test.ts",
+        "__tests__/ediel-sc-003-provider-legal-dgi.test.ts",
+        "__tests__/ediel-sc-005-shared-dgi-projections.test.ts"
+      ]
     },
     {
       "id": "SC-006",
