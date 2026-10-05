@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "reviewer": "root/sc051_sc068_final_review",
+  "reviewed_at_utc": "2026-10-05T19:29:50.247918+00:00",
+  "verdict": "READY_EXACT_ONE_BYTE_ANCHORED_READER_PRINT_MATCH_CORRECTION",
+  "before": {
+    "path": "/tmp/supplier-canonical-guard-corrected-runner-325.cjs",
+    "sha256": "2728a54d8508e6ac8f2d8a6ca35199dc803a51d10d73306267e2e2736649a94f"
+  },
+  "after": {
+    "path": "/tmp/supplier-canonical-guard-corrected-runner-v2-325.cjs",
+    "sha256": "1937ab14b3ff9fd84e4c1f2f762c477b135b87fb632ffd248d068f851798f7b3"
+  },
+  "exact_delta": {
+    "bytes_added": 1,
+    "bytes_removed": 0,
+    "sole_change": "Add m flag only to the final two-direct-statements committedAckEffect regex; literal source/identity/type/error/return requirements unchanged."
+  },
+  "reason": "statementCode joins direct statements with newline; the final if/return pair follows earlier direct input/RPC/summary statements. Original ^ without m incorrectly requires that late pair at whole-body beginning. Multiline anchors select actual complete direct statement lines within the same unique named comment-free readCommittedInboundAck body. No authority/native/result/null-arm predicate removed.",
+  "prior_independent_review": {
+    "path": "/workspace/agent-review-checkpoints/supplier-static-supply-ack-c140-corrected-proposal-independent-ready.json",
+    "sha256": "d5de2c11d8567647927d667ca841b80ae8eb400445a9d07f70501fdb6d07b8f1"
+  },
+  "writer_diagnostic": {
+    "path": "/workspace/agent-review-checkpoints/supplier-guard-325-corrected-ack-printer-diagnostic.log",
+    "sha256": "a2bf5ab02bc775cb241b9f92129b765737f30f231159b6892490a491015c5c3b",
+    "scope": "Read-only actual AST-printer diagnostic; not new product execution by reviewer."
+  },
+  "preservation": {
+    "whole_runner_equal_except_one_added_m": true,
+    "working_runner_observed_at_review": "1937 v2 already applied concurrently by writer/root; not changed by reviewer",
+    "all_35_assertions_33_others_unchanged_by_this_delta": true,
+    "production_source_unchanged": true
+  },
+  "verification": {
+    "reviewer_execution": "NONE; file reads/hash/byte comparison only",
+    "existing_author_red": "Writer reports corrected2728 directremaining supply pass/ACK fail after24OK; no full-green result inferred.",
+    "full_supplier_chain": "NOT_GREEN; independent prior billing source predicate remains separate allocation.",
+    "next": "Root controls next bounded guard/child verification; writer retains lease."
+  }
+}
