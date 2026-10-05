@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="54" failures="4" errors="0" time="0.28504581">
+    <testsuite name="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" timestamp="2026-10-05T13:41:11.274Z" hostname="7547c6d9e08f" tests="54" failures="4" errors="0" skipped="0" time="0.28504581">
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation" time="0.060112265">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; the actual outer inbound entry skips an outbound Z02 before business processing" time="0.003953344">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; actual tenant resolver compares physical recipient with supplier DTO" time="0.002409803">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; actual tenant resolver compares physical recipient with esco-only DTO" time="0.001514314">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; actual tenant resolver compares physical recipient with wrong-legal DTO" time="0.002980846">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; actual tenant resolver compares physical recipient with wrong-transport DTO" time="0.000577177">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing required LIN in the real field consumer" time="0.01298273">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing required RFF:LI in the real field consumer" time="0.010184294">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing required RFF:Z05 in the real field consumer" time="0.02036955">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing required NAD:UD in the real field consumer" time="0.010319445">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; rejects missing required NAD:IT in the real field consumer" time="0.006879124">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; refuses DGI application reference in the actual Z02 policy" time="0.00156294">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification" time="0.00541101">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds absent candidate references without enqueuing or mutation" time="0.002570238">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds ambiguous candidate references without enqueuing or mutation" time="0.002466907">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds foreign-only candidate references without enqueuing or mutation" time="0.004151865">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds incomplete correlation proof and allows review only" time="0.00457472">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds incomplete payload proof and allows review only" time="0.005495381">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds incomplete snapshot proof and allows review only" time="0.002381649">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds incomplete atomic applied proof and allows review only" time="0.002457169">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds incomplete atomic receipt proof and allows review only" time="0.002430847">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; does not promote a blocked job even with a complete-looking result" time="0.00246158">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; does not promote a needs_review job even with a complete-looking result" time="0.002093155">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; propagates a declared actor-port denial before any request query or worker effect" time="0.001474882">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; holds worker enqueue failure without replacing a verified snapshot" time="0.002430323">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint" time="0.015936232">
+            <failure message="expected { …(2) } to deeply equal { …(4) }" type="AssertionError">
+AssertionError: expected { …(2) } to deeply equal { …(4) }
+
+- Expected
++ Received
+
+  {
+-   &quot;gridAreaId&quot;: &quot;PRIOR-NET&quot;,
+-   &quot;lineItemReference&quot;: &quot;PRIOR-VERIFIED-LI&quot;,
+-   &quot;pointId&quot;: &quot;735123456789012345&quot;,
+-   &quot;sourceMessageId&quot;: &quot;00000000-0000-4000-8000-000000000020&quot;,
++   &quot;businessState&quot;: &quot;grid_owner_information_received&quot;,
++   &quot;sourceEdielMessageId&quot;: &quot;00000000-0000-4000-8000-000000000007&quot;,
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:264:40
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;L&apos; supplier (&apos;Z22&apos;) &gt; the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result" time="0.004611712">
+            <failure message="expected { …(2) } to deeply equal { …(3) }" type="AssertionError">
+AssertionError: expected { …(2) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   &quot;atomicCoreReceipt&quot;: &quot;00000000-0000-4000-8000-000000000040&quot;,
+-   &quot;lineItems&quot;: [
+-     {
+-       &quot;gridArea&quot;: &quot;NET&quot;,
+-       &quot;li&quot;: &quot;OWN-Z01-LI&quot;,
+-       &quot;pointId&quot;: &quot;735123456789012345&quot;,
+-     },
+-   ],
+-   &quot;sourceMessageId&quot;: &quot;00000000-0000-4000-8000-000000000007&quot;,
++   &quot;businessState&quot;: &quot;grid_owner_information_received&quot;,
++   &quot;sourceEdielMessageId&quot;: &quot;00000000-0000-4000-8000-000000000007&quot;,
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:277:40
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation" time="0.010302165">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; the actual outer inbound entry skips an outbound Z02 before business processing" time="0.001111326">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; actual tenant resolver compares physical recipient with supplier DTO" time="0.000550666">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; actual tenant resolver compares physical recipient with esco-only DTO" time="0.000375867">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; actual tenant resolver compares physical recipient with wrong-legal DTO" time="0.000411753">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; actual tenant resolver compares physical recipient with wrong-transport DTO" time="0.002506362">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing required LIN in the real field consumer" time="0.004153021">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing required RFF:LI in the real field consumer" time="0.009139824">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing required RFF:Z05 in the real field consumer" time="0.007397748">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing required NAD:UD in the real field consumer" time="0.005663066">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; rejects missing required NAD:IT in the real field consumer" time="0.008278583">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; refuses DGI application reference in the actual Z02 policy" time="0.000352357">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification" time="0.00252644">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds absent candidate references without enqueuing or mutation" time="0.002177827">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds ambiguous candidate references without enqueuing or mutation" time="0.002252914">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds foreign-only candidate references without enqueuing or mutation" time="0.001752472">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds incomplete correlation proof and allows review only" time="0.002622344">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds incomplete payload proof and allows review only" time="0.003426966">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds incomplete snapshot proof and allows review only" time="0.002622584">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds incomplete atomic applied proof and allows review only" time="0.002423033">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds incomplete atomic receipt proof and allows review only" time="0.002710631">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; does not promote a blocked job even with a complete-looking result" time="0.002537757">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; does not promote a needs_review job even with a complete-looking result" time="0.001383385">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; propagates a declared actor-port denial before any request query or worker effect" time="0.000823265">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; holds worker enqueue failure without replacing a verified snapshot" time="0.001902691">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint" time="0.004463602">
+            <failure message="expected { …(2) } to deeply equal { …(4) }" type="AssertionError">
+AssertionError: expected { …(2) } to deeply equal { …(4) }
+
+- Expected
++ Received
+
+  {
+-   &quot;gridAreaId&quot;: &quot;PRIOR-NET&quot;,
+-   &quot;lineItemReference&quot;: &quot;PRIOR-VERIFIED-LI&quot;,
+-   &quot;pointId&quot;: &quot;735123456789012345&quot;,
+-   &quot;sourceMessageId&quot;: &quot;00000000-0000-4000-8000-000000000020&quot;,
++   &quot;businessState&quot;: &quot;grid_owner_information_received&quot;,
++   &quot;sourceEdielMessageId&quot;: &quot;00000000-0000-4000-8000-000000000007&quot;,
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:264:40
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts" name="AT-Z02 &apos;LK&apos; supplier (&apos;Z23&apos;) &gt; the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result" time="0.002861825">
+            <failure message="expected { …(2) } to deeply equal { …(3) }" type="AssertionError">
+AssertionError: expected { …(2) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   &quot;atomicCoreReceipt&quot;: &quot;00000000-0000-4000-8000-000000000040&quot;,
+-   &quot;lineItems&quot;: [
+-     {
+-       &quot;gridArea&quot;: &quot;NET&quot;,
+-       &quot;li&quot;: &quot;OWN-Z01-LI&quot;,
+-       &quot;pointId&quot;: &quot;735123456789012345&quot;,
+-     },
+-   ],
+-   &quot;sourceMessageId&quot;: &quot;00000000-0000-4000-8000-000000000007&quot;,
++   &quot;businessState&quot;: &quot;grid_owner_information_received&quot;,
++   &quot;sourceEdielMessageId&quot;: &quot;00000000-0000-4000-8000-000000000007&quot;,
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:277:40
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>
