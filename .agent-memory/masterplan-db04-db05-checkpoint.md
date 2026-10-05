@@ -2,6 +2,8 @@
 
 - Branch claude/magical-cerf-55zxau from main 498ebd1. CLAIM: #530 comment 5994563449.
 - DB-04 (2026-10-05): the existing native EXPLAIN test (`scripts/ediel-transport-data-query-plan-native.test.ts`) was run by no CI job. Added: masterplan tag, no-Seq-Scan assertion, `quality/audits/ediel-masterplan-v2/db04-query-plan/native.config.ts`, `.github/workflows/ediel-db04-native.yml` (push/dispatch on this branch).
-- Status: NOT run locally (no Docker Hub image, 429; no supabase CLI). Local-verified: none. coverage.json NOT changed. DB-04 stays NOT_VERIFIED until the CI run is green and the card is reviewed against the test.
+- 2026-10-05 12:40Z CI-GREEN (native, not local): run 37310758561 @9a8ffd7, 1/1 test passed (37s): 7 plans, expected index used, no Seq Scan, <500ms, 2 tenants, 0 leaks. Artifact db04-query-plans.
+- BLOCKER for approval: `scripts/ediel-masterplan-test-coverage.cjs` only scans `__tests__/**/*.test.ts` and `scripts/test-ediel-*.cjs`; `--check` fails 'VERIFIED but no test tagged' for a native-only test (reproduced; coverage.json restored, DB-04 stays NOT_VERIFIED). Needs integration-owner decision on how native tests are recognised (shared file, not edited by me).
+- Earlier: NOT run locally (no Docker Hub image, 429; no supabase CLI). Local-verified: none. coverage.json NOT changed. DB-04 stays NOT_VERIFIED until the CI run is green and the card is reviewed against the test.
 - DB-05: not started (read existing `scripts/helpers/ediel-*retention*` first).
 - Next: push, read the workflow run, then decide DB-04 approval.
