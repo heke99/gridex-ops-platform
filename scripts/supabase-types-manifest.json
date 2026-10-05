@@ -473,5 +473,11 @@
       }
     },
     "reason": "Prior genuine capture preserved as historical provenance; superseded only for this exact GOV-08 own-prefix by authentic capture37241355536. No native/parity acceptance inferred."
+  },
+  "integrated_main_provenance": {
+    "commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+    "manifest_path": "scripts/supabase-types-manifest.json",
+    "manifest_sha256": "ec3346fe4b0ebb28ca1054437f3434e3819120b6a192a9df730dd5b2ede208f3",
+    "qualification": "The complete incoming main manifest remains in this immutable Git commit. Its historical capture does not qualify the combined GOV08 source prefix; fresh own-prefix capture is pending."
   }
 }
