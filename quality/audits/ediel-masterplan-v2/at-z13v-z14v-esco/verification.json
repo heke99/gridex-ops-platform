@@ -1,0 +1,165 @@
+{
+  "baseCommit": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+  "node": "22.23.0",
+  "claim": "#5305992741441",
+  "coverage": "Both owned acceptance rows remain NOT_EXECUTED; no foreign/main row change.",
+  "newFocusedTests": {
+    "files": 2,
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "rawLog": "final-tests.log",
+    "rawJUnit": "final-tests.xml"
+  },
+  "localChecks": {
+    "testsTypeScript": 0,
+    "scopedLint": 0,
+    "frozenIntegrity": {
+      "exit": 0,
+      "originalFiles": 33,
+      "rules": 121,
+      "acceptanceContracts": 231
+    },
+    "supportedTaggedGate": {
+      "exit": 0,
+      "executedBase": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+      "ids": 352,
+      "approved": 207,
+      "taggedGreen": 229,
+      "taggedFailing": 0,
+      "untagged": 123,
+      "rawLog": "supported-tagged-gate.log"
+    }
+  },
+  "failures": [
+    {
+      "step": "initial owned tests",
+      "passed": 23,
+      "failed": 1,
+      "cause": "NAD mutator assumed absent trailing party components; selected index-1. Only own mutator corrected; actual changed tokens now asserted.",
+      "raw": [
+        "initial-tests.log",
+        "initial-tests.xml"
+      ]
+    },
+    {
+      "step": "initial tests typecheck",
+      "exit": 2,
+      "cause": "generic draft optional row fields; explicit presence guards added, no product change/cast/fallback"
+    },
+    {
+      "step": "second tests typecheck",
+      "exit": 2,
+      "cause": "remaining optional sender fields narrowed with the same explicit guard"
+    },
+    {
+      "step": "initial artifact fetch",
+      "result": "403; zero bytes; connector retrieval later qualified true bytes"
+    }
+  ],
+  "wholeCardReviews": {
+    "AT-Z13V-ESCO": {
+      "verdict": "PARTIAL",
+      "reviewer": "at_z13v_requirement_review",
+      "remaining": [
+        "Frozen begäran-after-Z14 wording conflicts with ST-E01 pending request.",
+        "Joined received Z13 CONTRL/APERAK, native Z14N/no-supply and full forbidden-input snapshots."
+      ],
+      "reusedNative": "native-reuse.json"
+    },
+    "AT-Z14V-ESCO": {
+      "verdict": "PARTIAL",
+      "reviewer": "at_z14v_requirement_review",
+      "remaining": [
+        "Actual Z14 emitted ACK pair.",
+        "Native Z15VH history termination.",
+        "Complete missingR/D and other prohibited-input durable no-effect receipts."
+      ],
+      "finiteObservation": "Independent code KEEP / spec NARROW confirms pure application acceptance when222/326 absent. Genuine registry/native effects and original grey-field exception still require source-owner qualification.",
+      "reusedNative": "native-reuse.json"
+    }
+  },
+  "inputSHA256": {
+    "docs/ediel/masterplan-v2/registers/acceptance_tests.json": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+    "docs/ediel/masterplan-v2/registers/rules.json": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+    "docs/ediel/masterplan-v2/registers/state_transitions.json": "c770025dddec7e34a89fdf0bcb2632726174dee1e2f298b51afd68430acc51ff",
+    "docs/ediel/masterplan-v2/registers/source_manifest.json": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+    "docs/ediel/masterplan-v2/annex/prodat_field_matrix_source.json": "4909fb87a170bb19af4a61cda196facc1fe139e74f89fccdfb534fea73353b46",
+    "lib/ediel/intent/renderers/servicePermission.ts": "f3d9532c6fc20bbbfff9a5116128272aa15c15f04da749465d9e413520ed7b29",
+    "lib/ediel/services/reporting.ts": "ad3eb1339a1dd0a4e03482745d8c54611b3f9d042c50af29b7fa80297c70061c",
+    "lib/ediel/prodat/prodatReportingPermissionAuthority.ts": "016be02bbf2752c1972ec519bde7bcf6436c441bf58617c07ef78a9ea727d26b",
+    "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts": "e675bbb169eb7e19ab10327a1a127dc4ee322fa1383956331b6273c9a1142951",
+    "lib/ediel/prodat/buildProdat.ts": "d21169c155b515720839f7469a8f9ae95a0f7ad2c3f6d83121df08eb0d184652",
+    "lib/ediel/rulebook/prodatZ14Policy.ts": "a976167f6c85c71c0e8796f31d370c956e4bf376fa32823d075ca8d1b9349731",
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+    "lib/ediel/rulebook/fieldMatrix.ts": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+    "lib/ediel/core/runtimeDecision.ts": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+    "lib/ediel/prodat/prodatApplicationObjectValidation.ts": "72dd6d730ff55a55cde0969f4bb7465619b5a2a91439104f5365fbf939d36b3d",
+    "lib/ediel/permissions/permissionMarketTransition.ts": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+    "lib/ediel/flows/prodatServicePermission.ts": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c",
+    "lib/ediel/flows/inboundProcessing.ts": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+    "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql": "839feb43b8b2f4bc2b9147e654a3150fe1ce3de3ade495b470a982132e4c5675",
+    "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql": "842cf2a8342f4164dd61e7d7ca2e2eb577b7cbb844e978c49be141ad5720a3af",
+    "__tests__/fixtures/prodat-permission-ack.ts": "7fba884dbaeceefb2cf56f3fc0475c14bae7afed0d1fe1b075ccf72ea6dc9ce7",
+    "__tests__/fixtures/prodat-reporting-permission.ts": "3f1275f0597871f75d54b436745df483946a301d34da9d1f80de307b89ac1b08",
+    "__tests__/fixtures/prodat-energy-product.ts": "cea6d2038dd33cdce19312d0227761229c7af3855964a63a389e2119a526adb0",
+    "__tests__/fixtures/prodat-register.ts": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+    "__tests__/fixtures/prodat-identity.ts": "d590eeb86518b472943b70b4a09bc29a7c376e2aadf52c52e40ad6e46121fe9c",
+    "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6"
+  },
+  "receiptSHA256": {
+    "native-reuse.json": "cd91e0753b4eb4b87f54e58bf0a1913b3f7b6cb2d9363cccbc238305e060f6c8",
+    "current-tests.xml": "33f4cd5a1557369a476869929df96899daa163a61571d4d53a286cc2831ee5df",
+    "current-tests.log": "6da11bbdbade5bc3e19ddc802fe94825747b0e89c0dbc702e4e3e52e7cb748f2",
+    "supported-tagged-gate.log": "d71a800d2b1b41c3818f8808ba8a407979e9a7a6d1681aa8b034da04932d14d2",
+    "initial-tests.xml": "93ba91b52c8c24d257f2dde39ab20c48dd47148114aaa89bb7175e1c36786be6",
+    "final-tests.xml": "8c29029207b9087cd054273606d8d1b5194a47e5d26a16d4420daff99d0bcd6a",
+    "final-tests.log": "56677ebc46b747331f574d640b39660362ae08de96a175ca0191d2640f3e061d",
+    "canonical-preservation-RED.log": "6fa02e55410acbf1520979505e3cd129ccaecba9b950d8e9f16447a36b73b1a0",
+    "current-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "initial-types.log": "63299f461be8fcdf90aa4e302214179bce8690d08654b302772000dcc2849a10",
+    "canonical-missing-fields-probe.mjs": "9795f5d52c325c20835735c1bfd03efb28f9b98d23ef2f994f1920e71da7c475",
+    "canonical-observation.log": "571eb547315d386b36c928452271d662ce1b6b20832706a8f1c1582f0c529e67",
+    "initial-tests.log": "1f26368ee69ee6026d1276c0a2afecdfa929815df891dea5f9d8a6e4fb3ba8d5",
+    "qualified-existing-native.xml": "fbf82187719cc49dcdb7494fe4794a527141d88a9d39f7614d0cd075a407a8e4",
+    "second-types.log": "647f93fa117219fc89692b969ae1e07b75b658c5081e315da745ef06159d594e",
+    "canonical-observation/missing326.edi": "ac9ce39c01cf815724dd1d1e2482371f116bfe5bae8913e5a323b74946d6d93b",
+    "canonical-observation/baseline.edi": "cccbbd48b553db3c40c50055cfd4f16e918dd99424519e5b13fb1ba9b8879124",
+    "canonical-observation/observations.json": "4961c31da4cf0669d87981e4fe43255bf624c5b3115c7023c98d96038506786b",
+    "canonical-observation/missing222.edi": "3411f06cec08c7b455c81cd268b47e290dbb4bdb54d357fe562fe6fab4728300"
+  },
+  "mainAdoption": {
+    "commit": "85b6d6602ab0d060a86702847641156470f73234",
+    "previousBase": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+    "delta": "Only two new independent scenario suites, their coverage rows/checkpoints and an existing read-only review packet; no runtime/source/native input change.",
+    "allBoundedInputHashesUnchanged": true,
+    "allQualifiedNativeInputsUnchanged": true
+  },
+  "canonicalObservation": {
+    "raw": "canonical-observation/observations.json",
+    "observationExit": 0,
+    "normativePreservationExit": 1,
+    "rawFailure": "canonical-preservation-RED.log",
+    "independentCodeRefutation": "KEEP finite canonical complete application acceptance only; synthetic no-network registry holds/no owner. No admitted or durable effect demonstrated.",
+    "independentSpecRefutation": "NARROW; frozen D/subtype!=N requirements support the contrast; original grey-field shading unavailable. No specific national ERC/negative ACK obligation or native effect asserted."
+  },
+  "codeRefutation": {
+    "verdict": "KEEP finite only",
+    "reviewer": "z14_missing_fields_refute_code",
+    "observed": "Full pure canonical facets accept both omissions; outbound overlay rejects exactly222/326. Bindings validate source/partition, not missing fields.",
+    "limit": "No opaque application owner; no-network registry returns manual_review/CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE and no positive APERAK. Genuine admission, effect and final ACK unproved."
+  },
+  "specRefutation": {
+    "verdict": "NARROW",
+    "reviewer": "z14_missing_fields_refute_spec",
+    "source": "P26.A matrix:556–577/845–866 and conditional cells:171–180/303–312 make subtype!=N required; capturedP122:1515–1521 maps S17→V. Fields326/222 placements exact.",
+    "limit": "P119:1463–1464 grey-field receiver exception; text/tables lose original shading and PDF/image unavailable. No unconditional national negative APERAK or native-effect claim."
+  },
+  "ownedTechnicalSHA256": {
+    "__tests__/ediel-at-z13v-esco-profile.test.ts": "4f62d397e48c12b4d5bfc7abe7946fa7f72380813be156a7189e7562c2e06217",
+    "__tests__/ediel-at-z14v-esco-profile.test.ts": "ec6b80c737676ce2a262f84ebb195ace38a7cee4a9bd183b26fc029e1ef445e5",
+    "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/canonical-missing-fields-probe.mjs": "9795f5d52c325c20835735c1bfd03efb28f9b98d23ef2f994f1920e71da7c475"
+  }
+}
