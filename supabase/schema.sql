@@ -59865,7 +59865,7 @@ BEGIN
   END IF;
 
   IF p_expected_updated_at IS NOT NULL AND v_customer.updated_at IS DISTINCT FROM p_expected_updated_at THEN
-    RAISE EXCEPTION USING ERRCODE='40001', MESSAGE='contact_change_version_conflict';
+    RAISE EXCEPTION USING ERRCODE='PT409', MESSAGE='contact_change_version_conflict';
   END IF;
   IF v_customer.status='archived' THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_customer_archived';
@@ -61203,7 +61203,7 @@ BEGIN
     EXECUTE format('SELECT %I FROM public.customers WHERE company_id = $1 AND id = $2 FOR UPDATE', r.field)
       INTO v_current USING r.company_id, r.customer_id;
     IF v_current IS DISTINCT FROM r.previous_value THEN
-      RAISE EXCEPTION 'identity_change_stale' USING ERRCODE = '40001';
+      RAISE EXCEPTION 'identity_change_stale' USING ERRCODE = 'PT409';
     END IF;
     EXECUTE format('UPDATE public.customers SET %I = $1, updated_at = now() WHERE company_id = $2 AND id = $3', r.field)
       USING r.new_value, r.company_id, r.customer_id;
