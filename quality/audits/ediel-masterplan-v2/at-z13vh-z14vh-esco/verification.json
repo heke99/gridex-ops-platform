@@ -54,7 +54,19 @@
     "native": "NOT_RUN",
     "physicalACK": "NOT_RUN",
     "externalMarket": "NOT_RUN",
-    "whitespace": "Unfiltered EXIT2 copied raw EOFs preserved; code/metadata/checkpoint filtered EXIT0; whitespace-qualification.json"
+    "whitespace": "Historical unfiltered EXIT2 and initial publication filter EXIT2 preserved raw copied EOFs; final code/metadata/checkpoint filter EXIT0 with explicit3rawreceipt exclusions, no trim",
+    "exactCandidateReview": {
+      "status": "APPROVE bounded test/evidence only",
+      "reviewedHead": "80af930fdcdf1872dd90f5f1ce25e00fff2e9539",
+      "reviewedTree": "7a7e85ab5c9e95173fa1665bb708ccc7f497949f",
+      "report": "exact-candidate-review.md",
+      "findings": {
+        "critical": 0,
+        "important": 0,
+        "minor": 0
+      },
+      "publicationHeadEquivalence": "PENDING docs-only final hash/diff confirmation"
+    }
   },
   "selectedInputSHA256": {
     "lib/ediel/intent/renderers/servicePermission.ts": "f3d9532c6fc20bbbfff9a5116128272aa15c15f04da749465d9e413520ed7b29",
@@ -95,6 +107,7 @@
   },
   "receiptSHA256": {
     "claim.json": "4ef73e26deb6ffca43a2a3b884745b7c8f38dad277fa595c99c9c9d09b02283b",
+    "exact-candidate-review.md": "fc698ff3186cca5c72dd6506216926b9e634340f2a5a74115378adb165bbf1a5",
     "execution-environment-attempts.json": "fc218285a539db7fa87d4de558d1ca366e876e4759da3ca65eeaef2563415085",
     "final-spec-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
     "final-tests-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -107,13 +120,15 @@
     "independent-z14vh-requirement-review.md": "27ee5d3ea5b4b5f27206651b460e228eaa3d6c66bd7c97b212cce44267039b3e",
     "manifest-initial-failure.json": "3a41deff291f997556784adf7b422c24257fa86daa82ca6842c232af85749491",
     "ownership-before-claim.json": "383105ee13b1750be8981a1e0a69cdb34f93db3b420b58c4063bd4eaf4a10fe2",
+    "ownership-prepublication.json": "5c4ba6343e227b1819dcce6a07ab812f2df95e27106583d8e9ea7d4a64d1e265",
+    "publication-whitespace-initial.log": "61be116dcd32acc9236beeeb45f5cb342c423bf5ddbb7f842cc62c3ddefc19c6",
     "raw-whitespace-initial.log": "6847b51dc0b0350d37e99222df4afad40569e64f147dc270b00f65da6dfd4022",
     "retained-owner-dependencies/ack-continuation-review.json": "a65571e62c436fa12481debf0074d06a8f02380421a01e5972e122c07b5c626d",
     "retained-owner-dependencies/ack-owner-continuation.md": "ccb3d62f58b046a4dc674fe40793da552a5c9a39d914c60433ce327e44d1ead9",
     "retained-owner-dependencies/ack-source-review.md": "cf2f23728acb872def99c717ffab57cb69af6313a124de126e7df13ebc1efc56",
     "technical-candidate-supported-gate.json": "3a504a9bfa574da4aa7a2638a67a77ad15e0659bb582392f422379114aeffc58",
     "technical-candidate-supported-gate.log": "faf89be6c3f53541e5404f1feb7b6eed13fb187788b0816eb891dc5afa150dad",
-    "whitespace-qualification.json": "0e2df12210d6c59b3d69ee74f694b9192d5a73b408667f4165ced00a6f6f5503",
+    "whitespace-qualification.json": "a2881e98103a77afed3efd23b15f8c8ff19a1a1ea79c650a492a76c2291f0436",
     "z13vh-final-tests.log": "3cce10b0c2d054776366716e84d4308b29938b3d71093f45efb90b8568757668",
     "z13vh-final-tests.xml": "3485817c92682871f521741f08818b0d582203c6e7a5ef716c6a67e54080a2b3",
     "z13vh-first-tests.log": "0ffb5c3579d484049a84965998b32bf1a4ee936a78750edd6fdaff99b7dfcc6e",
@@ -180,5 +195,17 @@
   },
   "technicalCommit": "1b57559dfd377ea4dcf969b5ff012a218c1c44b2",
   "technicalTree": "47ad588053ec126507d4414b5195965b569916b7",
-  "prepublicationMain": "fff486f822001d35970f163507b10e17c3692f58"
+  "prepublicationMain": "fff486f822001d35970f163507b10e17c3692f58",
+  "ownershipPrepublication": {
+    "rawSnapshot": "ownership-prepublication.json",
+    "observedAt": "2026-10-05 13:10:48 UTC",
+    "actualMain": "fff486f822001d35970f163507b10e17c3692f58",
+    "comments530": 220,
+    "comments491": 454,
+    "openHeads": 68,
+    "paths": 5368,
+    "collisionBlockers": 0,
+    "wholeNativeOwnershipTransfer": false,
+    "commonHandover": "Retained coordinator alone appends one unique actual-merge line; root will deliver exact merge receipt without editing foreign shared memory"
+  }
 }
