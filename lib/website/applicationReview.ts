@@ -416,8 +416,13 @@ export function assessWebsiteApplicationReadiness(
     "facility_id",
     "facilityId",
     "site_facility_id",
+    "siteFacilityId",
+    "metering_point.site_facility_id",
+    "metering_point.siteFacilityId",
     "anlage_id",
     "anlaggningId",
+    "metering_point.anlage_id",
+    "metering_point.anlaggningId",
   ]);
   const siteAddress = firstText(input, [
     "site.street",
