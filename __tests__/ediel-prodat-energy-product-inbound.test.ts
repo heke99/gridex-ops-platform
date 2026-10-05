@@ -1,3 +1,4 @@
+// masterplan: P-02, AT-P-02
 // masterplan: SC-028
 import {beforeEach,it,expect,vi} from 'vitest'
 import {characteristic} from './fixtures/prodat-register'
