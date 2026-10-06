@@ -1,3 +1,12 @@
+## Autonomous packet selection — 2026-10-06T13:00:25.023661+00:00
+
+Owner requires identical prompts, self-selected eligible pairs, atomic ID/file
+reservations, documented progress and serial green merges. See
+masterplan-reservations.md and masterplan-next-wave-prompt.md. No technical
+packet started; coverage unchanged. Previous PR #617 is delivered at c19610cb,
+with actual receipt on #5306016670441. Publication of this clarification is
+pending; earlier coordinator/allocation text below is historical.
+
 ## Administrative closeout verified — 2026-10-06T11:44:10.912279+00:00
 
 14 OPS PR states/merged flags/heads/branches/original titles and bodies independently checked; Web43 and its branch retained; no old code merged. Workflow and current-state corrections prepared for shared publication; technical plan remains PARTIAL.
