@@ -1,3 +1,37 @@
+## Current delivered ledger — observed 2026-10-06T21:25:05.808507+00:00
+
+Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and
+the #639 archive. Its Git coverage bytes (c453d9ce5d2bca42fd243f7004772a3a6a17818eece37effc4bc14f0b313e934) derive
+113/121 VERIFIED rules + 173/231 PASSED contracts = **286/352**, with eight rules
+and 58 contracts remaining. Candidate PR rows are excluded from these counts.
+Resulting-main full CI/native and formal, counterparty or production approval
+are separate and have no new acceptance claim in this reconciliation.
+Earlier sections below retain their exact historical bytes; their old current,
+pause, counts and next-action labels do not override this dated observation.
+
+Last authenticated execution of #638 `efdb293dc0de074a0dc045bd1d1dc25b3440e206`, run37530076357 /
+job112496883333 / artifact11444711483, is authenticated **2 PASS / 92 FAIL**,
+94 executed, zero skips/errors, native exit1. All2,566 original Git input hashes,
+tree9db207da, official ZIP digest/CRC and three redacted members qualify. Forty
+cases stop at operational_route_missing, fifty at current EL dispatch-source
+qualification and two at POA archive zero-row write setup. Zero correlation
+diagnostics were reached; these failures do not prove the intended role,
+correlation, R/D or effects clauses. The two already-correct Z03/Z03LK bypasses
+passed. Current successor f26ea33309f99cb13263adfa1e65ee18eb4056e2 is published,
+source-only reviews5434731205/5434732742 qualify strict feedback; native37533383327 /
+job112508107719 is queued and current94 NOT_RUN. Older execution cannot qualify
+the successor. Original34d8/76bc RED and strict628/633 scope remain preserved.
+
+#639 merged at21:11:40Z into56e58b after all nine mandatory source-head
+checks and independent source/main-compatibility approval6025555445. The exact
+6,439-byte #631 e82 snapshot/SHA919fd864d129b0bae5f24b3acb1549548d4eb025af584b71e8a97cc2b8e1c679
+is retained as HISTORICAL_SUPERSEDED at
+quality/audits/ediel-masterplan-v2/retained-memory-631-20261006/masterplan-status-20261006.json.
+Original #631 was owner-closed unmerged at21:13:40Z with its branch preserved;
+639 is archival preservation, not a duplicate technical delivery or new code
+approval. Old307 memory/four-path and2f9 merge resources are confirmed404
+6025580806; a new role plus all nine exact file refs is required for this operation.
+
 ## Current actual deliveries and reserved continuation — observed 2026-10-06T18:36:53.464635+00:00
 
 Actual main `24720181a5a0c27644d2d31fe39bd843299000ea` (tree `fa454ab2f2fe94fb88ccf089eb940a7080e13b52`) includes #626 at

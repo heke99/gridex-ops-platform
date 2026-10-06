@@ -1,3 +1,35 @@
+## Current Git ledger and genuine observation qualification — 2026-10-06T21:25:05.808507+00:00
+
+Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and
+the #639 archive. Its Git coverage bytes (c453d9ce5d2bca42fd243f7004772a3a6a17818eece37effc4bc14f0b313e934) derive
+113/121 VERIFIED rules + 173/231 PASSED contracts = **286/352**, with eight rules
+and 58 contracts remaining. Candidate PR rows are excluded from these counts.
+Resulting-main full CI/native and formal, counterparty or production approval
+are separate and have no new acceptance claim in this reconciliation.
+Earlier sections below retain their exact historical bytes; their old current,
+pause, counts and next-action labels do not override this dated observation.
+
+Last authenticated execution of #638 `efdb293dc0de074a0dc045bd1d1dc25b3440e206`, run37530076357 /
+job112496883333 / artifact11444711483, is authenticated **2 PASS / 92 FAIL**,
+94 executed, zero skips/errors, native exit1. All2,566 original Git input hashes,
+tree9db207da, official ZIP digest/CRC and three redacted members qualify. Forty
+cases stop at operational_route_missing, fifty at current EL dispatch-source
+qualification and two at POA archive zero-row write setup. Zero correlation
+diagnostics were reached; these failures do not prove the intended role,
+correlation, R/D or effects clauses. The two already-correct Z03/Z03LK bypasses
+passed. Current successor f26ea33309f99cb13263adfa1e65ee18eb4056e2 is published,
+source-only reviews5434731205/5434732742 qualify strict feedback; native37533383327 /
+job112508107719 is queued and current94 NOT_RUN. Older execution cannot qualify
+the successor. Original34d8/76bc RED and strict628/633 scope remain preserved.
+
+621: actual merge6025141806/current099 all16 applicable gates and authenticated11
+native PASS; 639: actualmerge6025555445/all9 required source-head checks PASS,
+exact historical archive bytes and currentmain compatibility verified.
+637 current23b native2PASS/all2587 inputs6025531163; full mandatory head result
+pending. 635 current32, 636 current39, revised62922/ACL/capture and TR09/DB01
+new21 are pending qualification. No resulting-main full/native/parity/browser,
+market or deployment result is inferred from this documentation operation.
+
 ## Autonomous reservation verification — 2026-10-06
 
 GitHub atomic create-ref: two concurrent contenders → one successful acquisition,
