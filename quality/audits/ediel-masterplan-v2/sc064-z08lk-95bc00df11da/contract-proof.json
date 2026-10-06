@@ -1,0 +1,113 @@
+{
+  "scope": "Code contract acceptance; authentic market, agreement and counterparty activation remain separate.",
+  "agent": "codex-20261006-95bc00df11da",
+  "packet": "6c0f6bee-1d98-4bec-a2f8-b8ff3889d009",
+  "executed_source": "67d5cedc375b31aae92db1e6a22a794e04da0780",
+  "executed_tree": "96e7cbe74e72ec87f69ca98c0a7c4083fd6ba540",
+  "base_main": "c05625c71ada1023ef73749c51fbebf2af0673fb",
+  "component_delivery": {
+    "number": 625,
+    "main": "c05625c71ada1023ef73749c51fbebf2af0673fb"
+  },
+  "contract_review": {
+    "SC-064": "Independent whole literal APPROVE at executed source",
+    "AT-Z08LK-SUPPLIER": "Independent whole literal APPROVE at executed source"
+  },
+  "components": {
+    "node": "22.23.3",
+    "own_passed": 40,
+    "independently_passed": 40,
+    "finite_ports": "SMTP and read-only/auth/dedupe/version/customer/contract qualification ports explicitly bounded; actual validator/finalizer and consumers execute."
+  },
+  "full_unit": {
+    "source": "802f9363bbba4012e580a83b5d2079d98bcc3147",
+    "files": 884,
+    "passed": 11859,
+    "failed": 0,
+    "skipped": 0,
+    "exit": 0,
+    "seconds": 285.95,
+    "source_delta": "Only native matcher sequencing changed thereafter."
+  },
+  "native": {
+    "SC-064": {
+      "run": 37493991484,
+      "job": 112373710893,
+      "artifact": 11426928665,
+      "zip_sha256": "7dec468f93c815ab33bb31fab993820db2f209851d45157db2de4bccb46d4e3f",
+      "api_digest_matched": true,
+      "checkout": "67d5cedc375b31aae92db1e6a22a794e04da0780",
+      "tree": "96e7cbe74e72ec87f69ca98c0a7c4083fd6ba540",
+      "all_input_hashes_matched": 12,
+      "input_hashes_manifest_sha256": "86c517e293d2bc084d8f1f95caf9c5566135a6a4614b44c182578d42f88596b2",
+      "passed": 4,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit": 0,
+      "test_files": [
+        "scripts/ediel-sc-064-presend-requalification-native.test.ts"
+      ],
+      "ordinary_required_gates": "NOT_REPLACED",
+      "schema_capture": "NOT_RUN",
+      "authentic_market_evidence": "NOT_PROVIDED"
+    },
+    "AT-Z08LK-SUPPLIER": {
+      "run": 37493991168,
+      "job": 112373701278,
+      "artifact": 11426628365,
+      "zip_sha256": "16a675d7b939fc837ac6ddf8b4ff88d4e911f28a87ce0367316e6601731dba43",
+      "api_digest_matched": true,
+      "checkout": "67d5cedc375b31aae92db1e6a22a794e04da0780",
+      "tree": "96e7cbe74e72ec87f69ca98c0a7c4083fd6ba540",
+      "all_input_hashes_matched": 18,
+      "input_hashes_manifest_sha256": "b35053fe6c3a1767b6d6d8ce736c95b6f0dc9976cd267303be1f623ea59f1ca0",
+      "passed": 24,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit": 0,
+      "test_files": [
+        "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+        "scripts/ediel-at-z08lk-supplier-native.test.ts"
+      ],
+      "ordinary_required_gates": "NOT_REPLACED",
+      "schema_capture": "NOT_RUN",
+      "authentic_market_evidence": "NOT_PROVIDED"
+    }
+  },
+  "criteria": {
+    "SC-064": {
+      "queued_before_change": "scripts/ediel-sc-064-presend-requalification-native.test.ts:queued",
+      "actual_consumer": "lib/ediel/outbox/sendOutboxItem.ts",
+      "current_policy": "actual rule-pack retirement -> CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE, durable failed/blocked item and original preservation",
+      "current_route": "actual ediel_route_profiles.smtp_to/effective runtime target -> route_receiver_email_mismatch, blocked unlocked item",
+      "current_rights": "actual company capability withdrawal -> real current capability_not_ready snapshot, claim-stage blocked_tenant_state",
+      "forbidden_effect": "zero SMTP calls/entered transport attempts and no supply creation in negatives; unchanged original/intent/version/source rule receipts/history",
+      "positive_control": "unchanged current authority actual worker one accepted provider attempt and persisted current sent source"
+    },
+    "AT-Z08LK-SUPPLIER": {
+      "expected_wire": "real renderer/decoder asserts outbound supplier/application23-DDQ-PRODAT/BGMZ08/field223Z23/own LK scope, not universal Z03LK replacement",
+      "real_request_and_end": "retained actual LK test produces actual H supply, archived independently reviewed LK source, actual operation/intent/original/send, remains request until exact received Z05; one owned end/transition/ERC100/final-metering followup/audit, immutable replay",
+      "wrong_role_direction_scope": "Real route/basis/intent decoder+gateway reject wrong legal actor/role and tenant/environment/route/source scope; added actual real canonical finalizer rejects inbound candidate with canonical_outbound_owner_scope_required before auth/dedupe/create-original RPC/queue/lifecycle.",
+      "missing_R_D": "actual real-policy baseline then actual gateway->canonical finalizer refusal for omitted262 or activatedIV; finite read-only native DTO/auth/dedupe/version/customer/contract ports declared; zero create-original RPC/queue/lifecycle",
+      "wrong_correlation": "new actual canonical accepted wrongLI/end before birth -> native matcherNULL, actual inbound and exact native apply refused; complete target and every unrelated tenant period unchanged, zero end receipts/transitions/ERC100/followups/audits",
+      "mutation": "actual database attempt changes sealed Z08/Z05bytes -> exact existing atomic/immutable guard; original/received hash/context/capture and all periods unchanged",
+      "permissions_history": "retained actual current reviewer revocation and last audit failure rollback; no private original/accepted/effect rows seeded"
+    }
+  },
+  "prior_failure": {
+    "source": "802f9363bbba4012e580a83b5d2079d98bcc3147",
+    "run": 37491862075,
+    "artifact": 11425704191,
+    "passed": 22,
+    "failed": 2,
+    "cause": "Premature test matcher read before actual processor captured historical basis; unchanged refusal/no-effect probe moved after actual processor."
+  },
+  "merge_state": "OPEN_REQUIRED_AUDIT_FAIL_NOT_MERGE_READY",
+  "remaining_gate": {
+    "advisory": "GHSA-wq5f-xc86-pv6w",
+    "owner": "Foreign package lock owner codex-aa4f29d3-c65 / PR620",
+    "next": "Consume actual qualified main repair; fresh own affected components, GOV04, native, install/audit and mandatory CI. No borrowed foreign CI."
+  }
+}
