@@ -998,3 +998,25 @@ No rootrole/CI_GREEN/merge/newpair. Next95bc terminalclean/cert success→
 currentexactheadREADY/CI_GREENCP530→freeatomicmergerole/expectedmerge, actual
 main/tree/parents/own2foreign350 verification→CP530→matchedmergerole release
 FIRST→freeatomicrolememory sharedreconcile→own12matchedscope release.
+
+## Authentic currentupgrade artifact / boundedphase preserved
+
+Currentupgradejob112522818384 SUCCESS artifact11447788512/run37537559386
+ZIP8230067 SHA87c36dd76145fb598a0cdf8b57b4a9533584f8c6bc9da960aa21d51a5203ed6b
+API/head/digest/size/CRC/25members/receipts exactc726/tree059eac qualified.
+Clean/upgraded generatedtypes BYTEEXACT currentcommittedsupabase/database.types.ts
+SHAaa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a;
+schemafingerprint files equal SHA63bbfebda49b875e1fbea0d70cc6b8b7277444b4f611e845d0ddc4395d8d2c93.
+Retainedbefore/after JSON exact inbothnormal/applied-TXTbranches. Each targeted
+catalogJUnit1PASS+140explicitpatternSKIP/0FAILERROR, NOTfull141nativecredit.
+Report/tmp/gridex-z05-c726-upgrade-artifact-qualified.json preserveslimits.
+Separatefinal39 remains0skip qualifiedwholeproof; finalclean/cert pending.
+Foreignmemoryb6/963c97 nowowns11sharedrole/files viaCLAIM6026723437/PR645
+72fa frozen290 datedsnapshot; no takeover. Actualrootmerge later musthave
+itsownCP530actualreceipt andlawfulcommon-role mirror/reconcile before closeout.
+Prospectivenew#5306026765480 corrects blanketall-owned inference: unclaimed
+AT-P-01 singleton, H05/H08 no directIDclaim butoldseededfixture insufficient;
+readscope+dependencies afreshafter currentcloseout, no newpair now.
+Next95bc finalclean/cert ALLterminalgreen→freeatomicmergerole/expectedc726
+merge→actualmain/tree/covdoc→mergerole releaseFIRST→commonrole mirror/reconcile
+/own12release→deferredowncleanupmaintenance under fresh exactscope.
