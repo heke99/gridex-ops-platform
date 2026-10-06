@@ -376,3 +376,9 @@ carriesactual53 and adoptsoriginalreleasedTWO7232 ONCE under explicittransfer
 5786003893283/rootACK5306005413298; newfinitepeer42c7029e READY. No new
 Masterplan work, duplicateproducer or automaticlegacy206/208 closure. Final
 combinedcapture/originalIMP05 correctiveexecutedhandoff remain pending.
+
+## 2026-10-06 actual existing DOC613 delivery
+
+One ordinary expected-edb merge genuinely delivers all160 original released public documentation postimages plus original two operator metadata paths at01:27:28UTC. Actual main2c11a510/tree5735c960, orderedparents53b3+edb, closedmerged/ref/entiretree postcheckPASS. Originalall9/fourordinaryattempt1 proof is reused and freshly guarded; sourceguardf8574c24 preservesall8697foreign/source/SQL1073/gen/workflow/whole352coverage andall43priorACTUALmarkers. Root takes only the documented finite main-write action6136007433146; originaladopter retains160intake/sourceapproval/finalbaseline. SerialRELEASE5306007444268.
+
+This OWN continuation genuinely carries actual2c11 and adds only ONE44th ACTUAL613marker plus byte-bound gate/delivery receipts, preserving every earlier packet/history. Currentstoredcoverage remains273/352. SAME614 will genuinelycarrythisactualDOCmaininits necessarySC014fixture-successor: existing11componentPASS/lint/rootcrossreview and one warranted11819/11819ordinarylocalPASS are source-scoped, not newheadnative/mainapproval. SQL1079/eightgenerationinputs/ONE119capture/raw3 stayunchanged; actualresultingheadordinary/native/type-schema/clean-upgrade/parity required before normalmain. No newMasterplanrule/pair/scout/capture/sourcevehicle.
