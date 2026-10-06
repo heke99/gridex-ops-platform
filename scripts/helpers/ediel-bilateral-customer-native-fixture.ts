@@ -67,8 +67,8 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
  return {sourceMessageId,message,wire}
 }
 
-export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void,options:{physicalBirth?:boolean;existingSupply?:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>;sourceWire?:string}={}){
- const f=options.existingSupply??await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true,physicalBirth:options.physicalBirth,sourceWire:options.sourceWire})
+export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void,options:{physicalBirth?:boolean;repeatRegister?:boolean;existingSupply?:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>;sourceWire?:string}={}){
+ const f=options.existingSupply??await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:options.repeatRegister??true,invoicee:true,physicalBirth:options.physicalBirth,sourceWire:options.sourceWire})
  const uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  // The actual original structural review qualifies only a post-ledger future
  // supply anchor. It cannot backfill the old default September start.
