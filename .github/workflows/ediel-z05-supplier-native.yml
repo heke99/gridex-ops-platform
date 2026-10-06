@@ -18,6 +18,8 @@ on:
       - 'scripts/helpers/**'
       - 'scripts/lib/**'
       - 'scripts/sql/**'
+      - 'scripts/**'
+      - 'e2e/production/helpers/swedish-organization-number.mjs'
       - 'scripts/gridex-aud-003-clean-replay.sh'
       - 'scripts/gridex-redact-native-evidence.py'
       - 'scripts/migration-history-manifest*.json'
