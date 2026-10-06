@@ -155,8 +155,22 @@ JSONsuccess true; fresh nonincremental testsTS EXIT0, scopedlint EXIT0, diff0.
 All3UNA actualmetadata and all frozenliteral effects qualified locally, no
 persisted send/native/external certificate implied. After those receipts
 onlyownedAT-P01 row changesPARTIAL→PASSED+uniquecomposition evidence; all
-other120rules/230contracts unchanged. Candidate291/352 is not mergedmain290.
+121rules/230othercontracts unchanged. Candidate291/352 is not mergedmain290.
 Final3pathdiff (test, ownCP, ownedcoverage) still needs exactcurrenthead peer
 review, taggedapprovalscanner/currentmandatoryCI then normalguardedmerge.
 Nextthissession publishsmallPR, execute required taggedscanner under22,
 recordattributable finalpeerreview and authenticate allcurrentchecks.
+
+## PR646 final review / frozen source
+
+PR646 actualhead b484457a302919aebae291ecbbec072a38d1d721, independent
+finalcurrenthead APPROVE/0actionablefindings, all121rules/230foreigncontract
+rows unchanged. Minor earlier ownCP 'other120rules' typo corrected here.
+Finaltestblob identical reviewed775. Actual source868/0/0pending, testsTS0,
+scopedlint0/spec0/diff0. Taggedapprovalscanner currentb484 stillrunning;
+all8started mandatoryjobs actuallyQUEUED, dependentpr-certificate notrun.
+No CI_GREEN/merge/resultingmain/native/external claim. Ownboth66c5refsheld,
+metadata11released. Durable ownCP follows on separate receiptsbranch to
+preserve immutable646sourceCIhead; no new pair or foreign/sharedmemory edit.
+Nextthissession qualify taggedscanner and mandatorycurrentheads of646/645;
+freshmain/roles onlywhen ready, else explicitexactblocker release.
