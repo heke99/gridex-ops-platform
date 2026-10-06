@@ -48,22 +48,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p z05-supplier-native-working
-          # The existing owner keeps its EXIT cleanup trap. Replay/status
-          # output can contain disposable credentials and is never uploaded.
-          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z05-supplier-replay.log" 2>&1
-          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z05-supplier-native-status.json"
-          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
-          native_exit=0
-          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
-            --config scripts/ediel-z05-supplier-native.config.ts \
-            --reporter=default --reporter=junit \
-            --outputFile=z05-supplier-native-working/native-junit.xml \
-            > z05-supplier-native-working/native.log 2>&1 || native_exit=$?
-          export Z05_SUPPLIER_NATIVE_EXIT="$native_exit"
+          # Pin immutable checkout inputs before the canonical replay temporarily
+          # moves original migration files. No credentials exist in this receipt.
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
           paths = ['scripts/ediel-at-z05-supplier-native.test.ts',
                    'scripts/ediel-z05-supplier-native.config.ts',
+                   '.github/workflows/ediel-z05-supplier-native.yml',
+                   'scripts/gridex-redact-native-evidence.py',
                    'scripts/ediel-source-owner-native.config.ts',
                    'scripts/ediel-bilateral-prodat-h-original-native.test.ts',
                    'scripts/helpers/ediel-bilateral-lk-native-fixture.ts',
@@ -97,7 +89,6 @@ jobs:
               'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
               'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
-              'native_exit_code': int(os.environ['Z05_SUPPLIER_NATIVE_EXIT']),
               'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
               'test_scope': ['scripts/ediel-bilateral-prodat-h-original-native.test.ts',
                              'scripts/ediel-at-z08lk-supplier-native.test.ts',
@@ -106,7 +97,27 @@ jobs:
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
               'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
           }
+          pathlib.Path(os.environ['RUNNER_TEMP'],'z05-supplier-input-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z05-supplier-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z05-supplier-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-z05-supplier-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=z05-supplier-native-working/native-junit.xml \
+            > z05-supplier-native-working/native.log 2>&1 || native_exit=$?
+          export Z05_SUPPLIER_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib
+          receipt_path = pathlib.Path(os.environ['RUNNER_TEMP'],'z05-supplier-input-receipt.json')
+          receipt = json.loads(receipt_path.read_text())
+          receipt['native_exit_code'] = int(os.environ['Z05_SUPPLIER_NATIVE_EXIT'])
           pathlib.Path('z05-supplier-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          receipt_path.unlink()
           PY
           python3 scripts/gridex-redact-native-evidence.py \
             --local-secrets "$GRIDEX_NATIVE_STATUS" --root z05-supplier-native-working
