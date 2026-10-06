@@ -127,6 +127,9 @@
     "20261005004623_customer_contact_version_conflict_http409.sql": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
     "20261005010327_customer_identity_version_conflict_http409.sql": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
     "20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
-    "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+    "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "20261006150200_ediel_permission_ack_committed_scope.sql": "db92ef573db27c7fda350b83f358a92b4d3e089767507eae952e7c27fe0b13ea",
+    "20261006160000_ediel_rejected_permission_scope_capture.sql": "bfa6718cbce524e69f2e06dab096df5a99fad789f754d584adaeaeb892bc5dee",
+    "20261006172500_ediel_missing_object_rejection_reason.sql": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21"
   }
 }

@@ -95,21 +95,30 @@ jobs:
                     '93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627')
           source_map_fix=('51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de',
                           'de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b')
+          sharp_fix=('241f6cc84f581ec3acac22d970add3c9646e74603bac4a86d895e8864cbefa9c',
+                     '8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5')
           def hashes(root):return tuple(hashlib.sha256((root/p).read_bytes()).hexdigest() for p in paths)
           # Keep immutable BASE packages. Permit only its exact original pair
-          # or the independently reviewed source-map-js 1.2.2 security repair.
+          # or either exact reviewed security repair: source-map-js 1.2.2,
+          # then main #620 sharp 0.35.5 (c0385ee4; GHSA-wq5f-xc86-pv6w).
           # Mixed pairs and every other dependency change remain fail-closed.
           base_pair,candidate_pair=hashes(base),hashes(candidate)
           assert base_pair==original,'sc071_base_dependency_inputs_changed'
-          assert candidate_pair in (original,source_map_fix),'sc071_candidate_dependency_inputs_unqualified'
-          expected='1.2.2' if candidate_pair==source_map_fix else '1.2.1'
+          assert candidate_pair in (original,source_map_fix,sharp_fix),'sc071_candidate_dependency_inputs_unqualified'
+          expected='1.2.1' if candidate_pair==original else '1.2.2'
           installed=subprocess.check_output(['node','-p',"require('source-map-js/package.json').version"],cwd=candidate,text=True).strip()
           assert installed==expected,'sc071_installed_source_map_version_mismatch'
-          receipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility',
+          sharp_installed=None
+          if candidate_pair==sharp_fix:
+              sharp_installed=subprocess.check_output(['node','-p',"require('sharp').versions.sharp"],cwd=candidate,text=True).strip()
+              assert sharp_installed=='0.35.5','sc071_installed_sharp_version_mismatch'
+          compatibility=('SHARP_0_35_5_AND_SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==sharp_fix else
+                         'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL')
+          receipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed security compatibility',
                    'base_package_sha256':dict(zip(paths,base_pair)),
                    'candidate_package_sha256':dict(zip(paths,candidate_pair)),
-                   'compatibility':'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL',
-                   'actual_installed_source_map_js':installed,'base_packages_modified':False}
+                   'compatibility':compatibility,
+                   'actual_installed_source_map_js':installed,'actual_installed_sharp':sharp_installed,'base_packages_modified':False}
           (pathlib.Path(os.environ['SC071_EVIDENCE'])/'dependency-inputs.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
           ln -s "$SC071_CANDIDATE_ROOT/node_modules" "$SC071_BASE_ROOT/node_modules"

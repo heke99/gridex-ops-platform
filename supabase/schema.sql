@@ -10585,7 +10585,7 @@ CREATE FUNCTION gridex_ediel_ack_replay.prodat_permission_scope_projection_v2(c 
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE ctx jsonb;s public.ediel_messages%rowtype;outcomes jsonb;transitions jsonb;source_rules jsonb;h text;
+DECLARE ctx jsonb;s public.ediel_messages%rowtype;outcomes jsonb;transitions jsonb;source_rules jsonb;h text;committed jsonb;positive_indices integer[];own jsonb;source_wire jsonb;
 BEGIN
  PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  ctx:=gridex_ediel_ack_replay.require_current_source_role_v2(c,env,sourceid);
@@ -10596,6 +10596,36 @@ BEGIN
  IF NOT EXISTS(SELECT FROM jsonb_array_elements(outcomes)x WHERE x->>'outcome'='positive') THEN RAISE EXCEPTION 'ediel_ack_service_scope_positive_reference_unavailable';END IF;
  h:=encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex');
  SELECT jsonb_agg(to_jsonb(t) ORDER BY t.permission_id) INTO transitions FROM gridex_received_sources.permission_transitions t WHERE t.company_id=c AND t.source_message_id=sourceid AND t.payload_hash=h AND t.qualified_expected_message_code=s.message_code AND t.qualified_original_message_id IS NOT NULL;
+ -- Historical projections stay byte-identical. A new producer must prove
+ -- every positive physical object using its committed own canonical receipt.
+ IF transitions IS NULL THEN
+  IF EXISTS(SELECT FROM jsonb_array_elements(outcomes)x WHERE x->>'outcome'='positive' AND(x->>'scope' IS DISTINCT FROM 'object' OR x#>>'{physicalReference,lineIndex}' IS NULL)) THEN
+   RAISE EXCEPTION 'ediel_ack_service_scope_prodat_own_commit_required';
+  END IF;
+  SELECT array_agg(DISTINCT (x#>>'{physicalReference,lineIndex}')::integer ORDER BY (x#>>'{physicalReference,lineIndex}')::integer)
+   INTO positive_indices FROM jsonb_array_elements(outcomes)x WHERE x->>'outcome'='positive';
+  committed:=gridex_received_sources.committed_permission_effects_v1(c,sourceid,positive_indices);
+  source_wire:=gridex_received_sources.permission_partition_wire_v1(s.raw_payload);
+  FOR own IN SELECT value FROM jsonb_array_elements(outcomes) WHERE value->>'outcome'='positive' LOOP
+   IF NOT EXISTS(SELECT FROM jsonb_array_elements(committed)e
+    WHERE e#>>'{objectScope,registers,0,segmentIndex}'=own#>>'{physicalReference,lineIndex}'
+     AND e#>>'{objectScope,objectId}' IS NOT DISTINCT FROM own#>>'{physicalReference,id}'
+     AND e->>'sourcePayloadHash'=h
+     AND EXISTS(SELECT FROM jsonb_array_elements(source_wire->'objects')o
+      WHERE o->>'firstLineIndex'=own#>>'{physicalReference,lineIndex}'
+       AND o->>'point' IS NOT DISTINCT FROM own#>>'{physicalReference,id}'
+       AND o->>'li' IS NOT DISTINCT FROM own#>>'{physicalReference,li}')) THEN
+    RAISE EXCEPTION 'ediel_ack_service_scope_prodat_own_commit_required';
+   END IF;
+  END LOOP;
+  SELECT jsonb_agg(to_jsonb(t) ORDER BY t.permission_id) INTO transitions
+   FROM gridex_received_sources.permission_effect_transitions_v1 t
+   WHERE t.company_id=c AND t.source_message_id=sourceid AND t.payload_hash=h
+    AND t.qualified_expected_message_code=s.message_code AND t.qualified_original_message_id IS NOT NULL
+    AND EXISTS(SELECT FROM gridex_received_sources.permission_effect_receipts r,jsonb_array_elements(committed)e
+     WHERE r.id::text=e->>'receiptId' AND r.company_id=c AND r.source_message_id=sourceid
+      AND r.permission_id=t.permission_id AND r.payload_hash=h);
+ END IF;
  IF transitions IS NULL THEN RAISE EXCEPTION 'ediel_ack_service_scope_prodat_own_commit_required';END IF;
  RETURN jsonb_build_object('version',2,'scopeKind','prescribed_prodat_permission_ack','companyId',c,'environment',env,'sourceMessageId',sourceid,'sourceRawHash',h,'ackRawHash',encode(sha256(convert_to(ackraw,'UTF8')),'hex'),'sourceContext',ctx,'sourceRuleEvidence',source_rules,'outcomes',outcomes,'permissionTransitions',transitions,'dataAccessGranted',false);
 END $$;
@@ -81883,11 +81913,64 @@ BEGIN
    OR coalesce(own->>'disposition','') NOT IN('accepted','rejected','unavailable') OR jsonb_typeof(own->'reasons') IS DISTINCT FROM 'array' OR jsonb_typeof(own->'negativeFields') IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'prodat_full_object_facet_invalid';END IF;
   SELECT o INTO scope FROM jsonb_array_elements(facet->'objects') o WHERE o->'objectId'=own->'objectId' AND o->'identityAgency'=own->'identityAgency' AND o->'messageReference'=own->'messageReference' AND o#>'{registers,0,lineIndex}'=own->'firstLineIndex';
   IF scope IS NULL OR scope->>'messageIndex'<>'0' OR (own->>'disposition'='accepted' AND (facts->>'sharedAccepted'<>'true' OR scope->>'disposition'<>'accepted' OR own->'reasons'<>'[]'::jsonb OR own->'negativeFields'<>'[]'::jsonb)) OR (own->>'disposition'='rejected' AND (jsonb_array_length(own->'negativeFields')=0 OR jsonb_array_length(own->'reasons')=0)) THEN RAISE EXCEPTION 'prodat_full_object_own_decision_required';END IF;
-  IF EXISTS(SELECT FROM jsonb_array_elements(own->'reasons') r WHERE r#>>'{}'<>'shared_source_not_qualified' AND NOT c.facts_text::jsonb->'reasonCodes' @> jsonb_build_array(r)) THEN RAISE EXCEPTION 'prodat_full_object_reason_changed';END IF;
+  IF EXISTS(SELECT FROM jsonb_array_elements(own->'reasons') r
+   WHERE r#>>'{}'<>'shared_source_not_qualified' AND NOT c.facts_text::jsonb->'reasonCodes' @> jsonb_build_array(r)
+   AND NOT coalesce((r#>>'{}'='REGISTER_SCOPE_UNAVAILABLE'
+    AND c.facts_text::jsonb->>'syntaxDecision'='accepted' AND c.facts_text::jsonb->>'applicationDecision'='rejected'
+    AND facts->'sharedAccepted'='true'::jsonb
+    AND own->>'disposition'='unavailable' AND scope->>'disposition'='unavailable'
+    AND own->'negativeFields'='["209"]'::jsonb
+    AND jsonb_array_length(own->'reasons')=2 AND own->'reasons' @> '["REGISTER_SCOPE_UNAVAILABLE","FIELD_MATRIX_REQUIRED_FIELD_MISSING"]'::jsonb
+    AND scope->'reasons'='["REGISTER_SCOPE_UNAVAILABLE"]'::jsonb
+    AND c.facts_text::jsonb->'reasonCodes'='["FIELD_MATRIX_REQUIRED_FIELD_MISSING"]'::jsonb
+    AND own->'objectId'='null'::jsonb AND own->'identityAgency'='null'::jsonb
+    AND scope->'objectId'='null'::jsonb AND scope->'identityAgency'='null'::jsonb
+    AND jsonb_array_length(facet->'objects')=1 AND jsonb_array_length(scope->'registers')=1
+    AND scope->'messageIndex'='0'::jsonb
+    AND (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN')=1
+    AND (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH')=1
+    AND EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN'
+     AND t->'index'=scope#>'{registers,0,segmentIndex}'
+     AND t#>>'{elements,1,0}'=scope#>>'{registers,0,lineNumber}'
+     AND (SELECT count(*) FROM jsonb_array_elements(tokens)prior WHERE prior->>'tag'='LIN' AND (prior->>'index')::int<(t->>'index')::int)=(scope#>>'{registers,0,lineIndex}')::int
+     AND jsonb_typeof(t#>'{elements,3}')='array'
+     AND NOT EXISTS(SELECT FROM jsonb_array_elements_text(t#>'{elements,3}')part WHERE part<>'')
+     AND EXISTS(SELECT FROM jsonb_array_elements(tokens)header WHERE header->>'tag'='UNH'
+      AND header#>>'{elements,1,0}'=scope->>'messageReference' AND coalesce(header#>>'{elements,1,0}','')<>''))),false))
+   THEN RAISE EXCEPTION 'prodat_full_object_reason_changed';END IF;
   -- The canonical LIN number independently binds the full-guide owner to
   -- the stored original. Parser indexes are never caller supplied offsets.
   SELECT t INTO lin FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='LIN' AND t#>>'{elements,1,0}'=scope#>>'{registers,0,lineNumber}';
-  IF lin IS NULL OR lin#>>'{elements,3,0}' IS DISTINCT FROM own->>'objectId' OR lin#>>'{elements,3,3}' IS DISTINCT FROM own->>'identityAgency' THEN RAISE EXCEPTION 'prodat_full_object_physical_scope_required';END IF;
+  physical:=NULL;
+  -- A rejected single-LIN original has no accepted fallback. Bind its actual
+  -- position twice, independently of the missing sequence or object scalar.
+  IF c.facts_text::jsonb->>'applicationDecision'='rejected' AND own->>'disposition'='unavailable'
+   AND own->'reasons' ? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING'
+   AND own->'negativeFields' ?| ARRAY['314','209']
+   AND jsonb_array_length(scope->'registers')=1 AND own->'firstLineIndex'=scope#>'{registers,0,lineIndex}'
+   AND scope->'messageIndex'='0'::jsonb
+   AND (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN')=1
+   AND (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH')=1 THEN
+   SELECT t INTO physical FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN'
+    AND t->'index'=scope#>'{registers,0,segmentIndex}'
+    AND (SELECT count(*) FROM jsonb_array_elements(tokens)prior WHERE prior->>'tag'='LIN' AND (prior->>'index')::int<(t->>'index')::int)=(scope#>>'{registers,0,lineIndex}')::int
+    AND EXISTS(SELECT FROM jsonb_array_elements(tokens)header WHERE header->>'tag'='UNH' AND header#>>'{elements,1,0}'=scope->>'messageReference' AND coalesce(header#>>'{elements,1,0}','')<>'');
+  END IF;
+  IF lin IS NULL AND physical IS NOT NULL AND own->'negativeFields' ? '314'
+   AND facts->'sharedAccepted'='false'::jsonb AND scope->>'disposition'='rejected'
+   AND scope->'reasons' ? 'PRODAT_REGISTER_STRUCTURE_INVALID'
+   AND scope#>'{registers,0,lineNumber}'='null'::jsonb AND nullif(physical#>>'{elements,1,0}','') IS NULL THEN
+   lin:=physical;
+  END IF;
+  IF lin IS NULL OR ((lin#>>'{elements,3,0}' IS DISTINCT FROM own->>'objectId' OR lin#>>'{elements,3,3}' IS DISTINCT FROM own->>'identityAgency') AND NOT (
+   physical IS NOT NULL AND lin->'index'=physical->'index' AND own->'negativeFields' ? '209'
+   AND scope->>'disposition'='unavailable' AND scope->'reasons' ? 'REGISTER_SCOPE_UNAVAILABLE'
+   AND own->'objectId'='null'::jsonb AND own->'identityAgency'='null'::jsonb
+   AND scope->'objectId'='null'::jsonb AND scope->'identityAgency'='null'::jsonb
+   AND jsonb_typeof(physical#>'{elements,3}')='array'
+   AND NOT EXISTS(SELECT FROM jsonb_array_elements_text(physical#>'{elements,3}')part WHERE part<>''))) THEN
+   RAISE EXCEPTION 'prodat_full_object_physical_scope_required';
+  END IF;
  END LOOP;
  IF (SELECT count(DISTINCT (o->>'objectId',o->>'identityAgency',o->>'firstLineIndex')) FROM jsonb_array_elements(facts->'objects') o)<>jsonb_array_length(facts->'objects') THEN RAISE EXCEPTION 'prodat_full_object_duplicate_scope';END IF;
  hash:=encode(sha256(convert_to(p_facts_text,'UTF8')),'hex');SELECT * INTO existing FROM gridex_received_sources.prodat_object_validation_facets WHERE assessment_id=c.id;
