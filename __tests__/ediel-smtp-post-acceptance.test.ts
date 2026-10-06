@@ -1,6 +1,6 @@
 import {transportJournalFixture} from './fixtures/ediel-transport-journal'
 import {closureFixture} from './helpers/closureWireFixtures'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport/index.part-2'
 import { SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -34,8 +34,11 @@ let journal:ReturnType<typeof transportJournalFixture>
 const uid=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const raw=closureFixture({reason:'Z22'}).wire.replace('BGM+Z05','BGM+Z01')
 
+afterEach(() => vi.useRealTimers())
+
 describe('SMTP acceptance followed by persistence failure', () => {
   beforeEach(() => {
+    vi.useFakeTimers().setSystemTime(new Date('2026-09-30T12:00:00Z'))
     vi.clearAllMocks()
     mocks.auditError = null
     mocks.repairError=null

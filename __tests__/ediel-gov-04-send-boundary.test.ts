@@ -41,7 +41,7 @@ beforeEach(()=>{
  io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
   if(name==='gridex_ediel_negative_fixture_read_v1')return {data:null,error:null}
   if(name==='gridex_ediel_accepted_transport_projection_v1'||name==='gridex_ediel_repair_accepted_transport_projection_v1'){
-   if(!io.attempts.some(x=>x.action==='observe'))return {data:null,error:null}
+   if(!io.attempts.some(x=>x.action==='observe'&&Array.isArray((x.result as Record<string,unknown>).accepted)))return {data:null,error:null}
    const row=queued()
    return {data:{status:'accepted_projection',companyId:row.company_id,environment:row.environment,messageId:row.id,attemptId:io.attempts[0].attemptId,lane:'generic_journal',originalHash:createHash('sha256').update(row.raw_payload!).digest('hex'),observedAt:io.observedAt,frozenRecipient:row.receiver_email,providerReceipt:{accepted:[row.receiver_email],rejected:[],messageId:'synthetic-provider',response:'250 synthetic acceptance'},businessExpectationPlan:null,authorizesProviderEntry:false,deliveryProven:false,projectionStatus:'sent'},error:null}
   }
@@ -54,13 +54,13 @@ beforeEach(()=>{
   if(name==='gridex_outbound_dispatch_v1'){
    const input=args.p_input as Record<string,unknown>;io.attempts.push(structuredClone(input))
    if(input.action===io.rolloverAction)vi.setSystemTime(new Date('2026-09-30T22:00:01Z'))
-   return {data:{scoped:true,proceed:true,eventId:'synthetic-event',witnessed:true,facts:{classification:'accepted'},observationClock:'database_provider_result_capture',observedAt:new Date().toISOString()},error:null}
+   return {data:{scoped:true,proceed:true,eventId:'synthetic-event',witnessed:true,facts:{classification:input.action==='result'&&!(input.result as Record<string,unknown>).accepted?'unknown':'accepted'},observationClock:'database_provider_result_capture',observedAt:new Date().toISOString()},error:null}
   }
   if(name==='gridex_ediel_transport_attempt_v1'){
    const input=args.p_input as Record<string,unknown>;io.attempts.push(structuredClone(input))
    if(input.action===io.rolloverAction)vi.setSystemTime(new Date('2026-09-30T22:00:01Z'))
    if(input.action==='observe')io.observedAt=new Date().toISOString()
-   return {data:input.action==='observe'?{classification:'accepted',observedAt:new Date().toISOString()}:{proceed:true},error:null}
+   return {data:input.action==='observe'?{classification:(input.result as Record<string,unknown>).accepted?'accepted':'unknown',observedAt:new Date().toISOString()}:{proceed:true},error:null}
   }
   throw new Error('UNEXPECTED_RPC:'+name)
  })
@@ -97,6 +97,8 @@ for(const action of ['prepare','enter'])it(`the generic ${action} journal await 
  const row=queued(),before=structuredClone(row)
  await expect(sendEdielMessageViaSmtp(row,{actorUserId:'synthetic-operator',smtpMimeMode:'nodemailer-attachment'})).rejects.toThrow(/admission.*changed/)
  expect(io.providerCalls).toBe(0);expect(row).toEqual(before)
+ expect(io.attempts.map(x=>x.action)).toEqual(action==='prepare'?['prepare','release']:['prepare','enter','observe'])
+ if(action==='enter')expect(io.attempts.at(-1)?.result).toMatchObject({error:{message:'ediel_transport_admission_changed_retry_required'}})
 })
 
 for(const action of ['archive','prepare','enter'])it(`sealed Z08 ${action} cannot carry a stale admission into the provider`,async()=>{
@@ -104,6 +106,8 @@ for(const action of ['archive','prepare','enter'])it(`sealed Z08 ${action} canno
  const row={...queued(),message_code:'Z08'},before=structuredClone(row)
  await expect(sendCorrectionFencedEmail({to:row.receiver_email!,subject:'synthetic',text:'synthetic'}, {message:row,actorUserId:'synthetic-operator',mimeMode:'nodemailer-attachment',payload:Buffer.from(row.raw_payload!),encoding:'7bit',admissionDecision:{referenceDate:'2026-09-30',guide:{guideRevision:'25-A-3'}}})).rejects.toThrow(/admission.*changed/)
  expect(io.providerCalls).toBe(0);expect(row).toEqual(before)
+ expect(io.attempts.map(x=>x.action)).toEqual(action==='archive'?[]:action==='prepare'?['prepare','witness','release','witness']:['prepare','witness','enter','witness','result','witness'])
+ if(action==='enter')expect(io.attempts.find(x=>x.action==='result')?.result).toMatchObject({error:{message:'ediel_transport_admission_changed_retry_required'}})
 })
 
 it('an accepted historical send repairs its immutable observation without a new guide choice or provider call',async()=>{
