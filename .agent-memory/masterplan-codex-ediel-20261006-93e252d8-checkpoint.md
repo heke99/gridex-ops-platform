@@ -1,6 +1,6 @@
 # codex-ediel-20261006-93e252d8 — AT-Z06E-SUPPLIER, AT-Z09E-SUPPLIER
 
-Status: bounded consumer tests locally verified; final review/full-suite pending; whole-contract native proof BLOCKED. No coverage approval.
+Status: bounded consumer tests locally verified and independently reviewed; PR/current-head CI pending; whole-contract native proof BLOCKED. No coverage approval.
 
 Session/packet: 93e252d8-2e95-4176-9f34-d62402545d0f
 Branch: codex/ediel-at-z06e-z09e-93e252d8
@@ -59,3 +59,9 @@ New file hashes:
 ## Independent review correction
 
 Initial immutable implementation:848c3a3da4e5fe542ae60f4f46cd9f2799128142. Independent reviewer identified one Important test defect: product publisher deliberately catches observer errors, so six assertions inside that callback could fail silently. Fixed only the owned Z06E test: record capability/copy/clone/actor/original-snapshot/frozen observations during callback, assert their exact values after the real consumer resolves. This preserves product error handling and makes failures visible. Corrected two suites12/12 PASS and scoped lint PASS; refreshed typecheck and final full-suite verification still pending. Original review/initial logs remain retained. Reviewer must reread the immutable correction before merge. Whole native blockers and coverage are unchanged. Next owner action: finish verification, record exact corrected commit and review on #530, publish component-only PR and await genuine current-head gates.
+
+## Final local delivery evidence
+
+Corrected frozen code:0e5e3385cf066ad204dbb931080ba263a765481e. Independent reviewer reread the immutable corrected range: APPROVED for bounded component-only delivery, no unresolved Critical/Important/Minor finding; whole contracts remain NOT_EXECUTED. Final corrected-tree full unit suite884 files/11831 tests PASS exit0,310.21s; log /tmp/gridex-z06e-z09e-final-full-unit.log SHA2566ea40ef64b553eaf4b56d91366c0ae257f721f59ad6e642b79f3be75126aa224. Corrected targeted12/12 log SHA25654a5016a8a30f216b8d0722e72e51e243bac86ca298ea3d327130e7c571142b7. Refreshed tests TypeScript and scoped lint PASS exit0; both empty logs SHA256e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855. Z06 test corrected SHA2565022673cdb93955ff7fa094e2bbce894bc2206bae3cb91ec146105924d2f487a; Z09 hash unchanged.
+
+Fetched/read actual new main9cd954080a2b65d0b73f1662c4bd3f92adb3b122 (PR618), including published AGENTS/README/workflow/reservations. Merged without conflict into own branch at e7dd54114d55a4e12f247ef68a86b1d3d5c2a468; only upstream instruction/memory changes, no test/runtime/schema/config/coverage change. Reviewed code bytes are unchanged. Exact final publication SHA is recorded in the subsequent #530/PR receipt. Next owner this session: publish the small three-file PR, preserve genuine current-head review/check results, merge only under role-merge when every mandatory check is green. Native config bde0638 and shared memory/merge roles retain foreign ownership until explicitly released. No whole/native/market approval.
