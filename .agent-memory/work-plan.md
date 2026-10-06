@@ -1,3 +1,12 @@
+## Current autonomous next actions — actual main24720181 / 284of352
+
+Existing621 C/V,629 E,630 A/D,633 C/M,c3ae Z03L/LK,95bc Z05L/LK packets first:
+wholeeffects/currentproof/gates or blocked release. Reuse59740/626nativeZ05seams;
+normalLKZ03 differsfromclosureLK. ThenTEN→ESCO→ACK→partial cards aftercurrent
+documentation/create-only reservation. Readyproof owners deliver ortransfer;
+counterparty owners supplyactualexternal evidence. This commoncloseout needs
+ownreview/CI/guarded delivery. Prior sections retain theirhistory.
+
 ## Current joint continuation — 2026-10-06T17:07:13.371390+00:00
 
 The owner has renewed autonomous joint continuation toward all whole Masterplan IDs. Current observed main is `c0385ee4ee8340eb9e68029c2bd09d05bdf37f40`, tree `f56cc25ae1c4564adb0e64856a6c3698c7cfb2ce`. Stored approvals are **113/121 rules +169/231 contracts =282/352; 70 remain**. PR #620 actually merged its four owned rows and sharp0.35.5 dependency repair; exact source `39a0e472a99ce06c436e136f4ccd3465ae05ab68`, all ten applicable checks SUCCESS, actual receipt [6021215200](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6021215200). This replaces the former “620 unmerged / main278 / dependency fix missing” status. Other branches must adopt actual main and obtain their own current-head gates; old audit failures remain historical evidence.

@@ -1,3 +1,12 @@
+## Actual code and campaign deliveries — observed 2026-10-06T18:36:53.464635+00:00
+
+- ACTUAL MERGED PR #626: `8f388b04ddf74758ae4b37dc45ccfadf3ea8d978`; SC-064 + AT-Z08LK-SUPPLIER PASSED; all9ordinary+2selectednative currentheadSUCCESS, independentwholeSC/LKAPPROVE, SC4/LK24/0failure-error-skip/exit0 and893files11955testsPASS; actualledger113+171=284/352, no marketqualification. Actualreceipt6022650732/all13resource RELEASE6022686031.
+- ACTUAL MERGED PR #632: `24720181a5a0c27644d2d31fe39bd843299000ea`; six-file reconciled campaign memory +owncheckpoint; exact6b8337d2/all9applicableSUCCESS/independentpeerAPPROVE; ALL113+171=284coveragebytes preserved, no full/externalacceptance claim. Actualreceipt6022771491/roles RELEASE6022795826.
+
+This bounded closeout uses actual qualified receipts and preserves the earlier
+17:07/16:46 snapshots below. Current technical ownership and next actions are in
+current-state.md and the owners' own checkpoints/#530. Old HOLD/PAUSED survives.
+
 ## Current delivered rule pair and joint continuation — 2026-10-06T17:07:13.371390+00:00
 
 - 2026-10-06 ACTUAL MAIN MERGE PR #620: `c0385ee4ee8340eb9e68029c2bd09d05bdf37f40`; exact source `39a0e472a99ce06c436e136f4ccd3465ae05ab68`; all ten applicable checks SUCCESS and independent exact-head review; TEN09/GOV04 and both own AT rows approved, actual main282/352. Receipt6021215200; sharp0.35.5 now delivered. This does not claim external acceptance or deployment.
