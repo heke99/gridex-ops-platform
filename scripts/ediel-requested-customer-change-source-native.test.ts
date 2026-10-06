@@ -26,6 +26,11 @@ import {bilateralCustomerNativeWire} from './helpers/ediel-bilateral-customer-na
 import {applyConfirmedCustomerSource} from '@/lib/ediel/production/confirmedCustomerSource'
 import {readConfirmedCustomerHistory,isConfirmedCustomerHistoryQualified} from '@/lib/ediel/production/confirmedCustomerHistory'
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
+import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks'
+import {getEdielMessageById} from '@/lib/ediel/db'
 afterEach(()=>{vi.unstubAllEnvs();delivery.smtp.mockReset()})
 async function fixture(){for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v);return createRequestedCustomerChangeNativeFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}))}
 async function deathFixture(){for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v);return createRequestedDeathNativeFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}))}
@@ -111,12 +116,19 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  // Actual no-context canonical admission, complete record, capture and finish.
  // No requested outgoing context is relabelled as an inbound classification.
  const source=await captureBilateralCustomerNativeSource(f,{sourceWire:wire,physicalBirth:true,repeatRegister:false})
+ // Exercise the actual received worker's independently lawful technical ACK.
+ // Its national acceptance does not authorize this later reviewed death effect.
+ await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.sourceMessageId})
+ const replies=()=>sql(`SELECT jsonb_build_object('contrl',(SELECT count(*) FROM public.ediel_messages WHERE related_message_id=${literal(source.sourceMessageId)} AND direction='outbound' AND message_family='CONTRL' AND ack_outcome='positive'),'aperak',(SELECT count(*) FROM public.ediel_messages WHERE related_message_id=${literal(source.sourceMessageId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive'))`)
+ expect(replies()).toEqual({contrl:1,aperak:0})
  const input={companyId:f.companyId,sourceMessageId:source.sourceMessageId,actorUserId:f.reviewer.id}
  expect(await applyConfirmedCustomerSource(input)).toEqual({applied:false,reason:'customer_source_qualified_life_event_missing'})
  const state=()=>sql(`SELECT jsonb_build_object('confirmed',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(source.sourceMessageId)}),'availability',(SELECT count(*) FROM gridex_requested_changes.customer_version_availability WHERE source_message_id=${literal(source.sourceMessageId)}),'primary',(SELECT count(*) FROM gridex_customer_life_events.customer_versions WHERE company_id=${literal(f.companyId)}),'transitions',(SELECT count(*) FROM gridex_customer_life_events.transitions WHERE company_id=${literal(f.companyId)}),'primaryReceipts',(SELECT count(*) FROM gridex_received_sources.customer_primary_response_receipts WHERE source_message_id=${literal(source.sourceMessageId)}))`)
  expect(state()).toEqual({confirmed:0,availability:0,primary:0,transitions:0,primaryReceipts:0})
  expect(deathBusiness(f)).toEqual(before)
  const reviewed=await reviewDeath(f),payloadHash=createHash('sha256').update(wire).digest('hex')
+ // The real admin consumer awaits this apply/witness before asking for ACKs.
+ expect(await approveSafeMasterdataChanges({actorUserId:f.reviewer.id,edielMessageId:source.sourceMessageId})).toMatchObject({status:'applied',appliedCount:1})
  expect(await applyConfirmedCustomerSource(input)).toMatchObject({applied:true,sourceMessageId:source.sourceMessageId,eventId:reviewed.eventId,payloadHash})
  expect(state()).toEqual({confirmed:1,availability:1,primary:0,transitions:0,primaryReceipts:0})
  expect(sql(`SELECT jsonb_build_object('event',event_id,'bilateral',bilateral_artifact_id,'source',source_message_id,'payloadHash',payload_hash,'period',supply_period_id,'object',object_id,'agency',identity_agency,'canonical',canonical_assessment_id IS NOT NULL,'effectiveMs',extract(epoch FROM effective_at)*1000,'party',party) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(source.sourceMessageId)}`)).toMatchObject({event:reviewed.eventId,bilateral:null,source:source.sourceMessageId,payloadHash,period:f.period,object:f.external,agency:'9',canonical:true,effectiveMs:Date.parse(f.effectiveAt),party:{id:f.customerIdentity.id,qualifier:'SE2',agency:'260',deathStatus:'Z41'}})
@@ -127,10 +139,28 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  expect(isConfirmedCustomerHistoryQualified(history,scope,readset)).toBe(true);expect(history.versions).toHaveLength(1)
  expect(history.versions[0]).toMatchObject({sourceMessageId:source.sourceMessageId,payloadHash,supplyPeriodId:f.period,objectId:f.external,identityAgency:'9',marketMinute:f.marketMinute,legalSender:f.receiver,legalReceiver:f.sender,party:{id:f.customerIdentity.id,qualifier:'SE2',agency:'260',deathStatus:'Z41'}})
  expect(Date.parse(history.versions[0].effectiveAt)).toBe(Date.parse(f.effectiveAt))
+ const final=await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceMessageId,rawPayload:wire})
+ expect(final).not.toBeNull()
+ if(!final)throw Error('actual_reviewed_death_final_response_required')
+ expect(final.plans).toHaveLength(1)
+ const plan=final.plans[0]
+ expect(plan).toMatchObject({effectKind:'confirmed_customer_version',objectAssessmentId:null,effectReceiptId:source.sourceMessageId,effectFactsHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ const ids=await createReceivedProdatCommittedEffectAcks({actorUserId:f.reviewer.id,companyId:f.companyId,sourceMessageId:source.sourceMessageId})
+ expect(ids).toHaveLength(1)
+ const ack=await getEdielMessageById(ids[0])
+ expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'APERAK',related_message_id:source.sourceMessageId,ack_outcome:'positive',application_reference:'23-DDQ-PRODAT'})
+ const parsed=EdifactEnvelopeCodec.decode(ack!.raw_payload!),values=(tag:string)=>parsed.segments.filter(s=>s.tag===tag).map(s=>segmentComposite(s,1,parsed.una))
+ expect(values('ERC')).toContainEqual(['100','','260'])
+ expect(values('RFF')).toContainEqual(['LI',plan.acknowledgedReferences[0]])
+ expect(sql(`SELECT payload FROM public.ediel_outbox WHERE ediel_message_id=${literal(ids[0])}`)).toMatchObject({canonicalAssessmentId:plan.canonicalAssessmentId,objectAssessmentId:null,effectReceiptId:source.sourceMessageId,effectFactsHash:plan.effectFactsHash,effectKind:'confirmed_customer_version'})
+ expect(replies()).toEqual({contrl:1,aperak:1})
+ const fixedReplies=sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m WHERE related_message_id=${literal(source.sourceMessageId)} AND direction='outbound'),'outboxes',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM public.ediel_outbox o WHERE ediel_message_id=${literal(ids[0])}))`)
  const stable=state()
  expect(await applyConfirmedCustomerSource(input)).toMatchObject({applied:true,sourceMessageId:source.sourceMessageId,eventId:reviewed.eventId,payloadHash})
  expect(state()).toEqual(stable);expect(deathBusiness(f)).toEqual(before)
  expect((await supabaseService.from('ediel_messages').select('raw_payload').eq('id',source.sourceMessageId).single()).data?.raw_payload).toBe(wire)
+ expect(await createReceivedProdatCommittedEffectAcks({actorUserId:f.reviewer.id,companyId:f.companyId,sourceMessageId:source.sourceMessageId})).toEqual(ids)
+ expect(sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m WHERE related_message_id=${literal(source.sourceMessageId)} AND direction='outbound'),'outboxes',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM public.ediel_outbox o WHERE ediel_message_id=${literal(ids[0])}))`)).toEqual(fixedReplies)
 },120000)
 it('actual independent outgoing review publishes exact immutable non-death event; current issuer/reviewer revocation blocks every fresh consumer',async()=>{
  const f=await fixture(),scope={companyId:f.companyId,actorUserId:f.uploader.id},original=f.pdf('actual original'),artifact=await archiveRequestedCustomerChangeSource({...f.submission('SYNTHETIC exact outgoing customer agreement',original),...scope})
