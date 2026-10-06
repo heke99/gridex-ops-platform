@@ -33,7 +33,7 @@ export function selectedDb04Schema(schema: string): string {
     exact(new RegExp(`CREATE TABLE public\\.${name} \\([\\s\\S]+?\\n\\);`, 'g')))
   const views = ['ediel_message_ack_state_v', 'ediel_overdue_message_acks_v'].map(name =>
     exact(new RegExp(`CREATE VIEW public\\.${name} [\\s\\S]+?;`, 'g')))
-  const indexes = ['ediel_messages_company_direction_ref_idx', 'ediel_messages_company_family_status_idx',
+  const indexes = ['ux_ediel_inbound_interchange', 'ediel_messages_company_direction_ref_idx', 'ediel_messages_company_family_status_idx',
     'ediel_messages_company_id_id_uidx', 'meter_reading_series_company_period_idx', 'meter_reading_series_current_object_period_idx',
     'meter_reading_series_source_message_idx', 'meter_reading_series_supersedes_idx'].map(name =>
     exact(new RegExp(`CREATE (?:UNIQUE )?INDEX ${name} [^;]+;`, 'g')))
@@ -92,9 +92,9 @@ export function buildDb04Fixture(first: string, second: string, namespace: strin
       CASE WHEN n=44 OR (n>12 AND n<>42 AND n%13=0) THEN 'production' ELSE 'test' END,
       'inbound','edifact','PRODAT','Z05',CASE WHEN n=8 OR n%128=0 THEN 'failed' ELSE 'received' END,
       replace(CASE WHEN n=44 OR (n>12 AND n<>42 AND n%13=0) THEN ${sqlLiteral(wire(true))} ELSE ${sqlLiteral(wire(false))} END,
-        ${sqlLiteral(originalReference)},${sqlLiteral(ref)}||CASE WHEN n BETWEEN 42 AND 46 THEN '42' ELSE n::text END),
+        ${sqlLiteral(originalReference)},${sqlLiteral(ref)}||CASE WHEN n BETWEEN 42 AND 46 AND n<>44 THEN '42' ELSE n::text END),
       now(),CASE WHEN n=45 OR (n>12 AND n<>42 AND n%7=0) THEN '77777' ELSE '12345' END,
-      CASE WHEN n=46 THEN '88888' ELSE '54321' END,${sqlLiteral(ref)}||CASE WHEN n BETWEEN 42 AND 46 THEN '42' ELSE n::text END,
+      CASE WHEN n=46 THEN '88888' ELSE '54321' END,${sqlLiteral(ref)}||CASE WHEN n BETWEEN 42 AND 46 AND n<>44 THEN '42' ELSE n::text END,
       now()-make_interval(secs=>n),n=6,n=7,CASE WHEN n=11 THEN 'failed' WHEN n=6 THEN 'pending' ELSE NULL END,
       CASE WHEN n=1 THEN now()-interval '2 days' WHEN n=2 THEN now()-interval '1 day' WHEN n=3 THEN now()
         WHEN n=4 THEN now()+interval '1 hour' WHEN n BETWEEN 6 AND 11 THEN now()-interval '1 hour' ELSE NULL END,

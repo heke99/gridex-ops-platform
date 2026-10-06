@@ -87,16 +87,16 @@ it('measures selective and dense actor/environment/status/reference/current-vers
 })
 
 it('requires measured performance rather than treating installed indexes as approval', async () => {
-  const query = fixture.queries.reference
-  const indexed = await measure(query.sql, 1)
+  const query = fixture.queries.absentSource
+  const indexed = await measure(query.sql, 0)
   // This mutation exists only in the disposable selected-DDL projection.
-  await db.exec('SAVEPOINT index_control; DROP INDEX public.ediel_messages_company_direction_ref_idx; ANALYZE public.ediel_messages')
+  await db.exec('SAVEPOINT index_control; DROP INDEX public.meter_reading_series_source_message_idx; ANALYZE public.meter_reading_series')
   try {
-    const unindexed = await measure(query.sql, 1)
+    const unindexed = await measure(query.sql, 0)
     expect(db04VisitedRows(unindexed.Plan)).toBeGreaterThan(db04VisitedRows(indexed.Plan) + 100)
     expect((await db.query<{ id: string }>(query.sql)).rows.map(row => row.id)).toEqual(query.ids)
     // The same real result/plan must fail an unmet budget even with all other
     // indexes present. Zero is a deliberate refusal control, not an SLA.
-    expect(() => assertDb04Measurement(unindexed, 1, 0)).toThrow('db04_measured_budget_exceeded')
+    expect(() => assertDb04Measurement(unindexed, 0, 0)).toThrow('db04_measured_budget_exceeded')
   } finally { await db.exec('ROLLBACK TO SAVEPOINT index_control; RELEASE SAVEPOINT index_control') }
 })
