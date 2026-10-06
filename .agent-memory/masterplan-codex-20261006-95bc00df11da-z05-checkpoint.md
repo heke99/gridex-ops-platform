@@ -92,3 +92,7 @@ workflowYAML/Bash/Python/26paths/diffPASS. Initial npmruntypes wasinvalidscript
 PASS (pinnedimagecannotfit). Nextthisauthor finishTSC, exactindependentreview,
 smallstrictfeedbackdraft linking597/503/614, actualnative/currentCI/artifacts
 beforeanywholepromotion. No runtimeedits/foreignfiles/secondpair.
+
+Exactdae6c266 scriptsTSC exposed CanonicalDecisionIssue hasseverity ratherthan
+blocking; correctedthe typed assertion only, preservedrealrole/noeffectoracles.
+No nativeexecuted/no coveragepromotion. Next correctedTSC+independentreview.

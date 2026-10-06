@@ -129,7 +129,7 @@ it.each(variants)('actual Z05%s cannot execute when the real receiving tenant su
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(companyId)} AND environment='test' AND role_code='electricity_supplier' AND(valid_to IS NULL OR valid_to>clock_timestamp())`)).toBe(0)
  }}),before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId)
  expect([f.decision.applicationDecision,f.decision.functionalDecision],JSON.stringify(f.decision.issues)).toContain('rejected')
- expect(f.decision.issues.some(i=>i.blocking),JSON.stringify(f.decision.issues)).toBe(true)
+ expect(f.decision.issues.some(i=>i.severity==='error'),JSON.stringify(f.decision.issues)).toBe(true)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)
