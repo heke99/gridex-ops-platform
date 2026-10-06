@@ -69,7 +69,7 @@ it.each(['bankruptcy','customer_change'] as const)('prospective original %s reac
  expect(durable(f)).toEqual(stable);expect(business(f)).toEqual(before)
 },120000)
 
-it('prospectively expired supplier role holds fresh physical original before canonical processing, effects and ACKs',async()=>{
+it('prospectively expired supplier role permits only correlated technical CONTRL and holds fresh physical original before business effects',async()=>{
  for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)
  // Complete accepted control first; only the actual public supplier role then
  // expires BEFORE the separate original's mail reception and first persistence.
@@ -94,10 +94,24 @@ it('prospectively expired supplier role holds fresh physical original before can
  await expect(requireEdielInboundLegalContext(f.companyId,id)).rejects.toThrow('ediel_inbound_legal_context_required')
  const none=()=>sql(`SELECT jsonb_build_object('assessments',(SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(id)}),'ruleBasis',(SELECT count(*) FROM gridex_ediel_source_rules.receipts WHERE source_message_id=${literal(id)}),'tasks',(SELECT count(*) FROM gridex_customer_life_events.tasks WHERE source_message_id=${literal(id)}),'facets',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(id)}),'availability',(SELECT count(*) FROM gridex_requested_changes.customer_version_availability WHERE source_message_id=${literal(id)}))`)
  const source={...f,sourceMessageId:id,message,wire}
+ let stable:ReturnType<typeof durable>|undefined
  for(let attempt=0;attempt<2;attempt++){
   expect(await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:id})).toMatchObject({tenant_resolution_status:'tenant_ambiguous',business_match_status:'business_blocked',processing_status:'routing_unresolved'})
   expect(none()).toEqual({assessments:0,ruleBasis:0,tasks:0,facets:0,availability:0})
-  expect(durable(source)).toEqual({versions:0,primary:0,transitions:0,acks:[],outboxes:0})
+  const committed=durable(source)
+  expect(committed).toMatchObject({versions:0,primary:0,transitions:0,outboxes:1,acks:[{id:expect.any(String),raw:expect.any(String),family:'CONTRL',outcome:'positive'}]})
+  if(attempt===0){
+   stable=committed
+   const ackIds=sql<string[]>(`SELECT jsonb_agg(id ORDER BY id) FROM public.ediel_messages WHERE related_message_id=${literal(id)} AND direction='outbound'`)
+   expect(ackIds).toHaveLength(1)
+   const ack=await getEdielMessageById(ackIds[0]);expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'CONTRL',related_message_id:id,ack_outcome:'positive'})
+   const envelope=EdifactEnvelopeCodec.decode(ack!.raw_payload!),parsed=tokenizeEdifact(ack!.raw_payload!)
+   expect(envelope.sender).toBe(e.receiver);expect(envelope.receiver).toBe(e.sender)
+   expect(envelope.applicationReference).toBe(e.applicationReference);expect(envelope.environment).toBe('test')
+   expect(parsed.segments.filter(s=>s.tag==='UCI').map(s=>segmentComposite(s,1,parsed.una))).toEqual([[reference]])
+   expect(parsed.segments.find(s=>s.tag==='UCI')!.elements[4]).toBe('7')
+   expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(ackIds[0])}`)).toBe(1)
+  }else expect(committed).toEqual(stable)
   expect(custody()).toEqual(original);expect(business(f)).toEqual(before)
  }
  expect(delivery.smtp).toHaveBeenCalledTimes(sentBefore)
