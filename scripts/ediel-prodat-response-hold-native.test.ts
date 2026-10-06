@@ -30,7 +30,7 @@ async function fixture(){
  const f=await createRequestedChangeSupplyFixture(email=>external.send.mockResolvedValue({
   accepted:[email],rejected:[],messageId:'synthetic-own-Z03',response:'250 explicitly synthetic acceptance',
  }),{requestedStartDate:futureNativeSupplyDate()})
- const reviewer=await createBilateralSourceOperator(f.companyId,bilateralSourceOperatorPermissions)
+ const reviewer=await createBilateralSourceOperator(f.companyId,[...bilateralSourceOperatorPermissions,'communication.send'])
  return {...f,reviewer}
 }
 type Fixture=Awaited<ReturnType<typeof fixture>>
