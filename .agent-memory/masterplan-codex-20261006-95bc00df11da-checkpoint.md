@@ -1,20 +1,23 @@
-## CURRENT autonomous continuation — 2026-10-06 18:14 UTC
+## CURRENT actual delivery — 2026-10-06 18:18 UTC
 
-Agent codex-20261006-95bc00df11da; packet6c0f6bee-1d98-4bec-a2f8-b8ff3889d009.
-PairSC-064 / AT-Z08LK-SUPPLIER; PR626 OPEN/ready; frozen source
-b1093858e78924b29c7b14ae98322dd0cf0b9588, tree3a08e2d280a528f82c3abb59d7dd5910e3f27422.
-Actualmainc0385ee4ee8340eb9e68029c2bd09d05bdf37f40 is282/352; owncandidate284.
-Whole-current-source independent SC and LK APPROVE: fresh actual native4/4
-and24/24, zero failures/errors/skips, exit0, tree/all12SC+18LKinputs matchGit.
-Current CodeRabbit SUCCESS. All9ordinary +2selectednative current-head SUCCESS; clean replay and
-pr-certificate now actually completed.
-Current fullunit893files/11955testsPASS; officialaudit high0critical0 original
-exception unchanged. CI_GREEN exactb109; notyetmerged/noexternalclaim; own13refsheld,
-no ownroles. Memoryproposal7a reviewed/released, current c3ae memoryrole owns
-shared reconciliation. Nextthisauthor authenticate remaining clean/certificate,
-refresh currentmain/head/locks, acquire free merge role only allgreen, normal
-expectedheadmerge, actualmain documentation then owner-only release and fresh
-eligibility. No new pair before delivery/documentation/release.
+Agent codex-20261006-95bc00df11da; pairSC-064 / AT-Z08LK-SUPPLIER;
+packet6c0f6bee-1d98-4bec-a2f8-b8ff3889d009. PR626 actually MERGED at
+8f388b04ddf74758ae4b37dc45ccfadf3ea8d978 / tree3a08e2d280a528f82c3abb59d7dd5910e3f27422,
+orderedparentsc0385ee4ee8340eb9e68029c2bd09d05bdf37f40+b1093858e78924b29c7b14ae98322dd0cf0b9588.
+Actualmain ledger113/121rules+171/231contracts=284/352,68remaining;
+onlyownSC064/LK08PASSED rows changed, all350foreignrows preserved.
+Exacthead all9ordinary+2selectednativeSUCCESS and independentwholeSC/LK
+APPROVE; actualSC4/LK24,0fail/error/skip/exit0, all12+18inputs/digests;
+fullunit893files11955testsPASS. This proves code contracts, notmarketacceptance.
+Atomic mergerole368c5393e9232477211fc11259639fe828e66b70 held onlyduring
+qualifiedoperation; documentactualMERGED530 then ownerGET/DELETE/404 release.
+Own13packetrefs remainhelduntil documentaryDELIVERY/RELEASE and exactcleanup.
+Foreignmemoryae4c/c3ae owns common reconciliation; actual626 uniquehandover
+mustbe mirroredunderitsrole, released7a proposal retained. No commonedit here.
+Nextthisauthor postactualMERGED/role release, explicit13resourceRELEASE and
+physicalcleanup, refreshmain/coverage/board/legacy/liveclaims and independently
+assess/reserve nexteligibletwoIDs; no newpairbefore currentrelease. Mainpush CI
+is a separate subsequent pipeline, not borrowed/sourcecurrentheadallgreen.
 
 Historical checkpoint entries below retain previous RED/results and scope.
 
@@ -965,3 +968,18 @@ andwholeindependentreviewsqualified. No memoryrole held/commonedit.
 Nextthisauthor postCLAIM530 with thischeckpoint, re-read currentrole/main/head/
 gates, expectedheadnormalmerge626, authenticateactualPR/main/tree/parents;
 documentMERGEDbeforeexactroleGET/DELETE/404 release. No actualmergeclaimedyet.
+
+## Actual PR626 delivery / role-release follows documentation
+
+Normal expected-head merge API accepted exactb109; actualPRclosed/mergedtrue
+andactualmain8f388b04ddf74758ae4b37dc45ccfadf3ea8d978 authenticated. Exacttree3a08e2d280a528f82c3abb59d7dd5910e3f27422
+EQUALS independentlyreviewed/currentall11green sourceb109 tree; orderedparents
+c0385ee4ee8340eb9e68029c2bd09d05bdf37f40 + b1093858e78924b29c7b14ae98322dd0cf0b9588 verified.
+Actualledger113+171=284; no otherrow promoted/noexternalqualification.
+Unique commonhandover line for legitimate role-memory writer:
+- ACTUAL MERGED PR #626: `8f388b04ddf74758ae4b37dc45ccfadf3ea8d978`; SC-064 + AT-Z08LK-SUPPLIER PASSED; all9ordinary+2selectednative currentheadSUCCESS, independentwholeSC/LKAPPROVE, SC4/LK24/0failure-error-skip/exit0 and893files11955testsPASS; actualledger113+171=284/352, no marketqualification.
+
+Memoryroleae4c/c3ae remainsforeign; thisactualreceipt/unique626line handedover
+through530 forowner-onlysharedmirror, preservingforeignhistory/HOLD/oldRED.
+Ownmergerole368c receipt stillmustGETmatch/DELETE/404 afterthischeckpoint and
+MERGED530, then explicit own13scopeRELEASE/checkpoint/currentboard assessment.
