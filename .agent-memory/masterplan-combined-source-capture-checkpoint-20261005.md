@@ -172,3 +172,12 @@ olderorigin/captureflag; compositionpendingTRUE. Originalauthor/testlane retains
 repairs/results; rootonlyowns genuine resultingunion capture/native/ordinarygates,
 which mustpass beforeactualdelivery. This finishes already-produced source, with
 no new Masterplan rule, duplicateoriginaltester or additionalcapture.
+
+Existing capture-only workflow gains a narrowly scoped combined-branch turn
+selector: run genuine capture while composition_capture_pendingTRUE; after
+byte-exact rawimport changes that current flagFALSE, skip a duplicate automatic
+capture. All other original Staff branches keep their existing capture behavior.
+The headref passes as an environment value, not interpolated shellcode. No
+mandatory ordinary/native/parity/coverage gate is weakened or skipped. This
+necessary same-producer completion avoids repeated capture on output import,
+not new Masterplan work; genuine capture/resulting-head gates remain pending.
