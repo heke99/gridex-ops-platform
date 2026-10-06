@@ -543,3 +543,20 @@ separate deferredmaintenance while user-priority existingZ05responsibility
 finishes; no falseforeignlock/blocker invented and no unreserved sourceedit.
 Next95bc authenticate currentbbf39/mandatorygates, actual621mainadoption/
 affectedproof/wholeclause review beforeonlyownrows/normalgreenlockedmerge.
+
+## Actual621 delivered / before lawful main adoption
+
+Fresh PR621 API mergedtrue exactsource09944ec70211675ea58102c81046a18eed4eb8a3,
+actualMAIN141339d78f0b058a18ced03da7af02a41712a378, tree87f0c7f9911a2909b8390baeb3b8cf43f619c499,
+parents [ed3d0731261cba73440a52a0dd2e57af128a7b13,09944ec70211675ea58102c81046a18eed4eb8a3].
+/tmp/gridex-z05-621-actual-adoption-before.json verified; currentoriginmain fetched.
+Thus custody621 delivery dependency resolved, but own current39/gates/whole notproved.
+Both mandatory peers completed whole-clause source inventory exactbbf: no additional
+pair-specific gaps; source authoring approval retained, whole withheld until execution.
+Nativebbf37527791618 still IN_PROGRESS, exacthead verified; preserve its actual
+terminal result separately. No imported unmerged foreign branch/source.
+Next95bc merge verified actualmain into existing own branch (no foreign edits),
+inspect resolution/allforeigncoverage preservation, actual42+affected diagnostics/
+consumer tests and all3TS/lint/full as warranted by changed main. Freeze reviewed
+successor, fresh39/all original Git input hashes/currentmandatory gates; only whole
+proven own2 rows later. Samepair/10refs/no roles. Beforeintegration documented.
