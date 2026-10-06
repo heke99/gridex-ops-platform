@@ -816,3 +816,19 @@ Next95bc preservebyteexactZIP inalreadyreservedpath andcompactwholeproof;
 addresswholefindings/onlyownprovenrows onceapproved, currentcompactsourceCP
 andfinalheadrelevantchecks/independentreview/freshmandatory beforemergelock.
 Authentic89 andpriorREDremainretained; samepair/ALL12/no roles/newpair.
+
+## BOTH independent literal WHOLE_APPROVE exact9a / BEFORE own2row promotion
+
+sc064 and z08lk mandatoryreviewers independently WHOLE_APPROVE bothfrozenZ05
+contracts at9a/tree014a/authentic39/all9280originalinputs/ZIPdigestCRC/exit0,
+allpositivehistory/replay and expected/prohibited publicconsumers/durablegraphs.
+No literalblocker; internal/syntheticports explicit, no externalapproval.
+z08lk alsoactualsupportedNode22 independent50PASS (42own+8custody) exit0.
+Currentarchive byteexact preserved; compactproof stillPENDING untilreview
+receiptstatus recorded. Next95bc ONLYownedcoverageATZ05L/ATZ05LK→PASSED with
+realcode/tests/permanentproof evidence, preserveALLotherrows; updateproof actual
+twoWHOLEapproval andsourcecheckpoint compactcurrenttop (oldhistory retained).
+Refreshactualmain andintegrateonlydeliveredmetadata ifcompatible, no foreign
+unmergedcode. Runmandatorycoverage--check onfinalworkingcandidate, finalexact
+metadata/source review beforepublication/currentheadallrequiredgreen.
+NoCI_GREEN/merge/newpair/role; source9a code remainsqualified andunchanged.
