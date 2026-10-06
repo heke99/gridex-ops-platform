@@ -1,3 +1,4 @@
+// masterplan: SC-064
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import { assertRegistryRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
