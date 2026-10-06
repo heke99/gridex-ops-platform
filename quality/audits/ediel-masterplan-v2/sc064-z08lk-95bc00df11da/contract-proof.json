@@ -14,10 +14,11 @@
     "AT-Z08LK-SUPPLIER": "Independent whole literal APPROVE at executed source"
   },
   "components": {
-    "node": "22.23.3",
     "own_passed": 40,
     "independently_passed": 40,
-    "finite_ports": "SMTP and read-only/auth/dedupe/version/customer/contract qualification ports explicitly bounded; actual validator/finalizer and consumers execute."
+    "finite_ports": "SMTP and read-only/auth/dedupe/version/customer/contract qualification ports explicitly bounded; actual validator/finalizer and consumers execute.",
+    "own_node": "22.23.3",
+    "independent_node": "22.23.3"
   },
   "full_unit": {
     "source": "802f9363bbba4012e580a83b5d2079d98bcc3147",
@@ -83,7 +84,7 @@
       "current_policy": "actual rule-pack retirement -> CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE, durable failed/blocked item and original preservation",
       "current_route": "actual ediel_route_profiles.smtp_to/effective runtime target -> route_receiver_email_mismatch, blocked unlocked item",
       "current_rights": "actual company capability withdrawal -> real current capability_not_ready snapshot, claim-stage blocked_tenant_state",
-      "forbidden_effect": "zero SMTP calls/entered transport attempts and no supply creation in negatives; unchanged original/intent/version/source rule receipts/history",
+      "forbidden_effect": "Zero SMTP calls/entered transport attempts and no supply creation in negatives; unchanged original bytes/version, selected intent payload/version fields, existing source receipts and archive history.",
       "positive_control": "unchanged current authority actual worker one accepted provider attempt and persisted current sent source"
     },
     "AT-Z08LK-SUPPLIER": {
