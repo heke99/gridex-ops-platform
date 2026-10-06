@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="11" failures="1" errors="0" time="141.399738368">
+    <testsuite name="scripts/ediel-at-z15c-z18v-esco-native.test.ts" timestamp="2026-10-06T17:12:47.322Z" hostname="runnervmmprz5" tests="11" failures="1" errors="0" skipped="0" time="141.399738368">
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="unsolicited received Z15 then exact Z15C restores only its market permission, with genuine own ACKs and a still-revoked grant" time="8.781535553">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign LI cannot restore the real ended permission or emit positive APERAK" time="5.819790852">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign Z09 cannot restore the real ended permission or emit positive APERAK" time="5.438956927">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign object cannot restore the real ended permission or emit positive APERAK" time="5.702778492">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign DTM164 cannot restore the real ended permission or emit positive APERAK" time="5.457241286">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="every required common/own/UD Z15C omission reaches its actual syntax/guide/field barrier without market, grant or positive APERAK effects" time="71.563781183">
+            <failure message="expected [ …(3) ] to deeply equal []" type="AssertionError">
+AssertionError: expected [ …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   &quot;required Z15C field 209 native recorder: {\&quot;code\&quot;:\&quot;P0001\&quot;,\&quot;details\&quot;:null,\&quot;hint\&quot;:null,\&quot;message\&quot;:\&quot;prodat_full_object_reason_changed\&quot;}; facts={\&quot;globalReasons\&quot;:[\&quot;FIELD_MATRIX_REQUIRED_FIELD_MISSING\&quot;],\&quot;registerReasons\&quot;:[\&quot;REGISTER_SCOPE_UNAVAILABLE\&quot;],\&quot;ownReasons\&quot;:[\&quot;REGISTER_SCOPE_UNAVAILABLE\&quot;,\&quot;FIELD_MATRIX_REQUIRED_FIELD_MISSING\&quot;],\&quot;objects\&quot;:true,\&quot;response\&quot;:true,\&quot;application\&quot;:false,\&quot;sourceFunction\&quot;:false}&quot;,
++   &quot;required Z15C field 209: prodat_canonical_source_validation_unconfirmed; stack=Error: prodat_canonical_source_validation_unconfirmed
++     at applyCanonicalRuntimeDecision (/home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/flows/inboundProcessing.ts:348:59)
++     at processTicksAndRejections (node:internal/process/task_queues:103:5)
++     at processInboundEdielMessage (/home/runner/work/gridex-ops-platform/gridex-ops-platform/lib/ediel/flows/inboundProcessing.ts:971:28)
++     at process (/home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-at-z15c-z18v-esco-native.test.ts:67:2)
++     at /home/runner/work/gridex-ops-platform/gridex-ops-platform/scripts/ediel-at-z15c-z18v-esco-native.test.ts:284:10
++     at file:///home/runner/work/gridex-ops-platform/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20&quot;,
++   &quot;required Z15C field 223: {\&quot;code\&quot;:\&quot;P0001\&quot;,\&quot;details\&quot;:null,\&quot;hint\&quot;:null,\&quot;message\&quot;:\&quot;ediel_historical_rule_pack_basis_unavailable\&quot;}; actual RPC names=[\&quot;ediel_read_technical_source_endpoint_v2\&quot;,\&quot;gridex_actor_has_company_permission\&quot;,\&quot;ediel_record_technical_syntax_facet_v2\&quot;,\&quot;ediel_capture_technical_syntax_ack_basis_v2\&quot;,\&quot;gridex_actor_has_company_permission\&quot;,\&quot;gridex_read_outbound_acks_for_source_v2\&quot;,\&quot;gridex_actor_has_company_permission\&quot;,\&quot;gridex_actor_has_company_permission\&quot;,\&quot;ediel_read_outbound_ack_replay_v1\&quot;,\&quot;ediel_require_source_bytes_available_v1\&quot;,\&quot;ediel_require_technical_syntax_ack_basis_v2\&quot;,\&quot;gridex_actor_has_company_permission\&quot;,\&quot;gridex_actor_has_company_permission\&quot;,\&quot;ediel_read_technical_syntax_ack_route_v1\&quot;,\&quot;ediel_create_outbound_ack_atomic_v1\&quot;,\&quot;gridex_record_prodat_source_validation_v6\&quot;,\&quot;ediel_list_business_acks_for_source_v1\&quot;]&quot;,
++ ]
+
+ ❯ scripts/ediel-at-z15c-z18v-esco-native.test.ts:290:29
+            </failure>
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual Z15C consumer refuses foreign tenant/actor selectors and native source raw/direction mutation before restoring the unchanged qualified original" time="7.183142807">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual current legal role prevents Z15C restoration and positive APERAK after a genuine prior received ending" time="5.447879365">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual ESCO terminate command protects a shared active mission then sends its source-qualified Z18 and consumes physical ACKs and matching Z15" time="15.494656111">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual Z18 origination rejects a foreign tenant actor and a missing current legal ESCO role before any wire or provider effect" time="3.948845169">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="every required common/own/UD Z18V omission is rejected by the actual registry and send consumer without modifying the queued original or entering SMTP" time="6.559043172">
+        </testcase>
+    </testsuite>
+</testsuites>
