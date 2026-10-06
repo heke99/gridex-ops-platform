@@ -1,3 +1,7 @@
+# Current continuation pointer — 2026-10-06
+
+Own resumed C draft-preservation packetd502915a/receipt75f25be is documented in masterplan-codex-c3ae-c-draft-proof-checkpoint.md. Original28actual24PASS4FAIL and original releases below remainhistorical, not currentapproval. Campaignmemory632 source6b8 is separate; sixcommonmemoryfiles inthisCbranch nowequalactualmainc038. This continuation preservesallpriorcheckpoint evidence below.
+
 # codex-20261006T134154Z-c3ae376b9893 — Z03C/Z05C acceptance packet
 
 Status: PR623 MERGED; PR627 native8PASS2FAIL; mandatory verify RED; source/security/authentication blockers, independent proof continues; coverage unchanged.
