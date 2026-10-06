@@ -2370,8 +2370,15 @@
     },
     {
       "id": "SC-064",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/outbox/sendOutboxItem.ts",
+        "lib/ediel/outbox/routeContract.ts",
+        "lib/tenant/operationPolicy.ts",
+        "__tests__/ediel-sc-064-presend-requalification.test.ts",
+        "scripts/ediel-sc-064-presend-requalification-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc064-z08lk-95bc00df11da/contract-proof.json"
+      ]
     },
     {
       "id": "SC-065",
@@ -3899,8 +3906,17 @@
     },
     {
       "id": "AT-Z08LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/production/bilateralProdatClosureOperation.ts",
+        "lib/ediel/flows/prodatBilateralClosure.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-at-z08lk-supplier-acceptance.test.ts",
+        "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+        "scripts/ediel-at-z08lk-supplier-native.test.ts",
+        "scripts/helpers/ediel-bilateral-lk-native-fixture.ts",
+        "quality/audits/ediel-masterplan-v2/sc064-z08lk-95bc00df11da/contract-proof.json"
+      ]
     },
     {
       "id": "AT-Z06E-SUPPLIER",
