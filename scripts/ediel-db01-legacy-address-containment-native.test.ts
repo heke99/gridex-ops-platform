@@ -190,8 +190,23 @@ if (phase === 'historical') {
     // An independent public metadata birth has no bytes/accepted facts/custody.
     // It is the disposable FK action control, never the physical source proof.
     const audit = await createEdielMessage({actorUserId: f.actorUserId, companyId: f.companyId, environment: 'test', direction: 'inbound',
-      messageStandard: 'edifact', messageFamily: 'PRODAT', messageCode: 'Z05', status: 'draft', partyAddressId: lifecycleConfig.addressId})
-    expect(audit).toMatchObject({party_address_id: lifecycleConfig.addressId, raw_payload: null})
+      messageStandard: 'xml', messageFamily: 'OTHER', messageCode: 'DB01_METADATA', status: 'draft', partyAddressId: lifecycleConfig.addressId,
+      requiresContrl: false, requiresAperak: false})
+    expect(audit).toMatchObject({company_id: f.companyId, created_by: f.actorUserId, environment: 'test', direction: 'inbound',
+      message_standard: 'xml', message_family: 'OTHER', message_code: 'DB01_METADATA', status: 'draft',
+      party_address_id: lifecycleConfig.addressId, raw_payload: null, immutable_payload_hash: null, immutable_rendered_at: null,
+      canonical_rule_pack_id: null, rule_profile_key: null, rule_profile_version_id: null, rule_profile_version: null,
+      rule_pack_checksum: null, rule_pack_snapshot: {}, execution_context_snapshot: {}, requires_contrl: false, requires_aperak: false})
+    expect(sql(`SELECT jsonb_build_object(
+      'receivedSources',(SELECT count(*) FROM gridex_received_sources.sources WHERE source_message_id=${literal(audit.id)}),
+      'technicalSources',(SELECT count(*) FROM gridex_ediel_technical_ack.sources WHERE source_message_id=${literal(audit.id)}),
+      'identityReceipts',(SELECT count(*) FROM gridex_ediel_inbound_context.receipts WHERE source_message_id=${literal(audit.id)}),
+      'ruleReceipts',(SELECT count(*) FROM gridex_ediel_source_rules.receipts WHERE source_message_id=${literal(audit.id)}),
+      'receptions',(SELECT count(*) FROM gridex_ediel_inbound_receptions.receptions WHERE source_message_id=${literal(audit.id)}),
+      'ownerConsumptions',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(audit.id)}),
+      'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE ediel_message_id=${literal(audit.id)}),
+      'supplyPeriods',(SELECT count(*) FROM public.customer_supply_periods WHERE source_message_id=${literal(audit.id)}))`))
+      .toEqual({receivedSources: 0, technicalSources: 0, identityReceipts: 0, ruleReceipts: 0, receptions: 0, ownerConsumptions: 0, outbox: 0, supplyPeriods: 0})
     const lifecycle = {...lifecycleConfig, messageId: audit.id}
     const direct = await directWire(f, old.addressId)
     expect(direct.message).toMatchObject({party_address_id: old.addressId})
