@@ -54,6 +54,34 @@ const acknowledgements=(sourceId:string)=>sql<EdielMessageRow[]>(`SELECT coalesc
  FROM public.ediel_messages m WHERE related_message_id=${literal(sourceId)} AND direction='outbound'`)
 const invoicee=(name:string):Parts=>['NAD','IV',['SYNTHETIC-BILL','','89'],'',name,'Invoice Street','Town','','12345','SE']
 const withInvoicee=(name:string)=>(parts:Parts[]):Parts[]=>[...parts,invoicee(name)]
+async function missingFieldAcknowledgements(f:Awaited<ReturnType<typeof receivedEnd>>,field:'211'|'251'){
+ const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
+ expect(acks.map(m=>[m.message_family,m.ack_outcome])).toEqual([['APERAK','negative'],['CONTRL','positive']])
+ const original=tokenizeEdifact(f.wire),unb=original.segments.find(s=>s.tag==='UNB')
+ const li=segmentComposite(original.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,original.una)[0]==='LI'),1,original.una)[1]
+ for(const ack of acks){
+  expect(ack).toMatchObject({company_id:f.companyId,environment:'test',related_message_id:f.sourceId,direction:'outbound'})
+  expect(validateUnsmGrammar(ack.raw_payload!).issues.filter(i=>i.severity==='error')).toEqual([])
+  expect(validateAckPreflight({ackMessage:ack,sourceMessage:source})).toMatchObject({ok:true})
+  const parties=parseRulebookMessage(ack.raw_payload!)
+  expect([parties.sender,parties.receiver]).toEqual([f.sender,f.receiver])
+  const wire=tokenizeEdifact(ack.raw_payload!)
+  if(ack.message_family==='CONTRL'){
+   const uci=wire.segments.find(s=>s.tag==='UCI')
+   expect(segmentComposite(uci,1,wire.una)[0]).toBe(segmentComposite(unb,5,original.una)[0])
+   expect(segmentComposite(uci,2,wire.una)).toEqual(segmentComposite(unb,2,original.una))
+   expect(segmentComposite(uci,3,wire.una)).toEqual(segmentComposite(unb,3,original.una))
+   expect(segmentComposite(uci,4,wire.una)).toEqual(['1'])
+  }else{
+   expect(wire.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,wire.una))).toEqual([['41','','260']])
+   expect(wire.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,3,wire.una))).toEqual([[field,'','260']])
+   const refs=wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una))
+   expect(refs).toContainEqual(['Z07',f.external]);expect(refs).toContainEqual(['LI',li])
+   expect(refs).toContainEqual(['ACW',segmentComposite(original.segments.find(s=>s.tag==='BGM'),2,original.una)[0]])
+  }
+ }
+ return acks
+}
 afterEach(()=>{sourceSession.client=null;vi.unstubAllEnvs();vi.restoreAllMocks()})
 
 it.each(variants)('actual Z05%s commits its own end, physical acknowledgements and scoped final-value task while preserving history and every unrelated graph',async variant=>{
@@ -115,6 +143,9 @@ it.each(variants)('actual Z05%s complete IV is favorable and a missing present-g
  expect(f.decision.applicationDecision,JSON.stringify(f.decision.issues)).toBe('rejected')
  expect(f.decision.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber==='251'&&i.prodatDiagnostic.errorKind==='missing'),JSON.stringify(f.decision.issues)).toBe(true)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ const acks=await missingFieldAcknowledgements(f,'251')
+ await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ expect(acknowledgements(f.sourceId)).toEqual(acks)
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)
 
@@ -123,6 +154,9 @@ it.each(variants)('actual Z05%s missing mandatory end date is rejected with fiel
  expect(f.decision.applicationDecision,JSON.stringify(f.decision.issues)).toBe('rejected')
  expect(f.decision.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber==='211'&&i.prodatDiagnostic.errorKind==='missing'),JSON.stringify(f.decision.issues)).toBe(true)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ const acks=await missingFieldAcknowledgements(f,'211')
+ await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ expect(acknowledgements(f.sourceId)).toEqual(acks)
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)
 
