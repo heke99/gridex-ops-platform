@@ -1,6 +1,6 @@
 # SC-014 / AT-Z14V-ESCO — c65 checkpoint
 
-Status: IMPLEMENTING; bounded ordinary verification and SC-014 independent whole-code review passed. Agent `codex-aa4f29d3-c65`, packet `5874e7b5-1f58-4006-b311-70b9b2f379b6`.
+Status: OPEN_DRAFT_NATIVE_PENDING; exact source eae51da1 is frozen in PR #644; ordinary verification and source publication reviews passed, whole V/native/current mandatory gates pending. Agent `codex-aa4f29d3-c65`, packet `5874e7b5-1f58-4006-b311-70b9b2f379b6`.
 Branch `codex/ediel-sc014-z14v-c65-5874e7b5`; isolated worktree `/workspace/gridex-c65-sc014-z14v`. Exact main base `fd4a6a06f0cb462cfa15c3ee4a038d557dd559e0`. Atomic receipt `a080bdb4f2a52984a550ab60e4cdfbfde59e179f` uses that main tree and single parent; all seven sorted refs independently GET-confirmed twice. No implementation started.
 
 ## Ownership
@@ -84,3 +84,11 @@ To keep CI source frozen while recording ongoing receipts, this own checkpoint c
 ## Current tagged coverage gate
 
 Exact frozen source eae51da1 local mandatory npm run ediel:masterplan-v2:test-coverage -- --check exit0:352IDs/290approved/324tagged-green/0tagged-failing/28untagged. Original /tmp/gridex-c65-sc014-z14v-tagged.log SHA256c576c7fadb1593ad1c3d0a5d44d566034b8fff3acb340da822fa28a593d3fc10. This validates tagged ordinary mappings, not all expected/prohibited effects or new72 native execution. SC014/V remain unchanged coverage rows until final whole/current qualification. Source worktree clean. CI targeted/browser/smoke/coverage are running; native/OPS replay jobs stillqueued at latestAPI. Root does not cancel foreign runs, weaken gates or treat queue as failure. Next authentic current72/native and mandatory gate results, qualified actual failures if present.
+
+## Read-only retained-custody coordination and current actual gates
+
+Public #5306026887961 asks original SC047 whole/source owner and SC071 revocation-20261005 owner to finish their retained acceptance qualification or explicitly hand off ONLY remaining whole review/coverage responsibility. Independent actual637 joined SC047 and6+4 SC071 native cases pass on unchanged current inputs. This is read-only prospective coordination, no new selection/claim, no duplicate implementation and no silent-owner takeover. Whole custody remains retained; historical old red/hold criteria preserved. Six supplier contracts C/C, A/D, L/LK have explicit whole RELEASE receipts6022419994/6024728636/6026519492 but concrete negative/source/current SEND/ACK dependencies, so no green/next-pair inference. Sole current packet remains SC014/V with all7 a080 resources.
+
+Live source eae51da1/current main356e: targeted-regressions, browser-public, smoke and coverage actualSUCCESS; clean-migration-replay nowIN_PROGRESS, selected native37541875113/job112536565061 and remaining mandatory jobs queued. No native case executed yet; ordinary runner queue is not a demonstrated failure. Source worktree remains frozen, coverage unchanged290/352. Shared memory role963 is held by b6 per current public receipts; common summaries will use that role owner's reconciliation, no root common-file writes.
+
+Next root: authenticate actual current72-case artifact/full original source closure/true exit; resolve precise genuine failures within ownership with transport author, obtain imp05/gov independent whole-effects review, then only own2 coverage rows/final exact-head mandatory checks/guarded merge and actual release. No next pair before actual delivery or explicit documented blocker/release.
