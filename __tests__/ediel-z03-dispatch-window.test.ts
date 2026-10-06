@@ -6,7 +6,7 @@ const ports = vi.hoisted(() => ({
   rows: [] as Record<string, unknown>[],
   queries: [] as { table: string; filters: [string, string, unknown][] }[],
   getRequest: vi.fn(), openRequest: vi.fn(), event: vi.fn(), produce: vi.fn(),
-  schedule: vi.fn(), site: vi.fn(), points: vi.fn(), poa: vi.fn(), authorization: vi.fn(),
+  schedule: vi.fn(), site: vi.fn(), points: vi.fn(), poa: vi.fn(), authorization: vi.fn(), routeReadiness: vi.fn(),
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from(table: string) {
@@ -65,7 +65,7 @@ vi.mock('@/lib/operations/switchLifecycleBlocks', async importOriginal => ({
   findActiveSwitchLifecycleBlock: vi.fn().mockResolvedValue(null),
 }))
 vi.mock('@/lib/customer-operations/customerProcessRouteReadiness', () => ({
-  evaluateCustomerProcessRouteReadiness: vi.fn().mockResolvedValue({ ready: true, blockers: [], warnings: [] }),
+  evaluateCustomerProcessRouteReadiness: ports.routeReadiness,
 }))
 vi.mock('@/lib/grid-owners/verification', () => ({
   getGridOwnerVerification: vi.fn().mockResolvedValue({ canStartSupplierSwitch: true }),
@@ -97,6 +97,7 @@ beforeEach(async () => {
   ports.getRequest.mockImplementation(async (_db, id) => ports.rows.find(r => r.id === id) ?? null)
   ports.openRequest.mockResolvedValue(null)
   ports.authorization.mockResolvedValue({ covered: true, missing: [], schemaAvailable: true })
+  ports.routeReadiness.mockResolvedValue({ ready: true, blockers: [], warnings: [] })
   ports.site.mockResolvedValue({ id: 'site', company_id: 'company', customer_id: 'customer',
     grid_owner_id: 'grid', grid_area_code: 'STH', price_area_code: 'SE3',
     current_supplier_name: 'Original supplier', move_in_date: '2026-10-06' })
@@ -155,6 +156,18 @@ describe('persisted Z03 dispatch subtype through the real scheduler', () => {
     expect(result.ready).toBe(false)
     expect(result.blockers.map(b => b.code)).toContain('supplier_switch_send_window_expired')
     expect(ports.schedule.mock.calls[0][0].requestedStartDate).toBe('2026-10-05')
+  })
+
+  it('passes the same explicit environment through both ordinary gates and the producer', async () => {
+    ports.rows = [row('LK', '2026-10-06')]
+    const input = { actorUserId: 'actor', switchRequestId: 'switch', environment: 'test' as const }
+    await ensureInitialSwitchEdielAutomation(input)
+    expect(ports.schedule).toHaveBeenCalledTimes(2)
+    for (const [call] of ports.schedule.mock.calls) expect(call.environment).toBe('test')
+    expect(ports.routeReadiness).toHaveBeenCalledWith(expect.objectContaining({
+      companyId: 'company', customerId: 'customer', siteId: 'site', environment: 'test',
+    }))
+    expect(ports.produce).toHaveBeenCalledWith(expect.objectContaining({ environment: 'test', switchRequestId: 'switch' }))
   })
 
   it('preserves cancellation precedence over the persisted LK original', async () => {
