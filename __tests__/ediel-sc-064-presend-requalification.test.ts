@@ -1,0 +1,131 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { source } from './fixtures/prodat-identity'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+
+// SC-064 component proof. Real worker and route evaluator execute; current
+// route/tenant reads and the outbox persistence sink are explicit finite IO.
+// This file does not prove native decisions or authorize whole-ID approval.
+const io = vi.hoisted(() => ({
+  get: vi.fn(), from: vi.fn(), runtime: vi.fn(), rpc: vi.fn(), send: vi.fn(),
+  readiness: vi.fn(), project: vi.fn(),
+}))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get }))
+vi.mock('@/lib/ediel/config', async importOriginal => ({
+  ...await importOriginal<typeof import('@/lib/ediel/config')>(),
+  getEdielRouteRuntimeByCommunicationRouteId: io.runtime,
+}))
+vi.mock('@/lib/ediel/outbox/readinessGuard', () => ({ getEdielOutboundReadinessBlocker: io.readiness }))
+vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: io.send }))
+vi.mock('@/lib/ediel/transport/acceptedProjection', () => ({ readAcceptedEdielTransportProjection: async () => null }))
+vi.mock('@/lib/ediel/outbox/projectSentSources', () => ({ projectSentEdielSourceState: io.project }))
+import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
+
+const at = '2026-10-06T12:00:00.000Z'
+let message: EdielMessageRow
+let queued: Record<string, unknown>
+let route: Record<string, unknown>
+let writes: Array<{ filters: Array<[string, unknown]>; patch: Record<string, unknown> }>
+const oldDecision = { allowed: true, policyVersion: 1, routeFingerprint: 'old-route', evaluatedAt: '2026-10-05T12:00:00Z' }
+const allowed = { allowed: true, company_status: 'active', reason_code: 'allowed', capability_status: 'ready', production_status: 'active', state_version: 1 }
+const revoked = { allowed: false, company_status: 'suspended', reason_code: 'tenant_suspended', capability_status: 'ready', production_status: 'active', state_version: 2 }
+const send = () => sendOutboxItem({ actorUserId: 'own-worker', outboxItemId: 'own-outbox', workerId: 'own-worker', alreadyClaimed: true })
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.useFakeTimers({ toFake: ['Date'] }).setSystemTime(new Date(at))
+  message = { ...source("UNB+immutable-original'", 'Z03'), id: 'own-message', company_id: 'own-company', environment: 'test', direction: 'outbound', status: 'queued',
+    communication_route_id: 'own-route', message_family: 'PRODAT', message_code: 'Z03', application_reference: '23-DDQ-PRODAT',
+    receiver_ediel_id: '22222', receiver_email: 'old@example.invalid', raw_payload: "UNB+immutable-original'",
+    validation_report: { priorAdmissionDecision: structuredClone(oldDecision) } }
+  queued = { id: 'own-outbox', company_id: message.company_id, environment: 'test', ediel_message_id: message.id,
+    status: 'sending', locked_by: 'own-worker', locked_at: at, current_send_attempt_id: 'own-attempt',
+    operation_decision_snapshot: structuredClone(oldDecision), route_contract_fingerprint: 'old-route' }
+  route = { id: 'own-runtime', is_enabled: true, communication_route_active: true, environment: 'test', receiver_ediel_id: '22222',
+    target_email: 'old@example.invalid', message_family: 'PRODAT', business_code: 'Z03', application_reference: '23-DDQ-PRODAT',
+    encryption_mode: 'none', certificate_required: false }
+  writes = []
+  io.runtime.mockImplementation(async () => route)
+  io.get.mockImplementation(async () => message)
+  io.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+    if (name !== 'canonical_tenant_operation_decision') throw Error(`undeclared_sc064_rpc:${name}`)
+    expect(args).toEqual({ p_company_id: 'own-company', p_operation: 'ediel.test.process' })
+    return { data: [allowed], error: null }
+  })
+  io.readiness.mockResolvedValue(null)
+  io.project.mockResolvedValue(undefined)
+  io.send.mockImplementation(async () => {
+    message = { ...message, status: 'sent', message_sent_at: at }
+    return { messageId: '<own@example.invalid>', dispatchObservedAt: at }
+  })
+  io.from.mockImplementation((table: string) => {
+    if (!['ediel_outbox', 'ediel_send_locks'].includes(table)) throw Error(`undeclared_sc064_table:${table}`)
+    const filters: Array<[string, unknown]> = []
+    let patch: Record<string, unknown> | null = null
+    const result = () => {
+      if (table === 'ediel_send_locks') return { data: [], error: null }
+      if (!filters.every(([key, value]) => queued[key] === value)) return { data: null, error: null }
+      if (patch) { writes.push({ filters: [...filters], patch: structuredClone(patch) }); Object.assign(queued, patch) }
+      return { data: structuredClone(queued), error: null }
+    }
+    const q = { select: () => q, eq: (key: string, value: unknown) => { filters.push([key, value]); return q },
+      update: (value: Record<string, unknown>) => { patch = value; return q }, maybeSingle: async () => result(), limit: async () => result() }
+    return q
+  })
+})
+afterEach(() => vi.useRealTimers())
+
+function expectNoDispatch(original: EdielMessageRow) {
+  expect(io.send).not.toHaveBeenCalled()
+  expect(io.project).not.toHaveBeenCalled()
+  expect(message).toEqual(original)
+  expect(queued.locked_by).toBeNull()
+  expect(queued.locked_at).toBeNull()
+  expect(writes.every(write => write.filters.some(([key, value]) => key === 'current_send_attempt_id' && value === 'own-attempt'))).toBe(true)
+}
+
+describe('SC-064 current queue reconsideration at the actual worker boundary', () => {
+  it.each([
+    ['SMTP destination changes', { target_email: 'new@example.invalid' }, 'route_receiver_email_mismatch'],
+    ['route is disabled', { is_enabled: false }, 'route_not_active'],
+    ['message scope changes', { business_code: 'Z08' }, 'route_message_code_mismatch'],
+  ])('blocks when %s despite the stored version-1 decision', async (_name, change, blocker) => {
+    const original = structuredClone(message)
+    Object.assign(route, change)
+    expect(await send()).toEqual({ status: 'blocked', messageId: null, error: blocker })
+    expect(queued).toMatchObject({ status: 'blocked', last_error: blocker, operation_decision_snapshot: oldDecision })
+    expect(io.runtime).toHaveBeenCalledExactlyOnceWith('own-route', { companyId: 'own-company' })
+    expectNoDispatch(original)
+  })
+
+  it('records the new tenant refusal instead of using the old grant', async () => {
+    const original = structuredClone(message)
+    io.rpc.mockResolvedValue({ data: [revoked], error: null })
+    expect(await send()).toEqual({ status: 'blocked', messageId: null, error: 'tenant_suspended' })
+    expect(queued).toMatchObject({ status: 'blocked_tenant_state', blocked_reason: 'tenant_suspended', blocked_at: at,
+      company_status_snapshot: 'suspended', operation_decision_snapshot: revoked })
+    expect(io.runtime).not.toHaveBeenCalled()
+    expectNoDispatch(original)
+  })
+
+  it('blocks a revocation observed after route readiness and retains the fresh route trace', async () => {
+    const original = structuredClone(message)
+    io.rpc.mockResolvedValueOnce({ data: [allowed], error: null }).mockResolvedValueOnce({ data: [revoked], error: null })
+    expect(await send()).toEqual({ status: 'blocked', messageId: null, error: 'tenant_suspended' })
+    expect(io.rpc.mock.calls).toEqual(Array.from({ length: 2 }, () => ['canonical_tenant_operation_decision', { p_company_id: 'own-company', p_operation: 'ediel.test.process' }]))
+    expect(queued).toMatchObject({ status: 'blocked_tenant_state', operation_decision_snapshot: revoked,
+      route_contract_snapshot: { route_id: 'own-route', receiver_email: 'old@example.invalid', evaluated_at: at } })
+    expect(queued.route_contract_fingerprint).not.toBe('old-route')
+    expectNoDispatch(original)
+  })
+
+  it('an unchanged allowed route reaches transport once with a fresh trace and the same bytes', async () => {
+    const original = structuredClone(message)
+    expect(await send()).toEqual({ status: 'sent', messageId: '<own@example.invalid>' })
+    expect(io.send).toHaveBeenCalledExactlyOnceWith(original, { actorUserId: 'own-worker', smtpMimeMode: null,
+      dispatchOwner: { kind: 'worker', outboxId: 'own-outbox', sendAttemptId: 'own-attempt', workerId: 'own-worker' } })
+    expect(queued).toMatchObject({ status: 'sent', route_contract_snapshot: { receiver_email: 'old@example.invalid', evaluated_at: at } })
+    expect(queued.route_contract_fingerprint).not.toBe('old-route')
+    expect(message.raw_payload).toBe(original.raw_payload)
+  })
+})
