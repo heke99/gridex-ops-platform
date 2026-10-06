@@ -33,3 +33,8 @@ Verification: GitHub authenticated main c19610c; local checkout exact same main 
 Next: codex-20261006-2c0823a3eed5 creates/reads all atomic refs, posts CLAIM on #530, then maps source/real native consumers and extends only the selected two-ID proof. Shared campaign-memory update waits for role-memory owner release.
 
 Reservation receipt: bde063869adc816e4ed359f60c84f83389bba72e; all five required refs re-read at the exact receipt SHA.
+
+CLAIM confirmed https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6017494318; source documentation commit 4e86600e9eaba14e681b904e8e4f9650899b06b5.
+Additional file resource file-921c4b770da0215885e90bdec366bc37d8b25f65c81280a708c9c91c11032d0f GET-confirmed at bde063869adc816e4ed359f60c84f83389bba72e: scripts/fixtures/ediel-service-evidence-native.ts. Scope: optional authenticated termination terms in the exported fixture; existing defaults and actual command/producer remain unchanged.
+
+Meaningful transition: Node22.23.3 new profile/correlation component passes22/22, zero failures/skips; /tmp/gridex-profile-first.log. Independent frozen-contract reviews confirm existing market restoration/shared mission effects already delivered; remaining proof is actual Z15C/Z18 command→source→ACK→effect/replay, including revoked-grant non-restoration. No coverage edit or full acceptance claim. Dependencies installed with --cache /tmp; apt system write unavailable, using an isolated extracted PostgreSQL client. Next owner codex-20261006-2c0823a3eed5: add optional signed termination fixture inputs and genuine native test chains, then independently review.
