@@ -78,7 +78,12 @@ it('saved qualified intention cannot use its earlier policy after the actual act
 
 it('current route target drift blocks the actual queued original without retargeting its bytes', async () => {
   const { f, outboxId, original } = await queued()
-  sql(`UPDATE public.communication_routes SET target_email='changed@example.invalid' WHERE id=${literal(f.routeId)} AND company_id=${literal(f.companyId)}`)
+  // The runtime destination is profile smtp_to before the communication-route
+  // fallback. Change and verify that effective authority, not a masked fallback.
+  const target = () => sql(`SELECT to_jsonb(target_email) FROM public.ediel_route_runtime_v WHERE communication_route_id=${literal(f.routeId)} AND company_id=${literal(f.companyId)}`)
+  expect(target()).toBe(f.originalZ03.receiver_email)
+  sql(`UPDATE public.ediel_route_profiles SET smtp_to='changed@example.invalid' WHERE communication_route_id=${literal(f.routeId)} AND company_id=${literal(f.companyId)}`)
+  expect(target()).toBe('changed@example.invalid')
   expect(await run(f, outboxId)).toMatchObject({ status: 'blocked', error: 'route_receiver_email_mismatch' })
   expect(state(outboxId)).toMatchObject({ status: 'blocked', last_error: 'route_receiver_email_mismatch', locked_at: null, locked_by: null })
   expectPreserved(f, original); expectNoEntry(f)
@@ -90,7 +95,8 @@ it('current tenant entitlement withdrawal stores the real newer refusal before p
   sql(`UPDATE public.company_capabilities SET enabled=false WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test'`)
   const decision = await getTenantOperationDecision(f.companyId, 'ediel.test.process')
   expect(decision).toMatchObject({ allowed: false, reason_code: 'capability_not_ready' })
-  expect(await run(f, outboxId)).toMatchObject({ status: 'blocked', error: decision.reason_code })
+  // Claim itself persists the actual refusal and returns no sendable row.
+  expect(await run(f, outboxId)).toMatchObject({ status: 'blocked', error: 'outbox_item_not_found_or_already_processing' })
   expect(state(outboxId)).toMatchObject({ status: 'blocked_tenant_state', blocked_reason: decision.reason_code,
     operation_decision_snapshot: decision, locked_at: null, locked_by: null })
   expectPreserved(f, original); expectNoEntry(f)
