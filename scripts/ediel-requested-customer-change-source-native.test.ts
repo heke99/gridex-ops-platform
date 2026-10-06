@@ -54,7 +54,11 @@ it('actual non-death outgoing mandate archives missing authority, holds separate
 
 it('genuine generic death archive and separate review reach the actual Z09 gateway and fresh SMTP send without automatic customer effects',async()=>{
  const f=await deathFixture(),before=deathBusiness(f),reviewed=await reviewDeath(f)
- const scope={companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.uploader.id,preferredRouteId:f.customerRouteId}
+ // Archive/review operators remain separate from the real dispatch caller.
+ expect(sql(`SELECT jsonb_build_object('archive',public.gridex_actor_has_company_permission(${literal(f.uploader.id)},${literal(f.companyId)},'communication.write'),'send',public.gridex_actor_has_company_permission(${literal(f.uploader.id)},${literal(f.companyId)},'communication.send'))`)).toEqual({archive:true,send:false})
+ expect(sql(`SELECT jsonb_build_object('write',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.write'),'send',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.send'))`)).toEqual({write:true,send:true})
+ const scope={companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.actorUserId,preferredRouteId:f.customerRouteId}
+ expect(await readRequestedChangeSource(scope)).toMatchObject({status:'authorized',eventId:reviewed.eventId,eventKind:'death'})
  const result=await prepareAndQueueProdatRequestedChange(scope)
  expect(result.status).toBe('queued');if(result.status==='held')throw Error('actual_death_original_gateway_required')
  const message=result.message,e=EdifactEnvelopeCodec.decode(message.raw_payload)
