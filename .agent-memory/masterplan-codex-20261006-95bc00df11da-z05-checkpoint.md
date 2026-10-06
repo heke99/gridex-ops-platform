@@ -866,3 +866,18 @@ metadata commit→bothexactdelivery reapprovals beforeREADY/publication.
 Correction applies earlierroot shorthand callingall3finalcases receipt-owned;
 preservehistoricalnotes andnative39actualresults. Same12scope/no newpair/role.
 Remote9a10checksSUCCESS clean/certpending; a1unpublished/notCI_GREEN/MERGED.
+
+## Final correctedc726 BOTH SOURCE_DELIVERY_APPROVE / READY beforepublication
+
+LOCALCLEAN c7267a5ce8bde33b792072bd4cdd49f943d79238/tree059eac1b8d9c9b75168843877b05bdae6a7d8fcb,
+bothexactfinalsource-delivery approvals/nofindings. ONLY1proofsentence vs a1
+correctslinkednull-partitionLegacy vs ordinaryLreceipt-ownedcase; code/tests
+/ZIP/coverage unchanged andwhole9a39/all9280inputs remainvalid. Actualmandatory
+coverage--check PASS candidate288; currentmain56coverage286. No docs-onlytest
+repeat. Finaltrackedcheckoutactualgitls-tree9284 (correctspriorprospective9282: 
+639added2foreignarchivepaths plus2ownevidencepaths beyond9a9280).
+RemotePR636still9a; finalc726native/currentmandatoryNOT_RUN. Next95bc ALL12
+GETMATCH+READY530/currentCP before normalpushc726/ref+PRexactreadback, final
+source-review receipt/body+readyfordelivery; authenticatefreshstrict39/ALL9284
+originaltrackedinputs/currentmandatoryALLGREEN beforemergerole+expectedmerge.
+Sourcefreeze/no newpair/role/privatefacts/CI_GREEN/MERGED/externalclaim.
