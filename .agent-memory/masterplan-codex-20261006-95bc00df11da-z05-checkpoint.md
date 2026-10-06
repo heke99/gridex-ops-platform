@@ -687,3 +687,31 @@ integration whileactual89native running. Preserveforeignarchive atfuturemerge.
 CurrentretainedLK37530343698 SUCCESS; actual89Z05 stillrunning. No newwhole
 claim/gateborrow, sourceCLEAN/frozen89 and ownrowsheld. Next95bc actual39terminal
 qualification and peerwhole beforecoverage; finalrefreshmain/dependencies/roles.
+
+## Authentic89 native36/3 / two-peer refuted product finding BEFORE oracle correction
+
+Officialrun37530343538/job112497798868/art11445026987 exact89/treec086746e8a6c17bfdc8a3ecff390fa86942bc999,
+ZIP456655B SHA1bb9207597df794839fbfb2bc30600cbbb2c7d6d952af4d00971e754408060d5;
+API/head/tree/digest/size/CRC/ALL9280originalGitinputhashes/trueexit1/JUnit39
+qualified. Actual36PASS3FAIL0error/skip: own15=12/3, old20+4PASS. All7physical
+ACKstep failures resolved; all4R211/D251+rolecustody2+othernegativecontrols PASS.
+Onlythreepositives nowfailglobalcontract equality AFTERphysicalACK/exactperiod/
+solefinal-value task assertions PASS; trailingimmutability/replay NOT_REACHED.
+/tmp/gridex-z05-89fc66df-qualification.json preservesauthenticRED.
+
+Both mandatory independent fp/source reviews refute Legacy/product defect.
+Actualdelivered AFTERperiodUPDATE trigger20261002234500 ends onlythe linked
+contract company/customer whenno othercontinuingsupply, createsactualevent and
+final_invoice_pending. Delivered235300explicitly documents civil-date contract
+end/retainedsourcebasis. Frozenpair/ST-S06 exacttime governsperiod (stillending
+12:30Z), notunchanged owncontract signedstatus. Whole remainsNOT_APPROVED.
+
+Next95bc ONLYalreadyownednative: retainglobalallcontract graph and ALLnegative
+oracles; positivereplace ONLYverifiedperiodFK owncontract withfull exactnamed
+expectedrow delta/event-bound processingtime. Addwholeglobalcontractevent and
+operation-task snapshots, exactone scopedtermination event/retained startsource
+metadata +periodactualendsource, finalinvoice/end_key +applicablebindingreview
+/no chargedbilling, previoushistory/allforeigngraphs preserved; repeatall after
+replay. No privatefacts/guard/frozencriterionchange; producer remainsunchanged.
+Both PLAN_APPROVE beforecode. Thenexactsource reviews/scriptsTSC/lint/fullas
+warranted, reviewedfresh39/currentgates. Samepair10refs/no roles/newpair.
