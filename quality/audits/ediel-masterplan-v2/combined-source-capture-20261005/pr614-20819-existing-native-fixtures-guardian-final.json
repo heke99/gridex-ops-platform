@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "scope": "existing PR614 native integration fixture correction only",
+  "owner": "/root/pr612_five_component_publication_guard",
+  "public_root_claim": "5306008618718",
+  "created_at": "2026-10-06T03:29:26.264786+00:00",
+  "status": "IMPLEMENTATION_READY_FOR_ROOT_NATIVE_QUALIFICATION",
+  "source_base": {
+    "head": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+    "tree": "5b8cf5988cafb60e561a5c1de9c19b3281cb7b7e",
+    "repository": "/workspace/gridex-combined-source-capture"
+  },
+  "owned_files": [
+    {
+      "path": "scripts/helpers/originalMailboxNative.ts",
+      "preimage": null,
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "3253fb3eeda9060cee48b9d3c9b0fce12d9ee155",
+        "bytes": 3888,
+        "sha256": "74fb777689d718eae13d51113fe767f55d8dae208696e0a89db962f608aeffc1"
+      }
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "preimage": {
+        "mode": "100644",
+        "type": "blob",
+        "git_blob": "b15f49466f94adebcdf42db6ab9149a6f5cb4661",
+        "bytes": 12111,
+        "sha256": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5"
+      },
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "3a5b1ce8277f2be7d81bc31a70514bf6535ddd41",
+        "bytes": 12234,
+        "sha256": "47839f83ebf381e8cb1b975d30bd433f498f9b7efb28421ef071bcc0395be999"
+      }
+    },
+    {
+      "path": "scripts/ediel-correction-context-native.test.ts",
+      "preimage": {
+        "mode": "100644",
+        "type": "blob",
+        "git_blob": "3915f281bb6fb0741fb575e8c54667c5e9dfea4a",
+        "bytes": 144952,
+        "sha256": "6e9d1f7b545028c8eb30ab5279a064d6d0d9fb9dc13f987352409d4652fd0fc9"
+      },
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "fccd499525f3cf3aa7a52b0dfa81f04b02512ebc",
+        "bytes": 145508,
+        "sha256": "f4c77417cbc009904c683035e1eb89cf2df6afed1cea8b3cbb0936f366530dbb"
+      }
+    },
+    {
+      "path": "scripts/ediel-prodat-mixed-native.test.ts",
+      "preimage": {
+        "mode": "100644",
+        "type": "blob",
+        "git_blob": "e9ffb128da4dc9f55c3ea712484af66b658ee9f7",
+        "bytes": 18438,
+        "sha256": "2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6"
+      },
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "aad1acb7a89655001688b6b600e7763477efa466",
+        "bytes": 18994,
+        "sha256": "44e2460177e5516944d1a9ddf47e8b5c03d03b997fdd6af8739e5f413737ede4"
+      }
+    },
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "preimage": {
+        "mode": "100644",
+        "type": "blob",
+        "git_blob": "9ce0ed9c35cd0f34edae9296a71def5f3ba4a9ce",
+        "bytes": 48516,
+        "sha256": "f77b25a222ac647b5f377d67fc01507e1b7f5f6f12360403ae8c71dac2665f19"
+      },
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "e759b26df49529476ec4e5b340c3b858e9e1aede",
+        "bytes": 49133,
+        "sha256": "4652370e0cf2b58c3cad33f4035b65c2f9a442f0d1956fa5542be6dc2bc6b001"
+      }
+    },
+    {
+      "path": "scripts/ediel-utilts-s02-required-native.test.ts",
+      "preimage": {
+        "mode": "100644",
+        "type": "blob",
+        "git_blob": "4b5619efa240c13fc757d043284d326a0cdb4de4",
+        "bytes": 30447,
+        "sha256": "14b40943d7c50aa79ceef770096104ba5c004340724aabbc8695cf5ec4c6d50e"
+      },
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "9d97a1272df855be2fc7485db317a73ce82b8140",
+        "bytes": 30982,
+        "sha256": "8393a4853f778352caf30a3e64c0d34a72d7dc1304b97c6f3df7a68a73f5858b"
+      }
+    },
+    {
+      "path": "scripts/ediel-z04-ack-native.test.ts",
+      "preimage": {
+        "mode": "100644",
+        "type": "blob",
+        "git_blob": "e539c6a34d4845568b70cfae3f1ef1fc09cb999d",
+        "bytes": 19241,
+        "sha256": "85e883cf7690226a9c73c2fba2760db79b1ec8a7617990fed5500ab293a767c4"
+      },
+      "postimage": {
+        "mode": "100644",
+        "filesystem_mode": "0o600",
+        "type": "blob",
+        "git_blob": "b207274397b16253b145bb0527cd181c3ca2cbdb",
+        "bytes": 20178,
+        "sha256": "8b95445c2fc204bd50090d799fed3f8ec3eec7aac5914ff8180663c89fd16156"
+      }
+    }
+  ],
+  "implementation": {
+    "transport": "Prospective public mailbox INSERT including actual SMTP email_address, retained original raw mail/body/EDIFACT bytes, then production createParseResult with parseEdifactPayload(raw). No private receipt writes.",
+    "identity": "Original source INSERT links both inbound_email_message_id and mailbox_message_id and actual parsed interchange_reference before production recordInboundReception.",
+    "reception": "Actual WRITE-authorized production RPC requires first_reception, businessEffectAuthorized false, exact original wire hashes, and actual parse ID before technical syntax capture.",
+    "retry_helper": "Only mailbox email_address addition, derived from existing actual SMTP readiness; all other receiveUtiltsRetry raw/parser/intake behavior remains unchanged.",
+    "z04_policy_only": {
+      "variants": [
+        "missing-header-code",
+        "unlisted-header-code"
+      ],
+      "source_code": [
+        "PRODAT_UNKNOWN",
+        "Z99"
+      ],
+      "source_and_context_normalizer": "normalizeEdifactMessageCode(mail.parsed.messageFamily,mail.parsed.messageCode)",
+      "production_parse_port_normalizer": "createParseResult -> parsedMessageCode -> normalizeEdifactMessageCode",
+      "parser_projection_modified": false,
+      "physical_wire_changed": false,
+      "original_explicit_z04_fixture_profile_pin_preserved": true,
+      "ordinary_ingress_without_profile_denial_controls_preserved": true,
+      "original_business_assertions_preserved": true,
+      "approval": "Root explicitly agreed to narrow actual normalized physical source/context code adaptation."
+    }
+  },
+  "preservation": {
+    "original_assertions_mocks_permissions": [
+      {
+        "path": "scripts/ediel-correction-context-native.test.ts",
+        "assertionCallNodes": 744,
+        "allOriginalAssertionsExact": true,
+        "allOriginalMocksExact": true,
+        "allOriginalPermissionListsExact": true,
+        "assertionsSha256": "abbca145ff9b26411226b9d14f54de86bcc6557f0cf3d82c0d8b3749bebdaf04"
+      },
+      {
+        "path": "scripts/ediel-prodat-mixed-native.test.ts",
+        "assertionCallNodes": 94,
+        "allOriginalAssertionsExact": true,
+        "allOriginalMocksExact": true,
+        "allOriginalPermissionListsExact": true,
+        "assertionsSha256": "588dd0a79bcc7f62e35e41a95bb3d5061393a11e21d0a83bddfcaa7ed1d7ce40"
+      },
+      {
+        "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "assertionCallNodes": 394,
+        "allOriginalAssertionsExact": true,
+        "allOriginalMocksExact": true,
+        "allOriginalPermissionListsExact": true,
+        "assertionsSha256": "538b34d4d68ebb55cd7bb0d4b805068b60f8302add390801182fa3100c4ece21"
+      },
+      {
+        "path": "scripts/ediel-utilts-s02-required-native.test.ts",
+        "assertionCallNodes": 188,
+        "allOriginalAssertionsExact": true,
+        "allOriginalMocksExact": true,
+        "allOriginalPermissionListsExact": true,
+        "assertionsSha256": "2358b7bbe166d5fc58d3db92b77c3874238fa2d90e61188002f2a2cddf5184ac"
+      },
+      {
+        "path": "scripts/ediel-z04-ack-native.test.ts",
+        "assertionCallNodes": 70,
+        "allOriginalAssertionsExact": true,
+        "allOriginalMocksExact": true,
+        "allOriginalPermissionListsExact": true,
+        "assertionsSha256": "afa520862ba6f4824968e0e7a3a343aa47a7e5dd3434eecf4cf99d57bb3cd034"
+      }
+    ],
+    "original_assertion_call_nodes": 1490,
+    "all_original_assertions_exact": true,
+    "all_original_mocks_exact": true,
+    "all_original_permission_lists_exact": true,
+    "write_only_ERR_actor_preserved": true,
+    "sql_migrations_raw_capture_generated_outputs_workflows_production_consumer_coverage_untouched_by_this_owner": true,
+    "qualified_originals_not_updated": true,
+    "source_wire_dates_hash_inputs_legal_parties_business_controls_rulepins_preserved": true
+  },
+  "verification": {
+    "node": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+    "node_version": "22.23.3",
+    "final_lint": {
+      "command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node node_modules/eslint/bin/eslint.js scripts/helpers/originalMailboxNative.ts scripts/helpers/utiltsConsumptionParties.ts scripts/ediel-correction-context-native.test.ts scripts/ediel-prodat-mixed-native.test.ts scripts/ediel-utilts-err-gateway-native.test.ts scripts/ediel-utilts-s02-required-native.test.ts scripts/ediel-z04-ack-native.test.ts",
+      "cwd": "/workspace/gridex-combined-source-capture",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 1,
+      "warning": "Pre-existing unchanged unused resolveCanonicalEdielPolicy import in ERR suite; no new warning."
+    },
+    "focused_typecheck": {
+      "command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p /tmp/pr614-20819-original-mailbox-native-tsconfig.json",
+      "config_path": "/tmp/pr614-20819-original-mailbox-native-tsconfig.json",
+      "config_sha256": "e214a7a33a146f4f53cb09f17eb6a732d542fb71c67c28de01737b38b6ab2f85",
+      "config": {
+        "extends": "/workspace/gridex-combined-source-capture/tsconfig.json",
+        "compilerOptions": {
+          "incremental": false,
+          "noEmit": true
+        },
+        "include": [
+          "/workspace/gridex-combined-source-capture/scripts/helpers/originalMailboxNative.ts",
+          "/workspace/gridex-combined-source-capture/scripts/helpers/utiltsConsumptionParties.ts",
+          "/workspace/gridex-combined-source-capture/scripts/ediel-correction-context-native.test.ts",
+          "/workspace/gridex-combined-source-capture/scripts/ediel-prodat-mixed-native.test.ts",
+          "/workspace/gridex-combined-source-capture/scripts/ediel-utilts-err-gateway-native.test.ts",
+          "/workspace/gridex-combined-source-capture/scripts/ediel-utilts-s02-required-native.test.ts",
+          "/workspace/gridex-combined-source-capture/scripts/ediel-z04-ack-native.test.ts"
+        ],
+        "exclude": [
+          "node_modules",
+          ".next"
+        ]
+      },
+      "exit_code": 0,
+      "diagnostics": 0,
+      "qualification_scope": "Seven owned entry files and their real imports. This run preceded the last narrow Z04 source/context-code normalization expression; final seven-file syntax and lint were run after that change. Root may extend this same focused config with its atomic entry file for current-source semantic compilation."
+    },
+    "final_typescript_syntax": {
+      "exit_code": 0,
+      "diagnostics": 0,
+      "files": [
+        {
+          "path": "scripts/ediel-correction-context-native.test.ts",
+          "diagnostics": []
+        },
+        {
+          "path": "scripts/ediel-prodat-mixed-native.test.ts",
+          "diagnostics": []
+        },
+        {
+          "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "diagnostics": []
+        },
+        {
+          "path": "scripts/ediel-utilts-s02-required-native.test.ts",
+          "diagnostics": []
+        },
+        {
+          "path": "scripts/ediel-z04-ack-native.test.ts",
+          "diagnostics": []
+        },
+        {
+          "path": "scripts/helpers/originalMailboxNative.ts",
+          "diagnostics": []
+        },
+        {
+          "path": "scripts/helpers/utiltsConsumptionParties.ts",
+          "diagnostics": []
+        }
+      ],
+      "method": "Actual TypeScript transpileModule for seven current files; no native/DB execution."
+    },
+    "final_AST_preservation": {
+      "exit_code": 0,
+      "pass": true,
+      "report_path": "/tmp/pr614-20819-native-custody-final-static-verification.json",
+      "report_bytes": 2462,
+      "report_sha256": "2b1896057082a17eceb7d3294d0af86ef0224d19af506c51a423cd22eb94ae34",
+      "method": "Compare original Git HEAD and actual current TypeScript AST expect call texts, vi.mock/spyOn call texts and existing SQL permission lists."
+    },
+    "git_diff_check": {
+      "exit_code": 0
+    },
+    "native_DB_CI_execution": "NOT_RUN_BY_THIS_OWNER",
+    "resulting_head_native_gates": "PENDING_ROOT_AUTHENTIC_EXECUTION"
+  },
+  "coordination": {
+    "root_owned_file": "scripts/ediel-outbound-ack-replay-native.test.ts",
+    "other_child_owned_files": [
+      "scripts/ediel-ack-first-reception-native.test.ts",
+      "scripts/ediel-inbound-reception-actual-columns-native.test.ts"
+    ],
+    "source_edits_ceased": true,
+    "commit_push_github_memory_index_ref_mutations_by_this_owner": false,
+    "root_sole_publisher_observer_DB_native_owner": true
+  },
+  "claim_limits": [
+    "No native PASS claim.",
+    "No actual main or Masterplan completion claim.",
+    "No SQL/schema/production-policy acceptance inferred from static fixture checks.",
+    "Original authentic 20819 native RED remains history."
+  ]
+}

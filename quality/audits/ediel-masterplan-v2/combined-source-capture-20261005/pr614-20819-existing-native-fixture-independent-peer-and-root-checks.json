@@ -1,0 +1,74 @@
+{
+  "scope": "Independent bounded source review of necessary existing fixture correction, no native/CI/main qualification",
+  "recorded_at_utc": "2026-10-06T03:31:03.632429+00:00",
+  "source_parent": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+  "peer": "/root/existing_native_reception_custody_diagnosis",
+  "decision": "SOURCE_APPROVE",
+  "atomic_case_only": true,
+  "first_and_third_test_bodies_byte_exact": true,
+  "all27_atomic_expect_calls_exact": true,
+  "original_z99_wire_explicit_pin_grants_fault_races_revocation_expectations_exact": true,
+  "retained_actual_MIME_parser_public_mail_birth_before_source_INSERT": true,
+  "both_original_mail_links_physical_identities_at_birth": true,
+  "real_WRITE_only_reception_before_syntax": true,
+  "original_mailbox_matches_route_and_common_SMTP_local_example_invalid": true,
+  "no_private_receipt_source_backfill_production_schema_permission_changes": true,
+  "reviewed_postimages": {
+    "scripts/ediel-ack-first-reception-native.test.ts": "343e44d7ddb67061d46a0e1f2e25f5ae1343c49eef73cfd10243bea372d95396",
+    "scripts/ediel-inbound-reception-actual-columns-native.test.ts": "e4ec6db2c55f5a67adc5528c9694b901643cdfe19342ae080343943627c07881",
+    "scripts/ediel-outbound-ack-replay-native.test.ts": "0eef02fcb06cb9e656a9d445bdcb556186f067895f7d63495686879ab06c39ab",
+    "scripts/helpers/originalMailboxNative.ts": "74fb777689d718eae13d51113fe767f55d8dae208696e0a89db962f608aeffc1"
+  },
+  "root_verification": {
+    "node": "22.23.3",
+    "atomic_final_lint_exit": 0,
+    "atomic_focused_semantic_typecheck_exit": 0,
+    "final_normalized_Z04_semantic_typecheck_exit": 0,
+    "diff_check_exit": 0,
+    "atomic_type_config": {
+      "extends": "/workspace/gridex-combined-source-capture/tsconfig.json",
+      "compilerOptions": {
+        "incremental": false,
+        "noEmit": true
+      },
+      "include": [
+        "/workspace/gridex-combined-source-capture/scripts/ediel-outbound-ack-replay-native.test.ts"
+      ],
+      "exclude": [
+        "node_modules",
+        ".next"
+      ]
+    },
+    "final_Z04_type_config": {
+      "extends": "/workspace/gridex-combined-source-capture/tsconfig.json",
+      "compilerOptions": {
+        "incremental": false,
+        "noEmit": true
+      },
+      "include": [
+        "/workspace/gridex-combined-source-capture/scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "exclude": [
+        "node_modules",
+        ".next"
+      ]
+    }
+  },
+  "local_prepublication_wrong_first_INSERT_match": {
+    "found_by_independent_peer": true,
+    "fully_restored_before_publication": true,
+    "actual_atomic_case_now_corrected": true
+  },
+  "tiny_mailbox_author": {
+    "owner": "/root/existing_native_reception_custody_diagnosis",
+    "exact_four_string_replacements_only": true,
+    "all_original_test_bodies_permissions_assertions_exact": true,
+    "lint_exit": 0,
+    "native_runtime": "NOT_RUN"
+  },
+  "all_successor_native_runtime": "PENDING_REAL_CURRENT_HEAD_CI",
+  "public_coordination_comments": [
+    6008618718,
+    6008740398
+  ]
+}

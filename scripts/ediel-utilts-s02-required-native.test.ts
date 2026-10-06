@@ -1,4 +1,5 @@
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
+import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './helpers/originalMailboxNative'
 import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -68,15 +69,18 @@ async function seed(_label: string, defect: S02PlanningDefect, ownFirst: boolean
   const fixture = s02PlanningFixture({ company: ids.company, receiver: actorEdielId, transactions: s02PlanningPair(defect, ownFirst) })
   const sourceId = randomUUID()
   const { id, raw, parsed } = utiltsNativeSourceFixture(utiltsTestEnvironmentWire(transform(fixture.raw_payload!)).replaceAll('+91100:ZZ+', `+${issuer}:ZZ+`).replaceAll('NAD+MS+91100:', `NAD+MS+${issuer}:`).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
+  const mail = await seedOriginalMailboxNative(sql, lit, { companyId: ids.company, environment: 'test', raw, parsed,
+    receivedAt: '2026-10-01T20:00:00Z', smtpFrom: smtp.from })
   // No prefilled profile/rule-pack authority: the actual family/date capture
   // trigger must qualify this source. No individual customer graph is needed.
-  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,sender_email,receiver_email,mailbox)
-    VALUES(${lit(id)},${lit(ids.company)},'test','inbound','edifact','UTILTS','S02','received',${lit(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(issuer)},${lit(actorEdielId)},${lit(parsed.interchangeReference)},'recipient@example.invalid',${lit(smtp.from)},${lit(smtp.from)});`)
+  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,sender_email,receiver_email,mailbox,inbound_email_message_id,mailbox_message_id)
+    VALUES(${lit(id)},${lit(ids.company)},'test','inbound','edifact','UTILTS','S02','received',${lit(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(issuer)},${lit(actorEdielId)},${lit(parsed.interchangeReference)},'recipient@example.invalid',${lit(smtp.from)},${lit(smtp.from)},${lit(mail.inboundEmailMessageId)},${lit(mail.inboundEmailMessageId)});`)
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
   expect(error).toBeNull()
   expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
     databaseRole: 'evidence_only', family: 'UTILTS', code: 'S02', effectiveDate: '2026-10-01' })
   const source = data as EdielMessageRow
+  await recordOriginalMailboxNativeReception({ ...mail, companyId: ids.company, sourceMessageId: id, actorUserId: ids.actor })
   seedUtiltsIssuerHistoryGround(sql, lit, source.id, ids.actor)
   await recordUtiltsTechnicalReception(source, ids.actor)
   let recorded: Awaited<ReturnType<typeof recordUtiltsFinalRuntime>> | undefined

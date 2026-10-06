@@ -6,6 +6,8 @@ import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runt
 import {recordEdielTechnicalSyntaxDecision,captureEdielTechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
+import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 
 // Disposable native Supabase only. No parser, owner, database, gateway or
 // permission mock and no provider entry/traffic. Source/ACK are synthetic.
@@ -79,8 +81,11 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email) VALUES(${literal(routeId)},${literal(company)},'Native atomic reply','ediel_ack','bilateral_test',true,'remote@example.invalid');
  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,message_family,business_code,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port) VALUES(${literal(profileId)},${literal(company)},${literal(routeId)},'Native atomic common','test','edifact','edifact','APERAK','APERAK',${literal(endpoint)},'12345','23-DDQ-PRODAT',true,true,'local@example.invalid','smtp.example.invalid',587);`)
  const raw=`UNB+UNOC:3+12345:14+${endpoint}:14+260930:1200+${sourceRef}++23-DDQ-PRODAT++++1'UNH+S${nonce.slice(0,8)}+PRODAT:D:97A:UN:E2SE6A'BGM+Z99+SOURCE+9+AB'DTM+137:202609301200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+${endpoint}:160:SVK+++++++SE'LIN+1'UNT+8+S${nonce.slice(0,8)}'UNZ+1+${sourceRef}'`
- const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:company,...unlistedProdatRulePin(),environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z99',status:'received',raw_payload:raw,message_received_at:new Date().toISOString()}).select('*').single()
+ const receivedAt=new Date().toISOString(),parsed=parseEdifactPayload(raw)
+ const retained=await seedOriginalMailboxNative(sql,literal,{companyId:company,environment:'test',raw,receivedAt,smtpFrom:'local@example.invalid',parsed})
+ const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:company,...unlistedProdatRulePin(),environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z99',status:'received',raw_payload:raw,message_received_at:receivedAt,mailbox_message_id:retained.inboundEmailMessageId,inbound_email_message_id:retained.inboundEmailMessageId,sender_ediel_id:parsed.senderEdielId,receiver_ediel_id:parsed.receiverEdielId,application_reference:parsed.applicationReference,interchange_reference:parsed.interchangeReference}).select('*').single()
  expect(stored.error).toBeNull();const source=stored.data as EdielMessageRow
+ await recordOriginalMailboxNativeReception({companyId:company,sourceMessageId:sourceId,actorUserId:actor,inboundEmailMessageId:retained.inboundEmailMessageId,parseResultId:retained.parseResultId})
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source);expect(decision.syntaxDecision,JSON.stringify(decision.issues)).toBe('accepted')
  await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:'accepted',reasonCodes:decision.issues.map(issue=>issue.code),execution:{actorUserId:actor,phase:'prepare'}})
  await captureEdielTechnicalSyntaxAckEvidence(company,sourceId,{actorUserId:actor,phase:'prepare'})

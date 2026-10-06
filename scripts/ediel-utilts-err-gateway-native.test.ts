@@ -6,6 +6,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture, type UtiltsAckFixtureTransaction } from '../__tests__/helpers/utiltsErrGatewayFixture'
 import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
+import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './helpers/originalMailboxNative'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { buildUtiltsErrDraft } from '@/lib/ediel/ack'
@@ -98,14 +99,17 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
     // Field 203 is unique per issuer over time: each source has its own document number.
     const physical = fixture.raw_payload!.replaceAll('91100', issuer).replaceAll('GRIDEX2607E66MSG001', `D${randomUUID().replaceAll('-', '').slice(0, 16)}`)
     const { id, raw, parsed } = utiltsNativeSourceFixture(transformRaw ? transformRaw(physical) : physical, randomUUID())
+    const mail = await seedOriginalMailboxNative(sql, literal, { companyId: ids.company, environment: 'test', raw, parsed,
+      receivedAt: '2026-10-15T20:00:00Z', smtpFrom: 'native-err@example.invalid', senderEmail: 'counterparty@example.invalid' })
     // Let the real trigger capture the unique family/date-qualified source
     // evidence; prefilled rule-pack columns would bypass that boundary.
-    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
-      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-15T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)});`)
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
+      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-15T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
       databaseRole: 'evidence_only', family: 'UTILTS', code: 'E66', effectiveDate: '2026-10-15' })
+    await recordOriginalMailboxNativeReception({ ...mail, companyId: ids.company, sourceMessageId: id, actorUserId: ids.actor })
     // Production reception records the technical syntax decision before any
     // application response; every business reply reads that protected basis.
     await recordUtiltsTechnicalReception(data as EdielMessageRow, ids.actor)
