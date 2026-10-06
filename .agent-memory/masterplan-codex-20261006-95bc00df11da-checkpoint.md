@@ -954,3 +954,14 @@ No nextpair/noexternalacceptance and no shared-memory role orcommon edit.
 Read-only latestboard nowraises possible L/LK eligibility afterexplicit finite
 release/source614COMPLETE6014759009; assess frozenwhole/source scopes again
 AFTER currentactualdelivery/documentation/release, no newpairpreemptively.
+
+## Atomic merge-role CLAIM before operation
+
+Role-merge receipt368c5393e9232477211fc11259639fe828e66b70, unique packet2da37330-a951-4b10-9fe4-cf1b797860a3,
+POSTcreated+doubleGETconfirmed; all13ID/file refs eachGETmatched original
+groupreceipt. Currentmainc0385ee4ee8340eb9e68029c2bd09d05bdf37f40 exacttree/singleparent inrole
+receipt; currentheadb1093858e78924b29c7b14ae98322dd0cf0b9588, all11applicablecurrentgatesSUCCESS
+andwholeindependentreviewsqualified. No memoryrole held/commonedit.
+Nextthisauthor postCLAIM530 with thischeckpoint, re-read currentrole/main/head/
+gates, expectedheadnormalmerge626, authenticateactualPR/main/tree/parents;
+documentMERGEDbeforeexactroleGET/DELETE/404 release. No actualmergeclaimedyet.
