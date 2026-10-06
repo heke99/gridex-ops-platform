@@ -159,3 +159,17 @@ actualnative/ordinarycurrenthead, qualifyredactedJUnit/exit/all30hashes/tree,
 preserveeveryRED thencompleteindependentclauses or adoptactualdeliveredrepair
 andrerunaffectedproof. OnlywholePASS/review permits2coveragepromotions/merge.
 Memory634 frozen59f6green clean/certpending underownbe6role, no statuspush.
+
+## CURRENT authentic feedback FAILURE / before workflow ordering repair
+
+PR636 source28da, run37515652085/job112447763107 FAILURE/artifacts0. Decoded
+completedjob firstFileNotFoundError:20261001115000 migration hashedAFTERclean
+replay temporarily moved originals. Receiptfailed BEFOREredaction/upload.
+Nativecommandwasattempted, butactualexit/JUnit unavailable: 38proposedresults
+UNKNOWN/UNQUALIFIED, no nativePASS/wholeclaim. Preservefailure602530receipt.
+Nextthisauthor ownedworkflowONLY capture/pin immutablecheckout/tree/inputs
+BEFOREcanonicaltemporary staging, appendrealnativeexitAFTERnpx; same38strict
+oracles/ordinarygates/cleanup/redaction-first upload. Addownworkflow/redactor
+provenance32inputs. Reviewboundedworkflowdelta/syntax/currenttypes thennewhead
+actualfeedback. Foreign6213fd2custodyrepair stillunmerged, sourceownerretained.
+No newpair/reservation/coveragepromotion/productionchange.
