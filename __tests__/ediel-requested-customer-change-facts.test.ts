@@ -97,3 +97,51 @@ it.each(['missing IV','DTM329'])('holds an authentic unsupported %s selection wi
  expect(await renderAndQueueCustomerLifeEvent(input())).toEqual({status:'held',missing:['explicit_signed_ud_iv_address_comparison_required']})
  expect(io.reserve).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
 })
+
+import {readFileSync} from 'node:fs'
+import {PGlite} from '@electric-sql/pglite'
+/** Finite real SQL actor compatibility. Only public actor/config rows; original
+ * authority tables remain empty. The global lock and native permission lookup
+ * are declared ports. Full native replay separately tests actual graph locks. */
+async function actorCompatibilityDb(revokeAfterWait=false){
+ const db=new PGlite()
+ await db.exec(`CREATE ROLE service_role;CREATE ROLE anon;CREATE ROLE authenticated;
+ CREATE SCHEMA auth;CREATE SCHEMA gridex_customer_life_events;CREATE SCHEMA gridex_requested_customer_changes;CREATE SCHEMA gridex_ediel_ack_replay;
+ CREATE TABLE public.user_profiles(id uuid,user_status text);CREATE TABLE public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean,accepted_at timestamptz);
+ CREATE TABLE auth.users(id uuid,deleted_at timestamptz,banned_until timestamptz);
+ CREATE TABLE public.permissions(id uuid,key text,is_active boolean);CREATE TABLE public.user_permissions(id uuid,user_id uuid,company_id uuid,permission_id uuid,permission_key text,is_active boolean,status text,effect text);
+ CREATE TABLE public.user_roles(id uuid,user_id uuid,company_id uuid,role_id uuid,is_active boolean,status text);CREATE TABLE public.roles(id uuid,is_active boolean);CREATE TABLE public.role_permissions(id uuid,role_id uuid,permission_id uuid,permission_key text,effect text);
+ CREATE TABLE public.user_permission_overrides(id uuid,user_id uuid,company_id uuid,permission_key text,effect text,is_active boolean,valid_from timestamptz,valid_to timestamptz);
+ CREATE TABLE gridex_requested_customer_changes.origins(company_id uuid,event_id uuid,artifact_id uuid);
+ CREATE TABLE gridex_requested_customer_changes.artifacts(id uuid,company_id uuid,environment text,claims jsonb,source_reference text,source_version text,source_hash text,raw_payload text,claims_hash text);
+ CREATE TABLE gridex_customer_life_events.events(id uuid,company_id uuid,environment text,customer_id uuid,source_reference text,source_version text,source_sha256 text,approved_raw_payload text,approved_payload_hash text,approved_scope jsonb);
+ CREATE TABLE gridex_customer_life_events.revocations(event_id uuid);
+ CREATE FUNCTION public.gridex_actor_has_company_permission(actor uuid,c uuid,wanted text)RETURNS boolean LANGUAGE sql AS $$SELECT EXISTS(SELECT FROM public.user_permissions u JOIN public.permissions p ON p.id=u.permission_id WHERE u.user_id=actor AND u.company_id=c AND u.is_active AND u.status='active' AND u.effect='allow' AND p.is_active AND p.key=wanted)$$;
+ CREATE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2()RETURNS void LANGUAGE plpgsql AS $$BEGIN ${revokeAfterWait?"UPDATE public.user_profiles SET user_status='inactive';":''}END$$;
+ INSERT INTO public.user_profiles VALUES('${id(9)}','active');INSERT INTO auth.users VALUES('${id(9)}',NULL,NULL);
+ INSERT INTO public.company_memberships VALUES('${id(1)}','${id(9)}','active',true,clock_timestamp());
+ INSERT INTO public.permissions VALUES('${id(21)}','communication.write',true);
+ INSERT INTO public.user_permissions VALUES('${id(22)}','${id(9)}','${id(1)}','${id(21)}',NULL,true,'active','allow');`)
+ const extract=(file:string,name:string)=>{
+  const sql=readFileSync(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8'),start=sql.indexOf(`CREATE FUNCTION ${name}(`),end=sql.indexOf('$$;',start)
+  if(start<0||end<start)throw Error('actual_sql_actor_required')
+  return sql.slice(start,end+3)
+ }
+ await db.exec(extract('20260930233247_ediel_customer_life_event_source_authority.sql','gridex_customer_life_events.require_actor_v1'))
+ for(const name of ['scoped_permission_v1','actor_v1'])await db.exec(extract('20260930232100_ediel_requested_change_source_intake_and_review.sql',`gridex_requested_changes.${name}`).replaceAll('gridex_requested_changes.','gridex_requested_customer_changes.').replaceAll('now()','clock_timestamp()').replaceAll('current_date','(clock_timestamp()::date)'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261006184000_ediel_requested_customer_selected_facts.sql',import.meta.url),'utf8'))
+ return db
+}
+it('actual additive RPC preserves the existing nonrequested actor boundary without requiring contracts/customer-write permissions',async()=>{
+ const db=await actorCompatibilityDb()
+ try{
+  await expect(db.query(`SELECT gridex_customer_life_events.require_actor_v1('${id(1)}','${id(9)}','prepare')`)).resolves.toBeDefined()
+  expect((await db.query<{allowed:boolean}>(`SELECT gridex_requested_customer_changes.actor_v1('${id(1)}','${id(9)}','archive','method_contract') AS allowed`)).rows[0].allowed).toBe(false)
+  await db.exec('SET ROLE service_role')
+  expect((await db.query<{facts:unknown}>(`SELECT public.ediel_requested_customer_change_selected_facts_v1('${id(1)}','${id(9)}','${id(2)}') AS facts`)).rows).toEqual([{facts:null}])
+ }finally{await db.close()}
+},20000)
+it('actual unlinked SQL discovery rejects an actor whose existing life-event permission is revoked after the graph wait',async()=>{
+ const db=await actorCompatibilityDb(true)
+ try{await db.exec('SET ROLE service_role');await expect(db.query(`SELECT public.ediel_requested_customer_change_selected_facts_v1('${id(1)}','${id(9)}','${id(2)}')`)).rejects.toMatchObject({code:'42501',message:'customer_life_event_actor_forbidden'})}finally{await db.close()}
+},20000)
