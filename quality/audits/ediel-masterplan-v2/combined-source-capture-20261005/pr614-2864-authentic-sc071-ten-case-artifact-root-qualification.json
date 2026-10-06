@@ -1,0 +1,206 @@
+{
+  "scope": "Actual current2864 bounded immutable BASE-then-forward SC071 feedback; not candidate canonical replay, wholeSC071/SC010, formal or live approval",
+  "verdict": "PASS_SCOPED_CURRENT_NATIVE_TEN_CASES",
+  "head": "2864fd53320e97f6d466746ea986d72f6de358b0",
+  "tree": "277d4ec76edcd521083e24cc8a8e88309f368870",
+  "run": 37410723401,
+  "job": 112098335979,
+  "attempt": 1,
+  "artifact": 11389615567,
+  "zip_bytes": 494543,
+  "zip_sha256": "88e782e7fec96152c4f33c22ec2278cb10b366a73f5c1764b7e8c23db9351edc",
+  "authentic_native_receipt": {
+    "scope": "bounded BASE-then-forward native feedback; not candidate canonical replay",
+    "workflow_checkout_sha": "2864fd53320e97f6d466746ea986d72f6de358b0",
+    "workflow_checkout_tree": "277d4ec76edcd521083e24cc8a8e88309f368870",
+    "workflow_run_id": "37410723401",
+    "base_checkout": {
+      "sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+      "tree": "f03ec10bec420c9013848be526595c5fbb0242b7",
+      "dependency_install": "candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility",
+      "base_package_sha256": {
+        "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+        "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+      },
+      "candidate_package_sha256": {
+        "package.json": "51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de",
+        "package-lock.json": "de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b"
+      },
+      "compatibility": "SOURCE_MAP_JS_1_2_2_SECURITY_FIX",
+      "actual_installed_source_map_js": "1.2.2",
+      "base_packages_modified": false
+    },
+    "base_replay": {
+      "canonical_replay": "COMPLETED",
+      "base_sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+      "fingerprint": "9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b",
+      "official_ledger_count": 48,
+      "candidate_replay": "NOT_CLAIMED"
+    },
+    "producer_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "sc010_native_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "declared_producer_overlays": {
+      "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+    },
+    "forward_source": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+    "forward_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "forward_execution": "COMPLETED",
+    "effective_runtime_inputs": {
+      "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+    },
+    "post_native_inputs": {
+      "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+    },
+    "registered_sc071_source": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0",
+    "effective_sc071_source": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "invoked_config": "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts",
+    "sc010_selected_config": "HASHED_OVERLAY; NOT_INVOKED",
+    "own_candidate_input_sha256": {
+      ".github/workflows/ediel-sc071-native.yml": "4c0715fe2910f37253ae085deb068a0d07d77dcb3484aadbf1f7c85359f8ebc9",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json": "ed96171e58321ca8623bb1b5b30a11a3f506739ca5811d21939a3d6cb0c124a3",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/export-races.patch": "a45ee4b477f23fee35446132c9cf93a3fd00d4de673a4c00b68eac100eb71948",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c",
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4"
+    },
+    "component_exit_code": 0,
+    "last_stage": "native_complete",
+    "native_exit_code": 0,
+    "native_execution": "ATTEMPTED",
+    "expected_files": {
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6,
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4
+    },
+    "actual_files": {
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4,
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6
+    },
+    "expected_cases": 10,
+    "actual_cases": 10,
+    "unique_file_names": true,
+    "junit_counts": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    "junit_parse_error": null,
+    "optional_evidence_parse_errors": {},
+    "official_ledger_unchanged": true,
+    "complete_ten_case_pass": true,
+    "post_forward_schema": "UNQUALIFIED_FOR_FINAL_CAPTURE",
+    "candidate_clean_upgrade_parity": "NOT_CLAIMED",
+    "ordinary_required_gates": "NOT_REPLACED",
+    "producer_admission_capture": "PENDING_COORDINATOR",
+    "whole_sc071": "UNAPPROVED",
+    "whole_sc010": "UNAPPROVED",
+    "leased_export_consumer": "EXERCISED_SELECTED_CASES_PASS",
+    "external_issuer_smtp_and_route_session_ports": "FINITE_SYNTHETIC_FIXTURE",
+    "authentic_market_evidence": "NOT_PROVIDED"
+  },
+  "dependencies": {
+    "dependency_install": "candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility",
+    "base_package_sha256": {
+      "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    },
+    "candidate_package_sha256": {
+      "package.json": "51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de",
+      "package-lock.json": "de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b"
+    },
+    "compatibility": "SOURCE_MAP_JS_1_2_2_SECURITY_FIX",
+    "actual_installed_source_map_js": "1.2.2",
+    "base_packages_modified": false
+  },
+  "junit_case_count": 10,
+  "junit_zero_failure_error_skip": true,
+  "members": {
+    "base-checkout.json": {
+      "bytes": 741,
+      "sha256": "11720c7418c83a060848b511452881584864b34528a693bb22bbd79446f645ec"
+    },
+    "base-input-sha256.json": {
+      "bytes": 976547,
+      "sha256": "9e2249afa68670b7ff560238c4743ab07e688108c1df9b377f3b6481e68878af"
+    },
+    "base-ledger.json": {
+      "bytes": 818,
+      "sha256": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8"
+    },
+    "base-replay-complete.json": {
+      "bytes": 228,
+      "sha256": "9ca64a7b0f255d398433da61190f2a5d03040c6064eb446dad75c4b5d3a8701e"
+    },
+    "base-replay.log": {
+      "bytes": 1641029,
+      "sha256": "6887441676d502bcfb6773e9385bbc5824da4393dab90656248f07c4ba3466a4"
+    },
+    "effective-runtime-inputs.json": {
+      "bytes": 1016,
+      "sha256": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2"
+    },
+    "dependency-inputs.json": {
+      "bytes": 642,
+      "sha256": "1917e72ddac84dd315ee2f29cb3bc180a80e63b2e21f773e941785b437c7e766"
+    },
+    "forward-rpc-catalog.json": {
+      "bytes": 777,
+      "sha256": "9171abcc2d966320970c134e5a602c21ef67256d7efedc33d0bca0edea7d1aff"
+    },
+    "forward.log": {
+      "bytes": 388,
+      "sha256": "d42f23bf9de5b4a5078f24acacf0d8fa6e5c9ee4346f271c724101df87629543"
+    },
+    "native-junit.xml": {
+      "bytes": 3033,
+      "sha256": "2f881edf06a67e7a38c308bdca5595a055233464c1b9bd8e4cc722c43d9bd4cb"
+    },
+    "native.log": {
+      "bytes": 2388,
+      "sha256": "db57aefd9f5f4d320dc9e585fabeaa414fa1c7a93cc37293aa8bbebd0f62ff62"
+    },
+    "post-forward-ledger.json": {
+      "bytes": 818,
+      "sha256": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8"
+    },
+    "post-native-inputs.json": {
+      "bytes": 1016,
+      "sha256": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2"
+    },
+    "receipt.json": {
+      "bytes": 6508,
+      "sha256": "0d9abb0661d71e29456896a55f8d36d2d6de85a19d2276434ed3ac04bf31b20a"
+    },
+    "role-statement-timeouts.json": {
+      "bytes": 143,
+      "sha256": "3d27895b3dfa3d6aaa33d6a36973654bd6b4932a55aa4cc99e601e965c14bfc2"
+    },
+    "rpc-readiness.json": {
+      "bytes": 510,
+      "sha256": "1851934f61360e02f77b2ed05747c794dabef36a890b535a0750b3828f371331"
+    },
+    "session.log": {
+      "bytes": 945,
+      "sha256": "fb5c13fa392f70fbecf7d768d82bfd85a8bacd39190ce8ffc5969fa2454a8fbc"
+    }
+  },
+  "capture_native_scope_not_transferred": true,
+  "current_ALL12_and_actual_main": "PENDING_OTHER_ORIGINAL_JOBS"
+}

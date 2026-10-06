@@ -1,0 +1,235 @@
+{
+  "scope": "Current-head authentic ordinary ancestor upgrade and already-applied TXT branch parity; not market activation, whole-plan, formal or deployment-ledger approval",
+  "verdict": "PASS_SCOPED_AUTHENTIC_CURRENT_UPGRADE_PARITY",
+  "head": "2864fd53320e97f6d466746ea986d72f6de358b0",
+  "tree": "277d4ec76edcd521083e24cc8a8e88309f368870",
+  "run": 37410723409,
+  "attempt": 1,
+  "job": 112098414578,
+  "artifact": 11388359351,
+  "zip_bytes": 8223213,
+  "zip_sha256": "3cd91079b0cd23ba4b5f2bbb28d79fef6425c8190f2f4bb7537f785f2eb97ba7",
+  "members": {
+    "rem002-upgrade-replay.log": {
+      "bytes": 4783412,
+      "sha256": "3120ea7190a61178597892311fc8be3ff13cfe9fe5cff27085e1b6dd12d1fc10"
+    },
+    "rem002-upgrade/applied-txt-branch/history-union-inputs.json": {
+      "bytes": 71278,
+      "sha256": "7006ef1621d9b1bc1fe93132f20d53f2d872ba1096ce4ddcc94742ad9118ed36"
+    },
+    "rem002-upgrade/applied-txt-branch/applied-txt-source-provenance.json": {
+      "bytes": 1723,
+      "sha256": "fd59036a0ba40ad0eae07c03ee8d3e618d3db71d8deb91de63e8b6cef1236fa0"
+    },
+    "rem002-upgrade/applied-txt-branch/importer-after.json": {
+      "bytes": 303,
+      "sha256": "18f3c3f4e6c7dcd374cc1eec50e319d10d28e4feba89d5d1c7dd61cdf6fe811e"
+    },
+    "rem002-upgrade/applied-txt-branch/importer-before.json": {
+      "bytes": 278,
+      "sha256": "2d082f84be5e390a0d7b94bee17627764e3a0abad2cf0f3be41da7e7ceffe3c0"
+    },
+    "rem002-upgrade/applied-txt-branch/retained-after.json": {
+      "bytes": 1266,
+      "sha256": "bdccd67267d923b5df3009d68d8d50df3094c0aa508fcd2abaf2bff208b3acf0"
+    },
+    "rem002-upgrade/applied-txt-branch/retained-before.json": {
+      "bytes": 1266,
+      "sha256": "bdccd67267d923b5df3009d68d8d50df3094c0aa508fcd2abaf2bff208b3acf0"
+    },
+    "rem002-upgrade/applied-txt-branch/upgraded/database.types.ts": {
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+    },
+    "rem002-upgrade/applied-txt-branch/upgraded/schema/schema.fingerprint.json": {
+      "bytes": 3033,
+      "sha256": "74454bc4659180c45894766bc69a7d473518b78d28e4c0c680b3d882e4519ae9"
+    },
+    "rem002-upgrade/applied-txt-branch/upgraded/schema/schema.sql": {
+      "bytes": 11351856,
+      "sha256": "f860c894e636ebbed64c31cc4f7596b73a4aac23a0ba4ff6b706b5e96f788e84"
+    },
+    "rem002-upgrade/applied-txt-branch/upgraded/utilts-catalog.json": {
+      "bytes": 16412847,
+      "sha256": "7fc7dc697924c9b5bfe5cc8dac305417391961261fa07438c5721bf741281d8b"
+    },
+    "rem002-upgrade/applied-txt-branch/utilts-catalog-upgrade-junit.xml": {
+      "bytes": 32751,
+      "sha256": "a83e9c1648c2bddd46df81ee3a9348829161a66895fb1280203d55c51335484e"
+    },
+    "rem002-upgrade/clean/database.types.ts": {
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+    },
+    "rem002-upgrade/applied-txt-branch/utilts-pre110500.json": {
+      "bytes": 613,
+      "sha256": "3bf1ffc9254543e2a486717c7c03e9f9b920d4b3272012a524dba1f19989e5da"
+    },
+    "rem002-upgrade/clean/schema/schema.fingerprint.json": {
+      "bytes": 3033,
+      "sha256": "74454bc4659180c45894766bc69a7d473518b78d28e4c0c680b3d882e4519ae9"
+    },
+    "rem002-upgrade/clean/schema/schema.sql": {
+      "bytes": 11351856,
+      "sha256": "f860c894e636ebbed64c31cc4f7596b73a4aac23a0ba4ff6b706b5e96f788e84"
+    },
+    "rem002-upgrade/retained-after.json": {
+      "bytes": 1266,
+      "sha256": "7ec3b3fd8ec7170424421f622e74e7a6a9451c28e58fa8adcfaf5d9583a80cb6"
+    },
+    "rem002-upgrade/retained-before.json": {
+      "bytes": 1266,
+      "sha256": "7ec3b3fd8ec7170424421f622e74e7a6a9451c28e58fa8adcfaf5d9583a80cb6"
+    },
+    "rem002-upgrade/upgrade-inputs.json": {
+      "bytes": 120469,
+      "sha256": "c72c2d0fc0fe00c33a9aea0acb8ae0a05b31ccc7c0c070b7c4cbfead8a561677"
+    },
+    "rem002-upgrade/upgraded/database.types.ts": {
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+    },
+    "rem002-upgrade/upgraded/schema/schema.fingerprint.json": {
+      "bytes": 3033,
+      "sha256": "74454bc4659180c45894766bc69a7d473518b78d28e4c0c680b3d882e4519ae9"
+    },
+    "rem002-upgrade/upgraded/schema/schema.sql": {
+      "bytes": 11351856,
+      "sha256": "f860c894e636ebbed64c31cc4f7596b73a4aac23a0ba4ff6b706b5e96f788e84"
+    },
+    "rem002-upgrade/upgraded/utilts-catalog.json": {
+      "bytes": 16412847,
+      "sha256": "a9420f8713a38c025102d65c41182fc4ecc61250761fe03ea5d5b533b0abcfef"
+    },
+    "rem002-upgrade/utilts-catalog-upgrade-junit.xml": {
+      "bytes": 32732,
+      "sha256": "4dc9d6840b44992df0bac1ce1e637530c733d4518cc1b33e809da396f23a026a"
+    },
+    "rem002-upgrade/utilts-pre110500.json": {
+      "bytes": 613,
+      "sha256": "e087bf62850eddf92094453c5f6285ec2dd057f42b83bd489535525c9a1056b6"
+    }
+  },
+  "plans": {
+    "rem002-upgrade/upgrade-inputs.json": {
+      "baseSha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "candidateSha": "2864fd53320e97f6d466746ea986d72f6de358b0",
+      "candidateTree": "277d4ec76edcd521083e24cc8a8e88309f368870",
+      "historicalMigrationsPreserved": 644,
+      "excludedNoncanonical": [
+        {
+          "name": "20261001061000_ediel_ai_legal_technical_party_scope.sql",
+          "sha256": "808f9cbe5a37838e47e5b99fbaa76bad22416d7a9e2493e5a9c62980782fc767",
+          "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY-001"
+        },
+        {
+          "name": "20261001121000_ediel_metering_method_recovery_current_source_bridge.sql",
+          "sha256": "4872a6ad2c272d1017e30a59d976d11381026ccd7365705c99de1d7e2324ed20",
+          "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY-002"
+        }
+      ],
+      "provenance": "committed exact ancestor bytes and checksum-pinned manifests; no invented ledger",
+      "authenticated_current_input_count": 433
+    },
+    "rem002-upgrade/applied-txt-branch/history-union-inputs.json": {
+      "format": "gridex_ediel_history_union_upgrade_v1",
+      "baseSha": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "integratedParentSha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+      "candidateSha": "2864fd53320e97f6d466746ea986d72f6de358b0",
+      "candidateTree": "277d4ec76edcd521083e24cc8a8e88309f368870",
+      "contractSha256": "06d80168658bf156f485f55f4efada0dc0fd58dbf74d51e91e012f909e91026d",
+      "contractGeneratedFromSha": "49d4b94fe06b55d499527117361b3a10a666d7b1",
+      "historicalMigrationsPreserved": 886,
+      "earlierAbsentInputs": 34,
+      "excludedNoncanonical": [
+        {
+          "name": "20261001061000_ediel_ai_legal_technical_party_scope.sql",
+          "sha256": "808f9cbe5a37838e47e5b99fbaa76bad22416d7a9e2493e5a9c62980782fc767",
+          "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY-001"
+        },
+        {
+          "name": "20261001121000_ediel_metering_method_recovery_current_source_bridge.sql",
+          "sha256": "4872a6ad2c272d1017e30a59d976d11381026ccd7365705c99de1d7e2324ed20",
+          "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY-002"
+        }
+      ],
+      "alreadyAppliedTxtSource": {
+        "name": "20261001040446_ediel_current_registry_txt_source_parity.sql",
+        "sha256": "b4bc0cc1747c38f6ca9a801aac0521857073aa2093ea4d2f7e4bf2a1fe0cb4a0"
+      },
+      "provenance": "original committed branch ported through pinned source/main witnesses; complete historical bytes preserved",
+      "ledgerClaim": "NONE: already-applied source execution is not an externally observed40446 deployment ledger",
+      "splitSquashProvenanceBridge": {
+        "format": "gridex_ediel_split_squash_provenance_bridge_v1",
+        "originalContractSha256": "952419d88f41ff8d24185142be389b9cae680b556ffbd3aeb54a225fb8d63fce",
+        "commonAncestorSha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+        "sourceWitnessSha": "f460fabf33eace3abb0e44df06a780f02b44a03d",
+        "sourceWitnessTree": "313743370cc76c48c964926cf345e31763d3ff12",
+        "mainWitnessSha": "fa4147b33dd3215c150cbe91d755db30e5ae6c62",
+        "mainWitnessTree": "25265898ce976f1de714b1a039d0bdf92857efc6",
+        "originalSnapshotSha": "49d4b94fe06b55d499527117361b3a10a666d7b1",
+        "originalSnapshotTree": "eee88212010ac89c11c88a1ed08f4221b7f85df1",
+        "originalBaseInputsPreserved": 886,
+        "integratedParentInputsPreserved": 830,
+        "originalSnapshotInputsPreserved": 942,
+        "sourceWitnessInputsPreserved": 954,
+        "ledgerClaim": "NONE: exact historical source port, not a deployment ledger"
+      },
+      "authenticated_current_input_count": 191
+    }
+  },
+  "whole_generated_and_schema_parity": {
+    "database.types.ts": {
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+      "ordinary_clean_equals_genuine_ancestor_upgrade_equals_applied_txt_branch_byte_exact": true,
+      "committed_comparison": {
+        "byte_exact": true,
+        "committed_sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+      }
+    },
+    "schema/schema.sql": {
+      "bytes": 11351856,
+      "sha256": "f860c894e636ebbed64c31cc4f7596b73a4aac23a0ba4ff6b706b5e96f788e84",
+      "ordinary_clean_equals_genuine_ancestor_upgrade_equals_applied_txt_branch_byte_exact": true,
+      "committed_comparison": {
+        "byte_exact": false,
+        "committed_sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+        "difference_only_leading_indentation": true,
+        "not_claimed_byte_exact_to_committed_raw_capture": true
+      }
+    },
+    "schema/schema.fingerprint.json": {
+      "bytes": 3033,
+      "sha256": "74454bc4659180c45894766bc69a7d473518b78d28e4c0c680b3d882e4519ae9",
+      "ordinary_clean_equals_genuine_ancestor_upgrade_equals_applied_txt_branch_byte_exact": true,
+      "committed_comparison": {
+        "byte_exact": false,
+        "committed_sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863",
+        "parsed_fingerprint_exact": true
+      }
+    }
+  },
+  "retained_fixture_bytes_exact": true,
+  "importer_identity_and_authority_preserved": true,
+  "native_junit": {
+    "rem002-upgrade/applied-txt-branch/utilts-catalog-upgrade-junit.xml": {
+      "executed_passed": 1,
+      "filtered_skipped": 140,
+      "failures": 0,
+      "errors": 0,
+      "scope": "one targeted UTILTS native catalog case; filtered cases are not PASS"
+    },
+    "rem002-upgrade/utilts-catalog-upgrade-junit.xml": {
+      "executed_passed": 1,
+      "filtered_skipped": 140,
+      "failures": 0,
+      "errors": 0,
+      "scope": "one targeted UTILTS native catalog case; filtered cases are not PASS"
+    }
+  },
+  "skipped_cases_credited_as_pass": false,
+  "deployment_ledger_claim": false,
+  "canonical_clean_native_suite_qualification": "PENDING_OTHER_ORIGINAL_JOB"
+}

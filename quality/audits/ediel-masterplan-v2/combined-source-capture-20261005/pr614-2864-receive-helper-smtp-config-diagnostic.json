@@ -1,0 +1,26 @@
+{
+  "scope": "Actual original SMTP config module and exact receiveUtiltsRetry function body, dependency-isolated local SQL spy only; no DB/native/CI or case-approval claim",
+  "recorded_at_utc": "2026-10-06T04:07:51.447Z",
+  "parent": "2864fd53320e97f6d466746ea986d72f6de358b0",
+  "node": "v22.23.3",
+  "helper_path": "scripts/helpers/utiltsConsumptionParties.ts",
+  "original_sha256": "47839f83ebf381e8cb1b975d30bd433f498f9b7efb28421ef071bcc0395be999",
+  "candidate_sha256": "26fc9da079fb02ab417aa05df30710f1600f6d6de5a7dd1ce315991d212aed75",
+  "production_readiness_sha256": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453",
+  "original_no_SMTP": {
+    "throws_before_SQL": true,
+    "exception": "Ediel SMTP saknar miljövariabler: EDIEL_SMTP_USER, EDIEL_SMTP_PASS eller EDIEL_SMTP_PASSWORD, EDIEL_SMTP_FROM",
+    "SQL_calls": 0
+  },
+  "corrected_no_SMTP": {
+    "real_helper_returns_two_reception_identities": true,
+    "SQL_calls": 1,
+    "synthetic_inbound_mailbox_address": true
+  },
+  "configured_inbound_sender_trimmed_and_preserved_without_send_password": true,
+  "original_configured_FROM_still_requires_send_password_before_SQL": true,
+  "configured_TR05_original_and_candidate_sender_identical": true,
+  "unchanged_actual_production_readiness_still_rejects_missing_send_credentials": true,
+  "exact_candidate_two_replacements": true,
+  "verdict": "PASS_BOUNDED_RECEIVING_CONFIG_REGRESSION_ONLY"
+}

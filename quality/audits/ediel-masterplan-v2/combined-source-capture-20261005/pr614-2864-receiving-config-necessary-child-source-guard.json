@@ -1,0 +1,22 @@
+{
+  "scope": "Finite fixture-only source-child whole-tree guard, not successor CI/native or actual main",
+  "parent": "2864fd53320e97f6d466746ea986d72f6de358b0",
+  "actual_main_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "allowed_paths": [
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-authentic-final-optional-capture-skip-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-authentic-sc071-ten-case-artifact-root-qualification.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-authentic-upgrade-artifact-root-qualification.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-historical-superseded-stop-20261006040909.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receiving-config-cause-peer-local-source-disposition.json",
+    "scripts/helpers/utiltsConsumptionParties.ts"
+  ],
+  "staged_tree_before_guard_metadata": "b3d303ee227d882b5483845c55e68a91e7ce1de2",
+  "previous_foreign_mode_type_blob_exact_count": 9170,
+  "all_other_existing_source_and_SQL_gen_capture_workflow_package_352rows_exact": true,
+  "original533535578_conditional_packet_custody_transitive_unchanged": true,
+  "new_Masterplan_work": false,
+  "native_current_gates_actual_main": "PENDING"
+}
