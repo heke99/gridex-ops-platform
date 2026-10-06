@@ -1,3 +1,9 @@
+## CURRENT MAIN CORRECTION — 2026-10-06 22:26 UTC
+
+Fresh live receipt6026417007 and actual coverage establish mainfd4a6a06f0cb462cfa15c3ee4a038d557dd559e0 is actual PR637 CODE merge, not641 memory. Actual115/121 rules+175/231 contracts=290/352;62remain. This supersedes the earlier pre-release paragraph that mislabeled fd4a as641 and retained286. PR641 remains open, role-memory e8 remains foreign24fa. Own actual15-release0ad1f700/6026519492 unchanged. GEN5owner93e has now freshly claimed actualmigration4504 underbf957d0b6f3e7f172015202f52e9b9bc1023fe16/6026471583 forbyte-exact213222 reuse; registration/currentcapture stillpending, wholeL/LK remains released/unapproved. Root next soleZ02pair claim is in progress, no code until all confirmed and checkpoint530 published.
+
+---
+
 ## ACTUAL RELEASE CONFIRMED — 2026-10-06 22:20 UTC
 
 All FIFTEEN remaining own packet resources were read back at their exact receipt SHA, deleted, and individually confirmed GET404. Both AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER are explicitly released; no active pair remains. Foreign and previously handed-off resources were untouched. Source PR635 a360abd7a5632a71c11dbb55fbef6045dfdde2bf remains OPEN DRAFT, locally full-green 903 files / 12219 tests, source-reviewed, whole-contract and mandatory-CI BLOCKED as documented below. No coverage promotion or merge. Actual release follows pre-release checkpoint 5d31d3f0 and #530 comment6026462223; detailed 15 resource/receipt confirmation is preserved in /tmp/gridex-c3ae-z03-session.json. Next owner actions and exact reusable source remain in the preceding handover. Root next: refresh main/ordered memory/latest530/legacy/open PR/live locks, then reserve eligible free Z02L/LK pair and its own exact paths before code.
