@@ -62,3 +62,29 @@ missing bounded asserting behavior. Record native/registration/authority gaps
 explicitly; do not label finite ports whole acceptance. Independent final review
 and current-head mandatory CI precede any approval/merge. Shared status update
 waits for free role-memory; own checkpoint and530 continue meanwhile.
+
+## Consumer proof — source d692e4a1a8f94a58a6f7dcd53b34fb48ca93f261
+
+Status: IMPLEMENTING / bounded local green; whole rows unchanged.
+Node22.23.3: new SC0646/6 + Z08LK23/23 PASS; reusable4-file baseline32/32
+PASS. Test TypeScript PASS; diff check PASS. Z08LK test executes real protected
+operation decoder, route guard, flow/gateway, customer projection decoder,
+contract invoicee, renderer and envelope/parser. Finalizer/queue/native SQL
+remain declared finite ports. SC064 executes actual worker, route evaluation
+and tenant-decision adapter; asserts drift/denial snapshots under current claim.
+
+Two initial Z08LK failures were fixture oracle mistakes: UNB application index8
+instead of7; parsed object versus own register property shape. Source behavior
+was unchanged, assertions corrected to authoritative tokenizer/parser contracts.
+Npm installation used inheritedNode24 (engine warning), all tests/TS use22.23.3.
+One npx metadata refresh stalled; use downloaded exactNode22 binary directly.
+
+Independent read-only full-card reviews find no confirmed product defect.
+SC064 still needs actual old-policy protected-basis→new-admission mismatch;
+Z08LK needs qualified actual native request/ACK/end effect and whole negative
+proof on candidate. Existing native LK source and recovery source-withdrawal
+proof are reused as code/old scoped evidence, not relabeled current native PASS.
+Native config remains foreign-locked; role-memory remains foreign.
+Next owner this session: strengthen same pair's missing policy refusal and
+existing-original no-effect cases, request final independent review, then
+record precise remaining native gates and preserve work if blocked.
