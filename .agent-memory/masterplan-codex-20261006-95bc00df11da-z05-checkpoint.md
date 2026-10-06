@@ -320,3 +320,30 @@ No foreign621custodyedit/borrowedwholecoverage; remote636still94.
 
 ExactGREENsourceee6f8004b3954186801ec656ec7b1ad9069eb0f4; unchanged42
 GREENlogSHAe8dce60a84909c90a1ec5e066582a296c06ec9870599380a59a7423e22605691.
+
+## Native authoring frozen / complete input inventory next
+
+Exact8eca78363bb0d3e6dc8f7a9e108d5f219f749391 commits ONLYowned native56/-10.
+Node22 scripts typecheck and scoped ESLint on native+Legacy+unit PASS; diffcheck
+PASS. Newcasecount39=15new+old20+old4; actual8eca native NOT_RUN. Existing ACK
+profile now prospectively configured with actual nonsecret SMTP from/host/port;
+physical positive/negative ACK oracles unchanged plus blocked diagnostics.
+Optional H respected: ordinary independent L positive asserts own immutable
+receipt/hash/exact scoped end/one receipt-bound task/no H fulfillment/history/
+full graphs/replay; definite retained H selector negative changes valid UD,
+asserts actual selector TRUE/matched NULL/exact original guard. General first
+immutable H diagnostic corrected without relaxing byte/effect snapshots.
+Both mandatory final source peers requested exact8eca+ee6; whole acceptance
+awaits authentic39 and actual-main adoption of foreign621 custody repair.
+
+Before next owned workflow edit: original32 hashes authentic94 are bounded
+declared inputs, NOT a proven complete consumed-input inventory. Expand only
+reserved workflow immutable pre-replay receipt to all tracked lib/types/
+supabase/scripts/tests fixtures/Ediel docs/config inputs, retain original32 as
+required subset, validate complete transitive imports. Trigger runtime/SQL/
+helper dependencies; preserve pinned CLI/PG, pre-staging capture, real exit,
+redaction/cleanup and every ordinary gate. Next95bc workflow syntax/hash/
+closure review, all3types/affected+fullunit, successor frozen peer review and
+publication. No coverage/second pair/foreign code or shared role edits.
+Shared role-memory now foreign307/896 reserved by631 owner for exact historical
+JSON preservation+actual633/634 handover. Respect owner; original634 rolesfree.
