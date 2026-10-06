@@ -1,3 +1,28 @@
+## PRE-CODE D229 EXTENSION CLAIM — 2026-10-06T23:37:30.317535+00:00
+
+Same sole packet bebe25f4-d2a5-4c59-b6b5-35e5d08192e3 / session codex-20261006T134154Z-c3ae376b9893. PR643 published source fa55054e252aa91201a42a99294585291e970874; local adopted main356 source1049b135e039b999d84cc6d89abd382967fe82af. New create-only receipt 347ec8e7ff13909fb52237dfedd3b6f9b8a90ccb on actual main356e153b64d83b84379791a4b4bda1e47ca464a0; nine sorted refs acquired and ALL18 currently held refs twice owner-GET MATCH. Released producer two excluded. No second pair or foreign/shared/merge role taken.
+
+Exact new owned paths:
+- lib/ediel/prodat/receivedZ02EndUserAddressContext.ts
+- __tests__/ediel-received-z02-end-user-address-context.test.ts
+- __tests__/ediel-received-z02-end-user-address-runtime.test.ts
+- lib/ediel/core/runtimeDecision.ts
+- lib/ediel/flows/inboundProcessing.ts
+- lib/ediel/rulebook/canonicalPolicyFieldValidator.ts
+- lib/ediel/rulebook/validator.ts
+- scripts/test-ediel-z02-end-user-address-source.cjs
+- supabase/migrations/20261006233239_received_z02_address_source_basis.sql
+
+Action: Same sole Z02L/LK pair; independent actual source229 omission and FREE remediation confirmed. Bounded read-only source-qualified D229 availability from genuine correlated sealed own Z01 plus accepted original dispatch BEFORE receivedZ02, current actor READ authorization and exact source/company/env/customer/site/object/agency/LI/subtype/party/hash/time/request-snapshot binding. Opaque uncopyable context, actual runtime/validator/inbound caller integration; require address only when independently available, allow legitimate changed reply address/unavailable/unknown boundaries, preserve existing outbound exact source policy and parse-only inbound behavior. Meaningful TDD before source implementation, actual public/native89 effects/negative security/immutability tests; no private accepted facts/CIR stamps or global default-role guard. New SQL CLI-created exact20261006233239 forward; no historical migration edits. GEN5 manifest/types/schema capture remains93e, exact immutable newforward handoff only after reviewed publication/narrow release. Current selector common35c0 integration held93e and Z01 mapper repair24fa dependencies distinct; do all independentlyallowed work before whole release.
+
+Independent review found two native oracle defects: sender-global-role mutation is not authoritative TEN05 process role evidence; replace with genuine wrong SUPPLIER source/original binding, without new global role guard. Replay must include six canonical witnesses, execution context, private inbound/source-rule receipts and actual request snapshots. Those are authoring defects, not currently proved product failures. D229 source-availability gap independently remains real and free remediation is now reserved. Existing raw-only parser behavior and outbound exact-address rules remain; received address changes legitimate.
+
+Verification state: immutable four helper inverse byte comparisons PASS; old ac091 catalog5 and full897/12094 qualified only for their exact historical inputs. Currentfa catalog5 run37542926006 completed success awaiting artifact qualification. Proposed whole89 NOT_RUN; no whole coverage promotion/current full/merge. Environment restart interrupted root TSC/lint unknown-exit (not PASS). Actual Docker daemon healthy28.4.0, READ clients prepared psql17.11/CLI2.101/Node22; canonical replay not yet executed. New forward CLI-generated20261006233239 outside repo, empty; GEN5 schema capture remains93e-owned and requires exact published forward handoff/registration, never a waiver. Common selector integration93e35c0 and Z01 current producer24fa remain independent whole dependencies.
+
+Next root: publish this exact pre-code CLAIM to530, then GO disjoint bounded context/unit, SQL, source-security verification and runtime integration. Meaningful RED, unchanged GREEN, fresh full/types/lint, final independent review and actual canonical/native receipts required. Whole approval withheld; preserve exact blockers and continue allowed source work. Shared campaign mirror requested from current role owner; no unowned shared edits.
+
+---
+
 ## INDEPENDENT REVIEW CHANGES REQUIRED / ENVIRONMENT RECONNECTED — 2026-10-06 23:17 UTC
 
 SoleZ02L/LK packetbebe25f4/currenttrackedsource1049b135 (published643fa550), nine ownedrefs/foreignboundaries unchanged. Author froze native46df4d5dc5a7193e94a8dee6b27528ee645820f3b8a8ff51add97933372306cf/659lines/89predeclaredcases (original5+42eachL/LK); original5casebodies bytepreserved, no whole tags/PASSED. Author freshsupported22NONincrementalscriptsTS EXIT0/scopedlint0/diff0 completed before reconnect, exactcommand/logrequestpending. No native89 execution; all84newcases NOT_RUN. Original46df read-only snapshot preserved /tmp/gridex-c3ae-z02-native-review-46df.ts.
