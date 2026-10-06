@@ -26,7 +26,10 @@ Before every non-trivial task:
 10. Search `.agent-memory/known-failures.md`.
 11. Inspect `git status` and `git diff` when Git metadata is available.
 12. Inspect the actual implementation.
-13. Continue from the recorded next action.
+13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`, your
+    own checkpoint, the legacy PR register and latest #530 allocations before
+    selecting a packet.
+14. Continue from the recorded next action.
 
 Do not restart completed work because chat context is missing. Code, current
 schema and executed verification have higher authority than memory. Maintain
@@ -34,6 +37,10 @@ one active work item at a time.
 
 After every atomic subtask, inspect changes, run targeted verification, update
 the checkpoint and current task, record the exact next action, and continue.
+
+For parallel Masterplan packets, each technical agent records these updates in
+its own packet checkpoint and on #530. The nominated campaign-memory writer
+maintains the shared current-task/checkpoint/handover files from those receipts.
 
 Before session end, update checkpoint, handover, current state, blockers,
 completed work, verification matrix and the session log. Never store secrets,
@@ -236,7 +243,7 @@ Do not modify production code until the finding is evidenced and passes
 
 ## Ediel masterplan v2 delivery contract
 
-Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-03).
+Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-03; next-wave coordination updated by the owner 2026-10-06).
 
 1. **One rule at a time, to done.** Pick one rule card (or a small cluster that
    shares code) and implement every `condition`/`on_pass`/`on_failure` and every
@@ -266,10 +273,29 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
 8. **Claim board (mandatory, Claude and Codex):** issue #530 is the single
    source of who works on which rule. Before writing code, read it and post
    `CLAIM <ID>, <ID> — <agent> — branch <branch>` (two rules at a time, only
-   unclaimed IDs). Post `RELEASE <ID> — <reason/what is missing>` when you stop
-   and `DONE <ID> — PR #N` when the PR is open and green, then claim the next
-   free pair. Never edit `coverage.json` rows for IDs you have not claimed.
-   Mirror each CLAIM/DONE as one line in `.agent-memory/handover.md`.
+   unclaimed IDs, or a bounded remaining contract/scenario pair). The wave
+   coordinator confirms ownership and file boundaries before code; elapsed
+   start delays are not locks. Post `READY <IDs> — PR #N` for reviewable work,
+   `CI_GREEN` only for the current head, and `MERGED <IDs> — PR #N — <main SHA>`
+   after actual delivery. Only then select the next pair. A legacy `DONE` comment
+   about a green open PR is not a merge receipt or released ownership.
+   Post `RELEASE <ID> — <reason/remaining work/checkpoint>` on explicit handover.
+   Never edit `coverage.json` rows for IDs you have not claimed.
+   The nominated campaign-memory writer mirrors claims and actual merge receipts;
+   each technical agent maintains its own checkpoint rather than overwriting
+   shared campaign status.
+9. **Mandatory documentation before more work:** each agent records what it
+   claimed, what it completed, exact commit/verification, blockers/dependencies
+   and its next action before starting and after each meaningful transition.
+   No next packet without current memory and confirmed ownership. Follow
+   `.agent-memory/masterplan-agent-workflow.md` for the complete contract.
+10. **Retained PR work first:** assess relevant entries in
+    `.agent-memory/masterplan-legacy-pr-register.json` against current main and
+    original requirements before new implementation. CLOSED_UNMERGED preserves
+    reusable work and unresolved HOLD/PAUSED criteria. Reopen suitable original
+    PRs individually after scope/owner confirmation, or reuse unique changes in
+    a small current-main PR linked to the original. Do not import historic stacks
+    wholesale or redo delivered work.
 
 ## Non-negotiable project invariants
 

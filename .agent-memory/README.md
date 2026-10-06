@@ -15,6 +15,17 @@ decisions remain higher-authority sources.
 6. active item in `work-plan.md`
 7. relevant domain files
 8. `decisions.md` and `known-failures.md`
+9. `masterplan-agent-workflow.md` and your own packet checkpoint
+10. `masterplan-legacy-pr-register.json`, `masterplan-status-20261006.json`, then
+    latest #530 claims, current main and relevant open/retained closed PRs
+
+Before implementation or another packet, every agent must save ownership, actual
+completed work, verification, blockers and the exact next action. Technical
+agents update their own checkpoints; the nominated campaign writer maintains
+shared status. The workflow defines confirmation of two-ID allocations and
+completion through actual green merge. `masterplan-next-wave-prompt.md` is the
+shared dispatch prompt. Legacy CLOSED_UNMERGED requirements remain resumable
+through their preserved branches; evaluate them before selecting new work.
 
 ## Parallel side track: tenantservice
 
@@ -53,4 +64,7 @@ Never store API keys, tokens, secrets, `.env` content, private keys, passwords,
 full identity numbers, production customer data, raw webhook secrets, entire
 chats, chain-of-thought or complete terminal output.
 
-Current existing-PR integration: see the top of current-state.md/current-task.md and masterplan-root503-ci-integration-20261005.md. Older freeze snapshots are historical.
+Current baseline and next-wave preparation: read the new top sections of
+current-state.md/current-task.md, masterplan-agent-workflow.md and the retained
+legacy register. Older integration/freeze snapshots are historical. Rule work
+awaits the next-wave dispatch.
