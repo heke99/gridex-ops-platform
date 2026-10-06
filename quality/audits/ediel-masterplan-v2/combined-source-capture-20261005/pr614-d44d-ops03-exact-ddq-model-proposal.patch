@@ -1,0 +1,30 @@
+--- a/__tests__/ediel-ops-03-code-release-evidence.test.ts
++++ b/__tests__/ediel-ops-03-code-release-evidence.test.ts
+@@ -63,6 +63,27 @@
+ // HEAD's expanded native suite. Restore only its known additions and require
+ // the original pinned bytes; every other source change still fails closed.
+ function reviewedProducerFixture(file: string, bytes: Buffer) {
++  // Model the exact original reviewed DDQ producer. The real native fixture
++  // now retains original-mailbox custody; that change is never relabelled as
++  // current-head CODE_VERIFIED by this finite port or production consumer.
++  if (file === 'scripts/ediel-prodat-mixed-native.test.ts') {
++    const originalDigest = '2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6'
++    if (sha256(bytes) === originalDigest) return bytes
++    if (sha256(bytes) !== '44e2460177e5516944d1a9ddf47e8b5c03d03b997fdd6af8739e5f413737ede4') throw Error('fixture_reviewed_ddq_source_unavailable')
++    const corrections: [string, string][] = [
++      ["import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'\n", ""],
++      [" const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})\n", ""],
++      [" INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)\n SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{\"subtype\":\"L\",\"prodatDependentFacts\":{\"market\":\"electricity\",\"meterReadingsSentInUtilts\":false}}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)\n await recordOriginalMailboxNativeReception({...mail,companyId:f.companyId,sourceMessageId:sourceId,actorUserId:f.actorUserId})\n", " INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)\n SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{\"subtype\":\"L\",\"prodatDependentFacts\":{\"market\":\"electricity\",\"meterReadingsSentInUtilts\":false}}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)\n"],
++    ]
++    let original = bytes.toString('utf8')
++    for (const [current, previous] of corrections) {
++      if (original.split(current).length !== 2) throw Error('fixture_reviewed_ddq_correction_not_unique')
++      original = original.replace(current, previous)
++    }
++    const restored = Buffer.from(original)
++    if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_ddq_original_digest_mismatch')
++    return restored
++  }
+   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
+     ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n"]
+     : file === '.github/workflows/ops-hardening.yml'

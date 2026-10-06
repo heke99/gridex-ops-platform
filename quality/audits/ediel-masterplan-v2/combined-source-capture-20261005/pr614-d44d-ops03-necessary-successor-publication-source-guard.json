@@ -1,0 +1,26 @@
+{
+  "scope": "Finite necessary OPS03 source-only successor admission guard, not current CI/main",
+  "parent": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+  "actual_main_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "staged_tree_before_guard_metadata": "bea4fc868ee5f0fce56559ab63a74d09c35b8c9f",
+  "allowed_paths": [
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+    "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44-first-genuine-targeted-failure-20261006-0337.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44-historical-observer-lease-stop-seal-20261006034627.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44-original533535578-replacement-closeout-refreshed-ready-after-main.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-authentic-final-optional-capture-skip-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-authentic-quality-coverage-same15-case-terminal-disposition.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-exact-ddq-model-corrected-110.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-exact-ddq-model-proposal.patch",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-genuine-cause-exact-model-fix-peer-and-local110.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-warranted-ops03-actual-local-failure.json"
+  ],
+  "foreign_previous_mode_type_blob_exact_count": 9160,
+  "whole_staged_paths": 9171,
+  "all_SQL_generation_raw3_workflows_package_native_fixture_source_consumer_352coverage_exact": true,
+  "original_conditional533535578_packet_custody_transitive_exact": true,
+  "all160_originalDOC_postimages_preserved_except_only_authorized_OWN_append": true,
+  "all44_unique_ACTUAL_markers_no_premature614": true,
+  "native_ALL12_actualmain": "PENDING"
+}

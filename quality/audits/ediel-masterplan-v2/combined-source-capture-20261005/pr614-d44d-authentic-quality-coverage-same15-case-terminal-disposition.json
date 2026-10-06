@@ -1,0 +1,79 @@
+{
+  "scope": "ONE authentic read per existing additional failed current ordinary job, exact shared cause; no duplicate suite/native/retry",
+  "receipts": [
+    {
+      "job": 112094165673,
+      "source_head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "run": 37409390289,
+      "attempt": 1,
+      "authentic_terminal_job_log_chars": 278145,
+      "failed_case_names": [
+        "uses authenticated run/job/archive bytes and reviewed actual assertions for only the known native case effects",
+        "never qualifies source DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies duplicate DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies skip DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies failure DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies error DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies missing DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies wrong_case DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies wrong_file DGI assertion/result while retaining a distinct valid DDQ case",
+        "coverage authenticates six separate code evidence classes and aggregate native matrix without external activation",
+        "coverage nightly reuses the latest successful PR/push producer on the same immutable head instead of a second coverage invocation",
+        "coverage decodes numeric decimal attribute references before exact reviewed-case selection",
+        "coverage decodes numeric hex attribute references before exact reviewed-case selection",
+        "coverage accepts reference-like literal text in comments, processing instructions and CDATA without inventing an attribute or testcase",
+        "ledger permits only the exact atomic OPS03 and AT promotion while preserving all 350 foreign rows and metadata bytes"
+      ],
+      "all15_failures_exact_to_local95_15_reproduction": true,
+      "other11804_of11819_passed": true,
+      "all882_file_counts": {
+        "passed": 881,
+        "failed": 1
+      },
+      "actual_terminal_summary_lines": [
+        "2026-10-06T03:39:20.1372823Z  Test Files  1 failed | 881 passed (882)",
+        "2026-10-06T03:39:20.1461773Z       Tests  15 failed | 11804 passed (11819)"
+      ],
+      "only_failure_file": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "no_new_distinct_source_failure_evidenced": true,
+      "not_newhead_or_native_acceptance": true
+    },
+    {
+      "job": 112094165434,
+      "source_head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "run": 37409390302,
+      "attempt": 1,
+      "authentic_terminal_job_log_chars": 427706,
+      "failed_case_names": [
+        "uses authenticated run/job/archive bytes and reviewed actual assertions for only the known native case effects",
+        "never qualifies source DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies duplicate DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies skip DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies failure DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies error DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies missing DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies wrong_case DGI assertion/result while retaining a distinct valid DDQ case",
+        "never qualifies wrong_file DGI assertion/result while retaining a distinct valid DDQ case",
+        "coverage authenticates six separate code evidence classes and aggregate native matrix without external activation",
+        "coverage nightly reuses the latest successful PR/push producer on the same immutable head instead of a second coverage invocation",
+        "coverage decodes numeric decimal attribute references before exact reviewed-case selection",
+        "coverage decodes numeric hex attribute references before exact reviewed-case selection",
+        "coverage accepts reference-like literal text in comments, processing instructions and CDATA without inventing an attribute or testcase",
+        "ledger permits only the exact atomic OPS03 and AT promotion while preserving all 350 foreign rows and metadata bytes"
+      ],
+      "all15_failures_exact_to_local95_15_reproduction": true,
+      "other11804_of11819_passed": true,
+      "all882_file_counts": {
+        "passed": 881,
+        "failed": 1
+      },
+      "actual_terminal_summary_lines": [
+        "2026-10-06T03:40:20.2550448Z  Test Files  1 failed | 881 passed (882)",
+        "2026-10-06T03:40:20.2596227Z       Tests  15 failed | 11804 passed (11819)"
+      ],
+      "only_failure_file": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "no_new_distinct_source_failure_evidenced": true,
+      "not_newhead_or_native_acceptance": true
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+{
+  "scope": "Necessary existing OPS03 finite original-producer fixture correction only, not new Masterplan work or actual native/main approval",
+  "recorded_at_utc": "2026-10-06T03:47:44.909440+00:00",
+  "parent": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+  "source_path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+  "public_claim": 6008860457,
+  "authentic_targeted_failure": {
+    "run": 37409390245,
+    "job": 112094164648,
+    "attempt": 1,
+    "step": 7,
+    "observer_seal": "e77c0eccad94548d88c91a1d82a8e71c7faee873d92d26251af6ef7e05dd4e6b",
+    "authentic_job_log": {
+      "chars": 24534,
+      "failure": "Only OPS-03/AT-OPS-03 tagged test file reported failing; underlying Vitest errors not printed by source tag checker"
+    },
+    "source_artifact": {
+      "id": 11388422215,
+      "bytes": 45672825,
+      "metadata_digest": "366f6d6808d4dbf8f2e90ea7e7ce698f8b12997c0c09b0b21daf036dda239e18",
+      "scope": "source/provenance only, no failure JUnit",
+      "no_local_ZIP_byte_qualification_claim": true
+    }
+  },
+  "causal_source_binding": {
+    "unchanged_production_DDQ_pin": "2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6",
+    "faithful_current_native_DDQ_source": "44e2460177e5516944d1a9ddf47e8b5c03d03b997fdd6af8739e5f413737ede4",
+    "existing_finite_Git_show_port_read_changed_source_instead_of_original_model": true
+  },
+  "independent_peer": {
+    "agent": "/root/existing_native_reception_custody_diagnosis",
+    "verdict": "SOURCE_APPROVE_EXACT_FIXTURE_ONLY",
+    "candidate_sha256": "d628e069506836ed98af446deca78536e6e06efc8b045b8a7184231207930694",
+    "patch_sha256": "34143a348b0d2342f737410a8feff5c672246ac34dc72aee66dfc87fd4bd0e13",
+    "every_existing_byte_outside_new_branch_exact": true,
+    "all110cases_and102expect_calls_parameter_arrays_fault_controls_exact": true,
+    "accept_old_original_exact_else_require_known_current_exact_then3unique_reversals": true,
+    "restored_original_bytes": 18438,
+    "final_exact_original_digest_required": true,
+    "unknown_source_fails_closed": true,
+    "fault_mutations_after_normalization": true,
+    "no_runtime_or_source_edits_by_peer": true
+  },
+  "authentic_additional_ordinary_failures": {
+    "scope": "ONE authentic read per existing additional failed current ordinary job, exact shared cause; no duplicate suite/native/retry",
+    "receipts": [
+      {
+        "job": 112094165673,
+        "source_head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+        "run": 37409390289,
+        "attempt": 1,
+        "authentic_terminal_job_log_chars": 278145,
+        "failed_case_names": [
+          "uses authenticated run/job/archive bytes and reviewed actual assertions for only the known native case effects",
+          "never qualifies source DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies duplicate DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies skip DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies failure DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies error DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies missing DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies wrong_case DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies wrong_file DGI assertion/result while retaining a distinct valid DDQ case",
+          "coverage authenticates six separate code evidence classes and aggregate native matrix without external activation",
+          "coverage nightly reuses the latest successful PR/push producer on the same immutable head instead of a second coverage invocation",
+          "coverage decodes numeric decimal attribute references before exact reviewed-case selection",
+          "coverage decodes numeric hex attribute references before exact reviewed-case selection",
+          "coverage accepts reference-like literal text in comments, processing instructions and CDATA without inventing an attribute or testcase",
+          "ledger permits only the exact atomic OPS03 and AT promotion while preserving all 350 foreign rows and metadata bytes"
+        ],
+        "all15_failures_exact_to_local95_15_reproduction": true,
+        "other11804_of11819_passed": true,
+        "all882_file_counts": {
+          "passed": 881,
+          "failed": 1
+        },
+        "actual_terminal_summary_lines": [
+          "2026-10-06T03:39:20.1372823Z  Test Files  1 failed | 881 passed (882)",
+          "2026-10-06T03:39:20.1461773Z       Tests  15 failed | 11804 passed (11819)"
+        ],
+        "only_failure_file": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+        "no_new_distinct_source_failure_evidenced": true,
+        "not_newhead_or_native_acceptance": true
+      },
+      {
+        "job": 112094165434,
+        "source_head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+        "run": 37409390302,
+        "attempt": 1,
+        "authentic_terminal_job_log_chars": 427706,
+        "failed_case_names": [
+          "uses authenticated run/job/archive bytes and reviewed actual assertions for only the known native case effects",
+          "never qualifies source DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies duplicate DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies skip DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies failure DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies error DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies missing DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies wrong_case DGI assertion/result while retaining a distinct valid DDQ case",
+          "never qualifies wrong_file DGI assertion/result while retaining a distinct valid DDQ case",
+          "coverage authenticates six separate code evidence classes and aggregate native matrix without external activation",
+          "coverage nightly reuses the latest successful PR/push producer on the same immutable head instead of a second coverage invocation",
+          "coverage decodes numeric decimal attribute references before exact reviewed-case selection",
+          "coverage decodes numeric hex attribute references before exact reviewed-case selection",
+          "coverage accepts reference-like literal text in comments, processing instructions and CDATA without inventing an attribute or testcase",
+          "ledger permits only the exact atomic OPS03 and AT promotion while preserving all 350 foreign rows and metadata bytes"
+        ],
+        "all15_failures_exact_to_local95_15_reproduction": true,
+        "other11804_of11819_passed": true,
+        "all882_file_counts": {
+          "passed": 881,
+          "failed": 1
+        },
+        "actual_terminal_summary_lines": [
+          "2026-10-06T03:40:20.2550448Z  Test Files  1 failed | 881 passed (882)",
+          "2026-10-06T03:40:20.2596227Z       Tests  15 failed | 11804 passed (11819)"
+        ],
+        "only_failure_file": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+        "no_new_distinct_source_failure_evidenced": true,
+        "not_newhead_or_native_acceptance": true
+      }
+    ]
+  },
+  "actual_local_verification": {
+    "node": "22.23.3",
+    "original": {
+      "exit": 1,
+      "passed": 95,
+      "failed": 15,
+      "total": 110
+    },
+    "corrected": {
+      "exit": 0,
+      "passed": 110,
+      "failed": 0,
+      "skipped": 0,
+      "total": 110
+    },
+    "corrected_lint_exit": 0,
+    "diff_check_exit": 0,
+    "initial_restricted_python_stdin_process": "Terminated143 without report; no PASS/result credited; finite reproduction used functional process plumbing, no GitHub control/native/DB action"
+  },
+  "qualification_boundaries": {
+    "production_consumer_and_source_guard_and_canonical_BASE_unchanged": true,
+    "production_native_DDQ_source_keeps_real_original_mailbox_correction": true,
+    "SQL1079_8generation_inputs_raw3_package_workflow_352coverage_160DOC_44markers_exact": true,
+    "fullCardVerification_current_case_execution_inputs_changed_may_remain_NOT_VERIFIED": true,
+    "no_current_NATIVE_CODE_VERIFIED_formal_live_whole_plan_claim": true
+  },
+  "legacy_conditional_transitive_custody": {
+    "prior_guard_sha256": "afc9c46eb68ece4b1036a6acbe3e52fd7fa02956c56d8dfd969837321db93935",
+    "all_original_packet_source_paths_unchanged_by_this_OPS_model_fix": true,
+    "actual_current_gates_and_realmain_required_for_closure": true
+  },
+  "adopted_exact_receipts": {
+    "pr614-d44-first-genuine-targeted-failure-20261006-0337.json": {
+      "bytes": 9132,
+      "sha256": "e77c0eccad94548d88c91a1d82a8e71c7faee873d92d26251af6ef7e05dd4e6b",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44-historical-observer-lease-stop-seal-20261006034627.json": {
+      "bytes": 76709,
+      "sha256": "70114c8ddb306a250dea2d59329c6283992a6708a52a79cda41446ce874f550f",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44d-warranted-ops03-actual-local-failure.json": {
+      "bytes": 51621,
+      "sha256": "16c083e3b42fbd9b066ae6595cb7aa23b9df7d27fef1b0ba612344cf8f863165",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44d-ops03-exact-ddq-model-corrected-110.json": {
+      "bytes": 35239,
+      "sha256": "7fd47b8c65801f926fdb9442c54dd3dc7dd8a63380f1ffbc872dff7ef88c24e2",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44d-ops03-exact-ddq-model-proposal.patch": {
+      "bytes": 4259,
+      "sha256": "34143a348b0d2342f737410a8feff5c672246ac34dc72aee66dfc87fd4bd0e13",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44-original533535578-replacement-closeout-refreshed-ready-after-main.json": {
+      "bytes": 29226,
+      "sha256": "afc9c46eb68ece4b1036a6acbe3e52fd7fa02956c56d8dfd969837321db93935",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44d-authentic-final-optional-capture-skip-guard.json": {
+      "bytes": 1932,
+      "sha256": "9f63adaada55297ea49e077fc23f7fbe72fe3aaa07c36ec584bffdb191f5bfed",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    },
+    "pr614-d44d-authentic-quality-coverage-same15-case-terminal-disposition.json": {
+      "bytes": 5109,
+      "sha256": "ee2fc3ce16560ad0c518665dbf3bd985de49a6e6350d2668cf5eb9fbdfa56b28",
+      "source_scope": "original immutable d44 receipt; no successor qualification transfer"
+    }
+  },
+  "new_head_ALL12_native_clean_upgrade_certificate": "PENDING_AUTHENTIC_PUBLICATION_AND_CURRENT_CI"
+}
