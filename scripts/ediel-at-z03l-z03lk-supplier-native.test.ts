@@ -10,6 +10,10 @@ import { seedNormalSwitchNativeFixture, nativeSql as sql, literal, type NormalSw
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { supabaseService } from '@/lib/supabase/service'
+import { importActorRegistryXml } from '@/lib/actor-registry/importActorRegistry'
+import { readRegistryRouteSource, verifyElRegistryActor } from '@/lib/actor-registry/registryMarketSource'
+import { getCompanyGridOwnerRouteReadiness } from '@/lib/ediel/companyRouteReadiness'
+import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
@@ -73,6 +77,57 @@ async function stage(variant: Variant, date=days(today(),14), invoicee=false) {
       .toEqual({street:'Installationgatan 3',postalCode:'11122',city:'Installationsstad',country:'SE'})
   }
   return { ...f,variant }
+}
+async function materializeWindowRoute(f: NormalSwitchStageNativeFixture) {
+  // Submit actual prospective test catalog bytes through the public importer.
+  // Registry verification deliberately keeps automatic sending disabled; no
+  // certificate/readiness/accepted-source fact or production approval is seeded.
+  const xml=`<Market Code="EL" Country="SE"><Company><Name>Synthetic window grid ${f.gridId}</Name>
+    <Key Type="EdielId">${f.receiver}</Key><Role>DSO</Role><EDIFACTDetails Type="PRODAT" environment="test">
+    <PartyId>${f.receiver}</PartyId><InterchangePartyId>${f.receiver}</InterchangePartyId>
+    <ApplicationReference>23-DDQ-PRODAT</ApplicationReference><SubAddress>NATIVE</SubAddress>
+    <CommunicationAddress Type="SMTP">recipient@example.invalid</CommunicationAddress></EDIFACTDetails></Company></Market>`
+  const imported=await importActorRegistryXml({xml,uploadedBy:f.actorUserId,sourceFilename:'synthetic-window-test-route.xml'})
+  const routeIds=Reflect.get(imported,'routeIds')
+  expect(routeIds).toEqual([expect.stringMatching(/^[0-9a-f-]{36}$/)])
+  expect(Reflect.get(imported,'activation')).toBe('held_pending_current_source_readiness')
+  const platformRouteId=routeIds[0] as string
+  const source=await readRegistryRouteSource(platformRouteId)
+  expect(source).toMatchObject({status:'source_qualified',market:'EL',legalEdielId:f.receiver,
+    wire:{family:'PRODAT',environment:'test',partyId:f.receiver,interchangePartyId:f.receiver,
+      subaddress:'NATIVE',applicationReference:'23-DDQ-PRODAT',address:'recipient@example.invalid'}})
+  if (source.status!=='source_qualified') throw Error('native_window_actual_registry_source_required')
+  expect(await verifyElRegistryActor({actorUserId:f.actorUserId,actorId:source.actorId,routeId:platformRouteId}))
+    .toEqual({actorId:source.actorId,routeIds:[platformRouteId],market:'EL',autoSendAllowed:false})
+  expect(sql(`WITH changed AS(UPDATE public.grid_owners SET platform_market_actor_id=${literal(source.actorId)}
+    WHERE id=${literal(f.gridId)} AND company_id=${literal(f.companyId)} AND ediel_id=${literal(f.receiver)} AND environment='test' RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
+  // Message code is prospective public configuration; the immutable catalog
+  // source continues to own its family/environment/address/identity tuple.
+  expect(sql(`WITH changed AS(UPDATE public.platform_actor_routes SET metadata=metadata||'{"message_code":"Z03"}'::jsonb
+    WHERE id=${literal(platformRouteId)} AND actor_id=${literal(source.actorId)} AND environment='test' RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
+  const before=await readRegistryRouteSource(platformRouteId)
+  expect(before).toEqual(source)
+  const {data,error}=await supabaseService.rpc('gridex_materialize_company_operational_routes',{
+    p_company_id:f.companyId,p_environment:'test',p_message_family:'PRODAT',p_grid_owner_id:f.gridId,
+    p_platform_actor_route_id:platformRouteId,p_message_code:'Z03',p_dry_run:false,
+  })
+  expect(error).toBeNull()
+  const rows=Array.isArray(data)?data as Array<Record<string,unknown>>:[]
+  expect(rows,JSON.stringify(data)).toHaveLength(1)
+  expect(rows[0]).toMatchObject({result_status:'materialized',company_id:f.companyId,grid_owner_id:f.gridId,
+    platform_actor_route_id:platformRouteId,environment:'test',message_family:'PRODAT',message_code:'Z03'})
+  expect(rows[0].communication_route_id).toEqual(expect.stringMatching(/^[0-9a-f-]{36}$/))
+  expect(rows[0].ediel_route_profile_id).toEqual(expect.stringMatching(/^[0-9a-f-]{36}$/))
+  f.routeId=rows[0].communication_route_id as string
+  f.routeProfileId=rows[0].ediel_route_profile_id as string
+  expect(sql(`SELECT to_jsonb(auto_send_allowed) FROM public.platform_actor_routes WHERE id=${literal(platformRouteId)} AND actor_id=${literal(source.actorId)};`)).toBe(false)
+  const readiness=await getCompanyGridOwnerRouteReadiness({companyId:f.companyId,gridOwnerId:f.gridId,
+    environment:'test',messageFamily:'PRODAT',messageCode:'Z03'})
+  expect(readiness).toMatchObject({company_id:f.companyId,grid_owner_id:f.gridId,environment:'test',message_code:'Z03',
+    communication_route_id:f.routeId,ediel_route_profile_id:f.routeProfileId,operational_route_ready:true,send_ready:true,blocker_code:null})
+  const checked=await evaluateCustomerProcessRouteReadiness({companyId:f.companyId,customerId:f.customerId,
+    siteId:f.siteId,gridOwnerId:f.gridId,process:'supplier_switch',actorUserId:f.actorUserId,environment:'test',emitEvents:false})
+  expect(checked,JSON.stringify(checked)).toMatchObject({ready:true,communicationRouteId:f.routeId,routeProfileId:f.routeProfileId,blockers:[]})
 }
 async function originate(f: NormalSwitchStageNativeFixture & { variant:Variant }): Promise<Fixture> {
   const prepared=await prepareAndQueueEdielZ03({ actorUserId:f.actorUserId,switchRequestId:f.switchId,communicationRouteId:f.routeId,environment:'test' })
@@ -276,12 +331,27 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
     // Use the actual current selected registry policy, retaining the genuine
     // producer's typed condition facts. No constructed field-rule/policy override.
     const issues=validateCanonicalPolicyFields({ policy,rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una })
-    const diagnostic=issues.find(issue=>issue.severity==='error' && (field.endsWith('_GROUP')
-      ? issue.fieldPath===descriptor.segmentPath : issue.prodatDiagnostic?.kind==='field' && issue.prodatDiagnostic.fieldNumber===field))
-    expect(diagnostic,field+': '+JSON.stringify(issues)).toBeTruthy()
-    if (!field.endsWith('_GROUP')) {
-      expect(diagnostic!.prodatDiagnostic).toMatchObject({kind:'field',fieldNumber:field,
-        errorKind:['207','208','209','227','233','250','262'].includes(field)?'invalid':'missing'})
+    if (field==='229' || field==='252') {
+      const qualifier=field==='229'?'UD':'IV'
+      const parties=wire.segments.filter(s=>s.tag==='NAD' && segmentComposite(s,1,wire.una)[0]===qualifier)
+      expect(parties,field+' retains its own party').toHaveLength(1)
+      expect(segmentComposite(parties[0],5,wire.una),field+' omits the whole physical C059').toEqual([''])
+      // These source-address comparison owners deliberately replace the generic
+      // numeric missing-field diagnostic; retain their exact closed codes/paths.
+      expect(issues,field+': '+JSON.stringify(issues)).toEqual(expect.arrayContaining([expect.objectContaining({
+        scope:'prodat_dependent',severity:'error',blocking:true,
+        ...(field==='229'
+          ? {code:'PRODAT_END_USER_ADDRESS_VALUE_MISMATCH',fieldPath:'NAD+UD/C059/3042[1..3]'}
+          : {code:'PRODAT_INVOICEE_VALUE_MISMATCH',fieldPath:'NAD+IV',description:'Z03:252, P26.A s.23/82/109: adressen avviker från vald källa'}),
+      })]))
+    } else {
+      const diagnostic=issues.find(issue=>issue.severity==='error' && (field.endsWith('_GROUP')
+        ? issue.fieldPath===descriptor.segmentPath : issue.prodatDiagnostic?.kind==='field' && issue.prodatDiagnostic.fieldNumber===field))
+      expect(diagnostic,field+': '+JSON.stringify(issues)).toBeTruthy()
+      if (!field.endsWith('_GROUP')) {
+        expect(diagnostic!.prodatDiagnostic).toMatchObject({kind:'field',fieldNumber:field,
+          errorKind:['207','208','209','227','233','250','262'].includes(field)?'invalid':'missing'})
+      }
     }
   }
   const input=draft(f,raw),context=await sourceContext(f,raw),before=effects(f)
@@ -303,7 +373,7 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
     return
   }
   // UD omissions can be refused by the authentic source comparison before
-  // registry field selection. The numeric oracle above and this native public
+  // registry field selection. The field-owner oracle above and this native public
   // persistence boundary intentionally assert different owners.
   const validation=await validateRulebookMessageWithRegistry({ family:'PRODAT',code:'Z03',applicationReference:'23-DDQ-PRODAT',
       rawPayload:raw,mode:'send',roleCode:'DDQ',direction:'outbound',environment:'test',companyId:f.companyId,
@@ -462,7 +532,9 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       const calendar=today(),latest=days(calendar,variant==='L'?14:0),upper=months(calendar,14)
       const date=boundary==='latest lawful'?latest:boundary==='one day late'?days(latest,-1):boundary==='fourteen months'?upper:days(upper,1)
       const expected=boundary==='one day late'?'expired':boundary==='one day too early'?'too_early':'open'
-      const f=await stage(variant,date),before=business(f)
+      const f=await stage(variant,date)
+      if (expected==='open') await materializeWindowRoute(f)
+      const before=business(f)
       expect(today(),'no boundary crossed while constructing this prospective agreement').toBe(calendar)
       const schedule=await evaluateSupplierSwitchSchedule({ switchRequestId:f.switchId,companyId:f.companyId,requestedStartDate:date,
         transactionSubtype:variant,requestType:variant==='L'?'supplier_switch':'move_in',siteId:f.siteId,meteringPointId:f.pointId })
