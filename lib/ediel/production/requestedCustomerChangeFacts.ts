@@ -2,11 +2,11 @@ import {createHash} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
 import type {CustomerLifeEventBasis,CustomerLifeEventHeld} from './lifeEventSource'
 import {copyProdatRegisterFacts} from '@/lib/ediel/prodat/prodatRegisterEvidence'
-import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
 /** Qualified protocol selections only. Current queue/send authority remains in
  * the immutable event/original owners; serialized register facts are not a grant. */
+type ProdatDependentConditionFacts=ReturnType<typeof copyProdatRegisterFacts>
 type Selection={readonly status:'qualified'}
 type Scope={companyId:string;eventId:string;actorUserId:string;basis:CustomerLifeEventBasis}
 const qualified=new WeakMap<Selection,{binding:string;facts:ProdatDependentConditionFacts}>()
