@@ -1,0 +1,119 @@
+{
+  "scope": "Internal code-contract proof; market/counterparty activation and deployment remain separate.",
+  "agent": "codex-20261006-95bc00df11da",
+  "packet": "f290cb52-9d29-4656-a392-9d4feb5bfc23",
+  "ids": [
+    "AT-Z05L-SUPPLIER",
+    "AT-Z05LK-SUPPLIER"
+  ],
+  "executed_source": "9a9775a0d77f20fb5853e8dee3dea45fdc27c7b7",
+  "executed_tree": "014a73f4e3412ad289583ab8317c3d574abc2938",
+  "actual_runtime_base": "141339d78f0b058a18ced03da7af02a41712a378",
+  "original_delivered_component_pr": 597,
+  "frozen_acceptance_register_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+  "technical_contract_review": {
+    "status": "BOTH_INDEPENDENT_WHOLE_APPROVE",
+    "independent_reviewers": [
+      "sc064_spec_review",
+      "z08lk_spec_review"
+    ],
+    "source_authoring": "Both independent exact9a SOURCE_AUTHORING_APPROVE",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/pull/636#issuecomment-6025805707",
+    "executed_source": "9a9775a0d77f20fb5853e8dee3dea45fdc27c7b7",
+    "whole_review_receipt": "https://github.com/heke99/gridex-ops-platform/pull/636#issuecomment-6026095837",
+    "independent_component_verification": {
+      "node": "22.23.3",
+      "passed": 50,
+      "exit": 0,
+      "scope": "42 supplier components plus eight custody tests"
+    }
+  },
+  "native_execution": {
+    "workflow_run": 37534177246,
+    "job": 112510807398,
+    "artifact": 11446163124,
+    "preserved_archive": "native-9a9775a0.zip",
+    "archive_sha256": "96a43734c2c60556beae9ab05e4f1feae1978a399985bf62cd1e3a829fa3db39",
+    "archive_bytes": 452189,
+    "api_head_tree_digest_size_crc_qualified": true,
+    "input_scope": "ALL_TRACKED_CHECKOUT_INPUTS_BEFORE_REPLAY",
+    "original_tracked_input_hashes_qualified": 9280,
+    "receipt_sha256": "1b7a62d2f0b9e306f95075a74ad098e6d21fab36003ae660b26627a76545dda5",
+    "junit_sha256": "b2f0bbd2c7acb2ddaa0a7d67802b66fc13806cfed5320807ae1b6222f1e5dd37",
+    "tests": 39,
+    "passed": 39,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "scripts/ediel-at-z05-supplier-native.test.ts",
+        "tests": 15,
+        "passed": 15,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": "180.647659071"
+      },
+      {
+        "name": "scripts/ediel-at-z08lk-supplier-native.test.ts",
+        "tests": 4,
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": "35.727068665"
+      },
+      {
+        "name": "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+        "tests": 20,
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0,
+        "seconds": "171.013285744"
+      }
+    ],
+    "ordinary_required_gates": "NOT_REPLACED",
+    "schema_capture": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "authentic_market_evidence": "NOT_PROVIDED"
+  },
+  "criteria": {
+    "wire_and_association": "Actual paired DDQ/BGMZ05/Z22-Z23 policy/parser/canonical consumers; linkedL/LK and unsolicitedL. H linkage is optional; Z05LK is not a Z09E response.",
+    "physical_acknowledgements": "Actual persisted CONTRL and applicable APERAK bytes, grammar/preflight, reversed parties, UCI/control, LI/ACW/object; negative R211/D251 carries exact ERC41/FTX and stable replay. No extra outbound PRODAT.",
+    "period_and_final_values": "Three actual primary positives assert exact own period/company/customer/point/start source/version+1/future ending/12:30Z/end source and one receipt-owned final-metering-and-billing case. UnsolicitedL asserts genuine effect/followup receipt and unchanged pending H watch.",
+    "commercial_followup_and_history": "Exact linked own contract transition and one scoped termination event/domain event/open final-invoice task; retained start lineage and source-end period receipt are explicit. Full prior/foreign contract/event/task/customer/site/point/period/invoice/billing graphs and immutable source/original/mail/reception persist, including replay.",
+    "role_direction_correlation_mutation": "Actual current role withdrawal holds before business and preserves diagnostic custody; facade outbound early return plus native direction seal; real H customer/minute and retainedLK LI/minute/unsent-original refusals; actual byte/context guards and no-effect global graphs.",
+    "required_conditional_fields": "Paired42 real finite consumer cases assert seven R fields, malformed end/IT/DGI/permission/cached-scope refusal. Native211 and presentIV251 physical rejection, shared field-matrix/dependency/date/death behavior supplies remaining applicable predicates; no invented unknown death310 or remote receipt deadline.",
+    "replay": "The same effects, ACK rows, receipt/projected final case, expected global graph and all immutable custody are asserted after actual processor replay."
+  },
+  "regressions": {
+    "retained_native_controls": 24,
+    "paired_components": 42,
+    "legacy_duplicate_fix": "Validated own nonnull receipt partition remains owned by public receipt projector; null-partition Legacy behavior retained. Real unit TDD40PASS2FAIL before fix then42PASS.",
+    "full_unit": {
+      "source": "5ed40878d37b539862dd3e096e06c6d879400388",
+      "files": 895,
+      "passed": 12043,
+      "exit": 0,
+      "seconds": 303.24,
+      "node": "22.23.3",
+      "log_sha256": "b5dccfd160159a37a87b4ea855d8dd86694ac0067d83765256dc0e025dfb368f",
+      "delta_to_executed_source": "Only scripts/ediel-at-z05-supplier-native.test.ts changed; product and unit bytes identical."
+    },
+    "historical_failures": "Authentic89 was36PASS3FAIL at false-unrelated-own-contract equality; its positive replay was NOT_REACHED. Earlier qualified RED receipts remain in the checkpoint history.",
+    "masterplan_coverage_check": {
+      "command": "npm run ediel:masterplan-v2:test-coverage -- --check",
+      "node": "22.23.3",
+      "max_workers": 2,
+      "tagged_vitest_files": 244,
+      "tagged_node_scripts": 23,
+      "exit": 0,
+      "summary": "Masterplan IDs: 352; approved 288; tagged green 321; tagged failing 0; untagged 31",
+      "log_sha256": "f157bef3c4971de63aa8bf14ee41d2541bdbae1d3e5746789e7d307685486b99"
+    }
+  },
+  "boundaries": "Disposable actual public/canonical/SQL consumers and durable effects. External SMTP and synthetic legal issuer are declared fixture ports; no private ready/accepted/effect facts are seeded. Native clean replay does not replace ordinary clean/upgrade/parity/browser/current mandatory gates.",
+  "delivery_gate": "Final PR head still requires independent review and all applicable mandatory checks before merge; this execution receipt does not assert CI_GREEN or resulting-main/external acceptance.",
+  "actual_metadata_base": "56e58b95518ec4d5eef210ba16ba46228afb40ac"
+}

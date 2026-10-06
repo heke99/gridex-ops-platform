@@ -3831,8 +3831,17 @@
     },
     {
       "id": "AT-Z05L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts",
+        "scripts/ediel-at-z05-supplier-native.test.ts",
+        "scripts/helpers/ediel-national-end-native-fixture.ts",
+        "scripts/helpers/ediel-bilateral-lk-native-fixture.ts",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/native-9a9775a0.zip"
+      ]
     },
     {
       "id": "AT-Z01LK-SUPPLIER",
@@ -3856,8 +3865,17 @@
     },
     {
       "id": "AT-Z05LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts",
+        "scripts/ediel-at-z05-supplier-native.test.ts",
+        "scripts/helpers/ediel-national-end-native-fixture.ts",
+        "scripts/helpers/ediel-bilateral-lk-native-fixture.ts",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/native-9a9775a0.zip"
+      ]
     },
     {
       "id": "AT-Z03C-SUPPLIER",

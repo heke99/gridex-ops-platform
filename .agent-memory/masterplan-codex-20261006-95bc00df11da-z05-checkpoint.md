@@ -1,3 +1,34 @@
+# CURRENT Z05 supplier code-contract proof — final candidate preparation
+
+Agent `codex-20261006-95bc00df11da`; sole packet `f290cb52-9d29-4656-a392-9d4feb5bfc23`;
+PR #636 / branch `codex/ediel-z05-native-95bc00df11da`. Own12 reservation refs:
+original388356a0 + Legacy extensiona09bb331 + evidence extensiond3eb0a28.
+Both `AT-Z05L-SUPPLIER` and `AT-Z05LK-SUPPLIER` independently WHOLE_APPROVED
+at executed source `9a9775a0d77f20fb5853e8dee3dea45fdc27c7b7`,
+tree `014a73f4e3412ad289583ab8317c3d574abc2938`. Official run37534177246/art11446163124:
+39 PASS/0failure/error/skip/exit0; all9280 original tracked input hashes, API
+head/tree/digest/size/CRC and positive full history/graph/immutable replay qualified.
+Original ZIP is permanently preserved byteexact with compact contract-proof.json
+in quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/.
+Whole review receipt: https://github.com/heke99/gridex-ops-platform/pull/636#issuecomment-6026095837.
+Qualified Node22 full source5ed895files12043PASS; product/unit bytes identical9a.
+Independent current50components PASS. Authentic prior89=36PASS3FAIL and earlier
+RED observations remain in the detailed checkpoint history.
+
+Only own2 coverage rows are promoted in this candidate; all foreign rows retained.
+Actual621 runtime141 and639 metadata56e58 adopted normally; no foreign unmerged work.
+Mandatory coverage --check PASS at Node22 (244 tagged Vitest files +23 node
+scripts); all tagged failures zero. Candidate approvals288, actualmain286.
+Remaining delivery: exact final candidate reviews and all required final-head CI; freshmain/ownresources/free merge-role/expected-head
+normal merge, actual PR/main receipt, shared memory under memory-role, own release.
+Responsible95bc continues that sequence before selecting another packet. No
+CI_GREEN/MERGED/external market/counterparty/deployment claim at preparation.
+Detailed chronological receipts (including real unit TDD RED/GREEN/native failures,
+all12 claims and current next action) remain on branch
+`codex/ediel-z05-95bc00df11da-checkpoint`, same checkpoint path.
+
+## Historical initial reservation and first authoring snapshots
+
 # CURRENT Z05 supplier whole-contract continuation — 2026-10-06
 
 Agentcodex-20261006-95bc00df11da; packetf290cb52-9d29-4656-a392-9d4feb5bfc23; statusCLAIMED BEFORE CODE.
