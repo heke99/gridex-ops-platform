@@ -630,3 +630,27 @@ Normal push succeeded and actual PR+remote branch readbacks confirm010f. Immedia
 Prospective native28 = original20 + four A/D214/218 under actual own physical259TRUE and four Drole/reviewer/foreignactor/publicoutbound. Foreignactor requires actual public supply_execution_actor_unqualified; Dforeign fullown/foreign graphs and retry checks now precede unchanged strictgroundpartition, safe decision/scope/RPCreason diagnostics added. Workflow64uniquegitHEADinputs +exactsource triggers/redaction unchanged. Previous b45220 authentic16PASS4FAIL remainshistorical, NOT current28proof. Current native/allmandatoryCI pending, clean frozen010 fullordinary local suite running; no borrowing b452895files12042green. No coverageedit/wholeA-D/CI_GREEN/merge/externalapproval.
 
 Specific dependencies: E93e35c0 owns commonbirth repair; reviewedb537 repair notdelivered/imported byroot, request6023852485 remainsopen. Anegative-only capture/emission request6023963030 acknowledged by621 owner2c in6024085111: exacthandoff/release after actual099delivery, no edits to current foreigninboundProcessing. Root continues own currentfeedback/independentparts, then claims genuine separate refusal scope onlyafter independentplan+atomiclocks; no positivecapability/ground/catalogue bypass. Common95bc rolewriter please mirror actual010/28pending/current284/68remaining with retainedfailures. Nextroot qualify current full+native28 officialartifact/head/tree/all64source hashes; exactfailedstage then remainingnegative-only plan/ownerhandoff.
+
+CLAIM SOURCE EXTENSION BEFORE CODE — same AT-Z04A/AT-Z04D supplier pair
+{
+  "protocol": "masterplan-reservation-v1",
+  "packet": "09fbccc6-9c1d-4f74-b1e6-55b0a7d498a1",
+  "agent": "codex-ediel-20261006-2f72c8ab",
+  "branch": "codex/ediel-z04a-native-2f72c8ab",
+  "checkpoint": ".agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+  "ids": [
+    "AT-Z04A-SUPPLIER",
+    "AT-Z04D-SUPPLIER"
+  ],
+  "files": [
+    "__tests__/ediel-prodat-date-event-actions.test.ts"
+  ],
+  "base": "b155d8b789988cb008c9711c23df729112f60f97",
+  "createdAt": "2026-10-06T19:49:09.425175+00:00",
+  "nextAction": "Same A/D pair: actual clean published010f fullunit896files12046tests=12044PASS2FAIL exit1/226.67s; only old dateevent action module mock replaces complete canonicalRulePackRegistry and omits newly exported REAL assertPolicyDirection. Claim exacttest before spread importOriginal and override ONLY its existing synthetic registry DBreader. Preserve real direction guard, all 9 manual/autopilot assertions, synthetic source provenance and existing permitted consumer behavior. No production/criterion/timeout weakening. Current010 native28 queued; next affected9+root217/types/lint/two independent minimaldelta reviews then bounded successor/full and real28/gates.",
+  "receipt": "71af4ca0096dd80cb26901c266a91c37f0594f4f",
+  "resources": [
+    "file-1019911fd1ef4ed62e2365945c159af4f2551c62e04d6bb5df172a0f9de09123"
+  ]
+}
+Original20 strict native oracles unchanged; owned7newnativecases prospective/NOT_RUN. Main coverage preserved284/352. Nextroot/assigned directionauthor: meaningfulRED before minimal2productionfiles, then exactbehavior/consumers/type/lint/two independent review/currentnative and mandatoryCI. Eshared3birth paths remain35c0; Anegative authority design pending/foreign621capture coordination, no relaxation/operational catalogue authority.
