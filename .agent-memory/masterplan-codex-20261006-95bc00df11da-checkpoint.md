@@ -369,3 +369,29 @@ duplicate/native DTO ports. Re-encode envelope and register evidence from
 independent original facts before binding malformed candidate. Exact missing
 262 or activatedIV expectedrefusal and no original/queue/lifecycle effects.
 Next: edit only existing claimed test, targeted verify and independent review.
+
+## Actual native RED and R/D consumer verification
+
+626 source3a225a42 actual selected-native run37484956533 executed4 cases:
+0PASS4FAIL exit1, all stop at authored seed oracle pending versus actualqueued
+(before drift/provider action). Existing createOutboxItem contract and actual
+queued seed agree onqueued; no production finding. Preserve native artifact
+11423610270, redacted receipt/log/JUnit (checkout3a225a42 exact) downloaded
+through connector after CLI artifact redirect403; replay/status secrets not
+read/uploaded. Earlier duplicate schedule37484780579 CANCELLED, not evidence.
+Next author correct owned seed expectation to exactqueued, retain every
+assertion, obtain independent delta review and actual newheadnative evidence.
+
+R/D consumer source57ca0255e0179197c566adc6c737d18302e6aeae on isolated
+branchcodex/ediel-z08lk-rd-95bc00df11da: actual gateway->real kernel/validator/
+protected decoder binds own operation/source; missing262 and actual contract
+differing-address mandatoryIV omitted both refuse before original RPC/queue/
+lifecycle. Real unchanged policy baseline is clean; favorable native DTO/auth/
+duplicate IO ports explicitly mechanical, not native execution. Local32Z+7SC
+39PASS; testTypeScript/ESLint/diffPASS. First262oracle wrong diagnosticfield
+property corrected tofieldNumber; generic reporting selection TS mismatch
+corrected by retaining only actual3 source fields (market/address/invoicee).
+Independent final R/D review pending. Whole IDs/coverage unchanged.
+Next own author: publish reviewedR/D delta afteroriginal625delivery or as
+small linkedfollowup; finish original625clean/certificate and rolemerge,
+continue626actualqualification. Retained LK helper export still no handoff.
