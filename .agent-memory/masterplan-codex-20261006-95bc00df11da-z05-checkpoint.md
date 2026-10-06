@@ -450,3 +450,37 @@ Next95bc preserves failure/receipt, reports shared replay owner next action
 actual staged backup). No unreserved common script edit. Continue official
 39/currentCI qualification and custody621 onlyactualmain. Local optional native
 remains infrastructureBLOCKED on psql; whole/coverage stillunapproved.
+
+## Authentic51025 39-case RED / prospective mailbox plan before code
+
+Officialrun37524429161/job112477705385 terminalFAILURE, artifact11441409495
+ZIP452997B SHA256f1e802910f99cf0d68f67dd8aae5c9451038c15851fd59326264109a28f42fc9.
+APIartifact digest/size/name/run/head, treeac758548337b3fa41d8dd8e2ad61445a10d303e9
+and ALL9255 trackedGit input SHA256 qualified; CRC/extraction/JUnit/realexit1.
+Actual39=30PASS9FAIL0error/skip; new15=6PASS9FAIL152.486992851s, retained
+old20PASS170.325213703s/old4PASS37.604138502s. QualificationJSON
+/tmp/gridex-z05-51025be8-qualification.json; redacted originalZIP in attachments.
+
+Seven actual positive/negative ACK assertions show technicalstatusREADY but
+CONTRLblocked ediel_technical_ack_route_unavailable. Positive exactperiod/
+ordinary ownreceipt/hash/noHreceipt/watch assertions precedingACKPASS; trailing
+finaltask/history/graphs/replay NOT_REACHED. Actual4negativeAPERAK rows negative
+PASS beforemissingCONTRL; exactERC/FTX trailing assertions NOT_REACHED. Two
+rolewithdraw childcustodyNULL stillforeign621099 unmerged; strictoraclekept.
+Six other new cases, includingdefiniteHcustomer/minute and immutable controls,
+PASS. Historical94 32/6 remainsseparate, no whole/gate/coveragepromotion.
+
+Source-qualified missing original-mail provenance: delivered20261005130401
+select_configured_reply_route_v2 first requires mailbox_message_id; both owned
+end helpers directINSERT without mail/reception. Mailbox/host config alone
+insufficient; no actualunderlyingRPCcause captured, wrappedrouteerror only.
+Both mandatory peers requested this exact classification/plan BEFOREcode.
+Next95bc ONLYexisting3ownedhelper/suitefiles: opt-in retainOriginalMailbox,
+receivedEnd suppliestrue, BEFOREimmutablebirth reuseUNCHANGED originalMailboxNative
+publicraw/mail inputs+actualparser; firstINSERT linksbothmailcolumns+actual
+parsedinterchange, then unchanged publicfirst-receptionRPC/hash/scope/no-business
+authority guards BEFOREcanonicaldecision. Defaultold20/4 untouched. No private
+witness/readiness/cert seed orbackpatch, no productionguard relaxation.
+Then exactsource review/types/lint/current39 genuineexecution; foreign621
+adoptonlyactualmain. Same10resources/no roles/newpair. Localcommoncleanupissue
+reported separately4450e9ed, exactworktree restoredCLEAN/no local39result.
