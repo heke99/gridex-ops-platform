@@ -741,3 +741,16 @@ lint/diffPASS; unchangedqualified5edproduct/unit12043. Current9a nativeNOT_RUN.
 Next95bc confirmALL10refs andREADY530 thennormalpublish9a/ref+PRreadback/body+
 reviewreceipts/fresh39+ALL9280originalGitinputs/currentmandatory. Sourcefreeze
 untilauthenticterminal; whole/owncoverage/CI_GREEN/merge/externalNOTCLAIMED.
+
+## Actual9a publication and exact ref/PR readback
+
+Normalpush9a9775a0d77f20fb5853e8dee3dea45fdc27c7b7 completed; actualremote
+branch/ref and PR636 exact9a/open/draft readback confirmed. READY beforepublish
+5306025790087; both exactSOURCE_AUTHORING_APPROVE receipts published on PR636.
+ALL10resources freshGETMATCH beforepublication; no roles/newpair/coverage edits.
+PR scope/validation refreshed to authentic89 fullyqualified36/3, strict9a own
+contract/event/task global graph supplement and product/unit unchanged12043.
+Current9a native39/all9280inputs/currentmandatory pending; whole notapproved.
+Next95bc authenticate actualcurrent39/head/tree/digest/inputhashes/JUnit/exit
+and completepositivehistory/replay; ifgreen wholepeerreview, exactowncoverage
+and finalgates beforemergerole. Keepauthenticfailurehistory/noexternalclaim.
