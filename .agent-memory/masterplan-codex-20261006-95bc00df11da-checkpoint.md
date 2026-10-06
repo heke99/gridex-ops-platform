@@ -409,3 +409,19 @@ with actualpreceding4FAILreceipt and narrowedqueuedfix, inspectnewselectedCI,
 finishoriginal625merge whengreen, thenfullSCcriterion review/coverage only
 if all literal effects execute. Retained LK actualcorrelation/sealednegative
 source helper handoff unresolved. No newpair or sharedstatus edit withoutrole.
+
+## Original625 qualified for actual merge
+
+All9current75f25e9f required checksSUCCESS, includingclean112315923566 and
+certificate112321621691; unchanged scoped reviews +CodeRabbitSUCCESS. Stale
+explicitGH_TOKEN now401, configuredCLI fallback absent. Managed GitHub
+transport without staleexplicitheader successfully read/write GitData,
+recovering operation authority without bypass. Actual role-mergeb113b1542384967ae217a5edd6c449b15cbb2829 POST+GETconfirmed.
+Main d73f87dd latest623/619/622/624 adds foreign tests/checkpoints only;
+no shared production dependency drift. Qualified merge uniontree
+ea9687a43318e874ab2c16e15ad0f3a61a577b18, originalhead75f25e9f.
+Own7scope refs reverifiedb57d220a/266aa5f7. No memoryrole held.
+Nextimmediateauthor: expected-head ordinary625merge, recordactualmain/tree/
+orderedparents plus530 and releaseexactmergerole; never infer successful
+merge fromCI. Thencontinue626 actualRED2PASS2FAIL; originalcoverageunchanged.
+Full newsource3f471c43 unit884files11858testsPASS295.51s recorded.
