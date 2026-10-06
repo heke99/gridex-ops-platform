@@ -1,0 +1,26 @@
+# IMP-05 / DB-04 current-main proof packet
+
+Agent `codex-aa4f29d3-c65`; packet `d5a00a09-e777-4987-9b42-b3554d2fc5b2`; branch `codex/ediel-imp05-db04-c65-d5a00a09`; worktree `/workspace/gridex-c65-imp05-db04`. Status CLAIMED BEFORE CODE. Base `24720181a5a0c27644d2d31fe39bd843299000ea`: actual113/121 VERIFIED rules+171/231 PASSED contracts=284/352,68remaining. Own previous620 packet is actually MERGED/RELEASED; this is the only active rule pair.
+
+Atomic create-only receipt `f66dd763f7125c3cd8c9616e702c008611848061`; all10 ID/pathrefs individuallyGETconfirmed. IDs IMP-05/AT-IMP-05/DB-04/AT-DB-04. Exact file scope:
+
+- `__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts`
+- `__tests__/ediel-db-04-query-consumers.test.ts`
+- `scripts/ediel-db04-current-consumers-native.test.ts`
+- `scripts/ediel-db04-current-consumers-native.config.ts`
+- `.github/workflows/ediel-db04-current-consumers-native.yml`
+- `scripts/helpers/ediel-db04-query-fixture.ts`
+
+Eligibility reconciliation is positive completed-source evidence, not silence: original corrected IMP05 source6003309124/d020/forward49f and fixturec1f are actually admitted614; original root source/publication/merge/mainbaseline COMPLETE/STOP6014759009 says no unpublished implementation remains and retained branches are public archives. Ownerdecision93eed89e/atomicprotocol/newwave supersedes blanket pause; no renewed original exclusiveIMP05 allocation. Prior own602171/176/182 handoff-only interpretation is SUPERSEDED for NEW current-main proof/tag/approval scope. Existing production SQL, source/private authority, original checkpoints/capture remain unchanged. Relevant IMP05 source/schema/test/callers c038→247 equal; freshwholeCODE_APPROVE6021767495/56distinctPASS0skip reusable on exact inputs.
+
+DB04 uses NEW unique proof files on alreadydelivered current table/view/readsites. Original599 DB05 hard-delete/closed-retention scope and its native4line proposal stay preserved; newproof adds representative opposing/boundary workload and actualSLAview rather than taking that branch. Existing main sevenqueryplan native remains immutable and will run in same canonical disposablePG17 cleanreplay with newcases. No native-only scanner bypass/dummy wrapper: tagged unit executes real PGlite SQL/queryplan+actualreadsites; native independently measures actual fullschema/triggers. OPS03 nested hard-coded case reader is not a generic reusable interface; do not duplicate or relabel it. Current621 foreignnativeconfig/schema/types/manifest untouched, newinclude config composes exact canonical settings;95bc be6c owns sharedmemory.
+
+Plan / literal effects:
+- IMP05: add ONLY two-ID tag to corrected protected12 test, keep everyoriginal assertion; verify current address24/readiness18/wrapper2/protected12. Only wholeown2rows after independentcurrentreview/tagcheck. Existing identity+SMTP/history/twoaffectedscopes/independentpreservation/returnroute/newtargetrefusals cover literal conditions, no new source/native/capture required.
+- DB04: shared ownhelper loads actual table/index/view SQL and representative synthetic metadata queries; actual source readsite execution proves tenant/actor/status/deadline/reference/object-period-version/FK behavior. Mix own/foreigncompany, test/production, actor, pendingflags, null/future/exactcutoff/acknowledged/failed; no fakeacceptedsource/business or authority writes. Real SLA CASE prioritizes awaiting flags before overdue; positive metadata requires flagsfalse and ack_due_at past. Prove existing7nativequeryshapes plus newtrueSLA/list/monitor/current-source selective queries, cardinalities/buffers/indexpath/time budgets, wrongscope omissions and measured failure control. Preserve sourceguards/planner settings/productiontriggers; no index-on-all-columns surrogate.
+- Execute meaningful PGlite unit and actualfullschema native; redfeedback remains strict, minimallyfix ownedproof iffixtureerror, anyproductdefect needs sourcequalification+additionalpath reservation. Do not approve DB04 until all literalcriterion currentnative proved.
+- Independentsource/finalwhole review, allrequiredcurrentheadCI, protectedexpectedheadmerge withcreate-onlymergerole, actualmainreceipt/rowforeignpreservation and ownreleases. Memorymirror only throughroleowner/ownserialclaim. Thenrefresh and nexteligiblepair.
+
+Skill routing: using-superpowers/worktrees/verification/spec-to-code/requesting-code-review, dispatching-parallel-agents for exact nonoverlapping ownauthoring, performance-optimization+Supabase/Postgres for actualEXPLAIN/representativeconstraints. TDD/systematicdebugging/variantanalysis activates for actualconfirmed sourcefault; no UI/React/hook/deployment/broadsecurityscan. Useralreadyauthorizes autonomousworktrees, execution andguardedmerge; no extra assignment/permission flow.
+
+Executed before code: freshmain/memory/README order/AGENTS/workflow/reservations/legacy/status/latest530/openPRs/live90refs andallreceiptmessages read; fourIDs/sixpaths atomicallyconfirmedf66d; sourceworktreeclean. No new product/test implementation, no new approvals or CIclaim. Next responsible=thisagent publishCLAIM530+exactcheckpoint, then delegate only ownDB04threeproof files whilethisagent handles ownIMP05tag/config/workflow; required independentwhole reviewers remainread-only.
