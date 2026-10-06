@@ -561,3 +561,31 @@ COOPERATIVE SOURCE REVIEW / same A-D pair12refs, owner2f72. Independent readonly
 Current own630 b452 actual native run37517289202/job112453374439 authentic art11438640447/ZIP9066B/SHA3d362b54cd066ee3dd5a2e1ab2696c9408cf3efd6d6dabc10865357e1e28f37f, CRC/head/tree/all62sourcehashes verified:20=16PASS4FAIL0error/skip/nativeexit1. Both actual original-adapter A and real published-production D positives now PASS including effects/ACK/retry and unchanged consumption; missing213/250 and missing319 negative cases PASS, custody mutation controls PASS. Strict A missing210, +minute ground, outbound direction, and Dforeign319 deeper correlation remain FAIL/NOT_REACHED target obligations. Exact negative-boundary analysis underway; ordinary current gates still pending. Local895files/12042PASS != CI_GREEN/native whole/merge/external. Mainb155284/352 preserved, no coverage edit. Nextroot authenticate deeper failures, document safe negative-only boundary and independent role/direction/missing-field native work within same owned pair. Common95bc memory holder please mirror source/native distinctions under own role. No newpair/role.
 
 BEFORE next native code / same A-D pair12refs. Independent b452 artifact review authenticates20=16PASS4FAIL, A11/14 D5/6 exact62inputs. Dforeign reaches actualbirth/processor/noeffects/publicapply errornull/appliedfalse, but returned no strict requiredgroundpartition; following bothwholegraphs/retry were NOT_REACHED and artifact omits actualRPCreason/runtime scope. Root now adds only safe actual decision/field/register/publicresult summaries before the unchanged strictoracle to owned Dnativefile. Next bounded D native gaps: genuine datedrole/currentseparatereviewer/foreignactor and missing214/218 underphysicalqualified259TRUE; exact design reviewed before adding controls, alloriginal20oracles preserved, no privateauthority/flags/claimoutside12. Source-negative A classification and outboundguard order remain readonly independentdesign tasks until exactnewpathlock+TDD. Root owns edits/verification/publication/review; agents work only delegated existingownedfile boundaries. Eowner exactsharedbirth repair review6023852485 remains prospective awaiting currentdelivery or explicit handoff. WholeA-D/coverage/currentCI/merge/external remain unapproved. Mainb155284/352 preserved. Exactpublishedsource stillb452; edits require successor actualnative/affectedchecks.
+
+CLAIM SOURCE EXTENSION BEFORE CODE — same AT-Z04A/AT-Z04D supplier pair
+{
+  "protocol": "masterplan-reservation-v1",
+  "packet": "b0b2ff4e-f102-4606-90f9-a8e749ca7697",
+  "agent": "codex-ediel-20261006-2f72c8ab",
+  "branch": "codex/ediel-z04a-native-2f72c8ab",
+  "checkpoint": ".agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+  "ids": [
+    "AT-Z04A-SUPPLIER",
+    "AT-Z04D-SUPPLIER"
+  ],
+  "files": [
+    "lib/ediel/core/kernel.ts",
+    "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+    "__tests__/ediel-kernel-prodat-direction-before-fields.test.ts"
+  ],
+  "base": "b155d8b789988cb008c9711c23df729112f60f97",
+  "createdAt": "2026-10-06T19:31:23.544882+00:00",
+  "nextAction": "Same A/D pair: independent b452 native confirms public forbidden outbound direction remains blocked by register258 before exact national direction guard. TDD actual public kernel with declared DB actor ports and real validator/policy; export/reuse existing pure canonicalRulePackRegistry direction guard immediately after real resolved outbound PRODAT policy before first field blocker. Preserve registry guard/all field/inventory/currentauthority gates and allowed-direction negative controls; no synthetic inventory or policy flags. No overlap112 live refs/all10openPRs; freshclaims required before code.",
+  "receipt": "4ab630c38f080edca6fc22747d39d4e87a3bb655",
+  "resources": [
+    "file-12d0141e1b58f941cd4998a898658d704fc07b7b2a4e3821041b74ab78027f67",
+    "file-f1f4ae8e124925ae5c548ec8ac647a92fe4135cad8dbd7719f545e16e047392b",
+    "file-f6d281a2d7c2224b95e7b657e5ddbe2dcea9056ccd9628d96abffe293243d881"
+  ]
+}
+Original20 strict native oracles unchanged; owned7newnativecases prospective/NOT_RUN. Main coverage preserved284/352. Nextroot/assigned directionauthor: meaningfulRED before minimal2productionfiles, then exactbehavior/consumers/type/lint/two independent review/currentnative and mandatoryCI. Eshared3birth paths remain35c0; Anegative authority design pending/foreign621capture coordination, no relaxation/operational catalogue authority.
