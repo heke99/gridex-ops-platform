@@ -177,3 +177,61 @@ mandatorysourceCI; testblob/ownedcoverage identicalapprovedb484. Nextthis
 session normalpush646 successor, updateclaimcanonicalCPpointer/PRbody and
 peerreview; waitqualifiedcurrent645/646 thenactualmerge or concreteblocker.
 No newID/role/sharededit/coveragechange/native/externalclaim.
+
+## Final source review / eligibility closeout map
+
+Current646 source5d25852e38a41e51628635d4efebd1d192118111 independentlyAPPROVED,
+whole test/rowblob identicalb484/775; metadata64572fa merge-tree nowclean.
+CanonicalATcheckpointpointer updatedinPRbody, initialreceipt provenance kept.
+Localtagged --check0 applies291candidate/324taggedgreen/0failing/28untagged,
+notwhole324 approval. All currentnew5d mandatory gates stillrequired.
+Separate own receiptsbranch preserves646head. Metadata645 has5actualSUCCESS
+(verify,upgrade,browser,smoke,coverage);clean/qualityRUNNING,certQUEUED. No
+CI_GREEN/merge/currentmainfull/native/externalclaim; soleATb793/66c5held.
+
+Independent finaleligibility review: no additional free independentlyexecutable
+wholecontract packet qualified at main356 snapshot, updatedrefs/board through
+6026963225. Exactly61other remaining IDs mappedbelow; AT-P01oursqualified
+candidate notyetactualmain. All62mainremain until delivery. Explicitreleased
+8supplier andunclaimedH2 are prerequisiteblocked, notblanketowned. Missing
+refs/silence never release original wholeacceptance custody. Nextthissession
+refreshactualmain/sourceproducerdeliveries/explicitwholehandoffs/remote refs
+afterdeliveryorconcreteCIblocker; do not selectanother pair fromoldcountalone.
+
+| Exact IDs | Current boundary / next owner | Concrete next action / #530 references |
+| --- | --- | --- |
+| TR-09, AT-TR-09, DB-01, AT-DB-01 | LOCKED 2f72 /640 | Actual transport/DB native, GEN5 registration/capture, whole review/current gates; 7229018f;6026606047/6026861230. |
+| OPS-04, AT-OPS-04, AT-Z14N-ESCO | LOCKED 2c0823 /642 | N actual native/current gates; OPS selected agreed-trial input/explicit mandate stillmissing.7995/4e9;6026962795. |
+| SC-014, AT-Z14V-ESCO | LOCKED c65 /644 | Selected-native72 actual qualification, wholeV review/gates;a080;6026962217. |
+| AT-Z01L-SUPPLIER, AT-Z01LK-SUPPLIER | LOCKED24fa /638 | Preserve actual54PASS40FAIL; current88fa diagnostic/origination repair onlyevidenced scope;c853;6026831559. |
+| AT-Z02L-SUPPLIER, AT-Z02LK-SUPPLIER | LOCKEDc3ae /643 | 93e explicit selectorproducer integration and genuineownZ01→physicalZ02/effects/ACK/replay;9560;6026833354/6026921593. |
+| AT-Z05L-SUPPLIER, AT-Z05LK-SUPPLIER | LOCKED95bc /636 | Finalclean/cert/whole/native/currentdelivery+release;3883;6026829531/6025664076. |
+| AT-Z06E-SUPPLIER, AT-Z09E-SUPPLIER | LOCKED93e /629 | Actual22nativePASS nowexists; successorwhole/capture/full/currentheadgates/rows;3fe4;6026950548. |
+| P-08, AT-P-08 | RETAINED originalClaude | Production-relation fullacceptance or explicitboundedhandoff;5987293997/6025447942. |
+| TR-08, AT-TR-08 | RETAINED543author/HOLD | Trustedprovider/later-hop/recipientSPF and savedfalseverification;5985441118/5986009913;legacy543/545. |
+| DB-05, AT-DB-05, SC-070 | RETAINED599author/HOLD | Customer/tenantclose→rightsrevoke→lawfullydueclassdelete/pseudonymization, tracedbasis/journal;5998913363/5985708857/6025447942. |
+| SC-031, SC-035, SC-037, SC-038, SC-039, SC-046, SC-052, SC-053, SC-054 | RETAINEDClaude scenarios | Durableignored effects;Z02date/step;two-sweepstart;Z04scope/cancel;late512/532ACK/norebill;E73/E66requesttype+authorizedunderlay.5990498953;5991392412/5992830290/5991719119/5991575077/5992041282. |
+| SC-047, SC-071 | RETAINEDwholeacceptance | JoinedSC047+tenSC071nativeproofexists; originalownerswhole review/row or explicitremainingapprovalhandoff;6026887961;5995764945;5991386261→5991584319. |
+| SC-023 | RETAINEDhistory/ESCOproducer | Historicaljob/requestedperiodcoverage withcontinuingV/DDQ preserved;6022005090/6026206577/5995605329. |
+| AT-Z03L-SUPPLIER, AT-Z03LK-SUPPLIER | EXPLICITRELEASE /635; prerequisiteblocked | Futureclaimant reusevalidsource; publicschema/materializer+GEN5 registration/capture before genuineorigination/case/SMTP/timers/ACK/Z04/replay.6026462223/6026519492. |
+| AT-Z03C-SUPPLIER, AT-Z05C-SUPPLIER | EXPLICITRELEASE /627; prerequisiteblocked | Field217origination/binding/sendguard;prospectivegridownerauthorization+same-messagecaseatomictransaction. Preserve26PASS4FAIL.6022402686/6022419994;6021303204. |
+| AT-Z04C-SUPPLIER, AT-Z10M-SUPPLIER | EXPLICITRELEASE /628,633; prerequisiteblocked | NamedP/UTILTS/DSO/C producer:receiver-localreadings/M canonicalhistoryprovenance,DSOreplacement-clockSEND, originalcompensation/retry/retention/ACK/contact.6022884190/6023306041. |
+| AT-Z04A-SUPPLIER, AT-Z04D-SUPPLIER | EXPLICITRELEASE /630; prerequisiteblocked | Retainactualnativegaps/source; currentauthority/clock/original319/physicalACK/rollback afterproducer/capture.6024728636;7229018f documented successor. |
+| AT-Z05H-SUPPLIER, AT-Z08H-SUPPLIER | UNCLAIMED; concretepublicpathblock | Futureclaimant coordinates common updaterheld93e35c0: newbirth needs physicalsubtype/profilewitness; currentexact1family/code/date binder sees enabledZ05H/L ambiguity beforecustody/ACK/effects. Z08Hcomplete also requires Z05Lreception. No externalmarketabsence/syntheticlegalfixtureban inferred. |
+| AT-Z04L-SUPPLIER, AT-Z04LK-SUPPLIER, AT-Z03H-SUPPLIER, AT-Z04H-SUPPLIER | RETAINEDsource/native lanes | AllocatedZ04 source/clock/activation joins;H bilateralprohibitedinput/ACK/state wholechain.5997790644/5996914572/5994207043 and491 exacthandoff. |
+| AT-Z09B-SUPPLIER, AT-Z09D-SUPPLIER, AT-Z06F-SUPPLIER, AT-Z06G-SUPPLIER, AT-Z09F-SUPPLIER, AT-Z09G-SUPPLIER | RETAINEDwholeprerequisites; finitetestreleases | Currentoriginal/sourceadmission/ownACK/laterZ06/history/transport required, do notduplicateholdingstack;5997811985/5997120615/5994614443/5994048447;F/G custody5998493891. |
+| AT-Z13V-ESCO, AT-Z15V-ESCO, AT-Z13VH-ESCO, AT-Z14VH-ESCO, AT-Z15VH-ESCO | RETAINEDwholeV/VH/history | Sentrequest/ACK/access/reporting;VH job/period preservesV; finite/docrelease isnotwholehandoff.5995605329/6026206577/retainedcheckpoints. |
+
+UnclaimedH staticproof: lib/ediel/inboundStatusUpdater.ts public
+createInboundEdielMessage INSERT has no qualifiedprofilewitness/selector;
+20260901163500 binder34–47 counts exactone enabled family/code/direction/date;
+20261002233600 enabledZ05H joinsZ05L under26Apack. ExistingH receivedfixtures
+directSQLseed cannot provepublicbirth. This is producerintegration dependency,
+notlegalfixtureban. Common updater foreign35c0 must be lawfully handed off or
+its owner must deliver appropriate source before new wholeH tests can qualify.
+
+Counts independentlyreconciled61unique IDs against actualmain remaining rows.
+Retained15CLOSED_UNMERGED/HOLD/PAUSED stayrequirements, notapprovedresults.
+Nextthissession currentCIgates/expectedheadnormaldelivery, reconcileactualmain
+underproperrolesandreleaseownresources, else preservebranches/reviewreceipts
+and explicitexactBLOCKED/RELEASE with responsible nextaction.
