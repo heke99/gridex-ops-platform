@@ -715,3 +715,19 @@ metadata +periodactualendsource, finalinvoice/end_key +applicablebindingreview
 replay. No privatefacts/guard/frozencriterionchange; producer remainsunchanged.
 Both PLAN_APPROVE beforecode. Thenexactsource reviews/scriptsTSC/lint/fullas
 warranted, reviewedfresh39/currentgates. Samepair10refs/no roles/newpair.
+
+## Exact own contract/event/task oracle supplement frozen for source review
+
+LOCAL9a9775a0d77f20fb5853e8dee3dea45fdc27c7b7 CLEAN, ONLYownnative+60/-3.
+ActualglobalALLcontracts/events/contractdomain-events/operationtasks/invoices/
+billingunderlays/items snapshots; existingnegativeglobalcomparisons retained.
+Positives verify periodFK exactowncontract/company/customer/point/signedbefore/
+binding0; expectedGraph replacesONLYfullnamed ownrow delta/event-boundtime,
+exact1scopedterminationevent/startbasis/endkey/1contractdomain-event+exactpayload/
+1openfinalinvoice task, preserveALLpriorrows/foreigngraphs/billing and repeat
+sameexpectedGraph afterreplay with allimmutable/mail/ACK/task/effectchecks.
+No production/privatefacts/frozencriterion/default24changed. scriptsTSC/eslint/
+diffPASS; qualified5ed12043 product/unitbytes unchanged. Both exactfinalsource
+reviews requested; native9aNOT_RUN/wholeNOT_APPROVED/authentic8936/3retained.
+Next95bc actualsource-review findings ifany→READY/docs/10refs→normalpublish9a
+→authenticfresh39/all9280Gitinputhashes/currentmandatory, entirepositive replay.
