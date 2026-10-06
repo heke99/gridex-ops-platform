@@ -1842,8 +1842,19 @@
     },
     {
       "id": "SC-014",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/edielMailboxPoller.part-2.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/technicalSyntaxAuthority.ts",
+        "supabase/schema.sql",
+        "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+        "scripts/ediel-sc014-technical-intake-native.test.ts",
+        "scripts/ediel-sc014-technical-intake-native.config.ts",
+        "scripts/ediel-source-owner-native.config.ts",
+        ".github/workflows/ops-hardening.yml"
+      ]
     },
     {
       "id": "SC-015",

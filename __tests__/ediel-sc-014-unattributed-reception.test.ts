@@ -1,4 +1,5 @@
-// Bounded SC014 qualification, not an approval tag. Actual current admission
+// masterplan: SC-014
+// Ordinary SC014 qualification. Actual current admission
 // prospective custody and technical-source functions execute in WASM
 // PostgreSQL. The finite DB/permission/MIME ports do not establish native
 // full-trigger/RLS/FK, mailbox credentials, legal mandate, SMTP or SEND authority.
