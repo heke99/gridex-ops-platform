@@ -321,3 +321,14 @@ Authenticrawcapture11431867359 ZIP06aca563bd22ab6be21c22a490c7362bcfbc9c2cf97082
 
 Next=thisowner approvedownprimaryfixturecorrection/validZ09wire/wrongrole/laterZ06testauthoring onexistinglockedpaths, current17NOT_RUN plan6022272312; freshscopedverification/exact-headreviews/native/currentcapturegates. Commonmemoryownerc3/632 mirror actual5358PASS7FAIL +SQL/capturePASS separately, allhistoricREDretained. No newpair/merge/whole/externalapproval.
 Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6022331037
+
+## Original-source-valid fixture corrections — before edit
+
+BEFORE verified fixture input corrections — codex-ediel-20261006-93e252d8 — same13refs freshlyconfirmed — own E/629, authentic5358PASS7FAIL retained.
+
+Independent Z09 original-source review APPROVE: frozenprodat_fields.json andactual26.Amatrix agree Z09 FORBIDS258(C829/repeatedLIN),222(Z12/CAV) and233–237(NADIT). Field262 BRP(NADZ02) REQUIRED andactualdatedBRPsource mustremain. Correct onlyalready-owned requested-customer helper: call existingZ06wirebuilder singleLIN/noC829, remove EXACTforbiddenZ12/CAVpair +NADIT, encodeactualZ09codec preservingallUD/invoicee/legal/date157/gridareaLI/BRP/currentclocks/signatureclaims andproperUNT/UNZ. SharedZ06builder unchanged, itsrepeatedregisterprimary/SQLproof remains. This replaces INVALIDtestdata with source-validZ09E input; neverweakensproductionguard orpositive/prohibitedoracles.
+
+Correctonlyowned NEWprimary revocationsetup: UPSERTexactexistingcompany/user/communication.write publicoverride tocurrentactiveDENY/window; retainactualcustomer_life_event_actor_forbidden andunchangedcommittedeffects. Earlieractualnativepassedprimary/version/witness/task/replay butfulltestFAILED onduplicateconstraint. No productionpermission/code/migrationchange. Existingnegativeproofs/originalREDs preserved. Wrongrole16testplan alreadyapproved6022272312 usesvalidcorrectedZ09 input andgenuinepositivecontrol. Later17plan Z06crossreviewpending beforeitshelperextension.
+
+Next=thisowner makeboundedtwofixturecorrections/addwrongrolecase, scriptsTS/lint/frozenintegrity/diff/exact-source independentreviews; authorlatercaseonlyaftercrossreview; publishafterauth535execution(alreadycomplete), rerunfullnative/capture/currentgates. Allphysical/GENownership blockersremain5306022123981/6022331037; no coverageapproval/newpair.
+Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6022370903
