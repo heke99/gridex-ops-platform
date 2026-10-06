@@ -1,0 +1,129 @@
+{
+  "schema": "gridex-combined24b-provisionald020-input-delta-capture-plumbing-source-guard/v1",
+  "verdict": "SOURCE_ONLY_READY_PROVISIONAL_PUBLIC_INPUT_CANDIDATE_AND_BRANCH_CAPTURE_GUARD_CURRENT_QUALIFICATION_PENDING",
+  "recorded_at_utc": "2026-10-06T00:04:06.880685+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "One finite mechanical actual-input DELTA guard in existing finalunion producer; public originalpostimages provisionally composed, no new rule/implementation/product review",
+  "candidate": {
+    "head": "24b63f2907345e8564c62af7a93ca86cf1d62300",
+    "tree": "c9a09a1cfaefdd1da3fd3c52692a0c52843da288",
+    "single_parent": "08e7f413d9bedd9963f025cfebdb4619ea0279e2",
+    "worktree_clean": true
+  },
+  "genuine_input_composition": {
+    "source08e": "08e7f413d9bedd9963f025cfebdb4619ea0279e2",
+    "ordered_parents": [
+      "4f065a727eace6347af4d887ca3f4d069d20c415",
+      "d020d7ec804d827615487d43f4f59f3ba33eca0c"
+    ],
+    "prior_union": "4f065a727eace6347af4d887ca3f4d069d20c415",
+    "public_corrective_source": "d020d7ec804d827615487d43f4f59f3ba33eca0c",
+    "exact8publicpostimage_paths": [
+      ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+      "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+      "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+      "__tests__/ediel-recipient-address-binding.test.ts",
+      "__tests__/ediel-recipient-readiness.test.ts",
+      "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+      "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql"
+    ],
+    "every8tuple_exactpublicoriginal": true,
+    "8postimage_pinset_sha256": "63228dc4f80650fcdb0a4f47c91f1b9e6ae986256a6ffae763919c797efcdd3d",
+    "before_routing": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-6003057061",
+    "root_provisional_receipt": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/provisional-public-d020-corrective-source-candidate-intake.json",
+      "sha256": "f856a84b85126af9d40eedbc1538c539bd1e52fb927f50c13d02efb68d54b882"
+    },
+    "authorization_scope": "Explicit existing public provisional source-candidate composition; final root-owned genuine resulting-union qualification required beforemain"
+  },
+  "preservation": {
+    "delta_vs_prior4f_paths": 13,
+    "all_priorunion_other_mode_type_blob_tuples_exact": true,
+    "foreigncurrentmain_entries": 8666,
+    "every_other_foreignmain_tuple_exact": true,
+    "foreign_pinset_sha256": "947144e6428b7c45c62f36500f2fce2c6538576496434ef2ee4715730658a202",
+    "priorbe_to4f_only_owned_guardcopy_checkpoint_metadata": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-be2-originalTWO7232-current53-bounded-delta-source-only-ready.json"
+    ],
+    "old_checkpoint_prefixes_retained": true,
+    "prior42c_delta_guard_exactbytes_retained": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-be2-originalTWO7232-current53-bounded-delta-source-only-ready.json",
+      "sha256": "42c7029e5afcffb9534b7d226a1771800910fb5e225ddda7f0fddd39c520165a"
+    },
+    "complete_origin_snapshots_raw3_coverage_whole352blob_exactprior": true,
+    "capture_envelope_artifact_activeorigin_origins_entire_values_exactprior": [
+      "capture",
+      "capture_artifact",
+      "active_generated_outputs_origin",
+      "complete_combined_input_manifest_origins"
+    ],
+    "all_four_original_flags": "NOT_RUN",
+    "composition_capture_pending": true
+  },
+  "SQL_registration": {
+    "oldSQL": 1078,
+    "all_old1078_mode_type_blob_tuples_exact": true,
+    "candidateSQL": 1079,
+    "only_new_forward": "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+    "new_forward_original_SHA256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+    "existing_additionsmap_retained_plus_exactone49f_entry": true,
+    "old6ca_corrective_bytes": "NOT_ADMITTED_PUBLICd020POSTIMAGE_ONLY",
+    "reviewer_integrity_or_selected_tests_rerun": false
+  },
+  "manifest_scoping": {
+    "full_previous1078_currentverification_preserved_exact": "pre_IMP05_provisional_current_prefix_verification",
+    "full_previous_pending_scope_preserved_exact": "pre_IMP05_provisional_capture_pending_scope",
+    "only_existing_field_changes": [
+      "composition_capture_pending_scope",
+      "current_prefix_verification"
+    ],
+    "only_added_fields": [
+      "pre_IMP05_provisional_capture_pending_scope",
+      "pre_IMP05_provisional_current_prefix_verification"
+    ],
+    "all_other_top_level_fields_exactprior": true,
+    "new_current_prefix_status": "CANDIDATE_COMPOSED_CAPTURE_AND_RESULTING_HEAD_GATES_PENDING",
+    "original_scoped_result": "NOT_OBSERVED_NO_SUCCESS_INFERRED",
+    "no_original_native_main_sourceacceptance_pass_inferred": true
+  },
+  "optional_capture_workflow_guard": {
+    "path": ".github/workflows/staff-api-schema-capture.yml",
+    "new_capture_turn_step_only_plus6_existing_step_if_guards": true,
+    "workflow_events_permissions_concurrency_jobconditions_and_every_original_stepbody_unchanged": true,
+    "gated_existing_steps": [
+      "actions/setup-node@v4",
+      "npm ci",
+      "supabase/setup-cli@v1",
+      "Install the matching PostgreSQL 17 client",
+      "Capture authentic artifacts from the sourced clean replay",
+      "Upload capture-only artifacts"
+    ],
+    "all_other_workflow_tuples_exactprior": true,
+    "headref_only_ENV_safe_not_interpolated_shell": true,
+    "combined_branch": "codex/ediel-combined-source-capture-20261005",
+    "combined_branch_current_TRUE": "Current boolTrue manifest selects existing capture job plumbing",
+    "combined_branch_postimport_FALSE": "After root actual byteexactrawimport and boolFalse flag, existing capture plumbing and upload skipped to prevent duplicateautomaticcapture",
+    "other_branches": "Explicitpending=true preserves existing complete capture behavior",
+    "mandatoryordinary_native_parity_gates": "Unmodified independent workflow source; no optionalcapture skip treatedasthose gatesPASS",
+    "static_source_adequate_for_declared_capture_lifecycle": true,
+    "execution_truth_table_or_CI_dispatch": "NOT_RUN"
+  },
+  "existing_source_qualification_reuse": {
+    "public246_corrective_fix_review_sha256": "246e9b890f6cf6255a3f4431341797023cf615ac8f298a53c207a131a4d06a1a",
+    "public6bb_six_preimage_identity_sha256": "6bb0901f33243fa64bc3fb363beb2322a43f48ba447f366671f680ff9370a8ae",
+    "source_content_AST_control_native_archive_reviews_not_repeated": true,
+    "private_reports": "NOT_READ_NOT_EXPORTED_NOT_COMPOSED"
+  },
+  "blocking_source_findings": [],
+  "pending": {
+    "original_d020_selectedtest_lane": "Existing original owner retains execution/result evidence; unobserved result not inferred success",
+    "one_authentic_finalunion_capture": "Original root sole producer pending final source/input frozen vector and byteexact import",
+    "genuine_currentunion_ordinary_clean_upgrade_native_type_schema_parity": "REQUIRED_BEFORE_MAIN_CURRENT_HEAD_QUALIFICATION",
+    "actualcapture_main_unionGREEN_plancompletion": "NOT_CLAIMED"
+  },
+  "pinset_encoding": "UTF-8 compact JSON arrays[path,mode,type,blob] sorted by path",
+  "actions": "Immutable tuple/manifest/registration and optionalworkflow static YAML/source custody only; one new sanitary immutable outsideGit JSON. No source/ref/index/worktree/GitHub/fetch mutation, selected test/control/AST/native/CI/capture execution, sourceproduct/security review, oldarchives/nativeartifacts/privateanalysis read or newclaim.",
+  "next": "Root consumes this provisional SOURCE_ONLY receipt for the existing finalunion producer, retains one originalselectedtest lane, performs sole authentic chosen-prefix capture and genuine resulting-head gates before anymain admission. Finish existing work only; no new Masterplan rule."
+}
