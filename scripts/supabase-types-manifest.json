@@ -288,7 +288,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "Fresh214250 site forward plus authorized immutable205324 allproductionS/MIME and210116 legacy address containment producers require a new authentic complete1089-file tail capture. Original3094 raw3 and NOT_RUN flags preserved. aec3 predecessor native/capture covers only preceding1087-file tail; cannot cover newly adopted two forwards.",
+  "composition_capture_pending_scope": "Actual1091-file tail includes own214250/221015 and three explicitly handed immutable205324 S/MIME,210116 legacy-address containment,213222 supplier-route columns. New authentic complete-tail capture required. Original3094 raw3 and capture-only NOT_RUN flags remain historical; successfulAEC capture covers only old1087tail. Related DB01 admin consumer delivery/handoff is required before coherent merge.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -743,7 +743,7 @@
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
-  "source_latest_migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
+  "source_latest_migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -3461,8 +3461,8 @@
     }
   },
   "pending_forward_capture": {
-    "migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
-    "sha256": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
+    "migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+    "sha256": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
     "status": "GENUINE_COMPLETE_TAIL_CAPTURE_PENDING",
     "native_status": "NEW_SOURCE_NOT_PUBLISHED",
     "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
@@ -3714,6 +3714,25 @@
     "prior_runtime_entries_preserved": 135,
     "current_runtime_entries": 138,
     "foreign_whole_ids": "NOT_APPROVED_OWNER_RETAINED",
-    "related_consumer_dependency": "Root2f retains admin actor page removing retired public address query; explicit reuse or delivery remains required before merge. New complete-tail capture must include all three handed producer forwards and own214250/221015; original3094 raw3/flags remain historical."
+    "related_consumer_dependency": "Resolved explicit narrow UI RELEASE6026530951, fresh own CLAIM6026614680/db3f56, original reviewedfb4 actor admin page byte-exact adopted. Current app/lint/review and genuine1091 complete-tailcapture/type-schema/mandatory checks remain required; no whole DB01 credit.",
+    "related_consumer_input": {
+      "path": "app/admin/ediel/actors/page.tsx",
+      "source": "fb4f9d3e9fad2abbe7ce6eb6b98bf12e2053970a",
+      "gitBlob": "d58fc51971f624814e40d4b80548cfd8b8c75d48",
+      "sha256": "c58267cabc9ac86665e3e01074a188da6e9fe231767023c41be3ec05b02f8fbb",
+      "bytes": 38632
+    }
+  },
+  "pre_request_site_forward_pending_state": {
+    "source_latest_migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
+    "composition_capture_pending_scope": "Fresh214250 site forward plus authorized immutable205324 allproductionS/MIME and210116 legacy address containment producers require a new authentic complete1089-file tail capture. Original3094 raw3 and NOT_RUN flags preserved. aec3 predecessor native/capture covers only preceding1087-file tail; cannot cover newly adopted two forwards.",
+    "pending_forward_capture": {
+      "migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
+      "sha256": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
+      "status": "GENUINE_COMPLETE_TAIL_CAPTURE_PENDING",
+      "native_status": "NEW_SOURCE_NOT_PUBLISHED",
+      "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
+      "previous_authentic_capture_source": "3094ee19d23031195a9e7dae0c8512930de2a828"
+    }
   }
 }

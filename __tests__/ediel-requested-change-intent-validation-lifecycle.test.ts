@@ -62,7 +62,7 @@ it('held current source never certifies validation or prepares a message',async(
 })
 it.each(['sent','acknowledged'])('existing %s original is source-checked without validation rewrite, rendering or requeue',async(status)=>{
  io.existing={...message,status};const before=structuredClone(io.row)
- const result=await renderAndQueueRequestedChange(input);expect(result.status).toBe('existing');expect(result.message).toEqual(io.existing)
+ const result=await renderAndQueueRequestedChange(input);expect(result.status).toBe('existing');if(result.status!=='existing')throw Error('existing_original_required');expect(result.message).toEqual(io.existing)
  expect(io.assert).toHaveBeenCalledWith(io.existing,id(3));expect(io.render).not.toHaveBeenCalled();expect(io.updates).toEqual([]);expect(io.row).toEqual(before);expect(io.queue).not.toHaveBeenCalled()
 })
 it('draft retry retains original bytes and identity while revalidating before queue',async()=>{
