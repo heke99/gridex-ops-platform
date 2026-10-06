@@ -498,3 +498,29 @@ Next owner this agent: CLAIM530 then code extraction/new actual correlation
 and immutable tests, run affected retained cases and exact supplemental
 clean native workflow. Source9a published626; actual fresh CI pending.
 Whole coverage/external approval unchanged; no new pair.
+
+## LK actual-chain assertions / exact source faeef37e
+
+Source faeef37e on626: completed retained3helper extraction with unchanged
+defaults/old tests/public Hstart+provider/P16B; new side-effect-free factory.
+Own actual canonical LK wrongLI/end candidates before source birth require
+NULL native matcher, exact native sent-original refusal, whole target and all
+unrelated cross-tenant period snapshots, zero closure ends/transitions/ERC100/
+followups/audits, preserved sealed request and received source. Actual Z08/Z05
+byte mutation requires exact existing atomic/immutable guard and unchanged
+period/source. Own selected strict config and redaction-first workflow include
+old retained file plus new4nativecases. Whole-ID tags in both own components
+and native tests; coverage remains unchanged.
+
+Independent bounded LK review APPROVE source mechanism/barriers/unchanged
+retained defaults; final tag/unrelated-period delta review pending. scripts
+TypeScript, targeted ESLint, diff check and workflow embedded Bash/Python
+syntax PASS. Previous full884/11858unitPASS onunchangedcomponent3f; current
+tag-onlycomponent39 and scriptsTS execution inprogress. No actualnew LK
+PASS claimed. NewSC9a selectedrun37489501741 inprogress; prior3f2FAIL
+not relabeled. Frozen planned-message card does not require duplicating every
+R/D negative natively; existing actual real-validator/finalizer32cases plus
+whole native chain with specific durable effects are mapped distinctly.
+Next responsible this agent: publish626fa, exact supplemental native/ordinary
+CI, review literal complete card and approve only own rows after actualgreen.
+Authentic market/agreement/counterparty activation remains separate.
