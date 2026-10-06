@@ -853,3 +853,16 @@ BEFORE normalpublicationa1/ref+PRheadreadback/reviewreceipt/body/readyfordeliver
 Authenticatefreshfinalhead39/all9282trackedinputs/currentmandatoryALLGREEN
 beforefreeatomicrolemerge/expectedheadmerge/actualmainreceipt/release.
 No oldgatesborrow/CI_GREEN/MERGED/external/newpair/role/privatefacts.
+
+## Finalmetadata precision HOLD before publication / correction plan
+
+sc064 exacta1 SOURCE_DELIVERY_APPROVE. z08lk finalmetadata review identifies
+one truthfulwording correction inalreadyownedcontract-proof.json: primary
+linkedL/LK use establishednull-partition Legacyfinalcase; unsolicitedL actual
+nonnullreceipt-owned projector. All3 assertone scopedcase, notall3receipt-owned.
+BothWHOLE9a approvals remainvalid; no source/test/coverage/oracle gap.
+Next95bc ONLYthatproofsentence splitprojection paths accurately→newfrozen
+metadata commit→bothexactdelivery reapprovals beforeREADY/publication.
+Correction applies earlierroot shorthand callingall3finalcases receipt-owned;
+preservehistoricalnotes andnative39actualresults. Same12scope/no newpair/role.
+Remote9a10checksSUCCESS clean/certpending; a1unpublished/notCI_GREEN/MERGED.
