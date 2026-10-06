@@ -1,6 +1,6 @@
 # Masterplan session b6d3a0172885
 
-Status: BLOCKED/RELEASE — reviewed memory645 waits for mandatory CI capacity; preparing eligible AT-P01 singleton.
+Status: BLOCKED/RELEASE — AT-P01 fully locally verified and final-reviewed; actual delivery waits for mandatory current-head CI.
 
 Agent `codex-20261006T223328Z-b6d3a0172885`; packet `93c199e9-2fe3-433f-9b92-9eb92ec6155d`.
 Branch `codex/ediel-20261006T223328Z-b6d3a0172885`; worktree `/workspace/gridex-ediel-b6d3a0172885`.
@@ -235,3 +235,61 @@ Retained15CLOSED_UNMERGED/HOLD/PAUSED stayrequirements, notapprovedresults.
 Nextthissession currentCIgates/expectedheadnormaldelivery, reconcileactualmain
 underproperrolesandreleaseownresources, else preservebranches/reviewreceipts
 and explicitexactBLOCKED/RELEASE with responsible nextaction.
+
+## Explicit delivery blocker / release — 2026-10-06T23:07:36.199367+00:00
+
+Current actualmain 356e153b64d83b84379791a4b4bda1e47ca464a0; 115/121 rules and 175/231 contracts = 290/352.
+No645/646 merge/CI_GREEN/currentmainfull/native/external claim.
+Frozen646 source5d25852e38a41e51628635d4efebd1d192118111 finalindependent
+APPROVE5435453922; localwholeproof868/0/0pending, testsTS/lint/spec/diff0,
+requiredtagged--check0 retainedatidenticaltest/ledger source,14new+854reused.
+The implementation/wholeliteral work isdone; remaining iscurrentmandatory
+CI acceptance and guarded delivery, not a failedtest/productclaim.
+
+PR645 exactcurrent required checks atlatestauthenticatedsnapshot:
+- verify: completed/success
+- upgrade-migration-replay: completed/success
+- clean-migration-replay: in_progress/None
+- quality-release-gates: completed/success
+- browser-public: completed/success
+- smoke: completed/success
+- coverage: completed/success
+- pr-certificate: queued/None
+
+PR646 exactcurrent required checks atlatestauthenticatedsnapshot:
+- verify: in_progress/None
+- upgrade-migration-replay: queued/None
+- clean-migration-replay: queued/None
+- quality-release-gates: queued/None
+- browser-public: queued/None
+- smoke: queued/None
+- coverage: queued/None
+- pr-certificate: NOT_CREATED/None
+- targeted-regressions: in_progress/None
+
+Old646/b484 full37543456617 was queued behindsamePR concurrency; ordinary
+cancel then force-cancel were accepted but oldGET wasstillqueued (noactual
+terminal conclusion asserted). New5d full37543944177 advancedPENDING→QUEUED.
+No foreign/current645/current5d job cancelled. Current gates retainedwhole.
+Latest producer update6027049757 E's real22PASS doesnotcover confirmeddeath
+finalresponse consumer;93e lawfullyreserved4newpaths/53refs to repair actual
+confirmedfacet ACK join. This is theirscope, no takeover/borrowedwholeproof.
+
+ExplicitBLOCKED/RELEASE soleb793packet: preservePR646/source5d andownproof
+branch; only2own66c5refs may be GETMATCH/DELETE/404 afterpublic#530 handover.
+No foreign ID/source/role taken, no moretechnicalpair. Latest61-IDmap above
+remainsdated356 snapshot; priorclosed/HOLD/PAUSED are unfinishedrequirements.
+No additionalfree independentlyexecutablewholepacket qualified.
+
+Nextowner=thissession: authenticate current5d9and72fa8 mandatorychecks;
+whenall actualSUCCESS, refreshmain/coverage/foreignproducer/hand-offs/refs.
+Reclaim onlythe necessary free exactownAT ID/test resources (initialpacket
+criteria unchanged), acquire immediatelyfree role-merge afteractualreview/CI,
+merge646with expected5d. For645 delivery reacquire its exactshared10files
+androle-memory first; merge-role onlyimmediatelyfree, else releasememory
+withoutwaiting. Scope/mainmismatch requires smallreconciledPR andfreshreview/
+gates. ActualMERGED/mainSHA receipt first, release mergerole beforefresh
+sharedmemoryrole mirror; publish currentcampaigncounts preservinghistory,
+then releaseownresource refs with SHA checks. Never oldheadsuccessasnewgates.
+Ifanotherowner nowhasID/path, leaveit anddocumenthandoff; silence isnotrelease.
+No user/coordinator assignment needed toresume this recordedresponsibility.
