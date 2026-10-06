@@ -1094,3 +1094,26 @@ newcoverageapproval oractualmaincredit. Source9bc remainsCLEAN/frozen, main
 Same12technicalrefs/no roles. Next95bc currentgenuine39+cleanalltails and
 allmandatory/finalwhole reviews→freshroles/main/expectedheadnormalmerge;
 actualmainreceipt/role-firstrelease/commonreconcile/12release/owncleanup.
+
+## Readonly compatibility and deferred owncleanup plan qualified
+
+Current9bc normalmergepreview4fb0cee86ec4ccb2a5c0de21acdfc48a15c2ec94
+ALL350foreignrows/order/topmetadata exactactualmain356, onlyown2 prospective
+292. Seventeenforeignpreview-vs-source paths onlysharedmemory/coverage and
+standaloneIMP05/DB04 native/test/helper/workflow; NO actualZ05 runtimeclosure
+change. Previewnotactualdelivery. Currentbrowser+smokeSUCCESS, upgrade/
+coverage/hold/targetedRUNNING, genuine39+cleanqueued, no currentwholegreen.
+Readonlysc064 deferredcleanupplan APPROVE, notnewscope/code/claim:
+SOURCE_RESTORE_REQUIRED onlyafterBOTH successfulmigration+seedbackups,
+LOCAL_STACK_START_ATTEMPTED beforeCLIstart; cleanup restore/stop onlyown
+actuallystartedlifecycle, preservepin/trap/sourcedstackon-success. Meaningful
+actualscript isolatedfilesystem controls: missingpsql/provenance/checksum,
+partialmigration/seedcopyfailures, realpoststagingPythonfailure, fakeCLIstart
+fail andfirstfakepsqlfailure; exactbytes/modes/inventory andownCLItrace,
+zeroDB/Docker/network. Temporarybuffersalwaysremoved; don'trewritehistorical
+manifesthashes. Proposedunique __tests__/gridex-aud-003-clean-replay-cleanup.test.ts
+plusexistingunclaimedcanonicalscript requirefreshcreate-onlyexactlocks BEFORE
+authoring, after636actualcloseout. Existing94? immutableoldnative/failures
+unchanged, allmandatorypositivecanonicalreplay required afterfix.
+Next95bc remains current39/fullclean/allgates/currentexecutionpeers then
+actualmerge/role-firstmemory/12release; no nextpacket or roles taken.
