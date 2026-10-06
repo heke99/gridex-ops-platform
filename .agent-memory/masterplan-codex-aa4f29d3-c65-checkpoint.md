@@ -1,3 +1,17 @@
+## Current coordination continuation — 2026-10-06
+
+Agent/session `codex-aa4f29d3-c65`. User renewed autonomous all-352 completion and explicit cooperation with other agents. Existing TEN-09/GOV-04 packet is MERGED/RELEASED; no ID/path/role held. Source main `c0385ee4ee8340eb9e68029c2bd09d05bdf37f40`, own completed source `39a0e472a99ce06c436e136f4ccd3465ae05ab68`, previous final checkpoint `8ffe00b915c370318cf5f6800f1e3e7c19576b01` and final release #5306021449913 remain authoritative.
+
+Startup refreshed AGENTS, README read order, current shared files, workflow/reservations, own checkpoint, coverage, legacy register, latest #530 and actual live refs. Actual main: 113/121 VERIFIED rules +169/231 PASSED contracts =282/352;70 remain. Ten residual IDs are now atomically held by active621/626/629/630 and24fa C/M response packet e0690976 (CLAIM6021454554). Common writer c3ae holds memory ae4c and has published replacement memory PR632 exact6b8337d2; current CI pending. Do not edit those source/common paths or borrow their old results.
+
+Active work is READ-ONLY retained-scope qualification and owner cooperation; no new rule pair/code/coverage has started. Skill routing: existing using-superpowers/worktrees/verification/spec-to-code/requesting-code-review remain applicable; dispatching-parallel-agents applies to independent read-only IMP05 and TR08/09 source comparisons. Database/Supabase skills activate for substantive DB proof; no UI, performance remediation, hooks, broad security audit or market activation.
+
+Two bounded independent scouts `/root/imp05_remaining_scope` and `/root/transport_remaining_scope` compare original requirements/preserved branches to current main without mutation/reservations/outbound comments. This agent checks DB04/05 eligibility and coordinates original owner handoffs via #530 (thread message capability unavailable after tool search). Active original owners retain source responsibility until explicit transfer; finished-source new proof scope will be assessed separately, never inferred from silence or an absent tag.
+
+Verification so far: metadata worktree clean; current main coverage and remote ID/role refs read; latest530 includes exact-main adoption of620 by626/621/629/630 and live C/M follow-up, no subsequent merge yet. No fresh code tests, no new approvals, no external evidence acquired.
+
+Next action / responsible: this agent post concrete coordination and bounded handoff requests on530, gather scout evidence and explicit owner responses; assess two eligible whole IDs by priority/dependencies and acquire exact atomic ID/path resources before implementation. While waiting, perform independent source/requirement comparison or requested reviews. If a source dependency is genuinely retained/unavailable, preserve precise criterion and next responsible action; do not turn it into an approval.
+
 # codex-aa4f29d3-c65 — TEN-09 / GOV-04
 
 Status: MERGED on actual main `c0385ee4ee8340eb9e68029c2bd09d05bdf37f40` via PR620; all15 ID/path refs RELEASED_GET404, own merge role RELEASED_GET404; no eligible next packet established, shared-memory receipt handed over to current foreign role owner.
