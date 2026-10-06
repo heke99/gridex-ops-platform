@@ -1,3 +1,4 @@
+// masterplan: IMP-05, AT-IMP-05
 // Selected real PostgreSQL admission/route component, not native or whole-IMP05
 // approval. PGlite, parser input, permission RPC and lock-only graph are finite
 // ports; no SMTP delivery, ordinary reception, legal attribution or capture is
