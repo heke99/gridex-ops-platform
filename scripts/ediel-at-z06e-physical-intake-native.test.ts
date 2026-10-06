@@ -95,6 +95,8 @@ it('prospectively expired supplier role permits only correlated technical CONTRL
  const none=()=>sql(`SELECT jsonb_build_object('assessments',(SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(id)}),'ruleBasis',(SELECT count(*) FROM gridex_ediel_source_rules.receipts WHERE source_message_id=${literal(id)}),'tasks',(SELECT count(*) FROM gridex_customer_life_events.tasks WHERE source_message_id=${literal(id)}),'facets',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(id)}),'availability',(SELECT count(*) FROM gridex_requested_changes.customer_version_availability WHERE source_message_id=${literal(id)}))`)
  const source={...f,sourceMessageId:id,message,wire}
  let stable:ReturnType<typeof durable>|undefined
+ const transport=()=>sql(`SELECT jsonb_build_object('acks',(SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m WHERE related_message_id=${literal(id)} AND direction='outbound'),'outboxes',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE o.company_id=${literal(f.companyId)} AND o.ediel_message_id IN(SELECT id FROM public.ediel_messages WHERE related_message_id=${literal(id)} AND direction='outbound')))`)
+ let stableTransport:ReturnType<typeof transport>|undefined
  for(let attempt=0;attempt<2;attempt++){
   expect(await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:id})).toMatchObject({tenant_resolution_status:'tenant_ambiguous',business_match_status:'business_blocked',processing_status:'routing_unresolved'})
   expect(none()).toEqual({assessments:0,ruleBasis:0,tasks:0,facets:0,availability:0})
@@ -102,6 +104,8 @@ it('prospectively expired supplier role permits only correlated technical CONTRL
   expect(committed).toMatchObject({versions:0,primary:0,transitions:0,outboxes:1,acks:[{id:expect.any(String),raw:expect.any(String),family:'CONTRL',outcome:'positive'}]})
   if(attempt===0){
    stable=committed
+   stableTransport=transport()
+   expect(stableTransport).toMatchObject({acks:[{status:'draft',message_sent_at:null}],outboxes:[{status:'queued',queued_at:expect.any(String)}]})
    const ackIds=sql<string[]>(`SELECT jsonb_agg(id ORDER BY id) FROM public.ediel_messages WHERE related_message_id=${literal(id)} AND direction='outbound'`)
    expect(ackIds).toHaveLength(1)
    const ack=await getEdielMessageById(ackIds[0]);expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'CONTRL',related_message_id:id,ack_outcome:'positive'})
@@ -109,9 +113,9 @@ it('prospectively expired supplier role permits only correlated technical CONTRL
    expect(envelope.sender).toBe(e.receiver);expect(envelope.receiver).toBe(e.sender)
    expect(envelope.applicationReference).toBe(e.applicationReference);expect(envelope.environment).toBe('test')
    expect(parsed.segments.filter(s=>s.tag==='UCI').map(s=>segmentComposite(s,1,parsed.una))).toEqual([[reference]])
-   expect(parsed.segments.find(s=>s.tag==='UCI')!.elements[4]).toBe('7')
+   expect(parsed.segments.find(s=>s.tag==='UCI')!.elements[4]).toBe('1')
    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(ackIds[0])}`)).toBe(1)
-  }else expect(committed).toEqual(stable)
+  }else {expect(committed).toEqual(stable);expect(transport()).toEqual(stableTransport)}
   expect(custody()).toEqual(original);expect(business(f)).toEqual(before)
  }
  expect(delivery.smtp).toHaveBeenCalledTimes(sentBefore)
