@@ -1,0 +1,74 @@
+import sys, json, hashlib, zipfile, datetime
+from pathlib import Path
+
+archive_path, metadata_path, seal_path = map(Path, sys.argv[1:4])
+sha = lambda value: hashlib.sha256(value).hexdigest()
+seal = json.loads(seal_path.read_bytes())
+assert seal['counts']['SUCCESS'] == 12 and seal['counts']['FAILURE'] == 0
+assert seal['all_twelve_terminal_success'] is True
+assert len(seal['five_typed_identity_guards']) == 5
+assert all(value is True for value in seal['five_typed_identity_guards'].values())
+job = next(row for row in seal['jobs_and_checks'] if row['name'] == 'pr-certificate')
+assert job['status'] == 'completed' and job['conclusion'] == 'success'
+assert job['runner_id'] > 0 and job['completed_at']
+source = seal['source']
+assert job['head_sha'] == source['head']
+metadata = json.loads(metadata_path.read_bytes())
+artifacts = metadata['artifacts']
+assert len(artifacts) == 1
+artifact = artifacts[0]
+assert artifact['name'] == 'gridex-pr-release-certificate-' + str(job['run_id'])
+assert artifact['expired'] is False
+producer = artifact['workflow_run']
+assert producer['id'] == job['run_id']
+assert producer['head_sha'] == source['head'] and producer['head_branch'] == source['branch']
+assert producer['repository_id'] == producer['head_repository_id'] == 1190539955
+archive_bytes = archive_path.read_bytes()
+assert len(archive_bytes) == artifact['size_in_bytes']
+assert 'sha256:' + sha(archive_bytes) == artifact['digest']
+archive = zipfile.ZipFile(archive_path)
+assert archive.namelist() == ['pr-release-certificate.json']
+assert archive.testzip() is None
+certificate_bytes = archive.read('pr-release-certificate.json')
+certificate = json.loads(certificate_bytes)
+assert certificate['schema_version'] == 1
+assert certificate['smoke'] == certificate['coverage'] == 'success'
+assert certificate['verdict'] == 'GREEN'
+evidence = certificate['edielReleaseEvidence']
+assert evidence['candidateSha'] == source['head']
+assert evidence['candidateTree'] == source['tree'] and evidence['checkoutClean'] is True
+assert evidence['runId'] == str(job['run_id'])
+assert evidence['runAttempt'] == str(job['run_attempt'])
+assert evidence['formalEdielApproval'] is False and evidence['liveCounterpartyVerified'] is False
+assert evidence['activationGates'] == {'liveTransport': 'NOT_OBSERVED', 'formalTGT': 'NOT_OBSERVED'}
+assert evidence['sourceAuthentication'] == 'github_run_job_artifact_and_immutable_tree'
+consumer = Path('/workspace/gridex-combined-source-capture/scripts/gridex-full-production-e2e.cjs').read_bytes()
+assert sha(consumer) == '03e1c8338ab6e58f52e9a1ae7c9eb44ef813aa3f70976b6e13325193d637bd39'
+assert evidence['codeEvidence'] == 'incomplete' and evidence['fullCardVerification'] == 'NOT_VERIFIED'
+assert isinstance(evidence['blockers'], list) and evidence['blockers']
+assert all(isinstance(blocker, str) and blocker for blocker in evidence['blockers'])
+executions = evidence['executions']
+assert len(executions) == 1 and executions[0]['mode'] == 'smoke'
+assert executions[0]['status'] == 'qualified'
+assert executions[0]['qualification'] == 'runner_step_exit_status'
+assert executions[0]['stepCount'] > 0
+assert len(executions[0]['steps']) == executions[0]['stepCount']
+assert all(step['status'] == 'passed' for step in executions[0]['steps'])
+receipt = {
+    'scope': 'Authentic current ordinary PR GREEN certificate; frozen consumer truthfully retains separate NOT_VERIFIED full-card status. No formal/live/whole-Masterplan approval.',
+    'recorded_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'verdict': 'PASS_CURRENT_AUTHENTIC_PR_GREEN_CERTIFICATE_WITH_SEPARATE_NOT_VERIFIED_FULLCARD',
+    'source': source,
+    'job': {key: job[key] for key in ['job_id', 'run_id', 'run_attempt', 'runner_id', 'started_at', 'completed_at']},
+    'artifact_metadata': artifact,
+    'artifact_metadata_receipt_sha256': sha(metadata_path.read_bytes()),
+    'zip_bytes': len(archive_bytes), 'zip_sha256': sha(archive_bytes),
+    'certificate_member_sha256': sha(certificate_bytes), 'certificate': certificate,
+    'unchanged_production_consumer_sha256': sha(consumer),
+    'all12_source_seal_sha256': sha(seal_path.read_bytes()),
+    'skip_credit_as_pass': False, 'new_Masterplan_or_manual_controls': False,
+    'actual_main_and_final_baseline': 'REQUIRE_SEPARATE_QUALIFICATION'
+}
+output = Path('/workspace/agent-review-checkpoints/pr614-current-authentic-pr-certificate-artifact-root-qualification.json')
+output.write_text(json.dumps(receipt, indent=2) + '\n')
+print(json.dumps({'file': str(output), 'sha256': sha(output.read_bytes()), 'artifact': artifact['id'], 'certificate_GREEN': True, 'separate_full_card': 'NOT_VERIFIED', 'formal_approval': False, 'live_verified': False}))

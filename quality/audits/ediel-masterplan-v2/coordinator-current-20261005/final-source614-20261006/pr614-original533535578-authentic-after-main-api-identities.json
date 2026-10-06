@@ -1,0 +1,60 @@
+{
+  "recorded_at_utc": "2026-10-06 06:28:55 UTC",
+  "actual_main": "16d8a682a5a0aa7dfb5617b3c794985d0041afbe",
+  "packets": [
+    {
+      "pr": 533,
+      "state": "closed",
+      "merged": true,
+      "closed_at": "2026-10-06T06:26:25Z",
+      "merged_at": "2026-10-06T06:26:25Z",
+      "head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+      "base": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+      "merge_commit_sha": "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+      "associated_commit": {
+        "sha": "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+        "tree": "f9ebdbc719e52c31810c3b646641e7b2c1b3b0c1",
+        "parents": [
+          "3251d20a8b9fe0294367977dca49de65aabe7513",
+          "eca119cb5bd016cfe27d70720783fb08ad8970d1"
+        ]
+      }
+    },
+    {
+      "pr": 535,
+      "state": "closed",
+      "merged": true,
+      "closed_at": "2026-10-06T06:26:25Z",
+      "merged_at": "2026-10-06T06:26:25Z",
+      "head": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+      "base": "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+      "merge_commit_sha": "932a194cded4d4a59aaa429464516b80ac38d303",
+      "associated_commit": {
+        "sha": "932a194cded4d4a59aaa429464516b80ac38d303",
+        "tree": "53b15632af24ad71431d849e3bd6b339b71ec0fe",
+        "parents": [
+          "b7d842aad6359c15ad7d8f8f91ad63bf5f1ac0be",
+          "78e5e90b809f87b0e667046e9cbd7f994562cce7"
+        ]
+      }
+    },
+    {
+      "pr": 578,
+      "state": "closed",
+      "merged": true,
+      "closed_at": "2026-10-06T06:26:25Z",
+      "merged_at": "2026-10-06T06:26:25Z",
+      "head": "ebf380da2528b6a32a17f94ca245835726babca4",
+      "base": "b83b284467c8e0fcaa277706a708706e0a705068",
+      "merge_commit_sha": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+      "associated_commit": {
+        "sha": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+        "tree": "79923be3c9bd4b4e5aab30d91fb0ace79c7bb0bf",
+        "parents": [
+          "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
+          "ebf380da2528b6a32a17f94ca245835726babca4"
+        ]
+      }
+    }
+  ]
+}

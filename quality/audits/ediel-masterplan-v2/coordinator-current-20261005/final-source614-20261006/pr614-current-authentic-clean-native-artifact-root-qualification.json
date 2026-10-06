@@ -1,0 +1,670 @@
+{
+  "scope": "Authentic exact current source full clean/native owners, all native phase JUnit and browser/schema gates; no whole Masterplan/formal/live or deployment-ledger approval",
+  "recorded_at_utc": "2026-10-06T06:23:57.756054+00:00",
+  "verdict": "PASS_CURRENT_AUTHENTIC_CLEAN_NATIVE_AND_BROWSER",
+  "head": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+  "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "run": 37418994387,
+  "job": 112123898553,
+  "attempt": 1,
+  "runner": 1000044049,
+  "job_started_at": "2026-10-06T05:31:56Z",
+  "job_completed_at": "2026-10-06T06:21:27Z",
+  "artifact": 11393643200,
+  "zip_bytes": 16416698,
+  "zip_sha256": "504bc9243dbf0b6be79e5116e14ba75cba9813206359e79735d0b7d8c0c7ad82",
+  "unique_CRC_members": 57,
+  "producer_binding": "Exact artifact run/head metadata separately authenticated by ROOT and same sole final12 typed source/run/job/check/runner seal",
+  "all_JUnit": [
+    {
+      "member": "e2e-artifacts/playwright-junit.xml",
+      "cases": 31,
+      "passed": 31,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "053ecad29b2e3e9b4bccecc0dd3271d5ef1979c73422adfcfe0d50bfac3ef03c"
+    },
+    {
+      "member": "rem002-ai-purpose-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "9d9ed987f91b10dc749479b165a57ef88a770be3c1810487571efc36d56e0542"
+    },
+    {
+      "member": "rem002-ai-purpose-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "9a5a6e7418fd66c23a3b32dd1d029800f1c5ecb1ff2c393991407b47fec6f1de"
+    },
+    {
+      "member": "rem002-bilateral-customer-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "58e6b47b4de446146133b3234c6279951654b6350e8513557317f0418c10a9f1"
+    },
+    {
+      "member": "rem002-bilateral-customer-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "d49ab84607dc3c4ee6fb09813d94c584b5f06fdf5a15d010cf03755c46a4369a"
+    },
+    {
+      "member": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "7a8168c71d42939d0ee1ddea88ffcf33039ffc589d59e08db2c4ac735c34d1d7"
+    },
+    {
+      "member": "rem002-bilateral-prodat-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "f66727ddf06708553491e17b4237a7d4f638def744cc1b500e9fe3036b65ff7c"
+    },
+    {
+      "member": "rem002-blob-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "3c0e188ba5325236eea5aba3a6ab1b9df4fd9857bdd257bc591785844c4a6f81"
+    },
+    {
+      "member": "rem002-blob-retention-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "bb4dc02c5ac04968f06b77e44d6c6c395b3a7c3b159e97ad7bd10febb35f69a7"
+    },
+    {
+      "member": "rem002-business-incident-after-browser-junit.xml",
+      "cases": 6,
+      "passed": 1,
+      "skipped_not_passed": 5,
+      "skipped_cases": [
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "genuine incident producer and browser fixture > fresh reported incident requires actual accepted original ACK and positive own scope; retry attempts no writes or ACK/history/outbox effects"
+        ],
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "genuine incident producer and browser fixture > last incident audit failure rolls back incident and both held plans without touching the accepted original"
+        ],
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "genuine incident producer and browser fixture > real pending company DENY serializes before fresh incident qualification and yields zero effects"
+        ],
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "genuine incident producer and browser fixture > real pending global DENY serializes before fresh incident qualification and yields zero effects"
+        ],
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "genuine incident producer and browser fixture > actual own-company read-only incident inspection requalifies current originals without send authority and never changes any row"
+        ]
+      ],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "c63f499f2590491d67ce4de284cf282230ac5674561b9e335679c8666da4266a"
+    },
+    {
+      "member": "rem002-business-incident-native-junit.xml",
+      "cases": 6,
+      "passed": 5,
+      "skipped_not_passed": 1,
+      "skipped_cases": [
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "post-browser genuine native receipt retains exactly two incidents, immutable accepted ACK, held plans and zero market/outbox mutations"
+        ]
+      ],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "70e6d86c3290f9452aa38480c1598f88be112ae098f722393c67a6743a75ca9a"
+    },
+    {
+      "member": "rem002-case-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "4497e4131e50f09e35d173f098ff1276d4c0fccc04d25dd77410c591b4501491"
+    },
+    {
+      "member": "rem002-case-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "438177b0054f274d70a8f091ca8566ead0864fdafcf8fa4f73cd6cab598c7be0"
+    },
+    {
+      "member": "rem002-decision-original-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "51fa2465bfcf6996bef7eb8458a45308b880b2b2fc13e9a4110a2dc6ef8b7aea"
+    },
+    {
+      "member": "rem002-decision-original-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "537c560c3ccad20ba74528cb7eaaa05e4e42228a78bd35d887d83500ab625d35"
+    },
+    {
+      "member": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "2f028515ae4e28d752ed705c6852cb617d5178a5efda6991bb2494dd7870ee95"
+    },
+    {
+      "member": "rem002-finance-copy-retention-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "69ce5f42f69d712731cf9356f3139db6dcc29203f5894eceb77beabf677fbec9"
+    },
+    {
+      "member": "rem002-native-junit.xml",
+      "cases": 694,
+      "passed": 693,
+      "skipped_not_passed": 1,
+      "skipped_cases": [
+        [
+          "scripts/ediel-fresh-business-incident-native.test.ts",
+          "post-browser genuine native receipt retains exactly two incidents, immutable accepted ACK, held plans and zero market/outbox mutations"
+        ]
+      ],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "4b9c1f6cf5ac598e0408fe64c33ec1ce1f3e32ec6791b61875aa34cca72073c7"
+    },
+    {
+      "member": "rem002-process-journal-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "b44316267b771c262d6a460b4ede26bd62f15875490d8699db9852685002df75"
+    },
+    {
+      "member": "rem002-process-journal-retention-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "76051402937e2bddd21b5b27bfa559ff8e9800d9494a1c4de46b41c67fd6e29b"
+    },
+    {
+      "member": "rem002-record-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "289758b4c27e2420bd75d48a8739a851ccdbb4cdd25334bdd1c13e5e337331e5"
+    },
+    {
+      "member": "rem002-record-retention-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "06b05efa38d82b68d51cb2734b05261a3bee0952a803700dc1d4866db4507963"
+    },
+    {
+      "member": "rem002-regulated-supply-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "9eb5122a8df5f50aaaf7734ffeb54bcbccd8f1ccd4d827dc47c6b59771921ca0"
+    },
+    {
+      "member": "rem002-regulated-supply-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "14f2994425fad183e497710a366fbddb80770aa6d08ecef2a88397a570607710"
+    },
+    {
+      "member": "rem002-requested-change-after-browser-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "4b2ffc903b08ba1dc90fb606ad20e1f21bd05005270e5d364d7477ee3c373a0a"
+    },
+    {
+      "member": "rem002-requested-change-native-junit.xml",
+      "cases": 1,
+      "passed": 1,
+      "skipped_not_passed": 0,
+      "skipped_cases": [],
+      "failures": 0,
+      "errors": 0,
+      "full_case_id_multiset_preserved": true,
+      "sha256": "2e32474f5003cedcf04f82c82355516cc2be043b9decc42bd97a2af679287c13"
+    }
+  ],
+  "owner_registered56_complete": true,
+  "original_all694_case_id_multiset_exact": true,
+  "original12failed_cases_genuinely_executed_passed": true,
+  "skip_credit_as_pass": false,
+  "generated_raw3_byte_exact_originalcapture": {
+    "rem002-database.types.ts": {
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+      "byte_exact_committed_original119_capture": true
+    },
+    "rem002-schema-snapshot/schema.sql": {
+      "bytes": 11352093,
+      "sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+      "byte_exact_committed_original119_capture": true
+    },
+    "rem002-schema-snapshot/schema.fingerprint.json": {
+      "bytes": 3687,
+      "sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863",
+      "byte_exact_committed_original119_capture": true
+    }
+  },
+  "schema_fingerprint": "41670c0c4fe65a7661bfe27ca4702445b1edf7a3c2dec6ce2d8b615158a3e1f4",
+  "parity_all_required_drift_controls": true,
+  "genuine_clean_phase_markers": [
+    "2026-10-06T05:32:41Z clean_replay_start",
+    "2026-10-06T05:35:07Z clean_replay_complete",
+    "2026-10-06T05:35:07Z artifact_generation_start",
+    "2026-10-06T05:35:17Z artifact_generation_complete",
+    "2026-10-06T05:35:17Z sql_regressions_start",
+    "2026-10-06T05:35:30Z merge_concurrency_start",
+    "2026-10-06T05:35:35Z merge_concurrency_complete",
+    "2026-10-06T05:35:35Z sql_regressions_complete",
+    "2026-10-06T05:35:36Z native_owners_start",
+    "2026-10-06T06:13:07Z native_owners_complete",
+    "2026-10-06T06:13:07Z browser_fixtures_start",
+    "2026-10-06T06:15:24Z browser_fixtures_complete",
+    "2026-10-06T06:15:24Z browser_start",
+    "2026-10-06T06:20:17Z browser_complete",
+    "2026-10-06T06:20:17Z after_browser_native_start",
+    "2026-10-06T06:20:57Z after_browser_native_complete",
+    "2026-10-06T06:20:57Z schema_gates_start",
+    "2026-10-06T06:21:03Z schema_gates_complete"
+  ],
+  "member_inventory": [
+    {
+      "name": "rem002-clean-replay.log",
+      "bytes": 2117758,
+      "sha256": "666e581c3beda1731ab776439dcc488e7393ac290ecaefdea6bad98df20abfd5"
+    },
+    {
+      "name": "rem002-database.types.ts",
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+    },
+    {
+      "name": "rem002-schema-snapshot/schema.fingerprint.json",
+      "bytes": 3687,
+      "sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863"
+    },
+    {
+      "name": "rem002-schema-snapshot/schema.sql",
+      "bytes": 11352093,
+      "sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98"
+    },
+    {
+      "name": "rem002-native-junit.xml",
+      "bytes": 370676,
+      "sha256": "4b9c1f6cf5ac598e0408fe64c33ec1ce1f3e32ec6791b61875aa34cca72073c7"
+    },
+    {
+      "name": "rem002-case-native-junit.xml",
+      "bytes": 557,
+      "sha256": "438177b0054f274d70a8f091ca8566ead0864fdafcf8fa4f73cd6cab598c7be0"
+    },
+    {
+      "name": "rem002-case-after-browser-junit.xml",
+      "bytes": 557,
+      "sha256": "4497e4131e50f09e35d173f098ff1276d4c0fccc04d25dd77410c591b4501491"
+    },
+    {
+      "name": "rem002-requested-change-native-junit.xml",
+      "bytes": 602,
+      "sha256": "2e32474f5003cedcf04f82c82355516cc2be043b9decc42bd97a2af679287c13"
+    },
+    {
+      "name": "rem002-requested-change-after-browser-junit.xml",
+      "bytes": 602,
+      "sha256": "4b2ffc903b08ba1dc90fb606ad20e1f21bd05005270e5d364d7477ee3c373a0a"
+    },
+    {
+      "name": "rem002-regulated-supply-native-junit.xml",
+      "bytes": 634,
+      "sha256": "14f2994425fad183e497710a366fbddb80770aa6d08ecef2a88397a570607710"
+    },
+    {
+      "name": "rem002-regulated-supply-after-browser-junit.xml",
+      "bytes": 632,
+      "sha256": "9eb5122a8df5f50aaaf7734ffeb54bcbccd8f1ccd4d827dc47c6b59771921ca0"
+    },
+    {
+      "name": "rem002-bilateral-customer-native-junit.xml",
+      "bytes": 594,
+      "sha256": "d49ab84607dc3c4ee6fb09813d94c584b5f06fdf5a15d010cf03755c46a4369a"
+    },
+    {
+      "name": "rem002-bilateral-customer-after-browser-junit.xml",
+      "bytes": 594,
+      "sha256": "58e6b47b4de446146133b3234c6279951654b6350e8513557317f0418c10a9f1"
+    },
+    {
+      "name": "rem002-bilateral-prodat-native-junit.xml",
+      "bytes": 668,
+      "sha256": "f66727ddf06708553491e17b4237a7d4f638def744cc1b500e9fe3036b65ff7c"
+    },
+    {
+      "name": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "bytes": 668,
+      "sha256": "7a8168c71d42939d0ee1ddea88ffcf33039ffc589d59e08db2c4ac735c34d1d7"
+    },
+    {
+      "name": "rem002-ai-purpose-native-junit.xml",
+      "bytes": 613,
+      "sha256": "9a5a6e7418fd66c23a3b32dd1d029800f1c5ecb1ff2c393991407b47fec6f1de"
+    },
+    {
+      "name": "rem002-ai-purpose-after-browser-junit.xml",
+      "bytes": 613,
+      "sha256": "9d9ed987f91b10dc749479b165a57ef88a770be3c1810487571efc36d56e0542"
+    },
+    {
+      "name": "rem002-record-retention-native-junit.xml",
+      "bytes": 656,
+      "sha256": "06b05efa38d82b68d51cb2734b05261a3bee0952a803700dc1d4866db4507963"
+    },
+    {
+      "name": "rem002-record-retention-after-browser-junit.xml",
+      "bytes": 656,
+      "sha256": "289758b4c27e2420bd75d48a8739a851ccdbb4cdd25334bdd1c13e5e337331e5"
+    },
+    {
+      "name": "rem002-business-incident-native-junit.xml",
+      "bytes": 2114,
+      "sha256": "70e6d86c3290f9452aa38480c1598f88be112ae098f722393c67a6743a75ca9a"
+    },
+    {
+      "name": "rem002-business-incident-after-browser-junit.xml",
+      "bytes": 2164,
+      "sha256": "c63f499f2590491d67ce4de284cf282230ac5674561b9e335679c8666da4266a"
+    },
+    {
+      "name": "rem002-blob-retention-native-junit.xml",
+      "bytes": 635,
+      "sha256": "bb4dc02c5ac04968f06b77e44d6c6c395b3a7c3b159e97ad7bd10febb35f69a7"
+    },
+    {
+      "name": "rem002-blob-retention-after-browser-junit.xml",
+      "bytes": 635,
+      "sha256": "3c0e188ba5325236eea5aba3a6ab1b9df4fd9857bdd257bc591785844c4a6f81"
+    },
+    {
+      "name": "rem002-process-journal-retention-after-browser-junit.xml",
+      "bytes": 704,
+      "sha256": "b44316267b771c262d6a460b4ede26bd62f15875490d8699db9852685002df75"
+    },
+    {
+      "name": "rem002-process-journal-retention-native-junit.xml",
+      "bytes": 704,
+      "sha256": "76051402937e2bddd21b5b27bfa559ff8e9800d9494a1c4de46b41c67fd6e29b"
+    },
+    {
+      "name": "rem002-finance-copy-retention-native-junit.xml",
+      "bytes": 702,
+      "sha256": "69ce5f42f69d712731cf9356f3139db6dcc29203f5894eceb77beabf677fbec9"
+    },
+    {
+      "name": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "bytes": 699,
+      "sha256": "2f028515ae4e28d752ed705c6852cb617d5178a5efda6991bb2494dd7870ee95"
+    },
+    {
+      "name": "rem002-decision-original-native-junit.xml",
+      "bytes": 642,
+      "sha256": "537c560c3ccad20ba74528cb7eaaa05e4e42228a78bd35d887d83500ab625d35"
+    },
+    {
+      "name": "rem002-decision-original-after-browser-junit.xml",
+      "bytes": 1082,
+      "sha256": "51fa2465bfcf6996bef7eb8458a45308b880b2b2fc13e9a4110a2dc6ef8b7aea"
+    },
+    {
+      "name": "e2e-artifacts/native/utilts-catalog-clean.json",
+      "bytes": 16412176,
+      "sha256": "94d061edc8c0689a955f5e9de327b493e1065d71c9bfb2d92ce1481c6e97f682"
+    },
+    {
+      "name": "e2e-artifacts/playwright-junit.xml",
+      "bytes": 9113,
+      "sha256": "053ecad29b2e3e9b4bccecc0dd3271d5ef1979c73422adfcfe0d50bfac3ef03c"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/0f4eb16941d9f37a2ed22456dce70325f4a70267.png",
+      "bytes": 473671,
+      "sha256": "913fa33527d3a6cf620adeac704383678171c39017acd52c34a3827f78b5abab"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/2f0fe06a58c228bd5777782782f25a0fee9ca8af.png",
+      "bytes": 1014048,
+      "sha256": "e32b1f6be76d3005e959ec6111d7138e6e484cd0de78870739a3bf82d5daf79d"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/350c040210de6e97fd5084cc75e590357b45968d.png",
+      "bytes": 371859,
+      "sha256": "21a5c1d7f669c4fbb2d333cf07ec49c4da3df551644ba840b9d9a413988480cc"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/38fb715ea9048f51ebed18a40e3c634281d7ffe9.png",
+      "bytes": 396794,
+      "sha256": "a6ff6a4c81bda39a49894dd2516294eb4ff909d434c1b3d047b7603cd1e2b265"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/404dae1f3d4982730fb9a90c9ea5c01fa5483da0.png",
+      "bytes": 265495,
+      "sha256": "66c8d64ed4b7ad23a9c2ec37a9bb2bf8a83be68ea583ad7635d5b824efb092ec"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/574ed9fca2c745f096c0e50f6bdb1ce6db4103d7.png",
+      "bytes": 420662,
+      "sha256": "83bab37ebdc98f9bd2c3e8918ee6685e301b668d2c79e665ed1d9d5b781f8892"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/5865d0b4a7b7a453ec6eece52b2301244ec29b47.png",
+      "bytes": 863828,
+      "sha256": "b2821ae51013006985d67d4c5e0a978cda05a4b189e7d016b67589dc3dcb1879"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/7b080cf1af734e997a36a8060cf9f1e44c0f83d3.png",
+      "bytes": 454836,
+      "sha256": "dbe3aab03a00520080bd31ed9e75ba81821ad875009d07c7dfb1190be214cdf2"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/7dadd5ab21425299086ba836dc58f5ef79b45156.png",
+      "bytes": 226521,
+      "sha256": "5e48175aa4db939867c1844c0a5c556c0b26c4f906ad046d251a5dfced8e1fb5"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/91cfed0e9c5c01c214e3613cbd8f15989b57e280.png",
+      "bytes": 530135,
+      "sha256": "3bbfd7e6b788accba40a844be1baf5862c3c903d826e72991a3408797424b18c"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/91e72afba1e7dba5523b6523d627589be0da43f2.png",
+      "bytes": 440321,
+      "sha256": "ac9b0e6de23aace31022616e206cb8f937715315ed61ced2005c86f8b53d7fa1"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/99c212fadedf677bec1cdd0bdc7cb7bc94dd43da.png",
+      "bytes": 408448,
+      "sha256": "bd06f1e0977d278276f4877c64d02eb63f699a1f2b6b0de07229ca8ece39c550"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/a10487dd598167dbda94cf41f99d2cc1722e5cb7.png",
+      "bytes": 394775,
+      "sha256": "3fcb632803cc57786f7f561ab345a49971804e8fcb196d3b0ace406cad521bd5"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/a8e3a384ee201c96c4a20017e78aba8f5f796914.png",
+      "bytes": 179693,
+      "sha256": "74611183bfffbe7527b26175d55f0d8aaa5054827c2a5c402fe7f3da932ab4ad"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/ae7bea92d38de42c53d380edb27cd5c4e1a6b943.png",
+      "bytes": 510065,
+      "sha256": "c44a90cdbf1f517fb4fb8a2a915f778b9842ff03ec203cf6bf586b9c458e529c"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/af183ef7071f66b6cd26dcd8b768ebb408e61b7f.png",
+      "bytes": 740218,
+      "sha256": "f993c84a5caae7e15060a44bc7635efa470700af06258ecd8110c16578cc4fa7"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/b3cb98b9af012c2afa12c707e70b2122db064f68.png",
+      "bytes": 753417,
+      "sha256": "0a5a4cd26cb8f0a96e183c99823051af8442c99990d7a04049375603f62b9738"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/c68c734900f522f97b80f3faf03ed683f97a9575.png",
+      "bytes": 802638,
+      "sha256": "4cd183876f49b2eed156b34374cf9290299ca30fa077c446b541258cc41f0680"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/b76f62d4ea2795938d00c7ac7a3c7720d7bccf32.png",
+      "bytes": 666339,
+      "sha256": "a3afbad130e410b3fa441be483bdf752bf44e8a0e5431c1bf84df7f7fdd9c9a4"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/c9c178a0b877d6259dfe41a81d2078e1f71f468c.png",
+      "bytes": 521169,
+      "sha256": "b60f8c54af2dcb986fdaf4fc6e96a04c2446d3ad350e29205ed5515394db33e4"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/cf3d2032b45c28f7bbda622309ec54ea9de4ed24.png",
+      "bytes": 770878,
+      "sha256": "10a2e0f62342fdaa42ee94cdbfca8f22dbb1b117d023be61f46ec97f8ab12ea7"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/ecf608e41054f70aa10f8d5fe33afcbfb796b990.png",
+      "bytes": 792932,
+      "sha256": "65787d486bb3dac28a3b5378e0e26e65d9cf17834e2ae1b2aa58b80980c44043"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/f03da12891e807b5fdf7479ee0c5d41a3f2c90c6.png",
+      "bytes": 374916,
+      "sha256": "3e1a5e2448d09ead259f9379c8d3e1d789ea601e36dd3e36e7cffb95512dfa6b"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/f3a50930c10c55d6fb75b99d553332e07ef4f288.png",
+      "bytes": 431106,
+      "sha256": "4f515b6518779121805e1f93daf0a80fe86f1becfc34dadc78fdc8bd573e7f7c"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/ff9ccb9beb5352ae436fbc151c4d9b0896c55004.png",
+      "bytes": 372034,
+      "sha256": "e11670c6ced7b1ca5aeb8f253bf2904ebbbcf6db17afb2d0269e1ea69d52b4bf"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/index.html",
+      "bytes": 856356,
+      "sha256": "0eb525678381a809f84ed06a73eb4869723831166f18a69e867bb008ba8e613a"
+    }
+  ],
+  "current_source_all12_seal_sha256": "aca8dee9be69c7c72837d6e3311d61016e72c5000b076c9fcccce92e74571904",
+  "PRcertificate_artifact_and_actualmain": "REQUIRE_SEPARATE_ROOT_QUALIFICATION",
+  "new_Masterplan_or_manual_controls": false
+}

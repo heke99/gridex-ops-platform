@@ -1,0 +1,144 @@
+{
+  "scope": "Exactly22 OWN metadata paths against authentic actualmain16d8; latest CPP45 continuation only",
+  "recorded_at_utc": "2026-10-06T06:32:46.666810+00:00",
+  "base": "16d8a682a5a0aa7dfb5617b3c794985d0041afbe",
+  "base_tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "OWN_paths": [
+    ".agent-memory/handover.md",
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-2c11a510-to-16d8a682.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/cpp45-finite-publication-boundary.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075-all12-success-stop-20261006062311.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-clean-native-artifact-metadata.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-final-optional-capture-skip-guard.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-pr-certificate-artifact-metadata.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-sc071-ten-case-artifact-root-qualification.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-upgrade-artifact-root-qualification.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-finite-current-source-guard-root503.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-fresh-authentic-public-premerge-identities.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-fresh-normal-merge-admission-root.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-authentic-normal-merge-api-postcheck.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-merge-replacement-custody-guard.py.txt",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-original533535578-automatic-merged-dispositions.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-source-merge-and-three-replacement-custody.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-authentic-clean-native-artifact-root-qualification.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-authentic-pr-certificate-artifact-root-qualification.json",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-certificate-artifact-qualification.py.txt",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-native-artifact-qualification.py.txt",
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-original533535578-authentic-after-main-api-identities.json"
+  ],
+  "immutable_receipt_and_guard_archives": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075-all12-success-stop-20261006062311.json",
+      "bytes": 74505,
+      "sha256": "aca8dee9be69c7c72837d6e3311d61016e72c5000b076c9fcccce92e74571904"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-finite-current-source-guard-root503.json",
+      "bytes": 1601,
+      "sha256": "a8d8760bacfd9e3d1dec68944c436a3db1d20c11fbcf5db68711c83363518ddd"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-fresh-authentic-public-premerge-identities.json",
+      "bytes": 1112,
+      "sha256": "7f69484ed44f8511f7ed98360c2b9dd80d4ff676fde451dd7f85bf069b437f84"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-fresh-normal-merge-admission-root.json",
+      "bytes": 108576,
+      "sha256": "3a7abd82b1a9e94dfc67943bf6f303e8a86db9560e09f817b36e039b71aa2409"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-clean-native-artifact-metadata.json",
+      "bytes": 884,
+      "sha256": "0c49d888c642fa102b23679134e856c634f3cdf660fb017e23f866a69cef2460"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-authentic-clean-native-artifact-root-qualification.json",
+      "bytes": 24883,
+      "sha256": "bb06c3f4e09dcbe7f1ec38cc4d1051391c4e3080994784ec3c4ff1609df0749b"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-pr-certificate-artifact-metadata.json",
+      "bytes": 894,
+      "sha256": "72634dbf6e0aa9b34142b85e9cab8a9ba762118fb5a2aa63daf413bccbd25ecf"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-authentic-pr-certificate-artifact-root-qualification.json",
+      "bytes": 11276,
+      "sha256": "971bdff133a1c2b16a96e183a4d6da8e9bb0bd1112765b3ef466620d55f229f6"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-sc071-ten-case-artifact-root-qualification.json",
+      "bytes": 11105,
+      "sha256": "023427005f767bebacfb847b7b64c0c4eb24a871d4b2a005be9c7df1163b5cc9"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-upgrade-artifact-root-qualification.json",
+      "bytes": 10757,
+      "sha256": "fd4bcc46573bcb83b4ec682d1e883d516767790c4ae50437554e8cc61089dfd1"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-075f-authentic-final-optional-capture-skip-guard.json",
+      "bytes": 1539,
+      "sha256": "4c921336d63ed15551506c373866c21d908affd524d372a7c066d3a8ff7bca79"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-authentic-normal-merge-api-postcheck.json",
+      "bytes": 940,
+      "sha256": "de83258bee0c8061c72fd17884c8515f2a67e4f02089c726303b6f4c0637472f"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-source-merge-and-three-replacement-custody.json",
+      "bytes": 2679,
+      "sha256": "f353ee217c3d7077901c8d16d0fe0ec81f5eaf392de44ba85532a87f61c322a0"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-original533535578-authentic-after-main-api-identities.json",
+      "bytes": 2060,
+      "sha256": "4ca30308078aed093d2ab69f5bae0f692bd62c9ec2d1c5ad7e2ccd5bc1f81d91"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-original533535578-automatic-merged-dispositions.json",
+      "bytes": 5331,
+      "sha256": "00de0500ffd73d122995f51f0f08ba3e58f19e23e19fb2c52f889405bb146425"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-native-artifact-qualification.py.txt",
+      "bytes": 5584,
+      "sha256": "ee0056608a2a65319e2a2d75d1dbd6c17d9f1896bc778e30b9ebf878ddfb41f5",
+      "archive_only_not_new_runtime_or_test": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-current-certificate-artifact-qualification.py.txt",
+      "bytes": 4699,
+      "sha256": "b5e0bc9e22a62728a694087f54a4a441bc7657b84789f46981638e932d4704e1",
+      "archive_only_not_new_runtime_or_test": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/final-source614-20261006/pr614-actual-merge-replacement-custody-guard.py.txt",
+      "bytes": 3876,
+      "sha256": "bab34656ec832b122634161e3b0193588cb1721c20f8eafd618c8d4dc400bd04",
+      "archive_only_not_new_runtime_or_test": true
+    }
+  ],
+  "existing_append_only_prefixes": [
+    {
+      "path": ".agent-memory/handover.md",
+      "before_bytes": 257894,
+      "before_sha256": "afa1bbff432ff818a9a841dd331ce4577daa3125723002c68937cc3acde75079"
+    },
+    {
+      "path": ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+      "before_bytes": 46446,
+      "before_sha256": "876ad24913568656f703c1794dfbbdba7b099cca54d68dcf27ba3103bdea305a"
+    }
+  ],
+  "all44prior_ACTUALmarkers_exact": true,
+  "one45th_ACTUAL614": true,
+  "foreign_main_mode_type_blob": "Required finite entire index guard before commit and exact public commit/tree authentication after normal publication",
+  "original_finalDOC": "Consume exact latest public22OWN delta once; original160 alreadyactual; minimal five own current STOP paths remain original owner",
+  "final_PR_and_genuine_main": "PENDING_ORIGINAL_OWNER; no all-main-jobs or whole-plan claim",
+  "recursive_DOC_receipt_vehicle": false,
+  "new_Masterplan": false
+}

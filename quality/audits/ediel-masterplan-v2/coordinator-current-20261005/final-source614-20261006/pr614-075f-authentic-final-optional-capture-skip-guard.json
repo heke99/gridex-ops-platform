@@ -1,0 +1,54 @@
+{
+  "scope": "Exact current-source optional capture guard only; skipped steps are not native PASS or duplicate capture",
+  "head": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+  "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "run": 37418994326,
+  "event": "pull_request",
+  "attempt": 1,
+  "path": ".github/workflows/staff-api-schema-capture.yml",
+  "job": 112123898440,
+  "wrapper_conclusion": "success",
+  "all_six_capture_steps_actually_skipped": [
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 4
+    },
+    {
+      "name": "Run npm ci",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 5
+    },
+    {
+      "name": "Run supabase/setup-cli@v1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 6
+    },
+    {
+      "name": "Install the matching PostgreSQL 17 client",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 7
+    },
+    {
+      "name": "Capture authentic artifacts from the sourced clean replay",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8
+    },
+    {
+      "name": "Upload capture-only artifacts",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9
+    }
+  ],
+  "artifact_count": 0,
+  "no_duplicate_capture": true,
+  "original11975_capture_and_NOT_RUN_metadata_preserved": true,
+  "current_ALL12_native_main": "PENDING_OTHER_ORIGINAL_JOBS"
+}
