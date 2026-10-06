@@ -443,3 +443,31 @@ changeeffectiveprofileSMTP; tenantclaimalreadyblocks/storesdecision before
 workerbody. Correctonlyownednativeoracles aftersourceinspection/review.
 Sevenpacketrefs remainactive; no nextpair before wholeproof or explicit
 releasehandover. ManagedGitDatafallback recoveredCLI401operation blocker.
+
+## Reviewed native correction / next exact execution
+
+Source9a9ca889b566b2341479bfe364db9ccf366c8e8a: effective route
+authority is now ediel_route_profiles.smtp_to, with runtime-view assertions
+before worker entry. Tenant denial asserts actual claim refusal plus durable
+capability_not_ready/current decision/unlocked item and zero provider entry.
+Independent SC064 delta review APPROVE; scripts TypeScript, targeted ESLint
+and diff check PASS. Prior run37486582262/source3f471c43 remains2PASS2FAIL;
+no new native PASS claimed. Full component11858/884PASS remains applicable
+to unchanged component source. PR625 actually MERGEDc05625c7, role merge
+DELETE plus404 confirmed, MERGED5306019713610.
+
+Fresh main c05625c7; exact remote refs for completed retained fixture
+scripts/ediel-bilateral-prodat-h-original-native.test.ts and new side-effect-free
+helper scripts/helpers/ediel-bilateral-lk-native-fixture.ts are absent; fresh
+all-open-PR file assessment has zero overlaps. Independent LK plan review
+conditionally APPROVE minimal extraction with unchanged public receivedHStart
+and provider injection, preserving old defaults/P16B/three old assertions.
+Earlier retained-owner-export preference is not an explicit approval barrier
+when exact completed shared path is free and atomically reserved. No takeover
+of foreign IDs/config/helper is proposed.
+
+Next owner this agent: publish9a native correction for fresh selected and
+ordinary CI; acquire exact additional LK fixture/helper/test/config/workflow
+refs, confirm all and CLAIM530 before editing. Then reuse actual qualified
+LK chain for wrong correlation and sealed source refusal with durable zero
+effects. Coverage unchanged; role-memory still foreign-held.
