@@ -20,3 +20,18 @@ applicablecurrentCI, normalexpectedheadmerge underonlyimmediatelyfreerolemerge
 AFTERexplicitrolememoryrelease, actualreceipt andowner-role cleanup. Ifrole/gates
 block, preserve reviewedproposal andexplicitrolehandover beforecontinuing technical
 work; no waitingforone roleholdingother/no permanentcoordinator.
+
+## Review-ready source; publication next
+
+Reconciled7commonpaths at a8e40d6b371aad9b5f06d65c53b71a09e4e323d9
+independentlyAPPROVE sc064_spec_review: actual247tree/284counts/68remainingIDs/
+coveragehash, unique626+632lines eachonce, allforeignMDhistory/checkpointkeys
+/priorstatusJSONsnapshot preserved; source-head/mainfull/external distinctions
+correct. Node22.23.3 memorydoctorPARTIAL/campaigncompletefalse/noverifiedSHA,
+JSON/history/coverage-byte assertions/diffPASS; no product/coverage edits.
+Initialtrimutility substringfailure didnotqualifytrim; correctedgenericheading
+trim yields finalconcise a8e source, prior444lineproposalhistoricalonly.
+Nextthiswriter onecoherentpublicationwiththisCP/currentindependentreview then
+freshmandatorycurrent-headCI; exactheadmergethereonlyallgreen/immediatelyfree
+rolemerge afterexplicitmemoryrole release, actualreceipt/cleanup. OwnZ05pair
+3883/f290 independentlyauthoring, notanotherpacket/wholeapproval.
