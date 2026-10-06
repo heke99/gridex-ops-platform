@@ -8,7 +8,7 @@ import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePack
 
 /** Prospective catalog binding only. The database still owns original custody,
  * bilateral admission, legal ground, validation and every business effect.
- * Mixed/missing physical reasons must not borrow the first object's A profile.
+ * Mixed/missing physical reasons must not borrow the first object's profile.
  */
 export async function resolveAssignedSupplyBirthProfile(input: { rawPayload: string | null | undefined; receivedAt: string }) {
   const canonical = parseCanonicalEdielPayload({ rawPayload: input.rawPayload, direction: 'inbound', standardHint: 'edifact' })
@@ -18,14 +18,16 @@ export async function resolveAssignedSupplyBirthProfile(input: { rawPayload: str
   // Later-register and header occurrences are physical too, even when the
   // normative common-field projection selects only an object's first register.
   const physicalReasons = prodatCharacteristicValues('223', segments, una)
-  if (physicalReasons.length !== scopes.length || physicalReasons.some(reason => reason !== 'Z26')) return null
+  const reason = physicalReasons[0]
+  if (reason !== 'Z26' && reason !== 'Z70') return null
+  if (physicalReasons.length !== scopes.length || physicalReasons.some(value => value !== reason)) return null
   if (!scopes.length || !scopes.every(scope => scope.some(token => token.tag === 'LIN')
     && prodatCharacteristicValues('223', scope, una).length === 1
-    && prodatCharacteristicValues('223', scope, una)[0] === 'Z26')) return null
+    && prodatCharacteristicValues('223', scope, una)[0] === reason)) return null
   if (evaluateProdatTransactionReason({ rawSegments: canonical.rawSegments, una, code: 'Z04' }).issues.length) return null
   const received = new Date(input.receivedAt)
   if (!Number.isFinite(received.getTime())) throw new Error('assigned_supply_birth_receipt_clock_invalid')
-  const evidence = await resolveCanonicalRulePack({ family: 'PRODAT', messageCode: 'Z04', transactionSubtype: 'Z26',
+  const evidence = await resolveCanonicalRulePack({ family: 'PRODAT', messageCode: 'Z04', transactionSubtype: reason,
     applicationReference: canonical.applicationReference, direction: 'inbound', businessDate: stockholmBusinessDate(received) })
   if (canonical.version !== evidence.unhAssociationCode) throw new Error('assigned_supply_birth_association_mismatch')
   if (!evidence.databaseProfileKey) throw new Error('assigned_supply_birth_database_profile_key_missing')
