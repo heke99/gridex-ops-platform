@@ -19,5 +19,6 @@ export default defineConfig({
   test:{environment:'node',include:[
     'scripts/ediel-tr-09-reserve-source-native.test.ts',
     'scripts/ediel-transport-exception-native.test.ts',
+    'scripts/ediel-tr09-production-family-native.test.ts',
   ],setupFiles:['scripts/helpers/ediel-native-permission-catalog.setup.ts'],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })

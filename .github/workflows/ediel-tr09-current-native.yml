@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p tr09-current-native-working
-          native_tests=(scripts/ediel-transport-exception-native.test.ts scripts/ediel-tr-09-reserve-source-native.test.ts)
+          native_tests=(scripts/ediel-transport-exception-native.test.ts scripts/ediel-tr-09-reserve-source-native.test.ts scripts/ediel-tr09-production-family-native.test.ts)
           export TR09_CURRENT_NATIVE_TEST_SCOPE
           TR09_CURRENT_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
           python3 - <<'PY'
@@ -63,6 +63,11 @@ jobs:
               'lib/ediel/transport/exception/previousCrl.ts', 'lib/ediel/transport/exception/source.ts',
               'lib/ediel/security/certificateTrust.ts', 'lib/ediel/security/outboundRecipientCertificate.ts',
               'lib/ediel/transport/index.part-1.ts', 'lib/ediel/transport/index.part-2.ts',
+              'lib/ediel/config.ts', 'lib/ediel/sendContextConsistency.ts',
+              'supabase/migrations/20261006205324_ediel_production_all_family_smime.sql',
+              'scripts/helpers/originalMailboxNative.ts', 'scripts/helpers/syntheticCertificateTrust.ts',
+              'scripts/helpers/correctionContextNative.ts', '__tests__/helpers/closureWireFixtures.ts',
+              '__tests__/helpers/utiltsNativeSourceFixture.ts',
               'scripts/gridex-aud-003-clean-replay.sh', 'scripts/gridex-redact-native-evidence.py',
               'supabase/config.toml', 'supabase/schema.sql', 'package.json', 'package-lock.json',
               'docs/ediel/masterplan-v2/registers/rules.json', 'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
