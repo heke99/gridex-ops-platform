@@ -2,7 +2,8 @@
 
 Agent codex-20261006-95bc00df11da; packet6c0f6bee-1d98-4bec-a2f8-b8ff3889d009.
 Active pair SC-064 / AT-Z08LK-SUPPLIER; branch codex/ediel-sc064-native-95bc00df11da.
-Current source67d5cedc375b31aae92db1e6a22a794e04da0780 / PR626 OPEN.
+Current published source916bd681714deb4e5ab6a97a8a9fa5bd74ef9959 / PR626 OPEN.
+Whole behavior executed/reviewed at67d; latestdelta only owncoverage/proof.
 Component625 actually MERGED mainc05625c71ada1023ef73749c51fbebf2af0673fb;
 fresh main stillc05625. TaggedSC fa run37490809344/artifact11425771948
 actual4/4PASS; LK802 run37491862075/artifact11425704191 actual22PASS2FAIL,
@@ -12,12 +13,12 @@ actual24/24 and4/4PASS, not mandatory-CI green. Components40/40peer/author and f
 884files/11859tests285.95s/exit0 PASS; scripts/testTS/ownlint/diff PASS.
 Mandatory verify audit actuallyFAIL sharp0.35.4 GHSA-wq5f-xc86-pv6w;
 foreign locked repairPR62039a0 has8 applicable SUCCESS, clean/certificate
-RUNNING, not main. Wholecoverage main278/352 unchanged; only own whole
-proved rows may change. Authentic market/legal agreement/activation separate.
+RUNNING, not main. Wholecoverage main278/352; ownreviewedcandidate280/352.
+OnlySC064/LKrowsapproved afterwholeactualproof. Authentic market/legal agreement/activation separate.
 Own13refs b57d220a/266aa5f7/bcf48437/a8a59928 active; unused RD released.
 No own role. Legitimate memory role24fa8502b8/fde4a57d confirmed, previous
 6f0a owner cleanup actuallydone; hand over concise625/626 facts for mirror.
-Next this agent: qualify current native receipts/JUnit/hashes, consume actual
+Next this agent: consume actual
 qualified main620 repair then fresh affected runtime/install/audit/native/CI;
 finish whole-contract review, owncoverage/proof and expected-head gatedmerge.
 No nextpair before actualdelivery or explicit documented RELEASE.
@@ -716,3 +717,20 @@ andcoverage reexec; no foreigntest/assertion/gatealteration. Preservelogs
 /tmp/gridex-95bc-coverage-check.log andcoverage-sc015-failure.log.
 620qualifiedrepairstillnotmain; nextthissession qualifyabsoluterunner,
 publishreviewed916once, thenactualmainadoption/freshgatesbeforemerge.
+
+## Published whole candidate / corrected coverage PASS
+
+Actual normalpushPR626head916bd681714deb4e5ab6a97a8a9fa5bd74ef9959
+APIconfirmed; PRbody rewrittenaroundfinalwholeimplementation/evidence.
+READY5306020838793 precedes runtimeadoption; wholeproofsource67d immutable,
+latestsourceonlyledger/proofmetadata. Absoluteoriginalpreload Node22
+coverage--check actualEXIT0 at916:352IDs/280approved/315taggedgreen/
+0taggedfailing/37untagged. Initialrelativepreload failure remainshistory,
+isolatedSC015/16 absolute2/2PASS. No test/assertion/source changed.
+Log/tmp/gridex-95bc-coverage-absolute.log. Allforeignledgerrows preserved.
+
+Currentmandatory exactpublishedCI queued/running; no allgreenclaim. Actual
+foreign62039a repairstillclean/certificateRUNNING, notmain. Nextthisowner
+consumeactualqualifiedmainrepair thenfreshGOV04/own40/install/audit/native/
+mandatoryexactheadgates; finalcurrentintegrationreview/expectedheadmerge.
+Currentrole24fa/fde4a physicallyheld, commonmirror via530; no newpair.
