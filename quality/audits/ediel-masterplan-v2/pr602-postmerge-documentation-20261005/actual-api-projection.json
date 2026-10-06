@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "scope": "Selected authenticated API merge projection; original raw response retained unchanged",
+  "pr": 602,
+  "url": "https://github.com/heke99/gridex-ops-platform/pull/602",
+  "head": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+  "state": "closed",
+  "merged": true,
+  "mergedAtUtc": "2026-10-05T18:00:57Z",
+  "actualMerge": "99676683338e11e60666345782609a822de9181e",
+  "actualTree": "0b1d98ccac00c4cb84e2385bcfc44c09d693fc42",
+  "orderedParents": [
+    "1aeccc7cc92c10c8e6781026e42e834d25023802",
+    "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076"
+  ],
+  "apiUrls": [
+    "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/602",
+    "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/99676683338e11e60666345782609a822de9181e"
+  ],
+  "sourceRawReceipt": {
+    "file": "pr602-actual-api-receipt.json",
+    "bytes": 25874,
+    "sha256": "d2e70739e8075e0774187167130810532793a8a2d056f6d89cc691c7cac8b2e9"
+  },
+  "uniqueActualMergeReleaseAndHandoverComment": 6000168488,
+  "intendedComment": 6000139963,
+  "previousQueueCommentUpdated": 5998953275,
+  "limits": "Only documentation turn released; continuation/source/native ownership retained; final stable-main certification not claimed."
+}

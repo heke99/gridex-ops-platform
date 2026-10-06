@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="10" failures="0" errors="0" time="45.290462566">
+    <testsuite name="scripts/ediel-sc-010-beneficiary-export-native.test.ts" timestamp="2026-10-05T12:38:37.953Z" hostname="runnervm8df0l" tests="4" failures="0" errors="0" skipped="0" time="24.68099715">
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload" time="4.132220142">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values" time="3.61918586">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 lease expires during a real &apos;results&apos; write lock wait and rolls back result, completion and receipt together" time="8.516477672">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 lease expires during a real &apos;jobs&apos; write lock wait and rolls back result, completion and receipt together" time="8.410637557">
+        </testcase>
+    </testsuite>
+    <testsuite name="scripts/ediel-sc-071-projection-revocation-native.test.ts" timestamp="2026-10-05T12:38:37.955Z" hostname="runnervm8df0l" tests="6" failures="0" errors="0" skipped="0" time="20.609465416">
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="writer-first real grant revocation COMMIT serializes before projection, including a retained page" time="4.036454769">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="writer-first real grant revocation ROLLBACK serializes before projection, including a retained page" time="3.358207202">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions" time="3.198842032">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="SC071 actual leased export waits for grant writer COMMIT before its internal result commit" time="3.256265827">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="SC071 actual leased export waits for grant writer ROLLBACK before its internal result commit" time="3.479918198">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="SC071 actual export result transaction commits before waiting revoke; later reads cannot disclose its retained page" time="3.276940991">
+        </testcase>
+    </testsuite>
+</testsuites>

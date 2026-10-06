@@ -1,0 +1,184 @@
+{
+  "captured_at": "2026-10-05T12:42:53.099989+00:00",
+  "main": "fff486f822001d35970f163507b10e17c3692f58",
+  "tree": "82fec813af9a2184259e419a0adbaf4563c2ffe8",
+  "main_approved_rules": 92,
+  "main_approved_contracts": 121,
+  "main_distinct_total": 213,
+  "main_scope": 352,
+  "base_source_equality": "21 directly selected inputs including frozen literals and current SQL/native unchanged against local branch; full dependency graph NOT_QUALIFIED",
+  "inputs": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "git_blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "working_tree_equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "git_blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "working_tree_equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_message_cases.json",
+      "git_blob": "4625a655050293519733f46156afd1bcc20ac397",
+      "sha256": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "working_tree_equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/source_manifest.json",
+      "git_blob": "aa6e094d548300609ded7eb680c1fe288a6dd4be",
+      "sha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+      "working_tree_equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+      "git_blob": "3a28cf23dd1de441803a90dbd96bc98de3a9f4e1",
+      "sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/flows/prodatBrpChange.ts",
+      "git_blob": "aa8d366a9c038fb9816db40765b9d2fd1ecf4540",
+      "sha256": "3439e7229b55089fe838a310d2ae87dd3a7c7c72ff31e44de1ac8ba3fa866861",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/production/brpChangeSource.ts",
+      "git_blob": "2f2fcc3a9642f4382c65dae26b047b31330a97b7",
+      "sha256": "828f87db8903a4b0fa4d87b8b8477b581c6be7581b4901f97d17ae823f7eb159",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/intent/brpChangeGateway.ts",
+      "git_blob": "2a12e4239c42dfd20dbe915f7e2966703c730e6c",
+      "sha256": "1374d2ac2f09c987d69637266b6e3e40759d69a4a4311966adbf2135d823557c",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/intent/renderers/brpChange.ts",
+      "git_blob": "2b1d3264acdee4403847100abae7727f7d6484d0",
+      "sha256": "38f90bb307e7569e5a003faf87c935a3813f7bb11bed10486f858d7a783e69a9",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/flows/prodatProductionContract.ts",
+      "git_blob": "1019719ef1783f8f6eeabf532b904c6e1c444a1c",
+      "sha256": "06de58fdca4bff4783d9995805cc586d94d91df1c12507af34b951102fd7cf84",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/production/contractSource.ts",
+      "git_blob": "4a9431997560493d1ca08d4bf776b93ac656a2f0",
+      "sha256": "1d13e3b55d20aa741d903d98f6b2384788d1a7d911842fa13a9bc69c8027659b",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/intent/productionContractGateway.ts",
+      "git_blob": "422d018248f885644b4c44012036137ce5a9b893",
+      "sha256": "4e191b315d1d1391e184bdf73f61f4afecbb76f4ce012058a713eae6779b50d3",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/intent/renderers/productionContract.ts",
+      "git_blob": "ca4a2d7adb13da267a1a3df65c00024d6623a0df",
+      "sha256": "4afd670c4528db29b33a6dfa74f4f8498d28a7bbe51747bc7ce6fb23d5e33fe0",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/deadlinePolicy.ts",
+      "git_blob": "d36c582d3354932476da14e3f2a9998b2359c024",
+      "sha256": "5fe8333f61a4460a979fc62f15f9b15ffafb2faa3702b09392a5042eb08b2f34",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/ediel-brp-change-source.test.ts",
+      "git_blob": "7f53168f18663bc0a0acaa31ebc79f8210e22039",
+      "sha256": "17614373d9fb377358cff75a0a426cf0ddef974a5a72a8a12e69251afa1fe9aa",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/ediel-source-producer-reference.test.ts",
+      "git_blob": "7a0c0aea1809b52200e7dcecdca83c9592e90ec7",
+      "sha256": "f110035dffec822827e7065a2e2ce0e04fd695ee9018d982c7f6aecf4f58b076",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/ediel-contract-original-intake.test.ts",
+      "git_blob": "8f8a9371931eef79fa37b6b16799ca5ce7e93636",
+      "sha256": "b9a3b364956365fe40b928a51e07590c50138aedad63c8e20fd04830094daed6",
+      "working_tree_equal": true
+    },
+    {
+      "path": "scripts/ediel-original-source-intake-native.test.ts",
+      "git_blob": "0dcd076b66263a2880fb184bbde1545a5db38ade",
+      "sha256": "d8069ba5134d115ae801925b0b65969740eb87b690061b40be54b0e03ae9c8d6",
+      "working_tree_equal": true
+    },
+    {
+      "path": "scripts/ediel-brp-change-sql-regression.mjs",
+      "git_blob": "b8179b39e4f6a4fd5d55f6180bc034b1d8e69bf7",
+      "sha256": "47972b92d139cc36bfb200fa54d2e2d4e26f5d7f0c07549fc6b876a48cec6105",
+      "working_tree_equal": true
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "git_blob": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "working_tree_equal": true
+    },
+    {
+      "path": "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "git_blob": "a31741bd3f4794140de54bede4906b83f0e7f4a9",
+      "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1",
+      "working_tree_equal": true
+    }
+  ],
+  "sources": [
+    {
+      "id": "P",
+      "filename": "260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf",
+      "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "pages": 140
+    },
+    {
+      "id": "T",
+      "filename": "260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6(4).pdf",
+      "sha256": "5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951",
+      "pages": 60
+    }
+  ],
+  "conditional_candidate_ids": [
+    "AT-Z09B-SUPPLIER",
+    "AT-Z09D-SUPPLIER"
+  ],
+  "not_claimed": true,
+  "tests_executed": false,
+  "additional_reuse_inspection_inputs": [
+    {
+      "path": "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+      "git_blob": "1a6f1782c1803f30d2ff1d43de8d5bfbbbd50f14",
+      "sha256": "0375ff5aa01b41b94b481100d1840332b15b92d20a9133daaea085989f0e965e",
+      "working_tree_equal": true
+    },
+    {
+      "path": "scripts/ediel-production-contract-sql-regression.mjs",
+      "git_blob": "9d73e31c5b34b4232544e27027640b0bbe665cc9",
+      "sha256": "297c0be75013cff1e5a8e9fc34c13c5f648e65faa8c5b55dc9e1062209c7eb25",
+      "working_tree_equal": true
+    },
+    {
+      "path": "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
+      "git_blob": "54f468cba961e67aab5c5d72b8610f1e8938cc56",
+      "sha256": "46ef42d669960b45e11a7dff678abe0f2f7894dc8d21ffee58f5144ca03fbc5f",
+      "working_tree_equal": true
+    },
+    {
+      "path": "scripts/test-ediel-p-08-production-contract-confirmation.cjs",
+      "git_blob": "5497730dd1b37240af13ae5995ca872cc6f83a1b",
+      "sha256": "3985acd49cae41cb60a718e0256c323d96a799c894886f8db624b375225e6325",
+      "working_tree_equal": true
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "source_commit": "fff486f822001d35970f163507b10e17c3692f58",
+  "acceptance_tests": [
+    {
+      "id": "AT-Z09B-SUPPLIER",
+      "name": "Meddelandefall Z09B",
+      "given": "SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+      "when": "Byte av balansansvarig för berörda leveransrelationer.",
+      "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+      "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "rule_ids": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "layer": "Planerat meddelande-/rollprov",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    {
+      "id": "AT-Z09D-SUPPLIER",
+      "name": "Meddelandefall Z09D",
+      "given": "SUPPLIER; 210 XOR 211, aldrig DTM157 som ersättning; inte NAD+UD på Z09D.",
+      "when": "Produktionsavtal tecknas eller upphör.",
+      "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z70; CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.; Starta/avsluta rätt produktionsavtal.",
+      "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "rule_ids": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "layer": "Planerat meddelande-/rollprov",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    }
+  ],
+  "complete_referenced_rule_cards": [
+    {
+      "id": "TEN-05",
+      "area": "Separata verksamhetsroller",
+      "kind": "Ediel/Handbok",
+      "applies_to": "Aktör både DDQ och DGI",
+      "trigger": "Varje affärshändelse",
+      "condition": "Roll bestäms av affärsprocess, inte globalt standardfält.",
+      "on_pass": "23-DDQ-PRODAT för leverantörsprocess;23-DGI-PRODAT för tillståndsprocess.",
+      "on_failure": "Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+      "callsite_owner": "policy context / prodat application reference",
+      "source": "T §5.2.3; P §2.1; SYS",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-TEN-05"
+    },
+    {
+      "id": "ENV-06",
+      "area": "Meddelandeprofil",
+      "kind": "Ediel/Handbok",
+      "applies_to": "PRODAT",
+      "trigger": "BGM/CCI byggs",
+      "condition": "BGM bär Z-funktion utan suffix; CCI Z13/CAV bär treteckenskod för undertyp.",
+      "on_pass": "Z03 + Z22 betyder Z03L, inte BGM+Z03L.",
+      "on_failure": "Avvisa fel kombination på rätt kontrollnivå.",
+      "callsite_owner": "profileRenderer / subtypeRegistry",
+      "source": "P §2.1,2.6",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-ENV-06"
+    },
+    {
+      "id": "P-01",
+      "area": "PRODAT-fält",
+      "kind": "Ediel/Handbok",
+      "applies_to": "Alla P",
+      "trigger": "Fältkontroll",
+      "condition": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt.",
+      "on_pass": "Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+      "on_failure": "Inget fältnummer från regex över DTM/RFF-text.",
+      "callsite_owner": "fieldMatrix / canonicalPolicyFieldValidator",
+      "source": "P §2.2,2.6,3.3",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-P-01"
+    }
+  ],
+  "additional_retained_relation_card": [
+    {
+      "id": "P-08",
+      "area": "Avtal",
+      "kind": "Ediel/Handbok",
+      "applies_to": "Z09D",
+      "trigger": "Start eller slut produktionsavtal",
+      "condition": "210 XOR211; inte216 i stället.",
+      "on_pass": "Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+      "on_failure": "Båda: P-APERAK40/109; ingen generell157.",
+      "callsite_owner": "profileRenderer / lifecycle",
+      "source": "P §2.2,3.3",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-P-08"
+    }
+  ],
+  "complete_profile_cases": [
+    {
+      "id": "CASE-Z09B-SUPPLIER",
+      "family": "PRODAT",
+      "code": "Z09",
+      "subtype": "B",
+      "wire_reason": "Z27",
+      "operating_role": "SUPPLIER",
+      "direction": "outbound",
+      "application_reference": "23-DDQ-PRODAT",
+      "trigger": "Byte av balansansvarig för berörda leveransrelationer.",
+      "expected": "CONTRL och APERAK; uppdatering enligt BRP-förloppet.",
+      "permitted_effect": "Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+      "additional_guard": "Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+      "capability_status": "Tillämplig",
+      "field_profile": "prodat_fields + prodat_conditional_cells + parent_group + register_overlay",
+      "source": "P §2.1–2.2,2.6; HB kap.4,10,11",
+      "test_id": "AT-Z09B-SUPPLIER"
+    },
+    {
+      "id": "CASE-Z09D-SUPPLIER",
+      "family": "PRODAT",
+      "code": "Z09",
+      "subtype": "D",
+      "wire_reason": "Z70",
+      "operating_role": "SUPPLIER",
+      "direction": "outbound",
+      "application_reference": "23-DDQ-PRODAT",
+      "trigger": "Produktionsavtal tecknas eller upphör.",
+      "expected": "CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.",
+      "permitted_effect": "Starta/avsluta rätt produktionsavtal.",
+      "additional_guard": "210 XOR 211, aldrig DTM157 som ersättning; inte NAD+UD på Z09D.",
+      "capability_status": "Tillämplig",
+      "field_profile": "prodat_fields + prodat_conditional_cells + parent_group + register_overlay",
+      "source": "P §2.1–2.2,2.6; HB kap.4,10,11",
+      "test_id": "AT-Z09D-SUPPLIER"
+    }
+  ]
+}

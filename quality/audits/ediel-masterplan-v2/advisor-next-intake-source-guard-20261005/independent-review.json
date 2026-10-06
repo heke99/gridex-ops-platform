@@ -1,0 +1,131 @@
+{
+  "result": "APPROVE",
+  "recordedAtUTC": "2026-10-05T21:39:30.381795+00:00",
+  "scope": "Fresh independent immutable-object/delta review of OLD-PREPARATION7d6+public15a prospective guard v2 at actual296, plus separately authorized narrow actual296-to-b83 advisor input-tuple compatibility only. No actual adoption/current-main union/CI/capture qualification.",
+  "currentSealedReceipt": {
+    "path": "/workspace/ediel-session-inventory-20261005/advisor-next-intake-7d6-15a-prospective-source-guard-v2.json",
+    "sha256": "b8b4704118748cdcef5d88e5c2dea0bf4a770750ca3e621d6f14787da02098a3",
+    "bytes": 14394
+  },
+  "historicalInitialReceipt": {
+    "path": "/workspace/ediel-session-inventory-20261005/advisor-next-intake-7d6-15a-prospective-source-guard.json",
+    "sha256": "b9bd42aaeaeb4590668a919db578a88b05c28919a57f7f9007a076d6c210902f",
+    "bytes": 12776,
+    "unchanged": true
+  },
+  "v1ToV2MetadataDelta": {
+    "onlyChangedTopLevelFields": [
+      "prior_four_component_reuse",
+      "revision_provenance",
+      "sealed_utc"
+    ],
+    "sameProspectiveTreeSourceDeltaForeignAndReadInputProofs": true,
+    "addedOnlyExactPriorGuardProvenanceAndRevisionSealContext": true
+  },
+  "preparedHead": "7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4",
+  "preparedTree": "3850062dcfe445b89c4d8df72e5b83c75254c6b1",
+  "advisorPublicHead": "15a1580834dbae28bc50661c34c4936e81962127",
+  "advisorPublicTree": "afdc1af8360ddc3c9e121df4de8965a35df4e3d3",
+  "prospectiveTree": "6706bfdd7486a2b91897e6d8610c2709405710da",
+  "prospectiveEntries": 8682,
+  "soleExistingChangedSource": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+  "sourceModeTypeBlob": {
+    "mode": "100644",
+    "type": "blob",
+    "object": "4eddbb25fb01d415aa058b2c8b7edd50d15a55ba"
+  },
+  "sourceSHA256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654",
+  "newOwnedMetadataPathsExact15a": 12,
+  "allForeignPreparedTuplesExact": 8669,
+  "foreignDigest": "dc2c02c2258c5ead9c5b11d63edf2e98a051271fb09c266c205a2144c4a6e712",
+  "coverageTupleExact": {
+    "mode": "100644",
+    "type": "blob",
+    "object": "875b60dcc320dcd329e4c57a8a04a761a414cea1"
+  },
+  "frozenTestedReadInputReuse": {
+    "testedCommit": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+    "fixedReadTupleMapsExactAcrossFourSnapshots": 8,
+    "allMigrationTupleMapsExact": 1073,
+    "migrationTupleDigest": "855ee85e315a167d0fe1c97fd47cef979f9893221f5437c608f3fb50c870bfe5",
+    "selectedPathsExactFrozenInventory": 827,
+    "inventorySHA256": "1fb70844ad970b078998ba7a93cc196ab098673ef253f8594d36a3349d61eb30",
+    "publishedInputGuardSHA256": "ebb164267f2e86cb051ac8bdfbaefaf0ef9a89887c2f96aadb7715a625ddd3dc",
+    "bodyOr60InputSemanticReanalysisPerformed": false
+  },
+  "originalAppliedQualificationReused": {
+    "appliedPeerPublicPath": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/applied-review.json",
+    "sha256": "126ddeb4f27df3dfc183e5de2d14bbbba1923fa450d6d4ec5aeed5e6168e6167",
+    "originalAPPROVEConsumed": true,
+    "beforeAfterAnd28ControlsNotReadOrRerunHere": true,
+    "notRelabeledAsNewExecutionOrWholeCurrentMainQualification": true
+  },
+  "priorFourComponentProvenanceIndependentlyBound": {
+    "publicCommit": "fa4323938028ab801e542b4aa961412d21ed4327",
+    "publicPath": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/next7d-actual296-public-preparation-source-only-guard.json",
+    "gitBlob": "265d3a1fbed7d6041913a02d74656d70ba38e032",
+    "bytes": 9757,
+    "sha256": "152a12d269900c94c77ed5547fad6ee81738582d01020445acf5dac89500d884",
+    "schema": "gridex-next7d-actual296-public-preparation-source-only-guard/v1",
+    "originalVerdict": "READY_EXACT_PUBLIC_PREPARATION_REF_ONLY_CURRENT_CI_AND_MAIN_DELIVERY_PENDING",
+    "boundToFrozen7d6Tree": true,
+    "originalGuardNotContainedIn7d6Preparation": true,
+    "originalScopeReusedNotRereviewed": true,
+    "preparedComponentIndexSHA256": "3e103f935de9e75a72c80433cc1954ffec513c54ce2092129d4652b9f05c2286",
+    "indexModeTypeBlobPreserved": true,
+    "historicalAdvisorPendingSentenceNotRewrittenOrPromoted": true
+  },
+  "laterMainContext": {
+    "source": "Parent supplied later-main context, then explicitly authorized this separate narrow sealed advisor-input tuple claim; immutable Git identity/8inputs/full migration-directory comparison verified above.",
+    "reportedActualMain": "b83b284467c8e0fcaa277706a708706e0a705068",
+    "reportedActualTree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+    "reportedActualDelivery": "#606 merged21:33:59UTC after actual296",
+    "effect": "Original7d6+15a tree6706 remains OLD-PREPARATION at296. Separate b83 block proves advisor input compatibility only; no actual intake, b83 composed union, resulting full/CI/main/capture qualification. Those remain retained612 writer."
+  },
+  "worktreeCustody": {
+    "beforeAfterHEAD": "15a1580834dbae28bc50661c34c4936e81962127",
+    "cleanBeforeAfter": true,
+    "indexRefCheckoutSourceMutated": false,
+    "newMergeTreeInvocations": 0
+  },
+  "actualAdoption": "NOT_EXECUTED",
+  "currentMainCI": "NOT_QUALIFIED",
+  "sourceOnly": true,
+  "blockingFindings": [],
+  "ownerAndNextAction": "Release this finite peer to retained sole root503/#612 source-intake writer, CI observer/serial merger/shared capture owner under5306002167558. The frozen prospective proof is ready for that owner’s separate actual-input/source-intake guard and execution/publication decisions; no competing writer or new merge request.",
+  "limits": [
+    "Only this new outside review JSON written by peer. No merge-tree rerun, test/native/CI/capture execution, prior log/archive/control-output read, full60-input semantic reanalysis, source-chain rerun, edits/index/ref/checkouts/fetch/API/GitHub/CP/publication.",
+    "Git tree tuple maps, exact source/provenance/index/input metadata bytes were checked once; twelve own members matched by immutable mode/type/blob identity without reopening old log bodies.",
+    "Source-only frozen prospective composition and prior qualification reuse are distinct from this fresh own review and from actual intake/current-main delivery.",
+    "Provider release/staff holds, global612CI/main/capture and final baseline/tag remain retained owners and are not credited by this receipt.",
+    "Additional sealed actual606 input-compatibility claim is reviewed only by tuple identity/count/digest; no recomposition, read of old logs/archives, source semantics or wider four-checker readsets. Actual main still has old f83 checker, not tested new15a code."
+  ],
+  "additionalActualB83AdvisorInputCompatibility": {
+    "sealedReceiptPath": "/workspace/ediel-session-inventory-20261005/advisor-actual-main-b83-input-reuse.json",
+    "sealedReceiptSHA256": "bc396a9ac8fda25081f617ce2e3778906ffe1dcafb77ef29bb01263eaa1b8377",
+    "sealedReceiptBytes": 4893,
+    "actualCommit": "b83b284467c8e0fcaa277706a708706e0a705068",
+    "actualTree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+    "actualParents": [
+      "2964415adec9e36932583e95f8506437d262c507",
+      "9a2df8728a3d4dc9cc53145ba6c1e5398efb401b"
+    ],
+    "actualGitParentTreeIdentityVerified": true,
+    "priorActualCommit": "2964415adec9e36932583e95f8506437d262c507",
+    "allEightFixedTuplesExact": true,
+    "all1073SQLTuplesExact": true,
+    "oneJSONManifestTupleExact": true,
+    "fullMigrationDirectoryEntriesExact": 1074,
+    "SQLTupleDigest": "855ee85e315a167d0fe1c97fd47cef979f9893221f5437c608f3fb50c870bfe5",
+    "fullDirectoryTupleDigest": "f9302eec06dae5608484a0c83d273196bc0a4cce73923e50807c65f5feebc460",
+    "selected827InputsReusedUnchanged": true,
+    "currentMainStillOriginalCJSBlob": "f83b8fce6d9ce22cd5a270e099bb776f7cc77fed",
+    "published15aPostimageNotYetAdoptedInActualMain": true,
+    "original7d6ProspectiveTreeNotRecomputedOrRelabeledCurrentMain": true,
+    "finiteExecutionReusedNotRerun": true,
+    "reportedInitialUnsealedCountCorrection": "Root first counted entire directory as1073 rather than1074 including one JSON manifest; corrected before any written receipt/checker execution. Independent tuples/counts now verified exactly.",
+    "newMergeTreeOrCheckerCalls": 0,
+    "broadFourChecker60InputReanalysis": false,
+    "verdict": "APPROVE_NARROW_ADVISOR_INPUT_COMPATIBILITY_ONLY"
+  }
+}

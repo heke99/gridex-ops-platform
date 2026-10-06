@@ -1,0 +1,26 @@
+{
+  "observedAtUtc": "2026-10-05T18:01:32.282020+00:00",
+  "actualMerge": "99676683338e11e60666345782609a822de9181e",
+  "parents": [
+    "1aeccc7cc92c10c8e6781026e42e834d25023802",
+    "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076"
+  ],
+  "actualTree": "0b1d98ccac00c4cb84e2385bcfc44c09d693fc42",
+  "candidateHead": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+  "exactChangedPaths": [
+    ".agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md",
+    ".agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/postmerge-receipt.json",
+    "quality/audits/ediel-masterplan-v2/at-z15v-z15vh-esco/post-merge-receipt.json"
+  ],
+  "foreignEntriesPreserved": 8232,
+  "coverageBlobUnchanged": "f992cc747f5e0511c282c136d6ea694775fb7073",
+  "ownBlobs": {
+    ".agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md": "6516f91c60fd885a04ebc141f90a46a38a600afb",
+    ".agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md": "9b83a9a66b39105d6d2ea3eea6bce03a9dab00f9",
+    "quality/audits/ediel-masterplan-v2/at-z15v-z15vh-esco/post-merge-receipt.json": "78fe2fa62ef5fbb28b3ecc1d9ab8cbdbf06ea826",
+    "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/postmerge-receipt.json": "2541e0661837f11c89c0726fde5bf0f81ae5306c"
+  },
+  "verdict": "PASS exactactualparent/tree/own4/foreignunion",
+  "scope": "Historicaldocs only; no native/whole/source release or stable currentmainCI inference. One unique actual602handover toretained coordinator follows."
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "scope": "Selected terminal exact-head check projection; not raw API response or new execution",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 602,
+  "head": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+  "observedAtUtc": "2026-10-05 17:50:19 UTC",
+  "state": "SUCCESS",
+  "requiredSuccess": 9,
+  "requiredTotal": 9,
+  "checks": [
+    {
+      "name": "browser-public",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875343351,
+      "job_id": 111875343351,
+      "run_id": 37343249833,
+      "started_at": "2026-10-05T16:51:03Z",
+      "completed_at": "2026-10-05T16:52:18Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249833/job/111875343351"
+    },
+    {
+      "name": "smoke",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875342740,
+      "job_id": 111875342740,
+      "run_id": 37343249880,
+      "started_at": "2026-10-05T16:47:04Z",
+      "completed_at": "2026-10-05T16:48:56Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249880/job/111875342740"
+    },
+    {
+      "name": "verify",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875342644,
+      "job_id": 111875342644,
+      "run_id": 37343249842,
+      "started_at": "2026-10-05T17:01:58Z",
+      "completed_at": "2026-10-05T17:03:51Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249842/job/111875342644"
+    },
+    {
+      "name": "targeted-regressions",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875341531,
+      "job_id": 111875341531,
+      "run_id": 37343249768,
+      "started_at": "2026-10-05T16:49:26Z",
+      "completed_at": "2026-10-05T16:53:18Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249768/job/111875341531"
+    },
+    {
+      "name": "coverage",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875343230,
+      "job_id": 111875343230,
+      "run_id": 37343249880,
+      "started_at": "2026-10-05T16:52:22Z",
+      "completed_at": "2026-10-05T16:58:25Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249880/job/111875343230"
+    },
+    {
+      "name": "pr-certificate",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111880921472,
+      "job_id": 111880921472,
+      "run_id": 37343249880,
+      "started_at": "2026-10-05T17:16:54Z",
+      "completed_at": "2026-10-05T17:17:04Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249880/job/111880921472"
+    },
+    {
+      "name": "quality-release-gates",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875342844,
+      "job_id": 111875342844,
+      "run_id": 37343249842,
+      "started_at": "2026-10-05T17:06:35Z",
+      "completed_at": "2026-10-05T17:13:14Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249842/job/111875342844"
+    },
+    {
+      "name": "clean-migration-replay",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875342293,
+      "job_id": 111875342293,
+      "run_id": 37343249842,
+      "started_at": "2026-10-05T16:56:21Z",
+      "completed_at": "2026-10-05T17:48:38Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249842/job/111875342293"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "head_sha": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "status": "completed",
+      "conclusion": "success",
+      "check_run_id": 111875342656,
+      "job_id": 111875342656,
+      "run_id": 37343249842,
+      "started_at": "2026-10-05T17:04:37Z",
+      "completed_at": "2026-10-05T17:13:21Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37343249842/job/111875342656"
+    }
+  ],
+  "rawReceiptCustody": {
+    "file": "pr602-exact-head-ci.json",
+    "bytes": 284979,
+    "sha256": "7bd0628393643f6eabc3738e4110bc0e6034b426267ce16013fc91920a7e9feb",
+    "location": "Preserved original retained F/G worktree; this metadata ref publishes a selected projection only"
+  },
+  "technicalReview": {
+    "id": 5417893534,
+    "state": "COMMENTED",
+    "technicalDisposition": "Bounded independent APPROVE/no findings",
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/602#pullrequestreview-5417893534",
+    "humanApproval": false
+  },
+  "coderabbit": "Automatic review skipped, not approval",
+  "limits": [
+    "Qualifies exactd510 only, not future source/current-main CI",
+    "No new tests/native/source or whole approval",
+    "Sole original observer stopped after terminal9/9"
+  ]
+}

@@ -1,0 +1,8 @@
+2026-10-05T12:18:54.4929291Z 9b50b1b9a5aae19e9cabead09c92af4e0443c44c
+2026-10-05T12:18:55.2059316Z HEAD is now at 9b50b1b9a test(ediel): bound real export lease waits before RPC cancellation
+2026-10-05T12:18:55.2185473Z 9b50b1b9a5aae19e9cabead09c92af4e0443c44c
+2026-10-05T12:19:14.7587939Z FAILED migrations (0.4s) [database_or_migration_drift]
+2026-10-05T12:19:14.7593586Z Migration integrity check failed (1 issue(s)):
+2026-10-05T12:19:14.7594774Z - Migration is missing from checksum manifest: 20261005101500_ediel_beneficiary_export_jobs.sql (sha256=d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596)
+2026-10-05T12:20:29.6272921Z Gridex E2E failed: 14/15 passed, 1 failed.
+2026-10-05T12:20:29.6330948Z ##[error]Process completed with exit code 1.
