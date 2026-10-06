@@ -643,3 +643,16 @@ Next95bc confirm10remote refs+READY530 then normalpublish89/readback; finalpeer
 PRreceipt/body current state; authenticate fresh39/all9280Gitinputs/head/tree/
 realexit/JUnit and mandatorycurrentheadCI. No wholeapproval/coveragepromotion/
 CI_GREEN/merge/externalclaim; authenticbbf30/9 and all previousRED preserved.
+
+## Actual89 publication / current39 and mandatory CI pending
+
+Normalpush+PR636/refAPI confirmed89fc66df0d9753c0ee6b4f7bedc4da369637e6d4.
+READY5306025304620 and exacttwopeer SOURCE review PR6366025320266; body current.
+Freshnative39run37530343538, OPS37530343541, full37530343543, browser37530343548,
+retainedLK37530343698, targeted37530343627, holdnative37530343763 queued/pending.
+Current39NOT_RUN/resultpending; no stalebbfgreenborrow, actualfull5ed12043 separate.
+Actualmain141 withforeign286 and ownrowsNOT_EXECUTED retained; same10refs/no roles.
+Next95bc authenticate current39/head/tree/ALL9280Gitinputhashes/JUnit/realexit,
+retainexactcauseifanystrictfailure; ifallliteral effectsproved requestmandatory
+wholepeerreview then onlyown2coverage/currentmandatorygates/normalmerge-role.
+Sharedrole-memory307601stillforeign639; ownCP/530 available, no sharedoverwrite.
