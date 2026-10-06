@@ -241,7 +241,11 @@ async function createUnresolvedTenantItem(params: {
   const { data, error } = await supabaseService
     .from('ediel_unresolved_items')
     .insert({
-      company_id: null,
+      // Routing refusal does not erase the sealed parent's custody. This
+      // fresh persisted row supplies diagnostic ownership only; business
+      // resolution remains unresolved and grants no legal authority.
+      company_id: params.message.company_id ?? null,
+      environment: params.message.environment,
       source_message_id: params.message.id,
       issue_type: params.issueType,
       severity: params.issueType === 'tenant_ambiguous' ? 'critical' : 'warning',
