@@ -19,6 +19,7 @@ const sha=(value:string|Buffer)=>createHash('sha256').update(value).digest('hex'
 const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
 let directory:string,leafPem:string,anchor:string,expiredCrl:string,revokedCrl:string
 const cdps=['https://synthetic.example.invalid/first.crl','https://synthetic.example.invalid/second.crl']
+const recipientMailbox='recipient@example.invalid'
 const openssl=(args:string[])=>execFileSync('openssl',args,{cwd:directory,encoding:'utf8',timeout:10000,maxBuffer:65536,stdio:['ignore','pipe','pipe']})
 const crlVerification=(file:string)=>{
  const result=spawnSync('openssl',['crl','-in',file,'-noout','-verify','-CAfile','ca.pem'],{
@@ -36,7 +37,7 @@ beforeAll(()=>{
    '[ca]','default_ca=synthetic','[synthetic]',`dir=${directory}`,'database=$dir/index.txt','new_certs_dir=$dir','serial=$dir/serial','crlnumber=$dir/crlnumber',
    'certificate=$dir/ca.pem','private_key=$dir/ca.key','default_days=365','default_crl_days=1','default_md=sha256','policy=policy','x509_extensions=recipient',
    '[policy]','commonName=supplied','[recipient]','basicConstraints=critical,CA:FALSE','keyUsage=critical,digitalSignature,keyEncipherment',
-   'extendedKeyUsage=emailProtection',`crlDistributionPoints=${cdps.map(value=>'URI:'+value).join(',')}`,''
+   'extendedKeyUsage=emailProtection',`subjectAltName=email:${recipientMailbox}`,`crlDistributionPoints=${cdps.map(value=>'URI:'+value).join(',')}`,''
   ].join('\n'))
   openssl(['req','-x509','-newkey','rsa:2048','-nodes','-keyout','ca.key','-out','ca.pem','-days','365','-subj','/CN=SYNTHETIC TR09 native CA',
    '-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign'])
@@ -129,7 +130,13 @@ const ownerMembers=()=>sql(`SELECT to_jsonb(count(*)) FROM pg_auth_members x JOI
 const tlsContinues=()=>expect(smtp.options).toHaveBeenLastCalledWith(expect.objectContaining({requireTLS:true,tls:{rejectUnauthorized:true,minVersion:'TLSv1.2'}}))
 const accepted=(s:Seed)=>({accepted:[s.m.receiver_email],rejected:[],messageId:'synthetic-tr09-'+randomUUID(),response:'250 synthetic accepted'})
 function publishCache(s:Seed,crl=expiredCrl){
- const leaf=new X509Certificate(leafPem),register=JSON.stringify({syntheticOnly:true,receiver:s.m.receiver_ediel_id,leaf:sha(leaf.raw),anchor:sha(anchor),crl:sha(crl)})
+ const leaf=new X509Certificate(leafPem)
+ // A signed RFC822 identity must qualify the real prospective SMTP target;
+ // mutable certificate labels cannot supply this recipient binding.
+ expect(s.m.receiver_email).toBe(recipientMailbox)
+ expect(leaf.checkEmail(s.m.receiver_email??'',{subject:'always'})).toBe(recipientMailbox)
+ expect(leaf.checkEmail('other-recipient@example.invalid',{subject:'always'})).toBeUndefined()
+ const register=JSON.stringify({syntheticOnly:true,receiver:s.m.receiver_ediel_id,leaf:sha(leaf.raw),anchor:sha(anchor),crl:sha(crl)})
  const scope={companyId:s.f.companyId,environment:'test',receiverEdielId:s.m.receiver_ediel_id,actorUserId:s.f.actorUserId,registerVersion:'synthetic-'+randomUUID(),
   originalReference:'synthetic://tr09-certificate-register',legalAuthorityReference:'synthetic://tr09-legal',processAuthorityReference:'synthetic://tr09-process',
   ownerRegisterReference:'synthetic://tr09-owner',validFrom:new Date(Date.now()-60000).toISOString(),validTo:new Date(Date.now()+600000).toISOString()}
