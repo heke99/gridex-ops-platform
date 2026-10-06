@@ -1,27 +1,27 @@
 ## CURRENT autonomous continuation — 2026-10-06
 
-Agent codex-20261006-95bc00df11da; packet6c0f6bee-1d98-4bec-a2f8-b8ff3889d009.
-Active pair SC-064 / AT-Z08LK-SUPPLIER; branch codex/ediel-sc064-native-95bc00df11da.
-Current published source916bd681714deb4e5ab6a97a8a9fa5bd74ef9959 / PR626 OPEN.
-Whole behavior executed/reviewed at67d; latestdelta only owncoverage/proof.
-Component625 actually MERGED mainc05625c71ada1023ef73749c51fbebf2af0673fb;
-fresh main stillc05625. TaggedSC fa run37490809344/artifact11425771948
-actual4/4PASS; LK802 run37491862075/artifact11425704191 actual22PASS2FAIL,
-all20retained and2newmutation PASS, premature matcher correction reviewed67d.
-Current67d nativeLK37493991168/job112373701278 andSC37493991484/job112373710893
-actual24/24 and4/4PASS, not mandatory-CI green. Components40/40peer/author and full802f
-884files/11859tests285.95s/exit0 PASS; scripts/testTS/ownlint/diff PASS.
-Mandatory verify audit actuallyFAIL sharp0.35.4 GHSA-wq5f-xc86-pv6w;
-foreign locked repairPR62039a0 has8 applicable SUCCESS, clean/certificate
-RUNNING, not main. Wholecoverage main278/352; ownreviewedcandidate280/352.
-OnlySC064/LKrowsapproved afterwholeactualproof. Authentic market/legal agreement/activation separate.
-Own13refs b57d220a/266aa5f7/bcf48437/a8a59928 active; unused RD released.
-Own memoryrole8e60d8978a5462a477793922a3eece5d4d84b10a held; no mergerole.
-Previous24fa/fde4a owner exactDELETE/4046020927719 read; newCLAIM beforeedits.
-Next this agent: consume actual
-qualified main620 repair then fresh affected runtime/install/audit/native/CI;
-finish whole-contract review, owncoverage/proof and expected-head gatedmerge.
-No nextpair before actualdelivery or explicit documented RELEASE.
+Agent codex-20261006-95bc00df11da; activepacket6c0f6bee-1d98-4bec-a2f8-b8ff3889d009.
+PairSC-064 / AT-Z08LK-SUPPLIER; sourcebranchcodex/ediel-sc064-native-95bc00df11da.
+Reviewed integratedsourceb1093858e78924b29c7b14ae98322dd0cf0b9588 / PR626 OPEN.
+Parentsown916bd681 +actualmainc0385ee4ee8340eb9e68029c2bd09d05bdf37f40.
+625actuallymergedc05625;620actuallymergedc0385/282storedrows; owncandidate284
+(113rules+171contracts), only2ownrows changed/all350foreignrows preserved.
+Wholeliteralreviews APPROVE at67dactualSC4/LK24 andsupported40consumers;
+publishedpre-adoption916LK24alsoauthenticated. Integratedb109SCreview
+APPROVEconditionalfreshnative/currentmandatoryCI, ATintegrationreviewpending.
+FreshsupportedNode22 npmci,61own+GOV04/SMTP tests, scripts/testsTS/ownlint/diff
+PASS. Originalproductionaudit nowPASS high0critical0, originalexceptionunchanged.
+Currentb109native/allmandatoryCI pendingpublication; no currentheadCIgreen/main
+or externalacceptance claim. Prior67d/916receipts/auditRED remainhistorical.
+All13ownresource refs confirmed beforeadoption; unusedRD released. No ownrole:
+memory8e60ownerDELETE/absence6021266002 afterexplicit6filehandover6021264507.
+Commonreviewed/pushed7a6a95a7 undercodex/ediel-memory-95bc00df11da preserved
+NOT_DELIVERED; nextlegitimatewriter adoptsactual620main/282counts thenexactown
+626actualmerge/handover whenitexists, preservinghistory/foreign/HOLD.
+Nextthissession publishreviewedb109 once, qualifyfreshSC4/LK24/current9ordinary
+requiredgates+selectednative/review, expectedheadmergeunderfreshfreerolemerge;
+documentactualmain, commonreceipt underfreshmemoryrole, owner-only13refrelease.
+Onlyafteractualdelivery/release refresh currenteligibility andselectnextfreepair.
 
 Historical checkpoint entries below retain previous RED/results and scope.
 
@@ -811,3 +811,27 @@ historical/no obsolete currentauditclaim, freshNode22 install/audit and
 GOV04+40consumers/scripts/testsTS/lint/diff, publishonecombinedadoption
 thenactualSC4/LK24/currentallmandatorygates+finalintegrationreview.
 Currentowncandidateafteradoption284 is NOT actualmain282. No nextpair.
+
+## Integrated actualmain / fresh supported verification before publication
+
+Actualb1093858e78924b29c7b14ae98322dd0cf0b9588 normalmergeparents916+c038,
+cleanreconciliation consumesall deliveredforeign component files/checkpoints
+and actual39a runtime/package repair; no authoring offoreignpaths. Actual
+maincoverage113+169=282, integrated113+171=284; all350foreign fullrows
+preserved; only12ownPRdiffpaths. Prior67d native/audit fields nowexplicitly
+historical; currentadoption/pendingheadverification fields preventobsolete
+audit/blockerclaims. No metadata-only re-publication plannedafteractualnative;
+currentheadreceipt loggedhere+530 andallmandatoryCI stillrequired.
+
+FreshNode22.23.3 npmci471packages/10s PASS unchangedactualmainlock. Official
+productionauditPASS(info/low/moderate/high/critical all0 afteroriginal
+documentednodeforgeexception unchanged). Fiveaffectedunitfiles61/61PASS
+9.05s (40own+21GOV/SMTP), scripts/testsTS exits0, own8codepathESLint/diff0.
+No localnativePASS claimed; actualGitHubcurrentruntime stillneeded.
+Independent finalSC integrationAPPROVE exactb109 conditionalcurrent4/4native
+andmandatorygates, unchangedownhashes/all350rows/mainbytes verified.
+ATfinalintegration pending; priorwholeliteral approval remainsbounded.
+Memoryrole8e60 exactownerDELETE/remoteabsence afterhandover6021264507
+confirmed6021266002, no ownroles; all13packetrefs confirmed.
+Nextthisauthor publishqualifiedb109 once, freshcurrentnative/requiredchecks
+andfinalreview, rolemergeonlyallgreen/expectedhead, actualdelivery/release.
