@@ -93,9 +93,18 @@ on:
       - 'lib/ediel/core/receivedProdatResponseValidation.ts'
       - 'lib/ediel/core/receivedRegisterValidationBinding.ts'
       - 'lib/ediel/prodat/prodatApplicationObjectValidation.ts'
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - 'e2e/production/helpers/**'
+      - 'docs/ediel/**'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.scripts.json'
+      - 'tsconfig.json'
 
 permissions:
   contents: read
@@ -138,7 +147,7 @@ jobs:
           # Replay temporarily moves the original migrations until EXIT.
           # Capture checkout input hashes before sourcing it, without secrets.
           python3 - <<'PY'
-          import hashlib, json, os, pathlib
+          import hashlib, json, os, pathlib, subprocess
           test_scope = os.environ['Z03L_Z03LK_NATIVE_TEST_SCOPE'].splitlines()
           paths = test_scope + [
               'scripts/ediel-at-z03l-z03lk-supplier-native.config.ts',
@@ -258,8 +267,17 @@ jobs:
               'lib/ediel/core/receivedProdatResponseValidation.ts',
               'lib/ediel/core/receivedRegisterValidationBinding.ts',
               'lib/ediel/prodat/prodatApplicationObjectValidation.ts',
-              'package.json', 'package-lock.json', 'tsconfig.scripts.json',
+              'package.json', 'package-lock.json', 'tsconfig.scripts.json', 'tsconfig.json',
           ]
+          # Include the complete tracked application/helper/schema/doc input
+          # roots, regardless of extension. A finite hand-list cannot capture
+          # transitive imports or every SQL input consumed by clean replay.
+          tracked = subprocess.check_output([
+              'git', 'ls-files', '-z', '--', 'lib', 'types', 'supabase',
+              'scripts', '__tests__/helpers', '__tests__/fixtures',
+              'e2e/production/helpers', 'docs/ediel',
+          ]).decode().split('\0')
+          paths = sorted(set(paths) | {p for p in tracked if p})
           hashes = {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}
           pathlib.Path(os.environ['Z03L_Z03LK_NATIVE_INPUT_HASHES']).write_text(json.dumps(hashes)+'\n')
           PY
