@@ -190,3 +190,42 @@ Own rows and main totals111/121+167/231=278/352 remain unchanged.
 Next action this session: refresh remaining exact-head gates/roles and preserve
 reviewed delivery if foreign roles remain occupied. Remaining owner actions and
 74-row eligibility mapping above are unchanged; no new independent pair.
+
+## BLOCKED / explicit release handover — 2026-10-06
+
+All authorized independent consumer work in this packet is locally verified
+and scoped peer-approved; no further whole-ID approval is permitted from this
+evidence. PR625 source75f25e9ff93f11a68c2cbaf163319827fb85f042 remains OPEN,
+not merged. Last read: six gates SUCCESS (targeted/browser-public/smoke/verify/
+coverage/upgrade); quality-release-gates, clean-migration-replay and pr-certificate
+IN_PROGRESS. Remote future completion is not inferred. Main9cd95408 unchanged.
+
+This session explicitly relinquishes SC064/AT-Z08LK-SUPPLIER and both exact
+new test-file resources for retained-owner continuation. Completed source,
+PR, worktree, independent reviews and original failed/executed receipts stay
+preserved; neither row changes from NOT_EXECUTED. After this checkpoint is
+published and BLOCKED/RELEASE posted on530, DELETE only refs still equal to
+own415129e2 receipt and confirm absence. Failed release remains unresolved.
+
+Next concrete responsible actions:
+- Retained pre-send/registry/native source owner: persisted earlier-policy
+  original plus current authority changes, actual worker and durable decision/
+  block/preservation/no-provider proof; reuse seven current consumer cases.
+- Retained bilateral closure/native owner, coordinated with bde0638's existing
+  config/service-fixture scope: actual incorrectly correlated Z05 LK refusals
+  and missing-R/D/immutable-source effects, preserving zero unauthorized
+  period end/receipt/transition/ERC100; reuse thirty current consumer cases
+  and existing positive/unsent/replay/reviewer/audit-rollback native source.
+- Environment/platform owner: recover managed Docker storage so required
+ 17.6.1.155 image registers; nonroot/no cached objects cannot repair it.
+- root-self-selection-20261006: reconcile actual618/main receipt and release
+  its own exact role-mergefb798bdd/role-memory4d184dd or document why held.
+- This PR625 author: after required current-head CI and role availability,
+  refresh main/dependencies/ownership, reacquire required free scope with a
+  fresh receipt (or obtain explicit new-owner handoff), qualify any changed
+  head, then own expected-head merge. No merge while foreign locks or missing
+  checks remain. Shared campaign reconciliation awaits free role-memory.
+
+No next packet: current74-row screen establishes only occupied/retained-source/
+external-prerequisite work, no independent complete free pair. Receiving this
+continuation does not release other authors' ownership or external boundaries.
