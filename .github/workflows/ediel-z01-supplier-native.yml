@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/ediel-at-z01-supplier-native.test.ts'
       - 'scripts/ediel-z01-supplier-native.config.ts'
+      - 'scripts/test-ediel-z01-info-request-status-compatibility.cjs'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/helpers/**'
       - 'scripts/gridex-aud-003-*'
@@ -79,6 +80,7 @@ jobs:
           required = test_scope + [
               '.github/workflows/ediel-z01-supplier-native.yml',
               'scripts/ediel-z01-supplier-native.config.ts',
+              'scripts/test-ediel-z01-info-request-status-compatibility.cjs',
               'scripts/ediel-source-owner-native.config.ts',
               'scripts/helpers/ediel-z01-info-request-native-fixture.ts',
               'scripts/helpers/ediel-z01-info-request-native-wire.ts',
@@ -153,6 +155,8 @@ jobs:
           (pathlib.Path(os.environ['Z01_NATIVE_WORKING']) / 'receipt.json').write_text(
               json.dumps(receipt, indent=2) + '\n')
           PY
+          node scripts/test-ediel-z01-info-request-status-compatibility.cjs \
+            > "$RUNNER_TEMP/z01-status-compatibility.log" 2>&1
           # Force the existing replay's disposable local, pinned PG17.6.1.155
           # mode. Keep its EXIT cleanup trap and all canonical checksum gates.
           unset GRIDEX_REPLAY_DB_URL
