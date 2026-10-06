@@ -98,7 +98,7 @@ it.each(['missing IV','DTM329'])('holds an authentic unsupported %s selection wi
  expect(io.reserve).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
 })
 
-import {readFileSync} from 'node:fs'
+import {existsSync,readFileSync} from 'node:fs'
 import {PGlite} from '@electric-sql/pglite'
 /** Finite real SQL actor compatibility. Only public actor/config rows; original
  * authority tables remain empty. The global lock and native permission lookup
@@ -144,4 +144,64 @@ it('actual additive RPC preserves the existing nonrequested actor boundary witho
 it('actual unlinked SQL discovery rejects an actor whose existing life-event permission is revoked after the graph wait',async()=>{
  const db=await actorCompatibilityDb(true)
  try{await db.exec('SET ROLE service_role');await expect(db.query(`SELECT public.ediel_requested_customer_change_selected_facts_v1('${id(1)}','${id(9)}','${id(2)}')`)).rejects.toMatchObject({code:'42501',message:'customer_life_event_actor_forbidden'})}finally{await db.close()}
+},20000)
+
+/** Finite SQL composition only: routing ledgers and current-qualification,
+ * wire-token, legacy and certification functions below are declared ports.
+ * These rows do not prove any business authority. Real original qualification,
+ * sender authorization, revocation and durable effects remain native tests. */
+async function currentConsumerDb(kind='authorized',legacy=false,linked=true){
+ const db=new PGlite()
+ await db.exec(`CREATE ROLE service_role;CREATE ROLE anon;CREATE ROLE authenticated;
+ CREATE SCHEMA gridex_requested_changes;CREATE SCHEMA gridex_customer_life_events;CREATE SCHEMA gridex_received_sources;CREATE SCHEMA gridex_negative_fixtures;CREATE SCHEMA gridex_ediel_ack_replay;
+ CREATE TABLE public.ediel_messages(id uuid,company_id uuid,direction text,raw_payload text,environment text,message_standard text,message_family text,message_code text);
+ CREATE TABLE gridex_requested_changes.origins(message_id uuid,company_id uuid,actor_user_id uuid);
+ CREATE TABLE gridex_customer_life_events.originals(message_id uuid,event_id uuid,company_id uuid);
+ CREATE TABLE gridex_customer_life_events.origins(event_id uuid,company_id uuid,actor_user_id uuid);
+ CREATE TABLE public.declared_current_calls(kind text,company_id uuid,message_id uuid,actor_id uuid,phase text);
+ CREATE FUNCTION gridex_received_sources.closure_wire_tokens_v2(raw text)RETURNS jsonb LANGUAGE sql AS $$SELECT '[{"tag":"BGM","elements":[["BGM"],["Z09"]]},{"tag":"CAV","elements":[["CAV"],["E34"]]}]'::jsonb$$;
+ CREATE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2()RETURNS void LANGUAGE plpgsql AS $$BEGIN RETURN;END$$;
+ CREATE FUNCTION gridex_customer_life_events.require_current_v1(c uuid,mid uuid,actor uuid,phase text)RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN
+ INSERT INTO public.declared_current_calls VALUES('life_event',c,mid,actor,phase);
+ ${kind==='raise'?"RAISE EXCEPTION 'declared_current_source_revoked';":kind==='null'?'RETURN NULL;':`RETURN '${JSON.stringify({basis:{status:kind}})}'::jsonb;`}
+ END$$;
+ CREATE FUNCTION gridex_requested_changes.require_message_v1(m public.ediel_messages,actor uuid)RETURNS void LANGUAGE plpgsql AS $$BEGIN INSERT INTO public.declared_current_calls VALUES('legacy',m.company_id,m.id,actor,'prepare');END$$;
+ CREATE FUNCTION gridex_negative_fixtures.require_positive_message_v1(c uuid,mid uuid,code text)RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'ediel_positive_fixture_original_required';END$$;
+ INSERT INTO public.ediel_messages VALUES('${id(13)}','${id(1)}','outbound','declared token port','test','edifact','PRODAT','Z09');
+ ${legacy?`INSERT INTO gridex_requested_changes.origins VALUES('${id(13)}','${id(1)}','${id(9)}');`:''}
+ ${linked?`INSERT INTO gridex_customer_life_events.originals VALUES('${id(13)}','${id(2)}','${id(1)}');INSERT INTO gridex_customer_life_events.origins VALUES('${id(2)}','${id(1)}','${id(9)}');`:''}`)
+ const extract=(file:string,name:string)=>{
+  const source=readFileSync(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8'),start=source.indexOf(`CREATE FUNCTION ${name}(`),end=source.indexOf('$$;',start)
+  if(start<0||end<start)throw Error('actual_current_consumer_sql_required')
+  return source.slice(start,end+3)
+ }
+ await db.exec(extract('20260930224540_ediel_source_bound_requested_changes.sql','public.ediel_require_requested_change_source_current_v1').replace('CREATE FUNCTION public.ediel_require_requested_change_source_current_v1(','CREATE FUNCTION public.ediel_require_requested_change_source_current_before_scope_fence_v1('))
+ await db.exec(extract('20261001010758_ediel_bilateral_customer_source_owner.sql','public.ediel_require_requested_change_source_current_v1'))
+ await db.exec('REVOKE ALL ON FUNCTION public.ediel_require_requested_change_source_current_before_scope_fence_v1(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;REVOKE ALL ON FUNCTION public.ediel_require_requested_change_source_current_v1(uuid,uuid) FROM PUBLIC,anon,authenticated;GRANT EXECUTE ON FUNCTION public.ediel_require_requested_change_source_current_v1(uuid,uuid) TO service_role;')
+ const forward=new URL('../supabase/migrations/20261006195500_ediel_requested_change_life_event_current_guard.sql',import.meta.url)
+ if(existsSync(forward))await db.exec(readFileSync(forward,'utf8'))
+ return db
+}
+const currentConsumerCall=`SELECT public.ediel_require_requested_change_source_current_v1('${id(1)}','${id(13)}')`
+it('actual current SQL consumer delegates linked life-event original to its stored preparer without certification fallback',async()=>{
+ const db=await currentConsumerDb()
+ try{
+  await db.exec('SET ROLE service_role');await expect(db.query(currentConsumerCall)).resolves.toBeDefined();await db.exec('RESET ROLE')
+  expect((await db.query('SELECT * FROM public.declared_current_calls')).rows).toEqual([{kind:'life_event',company_id:id(1),message_id:id(13),actor_id:id(9),phase:'prepare'}])
+ }finally{await db.close()}
+},20000)
+it.each(['held','null','raise'])('actual current SQL consumer refuses a linked %s source without certification fallback',async(kind)=>{
+ const db=await currentConsumerDb(kind)
+ try{await db.exec('SET ROLE service_role');await expect(db.query(currentConsumerCall)).rejects.toMatchObject({code:'P0001',message:kind==='raise'?'declared_current_source_revoked':'customer_life_event_current_original_scope_changed'})}finally{await db.close()}
+},20000)
+it('actual current SQL consumer retains the old requested-source owner when a legacy origin exists',async()=>{
+ const db=await currentConsumerDb('held',true)
+ try{
+  await db.exec('SET ROLE service_role');await expect(db.query(currentConsumerCall)).resolves.toBeDefined();await db.exec('RESET ROLE')
+  expect((await db.query('SELECT kind,actor_id FROM public.declared_current_calls')).rows).toEqual([{kind:'legacy',actor_id:id(9)}])
+ }finally{await db.close()}
+},20000)
+it('actual current SQL consumer still refuses an unlinked test original through its existing certification owner',async()=>{
+ const db=await currentConsumerDb('authorized',false,false)
+ try{await db.exec('SET ROLE service_role');await expect(db.query(currentConsumerCall)).rejects.toMatchObject({code:'P0001',message:'ediel_positive_fixture_original_required'})}finally{await db.close()}
 },20000)
