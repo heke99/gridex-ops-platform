@@ -1,0 +1,69 @@
+{
+  "status": "PASS_DURABLE_REAL_SDK_CAPTURE_BINDING_TEST",
+  "completed_at_utc": "2026-10-05T09:55:48.348Z",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "authored_file": {
+    "path": "__tests__/staff-api-storage-service-binding.test.ts",
+    "sha256": "17c7d9043d87d33f42665672729361cdd4c04e541189600d3ac8d489df4497df"
+  },
+  "prior_independent_review": {
+    "path": "/tmp/gridex-staff-review/staff-api-storage-target-independent-source-review.json",
+    "sha256": "08d01dcf5e8208378102763c0134234731456464450635e5f9395e4420af89d0",
+    "preserved": true
+  },
+  "source_files_unchanged": [
+    {
+      "path": "lib/staff-api/storageTarget.ts",
+      "sha256": "cb980a914308802b0b93f0b68c3cbee1b793c7bb9b2388e7fa4162b23f2bf811"
+    },
+    {
+      "path": "lib/staff-api/http.ts",
+      "sha256": "90b6ce4dfa0e547608ff50e545f014c0d8f6e5afb3bdbd1f0224004580bf1788"
+    },
+    {
+      "path": "lib/supabase/service.ts",
+      "sha256": "1acad0fb34158f405fba9cd554cd075776a441395be389769fe0b4c70827fe98"
+    },
+    {
+      "path": "__tests__/staff-api-storage-target.test.ts",
+      "sha256": "7dc47f305fb48cb11b26c9f13275dc7be765cad8acc7d67cc0b0fb42ffed54cb"
+    }
+  ],
+  "tested_behavior": [
+    "Actual service.ts and installed SDK imported without mocks.",
+    "Both DEV→PROD and PROD→DEV environment mutation permutations retain the original captured URL and project.",
+    "Original singleton and newly created request-client each execute an actual SDK read through fake fetch to the captured project/rest path.",
+    "Expected captured project passes; newly changed environment project is rejected with exact storage_project_mismatch/412.",
+    "Fake fetch intercepts every SDK request; all environment keys/relations/request IDs are synthetic and restored after each case."
+  ],
+  "checks": [
+    {
+      "command": "/tmp/gridex-staff-node22/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/staff-api-storage-service-binding.test.ts __tests__/staff-api-storage-target.test.ts --reporter=verbose",
+      "exit_code": 0,
+      "files": 2,
+      "passed": 7,
+      "failed": 0,
+      "new_cases": 2,
+      "existing_boundary_cases": 5,
+      "log": "/tmp/gridex-staff-review/staff-storage-target-durable-final-green.log",
+      "log_sha256": "816d09d2dbc00e37e1732919b9fce02fa2988b9d219c3fa1f0f3282950cd4359"
+    },
+    {
+      "command": "/tmp/gridex-staff-node22/node_modules/node/bin/node node_modules/typescript/bin/tsc --noEmit -p /tmp/gridex-staff-review/staff-storage-target-binding-tsconfig.json",
+      "exit_code": 0,
+      "scope": "New permanent test plus its real imports; no whole application qualification claim."
+    },
+    {
+      "command": "/tmp/gridex-staff-node22/node_modules/node/bin/node node_modules/eslint/bin/eslint.js __tests__/staff-api-storage-service-binding.test.ts --max-warnings 0",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "node": "v22.23.3",
+  "supabase_sdk": "2.103.0",
+  "changes_by_reviewer": "One new permanent test only. No production source/config/SQL changes, no commits/push/network or hosted operations.",
+  "qualification_limit": "Local durable regression only; PROD schema alignment/enrollment/deployment remains pending."
+}

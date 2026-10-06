@@ -26,7 +26,7 @@ function formatDate(value: string | null | undefined) {
 }
 
 export default async function SupportCaseDetailPage({ params }: { params: Promise<{ caseId: string }> }) {
-  const context = await requireAdminPageKeyAccess('operations.tasks')
+  const context = await requireAdminPageKeyAccess('support.cases')
   const scope = await resolveAdminTenantReadScope(context)
   // Tenant support content is only shown inside the tenant's own scope.
   if (!scope.companyId) notFound()

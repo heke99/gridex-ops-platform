@@ -1,0 +1,47 @@
+{
+  "scope": "EXISTING_IMP05_COMPONENT_FIXTURE_MIGRATION_BOUNDARY_ONLY",
+  "head_before_fix": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "actual_failure_run": 37394830873,
+  "actual_failure_job": 112048396213,
+  "actual_failure": "Twelve tests compile post-forward captured route function before newtechnical_mailbox_births table exists",
+  "portable_fixture": {
+    "path": "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql",
+    "bytes": 11862,
+    "sha256": "f93db246832064c4b6355f9b75daab825f06e341bc3a3bb9622832e2e6cc449c",
+    "origin_raw_schema_at_source119": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd",
+    "raw_schema_git_blob": "d41b3ebde294d03ef50088c7ec803b4e4e937eed",
+    "source119": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "original_raw_producer": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "both_definitions_byte_exact_actual_admitted_main53": true,
+    "predecessors": [
+      {
+        "name": "gridex_ediel_technical_ack.select_configured_reply_route_v2",
+        "bytes": 5314,
+        "sha256": "3aaf4967bf8e7056736cb6b47b6bd8a359c6980beab17d5d4dd7d9dcaeb79e78"
+      },
+      {
+        "name": "public.ediel_record_inbound_reception_v1",
+        "bytes": 6221,
+        "sha256": "b9679a74edecdaf1435f83edfa306b49d3c8a1066dddc38c30720cb0ff343904"
+      }
+    ]
+  },
+  "actual_forward_SHA256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+  "actual_forward_result_body_assertion": "BOTH pg_proc.prosrc must equal current authentic captured schema bodies after realSQL apply; no stale or invented after-definition accepted",
+  "original12_controls": "Preserved actor/company/membership/environment/payload/NULL attribution/prospective-versus-legacy/no-backfill/custody/lock-gap/privateRLS/immutable SMTP receipt",
+  "production_SQL_consumer_eight_generators_raw3_coverage_workflows": "UNCHANGED_FROM675",
+  "supported_Node": "22.23.3",
+  "meaningful_actual_component_tests": {
+    "command": "node22 node_modules/vitest/vitest.mjs run __tests__/ediel-imp-05-unattributed-mailbox-route.test.ts --reporter=json --outputFile=...",
+    "exit_code": 0,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "report_sha256": "467db50f87f45e981df30d8bbd3f47e931e30434208a3610d6e2c78df51c559e"
+  },
+  "single_file_ESLint_exit_code": 0,
+  "git_diff_check_exit_code": 0,
+  "test_postimage_SHA256": "e8325423677ac88c933e47ee14d1756b5dee7cf82ab97843033946bded7d8707",
+  "newhead_native_CI_type_schema_upgrade_parity": "MANDATORY_PENDING_NOT_BORROWED",
+  "new_masterplan_work": false
+}

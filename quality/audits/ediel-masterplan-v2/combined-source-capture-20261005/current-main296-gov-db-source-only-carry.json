@@ -1,0 +1,27 @@
+{
+  "kind": "Root bounded genuine actual608 combined source carry; earlier independenta2 qualification reused only for exact preserved source",
+  "source_head": "b21e4c111f042273c63f764155826d8bbd9a5da2",
+  "source_tree": "7dac0fd66f8bf1dbeb51c76bc7496664d57de135",
+  "actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "actual_main_tree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+  "parents": [
+    "6f5a4dae8e795e1f32bf3d8fc470ebab39e10085",
+    "2964415adec9e36932583e95f8506437d262c507"
+  ],
+  "prior_independent_guard_sha256": "e4de81f4e59d1bd5a1be2b68b36472daa7e50af525fb87962c3d2c947dd4d041",
+  "all_original1073_SQL_and_two_original_GOV_DB_forwards_exact": true,
+  "SQL_count": 1075,
+  "eight_generator_inputs_and_complete_manifests_exact_prior_source": true,
+  "raw3_and_historical_NOT_RUN_exact": true,
+  "ordered352_IDs_current_main_metadata_exact": true,
+  "foreign348_complete_rows_evidence_exact": true,
+  "owned4_complete_rows_exact_public_heads": true,
+  "stored_approvals": {
+    "main": 271,
+    "candidate": 275
+  },
+  "no_runtime_native_parity_capture_or_wholeCI_execution_claim": true,
+  "Staff_schema_source_still_pending_original_owner_freeze_and_qualification": true,
+  "canonicalENV07": "Actual first #608 main postimage inherited; no #610 variant",
+  "changed_paths_only_original_GOV_DB_packet_and_own_combined_docs": true
+}

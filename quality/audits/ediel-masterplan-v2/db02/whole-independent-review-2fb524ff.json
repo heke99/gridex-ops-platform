@@ -1,0 +1,217 @@
+{
+  "verdict": "APPROVE_COMPLETE_FROZEN_DB02_ATDB02_CODE_BEHAVIOR",
+  "at": "2026-10-05T18:44:13.819528+00:00",
+  "head": "2fb524ff6f3413861a9c21142d867074d6f1906c",
+  "tree": "cd635c8ecee32e943943b16bca2e8c3955835fb7",
+  "native_source": "6a14022ed2782363068ec0fa3138915f50bba57f",
+  "native_tree": "f768e93784c61de8ee77d1d82f033c4b6339868d",
+  "protected_source_hashes": {
+    "__tests__/ediel-db02-profile-periods.test.ts": "60cd89bf9a56b6ef0f186bba251ddffa8c493297dbf0727682c2b56a1e4eb3dc",
+    "scripts/ediel-db02-profile-periods-native.test.ts": "6824bd054d11f98e76289edf59eed27d63bbfab0abf10454e25fcf621c7a3c60",
+    "scripts/ediel-source-owner-native.config.ts": "b2b24ab1d95f21f5ce6fe51b7764d80d83d91b729e04637c3cf8466d462cb541",
+    "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0",
+    "scripts/migration-history-manifest.json": "0c1ae4c6965b60a9af7f8101ea0560e77afe43c61d54af5415445e9937b00e6d",
+    "quality/audits/ediel-masterplan-v2/coverage.json": "2b2b28f50c3f3fba49487b8d98eca86e3b01613d142e464e640e93fa8659fa2e"
+  },
+  "capture_leaf_only_six_paths": [
+    ".agent-memory/masterplan-db02-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/db02/capture-receipt-6a14022e-20261005.json",
+    "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+    "scripts/supabase-types-manifest.json",
+    "supabase/schema.fingerprint.json",
+    "supabase/schema.sql"
+  ],
+  "three_date_reverse_substitution_restores_entire_994_native_source": true,
+  "prior_994_5PASS_1FAIL_receipt_unchanged": true,
+  "prior_finite_source_review": {
+    "head": "c40cc2a28fe53d932c3391e2c371a1aac12856b2",
+    "profile_cases": 25,
+    "identity_send_match_readiness_cases": 45,
+    "service_command_checks": 48,
+    "fresh_execution_here": false,
+    "five_test_assertion_bodies_exact_except_one_tag_line": true,
+    "current_service_probe_only_adds_16_SC020_lines": true,
+    "current_actor_authorization_delta": "same queries/predicates/messages; typed EdielExecutionFailure extends Error; current native actor refusals qualify real boundary"
+  },
+  "retained_finite_test_input_hashes": {
+    "__tests__/ediel-db02-profile-periods.test.ts": "60cd89bf9a56b6ef0f186bba251ddffa8c493297dbf0727682c2b56a1e4eb3dc",
+    "__tests__/tenant-ediel-identity-evidence.test.ts": "9239bf93f5f58e7c21c51fe2db1a59e3a567e5ae88f6c9892b4f211acf15c642",
+    "__tests__/ediel-tenant-send-authority.test.ts": "d06556a7994a4a6ad568d4f71108106dcddce33c07a88901be2f99710c39800c",
+    "__tests__/ediel-match-tenant-fail-closed.test.ts": "42970dd1b17c2e07efa4794deabd56ded46088f10a74a00d79fc95b72c48990c",
+    "__tests__/ediel-scoped-capability-readiness.test.ts": "890e055f8eae9d7a5ea08b0df430416618360710906882e705a9491d02614af0"
+  },
+  "qualified_current_function_chain": [
+    {
+      "function": "public.gridex_guard_meter_reading_series_tenant",
+      "migration": "supabase/migrations/20260813125500_ediel_utilts_series_version_default.sql",
+      "trimmed_body_sha256": "ef4e6d1a862950d2c25477c277c6cac8a9ad923cc85150971e0fb39c067b4524",
+      "current_schema_and_migration_equal": true,
+      "migration_exact_retained_511_source": true
+    },
+    {
+      "function": "public.gridex_guard_meter_reading_value_tenant",
+      "migration": "supabase/migrations/20260813124500_ediel_utilts_transactional_persistence_v1.sql",
+      "trimmed_body_sha256": "a6bdc0e63a3163cfd308933042009a10a405470a01063c38a4ff41372f852668",
+      "current_schema_and_migration_equal": true,
+      "migration_exact_retained_511_source": true
+    },
+    {
+      "function": "public.gridex_assert_tenant_reference",
+      "migration": "supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql",
+      "trimmed_body_sha256": "d9ff2bc42982573f703509fdfda68fddd95d3f957351dfd3f20ff6db5b95e358",
+      "current_schema_and_migration_equal": true,
+      "migration_exact_retained_511_source": true
+    },
+    {
+      "function": "public.ediel_service_scope_guard_v1",
+      "migration": "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+      "trimmed_body_sha256": "9e1cfb0a75031405ec18c7f511e79e2f37e1ab3cc369d6b80772cab23e1f695f",
+      "current_schema_and_migration_equal": true,
+      "migration_exact_retained_511_source": true
+    },
+    {
+      "function": "public.ediel_service_administration_command_v1",
+      "migration": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+      "trimmed_body_sha256": "cf396b368bd04ac291d33cfdde28d4b2f0f0a81c0dbf980419406d48bb261179",
+      "current_schema_and_migration_equal": true,
+      "migration_exact_retained_511_source": true
+    },
+    {
+      "function": "gridex_contract_source_intake.terminal_archive_body_v1",
+      "original_public_definition": "supabase/migrations/20261001103832_ediel_contract_original_source_intake_atomic.sql",
+      "trimmed_body_sha256": "0ca084a12ee8ed4b8fb27328a7cb797aab7d63e9f334e2e7f328b62ad1f4e476",
+      "renamed_complete_original_body": true
+    },
+    {
+      "function": "public.ediel_archive_contract_original_source_v1",
+      "dynamic_wrapper_migration": "supabase/migrations/20261001142500_ediel_contract_brp_intake_terminal_current_authority.sql",
+      "trimmed_body_sha256": "fdd5ca5dd2b1a06db9942e0b27382928a1a95b14d7d93256db38ceab9c3c2170",
+      "calls_exact_retained_body_then_final_current_actor": true
+    }
+  ],
+  "actual_composite_fk_tables_qualified": [
+    "customer_sites",
+    "metering_points",
+    "customer_contracts",
+    "ediel_service_assignments",
+    "ediel_service_evidence",
+    "ediel_assignment_permission_links"
+  ],
+  "actual_native_source_binding": {
+    "zip_path": "/workspace/attachments/087635c1-a387-4828-a7d2-df4d7ed537bf/gridex-db02-535-native-6a14022e.zip",
+    "zip_sha256": "00d6cebd563e304664988e918c014296c090b6dc9f1fcfeed2ada23898bad075",
+    "junit_sha256": "7c937fc35e9a3617aac27f5d23c42cf33401fdabac4937cf05bd3010ce649da1",
+    "catalog_sha256": "fd9cbabb124db9176975cbda1af21c2a895c3ee33110c81cffe96b5a7f296dea",
+    "codeSha": "6a14022ed2782363068ec0fa3138915f50bba57f",
+    "codeTree": "f768e93784c61de8ee77d1d82f033c4b6339868d",
+    "databasePhase": "clean"
+  },
+  "qualified_native_groups": {
+    "scripts/ediel-db02-profile-periods-native.test.ts": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "case_names": [
+        "installs a validated profile-only exclusion and date-order constraint with the genuine extension",
+        "actual profile writes enforce parent/date/half-open/disabled/update boundaries and roll back their fixture",
+        "two real sessions at repeatable-read preserve same-scope exclusion when first writer commit",
+        "two real sessions at repeatable-read preserve same-scope exclusion when first writer rollback",
+        "real migration preflight refuses legacy reversed and leaves retained source rows intact",
+        "real migration preflight refuses legacy overlap and leaves retained source rows intact"
+      ],
+      "source_sha256": "6824bd054d11f98e76289edf59eed27d63bbfab0abf10454e25fcf621c7a3c60"
+    },
+    "scripts/ediel-original-source-intake-native.test.ts": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "case_names": [
+        "installed source producer ACLs require authenticated session actors while execution-only H consumers retain service ownership",
+        "actual authenticated contract intake preserves unqualified bytes and idempotency, rejects forged/current actors and rolls back a late native deny",
+        "actual BRP/H sessions reject claimed identities/current denies and hold absent native scope without source or mandate effects"
+      ],
+      "source_sha256": "d8069ba5134d115ae801925b0b65969740eb87b690061b40be54b0e03ae9c8d6"
+    },
+    "scripts/ediel-service-evidence-native.test.ts": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "case_names": [
+        "ESCO02 native archive refuses DSO network-period terms on another actual contract kind before any artifact or business effect",
+        "native issuer archive and separate review reject legacy_nine_terms without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject legacy_eleven_terms without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject staged_agreement without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject staged_method without source/request/grant/storage/ACK effects",
+        "native issuer archive and separate review reject staged_network_period without source/request/grant/storage/ACK effects",
+        "ESCO02 native current archive/review holds before_three_years before any permission/request/source/storage/ACK effects",
+        "ESCO02 native current archive/review holds before_network_start before any permission/request/source/storage/ACK effects",
+        "ESCO02 native current archive/review holds historical_today before any permission/request/source/storage/ACK effects",
+        "ESCO02 native current archive/review holds continuous_past_end before any permission/request/source/storage/ACK effects",
+        "ESCO02 native first request captures the actual server day and DSO period once; current replay attempts no permission/link/receipt insert",
+        "ESCO02 native pending metering actor DENY wins before the fresh timing/permission transaction",
+        "ESCO02 native last timing receipt failure rolls back permission/link/request-owner creation",
+        "genuine archived/reviewed V scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+        "genuine archived/reviewed VH scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+        "real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects",
+        "retained actual ESCO ACK and storage deny current reviewer revocation without effects",
+        "retained actual ESCO ACK and storage deny current role revocation without effects",
+        "retained actual ESCO ACK and storage deny current issuer_representation revocation without effects",
+        "retained actual ESCO ACK and storage deny current issuer_key revocation without effects",
+        "pending real own_actor DENY insertion wins before any ACK/storage effects under the same graph order",
+        "pending real global_reviewer DENY insertion wins before any ACK/storage effects under the same graph order",
+        "a genuine already accepted ACK transport journal replays after issuer revocation without a second SMTP call or fresh scope approval",
+        "actual native resolver preserves positive rights and exact OID/ACL while current own/global direct/override denies remain tenant/time scoped",
+        "SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries",
+        "SC071 pending company beneficiary DENY wins before real projection and leaks zero rows/effects",
+        "SC071 pending global beneficiary DENY wins before real projection and leaks zero rows/effects",
+        "literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18",
+        "ESCO11 native filtered derivatives retain the original DGI source and private contract across separate missions; exact current replay attempts no insert"
+      ],
+      "source_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee"
+    },
+    "scripts/ediel-transport-data-query-plan-native.test.ts": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "case_names": [
+        "measures actual tenant/environment/actor/deadline/reference and object/period/version/FK plans on unqualified native rows"
+      ],
+      "source_sha256": "f9d3bf6f4df048f975a3826ae5076eeb2b8e58e08bd88aa08a3eecab6100563b"
+    }
+  },
+  "current_6a_R2_foreign_response_parent_lineage": {
+    "passed": 1,
+    "name": "R2 foreign-response-id reuses verified underlay and preserves request/message/return lineage",
+    "physical_invalid_parent_insert_claim": false
+  },
+  "queryplan_not_invalid_parent_write_proof": true,
+  "native_clean_job_failed_later_schema_comparison": true,
+  "retained_source_and_capture_records": {
+    "/tmp/gridex-db02-independent-source-review.md": "a7264a1d0ceead24781f988742d56b043defe8b1438538001dd2c16129bc86d0",
+    "/tmp/gridex-db02-probe/env01-capture-review-2fb524ff.md": "b848644604e37b40bdf518d8a4052a1c1d8ebdd7a37035c59c5a0e2bec9da5d1",
+    "/tmp/gridex-db02-probe/env01-capture-review-2fb524ff.json": "4a72c2f057477adcd3917c86202d3f3bacfc368a9bd186ef2b32e742eddc944d"
+  },
+  "capture_approval_url": "https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-6000652647",
+  "coverage_unchanged_and_unpromoted": [
+    {
+      "id": "DB-02",
+      "acceptance_id": "AT-DB-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "reviewer_new_tests_native_capture_downloads_repo_mutations": 0,
+  "diff_check_and_clean_worktree": true,
+  "limitations": [
+    "Scoped actual DB/RPC literal behavior; no universal every-table/UUID-edge claim",
+    "Finite upstream service/source/identity facts declared; genuine disposable native sessions do not establish external issuer/legal custody or market activation",
+    "Capture-only flags retain NOT_RUN; the native source is 6a, not a fresh 2fb run",
+    "Current-main+a7 carry and mandatory final-head CI remain root/author gates",
+    "No coverage/push/merge by reviewer"
+  ]
+}

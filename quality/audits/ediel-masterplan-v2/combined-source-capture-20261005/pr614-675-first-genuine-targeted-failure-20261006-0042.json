@@ -1,0 +1,111 @@
+{
+  "schema": "gridex-pr-ci-metadata-first-failure/v2",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "observed_at_utc": "2026-10-06 00:41:30 UTC",
+  "lease_started_at_utc": "2026-10-06 00:36:29 UTC",
+  "lease_status": "ACTIVE",
+  "gate_status": "HOLD_GENUINE_CURRENT_HEAD_TARGETED_FAILURE",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "tree_sha": "b298508d3cb3a1cb782de48c48756797631c2ede",
+  "head_parent_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "identity_guards": {
+    "exact_public_head_tree_parent": true,
+    "exact_current_job_run_attempt_source": true,
+    "exact_failed_job_check_run": true,
+    "genuine_failed_step": true,
+    "real_runner_execution": true
+  },
+  "first_current_head_failure": {
+    "run_id": 37394831039,
+    "workflow_id": 358913488,
+    "workflow_path": ".github/workflows/ediel-masterplan-v2.yml",
+    "event": "pull_request",
+    "run_attempt": 1,
+    "job_id": 112048196415,
+    "job_name": "targeted-regressions",
+    "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+    "head_branch": "codex/ediel-combined-source-capture-20261005",
+    "job_status": "completed",
+    "job_conclusion": "failure",
+    "job_started_at": "2026-10-06T00:35:48Z",
+    "job_completed_at": "2026-10-06T00:39:44Z",
+    "runner_id": 1000043917,
+    "runner_name": "GitHub Actions 1000043917",
+    "check_run_id": 112048196415,
+    "check_head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+    "check_status": "completed",
+    "check_conclusion": "failure",
+    "check_started_at": "2026-10-06T00:35:48Z",
+    "check_completed_at": "2026-10-06T00:39:44Z",
+    "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37394831039/job/112048196415",
+    "annotation_count": 3,
+    "failed_steps": [
+      {
+        "number": 7,
+        "name": "Approved masterplan IDs have tagged, passing tests",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-06T00:36:26Z",
+        "completed_at": "2026-10-06T00:39:38Z"
+      }
+    ],
+    "diagnostic_cause": "UNKNOWN_NO_CURRENT_HEAD_LOG_ARTIFACT_OR_ANNOTATION_CAUSE_READ"
+  },
+  "counts_at_latest_poll": {
+    "applicable": 12,
+    "genuine_success": 6,
+    "terminal_failure": 1,
+    "in_progress": 4,
+    "pending_not_created": 1
+  },
+  "new_current_head_native_job_results": [
+    {
+      "job_id": 112048196275,
+      "job_name": "sc003-sc005-native",
+      "run_id": 37394830843,
+      "run_attempt": 1,
+      "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:35:48Z",
+      "completed_at": "2026-10-06T00:39:25Z",
+      "runner_id": 1000043918,
+      "runner_name": "GitHub Actions 1000043918"
+    },
+    {
+      "job_id": 112048196264,
+      "job_name": "sc071-native",
+      "run_id": 37394830922,
+      "run_attempt": 1,
+      "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:35:48Z",
+      "completed_at": "2026-10-06T00:39:55Z",
+      "runner_id": 1000043915,
+      "runner_name": "GitHub Actions 1000043915"
+    }
+  ],
+  "old119_historical_seal_preserved": {
+    "file": "pr614-119-historical-superseded-observer-lease-seal-20261006-0031.json",
+    "sha256": "88e85a66fcd225f0e8b5e2028682060ea1008f3a35105b32921fadd77a27c73b",
+    "prior_success_transferred": false,
+    "prior_failure_cause_borrowed": false
+  },
+  "limits": [
+    "All results here belong to actual new source675 on attempt1; old119 outcomes or diagnoses are never substituted.",
+    "Passing native feedback jobs do not negate current targeted RED or certify whole rule/native case counts.",
+    "Capture workflow, DOC613, raw logs, artifacts and annotation/cause detail are excluded. Root exclusively diagnoses the precise current job.",
+    "Protected-context configuration remains403-unverified, not asserted from twelve observed applicable contexts.",
+    "No workflow retry/cancel/dispatch, source mutation/review, local/native test execution or merge."
+  ],
+  "supersedes_unpublished_guard_type_receipt": {
+    "file": "pr614-675-first-genuine-targeted-failure-20261006-0041.json",
+    "sha256": "3d66c4d6fba771646c2f7ce8545b6e93201ed636569a3efb83224dbf8bc751b1",
+    "reason": "Runner-execution guard is explicitly Boolean; original job/check/source metadata is unchanged and original receipt remains immutable."
+  }
+}

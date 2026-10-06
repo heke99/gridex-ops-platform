@@ -1,0 +1,537 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Gridex independent staff onboarding",
+    "version": "2026-10-05.2"
+  },
+  "servers": [
+    {
+      "url": "https://app.gridex.se"
+    }
+  ],
+  "x-gridex-release-version": "2026-10-05.2",
+  "x-contract-schema-version": "2026-10-05.2",
+  "x-independent-contract": true,
+  "paths": {
+    "/api/v1/staff-onboarding/invitations/accept": {
+      "post": {
+        "operationId": "postApiV1StaffOnboardingInvitationsAccept",
+        "x-required-scopes": [
+          "staff_users.write"
+        ],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "write",
+        "x-idempotency-required": true,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references",
+        "summary": "Accept a registered independent staff invitation",
+        "description": "Requires the exact active registered API client, verified tenant-owned Auth identity and confirmed email, an active purpose=staff provider, a purpose=staff_invitation_acceptance signed local-subject proof lasting at most 60 seconds and unused JTI. The durable invitation and immutable local-to-central identity binding determine central company, actor and role. Explicit POST only; retry with a fresh assertion and the same Idempotency-Key. API data and canonical authority stay in the registered central OPS project; local Auth stays in the tenant project.",
+        "security": [
+          {
+            "bearerAuth": [],
+            "staffAssertion": [],
+            "supportAuthToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-gridex-expected-project-ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9]{20}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9._:+~-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffOnboardingAcceptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Own invitation accepted. No tenant/customer identifiers or login tokens are returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingAcceptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Acceptance refused; response excludes backend details and credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/staff-onboarding-v1.json": {
+      "get": {
+        "operationId": "getApiV1OpenapiStaffOnboardingV1Json",
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "private-revalidate",
+        "x-public-id-policy": "none",
+        "summary": "Read the independent onboarding contract",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "This independent contract is separate from frozen Staff API 2026-10-04.1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Unchanged contract document"
+          }
+        }
+      }
+    },
+    "/api/v1/staff-onboarding/identity/resolve": {
+      "post": {
+        "operationId": "postApiV1StaffOnboardingIdentityResolve",
+        "x-required-scopes": [
+          "staff_users.read"
+        ],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "staff-identities-and-opaque-references",
+        "summary": "Resolve a verified independent tenant staff identity",
+        "description": "Verifies the local user through the registered tenant-owned public-key Auth client, then a fresh purpose=staff_identity_resolution local-subject asymmetric assertion with company binding and unused JTI. Returns only an existing immutable current binding to the central OPS actor. Never creates Auth accounts, memberships, roles or bindings and never matches users by email or equal UUID. Subsequent Staff API assertions retain central actor sub and must carry the returned binding ID/version plus verified local identity claims.",
+        "security": [
+          {
+            "bearerAuth": [],
+            "staffAssertion": [],
+            "supportAuthToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-gridex-expected-project-ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9]{20}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffIdentityResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current independent identity binding resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffIdentityResolveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Identity resolution refused without credentials or backend details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Registered API credential; explicit staff_users.read for identity resolution, staff_users.write for invitation acceptance. Wildcards confer neither."
+      },
+      "staffAssertion": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-gridex-staff-assertion",
+        "description": "Fresh asymmetric JWT signed by the registered active staff provider; local sub must match remote verified tenant Auth. Company and token_use must match the exact operation: staff_identity_resolution or staff_invitation_acceptance. Lifetime at most 60 seconds; JTI single-use. These proofs never authorize ordinary Staff API operations."
+      },
+      "supportAuthToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-gridex-support-auth-token",
+        "description": "Tenant-owned Auth access token forwarded only by the portal server and verified with getUser at the exact registered independent Auth URL using a public key. Never central OPS service Auth, browser-selected URLs, logged or returned."
+      }
+    },
+    "schemas": {
+      "StaffOnboardingAcceptRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "invitation_token"
+        ],
+        "properties": {
+          "invitation_token": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          }
+        }
+      },
+      "StaffOnboardingAcceptResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "accepted"
+                ]
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "enum": [
+              "2026-10-05.2"
+            ]
+          }
+        }
+      },
+      "StaffOnboardingErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "enum": [
+              "2026-10-05.2"
+            ]
+          }
+        }
+      },
+      "StaffIdentityResolveRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "StaffIdentityResolveResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "actor_user_id",
+              "binding_id",
+              "binding_version"
+            ],
+            "properties": {
+              "actor_user_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "binding_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "binding_version": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "enum": [
+              "2026-10-05.2"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "kind": "Existing combined GovDB/SC010 source genuine actual606-main carry only",
+  "observed_at_utc": "2026-10-05T22:19:10.037768+00:00",
+  "source_head": "5d513072f986eef6afedd4a2b7ef7caf9ff1b884",
+  "source_tree": "70a091e0edf964eba0a470cddd6d7142694b0a34",
+  "parents": [
+    "4aa69216f0e37ba53ec78ee5c733a8a839f2696b",
+    "b83b284467c8e0fcaa277706a708706e0a705068"
+  ],
+  "actual_main": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "actual_main_tree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+  "previous_public_combined_source": "4aa69216f0e37ba53ec78ee5c733a8a839f2696b",
+  "previous_actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "actual_main_delta_paths": [
+    ".agent-memory/main-baseline-pr225-repair-checkpoint-20261005.md",
+    ".agent-memory/tenant-website-primary-selection-checkpoint-20261005.md",
+    "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+    "__tests__/main-baseline-pr225-facility-aliases.test.ts",
+    "__tests__/tenant-website-go-live-selection.test.ts",
+    "app/admin/platform/go-live/actions.ts",
+    "lib/integrations/tenantWebsiteClient.ts",
+    "lib/integrations/tenantWebsiteGoLive.ts",
+    "lib/website/applicationReview.ts",
+    "lib/website/customerApplicationCore.ts",
+    "lib/website/customerApplicationOnboarding.ts"
+  ],
+  "all_eleven_incoming_entries_exact_actual_main": true,
+  "owned_prior_source_delta_paths_unchanged": [
+    ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+    ".agent-memory/masterplan-db02-checkpoint.md",
+    ".agent-memory/masterplan-gov08-checkpoint.md",
+    "__tests__/ediel-db02-profile-periods.test.ts",
+    "__tests__/ediel-negative-fixture-authority.test.ts",
+    "__tests__/ediel-negative-fixture-send-guard.test.ts",
+    "__tests__/ediel-positive-fixture-authority.test.ts",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-8f851-sc010-composition-publication-independent-ready.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined066-main3251-public533-source-only-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined932-main4a-public533535-source-only-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combineda2-main38-public533535-source-only-carry.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-main296-gov-db-source-only-carry.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-main4b-gov533-source-only-carry.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/sc010-public-row-only-composition-source-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/staff578-a249-vs-e081-main296-protected-input-freeze.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/staff578-e081-sc068-main38-env07-canonical610-drift.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/staff578-e081-vs-d0-cff-main38-source-capture-input-receipt.json",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "quality/audits/ediel-masterplan-v2/db02/capture-receipt-20261004.json",
+    "quality/audits/ediel-masterplan-v2/db02/capture-receipt-20261005.json",
+    "quality/audits/ediel-masterplan-v2/db02/capture-receipt-6a14022e-20261005.json",
+    "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+    "quality/audits/ediel-masterplan-v2/db02/native-receipt-994563-20261005.json",
+    "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.json",
+    "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.md",
+    "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261004.json",
+    "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261005-43f.json",
+    "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261005.json",
+    "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.json",
+    "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+    "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+    "quality/audits/ediel-masterplan-v2/gov08-step-alias-qualification-20261005.json",
+    "scripts/ediel-db02-profile-periods-native.test.ts",
+    "scripts/ediel-negative-fixture-sql-regression.mjs",
+    "scripts/ediel-positive-fixture-sql-regression.mjs",
+    "scripts/ediel-source-owner-native.config.ts",
+    "scripts/ediel-test-original-outcome-native.test.ts",
+    "scripts/migration-history-manifest.additions.json",
+    "scripts/migration-history-manifest.json",
+    "scripts/supabase-types-manifest.json",
+    "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+    "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql"
+  ],
+  "foreign_mode_type_blob_entries_exact_actual_main": 8621,
+  "previous_independent_publication_guard_sha256": "d26a0dcec7f9eb2cec14ad313c18ea71fb4b63c05d7da9e50b2a3293c99704d1",
+  "all_previous_owned_packet_and_receipt_bytes_unchanged": true,
+  "coverage": {
+    "ordered_rows": 352,
+    "only_owned_changed_rows": [
+      "GOV-08",
+      "DB-02",
+      "SC-010",
+      "AT-GOV-08",
+      "AT-DB-02"
+    ],
+    "foreign_complete_rows_evidence_and_metadata_exact": 347,
+    "stored_approvals": {
+      "actual_main": 271,
+      "candidate": 276
+    },
+    "old_candidate_bytes_unchanged": true,
+    "SC071_preserved": true
+  },
+  "sql": {
+    "historical_main_count": 1073,
+    "candidate_count": 1075,
+    "all_previous_sql_mode_type_blob_entries_exact": true,
+    "only_two_previously_qualified_original_forwards": [
+      {
+        "path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+        "sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25"
+      },
+      {
+        "path": "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "sha256": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0"
+      }
+    ]
+  },
+  "eight_generator_inputs_unchanged": [
+    "scripts/gridex-aud-003-clean-replay.sh",
+    "scripts/migration-history-manifest.json",
+    "scripts/migration-history-manifest.additions.json",
+    "scripts/migration-history-manifest.runtime.additions.json",
+    "scripts/supabase-types-manifest.json",
+    "scripts/apply-supabase-types-nullability-overrides.cjs",
+    "scripts/gridex-schema-snapshot.cjs",
+    "supabase/config.toml"
+  ],
+  "complete_manifests_raw_generated_and_historical_NOT_RUN_unchanged": true,
+  "composition_capture_pending": true,
+  "limits": [
+    "Source-only genuine base carry, not actual main coverage or schema delivery.",
+    "No original Staff or IMP05 held schema source admitted.",
+    "No intermediate capture, native/whole/checker rerun or current ordinary CI execution.",
+    "Original Staff source/canonical fixture/input release and original IMP05 correction remain with their owners.",
+    "Finish existing active PR delivery and final accurate baseline; no new Masterplan work."
+  ]
+}

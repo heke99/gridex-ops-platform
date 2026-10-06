@@ -37,15 +37,32 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
+      - name: Select the existing combined-prefix capture turn
+        id: capture_turn
+        shell: bash
+        env:
+          SOURCE_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$SOURCE_HEAD_REF" == "codex/ediel-combined-source-capture-20261005" ]]; then
+            pending="$(python3 -c 'import json; print("true" if json.load(open("scripts/supabase-types-manifest.json"))["composition_capture_pending"] is True else "false")')"
+            echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          else
+            echo 'pending=true' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.capture_turn.outputs.pending == 'true'
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        if: steps.capture_turn.outputs.pending == 'true'
       - uses: supabase/setup-cli@v1
+        if: steps.capture_turn.outputs.pending == 'true'
         with:
           version: 2.101.0
       - name: Install the matching PostgreSQL 17 client
+        if: steps.capture_turn.outputs.pending == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -61,6 +78,7 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
       - name: Capture authentic artifacts from the sourced clean replay
+        if: steps.capture_turn.outputs.pending == 'true'
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -139,7 +157,7 @@ jobs:
           print('Capture-only artifacts and receipt written; native tests and parity were not run.')
           PY
       - name: Upload capture-only artifacts
-        if: always()
+        if: always() && steps.capture_turn.outputs.pending == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: staff-schema-capture-${{ github.event.pull_request.head.sha }}

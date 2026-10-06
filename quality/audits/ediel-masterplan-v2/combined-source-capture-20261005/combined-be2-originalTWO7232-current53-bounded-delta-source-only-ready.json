@@ -1,0 +1,146 @@
+{
+  "schema": "gridex-combined-be2-originalTWO7232-current53-bounded-delta-source-custody/v1",
+  "verdict": "SOURCE_ONLY_READY_EXACT_RELEASED_TWO_ORACLE_INTAKE_AND_ACTUAL53_SOURCE_CARRY_CURRENT_CAPTURE_GATES_PENDING",
+  "recorded_at_utc": "2026-10-05T23:52:17.544661+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "One bounded DELTA custody guard; actual authorized original two hunks +12 inherited currentmain postimages, priora683 composition review reused",
+  "candidate": {
+    "head": "be2b63510c4eafb36bf2c7abdc66f8349989d7ae",
+    "tree": "0d1fe31965719f6768949b5af86f92f2bf89eaf6",
+    "single_parent": "fd9710f9e9d9b56b7e709a3a0d4b6ec3e2ebbe17",
+    "worktree_clean": true
+  },
+  "genuine_actual53_carry": {
+    "head": "fd9710f9e9d9b56b7e709a3a0d4b6ec3e2ebbe17",
+    "tree": "0f252ccbe4d3bddbbfa3fe617a00973b0e50a0ae",
+    "ordered_parents": [
+      "933792302362e4cf98b8c16501c970918cfa19c2",
+      "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2"
+    ],
+    "actual_main": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+    "actual_main_tree": "d23cb52b5cb40d966d7b5c8e2caf04a75984285e",
+    "actual_main_previous": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
+    "actual_original211_delivery": true
+  },
+  "incoming_actualmain": {
+    "paths": [
+      "__tests__/energy-resolution-capabilities.test.ts",
+      "__tests__/energy-resolution-rebinding.test.ts",
+      "__tests__/ops-papilite-geotorget-precision.test.ts",
+      "__tests__/papilite-postal-centroid-hardening.test.ts",
+      "__tests__/svk-postal-grid-owner-hardening.test.ts",
+      "app/api/internal/customer-operations/cron/route.ts",
+      "lib/energy/opsPrecisionGridOwnerResolution.ts",
+      "lib/energy/pendingExactAddressResolution.ts",
+      "lib/energy/resolutionBinding.ts",
+      "lib/energy/resolver.ts",
+      "lib/energy/svkPostalGridOwnerVerification.ts",
+      "scripts/gridex-papilite-centroid-regression.cjs"
+    ],
+    "count": 12,
+    "every_incoming_mode_type_blob_postimage_exact_currentmain": true,
+    "sourcefd_vs933_delta_exactly_those12": true,
+    "incoming_tuple_pinset_sha256": "1b38a20e7c505a2ea70485390e5794c2512fbbb1ca7e190064aa20ba9e91d7df",
+    "qualified_actualmain_source_inherited_without_product_review": true
+  },
+  "retained_priora683": {
+    "path": "/workspace/agent-review-checkpoints/combined477-released-Staff-mechanical-source-composition-independent-ready.json",
+    "sha256": "a6835a4e60339ac39b03e6f899176bd62e7091485cb57b5230d86da964b499c5",
+    "exact_public_copy_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-released-Staff-mechanical-source-composition-independent-ready.json",
+    "exact_public_copy_retained": true,
+    "477_to_public933_delta_only7ownmetadata_paths": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-migration-registration-integrity.stderr.log",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-migration-registration-integrity.stdout.log",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-released-Staff-mechanical-source-composition-independent-ready.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-source-only-publication-receipt.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-staff-cff-imp05-public-preimage-identity-only.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/original-released-staff-two-oracle-hunks.patch"
+    ],
+    "owncheckpoint_prefix_retained": true,
+    "all_other477_tuple_boundaries_unchanged_except_explicitactual53_and_twoauthorizedoraclehunks": true,
+    "raw_native_control_sourcewhole_archive_proofs_not_rereviewed": true
+  },
+  "one_original_two_oracle_intake": {
+    "public_original_patch_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/original-released-staff-two-oracle-hunks.patch",
+    "bytes": 7589,
+    "sha256": "723254780937ce5043a063482dd64942838a86cc12d0e24bf0fa3a5cbc7d61e1",
+    "release": "https://github.com/heke99/gridex-ops-platform/pull/578#issuecomment-6003893283",
+    "one_operator_ack": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005413298",
+    "rootreceipt_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-fd9710f9-original-two-oracle-one-intake-receipt.json",
+    "rootreceipt_sha256": "34e9b36c4c47eb8875358646d2ef64e65773ff591d7098d07037370797ffc26d",
+    "rootreceipt_bindings_match_observed_objects": true,
+    "exact_adopted_postimages": [
+      {
+        "path": "__tests__/staff-api-openapi.test.ts",
+        "preimage_blob": "c72afb09e24c7aaa66ae94d41b20b16c84c5aee9",
+        "postimage_blob": "378984abc0ff1da6c459e04efea1282d08b8ee4e",
+        "postimage_sha256": "5fe84f326ff60f31a727e0c53c2c0428f0c6d010cb82f75437391e3bc5841964",
+        "original_hunks": 1,
+        "exact_original_in_memory_application": true
+      },
+      {
+        "path": "scripts/canonical-runtime-consistency-regression.cjs",
+        "preimage_blob": "92a75dd0b62b6a64623fef4dcfe018cc93ea05f7",
+        "postimage_blob": "fcae2fd344b5686b6b0c6b64976c319de8456ecd",
+        "postimage_sha256": "348fb5e053c688fdc6c0a9f0a039f060efe8fe07d5f43d831441ee2b623606c8",
+        "original_hunks": 1,
+        "exact_original_in_memory_application": true
+      }
+    ],
+    "quote_hunk": "Excluded; original612alreadydelivered",
+    "new_implementation_source_claim": "NONE_ORIGINAL_OWNER_TRANSFER_CONSUMED_ONCE",
+    "newcommit_delta_only4paths": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "__tests__/staff-api-openapi.test.ts",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-fd9710f9-original-two-oracle-one-intake-receipt.json",
+      "scripts/canonical-runtime-consistency-regression.cjs"
+    ]
+  },
+  "current_foreignmain": {
+    "entries": 8672,
+    "all_other_mode_type_blob_tuples_exactcurrentmain": true,
+    "pinset_sha256": "f34947fb8f35fb786455ac53bf90b8855eda696929e158d235d7080aa5f8ae2e"
+  },
+  "retained_capture_input_scope": {
+    "SQL_files": 1078,
+    "entire_priorSQL_mode_type_blob_vector_exact": true,
+    "eight_generator_input_paths": [
+      "scripts/gridex-aud-003-clean-replay.sh",
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json",
+      "scripts/supabase-types-manifest.json",
+      "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "scripts/gridex-schema-snapshot.cjs",
+      "supabase/config.toml"
+    ],
+    "all8tuple_inputs_exact477": true,
+    "raw3": [
+      "supabase/database.types.ts",
+      "supabase/schema.sql",
+      "supabase/schema.fingerprint.json"
+    ],
+    "all3tuples_exact477_originalStaffcff_output_scope": true,
+    "complete_root_Staff_origin_snapshot_tuples_exact477": [
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-staff-complete-combined-types-manifest-mainfc.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/incoming-staff-ebf-complete-types-manifest.json"
+    ],
+    "coverage_whole352rowblob_tuple_exact477": true,
+    "canonical_whole_ENV07_SC068_tuples_exact_prior_andactualmain": true,
+    "capture_envelope_historical_flags": "NOT_RUN",
+    "composition_capture_pending": true,
+    "root_prior_one_registration_integrity_PASS_reused_without_rerun": true,
+    "new_native_currentunion_CI_currentunion_capture": "NOT_RUN_NOT_CLAIMED"
+  },
+  "blocking_source_findings": [],
+  "pending": {
+    "one_authentic_final_union_capture": "Existing sole root capture owner pending chosen finalinput vector and byteexact import",
+    "current_resulting_native_CI_parity_main_baseline": "PENDING_REAL_OWNER_QUALIFICATION",
+    "IMP05": "Original evidence/handoff not admitted or read here",
+    "actual_capture_union_GREEN_main_delivery": "NOT_CLAIMED"
+  },
+  "pinset_encoding": "UTF-8 compact JSON arrays[path,mode,type,blob] sorted by path",
+  "actions": "Immutable tuples, original newly-released patch exact in-memory application, bounded receipt/manifest equality. One new outsideGit sanitary immutable JSON. No source/index/ref/fetch/GitHub mutation, test/product/AST/control/native/CI/capture review/run, oldarchive/nativeartifact/rawreceipt reading or newclaim. Existing IMP05-named own metadata compared as opaque tuple only, contents not read.",
+  "next": "Root may consume exactsource-only delta receipt for SAMEbranch publication; no second implementation/review/writer. Retained sole capture and resulting-head gate owners qualify actual chosen union. Finish existing work only; no new Masterplan rules."
+}

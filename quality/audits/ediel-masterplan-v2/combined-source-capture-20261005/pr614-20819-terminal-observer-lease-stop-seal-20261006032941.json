@@ -1,0 +1,493 @@
+{
+  "schema": "ordinary-native-feedback-authenticated-terminal-observer-lease-stop-seal/v1",
+  "observed_at_utc": "2026-10-06 03:11:41 UTC",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "lease_started_at_utc": "2026-10-06 02:13:51 UTC",
+  "lease_status": "STOPPED",
+  "regular_polling_status": "STOPPED",
+  "regular_polling_stopped_at_utc": "2026-10-06 03:11:41 UTC",
+  "gate_status": "HISTORICAL_SUPERSEDED_OBSERVATION_TERMINAL_HOLD_10_SUCCESS_2_FAILURE_NOT_MAIN_READY",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+  "tree_sha": "5b8cf5988cafb60e561a5c1de9c19b3281cb7b7e",
+  "parent_sha": "5098fb8b07938c948ec654e7165594b294a80f26",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "observed_pr_draft": false,
+  "identity_guards": {
+    "exact_public_head_branch_base_tree_parent": true,
+    "both_exact_current_pull_request_run_job_attempts": true,
+    "both_genuine_terminal_failed_checks_match_jobs": true,
+    "genuine_exact_failed_steps": true,
+    "real_failed_job_runners_and_terminal_timestamps": true
+  },
+  "current_genuine_terminal_failures": [
+    {
+      "run_id": 37403043443,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "run_status": "completed",
+      "run_conclusion": "failure",
+      "job_id": 112074393687,
+      "job_name": "clean-migration-replay",
+      "job_head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "failure",
+      "job_started_at": "2026-10-06T02:13:24Z",
+      "job_completed_at": "2026-10-06T03:09:30Z",
+      "runner_id": 1000043984,
+      "runner_name": "GitHub Actions 1000043984",
+      "check_run_id": 112074393687,
+      "check_head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T02:13:24Z",
+      "check_completed_at": "2026-10-06T03:09:30Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37403043443/job/112074393687",
+      "annotation_count": 4,
+      "failed_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T02:13:57Z",
+          "completed_at": "2026-10-06T03:09:26Z"
+        }
+      ],
+      "diagnostic_cause": "UNKNOWN_FOR_CURRENT_20819; ROOT_EXCLUSIVELY_OWNS_TERMINAL_DIAGNOSIS"
+    },
+    {
+      "run_id": 37403043453,
+      "workflow_id": 336204822,
+      "workflow_path": ".github/workflows/full-e2e.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "run_status": "completed",
+      "run_conclusion": "failure",
+      "job_id": 112075533209,
+      "job_name": "pr-certificate",
+      "job_head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "failure",
+      "job_started_at": "2026-10-06T02:17:50Z",
+      "job_completed_at": "2026-10-06T03:09:39Z",
+      "runner_id": 1000043987,
+      "runner_name": "GitHub Actions 1000043987",
+      "check_run_id": 112075533209,
+      "check_head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T02:17:50Z",
+      "check_completed_at": "2026-10-06T03:09:39Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37403043453/job/112075533209",
+      "annotation_count": 4,
+      "failed_steps": [
+        {
+          "number": 6,
+          "name": "Await the existing native producer at this exact checkout",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T02:18:24Z",
+          "completed_at": "2026-10-06T03:09:35Z"
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:09:35Z",
+          "completed_at": "2026-10-06T03:09:35Z"
+        }
+      ],
+      "diagnostic_cause": "UNKNOWN_FOR_CURRENT_20819; ROOT_EXCLUSIVELY_OWNS_TERMINAL_DIAGNOSIS"
+    }
+  ],
+  "all12_current_job_states": [
+    {
+      "id": 112074393382,
+      "name": "quality-release-gates",
+      "run_id": 37403043443,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:24Z",
+      "completed_at": "2026-10-06T02:21:22Z",
+      "runner_id": 1000043981,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074393573,
+      "name": "verify",
+      "run_id": 37403043443,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:24Z",
+      "completed_at": "2026-10-06T02:15:09Z",
+      "runner_id": 1000043982,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074393687,
+      "name": "clean-migration-replay",
+      "run_id": 37403043443,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T02:13:24Z",
+      "completed_at": "2026-10-06T03:09:30Z",
+      "runner_id": 1000043984,
+      "failed_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T02:13:57Z",
+          "completed_at": "2026-10-06T03:09:26Z"
+        }
+      ],
+      "active_steps": []
+    },
+    {
+      "id": 112074393752,
+      "name": "upgrade-migration-replay",
+      "run_id": 37403043443,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:23Z",
+      "completed_at": "2026-10-06T02:22:53Z",
+      "runner_id": 1000043983,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074422837,
+      "name": "smoke",
+      "run_id": 37403043453,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:31Z",
+      "completed_at": "2026-10-06T02:15:10Z",
+      "runner_id": 1000043985,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074423016,
+      "name": "coverage",
+      "run_id": 37403043453,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:31Z",
+      "completed_at": "2026-10-06T02:17:47Z",
+      "runner_id": 1000043986,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112075533209,
+      "name": "pr-certificate",
+      "run_id": 37403043453,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T02:17:50Z",
+      "completed_at": "2026-10-06T03:09:39Z",
+      "runner_id": 1000043987,
+      "failed_steps": [
+        {
+          "number": 6,
+          "name": "Await the existing native producer at this exact checkout",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T02:18:24Z",
+          "completed_at": "2026-10-06T03:09:35Z"
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:09:35Z",
+          "completed_at": "2026-10-06T03:09:35Z"
+        }
+      ],
+      "active_steps": []
+    },
+    {
+      "id": 112074306119,
+      "name": "browser-public",
+      "run_id": 37403043437,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:03Z",
+      "completed_at": "2026-10-06T02:14:12Z",
+      "runner_id": 1000043977,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074306121,
+      "name": "targeted-regressions",
+      "run_id": 37403043536,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:05Z",
+      "completed_at": "2026-10-06T02:18:17Z",
+      "runner_id": 1000043978,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074305941,
+      "name": "sc003-sc005-native",
+      "run_id": 37403043438,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:03Z",
+      "completed_at": "2026-10-06T02:16:36Z",
+      "runner_id": 1000043979,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074306199,
+      "name": "sc071-native",
+      "run_id": 37403043463,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:04Z",
+      "completed_at": "2026-10-06T02:16:57Z",
+      "runner_id": 1000043980,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112074306087,
+      "name": "tenant-integrity-regression",
+      "run_id": 37403043507,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T02:13:03Z",
+      "completed_at": "2026-10-06T02:13:11Z",
+      "runner_id": 1000043976,
+      "failed_steps": [],
+      "active_steps": []
+    }
+  ],
+  "counts": {
+    "applicable_names": 12,
+    "created_jobs": 12,
+    "success": 10,
+    "failure": 2,
+    "running": 0,
+    "queued": 0,
+    "cancelled": 0
+  },
+  "all_ordinary_producer_states": [
+    {
+      "run_id": 37403043443,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T03:09:31Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37403043453,
+      "workflow_id": 336204822,
+      "workflow_path": ".github/workflows/full-e2e.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T03:09:39Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37403043437,
+      "workflow_id": 336345774,
+      "workflow_path": ".github/workflows/browser-quality-e2e.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T02:14:13Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37403043536,
+      "workflow_id": 358913488,
+      "workflow_path": ".github/workflows/ediel-masterplan-v2.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T02:18:18Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37403043438,
+      "workflow_id": 374987418,
+      "workflow_path": ".github/workflows/ediel-sc003-sc005-native.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T02:16:36Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37403043463,
+      "workflow_id": 375282113,
+      "workflow_path": ".github/workflows/ediel-sc071-native.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T02:16:57Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37403043507,
+      "workflow_id": 343826806,
+      "workflow_path": ".github/workflows/tenant-integrity-regression.yml",
+      "event": "pull_request",
+      "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T02:13:00Z",
+      "run_started_at": "2026-10-06T02:13:00Z",
+      "updated_at": "2026-10-06T02:13:11Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    }
+  ],
+  "preserved_current_progress_receipts": [
+    {
+      "path": "/workspace/agent-review-checkpoints/pr614-20819-current-sc071-success-progress-20261006-0218.json",
+      "sha256": "8d725bf4881dc7de1c5aa053ef037b386da5dd88d86bfaaf3ed1edb07b1a19f9",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/pr614-20819-ten-success-clean-certificate-pending-20261006-0225.json",
+      "sha256": "7a158ebd5c905d9ee55489f78f92ba8d0d4a082f78856e27ca3b8dfd6f274d81",
+      "unchanged": true
+    }
+  ],
+  "historical5098_seal_preserved": {
+    "path": "/workspace/agent-review-checkpoints/pr614-5098-historical-superseded-observer-lease-seal-20261006-0211.json",
+    "sha256": "c48f9d976bfd473e7eea00ed98b8dcd307b365ff15b1e93820ef7ddf0120f615",
+    "unchanged": true,
+    "success_or_failure_cause_transfer": false
+  },
+  "configured_protection": "UNKNOWN403_NOT_INFERRED_FROM_TWELVE_OBSERVED_APPLICABLE_CONTEXTS",
+  "external_review_scope": "Known CodeRabbit exact-name filtered status previously absent. Parent separately owns request-skip discussion and disposition; no review PASS is credited.",
+  "limits": [
+    "Finite STOP seal reuses the exact authenticated terminal metadata snapshot observed03:11:41 UTC. Seal/STOP time is distinct; no new GitHub/API/runs/log/artifact reads or workflow/source actions occurred.",
+    "Fresh actual terminal clean and certificate job/check/failed-step metadata is genuine RED. Ten independent genuine current-head successes do not make the current overall gate/main READY.",
+    "Incomplete earlier live-log availability, last CREATE SCHEMA text, possible DDL wait, echoed script ::error:: lines or elapsed duration were not treated as a verified stall/cause/RED/native gate. Observer reads no current logs/artifacts/annotations/causes.",
+    "Root exclusively owns the one complete terminal/native artifact diagnosis and any necessary original source repair/merge; observer performs no retry/cancel/dispatch/source edit/native or local test/other PR/main/capture read.",
+    "Green SC071 or upgrade metadata and root's separately scoped artifacts do not substitute for current canonical clean/certificate gates or establish full CODE_VERIFIED/Masterplan/native/live approval.",
+    "Current and historical immutable receipts remain unchanged. No success, failed cause or predicted cancellation is transferred across heads. SKIPPED/CANCELLED are not PASS.",
+    "No further 20819 observation after STOP. No old successes, causes, cancelled predictions or native qualifications transfer to any successor. Same sole observer resumes only after explicit parent authentication."
+  ],
+  "metadata_snapshot_observed_at_utc": "2026-10-06 03:11:41 UTC",
+  "seal_created_at_utc": "2026-10-06 03:29:41 UTC",
+  "lease_stopped_at_utc": "2026-10-06 03:29:41 UTC",
+  "stop_reason": "Parent requested finite STOP before one necessary same-owner native fixture successor publication; reused already authenticated terminal receipt without redundant GitHub/API reads.",
+  "authenticated_terminal_receipt_reused": {
+    "path": "/workspace/agent-review-checkpoints/pr614-20819-first-genuine-clean-certificate-terminal-failures-20261006-0311.json",
+    "sha256": "5618a6ec6bd162d5a2ab83b044fe4381fb6c28297d42f4f3b6d9ebabff5dc8bb",
+    "preserved_unchanged": true,
+    "new_github_or_run_api_read": false
+  },
+  "next_observer_state": "IDLE_SAME_SOLE_OBSERVER_UNTIL_PARENT_AUTHENTICATES_SUCCESSOR_HEAD_TREE_PARENT_BASE_PUBLIC_REFS_AND_EXPLICITLY_RESUMES"
+}

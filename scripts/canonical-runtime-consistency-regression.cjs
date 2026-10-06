@@ -69,7 +69,57 @@ assert(!inviteForm.includes('temporary_password'), 'Company invite form still co
 assert(!inviteForm.includes('membership_role'), 'Company invite form still allows independent membership-role selection')
 
 const companyActions = read('app/admin/companies/actions.ts')
-assert(companyActions.includes('resolveCanonicalCompanyAccessRole'), 'Company actions do not derive membership from the canonical system role')
+// Follow the actual OPS adapter into the shared canonical Staff command.
+const ts = require('typescript')
+const companyTree = ts.createSourceFile('company-actions.ts', companyActions, ts.ScriptTarget.Latest, true)
+const staffSource = read('lib/tenant/staffCommands.ts')
+const staffTree = ts.createSourceFile('staff-commands.ts', staffSource, ts.ScriptTarget.Latest, true)
+const roleSource = read('lib/tenant/companyUserRoles.ts')
+const roleTree = ts.createSourceFile('company-user-roles.ts', roleSource, ts.ScriptTarget.Latest, true)
+const printer = ts.createPrinter({ removeComments: true })
+const [companyFunctions, staffFunctions, roleFunctions] = [companyTree, staffTree, roleTree].map((tree) => new Map(
+  tree.statements.filter(ts.isFunctionDeclaration).filter((node) => node.name && node.body)
+    .map((node) => [node.name.text, printer.printNode(ts.EmitHint.Unspecified, node.body, tree)]),
+))
+assert(/from ['"]@\/lib\/tenant\/staffCommands['"]/.test(companyActions), 'Company actions do not import the shared Staff commands')
+const companyGuard = companyFunctions.get('assertCanManageCompanyUsers') ?? ''
+assert(/requireAdminActionAccess\(\{\s*allOf:\s*\[['"]users\.write['"]\]/.test(companyGuard), 'Company staff actions do not require server-side users.write')
+assert(/listOperationalCompaniesForUser\(context\.userId\)/.test(companyGuard) && /row\.companyId === companyId/.test(companyGuard) && /!membership/.test(companyGuard), 'Company staff authorization does not bind the current actor to the requested company')
+const opsContext = companyFunctions.get('staffOpsContext') ?? ''
+assert(/return\s*\{\s*companyId,\s*actorUserId:\s*context\.userId,\s*permissions:\s*context\.permissions,\s*channel:\s*['"]ops['"]/.test(opsContext), 'Company Staff context does not preserve verified company, actor and permissions')
+for (const [action, command] of [
+  ['inviteCompanyUserAction', 'inviteStaff'],
+  ['setCompanyUserRoleAction', 'changeStaffRole'],
+  ['removeUserFromCompanyAction', 'disableStaff'],
+  ['reactivateCompanyUserAction', 'reactivateStaff'],
+]) {
+  const body = companyFunctions.get(action) ?? ''
+  assert(/const companyId = normalizeText\(formData\.get\(['"]company_id['"]\)\)/.test(body), `${action} does not use the requested company scope`)
+  assert(new RegExp(`const context = await assertCanManageCompanyUsers\\(companyId\\)[\\s\\S]*await ${command}\\(staffOpsContext\\(companyId, context\\),`).test(body), `${action} does not delegate with the authorized company and server actor`)
+}
+assert(/resolveCanonicalCompanyAccessRole[\s\S]*from ['"]@\/lib\/tenant\/companyUserRoles['"]/.test(staffSource), 'Staff commands do not import the canonical company-role mapper')
+const assignableRole = staffFunctions.get('requireAssignableRole') ?? ''
+assert(/role = resolveCanonicalCompanyAccessRole\(requestedRoleKey\)/.test(assignableRole) && /!roleWithinCeiling\(context, role\.roleKey\)/.test(assignableRole) && /return role/.test(assignableRole), 'Staff commands do not derive an assignable canonical role within the actor ceiling')
+const roleMapping = roleFunctions.get('resolveCanonicalCompanyAccessRole') ?? ''
+assert(/const roleKey = parseCompanyAssignableRoleKey\(value\)/.test(roleMapping) && /candidate\.value === roleKey/.test(roleMapping) && /return\s*\{\s*roleKey,\s*membershipRole:\s*option\.recommendedMembershipRole\s*\}/.test(roleMapping), 'Canonical company roles do not derive membership from the selected system-role option')
+const invite = staffFunctions.get('inviteStaff') ?? ''
+assert(/requirePermission\(context, ['"]users\.write['"]\)/.test(invite) && /const role = requireAssignableRole\(context, input\.roleKey\)/.test(invite), 'Staff invitation does not validate the requested canonical role')
+const invitationDeclaration = staffTree.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'inviteStaff')
+  ?.body?.statements.find(ts.isTryStatement)?.tryBlock.statements.filter(ts.isVariableStatement)
+  .flatMap((node) => [...node.declarationList.declarations]).find((node) => node.name.getText(staffTree) === 'invitation')
+const invitationCall = invitationDeclaration?.initializer && ts.isAwaitExpression(invitationDeclaration.initializer) && ts.isCallExpression(invitationDeclaration.initializer.expression)
+  ? invitationDeclaration.initializer.expression : null
+const invitationInput = invitationCall?.expression.getText(staffTree) === 'provisionCompanyInvitation' && invitationCall.arguments.length === 1 && ts.isObjectLiteralExpression(invitationCall.arguments[0])
+  ? printer.printNode(ts.EmitHint.Unspecified, invitationCall.arguments[0], staffTree) : ''
+assert(/companyId:\s*context\.companyId/.test(invitationInput) && /membershipRole:\s*role\.membershipRole,\s*roleKey:\s*role\.roleKey/.test(invitationInput) && /actorUserId:\s*context\.actorUserId/.test(invitationInput), 'Staff invitation does not preserve company, server actor and the mapped role pair')
+const change = staffFunctions.get('changeAccess') ?? ''
+assert(/requirePermission\(context, ['"]users\.write['"]\)/.test(change) && /requireAssignableRole\(context, input\.roleKey/.test(change), 'Staff access changes do not validate the canonical role')
+assert(/rpc\(['"]canonical_change_tenant_user_access['"],\s*\{\s*p_command:\s*\{\s*company_id:\s*context\.companyId,\s*actor_user_id:\s*context\.actorUserId,\s*user_id:\s*userId/.test(change), 'Staff access changes do not bind the canonical RPC to the authorized company and server actor')
+assert(/role_key:\s*role\.roleKey,\s*membership_role:\s*role\.membershipRole/.test(change), 'Staff access changes do not emit the canonical mapped role pair')
+for (const [command, operation] of [['changeStaffRole', 'change_role'], ['disableStaff', 'disable'], ['reactivateStaff', 'enable']]) {
+  const body = staffFunctions.get(command) ?? ''
+  assert(new RegExp(`return changeAccess\\(context, \\{ \\.\\.\\.input, operation: ['"]${operation}['"] \\}\\)`).test(body), `${command} does not use the shared guarded access command`)
+}
 assert(!companyActions.includes("formData.get('membership_role')"), 'Company actions still trust client-selected membership_role')
 
 

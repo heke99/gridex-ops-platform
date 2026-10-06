@@ -1,0 +1,43 @@
+{
+  "scope": "Cancel only own exact-cff capture-pilot other workflows; final CI follows authentic raw import.",
+  "head_sha": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+  "capture_run_left_running": 37359791003,
+  "cancellations": [
+    {
+      "id": 37359791167,
+      "name": "Ediel SC071 native feedback",
+      "requested": true
+    },
+    {
+      "id": 37359791002,
+      "name": "Gridex browser and quality E2E",
+      "requested": true
+    },
+    {
+      "id": 37359791021,
+      "name": "Tenant integrity regression",
+      "requested": true
+    },
+    {
+      "id": 37359791107,
+      "name": "Ediel SC003 SC005 native feedback",
+      "requested": true
+    },
+    {
+      "id": 37359791025,
+      "name": "Ediel masterplan v2 regressions",
+      "requested": true
+    },
+    {
+      "id": 37359791058,
+      "name": "Gridex full E2E",
+      "requested": true
+    },
+    {
+      "id": 37359791012,
+      "name": "OPS hardening",
+      "requested": true
+    }
+  ],
+  "created_at_utc": "2026-10-05T18:58:12.133709+00:00"
+}

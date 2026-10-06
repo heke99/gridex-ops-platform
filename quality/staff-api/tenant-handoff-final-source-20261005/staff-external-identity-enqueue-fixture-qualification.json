@@ -1,0 +1,142 @@
+{
+  "status": "PASS_LOCAL_FIXTURE_CLOSURE_NATIVE_POSTGRESQL17_PENDING",
+  "reviewed_at_utc": "2026-10-05T15:15:15.716017+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "baseline_source": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "baseline_tree": "31edb9c97c8ba70b83cc1723ed2907a8ac105c45",
+  "owned_changed_paths": [
+    "scripts/staff-external-identity-binding-regression.sql",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs"
+  ],
+  "source_bindings": [
+    {
+      "path": "scripts/staff-external-identity-binding-regression.sql",
+      "sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+      "baseline_sha256": "4297b6c1eca57a51a6732fce65295d8fd0acc0c3a2e9de04df0838d885febe12",
+      "unchanged_from_baseline": false
+    },
+    {
+      "path": "scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "sha256": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+      "baseline_sha256": "be645db1ce40defa8ae74b0b3c3f722dd7ab99ff452dcf6af56184271c31a8cb",
+      "unchanged_from_baseline": false
+    },
+    {
+      "path": "__tests__/staff-external-identity-sql.test.ts",
+      "sha256": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+      "baseline_sha256": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+      "unchanged_from_baseline": true
+    },
+    {
+      "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "baseline_sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "unchanged_from_baseline": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "baseline_sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "unchanged_from_baseline": true
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+      "baseline_sha256": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+      "unchanged_from_baseline": true
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "baseline_sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "unchanged_from_baseline": true
+    }
+  ],
+  "confirmed_native_failure": {
+    "run_id": "37321777130",
+    "artifact_id": "11353093219",
+    "artifact_sha256": "3e8b3f9b5411e18b767d2cd72840caa95df6baa0cf81e9474394376d13677321",
+    "provenance_scope": "Authenticated artifact failure supplied and independently inspected by staff_rollout_review; this implementation task did not download or rerun that artifact",
+    "sqlstate": "23505",
+    "constraint": "company_provisioning_jobs_company_key",
+    "cause": "Actual AFTER INSERT invitation trigger already creates the unique delivery job; regression manually inserted the same company/job/key tuple."
+  },
+  "catalog_fixture": {
+    "full_captured_job_table_ddl": true,
+    "exact_captured_constraints": [
+      "company_provisioning_jobs_pkey",
+      "company_provisioning_jobs_company_key",
+      "company_provisioning_jobs_company_id_fkey"
+    ],
+    "actual_captured_function": "canonical_enqueue_invitation_delivery_job",
+    "actual_captured_trigger": "canonical_enqueue_invitation_delivery_job AFTER INSERT ON public.company_invitations",
+    "missing_catalog_definitions_fail_closed": true,
+    "prior_unique_was_semantically_correct_but_trigger_was_missing": true
+  },
+  "native_script_fix": {
+    "reuse_trigger_created_job": true,
+    "exact_company_job_key_idempotency_pending_null_lease_predicates": true,
+    "actual_job_id_derived_with_returning_into_strict": true,
+    "bootstrap_job_claim_tightened_identically": true,
+    "reverse_reconstruction_equals_entire_e545_script": true,
+    "changed_setup_regions": 3,
+    "all_other_script_bytes_and_guard_assertions_preserved": true
+  },
+  "tests": {
+    "red": {
+      "failed": 2,
+      "passed": 5,
+      "total": 7,
+      "same_sqlstate_and_constraint_as_authentic_native": true
+    },
+    "green": {
+      "failed": 0,
+      "passed": 7,
+      "total": 7,
+      "whole_frozen_forward_and_whole_native_script_executed": true,
+      "distinct_managed_auth_owner_nonsuper_receiver_case_passed": true
+    },
+    "logs": {
+      "red": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-enqueue-fixture-red.log",
+        "sha256": "b9cf3678f51f2dbfe27d2658645bff074b46ec5c72242d23e5b59e768f64f125",
+        "test_count_summary": [
+          "\n\n Test Files  1 failed (1)",
+          "      Tests  2 failed | 5 passed (7)",
+          "   Start at  15:08:03",
+          "   Duration  6.21s (transform 32ms, setup 21ms, import 36ms, tests 6.04s, environment 0ms)"
+        ],
+        "scope": "single existing external-identity SQL test file; no PostgreSQL17 replay"
+      },
+      "green": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-enqueue-fixture-green.log",
+        "sha256": "8e60e03827b35d89d6fa86bf78249f18202ab4b1db22ee2455cec3a1369c4a38",
+        "test_count_summary": [
+          "\n\n Test Files  1 passed (1)",
+          "      Tests  7 passed (7)",
+          "   Start at  15:09:19",
+          "   Duration  6.43s (transform 26ms, setup 19ms, import 33ms, tests 6.26s, environment 0ms)"
+        ],
+        "scope": "single existing external-identity SQL test file; no PostgreSQL17 replay"
+      }
+    },
+    "cjs_node22_syntax": "PASS",
+    "diff_check": "PASS",
+    "cjs_eslint": "NOT_APPLICABLE_REPOSITORY_IGNORES_SCRIPTS_CJS",
+    "typescript_test_source_unchanged": "NO_DUPLICATE_TYPECHECK_REQUESTED"
+  },
+  "independent_source_review": {
+    "reviewer": "/root/staff_rollout_review",
+    "status": "PASS reported before receipt creation",
+    "scope": "Two exact source deltas, captured constraints/trigger extraction, native job derivation, retained authority assertions; no rerun"
+  },
+  "boundaries": {
+    "historical_receipts_unchanged": true,
+    "old_failed_native_receipt_remains_failed": true,
+    "production_migration_and_generated_bytes_unchanged": true,
+    "new_postgresql17_full_native_ci_required": true,
+    "hosted_calls": 0,
+    "hosted_writes": 0,
+    "commits_or_pushes": 0
+  }
+}

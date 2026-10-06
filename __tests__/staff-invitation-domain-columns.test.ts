@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { staffCapturedIdentityAuthoritySql } from './fixtures/staff-captured-identity-authority'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const baseline = readFileSync('__tests__/fixtures/staff-invitation-pre-closure.sql', 'utf8')
@@ -68,6 +69,7 @@ beforeAll(async () => {
     CREATE TABLE audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,actor_user_id uuid,entity_type text,entity_id text,action text,new_values jsonb,metadata jsonb,actor_type text,request_id text,correlation_id text,resource_type text,resource_id text);
     CREATE TABLE company_provisioning_jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,job_key text,idempotency_key text,UNIQUE(company_id,job_key,idempotency_key));`)
   await db.exec(baseline)
+  await db.exec(staffCapturedIdentityAuthoritySql(schema))
   const policy = file('20260802010000_canonical_tenant_operation_policy_lifecycle.sql')
   await db.exec(extract(policy, 'create table if not exists public.canonical_command_results', 'create index if not exists canonical_event_outbox_claim_idx').replace(/create index if not exists canonical_event_outbox_claim_idx$/, ''))
   await db.exec('ALTER TABLE canonical_command_results ADD COLUMN request_hash text NOT NULL')
@@ -137,6 +139,17 @@ const catalog = async () => (await db.query<InvitationCatalog>(`SELECT relation.
     FROM pg_class relation WHERE relation.oid='company_invitations'::regclass`)).rows[0]
 
 describe('actual invitation domain schema closure', () => {
+  it('refuses a registered tenant actor without an explicit binding before invitation writes', async () => {
+    await apply()
+    await db.exec(`UPDATE integration_api_clients SET metadata='{"staff_tenant_auth":{"url":"https://abcdefghijklmnopqrst.supabase.co"}}'::jsonb`)
+    const before = await row(legacyId)
+    await expect(invoke('canonical_create_tenant_invitation', inviteCommand)).rejects.toMatchObject({ code: '42501', message: 'staff_identity_binding_missing' })
+    expect(await row(legacyId)).toEqual(before)
+    expect((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM canonical_command_results')).rows[0].count).toBe(0)
+    expect((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM company_provisioning_jobs')).rows[0].count).toBe(0)
+    expect((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM audit_logs')).rows[0].count).toBe(0)
+  })
+
   it('retains the exact failed native table declaration and reproduces both real command failures', async () => {
     const declaration = extract(baseline, 'CREATE TABLE public.company_invitations (', '\n);')
     expect(createHash('sha256').update(declaration).digest('hex')).toBe('c457c78774df3cbf624cead526b59ee2f594ac4d7016b4f628e3fa65ce1c82dd')

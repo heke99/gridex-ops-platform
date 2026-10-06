@@ -1,0 +1,44 @@
+{
+  "kind": "Existing PR614 actual c1f terminal ordinary failure diagnosis; not a new Masterplan task",
+  "head": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+  "tree": "12362cb677a33e43c09fc36f9e1a24e98f5811f5",
+  "run_id": 37396741310,
+  "attempt": 1,
+  "job_id": 112054512648,
+  "terminal_conclusion": "failure",
+  "failed_step": {
+    "number": 10,
+    "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+    "start": "2026-10-06T01:02:23Z",
+    "end": "2026-10-06T01:08:00Z"
+  },
+  "counts": {
+    "test_files_passed": 881,
+    "test_files_failed": 1,
+    "tests_passed": 11808,
+    "tests_failed": 11,
+    "total_tests": 11819
+  },
+  "only_failed_file": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+  "actual_error": "schema \"gridex_ediel_inbound_receptions\" does not exist",
+  "bounded_current_terminal_log_excerpt": "2026-10-06T01:08:00.1485977Z ⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯\n2026-10-06T01:08:00.1486304Z \n2026-10-06T01:08:00.1492118Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > requires the actual service session and each present JWT role without hiding contradictory claims\n2026-10-06T01:08:00.1496576Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > holds previously stored unattested MIME with unknown legal NAD without backfilling a source or guessing a customer\n2026-10-06T01:08:00.1500099Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > admits a known-company source through the same real contract and binds technical authority without granting business authority\n2026-10-06T01:08:00.1504204Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > holds an admitted source whose actual technical endpoint is not locally assigned\n2026-10-06T01:08:00.1507689Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > refuses a real ready source when the current execution actor is unqualified\n2026-10-06T01:08:00.1512035Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > binds real syntax and committed guide provenance, then reads the exact configured CONTRL route with write-only preparation authority\n2026-10-06T01:08:00.1515196Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > holds missing or ambiguous exact routes, changed SMTP binding and an unqualified current route actor\n2026-10-06T01:08:00.1517996Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > persists a fresh actual kernel CONTRL through current atomic SQL and requalifies its immutable custody with WRITE-only PREPARE authority\n2026-10-06T01:08:00.1520608Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > admits fresh unknown-legal intake only as a protected technical original and persists its prescribed CONTRL without business attribution\n2026-10-06T01:08:00.1522865Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > keeps a protected original technical-only across reprocessing, later transactions and ordinary-source operations\n2026-10-06T01:08:00.1524868Z  FAIL  __tests__/ediel-sc-014-unattributed-reception.test.ts > SC014 actual intake/admission qualification > holds technical admission outside the supported READ COMMITTED transaction boundary\n2026-10-06T01:08:00.1526067Z error: schema \"gridex_ediel_inbound_receptions\" does not exist\n2026-10-06T01:08:00.1526852Z  ❯ ye.Ve node_modules/@electric-sql/pg-protocol/src/parser.ts:432:10\n2026-10-06T01:08:00.1527628Z  ❯ ye.nt node_modules/@electric-sql/pg-protocol/src/parser.ts:210:15\n2026-10-06T01:08:00.1528415Z  ❯ ye.parse node_modules/@electric-sql/pg-protocol/src/parser.ts:102:24\n2026-10-06T01:08:00.1529397Z  ❯ node_modules/@electric-sql/pglite/src/pglite.ts:398:27\n2026-10-06T01:08:00.1530048Z  ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:2608882\n2026-10-06T01:08:00.1530651Z  ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:2609769\n2026-10-06T01:08:00.1531240Z  ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:5283187\n2026-10-06T01:08:00.1531812Z  ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:366756\n2026-10-06T01:08:00.1532527Z  ❯ invoke_v node_modules/@electric-sql/pglite/release/pglite.js:9:389209\n2026-10-06T01:08:00.1533205Z  ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:368873\n2026-10-06T01:08:00.1533485Z \n2026-10-06T01:08:00.1533959Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯\n2026-10-06T01:08:00.1534173Z \n2026-10-06T01:08:00.1534196Z \n2026-10-06T01:08:00.1549332Z  Test Files  1 failed | 881 passed (882)\n2026-10-06T01:08:00.1632105Z       Tests  11 failed | 11808 passed (11819)\n2026-10-06T01:08:00.1633047Z    Start at  01:02:24\n2026-10-06T01:08:00.1646324Z    Duration  335.62s (transform 34.06s, setup 6.25s, import 282.77s, tests 518.06s, environment 157ms)",
+  "parallel_current_coverage": {
+    "run_id": 37396741183,
+    "attempt": 1,
+    "job_id": 112054561035,
+    "terminal_conclusion": "failure",
+    "only_failed_file": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+    "tests_passed": 11808,
+    "tests_failed": 11
+  },
+  "scope": "Current actual selected-component setup failure. Existing guardian owns ONE minimal faithful fixture fix; root reviews/publishes. Existing OPS03/IMP05 component corrections actually pass here. No production SQL/raw3/generator/workflow/consumer/coverage changes, no borrowed historical diagnosis/PASS, cancellation/retry, new rule/capture/sourcevehicle.",
+  "references": [
+    "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6006329334",
+    "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005094011"
+  ],
+  "observer_custody": {
+    "first_coverage_sha256": "627a4234bee3da53408e47de12d478621f9926fdf5b8e76395379cb2f9c85da3",
+    "quality_step_sha256": "9b514385c691b00db873f8c84d68d89789f1d99f1e35cbcef7a0016ca6107229",
+    "quality_terminal_sha256": "d40b70031c8dcab5d83e7e0a835ea29dd4b2a3b799ddd1da240f451d3fe98e70"
+  }
+}

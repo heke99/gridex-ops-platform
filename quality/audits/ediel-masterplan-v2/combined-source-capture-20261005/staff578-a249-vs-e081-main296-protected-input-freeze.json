@@ -1,0 +1,270 @@
+{
+  "version": 1,
+  "kind": "STAFF578_A249_SAME_SOURCE_INPUT_FREEZE_CONTINUATION",
+  "created_at_utc": "2026-10-05T20:45:23.226820+00:00",
+  "reviewer": "root/source_intake_export_union_review",
+  "disposition": "PREVIOUS_8F657_PROTECTED_SOURCE_INPUT_FREEZE_UNCHANGED",
+  "exact_heads": {
+    "e081": {
+      "head": "e081fc42e32270e0c2081970ec07c341c6e0a34b",
+      "tree": "f47071ee1675e1c7fb58cd0d912b9954e4b46e32",
+      "parents": [
+        "d0e21d200b40cb63bd22043d4a03080fe3584866"
+      ]
+    },
+    "a249": {
+      "head": "a2499e47b69f7afdc64282cb24b5c2c2af861ba7",
+      "tree": "387eebd3eb2726051639943ac67a4801fcb29f6a",
+      "parents": [
+        "e081fc42e32270e0c2081970ec07c341c6e0a34b",
+        "38aa73454b724040f6aaf4339e7feab226ce3ecd"
+      ]
+    },
+    "main296": {
+      "head": "2964415adec9e36932583e95f8506437d262c507",
+      "tree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+      "parents": [
+        "5cde80940ee213612fde3ba6b3461429dd615a7f"
+      ]
+    },
+    "adopted_main38": {
+      "head": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "tree": "64c93f935436a0c30db27fb86b5451d414984116",
+      "parents": [
+        "3658404d21e76bdabc5b61d91cf43a5c6683b93a",
+        "da2f27f9f889622fb037e9c3965a7078232585c1"
+      ]
+    }
+  },
+  "public_head_guard": {
+    "url": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/578",
+    "html_url": "https://github.com/heke99/gridex-ops-platform/pull/578",
+    "head": "a2499e47b69f7afdc64282cb24b5c2c2af861ba7",
+    "ref": "codex/support-portal-ops",
+    "updated_at": "2026-10-05T20:40:55Z",
+    "base_metadata": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+    "merged": false,
+    "mergeable": false,
+    "mergeable_state": "dirty"
+  },
+  "prior_qualified_receipt": {
+    "path": "/workspace/agent-review-checkpoints/staff578-e081-vs-d0-cff-main38-source-capture-input-receipt.json",
+    "sha256": "8f65763f9466789f1eacbaed11350924717abbc4a0bf38252165e5aaf915f943",
+    "scope_carried": "1073 historical SQL, three Staff forwards, runtime23, input8, all complete manifest origins and registrations; no repeated execution/artifact/import review."
+  },
+  "historical_main_sql": {
+    "count": 1073,
+    "actual_main296_same_prior_catalogue": true,
+    "catalogue_sha256": "cb24d9b7430c598daa101aed53f4acf84caf9b2752dc4a035757c39d5ccd363e",
+    "catalogue_algorithm": "SHA256(sorted path + NUL + git file mode + NUL + git blob SHA + newline)",
+    "staff_sources": {
+      "e081": {
+        "sql_count": 1076,
+        "historical1073_retained_byte_exact": true,
+        "added_sql": [
+          "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+          "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+          "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql"
+        ]
+      },
+      "a249": {
+        "sql_count": 1076,
+        "historical1073_retained_byte_exact": true,
+        "added_sql": [
+          "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+          "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+          "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql"
+        ]
+      }
+    }
+  },
+  "three_staff_forwards": [
+    {
+      "path": "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+      "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+      "e081_a249_git_blob": "85ed00249ceda5e6591e78aa89df36602fe7c244",
+      "exact": true,
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "e081_a249_git_blob": "012f25a0b4d519c60b26aef7495869354f3d71f7",
+      "exact": true,
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+      "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d",
+      "e081_a249_git_blob": "82e160f5318e241e373092cc63d2067379cebc6e",
+      "exact": true,
+      "registered_in": [
+        "scripts/migration-history-manifest.json"
+      ]
+    }
+  ],
+  "runtime23": {
+    "all_e081_a249_bytes_exact": true,
+    "path_sha256_catalogue_sha256": "5853ea7b0dfcaef6c787fbf8389545c331c5ad92ac56494e674c3a5e43fff82b",
+    "catalogue_algorithm": "SHA256(sorted path + NUL + exact source SHA256 + newline)",
+    "full_path_hash_authority": "/workspace/agent-review-checkpoints/staff578-e081-vs-d0-cff-main38-source-capture-input-receipt.json -> retained_runtime23.path_sha256",
+    "count": 23
+  },
+  "eight_generator_inputs": {
+    "all_e081_a249_bytes_exact": true,
+    "path_sha256": {
+      "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+      "scripts/migration-history-manifest.json": "0b15e290c942d458161574f09d6b1cfec90f7a28429e12f05363ea6adffbe28e",
+      "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+      "scripts/migration-history-manifest.runtime.additions.json": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+      "scripts/supabase-types-manifest.json": "456efc058c18e03f7d1131d580311d824e262ea98d4d83187ecadea54577433a",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    }
+  },
+  "manifest_origin_preservation": {
+    "current_full_manifest_sha256": "456efc058c18e03f7d1131d580311d824e262ea98d4d83187ecadea54577433a",
+    "current_full_e081_a249_bytes_exact": true,
+    "complete_snapshot_paths": [
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/preimport-complete-types-manifest-cff.json",
+        "sha256": "f8d3ebcc4cce79d1e7925c99cfe4d9b123b12d92af3be779cd59a1266735ad3b",
+        "e081_a249_git_blob_exact": true
+      },
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/previous-complete-dc2-types-manifest.json",
+        "sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e",
+        "e081_a249_git_blob_exact": true
+      },
+      {
+        "path": "quality/staff-api/main-f88-composition-20261005/main-f88-complete-types-manifest.json",
+        "sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+        "e081_a249_git_blob_exact": true
+      },
+      {
+        "path": "quality/staff-api/tenant-classification-evidence-20261005/previous-complete-types-manifest-0cf.json",
+        "sha256": "832f0d31c229484f95a39ee6a7006bfa3c8754246433ad9baddca100c7907233",
+        "e081_a249_git_blob_exact": true
+      },
+      {
+        "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
+        "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892",
+        "e081_a249_git_blob_exact": true
+      }
+    ],
+    "all_inherited_origin_fields_and_old_original_pointer_qualification": "Carried through identical entire current manifest bytes plus identical full snapshot blobs; prior receipt retains15 exact inherited fields and4 older original-source pointer hash matches. Not rereviewed here.",
+    "composition_capture_pending_metadata": false,
+    "author_final_union_source_freeze": "Still separate owner/coordinator gate; metadata false for old Staff-only cff capture does not certify future1078 union.",
+    "source_capture_origin": {
+      "head": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+      "tree": "20a7dc9d75b5db20a32f918fe638a11ca928fbf3",
+      "run": "37359791003",
+      "artifact": 11365813975,
+      "purpose": "capture_only",
+      "flags": {
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN"
+      }
+    },
+    "raw_generated3_source_blobs_unchanged": {
+      "supabase/database.types.ts": true,
+      "supabase/schema.sql": true,
+      "supabase/schema.fingerprint.json": true
+    },
+    "registration_manifests_full_bytes_e081_a249_exact": true,
+    "three_forward_registrations_actual_match": true
+  },
+  "actual_new_delta": {
+    "changed_path_count": 73,
+    "classification_counts": {
+      "MEMORY_EVIDENCE_REGISTER_METADATA": 35,
+      "INHERITED_MAIN38_TEST_ORACLE_SOURCE": 18,
+      "INHERITED_MAIN38_PRODUCTION_SOURCE": 16,
+      "INHERITED_MAIN38_CHECKER_SOURCE": 4
+    },
+    "inherited_main38_production_source_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/core/edifactValidation.ts",
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/decisionEngine.ts",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+      "lib/ediel/prodat/prodatTransactionReason.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/rulebook/deadlinePolicy.ts",
+      "lib/ediel/rulebook/mapEdielError.ts",
+      "lib/ediel/rulebook/utilts25A4.ts",
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+      "lib/ediel/rulebook/utiltsMarketSemantics.ts",
+      "lib/ediel/rulebook/utiltsRulebook.ts",
+      "lib/ediel/rulebook/validator.ts"
+    ],
+    "inherited_main38_checker_paths": [
+      "scripts/ediel-ai-reconciliation-embedded-check.mjs",
+      "scripts/ediel-partial-permission-source-sql-regression.mjs",
+      "scripts/ediel-service-grant-set-sql-regression.mjs",
+      "scripts/test-ediel-ai-history-and-reconciliation.cjs"
+    ],
+    "inherited_test_oracle_paths": [
+      "__tests__/ediel-ai-bi-processing-decision.test.ts",
+      "__tests__/ediel-ai-list-history.test.ts",
+      "__tests__/ediel-ai-registry-route-context.test.ts",
+      "__tests__/ediel-beneficiary-projection-api.test.ts",
+      "__tests__/ediel-canonical-ack.test.ts",
+      "__tests__/ediel-canonical-business-semantics.test.ts",
+      "__tests__/ediel-canonical-deadline-policy.test.ts",
+      "__tests__/ediel-env05-test-indicator.test.ts",
+      "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+      "__tests__/ediel-inbound-duplicate-scope.test.ts",
+      "__tests__/ediel-permission-own-partition.test.ts",
+      "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+      "__tests__/ediel-sc008-owner-raw-read.test.ts",
+      "__tests__/ediel-utilts-effective-date.test.ts",
+      "__tests__/ediel-utilts-field-matrix.test.ts",
+      "__tests__/ediel-utilts-profiles.test.ts",
+      "__tests__/prodat-dependent-condition-engine.test.ts",
+      "scripts/ediel-esco-10-11-projection-native.test.ts"
+    ],
+    "new_unqualified_production_paths": [],
+    "new_protected_generator_migration_runtime23_paths": [],
+    "explanation": "a249 is an actual merge of e081 and main38. Its full delta includes already adopted main38 Ediel production/test/checker source plus metadata, not only two Staff oracle fixes. Every adopted production path is byte-exact parent main38; this is source-origin qualification only, not a domain/whole review. The two earlier Staff oracle hunks themselves do not change in a249.",
+    "catalogue_sha256": "143eb5a984c7cfd7e2749bb6c7744d8271bed275abef471a4e91e2c3aa63aefd",
+    "catalogue_algorithm": "SHA256(JSON sorted keys/compact separators of ordered path/status/classification/parent-source-identity rows)"
+  },
+  "previous_two_staff_oracles": [
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "e081_a249_git_blob": "dd94839db4bf10fe743f08d51eb86210efdd449c",
+      "sha256": "f08206e98406a372d370e095e617ad646e791a125c2c2026368e14ae307a3e25",
+      "new_delta": false
+    },
+    {
+      "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+      "e081_a249_git_blob": "f1f29c3295fe5c103c9c61887e028102f360e0cd",
+      "sha256": "8777163113ac4d0398f0d5d55aad22dec8b64905682b585eb91f63f030a0cc5d",
+      "new_delta": false
+    }
+  ],
+  "canonical_fixture_boundary": {
+    "old610_e081_drift_receipt": "Historical; no new current canonical claim from it.",
+    "actual_main296_ENV07_authority": "First actually delivered608 postimage per root; original578 canonical reconciliation already routed in public5786002178220.",
+    "owner_handoff": "Existing578 author preserves actual first-admitted canonical fixtures and owns resulting qualification. This source-input receipt neither repairs fixtures nor lifts their separately routed drift.",
+    "new_fixture_variant": "NONE"
+  },
+  "combined_capture_boundary": "Staff protected1076 source-input prefix remains frozen exactly as8f657. Root alone composes actual current1078 source-input union after concrete author freeze and final source qualification; ONE genuine combined capture remains pending. This reader does not approve source ownership, Staff native/whole/effective-catalog/CI gates or future union capture.",
+  "limits": {
+    "tests_native_ci_capture": "NONE",
+    "artifact_import_zip_logs": "NOT_READ_OR_REVIEWED",
+    "source_memory_coverage_effective_catalog_github_ref_changes": "NONE",
+    "fetch": "NONE; exact supplied CP objects only",
+    "checkout": "NONE; full-SHA git source reads only"
+  }
+}

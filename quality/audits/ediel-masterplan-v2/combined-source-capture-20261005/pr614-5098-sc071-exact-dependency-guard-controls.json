@@ -1,0 +1,119 @@
+{
+  "scope": "Actual extracted SC071 dependency custody guard only; native/generator/schema/CI/main PENDING",
+  "controls_passed": 10,
+  "failed": 0,
+  "node": "v22.23.3",
+  "source_guard_sha256": "82c956bd3cdba6f893f35bd79acf2d1c7ee53f94d364b2324e96af730741d2a4",
+  "portable_extracted_source": "import hashlib,json,os,pathlib,subprocess\ncandidate=pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'])\nbase=pathlib.Path(os.environ['SC071_BASE_ROOT'])\npaths=('package.json','package-lock.json')\noriginal=('48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878',\n          '93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627')\nsource_map_fix=('51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de',\n                'de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b')\ndef hashes(root):return tuple(hashlib.sha256((root/p).read_bytes()).hexdigest() for p in paths)\n# Keep immutable BASE packages. Permit only its exact original pair\n# or the independently reviewed source-map-js 1.2.2 security repair.\n# Mixed pairs and every other dependency change remain fail-closed.\nbase_pair,candidate_pair=hashes(base),hashes(candidate)\nassert base_pair==original,'sc071_base_dependency_inputs_changed'\nassert candidate_pair in (original,source_map_fix),'sc071_candidate_dependency_inputs_unqualified'\nexpected='1.2.2' if candidate_pair==source_map_fix else '1.2.1'\ninstalled=subprocess.check_output(['node','-p',\"require('source-map-js/package.json').version\"],cwd=candidate,text=True).strip()\nassert installed==expected,'sc071_installed_source_map_version_mismatch'\nreceipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility',\n         'base_package_sha256':dict(zip(paths,base_pair)),\n         'candidate_package_sha256':dict(zip(paths,candidate_pair)),\n         'compatibility':'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL',\n         'actual_installed_source_map_js':installed,'base_packages_modified':False}\n(pathlib.Path(os.environ['SC071_EVIDENCE'])/'dependency-inputs.json').write_text(json.dumps(receipt,indent=2)+'\\n')\n",
+  "actual_controls": [
+    {
+      "case": "original_pair_real_original_runtime",
+      "expected_pass": true,
+      "actual_exit": 0,
+      "expected_failure_guard": null,
+      "result": "PASS",
+      "receipt": {
+        "dependency_install": "candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility",
+        "base_package_sha256": {
+          "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+          "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+        },
+        "candidate_package_sha256": {
+          "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+          "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+        },
+        "compatibility": "BYTE_IDENTICAL_ORIGINAL",
+        "actual_installed_source_map_js": "1.2.1",
+        "base_packages_modified": false
+      }
+    },
+    {
+      "case": "fixed_pair_real_fixed_runtime",
+      "expected_pass": true,
+      "actual_exit": 0,
+      "expected_failure_guard": null,
+      "result": "PASS",
+      "receipt": {
+        "dependency_install": "candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility",
+        "base_package_sha256": {
+          "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+          "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+        },
+        "candidate_package_sha256": {
+          "package.json": "51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de",
+          "package-lock.json": "de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b"
+        },
+        "compatibility": "SOURCE_MAP_JS_1_2_2_SECURITY_FIX",
+        "actual_installed_source_map_js": "1.2.2",
+        "base_packages_modified": false
+      }
+    },
+    {
+      "case": "mixed_manifest_fixed",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "candidate_dependency_inputs_unqualified",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "mixed_lock_fixed",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "candidate_dependency_inputs_unqualified",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "unqualified_manifest_byte",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "candidate_dependency_inputs_unqualified",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "unqualified_lock_byte",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "candidate_dependency_inputs_unqualified",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "modified_base_manifest",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "base_dependency_inputs_changed",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "modified_base_lock",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "base_dependency_inputs_changed",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "fixed_pair_old_installed_runtime",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "installed_source_map_version_mismatch",
+      "result": "PASS",
+      "receipt": null
+    },
+    {
+      "case": "original_pair_fixed_installed_runtime",
+      "expected_pass": false,
+      "actual_exit": 1,
+      "expected_failure_guard": "installed_source_map_version_mismatch",
+      "result": "PASS",
+      "receipt": null
+    }
+  ],
+  "base_and_candidate_bytes_not_modified": true,
+  "real_old_and_fixed_installed_dependencies_used": true,
+  "mocked_dependency_version": false
+}

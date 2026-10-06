@@ -1,0 +1,49 @@
+{
+  "scope": "ONE_EXISTING_COMBINED_SOURCE_ONLY_COMPOSITION",
+  "source_head": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+  "source_tree": "79923be3c9bd4b4e5aab30d91fb0ace79c7bb0bf",
+  "actual_main_at_composition": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
+  "ordered_parents": [
+    "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
+    "ebf380da2528b6a32a17f94ca245835726babca4"
+  ],
+  "source_only_ready": true,
+  "sql_files": 1078,
+  "migration_version_groups": 981,
+  "registration_check": {
+    "command": "Node22 scripts/check-migration-versions.cjs",
+    "exit_code": 0,
+    "executed_once": true
+  },
+  "stored_candidate_approvals": 278,
+  "stored_actual_main_approvals": 273,
+  "original_manifest_snapshots": {
+    "pre-staff-complete-combined-types-manifest-mainfc.json": "f26ede7d9ae73e5d863a49172df7cb8fdd586682f5b37e92be4823600e4dc4ca",
+    "incoming-staff-ebf-complete-types-manifest.json": "456efc058c18e03f7d1131d580311d824e262ea98d4d83187ecadea54577433a"
+  },
+  "source_only_receipts": {
+    "combined477-released-Staff-mechanical-source-composition-independent-ready.json": {
+      "sha256": "a6835a4e60339ac39b03e6f899176bd62e7091485cb57b5230d86da964b499c5",
+      "bytes": 11528
+    },
+    "combined477-staff-cff-imp05-public-preimage-identity-only.json": {
+      "sha256": "6bb0901f33243fa64bc3fb363beb2322a43f48ba447f366671f680ff9370a8ae",
+      "bytes": 1617
+    },
+    "combined477-migration-registration-integrity.stdout.log": {
+      "sha256": "dbb5bf8a18ef26f1aef46bc684067db3d127436b877cbb22eaf89ddcc15b6e36",
+      "bytes": 87
+    },
+    "combined477-migration-registration-integrity.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "capture": "PENDING_ONE_FINAL_UNION_CAPTURE",
+  "current_union_native": "NOT_RUN",
+  "current_union_type_schema_comparison": "NOT_RUN",
+  "current_union_upgrade_parity": "NOT_RUN",
+  "current_union_ci": "NOT_RUN",
+  "IMP05_corrective_forward": "NOT_ADMITTED_AWAIT_ORIGINAL_SCOPED_EXECUTED_HANDOFF",
+  "new_masterplan_work": false
+}

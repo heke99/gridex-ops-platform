@@ -12,6 +12,7 @@ export type AdminPageKey =
   | 'customers.segments'
   | 'customer.info_requests'
   | 'customer.cases'
+  | 'support.cases'
   | 'contracts.catalog'
   | 'pricing.engine'
   | 'companies.manage'
@@ -88,6 +89,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
   'customer.info_requests': { anyOf: ['customers.read', 'poa.read', 'metering.read'] },
   'customer.cases': { anyOf: ['cases.read', 'customers.read'] },
+  'support.cases': { allOf: ['cases.read'] },
   'contracts.catalog': { anyOf: ['contracts.read', 'contracts.write', 'pricing.write'] },
   'pricing.engine': { anyOf: ['pricing.write', 'pricing.publish'] },
   'companies.manage': { anyOf: ['tenants.write'] },

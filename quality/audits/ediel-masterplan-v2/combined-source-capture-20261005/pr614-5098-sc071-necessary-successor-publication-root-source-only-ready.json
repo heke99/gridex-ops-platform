@@ -1,0 +1,29 @@
+{
+  "verdict": "APPROVE_SOURCE_ONLY_SC071_NECESSARY_SECURITY_COMPATIBILITY_PUBLICATION",
+  "base_head": "5098fb8b07938c948ec654e7165594b294a80f26",
+  "base_tree": "7ee7410fa6ee294dca8b5e3162e0d4ec5cee7dd1",
+  "staged_tree_before_own_guard_metadata": "e17fe93be0462dc7a3aeba2a467f6ff52d479594",
+  "reviewed_paths": [
+    ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+    ".github/workflows/ediel-sc071-native.yml",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-actual-sc071-base-package-failure-diagnosis-and-fix.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-first-genuine-sc071-failure-20261006-0201.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-historical-superseded-observer-lease-seal-20261006-0211.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-sc071-exact-dependency-guard-controls.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-sc071-exact-security-dependency-workflow-peer-approve.json"
+  ],
+  "all_foreign_tuples_exact": true,
+  "foreign_count": 9147,
+  "workflow_sha256": "4c0715fe2910f37253ae085deb068a0d07d77dcb3484aadbf1f7c85359f8ebc9",
+  "peer_sha256": "1bfa4d857a37a5b4c9dee4b1e7fda3332abefb40094fc100de74ea340b95f67a",
+  "controls_passed": 10,
+  "controls_sha256": "00bda47e87cf27d54e93874b4d3a3a04b3be114d76a4ffc55557420eaaa4f4b7",
+  "old_observer_STOP_sha256": "c48f9d976bfd473e7eea00ed98b8dcd307b365ff15b1e93820ef7ddf0120f615",
+  "sql_count_unchanged": 1079,
+  "package_lock_and_fixed_security_repair_unchanged": true,
+  "own_checkpoint_append_only": true,
+  "all_fixture_generator_rawcapture_coverage_production_consumer_main_DOC_and_44marker_tuples_exact": true,
+  "current_new_head_gates_native_schema_parity_actual_main": "PENDING",
+  "recapture_or_new_masterplan_work": false,
+  "scope": "Own guard receipt is the sole additional metadata path after reviewed stage. No new business source, runtime/native/test rerun, current-head PASS transfer, or gate waiver."
+}

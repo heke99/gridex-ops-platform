@@ -1,0 +1,709 @@
+{
+  "schema": "gridex-pr614-d44-original533535578-replacement-closeout-refresh/v1",
+  "recorded_at_utc": "2026-10-06T03:38:20.037260+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "verdict": "READY_AFTER_CURRENT_GATES_AND_ACTUAL_MAIN",
+  "candidate": {
+    "head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+    "tree": "400a2036314b3df52dcd4992330373a7553655e1",
+    "ordered_parents": [
+      "20819a562321b23d5af07d2d8ebf84a5c2633d53"
+    ]
+  },
+  "scope": "Finite read-only existing three replacement vehicles custody refresh only; no close, source review, tests, native, CI/API/artifact, GitHub or source/index/ref edits.",
+  "prior_receipt": {
+    "path": "/workspace/agent-review-checkpoints/pr614-5098-original533535578-replacement-closeout-disposition-ready-after-main.json",
+    "bytes": 23443,
+    "sha256": "1bda92a4aa5bc075095dec1f4108a394b5f83e5f98ebb9c4eae881d32d4f38f3",
+    "original_authority_and_all_preapproved_composition_dispositions_reused": true
+  },
+  "packets": [
+    {
+      "pr": 533,
+      "original_head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+      "original_tree": "b2f35094462087f3c3bbd6fc8ae34cdf044468bb",
+      "original_comparison_base": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+      "scope_definition": "Complete original git diff --name-only comparison-base..head; no packet paths filtered out.",
+      "original_packet_count": 20,
+      "current_present_count": 20,
+      "current_exact_original_tuple_count": 16,
+      "original_full_packet_pinset_sha256": "58218f3f39517d5df65b553ad667ca6c651717e154ab988d331f81bf0f3aa834",
+      "current_full_packet_pinset_sha256": "3f053ca9b62fcb318a9fabf02d61c1b14d149a69ef55cf8110a14db6a4641340",
+      "current_exact_pinset_sha256": "d73630c20ca0277fb652f92aeb0a8b4bb84d66dc2c4099a5e689ceec2e8231ac",
+      "original_own_docs_count": 8,
+      "all_original_own_documentation_tuples_exact": true,
+      "own_doc_pinset_sha256": "6124a7497226accd4a54771ae4c919fba75cfe9c4000958f02707f2c72b9169c",
+      "original_actual_ancestor": true,
+      "preapproved_substitutions": [
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "1f7486c8ced1b7554c53f4048c2ab70ffd85a2a0"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "0445cbe2d08985d4ed681306191e0958d26c6d4e"
+          ],
+          "disposition": "Shared whole ledger composition; original owner complete rows/evidence exactly retained in candidate. No actual-main promotion before PR614 admission.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/ediel-source-owner-native.config.ts",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "23b8b2d5a07415ee22360b9561597a589a0a9c0e"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "a12d487d1fc777587e055c819b02b95bc7ca079d"
+          ],
+          "disposition": "Exact original config after removing only the other original owner test registration. Both original registered filenames occur exactly once.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/migration-history-manifest.additions.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "28cdd1f47207a1e5c811b2b43611a676264a9ede"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49"
+          ],
+          "disposition": "Shared registration union; every original entry/value retained. One later provisional IMP forward entry is already separately source-qualified.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/supabase-types-manifest.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "365021a37cc0cffea57985cecddfbef16694f2b7"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "0a5a0add2e80cb698635f1584136e55c2193ea1b"
+          ],
+          "disposition": "Lossless shared provenance composition, full pre-Staff and incoming-Staff snapshots, later full pre-import snapshot; original source-bound receipts kept historical.",
+          "byte_exact_prior5098_disposition": true
+        }
+      ],
+      "newly_touched_original_packet_fixture_paths": [],
+      "omitted_unique_paths": [],
+      "original_registration_values_retained": 263
+    },
+    {
+      "pr": 535,
+      "original_head": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+      "original_tree": "3ea2960b1a8fe07f895a2064dcd003792c46b67e",
+      "original_comparison_base": "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+      "scope_definition": "Complete original git diff --name-only comparison-base..head; no packet paths filtered out.",
+      "original_packet_count": 15,
+      "current_present_count": 15,
+      "current_exact_original_tuple_count": 11,
+      "original_full_packet_pinset_sha256": "5dd074b06ae2a887ed3686fc5ed238be8ff9e3e26c9ec43b28ddc924025a8e54",
+      "current_full_packet_pinset_sha256": "04cc7b011de60e0b04b21312107fd358fc947a0583bd96fd1034756b065fbf7a",
+      "current_exact_pinset_sha256": "997315f8e8c4041b13dae5f52f0d7264c85779667dff8c74813ffd8be80383cf",
+      "original_own_docs_count": 8,
+      "all_original_own_documentation_tuples_exact": true,
+      "own_doc_pinset_sha256": "24c03a65817846531c9b2fe8364ed611f99c81741af1ab08c5dab2c8fafc0ded",
+      "original_actual_ancestor": true,
+      "preapproved_substitutions": [
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "13bef968b5be057320e7ecb89916bdee2f64cbd2"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "0445cbe2d08985d4ed681306191e0958d26c6d4e"
+          ],
+          "disposition": "Shared whole ledger composition; original owner complete rows/evidence exactly retained in candidate. No actual-main promotion before PR614 admission.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/ediel-source-owner-native.config.ts",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "2398b7086909ea5182e421fbac2555c1af0f8dfe"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "a12d487d1fc777587e055c819b02b95bc7ca079d"
+          ],
+          "disposition": "Exact original config after removing only the other original owner test registration. Both original registered filenames occur exactly once.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "9f6dae9fa96c31d64d31c457754bbb51f2723a8f"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "4d3aa296fb3d3f2a7e15bdb3ddd6a9b8d8e96f1e"
+          ],
+          "disposition": "Shared registration union; every original GOV/DB/Staff entry/value retained.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/supabase-types-manifest.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "187e1e964a286bf70d7829cc954486a7c1aa16a0"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "0a5a0add2e80cb698635f1584136e55c2193ea1b"
+          ],
+          "disposition": "Lossless shared provenance composition, full pre-Staff and incoming-Staff snapshots, later full pre-import snapshot; original source-bound receipts kept historical.",
+          "byte_exact_prior5098_disposition": true
+        }
+      ],
+      "newly_touched_original_packet_fixture_paths": [],
+      "omitted_unique_paths": [],
+      "original_registration_values_retained": 820
+    },
+    {
+      "pr": 578,
+      "original_head": "ebf380da2528b6a32a17f94ca245835726babca4",
+      "original_tree": "61693fa45f2208da7491bf644ad0dd1254fc3375",
+      "original_comparison_base": "b83b284467c8e0fcaa277706a708706e0a705068",
+      "scope_definition": "Complete original git diff --name-only comparison-base..head; no packet paths filtered out.",
+      "original_packet_count": 225,
+      "current_present_count": 225,
+      "current_exact_original_tuple_count": 220,
+      "original_full_packet_pinset_sha256": "2635bfd53b88b48bb62e6fe41ba0abdf28cd83c449677264d09c610bfd8509c7",
+      "current_full_packet_pinset_sha256": "fe06c3ebfceb1be6dd751e3c1bd3cb7158ff308a8abf5bd823774a142726bf17",
+      "current_exact_pinset_sha256": "095b36491dd40108a34ff0309245924fb26741e359bc6956703c86af6ab900af",
+      "original_own_docs_count": 156,
+      "all_original_own_documentation_tuples_exact": true,
+      "own_doc_pinset_sha256": "31b4f2e165cc1c4c1bedb36c6a9cb316a7600857a887242427599b17f4126f51",
+      "original_actual_ancestor": true,
+      "preapproved_substitutions": [
+        {
+          "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "dd94839db4bf10fe743f08d51eb86210efdd449c"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "2f32623b0d7161b40ce2fe4ddde2b18081deb470"
+          ],
+          "disposition": "Whole canonical actual-main first-admitted author correction 2f32623b replaces stale Staff dd94839d; original approved substitution in a6835 guard.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "54808407b1e375e62eb893aa0ea1fe04f3994b7a"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "4d3aa296fb3d3f2a7e15bdb3ddd6a9b8d8e96f1e"
+          ],
+          "disposition": "Shared registration union; every original GOV/DB/Staff entry/value retained.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "scripts/supabase-types-manifest.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "363a5888558cee6357bc627a34a76d12dd2dbaaa"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "0a5a0add2e80cb698635f1584136e55c2193ea1b"
+          ],
+          "disposition": "Lossless shared provenance composition, full pre-Staff and incoming-Staff snapshots, later full pre-import snapshot; original source-bound receipts kept historical.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "supabase/schema.fingerprint.json",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "f5296fefb9fd6b39105f3ac4e40ecaa94b500249"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "8c9785d9e8cb7b0aa4fa84e235fb607fbb5853ea"
+          ],
+          "disposition": "Later authentic final1079 capture119 fingerprint import, authenticated by existing import/publication guards. Old Staff fingerprint remains reachable at original ancestor and its custody receipts remain exact.",
+          "byte_exact_prior5098_disposition": true
+        },
+        {
+          "path": "supabase/schema.sql",
+          "original_tuple": [
+            "100644",
+            "blob",
+            "d41b3ebde294d03ef50088c7ec803b4e4e937eed"
+          ],
+          "candidate_tuple": [
+            "100644",
+            "blob",
+            "3aaad18f3a3f2f16959c817ec570208995c80368"
+          ],
+          "disposition": "Later authentic final1079 capture119 schema import, authenticated by existing import/publication guards. Old Staff schema remains reachable at original ancestor and its custody receipts remain exact.",
+          "byte_exact_prior5098_disposition": true
+        }
+      ],
+      "newly_touched_original_packet_fixture_paths": [],
+      "omitted_unique_paths": [],
+      "original_registration_values_retained": 822
+    }
+  ],
+  "whole352coverage": {
+    "tuple": [
+      "100644",
+      "blob",
+      "0445cbe2d08985d4ed681306191e0958d26c6d4e"
+    ],
+    "byte_exact_prior5098_entire_header_row_order_foreign_rows": true,
+    "original_owner_complete_rows_exact": {
+      "GOV-08": {
+        "entire_row_and_evidence_exact_original": true,
+        "candidate_stored_status": "VERIFIED",
+        "whole_row_sha256": "4b1ef18f82963f526289b43498bb993f8896619b021fa11ef7e4b0bc81d06492"
+      },
+      "AT-GOV-08": {
+        "entire_row_and_evidence_exact_original": true,
+        "candidate_stored_status": "PASSED",
+        "whole_row_sha256": "43cb41d91e4108a40e1f16af99b5a7190a7ed6eaffedf800e76aa0986d91d91a"
+      },
+      "DB-02": {
+        "entire_row_and_evidence_exact_original": true,
+        "candidate_stored_status": "VERIFIED",
+        "whole_row_sha256": "514f1101116a37f2a89373109e8d24f0ff77a434b79ad1ee3fd9555d72ee8ed5"
+      },
+      "AT-DB-02": {
+        "entire_row_and_evidence_exact_original": true,
+        "candidate_stored_status": "PASSED",
+        "whole_row_sha256": "f74c37cbf798aedab83ef0a3c568ed1985ce85c89353be6d21f3271e9701f4df"
+      }
+    },
+    "no_main_promotion": true
+  },
+  "DOC613": {
+    "actual_main": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "full_packet_paths": 162,
+    "exact_payload160_paths": 160,
+    "exact160_tuple_pinset_sha256": "3d74df8c594b9c0ff841b7d49e0c61bb0cc169a41a746f578b449316ffb77630",
+    "only_preapproved_root_MD_continuations": [
+      {
+        "path": ".agent-memory/handover.md",
+        "original_DOC_tuple": [
+          "100644",
+          "blob",
+          "c4044b792b3eac866e5f439d28e825fb8a118b9d"
+        ],
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "6166b7a89251c65c7dc88590142e717d4e1c062b"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "6166b7a89251c65c7dc88590142e717d4e1c062b"
+        ],
+        "original_DOC_and_prior5098_bytes_prefix_exact": true
+      },
+      {
+        "path": ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+        "original_DOC_tuple": [
+          "100644",
+          "blob",
+          "99c739a25e849e4e823b3ceb70c4d27b6689b21c"
+        ],
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "1dfc17d8cb5ac338acbb51819a1f8758a4ae517d"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "a82da85a26cf0410e47a824cea6561b7d70c2da3"
+        ],
+        "original_DOC_and_prior5098_bytes_prefix_exact": true
+      }
+    ],
+    "all160_original_payload_tuples_exact": true,
+    "original_a8504b4c_qualification_reused": true
+  },
+  "authorized_faithful_fixture_corrections": {
+    "guardian_receipt": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixtures-guardian-final.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "3521bc74944ff32ad14481822870fba3206f0bf2"
+      ],
+      "bytes": 13490,
+      "sha256": "add2d2ee12e15eb753c07b698deb9507d62daa614a2f0fc09b9e40cb01701a92"
+    },
+    "root_peer_receipt": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixture-independent-peer-and-root-checks.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "7b724bcb6bfcb90d4ec9a0e8e2e32f031e9e8523"
+      ],
+      "bytes": 3032,
+      "sha256": "1f12a95a3e375014cc1bc19f06caa3e335fa7ad4cccf355f1e2279718efc0d47"
+    },
+    "publication_source_guard_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixture-successor-publication-source-guard.json",
+    "paths": [
+      {
+        "path": "scripts/ediel-ack-first-reception-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "90485bfc33d13cc926c04900f73ef0db91220f9a"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "4dbdaade997c8c58f047ca9b4ae3c23ac8a7e0f3"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-correction-context-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "3915f281bb6fb0741fb575e8c54667c5e9dfea4a"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "fccd499525f3cf3aa7a52b0dfa81f04b02512ebc"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-inbound-reception-actual-columns-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "6996c63259f464f05945f4d4450309ee19f99697"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "4d3843ab9a743813a7a98ec97a6a4b5831763a2e"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-outbound-ack-replay-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "4eeafc2c4c5c57a76b019dc214aff495a5d08bf4"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "94cde9d76c222faa6ba6e627da0e40e70ef92ae5"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-prodat-mixed-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "e9ffb128da4dc9f55c3ea712484af66b658ee9f7"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "aad1acb7a89655001688b6b600e7763477efa466"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "9ce0ed9c35cd0f34edae9296a71def5f3ba4a9ce"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "e759b26df49529476ec4e5b340c3b858e9e1aede"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-utilts-s02-required-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "4b5619efa240c13fc757d043284d326a0cdb4de4"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "9d97a1272df855be2fc7485db317a73ce82b8140"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/ediel-z04-ack-native.test.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "e539c6a34d4845568b70cfae3f1ef1fc09cb999d"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "b207274397b16253b145bb0527cd181c3ca2cbdb"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/helpers/originalMailboxNative.ts",
+        "prior5098_tuple": null,
+        "current_tuple": [
+          "100644",
+          "blob",
+          "3253fb3eeda9060cee48b9d3c9b0fce12d9ee155"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      },
+      {
+        "path": "scripts/helpers/utiltsConsumptionParties.ts",
+        "prior5098_tuple": [
+          "100644",
+          "blob",
+          "b15f49466f94adebcdf42db6ab9149a6f5cb4661"
+        ],
+        "current_tuple": [
+          "100644",
+          "blob",
+          "3a5b1ce8277f2be7d81bc31a70514bf6535ddd41"
+        ],
+        "original_packet_intersection": false,
+        "disposition": "Authorized faithful public transport/parser/mailbox/reception fixture correction; old fixture tuple not claimed exact; genuine current native qualification pending."
+      }
+    ],
+    "newly_touched_original533535578_packet_paths": [],
+    "normalized_Z04_missing": "PRODAT_UNKNOWN",
+    "normalized_Z04_unlisted": "Z99",
+    "all_original_assertions_mocks_permissions_wire_and_rulepins_preserved_per_exact_author_receipts": true,
+    "root_final_normalized_Z04_typecheck_exit": 0,
+    "genuine_current_head_native_result_required": true
+  },
+  "original_proof_and_complete_provenance_snapshot_custody": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined066-main3251-public533-source-only-guard.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "2e11ebee0c3120957e0f9fabb9ac68f533d22e78"
+      ],
+      "sha256": "b21a7ed1f3b96c199bcfb15abbcfc116086282dd33a0221ae5be446eb313fe6e",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-main4b-gov533-source-only-carry.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "7600fff74ace10a6a3a2e1c4d3df78023bdb0349"
+      ],
+      "sha256": "a9057cd47d5d59e94b0636acf257772a419609dc94370270bc0ffd8b60120ba5",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined932-main4a-public533535-source-only-guard.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "70447cb322e7c2e901807c4c9e2647a2527e1d78"
+      ],
+      "sha256": "249ef98a857ba1a2784e61c8f1add06148880f47b3c616a3881a2a3f0d98140b",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combineda2-main38-public533535-source-only-carry.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "70533986c2aa19943d9e003ee41bf7b701187bfb"
+      ],
+      "sha256": "e4de81f4e59d1bd5a1be2b68b36472daa7e50af525fb87962c3d2c947dd4d041",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-released-Staff-mechanical-source-composition-independent-ready.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "e9406851e1f2da329b46cb31d15e54ff6c731e0a"
+      ],
+      "sha256": "a6835a4e60339ac39b03e6f899176bd62e7091485cb57b5230d86da964b499c5",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-be2-originalTWO7232-current53-bounded-delta-source-only-ready.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "24c07282df26637c123f7271666b9513824b6637"
+      ],
+      "sha256": "42c7029e5afcffb9534b7d226a1771800910fb5e225ddda7f0fddd39c520165a",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-fd9710f9-original-two-oracle-one-intake-receipt.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "08fbce8f0cacb8ddda6580ec6d98ec6ed21d0104"
+      ],
+      "sha256": "34e9b36c4c47eb8875358646d2ef64e65773ff591d7098d07037370797ffc26d",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5d9d-final-SC014-DOC613-CPP44-publication-source-only-ready.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "3d4d2ffd59b30f7c770ad45a33b6767367ceedaf"
+      ],
+      "sha256": "a8504b4c96275e249941c8c83deedec21d01ef308e8299e369078a0573559296",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic119-final1079-raw3-import-custody.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "38bcb80222931754826b52b9814cf4aff487e8e3"
+      ],
+      "sha256": "715ade95855d99eaffb6cb05051c0ca319d0daa4e3742ea926f283bc624b4e77",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined119-import-final-publication-precondition-source-only-ready.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "da86c8123311656f3b4fc9cf41e9390a68d9e6a3"
+      ],
+      "sha256": "71a2e29fff606845f9f3108d8d4331408e910e185b87fcb73ec59fbfeec9287f",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-staff-complete-combined-types-manifest-mainfc.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "1b660e691e624415279c2afaf5ee94cd6f9b6b5a"
+      ],
+      "sha256": "f26ede7d9ae73e5d863a49172df7cb8fdd586682f5b37e92be4823600e4dc4ca",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/incoming-staff-ebf-complete-types-manifest.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "363a5888558cee6357bc627a34a76d12dd2dbaaa"
+      ],
+      "sha256": "456efc058c18e03f7d1131d580311d824e262ea98d4d83187ecadea54577433a",
+      "exact_prior5098": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+      "tuple": [
+        "100644",
+        "blob",
+        "caea705230be7c9ff53d6514c1910ce8bf21d52a"
+      ],
+      "sha256": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73",
+      "exact_prior5098": true
+    }
+  ],
+  "original_staff_authority_retained": {
+    "final_ready": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005084967",
+    "original_final_baseline_owner": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685",
+    "exact_two_owner_release": "https://github.com/heke99/gridex-ops-platform/pull/578#issuecomment-6003893283",
+    "exact_two_postimages": {
+      "scripts/canonical-runtime-consistency-regression.cjs": [
+        "100644",
+        "blob",
+        "fcae2fd344b5686b6b0c6b64976c319de8456ecd"
+      ],
+      "__tests__/staff-api-openapi.test.ts": [
+        "100644",
+        "blob",
+        "378984abc0ff1da6c459e04efea1282d08b8ee4e"
+      ]
+    },
+    "original_two_applied_once_guard_sha256": "42c7029e5afcffb9534b7d226a1771800910fb5e225ddda7f0fddd39c520165a",
+    "original_packet_225_current_exact220_with_only_same5_substitutions": true
+  },
+  "preserved_HOLD": {
+    "original_PR482_17criteria": "HOLD_UNCHANGED",
+    "original14_unique_legacy_HOLDs": "HOLD_UNCHANGED; exact160DOC custody and original authority preserved, no criterion closure or new intake by this receipt.",
+    "blanket_staff_criteria_completion": false,
+    "new_final_baseline_owner": false
+  },
+  "omitted_unique_paths": [],
+  "closure_preconditions": {
+    "authentic_current_d44_mandatory_gates": "PENDING_ROOT_SOLE_OBSERVER",
+    "actual614_main_admission_and_fresh_resulting_main_tuple_custody": "PENDING_ROOT_NORMAL_MERGER",
+    "closures": "Only root after both, replaced/superseded retirement wording; original PRs not labelled ACTUAL merged.",
+    "no_current_green_or_whole_plan_claim": true
+  },
+  "pinset_encoding": "UTF8 compact JSON arrays[path,mode,type,blob] sorted by path; coverage whole rows sorted-key compact JSON.",
+  "actions": {
+    "only_output": "One immutable outside-Git sanitary JSON receipt",
+    "source_index_ref_CP_memory_GitHub_mutations": false,
+    "API_CI_logs_artifacts_tests_native_capture": false
+  }
+}

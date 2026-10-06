@@ -5,6 +5,7 @@ import { initialCanonicalUtiltsDecision, recordFinalCanonicalUtiltsDecision } fr
 import { readCanonicalPeriodicReasonAuthority, readCanonicalUtiltsIssuerIdentityAuthority, resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { captureEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision } from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import { edielSmtpConfig } from '@/lib/ediel/mailReadiness'
 
 type Sql = <T = unknown>(input: string) => T
 type Lit = (value: unknown) => string
@@ -102,7 +103,7 @@ export function setUtiltsReceiverRole(sql: Sql, lit: Lit, company: string, actor
  * production does, so changed-byte retries reach the source-conflict check. */
 export function receiveUtiltsRetry(sql: Sql, lit: Lit, input: { companyId: string; actorUserId: string; raw: string; parsed: { senderEdielId?: string | null; receiverEdielId?: string | null; applicationReference?: string | null; interchangeReference?: string | null; messageFamily?: string | null; messageCode?: string | null; rawPayload: string } }): { inboundEmailMessageId: string; parseResultId: string } {
   const box = randomUUID(), mail = randomUUID(), parse = randomUUID(), p = input.parsed
-  sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,environment,is_active,is_shared_platform_mailbox) VALUES(${lit(box)},${lit(input.companyId)},'Synthetic UTILTS retry mailbox','test',true,false);
+  sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox) VALUES(${lit(box)},${lit(input.companyId)},'Synthetic UTILTS retry mailbox',${lit(edielSmtpConfig().from || 'synthetic-utilts-retry@example.invalid')},'test',true,false);
     INSERT INTO public.inbound_email_messages(id,company_id,environment,mailbox_id,internet_message_id,received_at,raw_edifact_payload,body_text,processing_status,match_status)
     VALUES(${lit(mail)},${lit(input.companyId)},'test',${lit(box)},${lit(`${mail}@example.invalid`)},clock_timestamp(),${lit(input.raw)},${lit(input.raw)},'received','not_checked');
     INSERT INTO public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,raw_payload,sender_ediel_id,receiver_ediel_id,application_reference,interchange_reference,message_family,message_code,parse_status)

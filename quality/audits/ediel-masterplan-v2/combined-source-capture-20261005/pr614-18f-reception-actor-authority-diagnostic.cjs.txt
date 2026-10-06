@@ -1,0 +1,41 @@
+const {PGlite}=require('/workspace/gridex-combined-source-capture/node_modules/@electric-sql/pglite');
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+(async()=>{
+const db=new PGlite(),f=JSON.parse(fs.readFileSync('/tmp/pr614-18f-actual-reception-functions.json','utf8'));
+await db.exec(`CREATE SCHEMA auth;CREATE SCHEMA gridex_ediel_inbound_receptions;
+CREATE TABLE auth.users(id uuid,deleted_at timestamptz,banned_until timestamptz);
+CREATE TABLE public.user_profiles(id uuid,user_status text);
+CREATE TABLE public.companies(id uuid,is_active boolean,status text);
+CREATE TABLE public.company_memberships(user_id uuid,company_id uuid,status text,is_active boolean,accepted_at timestamptz);
+CREATE TABLE public.admin_users(user_id uuid,is_active boolean,role text);
+CREATE TABLE public.roles(id uuid,is_active boolean,key text,name text);
+CREATE TABLE public.user_roles(user_id uuid,role_id uuid,company_id uuid,is_active boolean,status text,role text);
+CREATE TABLE public.role_permissions(role_id uuid,permission_id uuid,effect text);
+CREATE TABLE public.permissions(id uuid,key text,name text,is_active boolean);
+CREATE TABLE public.user_permissions(user_id uuid,company_id uuid,permission_id uuid,permission_key text,is_active boolean,status text,effect text);
+CREATE TABLE public.user_permission_overrides(user_id uuid,company_id uuid,is_active boolean,effect text,permission_key text,valid_from timestamptz,valid_to timestamptz);`);
+for(const n of ['public.gridex_normalize_platform_role','public.gridex_get_user_permissions_in_company','public.gridex_actor_has_company_permission','gridex_ediel_inbound_receptions.authorize_v1'])await db.exec(f[n]);
+const c=crypto.randomUUID(),foreign=crypto.randomUUID(),business=crypto.randomUUID(),receiver=crypto.randomUUID(),readonly=crypto.randomUUID(),ids={};
+await db.query('INSERT INTO companies VALUES ($1,true,$3),($2,true,$3)',[c,foreign,'active']);
+for(const [a,key] of [[business,'communication.write'],[receiver,'communication.send'],[readonly,'communication.read']]){
+const id=crypto.randomUUID();ids[key]=id;
+await db.query('INSERT INTO auth.users(id)VALUES($1);',[a]);await db.query('INSERT INTO user_profiles VALUES($1,$2)',[a,'active']);await db.query('INSERT INTO company_memberships VALUES($1,$2,$3,true,clock_timestamp())',[a,c,'active']);await db.query('INSERT INTO permissions VALUES($1,$2,$2,true)',[id,key]);await db.query('INSERT INTO user_permissions VALUES($1,$2,$3,$4,true,$5,$6)',[a,c,id,key,'active','allow']);}
+const outcomes=[];
+const authority=async(name,a,company,operation,ok)=>{try{await db.query('SELECT gridex_ediel_inbound_receptions.authorize_v1($1,$2,$3)',[company,a,operation]);assert.equal(ok,true,name);outcomes.push({name,actual:'ALLOW'});}catch(e){if(ok)throw e;assert.equal(e.message,'ediel_reception_actor_forbidden');assert.equal(e.code,'42501');outcomes.push({name,actual:'DENY_42501'});}};
+await authority('original WRITE-only business actor cannot record reception',business,c,'communication.write',false);
+await authority('separate SEND-only own receiver records reception',receiver,c,'communication.write',true);
+await authority('READ-only actor cannot record reception',readonly,c,'communication.write',false);
+await authority('READ-only actor can select receipt',readonly,c,'communication.read',true);
+await authority('SEND actor cannot cross company',receiver,foreign,'communication.write',false);
+assert.equal((await db.query('SELECT gridex_actor_has_company_permission($1,$2,$3) AS allowed',[business,c,'communication.write'])).rows[0].allowed,true);
+assert.equal((await db.query('SELECT gridex_actor_has_company_permission($1,$2,$3) AS allowed',[business,c,'communication.send'])).rows[0].allowed,false);
+outcomes.push({name:'business actor remains WRITE allowed and SEND denied',actual:'PASS'});
+await db.query("UPDATE user_permissions SET effect='deny' WHERE user_id=$1",[receiver]);await authority('explicit own SEND DENY prevents receipt',receiver,c,'communication.write',false);await db.query("UPDATE user_permissions SET effect='allow' WHERE user_id=$1",[receiver]);
+await db.query('UPDATE permissions SET is_active=false WHERE key=$1',['communication.send']);await authority('inactive catalog prevents receipt',receiver,c,'communication.write',false);await db.query('UPDATE permissions SET is_active=true WHERE key=$1',['communication.send']);
+await db.query('UPDATE company_memberships SET is_active=false WHERE user_id=$1',[receiver]);await authority('inactive own membership prevents receipt',receiver,c,'communication.write',false);await db.query('UPDATE company_memberships SET is_active=true WHERE user_id=$1',[receiver]);
+await db.query("UPDATE user_profiles SET user_status='inactive' WHERE id=$1",[receiver]);await authority('inactive profile prevents receipt',receiver,c,'communication.write',false);await db.query("UPDATE user_profiles SET user_status='active' WHERE id=$1",[receiver]);
+await db.query('UPDATE company_memberships SET accepted_at=NULL WHERE user_id=$1',[receiver]);await authority('unaccepted own membership prevents receipt',receiver,c,'communication.write',false);await db.query('UPDATE company_memberships SET accepted_at=clock_timestamp() WHERE user_id=$1',[receiver]);
+await authority('restored receiver remains allowed',receiver,c,'communication.write',true);
+const result={scope:'Bounded exact authentic current-schema reception authorization and canonical resolver evaluation on PGlite; NOT native PostgreSQL/full-suite/CI/source delivery proof',source:'18f9325942ad8fa36f077b65a1ba0be319034736',artifact:11392187060,functions:Object.fromEntries(Object.entries(f).map(([n,s])=>[n,crypto.createHash('sha256').update(s).digest('hex')])),node:process.version,outcomes,controls:outcomes.length,local_native:'NOT_EXECUTED',no_production_changes:true};
+fs.writeFileSync('/workspace/agent-review-checkpoints/pr614-18f-actual-reception-actor-authority-diagnostic.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({controls:outcomes.length,all_pass:true}));await db.close();
+})().catch(e=>{console.error(e);process.exitCode=1;});

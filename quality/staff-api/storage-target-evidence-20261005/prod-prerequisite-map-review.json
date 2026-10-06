@@ -1,0 +1,334 @@
+{
+  "status": "PASS_BOUNDED_SOURCE_DEPENDENCY_MAP_ONLY",
+  "project": {
+    "name": "gridex-prod",
+    "ref": "ayiuxjlfazkjmmtlvhsl"
+  },
+  "source": {
+    "frozen_forward_commit": "985724f58ef15e222cf4d3b2e1c643c674852106",
+    "frozen_forward_tree": "0b8ad8d2272f77a346781a13b909aa0cdcc9b8d1",
+    "current_portal_commit": "bd118444dda5095bdb18e0502a801f7121d54b08",
+    "current_portal_tree": "ae709a2054f722dc343b8e6b9853a5afedacd58c",
+    "forward_count": 22,
+    "forward_digests_match_readiness": true,
+    "inputs": [
+      {
+        "path": "supabase/migrations/20261004083640_staff_user_commands.sql",
+        "sha256": "0cf1911c72cdb954f27eef54e7604c2008868ec293e33425a57e0e7f0e25147b"
+      },
+      {
+        "path": "supabase/migrations/20261004083735_staff_identity_provider_purpose.sql",
+        "sha256": "0bf0beed5002d287b9682675817300048271a3eeab59d88ec66f2a956ab2e578"
+      },
+      {
+        "path": "supabase/migrations/20261004083809_staff_api_integration_auth.sql",
+        "sha256": "7c065eefafb20c7b4481ac2e1b828426b4213974050432e7f2c84deb377e609a"
+      },
+      {
+        "path": "supabase/migrations/20261004084204_staff_customer_write_attribution.sql",
+        "sha256": "5b908b97c47394197a558e0d77353edd2cc2ebf8fb44cc45782a5e5a2e08f2ee"
+      },
+      {
+        "path": "supabase/migrations/20261004084206_staff_case_write_attribution.sql",
+        "sha256": "decacb983975fabcd5b0d36a63cdcaa9f4652c142c248302b4bc06514c4ca33c"
+      },
+      {
+        "path": "supabase/migrations/20261004085008_staff_active_membership.sql",
+        "sha256": "a740c68886993e2349d129c784491891a856ad1b4c02a064d3c4223cbbb24749"
+      },
+      {
+        "path": "supabase/migrations/20261004085710_staff_support_create_atomic.sql",
+        "sha256": "b507f05c68f4796990d4cf2639cbc4f7756caeec6ac4d7a7c4502fccef0f6666"
+      },
+      {
+        "path": "supabase/migrations/20261004090602_staff_case_events_api_auth.sql",
+        "sha256": "7056422a92a27d6b2f7a5fde4086daebae4b9fa38a98fecf628c8d3dc30741a0"
+      },
+      {
+        "path": "supabase/migrations/20261004093111_staff_write_actor_guard.sql",
+        "sha256": "242b43bd4b41aa708dd4fb88558478f3c9c986842010eb4c80d1838fda2bee60"
+      },
+      {
+        "path": "supabase/migrations/20261004094344_staff_user_client_guard.sql",
+        "sha256": "9f59e109c599911c6c060e1c4edb8beed461dfa9d942e22d5b73e67852ad8801"
+      },
+      {
+        "path": "supabase/migrations/20261004095500_staff_user_actor_guard.sql",
+        "sha256": "c43a3a4849a0fe3a99b961af11ea94396d27d578e2ecf75aadd32a975fabab3b"
+      },
+      {
+        "path": "supabase/migrations/20261004100320_staff_assertion_replay_least_privilege.sql",
+        "sha256": "f01b39a54b4939ae82fe13faaf313538da8ab15d553d3f1fe73779fc6877f670"
+      },
+      {
+        "path": "supabase/migrations/20261004100849_staff_case_assignee_eligibility.sql",
+        "sha256": "6250de6182acf2899da621709f034cde494a40ee4398c9743c4bd62b8e2c764e"
+      },
+      {
+        "path": "supabase/migrations/20261004100918_staff_user_lock_order.sql",
+        "sha256": "e90524bec4766b4eab68c0dc04836e95dc7e7bd8938ce7b602044c441b261e68"
+      },
+      {
+        "path": "supabase/migrations/20261004114944_staff_contact_profile_authority.sql",
+        "sha256": "549fcda905f17ee9f3ed562bd7ecb8de13b99ab475ada307ab5e3d9ddf9a83aa"
+      },
+      {
+        "path": "supabase/migrations/20261004115007_staff_case_status_actor_compatibility.sql",
+        "sha256": "1a60f96140f8c8bc151d26b4cd6058b36f48b693ebc0ffbae75e72f1d57df492"
+      },
+      {
+        "path": "supabase/migrations/20261004132630_staff_invitation_domain_columns.sql",
+        "sha256": "c31a729085170cac6801f66015d69c5005f16f9f138202d1b3b98f79d79b073c"
+      },
+      {
+        "path": "supabase/migrations/20261004165620_staff_user_role_id_nullability.sql",
+        "sha256": "efdc9d67fcb6e3edd6d77e97de0b5c79978a2b3673d6bad1607880b5cbe98510"
+      },
+      {
+        "path": "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql",
+        "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+      },
+      {
+        "path": "supabase/migrations/20261004205816_support_attachment_quarantine_carrier.sql",
+        "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+      },
+      {
+        "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+        "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+      },
+      {
+        "path": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+        "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+      },
+      {
+        "path": "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+        "sha256": "0e26b35eef3fa863f149bf4c46be4018ff484d3d55c5434a64323fafde201775"
+      },
+      {
+        "path": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+        "sha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2"
+      },
+      {
+        "path": "supabase/migrations/20260611170000_launch_readiness_completion_db_warnings_retention_bulk.sql",
+        "sha256": "f05590c61dcae469c8ca6e324582024ab79a1cb8862775eddeccec97e16727c2"
+      },
+      {
+        "path": "supabase/migrations/20260712100000_gridex_end_to_end_integrity_hardening.sql",
+        "sha256": "02e8e31077ad75ec3e1e753dcea72da819fc5f89484c430f2007e4fbf55e42be"
+      },
+      {
+        "path": "supabase/migrations/20260713150000_api_performance_tenant_hardening.sql",
+        "sha256": "fcbe6483e7983843f5dc19e913e4f22af86c9b72991d21961e0f97058d6a3009"
+      },
+      {
+        "path": "supabase/migrations/20260717235500_integration_api_rate_limiter_canonical_repair.sql",
+        "sha256": "d42a42e6583b5a813143a550286bd3af9033aade6cfa37809c147717ade73714"
+      },
+      {
+        "path": "supabase/migrations/20260727010000_contract_flow_integrity_completion.sql",
+        "sha256": "392d9e90c4fcec6752644fb75721ed7a113c3dcd2cb68d3185e3bfd44a065c4f"
+      },
+      {
+        "path": "supabase/migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+        "sha256": "4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0"
+      },
+      {
+        "path": "supabase/migrations/20260802010000_canonical_tenant_operation_policy_lifecycle.sql",
+        "sha256": "257ff7b6e84466c0f90103116e94f18e0f2e56b4e381cb0c15e4ad5008307082"
+      },
+      {
+        "path": "supabase/migrations/20260802014000_canonical_provisioning_access.sql",
+        "sha256": "4fd103508d86a85ee41c168af90a25fdbbd546d17efea7ebcec91935c3c790fc"
+      },
+      {
+        "path": "supabase/migrations/20260802170000_canonical_security_convergence.sql",
+        "sha256": "e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a"
+      },
+      {
+        "path": "supabase/migrations/20260802203000_canonical_runtime_consistency_hardening.sql",
+        "sha256": "96a4402e5b642453a7358f55f9a5c93b2559a707df66b958a770318d10412930"
+      },
+      {
+        "path": "supabase/migrations/20260802231000_tenant_website_provisioning_guards.sql",
+        "sha256": "8ff7ffba346f7d1f8d085279ba1045095d9d56a2e7f24c9715a5222b4f4c5b8c"
+      },
+      {
+        "path": "supabase/migrations/20260803093100_gridex_runtime_capabilities_v3.sql",
+        "sha256": "b93af4c0f46274513dad17a7c3145c6c1563b0f21570eb655420738607e000f8"
+      },
+      {
+        "path": "supabase/migrations/20260809180628_gridex_ops_external_api_performance_foundation.sql",
+        "sha256": "a9de604f3b34c183299198c741c28710a668f0074b9970eb46b82c947163f51b"
+      },
+      {
+        "path": "supabase/migrations/20260809182215_authenticate_integration_request_v1.sql",
+        "sha256": "dba6e6ea5cb23f86825a8e272d162e2d8cf3021bc4dab93e323a02859bb5c2f5"
+      },
+      {
+        "path": "supabase/migrations/20260809191057_authenticate_integration_request_route_cost.sql",
+        "sha256": "a7c66b69169055de43d963e25e3e8011023e597cc712463800d055ec37114615"
+      },
+      {
+        "path": "supabase/migrations/20260810193450_canonical_access_provisioning_runtime_v1.sql",
+        "sha256": "390b0223a8fbafb633795f1ad0116d6cf8ebbddea056226be84711e7d878a4b8"
+      },
+      {
+        "path": "supabase/migrations/20260810224500_canonical_review_remediation_v1.sql",
+        "sha256": "12fb80b8c13f7e105e4c5b63a6145e863872874fd4a2caaea9f669df5a80010d"
+      },
+      {
+        "path": "supabase/migrations/20260812125000_gridex_runtime_schema_catalog_v3_targeted_catalog.sql",
+        "sha256": "659c37680d5a65465ed7bddde10ed788916ea949524b26c750ff24ecc12e5bad"
+      },
+      {
+        "path": "supabase/migrations/20260813230000_runtime_readiness_dependency_resilience_v1.sql",
+        "sha256": "63b6099df1e28139d0a3e82011f582fa11c9e46d20db1aa3a2d43932050e8a0e"
+      },
+      {
+        "path": "supabase/migrations/20260902091000_company_scoped_permission_engine.sql",
+        "sha256": "dc72cc26cbb53ab814fcf214dc9324f27bfac9f4bf77940b9e9a0527428f359a"
+      },
+      {
+        "path": "supabase/migrations/20260902094000_platform_table_classification_and_invariant_gate.sql",
+        "sha256": "29ea84caceca14260c6a909534c89a26a015568d9bf56741cd796a5cd1896470"
+      },
+      {
+        "path": "supabase/migrations/20260902100000_rpc_surface_and_permission_scope_corrections.sql",
+        "sha256": "9753cd0f10a120a32826286a0eeb08d6f7e2b51704014decf60243e5eaa1a919"
+      },
+      {
+        "path": "supabase/migrations/20260922095911_ediel_received_source_ledger.sql",
+        "sha256": "a3a4933935995dd6525d09d70949f360aa52bcf72e5ab8d93970fdcdea4aae39"
+      },
+      {
+        "path": "supabase/migrations/20260923180557_restore_customer_case_events_atomic_status.sql",
+        "sha256": "290357346253461628c6d341ba383d16690b62613dc8ce913eb3044965cd59a8"
+      },
+      {
+        "path": "supabase/migrations/20261001004953_ediel_current_company_permission_denies.sql",
+        "sha256": "3a83ea9f98a75c8bed50eed150fd6101df5e3ac3418696f79ccc88708bb9f665"
+      },
+      {
+        "path": "supabase/migrations/20261001200000_support_case_idempotency_unique.sql",
+        "sha256": "24908b47be1243935ddc36b640116681b1daf68fdc1bcca1be59f462a31bc934"
+      },
+      {
+        "path": "supabase/migrations/20261002080000_tenant_customer_identity_providers.sql",
+        "sha256": "ce9c4b3be1ed8e5ad2cdb8d060f46753692769011877b50269adf52a8dc794a5"
+      },
+      {
+        "path": "supabase/migrations/20261002100000_support_case_attachments.sql",
+        "sha256": "f1e5d8d7c0a07307f73608684cefefffcc64091bf84c651a147c48aea4816481"
+      },
+      {
+        "path": "supabase/migrations/20261002120000_customer_identity_change_requests.sql",
+        "sha256": "f4c063abfedd952bdce2a63fcdda4ff2c958a3dff79e6c0dc1e0fd620ecb24f4"
+      },
+      {
+        "path": "supabase/migrations/20261002230000_customer_merge_portal_lifecycle.sql",
+        "sha256": "836c083fad0f231a145cf4117527057a20bdc2f73d094c3fbaa53fbab525a4c9"
+      },
+      {
+        "path": "lib/integrations/apiAuth.ts",
+        "sha256": "6a05900e84acf687d7ba4b1cfac98c0a75f25c68afb7e0abad619cc32d719d42"
+      },
+      {
+        "path": "lib/platform/schemaReadiness.ts",
+        "sha256": "8e2f23936d3207bdbc968d63dd29e404c7e070efb90cddbf886246d9987fb38e"
+      },
+      {
+        "path": "lib/api/strictRequest.ts",
+        "sha256": "e27b01612f1442167f37b0fab5776f2510af7ea619da77a4e9fe4d7b67d13c1c"
+      },
+      {
+        "path": "lib/staff-api/context.ts",
+        "sha256": "8d038f0e5d452419c9dd9b9782a6d80c0b520c2743dd8c147655dddc801b920d"
+      },
+      {
+        "path": "lib/customers/getCustomerForCompany.ts",
+        "sha256": "9e26beb75cdc56f386ac3e73ddbcb5890977f013e0f288ba262145e1483ac42f"
+      },
+      {
+        "path": "lib/customers/getCustomers.ts",
+        "sha256": "2293899ef569fad7758ad04185d8c926ab6a13edca96aa9fb8bd22edaef2e0de"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "sha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6"
+      }
+    ]
+  },
+  "document": {
+    "path": "/workspace/gridex-support-portal-ops/quality/staff-api/gridex-prod-prerequisite-map-20261005.md",
+    "sha256": "592112c96b4091688029db120286e4f205715f6850ab74a546b1611a240f4c14"
+  },
+  "catalog_receipts": [
+    {
+      "path": "/tmp/gridex-staff-review/gridex-prod-staff-api-readiness.json",
+      "sha256": "1d6d385d8db06d1212bb9d542ce798969838b5128ea7d60c4ea35a773cb9dcae"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/gridex-prod-staff-readiness-catalog.json",
+      "sha256": "e568695306981935fe0269a51053e94e931ade5231d996165a6068032f67b86e"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/gridex-prod-staff-source-inventory.json",
+      "sha256": "dc36b808f7c8d2941192d50fa793811851dab9bba9efd51b4e36284ca316c90b"
+    }
+  ],
+  "parent_supplemental_readonly_facts": {
+    "production_companies": 2,
+    "gridex_company_present": false,
+    "user_permissions_present": true,
+    "customer_portal_write_idempotency_present": false,
+    "provenance": "parent subsequent read-only inventory; not original receipt sample",
+    "later_observation_time": "2026-10-05 around 10:04 UTC (parent report; approximate, not fabricated SQL timestamp)",
+    "platform_runtime_readiness_present": false,
+    "sampled_v3_catalog_integrity_capability_definitions_present": false,
+    "user_permissions_required_columns_verified": {
+      "user_id": "uuid",
+      "permission_id": "uuid",
+      "assigned_at": "timestamptz",
+      "permission_key": "text",
+      "company_id": "uuid",
+      "effect": "text",
+      "status": "text",
+      "is_active": "boolean"
+    }
+  },
+  "additional_hard_dependencies": [
+    "customer_portal_write_idempotency NULL-customer deduplication",
+    "canonical mapped-access/helpers/audit/provisioning",
+    "private credential core and rate buckets",
+    "provider registry/classification",
+    "identity/case/attachment base composite ownership",
+    "private support bucket",
+    "exact immutable reject_mutation guard",
+    "actual platform_runtime_readiness row/evaluator"
+  ],
+  "blockers": {
+    "missing_staff_schema": "CONFIRMED",
+    "intended_tenant_and_production_admin": "PENDING_USER_FACTS",
+    "global_readiness_transitive_gate": "CONFIRMED_MISSING_TABLE_AND_SAMPLED_V3_DEFINITIONS; COMPLETE_GLOBAL_CAPABILITIES_NOT_QUALIFIED"
+  },
+  "verification": {
+    "sql_http_calls": 0,
+    "tests_replays": 0,
+    "production_writes": 0,
+    "key_provider_domain_actions": 0,
+    "repository_edit_scope": [
+      "/workspace/gridex-support-portal-ops/quality/staff-api/gridex-prod-prerequisite-map-20261005.md"
+    ],
+    "source_ui_edits": false,
+    "production_activation": "NOT_RUN",
+    "dev_receipts_reattributed": false,
+    "static_document_check": "PASS: no trailing whitespace, all declared origin files exist, 22 frozen digests match readiness; no tests/SQL/HTTP"
+  },
+  "limits": [
+    "existence does not prove metadata/ACL/constraints",
+    "private credential core is outside generated public/gridex capture",
+    "historical origins are not an execution plan",
+    "production membership/data/delivery not qualified",
+    "no automatic dev data transfer"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "scope": "Current-head optional existing capture guard only; wrapper SUCCESS is not native or recapture PASS",
+  "head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+  "source_tree": "400a2036314b3df52dcd4992330373a7553655e1",
+  "parent": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+  "actual_main_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "run_id": 37409390242,
+  "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+  "attempt": 1,
+  "event": "pull_request",
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "job_id": 112094164978,
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "all_six_capture_steps_genuinely_skipped": [
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 4
+    },
+    {
+      "name": "Run npm ci",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 5
+    },
+    {
+      "name": "Run supabase/setup-cli@v1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 6
+    },
+    {
+      "name": "Install the matching PostgreSQL 17 client",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 7
+    },
+    {
+      "name": "Capture authentic artifacts from the sourced clean replay",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8
+    },
+    {
+      "name": "Upload capture-only artifacts",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9
+    }
+  ],
+  "artifact_count": 0,
+  "original_authentic_capture_run": 37392285139,
+  "original_capture_artifact": 11382240742,
+  "raw3_byte_exact_preserved_by_final_source_guard": "357f76794a6c60c54764c046ea49d4fb605586ff028fd740e5568f7d2a1f7950",
+  "recapture_performed": false,
+  "native_or_full_acceptance_claimed": false,
+  "historical_capture_flags": "Preserved; capture custody does not qualify native/main"
+}

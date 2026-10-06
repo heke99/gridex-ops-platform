@@ -1,0 +1,35 @@
+{
+  "kind": "Independent root cross-review of frozen ONE existing SC014 fixture correction",
+  "verdict": "APPROVE_SELECTED_COMPONENT_FIXTURE_ONLY",
+  "reviewer": "/root",
+  "recorded_at_utc": "2026-10-06T01:23:01.283256+00:00",
+  "source_head": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+  "source_tree": "12362cb677a33e43c09fc36f9e1a24e98f5811f5",
+  "owned_path": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+  "before_sha256": "ff81c945d776b5d6c3a2654ddacb012fd23b7c029602940e19cae803f78412d5",
+  "after_sha256": "5a20cd0feec360fec1b1ad01d4881b8e738366ce0698886ac71e48e57a56a86d",
+  "author_receipt_sha256": "57f2e7125905847a388daa87fbff81f56c30c1333c6f5e039f877f3e5519bb40",
+  "foreign_tracked_mode_type_blob_exact_count": 8976,
+  "exact_tracked_changes": [
+    "__tests__/ediel-sc-014-unattributed-reception.test.ts"
+  ],
+  "guards": {
+    "all11_original_test_bodies_exact_except_authorized_FROM_error": true,
+    "all_three_SMTP_negative_mutations_and_final_valid_control_retained": true,
+    "actual_current_eight_source_definitions_exact": true,
+    "real_original_mailbox_reception_created_by_current_SQL": true,
+    "separate_receive_SEND_and_preparation_WRITE_only_roles": true,
+    "no_backfill_or_invented_private_table_or_admission_verdict": true,
+    "prospective_actual_capture_trigger_and_RLS_constraints_retained": true,
+    "all_SQL1079_generated_raw3_generator_workflow_production_consumer_coverage_exact": true,
+    "portable_IMP_precursor_unchanged": true,
+    "authentic_author_final11_lint_results_bound": true
+  },
+  "diagnostic_disposition": "Same changed FROM is rejected earlier by current original-mailbox SMTP custody (P0001); HOST/PORT retain exact route_count:0. No semantic control weakened.",
+  "qualification_limits": [
+    "Selected PGlite/finite service/MIME component and source preservation only.",
+    "Root one full ordinary local suite is separately running; not claimed here.",
+    "Actual new public head mandatory ordinary/native/type-schema/clean-upgrade/parity and normal merge remain required.",
+    "No native/capture/CODE_VERIFIED/main/whole-plan result or new Masterplan rule."
+  ]
+}

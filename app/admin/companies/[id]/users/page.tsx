@@ -1,6 +1,9 @@
 import Link from 'next/link'
+import { randomUUID } from 'node:crypto'
 import { redirect } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
+import ExternalStaffEnrollmentForm from '@/components/admin/companies/ExternalStaffEnrollmentForm'
+import { externalStaffEnrollmentAdmin } from '@/lib/auth/externalStaffEnrollmentAdmin'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import {
   getCompanyById,
@@ -130,6 +133,7 @@ export default async function CompanyUsersPage({
     )
   }
 
+  const externalStaffClients = await externalStaffEnrollmentAdmin.listClients(company.id).catch(() => [])
   const usersResult = await listCompanyUsersForGovernance(company.id)
     .then((rows) => ({ rows, error: null as string | null }))
     .catch((error: unknown) => ({
@@ -195,6 +199,12 @@ export default async function CompanyUsersPage({
             <p className="mt-2 font-mono text-xs">{usersLoadError}</p>
           </div>
         ) : null}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Personalportal · första administratören</h2>
+          <p className="mt-1 text-sm text-slate-700">Bjud in bolagets första administratör till deras egen personalportal och inloggning. Därefter hanterar bolaget sin personal via personalportalen.</p>
+          <ExternalStaffEnrollmentForm companyId={company.id} clients={externalStaffClients} idempotencyKey={randomUUID()} />
+        </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Bjud in användare till bolaget</h2>

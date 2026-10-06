@@ -1,0 +1,94 @@
+{
+  "schema": "gridex-pr614-existing-ops03-producer-fixture-integration-correction/v1",
+  "verdict": "FIXTURE_CORRECTION_READY_TARGETED110_PASS_CURRENT_HEAD_CI_PENDING",
+  "recorded_at_utc": "2026-10-06T00:48:26.879785+00:00",
+  "author": "/root/pr612_five_component_publication_guard",
+  "source_head": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "source_tree": "b298508d3cb3a1cb782de48c48756797631c2ede",
+  "owned_path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+  "reviewable_diff": {
+    "path": "/workspace/agent-review-checkpoints/pr614-675-ops03-minimal-reviewed-producer-fixture-correction.patch",
+    "bytes": 5124,
+    "sha256": "f8bed36f817ebd4615e2a7f0f4005b715a9759a834de518b01d113ae8b37ab47"
+  },
+  "fixture_original": {
+    "bytes": 43097,
+    "sha256": "5da60659c5055a14f6f06756c6efc110ddab68c32f418a38da38e4aed3bc648c",
+    "git_blob": "6f22f8ab563ed53cf38e2476b2693d23eacddbfd"
+  },
+  "fixture_pending": {
+    "bytes": 44756,
+    "sha256": "916bde2d319480428963812c9f207140c2d11e064c629006d19400768ddc4ee3"
+  },
+  "cause": "Finite Git-show source port read current HEAD producer bytes despite modeling original reviewed native cases. Known Staff/GovDB suite additions changed two pinned producer hashes, so native DGI/DDQ evidence became unavailable and whole six-class coverage assertions failed. All eight assertion/helper/document pins and full-e2e workflow remained matching.",
+  "minimal_fix": "Inside finite fixture only, remove the exact known added source lines from two native producer files and enforce their original immutable SHA256 preimages before supplying Git-show bytes. Unexpected producer content changes still fail closed. Parameterize existing changed-native-config negative test to also corrupt native-workflow source after restoration; retain all old assertions.",
+  "exact_original_source_preimages": [
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "actual675_sha256": "be3056735e7496d09212adc81137e2aacec8adb372a2ef0c9b2e08ea1cc61616",
+      "modeled_original_sha256": "722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56",
+      "modeled_original_bytes": 4455,
+      "byte_exact_reviewed_base_git_source": true
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "actual675_sha256": "0f04e48eed93545c2a796fed06d476be75b21bca770ae691889ed145e9b4694a",
+      "modeled_original_sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261",
+      "modeled_original_bytes": 44438,
+      "byte_exact_reviewed_base_git_source": true
+    }
+  ],
+  "preservation": {
+    "production_script_sha256": "03e1c8338ab6e58f52e9a1ae7c9eb44ef813aa3f70976b6e13325193d637bd39",
+    "production_script_byte_exact675": true,
+    "Git_tree_LEDGER_API_XML_artifact_identity_and_foreign_ledger_negative_guards": "unchanged",
+    "all_existing_test_assertion_bodies": "unchanged; existing native producer-source negative body reused twice",
+    "SQL_generators_raw3_capture_coverage_workflows": "no writes by this author; current Git modified-path snapshot below",
+    "modified_paths_at_receipt": [
+      "__tests__/ediel-ops-03-code-release-evidence.test.ts"
+    ],
+    "Git_ref_index_commit_push_merge": "NONE"
+  },
+  "verification": {
+    "supported_Node": "22.23.3",
+    "node_path": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+    "matching_ignored_node_modules_symlink": "Existing root-verified lock-bound dependency installation reused",
+    "targeted_command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-ops-03-code-release-evidence.test.ts --maxWorkers=1 --no-file-parallelism --testTimeout=20000",
+    "before": {
+      "exit_code": 1,
+      "tests": 109,
+      "passed": 60,
+      "failed": 49,
+      "log_sha256": "e1686ff1dfffd80daf990a32b295e0e8ee7a41efdc733dd84e5784bf1911faaf",
+      "log_bytes": 22310
+    },
+    "after": {
+      "exit_code": 0,
+      "tests": 110,
+      "passed": 110,
+      "failed": 0,
+      "skipped": 0,
+      "log_sha256": "88902a7632e707217f7e80818a67a3888125d90b004f1ea50f072e12840fa926",
+      "log_bytes": 231
+    },
+    "single_file_ESLint": {
+      "command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node node_modules/eslint/bin/eslint.js __tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "exit_code": 0,
+      "stdout_stderr_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "git_diff_check_exit": 0,
+    "execution_scope": "Local existing synthetic artifact/finite API/Git consumer suite only; no native/business/CI/capture executions or GitHub reads/downloads. Narrow additional network permission allowed local child stdin; no network requests used."
+  },
+  "skill_routing": {
+    "active": [
+      "systematic-debugging: direct reproduced root cause",
+      "test-driven-development: existing failing regression suite before fix",
+      "verification-before-completion: fresh full110 and lint results",
+      "differential-review: one owned fixture diff and exact preimage/source preservation"
+    ],
+    "not_triggered": "Product/auth/database/UI/performance/security/full-audit/branch-publication skills; no production source changes, architecture or new Masterplan work"
+  },
+  "blocking_findings": [],
+  "next": "Root reviews this one-file fixture patch, combines only its independently owned IMP05 fixture correction/own documentation, commits and publishes on same614, then actual new-head mandatory CI/native/type-schema/upgrade/parity qualification remains required. No whole-Masterplan/native/main completion claim."
+}

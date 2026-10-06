@@ -1,0 +1,219 @@
+{
+  "schema": "gridex-pr614-5d9d-final-publication-boundary-source-custody/v1",
+  "verdict": "SOURCE_ONLY_READY_FROZEN_SC014_DOC613_CPP44_COMPOSITION_NEW_HEAD_GATES_PENDING",
+  "recorded_at_utc": "2026-10-06T01:36:58.616718+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "One finite read-only frozen publication composition guard; all existing source/behavior/native/full ordinary qualifications reused",
+  "candidate": {
+    "head": "5d9d00576f930fbee9a087b50f1cb09c9ba855f7",
+    "tree": "202f5e487aee04cca16d5f2c56c45f355ec14bae",
+    "parents": [
+      "b1ec074b92382d643e680c8fa44b73bf9387d820",
+      "c43999766420402b9a5cab68bc68dad252932a62"
+    ]
+  },
+  "genuine_ancestry": {
+    "fixture_commit": {
+      "head": "d100aed66519d1a473678116d424b89a3a5fdf90",
+      "tree": "c84c76a1f1208991260e371efdca31edd2d6a2fa",
+      "parents": [
+        "c1f50ad9d02ff2636357a0cd41f42bd498d00897"
+      ]
+    },
+    "actual_DOC_merge": {
+      "head": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+      "tree": "5735c9606b33d7c0fb9f97f9088ec5bbe71b138d",
+      "parents": [
+        "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+        "edb0bcb39f86fc795c3518083831c84b3ff76c77"
+      ]
+    },
+    "original_DOC_source": {
+      "head": "edb0bcb39f86fc795c3518083831c84b3ff76c77",
+      "tree": "5735c9606b33d7c0fb9f97f9088ec5bbe71b138d",
+      "parents": [
+        "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2"
+      ]
+    },
+    "first_normal_carry": {
+      "head": "b1ec074b92382d643e680c8fa44b73bf9387d820",
+      "tree": "064355925b3e4ae70f6d000604a309240d07394d",
+      "parents": [
+        "d100aed66519d1a473678116d424b89a3a5fdf90",
+        "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+      ]
+    },
+    "released_CPP": {
+      "head": "c43999766420402b9a5cab68bc68dad252932a62",
+      "tree": "fd512e4b3b1ded0f7137edd4250997e4b31ca417",
+      "parents": [
+        "fed4f495a2ae5acba40adaea81ce63c5217c56a4"
+      ]
+    },
+    "CPP_actual_DOC_carry": {
+      "head": "fed4f495a2ae5acba40adaea81ce63c5217c56a4",
+      "tree": "5735c9606b33d7c0fb9f97f9088ec5bbe71b138d",
+      "parents": [
+        "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+        "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+      ]
+    },
+    "original_frozen_source": {
+      "head": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+      "tree": "12362cb677a33e43c09fc36f9e1a24e98f5811f5",
+      "parents": [
+        "675fe9c5fc5cd9d015652673861c68500378687b"
+      ]
+    },
+    "first_merge_base": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+    "second_merge_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "source_actual_DOC_and_CPP_all_real_ancestors": true
+  },
+  "entire_expected_union": {
+    "first_expected_tree_sha": "064355925b3e4ae70f6d000604a309240d07394d",
+    "final_expected_tree_sha": "202f5e487aee04cca16d5f2c56c45f355ec14bae",
+    "exact_whole_mode_type_blob_path_union": true,
+    "tuple_conflicts": 0,
+    "Git_objects_index_ref_written": false
+  },
+  "bounded_deltas": {
+    "fixture_commit_paths": 13,
+    "fixture_code_paths": 1,
+    "fixture_own_checkpoint_paths": 1,
+    "fixture_own_audit_paths": 11,
+    "fixture_sha256": "5a20cd0feec360fec1b1ad01d4881b8e738366ce0698886ac71e48e57a56a86d",
+    "fixture_and_all13_postimages_retained": true,
+    "actualDOC162_paths": "160 exact final DOC postimages plus only2 released CPP root-MD append-only continuations; original packet qualification reused",
+    "DOC_postimage_exceptions": [
+      ".agent-memory/handover.md",
+      ".agent-memory/masterplan-root503-publication-receipt-20261005.md"
+    ],
+    "CPP_current_exact4_paths": [
+      ".agent-memory/handover.md",
+      ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+      "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-53b3bfd0-to-2c11a510.json",
+      "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr613-edb-fresh-current-source-guard-root503.json"
+    ],
+    "all_root_released_MD_original_bytes_prefix_preserved": true,
+    "prior_actual_markers": 43,
+    "current_actual_markers": 44,
+    "new_actual613_markers": 1,
+    "complete_final_delta_paths_versus_c1f": 177
+  },
+  "source_preservation": {
+    "foreign_c1f_tuples_exact_count": 8964,
+    "foreign_pinset_sha256": "1c0f6121cd07dd060f5b4c2d348aad8a4536d6931613cf42f9410473f5309ea4",
+    "encoding": "compact sorted UTF8 arrays[path,mode,type,blob]",
+    "SQL1079_all_historical_vector_tuples_exact": true,
+    "gen8_raw3_capture_envelopes_allmandatory_workflows_coverage352_whole5rows_oldreceipts_productionconsumer_portable_precursor": "Original c1f entire source retained except exact1 frozen SC014 fixture and necessary own/delivered documentation; full bodies not rereviewed or executed",
+    "critical_exact_current_tuples": {
+      "scripts/supabase-types-manifest.json": [
+        "100644",
+        "blob",
+        "0a5a0add2e80cb698635f1584136e55c2193ea1b"
+      ],
+      "scripts/migration-history-manifest.json": [
+        "100644",
+        "blob",
+        "4d3aa296fb3d3f2a7e15bdb3ddd6a9b8d8e96f1e"
+      ],
+      "supabase/database.types.ts": [
+        "100644",
+        "blob",
+        "a03032ffba09768fdf9dcdd11f9af96738d0b74e"
+      ],
+      "supabase/schema.sql": [
+        "100644",
+        "blob",
+        "3aaad18f3a3f2f16959c817ec570208995c80368"
+      ],
+      "supabase/schema.fingerprint.json": [
+        "100644",
+        "blob",
+        "8c9785d9e8cb7b0aa4fa84e235fb607fbb5853ea"
+      ],
+      ".github/workflows/staff-api-schema-capture.yml": [
+        "100644",
+        "blob",
+        "54d21d8d8a0688695a65846012822a5dd1757b9b"
+      ],
+      ".github/workflows/ops-hardening.yml": [
+        "100644",
+        "blob",
+        "fa659684be59fe38950c85c687c53670c0fd018d"
+      ],
+      ".github/workflows/full-e2e.yml": [
+        "100644",
+        "blob",
+        "00aacf0b932f2e33e0773bafeb67bd4657a34849"
+      ],
+      "quality/audits/ediel-masterplan-v2/coverage.json": [
+        "100644",
+        "blob",
+        "0445cbe2d08985d4ed681306191e0958d26c6d4e"
+      ],
+      "scripts/gridex-full-production-e2e.cjs": [
+        "100644",
+        "blob",
+        "5d6da09a5d7e673dad71e1a42b7e0c5433c1a608"
+      ],
+      "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql": [
+        "100644",
+        "blob",
+        "72f6c5912cf2c60f91c5735e006e7ee067b41f4c"
+      ]
+    }
+  },
+  "existing_receipt_custody": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixture-cause-current-dependencies-targeted11-ready.json",
+      "bytes": 8895,
+      "sha256": "57f2e7125905847a388daa87fbff81f56c30c1333c6f5e039f877f3e5519bb40"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixture-independent-root-cross-review-approve.json",
+      "bytes": 2149,
+      "sha256": "2ae4b92d8202b184d5a04159ccde4bef75d854fbe971701fb2f614250f1f54b9"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixed-full-ordinary-local-11819-pass.json",
+      "bytes": 1784,
+      "sha256": "d725ca745b6ffc2c67472011b84b5c61c317e3363e0282d2e2baf0b0d57a4ae4"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-historical-superseded-observer-lease-seal-20261006-0130.json",
+      "bytes": 28488,
+      "sha256": "053bb90e683367ce5cbcfd60d23b4176f6467ee1ed94fb7ebcf53a73097195c4"
+    }
+  ],
+  "reused_ordinary_result": {
+    "owner": "/root",
+    "files": 882,
+    "tests_passed": 11819,
+    "failed": 0,
+    "skipped": 0,
+    "actual_exit_code": 0,
+    "source_scope": "c1f plus exact frozen SC014 fixture; DOC/CPP carry source-identical",
+    "raw_report_sha256": "ff1d8e3122c8f8d0fdc33409a9eb25322ec68588a5e6d106f55144f81d10603f",
+    "gzip_bytes": 458218,
+    "gzip_sha256": "12697c9733b63ec0185a3b1afc200805e0605b58d2d6042007944fc699ac6a9f",
+    "report_open_decompress_or_tests_rerun": false
+  },
+  "old_observer_publication_precondition": {
+    "lease_status": "STOPPED",
+    "head": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+    "counts": {
+      "applicable": 12,
+      "success": 8,
+      "failure": 2,
+      "not_terminal": 2,
+      "cancelled": 0,
+      "skipped_applicable": 0
+    },
+    "original_STOP_ACK_sufficient_for_successor_publication": true,
+    "two_NOT_TERMINAL_remain_genuine_no_manual_cancel_retry_or_success_transfer": true
+  },
+  "blocking_source_findings": [],
+  "pending": "Not yet published; root may retain this exact receipt as sole own-audit metadata child and finite-check that sole delta, then authenticate one same614 publication/new-head observer. Actual new-head ordinary/native/type-schema/clean-upgrade-parity remains REQUIRED; local ordinary PASS is not newhead CI/native/CODE/main/whole-plan approval.",
+  "actions": "Git tree/parent/status/diff tuple reads and in-memory expected Git-tree hashing only. Existing sanitary metadata and opaque gzip hash custody. No source/ref/index writes, commit/push/fetch/new review/tests/native/CI/registration/doctor/artifact/download/capture or archive execution."
+}

@@ -1,0 +1,160 @@
+{
+  "status": "PASS_INDEPENDENT_FROZEN_THREE_FILE_FIXTURE_SOURCE_REVIEW_FINAL_HEAD_CI_PENDING",
+  "reviewed_at_utc": "2026-10-05T18:15:30.559521+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "base_head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+  "base_tree": "ff908d0b3e3ad364e82e4097a4a86903d80e0de9",
+  "scope": "Fixture-only source differential and existing owner evidence; production and protected generation inputs unchanged.",
+  "source_sha256": {
+    "scripts/ediel-utilts-consumption-native.test.ts": "c689f3db90e7840217b51dcdc5b31a88bb71410e22a6ba5fd99a60ca69d78df8",
+    "scripts/helpers/utiltsConsumptionBoundParties.ts": "25a568f64005a4f912d45ea74ba5e59199cb89c1b923278ded1d6b569fbbcfbd",
+    "__tests__/utilts-native-bound-parties.test.ts": "93da672fe78125de283e456e754829a4b1f634abbaa5116ad062330737b85e29"
+  },
+  "baseline_evidence": {
+    "path": "/tmp/gridex-staff-review/tenant-classification-final-111dd-native-upgrade-independent-review.json",
+    "sha256": "d7691c4e7f50ffeb2f59dfa8fa086f13671265aad273a3c646d9c8b1016b2a50",
+    "status": "FAIL_EXACT_111DD_CLEAN_ONE_NATIVE_FIXTURE_GUARD",
+    "exact_failed_random_reference_observed": false
+  },
+  "findings": {
+    "critical": [],
+    "important": [],
+    "verdict": "No evidenced blocker in the frozen correction."
+  },
+  "review_assertions": {
+    "exact_scope_one_tracked_fixture_two_new_authorized_files": true,
+    "native_original_bytes_reconstructed_exactly_by_reverting_only_import_and_guard_call": true,
+    "every_existing_native_assertion_and_E73_retry_no_effect_control_preserved": true,
+    "fixture_call_passes_its_own_database_seed_ediel_and_issuer": true,
+    "helper_uses_actual_release_aware_tokenizeEdifact_and_segmentComposite": true,
+    "exactly_one_UNB_and_one_NAD_MS_and_one_NAD_MR_required": true,
+    "UNB_sender_and_NAD_MS_equal_own_issuer": true,
+    "UNB_receiver_and_NAD_MR_equal_own_receiver": true,
+    "missing_expected_parties_or_unreadable_wire_refused_with_original_error": true,
+    "references_do_not_supply_party_identity": true,
+    "all8_capture_inputs_raw3_equal_frozen111dd_Git_blobs": true,
+    "all_other_tracked_source_including_lib_SQL_contracts_unchanged": true,
+    "no_auth_mock_runtime_or_SQL_relaxation": true
+  },
+  "focused_regression_boundaries": {
+    "tests": 22,
+    "valid_control": 1,
+    "deterministic_incidental_reference_positives": 2,
+    "arbitrary_wrong_party_negatives": 4,
+    "original_unbound_template_party_negatives": 4,
+    "missing_identity_negatives": 4,
+    "missing_segment_negatives": 3,
+    "duplicate_segment_negatives": 3,
+    "unreadable_wire_negative": 1,
+    "all_four_parties_independently_mutated": true,
+    "exact_failed_random_reference_not_inferred": true
+  },
+  "owner_qualification": {
+    "path": "/tmp/gridex-staff-review/utilts-native-bound-parties/qualification.json",
+    "sha256": "44b46f06fc2ebefde4c7cc9cc0759225a443b02b176a2c5084274119823d4ffb",
+    "logs_independently_hash_checked": true,
+    "RED": {
+      "failed": 17,
+      "passed": 5
+    },
+    "GREEN": {
+      "passed": 22,
+      "failed": 0
+    },
+    "tests_scripts_typecheck_and_scoped_lint_exit_codes": "Owner receipt reports exit0; empty logs hash checked; no rerun by reviewer.",
+    "checks": [
+      {
+        "name": "focused RED",
+        "command": "npx vitest run __tests__/utilts-native-bound-parties.test.ts --reporter=verbose",
+        "exit_code": 1,
+        "test_files": 1,
+        "tests": 22,
+        "passed": 5,
+        "failed": 17,
+        "log": "/tmp/gridex-staff-review/utilts-native-bound-parties/red.log",
+        "log_sha256": "24953c4003f2fe708af9b39e7772d3b3a0e8dd7c496b8768d16838f006bc1303"
+      },
+      {
+        "name": "focused GREEN",
+        "command": "npx vitest run __tests__/utilts-native-bound-parties.test.ts --reporter=verbose",
+        "exit_code": 0,
+        "test_files": 1,
+        "tests": 22,
+        "passed": 22,
+        "failed": 0,
+        "log": "/tmp/gridex-staff-review/utilts-native-bound-parties/green.log",
+        "log_sha256": "4bedd7f3c7ad3ff5562f18345f889f9d4ec83941e8c89e8888e37b4447d9f8f6"
+      },
+      {
+        "name": "full tests TypeScript",
+        "command": "npx tsc --noEmit --pretty false -p tsconfig.tests.json --incremental false",
+        "exit_code": 0,
+        "log": "/tmp/gridex-staff-review/utilts-native-bound-parties/typecheck-tests.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "full scripts TypeScript",
+        "command": "npx tsc --noEmit --pretty false -p tsconfig.scripts.json --incremental false",
+        "exit_code": 0,
+        "log": "/tmp/gridex-staff-review/utilts-native-bound-parties/typecheck-scripts.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "scoped ESLint",
+        "command": "npx eslint scripts/ediel-utilts-consumption-native.test.ts scripts/helpers/utiltsConsumptionBoundParties.ts __tests__/utilts-native-bound-parties.test.ts --max-warnings 0",
+        "exit_code": 0,
+        "log": "/tmp/gridex-staff-review/utilts-native-bound-parties/lint.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "Git whitespace check",
+        "command": "git diff --check",
+        "exit_code": 0,
+        "log": "/tmp/gridex-staff-review/utilts-native-bound-parties/diff-check.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "protected_sha256": {
+    "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+    "scripts/migration-history-manifest.json": "386264c17fe465c6327133ed45b23a0b93355d231a454261d242b446ab338c47",
+    "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+    "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+    "scripts/supabase-types-manifest.json": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e",
+    "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+    "supabase/database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "supabase/schema.sql": "3b962356454ec5abd66f1bd155c7076f1d52522d27060c0d5d43c424b2d14f30",
+    "supabase/schema.fingerprint.json": "4ab388cd791565a5a4a415f394b7f8bc9fb53c3a19dadaf3ccdc805446d75f48"
+  },
+  "one_hop_dependencies_sha256": {
+    "lib/ediel/core/edifactTokenizer.ts": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+    "__tests__/helpers/utiltsObservationHandoff.ts": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad",
+    "scripts/helpers/utiltsConsumptionParties.ts": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5"
+  },
+  "skill_routing": {
+    "activated": [
+      "differential-review",
+      "verification-before-completion"
+    ],
+    "strategy": "Surgical low-risk fixture change, full three-file read plus real parser/seed dependencies and byte/log verification.",
+    "skipped": "No production auth, UI, SQL, performance, hosted operations, broad audit or delegation scope."
+  },
+  "reviewer_operations": {
+    "read_only_source": true,
+    "receipt_files_only_written": true,
+    "tests_run": 0,
+    "native_replays": 0,
+    "artifact_downloads_for_this_source_review": 0,
+    "hosted_calls": 0,
+    "private_or_secret_reads": 0,
+    "source_edits": 0
+  },
+  "limits": {
+    "final_corrected_head_not_yet_published_or_qualified_by_this_receipt": true,
+    "fresh_exact_head_mandatory_CI_native_clean_upgrade_required": true,
+    "old111dd_failure_not_relabelled_green": true,
+    "focus_results_not_native_PG17_proof": true
+  }
+}

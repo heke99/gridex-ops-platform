@@ -6,8 +6,11 @@ import {qty,raw} from '../__tests__/fixtures/prodat-register'
 import {mixedZ04Parts} from '../__tests__/helpers/mixedZ04Fixture'
 import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {recordUtiltsTechnicalReception} from './helpers/utiltsConsumptionParties'
+import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {normalizeEdifactMessageCode} from '@/lib/inbound-mail/edielEmailParser'
+import {readPersistedProdatCommonHeaderNegativeAckBasis} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -70,8 +73,6 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (variant === 'unlisted-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z99+D+9+AB')
   const receivedAt=new Date().toISOString()
   const smtp=assertEdielSmtpReadiness()
-  const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
-    companyId:ids.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
   // Isolated test tenant, legal actor, route and canonical source. No transport
   // worker runs in this suite; only the real inbound processor queues ACKs.
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(ids.company)},'Native Z04 ACK owner','active');
@@ -93,18 +94,25 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
       VALUES(${literal(ids.route)},${literal(ids.company)},'Native ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
-      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact','edifact',${literal(actorEdielId)},'12345','23-DDQ-PRODAT',true,true,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},'recipient@example.invalid','recipient@example.invalid');
-    INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,
-      message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,sender_email,receiver_email,mailbox,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-    SELECT ${literal(ids.source)},${literal(ids.company)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},
+      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact','edifact',${literal(actorEdielId)},'12345','23-DDQ-PRODAT',true,true,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},'recipient@example.invalid','recipient@example.invalid');`)
+  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:ids.company,environment:'test',raw:wire,receivedAt,smtpFrom:smtp.from})
+  // Keep the original fixture profile pin, but never label a missing/Z99
+  // physical BGM as Z04 in the ordinary reception's identity comparison.
+  const sourceCode=policyOnly?normalizeEdifactMessageCode(mail.parsed.messageFamily,mail.parsed.messageCode):'Z04'
+  const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
+    companyId:ids.company,environment:'test',messageCode:sourceCode,payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
+  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,
+      message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,sender_email,receiver_email,mailbox,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+    SELECT ${literal(ids.source)},${literal(ids.company)},'test','inbound','edifact','PRODAT',${literal(sourceCode)},'received',${literal(wire)},
       '{"subtype":"L","prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":false}}'::jsonb,'{}'::jsonb,
-      ${literal(receivedAt)}::timestamptz,${literal(sourceContext)}::jsonb,'23-DDQ-PRODAT','12345',${literal(actorEdielId)},'recipient@example.invalid',${literal(smtp.from)},${literal(smtp.from)},pack.id,profile.profile_key,profile.id,
+      ${literal(receivedAt)}::timestamptz,${literal(sourceContext)}::jsonb,'23-DDQ-PRODAT','12345',${literal(actorEdielId)},'recipient@example.invalid',${literal(smtp.from)},${literal(smtp.from)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,
       pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
     FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
     WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
   expect(error).toBeNull()
   const source=data as EdielMessageRow
+  await recordOriginalMailboxNativeReception({...mail,companyId:ids.company,sourceMessageId:ids.source,actorUserId:ids.actor})
   // Production reception records the interchange's technical syntax decision first.
   await recordUtiltsTechnicalReception(source,ids.actor)
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
@@ -120,17 +128,19 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   const first=persisted()
   const blocked=sql<{message:string;payload:unknown}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'payload',payload) ORDER BY created_at),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(ids.source)} AND event_status='warning'`)
   if (policyOnly) {
-    // Syntax is accepted, so the technical CONTRL is queued (5595c695); the
-    // policy-only business rejection has no frozen owner and stays held.
-    expect(first.messages.map(row=>[row.family,row.outcome])).toEqual([['CONTRL','positive']])
-    expect(first.outbox).toHaveLength(1)
-    const ackWarnings=blocked.filter(row=>typeof (row.payload as {ackFamily?:unknown}).ackFamily==='string')
-    expect(ackWarnings.map(row=>(row.payload as {ackFamily:string}).ackFamily).sort()).toEqual(['APERAK'])
-    expect(ackWarnings.every(row=>(row.payload as {blockedBy?:string}).blockedBy==='canonical_inbound_ack_guard')).toBe(true)
-    expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
-    await processInboundEdielMessage(input)
-    expect(persisted()).toEqual(first)
-    return
+    // The actual common-header owner qualifies only a field 202 negative;
+    // it supplies neither a code-specific profile nor business authorization.
+    expect(decision.policy).toBeNull()
+    const {sourceMessage:original,ackMessage,evidence}=await readPersistedProdatCommonHeaderNegativeAckBasis({
+      companyId:ids.company,environment:'test',ackMessageId:first.messages[0].id,expectedRawPayload:first.messages[0].wire})
+    expect([original.id,original.message_code,original.raw_payload]).toEqual([ids.source,sourceCode,wire])
+    expect(evidence).toMatchObject({companyId:ids.company,environment:'test',sourceMessageId:ids.source,
+      sourceHash:evidenceHash(wire),authorizesBusinessEffect:false,familyEdition:{version:'26.A:r3'}})
+    expect(evidence.field202).toEqual({fieldCode:'202',ercCode:variant==='missing-header-code'?'41':'42',
+      text:variant==='missing-header-code'?'Meddelandenamn saknas':'Felaktigt Meddelandenamn Z99'})
+    expect(evidence.familyEdition).not.toHaveProperty('messageProfile')
+    expect([ackMessage.canonical_rule_pack_id,ackMessage.rule_profile_key,ackMessage.rule_profile_version_id,
+      ackMessage.rule_profile_version,ackMessage.rule_pack_checksum,ackMessage.rule_pack_snapshot]).toEqual([null,null,null,null,null,{}])
   }
   if (variant === 'missing-own-quantity' || variant === 'gas-unit-on-electric-register') {
     // The sibling object has no committed own outcome: a BGM34 must answer every

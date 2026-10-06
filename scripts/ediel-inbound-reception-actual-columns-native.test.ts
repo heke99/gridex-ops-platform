@@ -11,7 +11,7 @@ const wire="UNB+UNOC:3+54321:ZZ+21660:ZZ+261001:0000+OWN+++++23-DDQ-PRODAT'UNH+1
 type Reception={receptionId:string;responseRequestId:string|null;classification:string;status:string;isReplay:boolean;businessEffectAuthorized:boolean;canonicalPayloadHash:string;receivedPayloadHash:string;firstOutcomeAvailable?:boolean;duplicateResponseActivated?:boolean}
 async function fixture(){
  const companyId=randomUUID(),foreignCompanyId=randomUUID(),mailboxId=randomUUID(),messageId=randomUUID()
- sql('INSERT INTO public.companies(id,name,status) VALUES('+literal(companyId)+",'Synthetic native reception A','active'),("+literal(foreignCompanyId)+",'Synthetic native reception B','active');INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,environment,is_active,is_shared_platform_mailbox) VALUES("+literal(mailboxId)+','+literal(companyId)+",'Synthetic retained-only reception mailbox','test',true,false)")
+ sql('INSERT INTO public.companies(id,name,status) VALUES('+literal(companyId)+",'Synthetic native reception A','active'),("+literal(foreignCompanyId)+",'Synthetic native reception B','active');INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox) VALUES("+literal(mailboxId)+','+literal(companyId)+",'Synthetic retained-only reception mailbox','retained-reception@example.invalid','test',true,false)")
  const actor=await decisionUser(companyId,['communication.send','communication.read'],randomUUID()+'Aa1!')
  const add=async(raw=wire)=>{
   const mailId=randomUUID(),parseId=randomUUID(),parsed=parseEdifactPayload(raw)

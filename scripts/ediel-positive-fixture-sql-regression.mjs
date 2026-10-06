@@ -1,8 +1,10 @@
+// masterplan: GOV-08, AT-GOV-08
 // Synthetic originals and explicit canonical-owner boundary fixture only.
 // Exercises actual protected positive-origin migration, never authentic TGT evidence.
 import {readFileSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 import assert from 'node:assert/strict'
+import {createHash} from 'node:crypto'
 if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
 const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite()
 const uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`,company=uid(1),actor=uid(2),run=uid(3),message=uid(4),literal=v=>`'${String(v).replaceAll("'","''")}'`,json=v=>`${literal(JSON.stringify(v))}::jsonb`
@@ -24,6 +26,7 @@ try{
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930171839_ediel_source_qualified_negative_fixture_v1.sql',import.meta.url),'utf8'))
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930212435_ediel_source_qualified_positive_fixture_v1.sql',import.meta.url),'utf8'));checks++
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930221133_ediel_test_original_preparer_scope.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001142620_ediel_negative_fixture_read_unlinked_message_null.sql',import.meta.url),'utf8'));checks++
  assert.equal((await as('service_role',read())).result,null);checks++
  await rejects('service_role',publish(),/permission denied/)
  await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,expectedOutcome:'negative',expectedDiagnosticCodes:['NATIONAL']}),/qualified_original_required/)
@@ -33,6 +36,10 @@ try{
  assert.equal((await as('gridex_ediel_fixture_authority_owner',publish())).id,registration);checks++
  const qualified=(await as('service_role',read())).result
  assert.equal(qualified.registrationId,registration);assert.equal(qualified.expectedOutcome,'positive');assert.deepEqual(qualified.expectedDiagnosticCodes,[]);assert.equal(qualified.authorizesBusinessEffect,false);checks++
+ for(const key of ['companyId','runId','roleCode','caseCode','suite','revision','stepNo','sourceReference','ownerDecisionReference'])assert.equal(qualified[key],scope[key]);assert.equal(qualified.originalFileSha256,createHash('sha256').update(Buffer.from(raw,'latin1')).digest('hex'));assert.equal(qualified.wireSha256,qualified.originalFileSha256);checks++
+ assert.equal((await db.query('select original_wire from gridex_negative_fixtures.positive_originals where id=$1',[registration])).rows[0].original_wire,raw);checks++
+ await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,sourceReference:'synthetic://conflicting-source'}),/original_conflict/)
+ await assert.rejects(db.exec(`update gridex_negative_fixtures.positive_originals set original_wire=original_wire||' ';`),/original_immutable/);checks++
  assert.equal((await as('service_role',read({rawPayload:raw+' '}))).result,null);checks++
  assert.equal((await as('service_role',read({stepNo:2}))).result,null);checks++
  await rejects('service_role',read({actorUserId:uid(99)}),/actor_not_authorized/)
@@ -80,5 +87,76 @@ try{
  await rejects('service_role',`select gridex_negative_fixtures.prepared_negative_fixture_v1('${company}','${negw}',${literal(raw)},'${actor}') result;`,/prepared_original_required/)
  await db.exec("delete from permission_fixture;insert into permission_fixture values('ediel_testing.write');")
  assert.equal((await as('service_role',read({stepNo:1}))).result.registrationId,registration);checks++ // actual registered TEST only
+ // Upgrade fixture: genuinely publish both outcomes through the old authorized
+ // ports, retaining consumed and still-prepared originals before the new forward.
+ await db.exec("delete from permission_fixture;insert into permission_fixture values('communication.write'),('communication.send');")
+ await db.exec(`delete from ediel_test_run_messages where ediel_message_id='${message}' and step_no=2;`)
+ const negativePublish=s=>`select public.gridex_ediel_negative_fixture_publish_v1(${json({...s,expectedOutcome:'negative',expectedDiagnosticCodes:['SYNTHETIC_EXPECTED']})},decode('${Buffer.from(raw,'latin1').toString('hex')}','hex')) id;`
+ const prepare=(positive,s,id)=>`select public.gridex_ediel_${positive?'positive':'negative'}_fixture_prepare_v1(${json({...s,rawPayload:raw,registrationId:id})}) result;`
+ const pendingPositive={...scope,stepNo:6},pendingNegative={...negative,stepNo:7}
+ const pendingPositiveId=(await as('gridex_ediel_fixture_authority_owner',publish(pendingPositive))).id,pendingNegativeId=(await as('gridex_ediel_fixture_authority_owner',negativePublish(pendingNegative))).id
+ const pendingPositiveWitness=(await as('service_role',prepare(true,pendingPositive,pendingPositiveId))).result.witnessId,pendingNegativeWitness=(await as('service_role',prepare(false,pendingNegative,pendingNegativeId))).result.witnessId
+ const legacyExpiry=(await db.query("select (clock_timestamp()+interval '250 milliseconds')::text deadline")).rows[0].deadline
+ for(const s of [scope,pendingPositive])await as('gridex_ediel_fixture_authority_owner',negativePublish({...s,sourceReference:'synthetic://opposite-source',ownerDecisionReference:'synthetic://opposite-decision',...(s.stepNo===6?{validUntil:legacyExpiry}:{})}))
+ for(const s of [negative,pendingNegative])await as('gridex_ediel_fixture_authority_owner',publish({...s,expectedOutcome:'positive',expectedDiagnosticCodes:[],sourceReference:'synthetic://opposite-source',ownerDecisionReference:'synthetic://opposite-decision'}))
+ const originals=()=>db.query(`select * from (select 'negative' outcome,to_jsonb(o) original from gridex_negative_fixtures.originals o union all select 'positive',to_jsonb(o) from gridex_negative_fixtures.positive_originals o) retained order by outcome,original->>'id'`)
+ const metadata=()=>db.query(`select p.oid,to_jsonb(p)-'prosrc' metadata from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='gridex_negative_fixtures' order by p.oid`)
+ await new Promise(resolve=>setTimeout(resolve,300))
+ assert.equal((await db.query('select valid_until<=clock_timestamp() expired from gridex_negative_fixtures.originals where run_id=$1 and step_no=6',[run])).rows[0].expired,true);checks++ // an expired contradictory declaration cannot qualify the still-current opposite
+ const originalsBefore=(await originals()).rows,metadataBefore=(await metadata()).rows
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql',import.meta.url),'utf8'))
+ assert.deepEqual((await originals()).rows,originalsBefore);checks++ // original IDs, bytes, declarations and history are untouched
+ assert.deepEqual((await metadata()).rows,metadataBefore);checks++ // includes OID, owner, ACL, definer and search_path
+ await rejects('service_role',read(),/original_conflict/)
+ await rejects('service_role',`select public.gridex_ediel_negative_fixture_read_v1(${json({...scope,stepNo:3,rawPayload:raw})}) result;`,/original_conflict/)
+ await rejects('service_role',`select public.gridex_ediel_negative_fixture_read_v1(${json({companyId:company,messageId:uid(7),actorUserId:actor})}) result;`,/original_conflict/)
+ await rejects('service_role',`select public.gridex_ediel_negative_fixture_prepare_read_v1(${json({...negative,rawPayload:raw})}) result;`,/original_conflict/)
+ for(const [positive,s,id] of [[true,scope,registration],[false,negative,negregistration]])await rejects('service_role',prepare(positive,s,id),/original_conflict/)
+ for(const [positive,w] of [[true,pendingPositiveWitness],[false,pendingNegativeWitness]])await rejects('service_role',`select gridex_negative_fixtures.prepared_${positive?'positive':'negative'}_fixture_v1('${company}','${w}',${literal(raw)},'${actor}') result;`,/original_conflict/)
+ await rejects('service_role',require(),/original_conflict/)
+ await rejects('service_role',`select gridex_negative_fixtures.require_negative_message_v1('${company}','${uid(7)}','Z09') result;`,/original_conflict/)
+ for(const id of [message,uid(7)]){await assert.rejects(db.exec(`update ediel_messages set raw_payload=raw_payload where id='${id}';`),/original_conflict/);checks++} // guard precedes cached-consumption return
+ for(const [positive,w,id] of [[true,pendingPositiveWitness,uid(8)],[false,pendingNegativeWitness,uid(9)]]){
+  await db.exec(`insert into gridex_ediel_outbound_owner.boundary_fixture values('${id}',${literal(raw)});`)
+  await assert.rejects(db.exec(`insert into ediel_messages values('${id}','${company}','outbound','test','edifact',${literal(raw)},'PRODAT','Z09',${json({[positive?'sourceQualifiedPositiveFixtureWitnessId':'sourceQualifiedNegativeFixtureWitnessId']:w})});`),/original_conflict/);checks++
+ }
+ assert.deepEqual((await originals()).rows,originalsBefore);checks++
+ assert.equal((await db.query('select count(*)::int n from gridex_negative_fixtures.positive_consumptions')).rows[0].n,1);assert.equal((await db.query('select count(*)::int n from gridex_negative_fixtures.negative_prepared_consumptions')).rows[0].n,1);checks++
+ for(const [positive,stepNo] of [[true,4],[false,5]]){
+  const s={...scope,stepNo},sql=positive?publish(s):negativePublish(s)
+  const id=(await as('gridex_ediel_fixture_authority_owner',sql)).id
+  assert.equal((await as('gridex_ediel_fixture_authority_owner',sql)).id,id);checks++
+  await rejects('gridex_ediel_fixture_authority_owner',positive?negativePublish(s):publish(s),/original_conflict/)
+  assert.equal((await as('gridex_ediel_fixture_authority_owner',sql)).id,id);checks++
+  const q=(await as('service_role',`select public.gridex_ediel_${positive?'positive':'negative'}_fixture_${positive?'read':'prepare_read'}_v1(${json({...s,rawPayload:raw})}) result;`)).result
+  assert.equal(q.registrationId,id);assert.equal(q.expectedOutcome,positive?'positive':'negative');checks++
+  const prepared=(await as('service_role',prepare(positive,s,id))).result
+  assert.equal(prepared.qualification.registrationId,id);assert.equal((await as('service_role',`select gridex_negative_fixtures.prepared_${positive?'positive':'negative'}_fixture_v1('${company}','${prepared.witnessId}',${literal(raw)},'${actor}') result;`)).result.registrationId,id);checks++
+ }
+ // A stale higher-isolation snapshot cannot safely qualify the opposite table.
+ // These are single-session isolation/side-effect checks; genuine separate-
+ // session snapshot/commit races are asserted by the native counterpart.
+ const isolationOriginals=(await originals()).rows
+ for(const isolation of ['repeatable read','serializable'])for(const positive of [true,false]){
+  for(const stepNo of [positive?4:5,40+(positive?0:1)]){
+   await db.exec(`begin isolation level ${isolation};set local role gridex_ediel_fixture_authority_owner;`)
+   try{
+    await assert.rejects(db.exec(positive?publish({...scope,stepNo}):negativePublish({...scope,stepNo})),
+     error=>error.code==='25000'&&error.message==='ediel_fixture_publisher_read_committed_required');checks++
+   }finally{await db.exec('rollback;')}
+  }
+ }
+ for(const positive of [true,false]){
+  const s={...scope,stepNo:positive?4:5},sql=positive?publish(s):negativePublish(s)
+  const expected=(await as('gridex_ediel_fixture_authority_owner',sql)).id
+  await db.exec('begin isolation level read uncommitted;set local role gridex_ediel_fixture_authority_owner;')
+  try{assert.equal((await db.exec(sql))[0].rows[0].id,expected);checks++}finally{await db.exec('rollback;')}
+ }
+ assert.deepEqual((await originals()).rows,isolationOriginals);checks++
+ // An unrelated ordinary test message stays unqualified rather than aborting;
+ // a genuinely ambiguous run link keeps the prior STRICT failure.
+ assert.equal((await as('service_role',`select public.gridex_ediel_negative_fixture_read_v1(${json({companyId:company,messageId:uid(6),actorUserId:actor})}) result;`)).result,null);checks++
+ await db.exec(`insert into ediel_test_run_messages values('${run}','${uid(7)}',8);`)
+ await rejects('service_role',`select public.gridex_ediel_negative_fixture_read_v1(${json({companyId:company,messageId:uid(7),actorUserId:actor})}) result;`,/query returned more than one row/)
  console.log(`PASS ${checks} actual positive-original protection checks; synthetic originals and canonical-owner boundary fixture only, no native replay`)
 }finally{await db.close()}

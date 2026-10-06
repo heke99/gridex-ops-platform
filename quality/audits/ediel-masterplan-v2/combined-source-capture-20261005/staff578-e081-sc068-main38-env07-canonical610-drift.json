@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "kind": "STAFF578_E081_TWO_EXISTING_FIXTURE_DRIFT_SUPPLEMENT",
+  "created_at_utc": "2026-10-05T20:12:04.611014+00:00",
+  "reviewer": "root/source_intake_export_union_review",
+  "disposition": "BOUNDED_HOLD_SC068_NONCANONICAL_STAFF_POSTIMAGE; ENV07_IDENTICAL_RETAINED610_POSTIMAGE",
+  "scope": "Only main38 versus Staffe081 SC068 hunk, plus new Staff claim-mock hunk versus original public610/608 preservation proof. No whole/product/capture/behavior review.",
+  "sources": {
+    "main38": {
+      "head": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "tree": "64c93f935436a0c30db27fb86b5451d414984116"
+    },
+    "staff_e081": {
+      "head": "e081fc42e32270e0c2081970ec07c341c6e0a34b",
+      "tree": "f47071ee1675e1c7fb58cd0d912b9954e4b46e32"
+    },
+    "staff_d0": "d0e21d200b40cb63bd22043d4a03080fe3584866"
+  },
+  "sc068": {
+    "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+    "canonical_actual_main_sha256": "412298f5ce479d4c56dc77fc359af970f9b83c0816410f74add20a05f1883132",
+    "canonical_actual_main_blob": "2f32623b0d7161b40ce2fe4ddde2b18081deb470",
+    "authoritative_delivery": "Existing main38/a7 fixture admitted via PR603 per root retained-source authority.",
+    "staff_sha256": "f08206e98406a372d370e095e617ad646e791a125c2c2026368e14ae307a3e25",
+    "staff_blob": "dd94839db4bf10fe743f08d51eb86210efdd449c",
+    "same_postimage_as_actual_main": false,
+    "existing_case": "SC-068 a copied catalog_evidence/historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer",
+    "main_hunk": "diagnosticPolicy copies timeAnchors directly from initial.policy!.timeAnchors",
+    "staff_hunk": "Adds optional local initial.policy?.timeAnchors plus expect(timeAnchors).toBeDefined(); diagnosticPolicy uses that local shorthand.",
+    "new_source_assertion": "expect(timeAnchors).toBeDefined()",
+    "affected_profile_modes": [
+      "catalog_evidence",
+      "historical_replay"
+    ],
+    "unchanged_source_assertions": [
+      "public inbound consumer rejects with ediel_initial_utilts_owner_unavailable",
+      "neither gridex_record_utilts_source_validation_v4 nor gridex_persist_utilts_consumption_v1 occurs",
+      "expectNoProductionEffect()",
+      "message equals original"
+    ],
+    "full_main_file_reconstruction_by_reversing_only_hunk": true,
+    "diff": "diff --git a/__tests__/ediel-sc-068-reference-authority-boundary.test.ts b/__tests__/ediel-sc-068-reference-authority-boundary.test.ts\nindex 2f32623b..dd94839d 100644\n--- a/__tests__/ediel-sc-068-reference-authority-boundary.test.ts\n+++ b/__tests__/ediel-sc-068-reference-authority-boundary.test.ts\n@@ -75,12 +75,14 @@ it.each(['catalog_evidence', 'historical_replay'] as const)(\n     const message = energyHandoffMessage('2026-10-01')\n     message.raw_payload = message.raw_payload!.replace(\"23-DDQ-E66-T++1'\", \"23-DDQ-E66-T++1++1'\")\n     Object.assign(message, receivedUtiltsOwnerFixture(message)); qualifyUtiltsFixtureSource(message); io.get.mockResolvedValue(message)\n     const original = structuredClone(message)\n     const initial = await resolveCanonicalRuntimeDecisionWithRegistry(message)\n+    const timeAnchors = initial.policy?.timeAnchors\n+    expect(timeAnchors).toBeDefined()\n     const diagnosticPolicy = { ...resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: '2026-10-01',\n-      associationAssignedCode: 'E5SE5A', applicationReference: message.application_reference, mode }), timeAnchors: initial.policy!.timeAnchors }\n+      associationAssignedCode: 'E5SE5A', applicationReference: message.application_reference, mode }), timeAnchors }\n     // This real catalogue resolver returns semantics, not private original\n     // authority. Attaching them to a copied genuine initial object loses its\n     // opaque ownership; no invented wire/row/mode authority is supplied.\n     const copiedDiagnostic = { ...initial, policy: diagnosticPolicy }\n     io.rpc.mockClear()\n",
+    "handoff": "Original578 author adopts/preserves exact actual-main SC068 bytes412298f5/blob2f32623b, reconciles its duplicate prerequisite hunk, and owns qualification of resulting head. Root must not silently overwrite canonical first-admitted fixture or create a third variant.",
+    "hold_scope": "Fixture/source-carry reconciliation only; no production defect, functional whole-card hold or new test verdict inferred."
+  },
+  "env07": {
+    "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+    "staff_sha256": "8777163113ac4d0398f0d5d55aad22dec8b64905682b585eb91f63f030a0cc5d",
+    "staff_blob": "f1f29c3295fe5c103c9c61887e028102f360e0cd",
+    "staff_new_hunk": "diff --git a/__tests__/ediel-env07-outbox-separation.test.ts b/__tests__/ediel-env07-outbox-separation.test.ts\nindex adf6e734..f1f29c32 100644\n--- a/__tests__/ediel-env07-outbox-separation.test.ts\n+++ b/__tests__/ediel-env07-outbox-separation.test.ts\n@@ -28,11 +28,11 @@ beforeEach(() => {\n   port.rows.clear(); port.messages.clear(); port.submitted.length = 0; port.messageReads.length = 0\n   port.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {\n     if (name !== 'claim_ediel_outbox_items') throw new Error(`Unexpected RPC: ${name}`)\n     const rows = [...port.rows.values()].filter(row => (!args.p_company_id || args.p_company_id === row.company_id)\n       && (!args.p_environment || args.p_environment === row.environment)).slice(0, Number(args.p_limit))\n-    rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id })\n+    rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id; row.locked_at = new Date().toISOString() })\n     return { data: rows.map(row => ({ ...row })), error: null }\n   })\n   port.from.mockImplementation((table: string) => {\n     if (!['ediel_outbox', 'ediel_send_locks'].includes(table)) throw new Error(`Unexpected table: ${table}`)\n     const filters: Array<[string, unknown]> = []\n",
+    "change": "Existing claim mock sets row.locked_at = new Date().toISOString() per claimed row.",
+    "same_postimage_as_retained610": true,
+    "canonical610_public_source_file": {
+      "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/610",
+      "head": "a08c8f5442e5ada39b359e8fb2afb57fdc3997b5",
+      "ref": "codex/ediel-env07-claim-fixture-maintenance-20261005",
+      "base_metadata": "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3",
+      "merged_observation": false,
+      "updated_at": "2026-10-05T20:00:38Z",
+      "file": {
+        "filename": "__tests__/ediel-env07-outbox-separation.test.ts",
+        "sha": "f1f29c3295fe5c103c9c61887e028102f360e0cd",
+        "patch": "@@ -30,7 +30,7 @@ beforeEach(() => {\n     if (name !== 'claim_ediel_outbox_items') throw new Error(`Unexpected RPC: ${name}`)\n     const rows = [...port.rows.values()].filter(row => (!args.p_company_id || args.p_company_id === row.company_id)\n       && (!args.p_environment || args.p_environment === row.environment)).slice(0, Number(args.p_limit))\n-    rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id })\n+    rows.forEach(row => { row.status = 'sending'; row.locked_by = args.p_worker_id; row.locked_at = new Date().toISOString() })\n     return { data: rows.map(row => ({ ...row })), error: null }\n   })\n   port.from.mockImplementation((table: string) => {",
+        "blob_url": "https://github.com/heke99/gridex-ops-platform/blob/a08c8f5442e5ada39b359e8fb2afb57fdc3997b5/__tests__%2Fediel-env07-outbox-separation.test.ts",
+        "contents_url": "https://api.github.com/repos/heke99/gridex-ops-platform/contents/__tests__%2Fediel-env07-outbox-separation.test.ts?ref=a08c8f5442e5ada39b359e8fb2afb57fdc3997b5"
+      }
+    },
+    "610_object_available_locally": false,
+    "method": "Exact published full-head file diff and blob identity; no own fetch. API blob f1f29c32 equals actual Staff source blob, proving full file bytes match retained610.",
+    "prior608_vs610_preservation_reused": [
+      {
+        "url": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6001747075",
+        "updated_at": "2026-10-05T19:43:47Z",
+        "body_sha256": "a584f6e4d22a8b8b61c23908b25fc41a7b084a35fa4181524db9499fc1050e08"
+      },
+      {
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/608#issuecomment-6001749007",
+        "updated_at": "2026-10-05T19:43:56Z",
+        "body_sha256": "e6fbda21d3362a2c6de657c41a2fc3c1f756f4136a870e02d45d3ca33a41d1ef"
+      }
+    ],
+    "608_variant_reused_from_prior_proof": "One shared fresh claimedAt plus comment; blob45437dfb, different from retained610/Staff f1f29c32.",
+    "all11_existing_expect_calls_preserved": "Reused prior published610 proof through exact Staff/610 full blob identity; not rerun/recounted.",
+    "actual_main38_env07_blob": "adf6e734a7cefeec3dc3cbe5d7928fc42681fd36",
+    "actual_main38_scope": "Still oldadf6 mock on fixed main38; retained610 is not claimed already delivered here. Preserve the first actually admitted qualified canonical postimage during final owner integration.",
+    "handoff": "Retain exact610/Staff f1f29c32 when canonical610 is admitted; do not introduce another claim mock or restore oldadf6. Original authors/merger retain ownership."
+  },
+  "standing_source_input_qualification": {
+    "path": "/workspace/agent-review-checkpoints/staff578-e081-vs-d0-cff-main38-source-capture-input-receipt.json",
+    "sha256": "8f65763f9466789f1eacbaed11350924717abbc4a0bf38252165e5aaf915f943",
+    "preserved": "Prior1073 historical SQL/three Staff forwards/runtime23/eight generator inputs/full origins qualification stands; existing raw-input/capture pins are not regenerated/reviewed here.",
+    "new_fixture_drift_is_generator_affecting": false
+  },
+  "limits": {
+    "runs": "NONE",
+    "source_tests_memory_coverage_changes": "NONE",
+    "github_sharedref_changes": "NONE",
+    "fetch": "NONE; missing610 objects handled with exact public PR source-file diff",
+    "ci_native_logs_zip_artifacts_capture": "NOT_READ_OR_EXECUTED",
+    "whole_card_or_import_reapproval": "NONE"
+  },
+  "next_action": "Root passes bounded fixture drift to existing578 author and retainedcanonical merger; original writer reconciles actual first-admitted fixture. This reader stops without proposing another variant."
+}

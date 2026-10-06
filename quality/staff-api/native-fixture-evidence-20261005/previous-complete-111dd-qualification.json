@@ -1,0 +1,259 @@
+{
+  "status": "EXACT_111DD_SUPPORT_SCHEMA_ALL_OTHER_CI_UPGRADE_PASS_ONE_EDIEL_NATIVE_FIXTURE_FAILURE_CORRECTION_IN_PROGRESS",
+  "recorded_at_utc": "2026-10-05T17:05:55.560163+00:00",
+  "sources": {
+    "ops": {
+      "head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "tree": "ff908d0b3e3ad364e82e4097a4a86903d80e0de9",
+      "worktree_clean": true
+    },
+    "tenant_web": {
+      "head": "ac1c6ca09bcc49cae519e14c5d6550c63c8117d3",
+      "worktree_clean": true
+    }
+  },
+  "architecture": {
+    "tenant": "Gridex web / gridex-prod",
+    "tenant_domains": [
+      "gridex.se",
+      "support123.gridex.se"
+    ],
+    "tenant_auth_private_delivery_public_contacts": "ayiuxjlfazkjmmtlvhsl",
+    "canonical_customers_cases_actors_membership_rbac_audit": "piidsfebjqjmnepdpnas"
+  },
+  "final_ops_source_sha256": {
+    "__tests__/staff-identity-version-conflict-sql.test.ts": "79cf8e3635d87bf2da7dc37cc1b6b12fb42f6b35913b3154680e3c3792b41a4e",
+    "__tests__/staff-invitation-domain-columns.test.ts": "ba42489d917099aa1a9c0601a9739b2d78d5bb12150d2a9f26b2a7ab4c2813b8",
+    "__tests__/staff-user-role-id-nullability.test.ts": "02440f7a0714f8f641660020c24a729728651fd2af2b9ce6c24606b576b7a9f2",
+    "__tests__/fixtures/staff-captured-identity-authority.ts": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296",
+    "lib/customer-service/supportConversation.ts": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+    "__tests__/support-detail-openapi-schema.test.ts": "82916af528bc1bc24c157dad81e31d2aa632f440b2080a6d84f68cd4d2663e37",
+    "scripts/staff-external-identity-binding-regression.sql": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+    "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d",
+    "__tests__/staff-external-identity-classification-sql.test.ts": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d"
+  },
+  "authentic_capture_import": {
+    "status": "AUTHENTIC_CLASSIFICATION_RAW3_IMPORT_AND_INDEPENDENT_REVIEW_PASS_FINAL_EXACT_HEAD_CI_PENDING",
+    "created_at_utc": "2026-10-05T16:55:31.386235+00:00",
+    "capture_source_head": "a315f2f96f4d0ed249e0b8621289c5d8aba275d4",
+    "capture_source_tree": "0da2e5b25028f4f5b1136718697fd2323005c115",
+    "producer_run": 37341406566,
+    "artifact_id": 11358368604,
+    "zip_sha256": "96e3a8f876d11887acbadb1ce8248ebc07d219fc065ee9225287d642e7430d73",
+    "artifact_raw3_sha256": {
+      "database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "schema.sql": "3b962356454ec5abd66f1bd155c7076f1d52522d27060c0d5d43c424b2d14f30",
+      "schema.fingerprint.json": "4ab388cd791565a5a4a415f394b7f8bc9fb53c3a19dadaf3ccdc805446d75f48"
+    },
+    "canonical_schema_fingerprint": "128b9a9975ecca5785b75c9abe08f9d4c8568cff8703cde15abdfb57598644e2",
+    "schema_delta": "Exactly three preserved-name UNIQUE(invitation_id) constraints add company_id; every other dump byte and section count is unchanged. Only constraint/index fingerprint hashes change.",
+    "type_bytes_unchanged": true,
+    "receipts_sha256": {
+      "tenant-classification-capture-pilot-source-witness.json": "876927b344134cebb584ecc25b67ed681b1965b4dab5cb168fcc0130223acc94",
+      "tenant-classification-capture-verification.json": "f7d3f6e3b9054f10864a9123503167f742d217d4ecfb050a79fbc01aadbccba8",
+      "tenant-classification-capture-import-applied.json": "d67f4e387255e921fe773acc9cc12d5bc90aff756c1991e33989ddfc096b5f7f",
+      "tenant-classification-a315-capture-importer-independent-review.json": "51928f4fc73ccfc5c2caf4b70dfdfb829f8b6e29358d32f7efa8a846f6ae101a"
+    },
+    "import_helper_sha256": "d4de73226ec55f9ac977eb34f2b49e384d0a9a2a8960957d913f104bfaca4e3f",
+    "all_historical_provenance_preserved": true,
+    "checks": {
+      "aggregate_migrations_integrity_contract_types": "PASS_1069_FILES_972_GROUPS",
+      "independent_artifact_import_review": "PASS_ZERO_CRITICAL_IMPORTANT",
+      "diff_check": "PASS"
+    },
+    "pending": [
+      "Full mandatory CI and native clean/true ancestor upgrade/parity on final published source after this import."
+    ],
+    "hosted_writes": 0,
+    "limits": [
+      "The authentic producer explicitly records native/browser/type-comparison/upgrade NOT_RUN; this import never converts those flags to acceptance.",
+      "No hosted enrollment, real email, deployment or domain activation."
+    ]
+  },
+  "independent_receipts": {
+    "final-web-ac1-ci-browser-verification.json": {
+      "path": "/tmp/gridex-staff-review/final-web-ac1-ci-browser-verification.json",
+      "sha256": "2f32cd2673308e20ceb6c09eff0f8a84c70f9d8d84247a04ab25f8cde6b7d90c"
+    },
+    "tenant-classification-a315-capture-importer-independent-review.json": {
+      "path": "/tmp/gridex-staff-review/tenant-classification-a315-capture-importer-independent-review.json",
+      "sha256": "51928f4fc73ccfc5c2caf4b70dfdfb829f8b6e29358d32f7efa8a846f6ae101a"
+    },
+    "staff-external-identity-classification-independent-source-review.json": {
+      "path": "/tmp/gridex-staff-review/staff-external-identity-classification-independent-source-review.json",
+      "sha256": "0422d04f5903aaf7368b643e65c48d98b9266ec97f9e5df90ef453f396a32645"
+    },
+    "tenant-staff-classification-unique-equivalence-independent-review.json": {
+      "path": "/tmp/gridex-staff-review/tenant-staff-classification-unique-equivalence-independent-review.json",
+      "sha256": "78d9901e26c4db9eb25f62a3830eaef5c569969f972da5b67dc40bab3a25d700"
+    },
+    "tenant-classification-final-111dd-upgrade-independent-review.json": {
+      "path": "/tmp/gridex-staff-review/tenant-classification-final-111dd-upgrade-independent-review.json",
+      "sha256": "73d94c6c96c32c63378e6644989f7c0df946a74c51d25b342e4497337d7f4fa1"
+    },
+    "tenant-classification-final-111dd-native-upgrade-independent-review.json": {
+      "path": "/tmp/gridex-staff-review/tenant-classification-final-111dd-native-upgrade-independent-review.json",
+      "sha256": "d7691c4e7f50ffeb2f59dfa8fa086f13671265aad273a3c646d9c8b1016b2a50"
+    }
+  },
+  "required_ops_checks": [
+    "verify",
+    "quality-release-gates",
+    "clean-migration-replay",
+    "upgrade-migration-replay",
+    "coverage",
+    "smoke",
+    "pr-certificate",
+    "browser-public",
+    "sc003-sc005-native",
+    "sc071-native",
+    "tenant-integrity-regression",
+    "Capture disposable clean-replay types and schema"
+  ],
+  "hosted_writes": 0,
+  "live_support_domain_activated": false,
+  "limits": [
+    "No hosted account, invitation email, enrollment, deployment or domain activation proof.",
+    "Customer provider enforcement must be compatible with the existing Customer transport before activation.",
+    "Historical failed native receipts remain separate and cannot qualify this final head."
+  ],
+  "final_ops_coverage": {
+    "workflow": 37345274774,
+    "job": 111882161357,
+    "files_passed": 839,
+    "coverage_ratchet": "PASS",
+    "conclusion": "success",
+    "tests_passed": 10786,
+    "log_summary": [
+      "2026-10-05T17:19:21.7163444Z Test Files 839 passed (839)",
+      "2026-10-05T17:19:21.7201087Z Tests 10786 passed (10786)",
+      "2026-10-05T17:19:23.0899286Z Coverage ratchet passed; no tracked coverage metric regressed below baseline."
+    ]
+  },
+  "upgrade_independent_review": "PASS_EXACT_111DD",
+  "ops_other_required_checks": [
+    {
+      "id": 111889887193,
+      "name": "pr-certificate",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274774/job/111889887193",
+      "completed_at": "2026-10-05T17:27:14Z"
+    },
+    {
+      "id": 111882162002,
+      "name": "tenant-integrity-regression",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274994/job/111882162002",
+      "completed_at": "2026-10-05T17:24:01Z"
+    },
+    {
+      "id": 111882161395,
+      "name": "sc071-native",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274801/job/111882161395",
+      "completed_at": "2026-10-05T17:11:01Z"
+    },
+    {
+      "id": 111882161357,
+      "name": "coverage",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274774/job/111882161357",
+      "completed_at": "2026-10-05T17:19:26Z"
+    },
+    {
+      "id": 111882160765,
+      "name": "browser-public",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274734/job/111882160765",
+      "completed_at": "2026-10-05T17:12:43Z"
+    },
+    {
+      "id": 111882160698,
+      "name": "smoke",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274774/job/111882160698",
+      "completed_at": "2026-10-05T17:06:45Z"
+    },
+    {
+      "id": 111882160424,
+      "name": "quality-release-gates",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274729/job/111882160424",
+      "completed_at": "2026-10-05T17:26:22Z"
+    },
+    {
+      "id": 111882160184,
+      "name": "sc003-sc005-native",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274731/job/111882160184",
+      "completed_at": "2026-10-05T17:09:45Z"
+    },
+    {
+      "id": 111882159933,
+      "name": "verify",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274729/job/111882159933",
+      "completed_at": "2026-10-05T17:04:33Z"
+    },
+    {
+      "id": 111882159735,
+      "name": "Capture disposable clean-replay types and schema",
+      "head_sha": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37345274671/job/111882159735",
+      "completed_at": "2026-10-05T17:06:57Z"
+    }
+  ],
+  "public_domain_read": {
+    "url": "https://support123.gridex.se/",
+    "observed_at_utc": "2026-10-05T17:32:40Z",
+    "title": "Elpris idag \u2013 Billiga &amp; datadrivna elavtal",
+    "html_sha256": "78dbf7debef088b1634f9f1edcf1f36dc6e308cd0bdd4033971d3af8a9c76d12",
+    "observation": "Marketing website remains served; corrected staff app domain activation has not occurred in this task.",
+    "read_only": true
+  },
+  "native_clean": {
+    "head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+    "job": 111882160350,
+    "run": 37345274729,
+    "conclusion": "failure",
+    "completed_at": "2026-10-05T17:57:37Z",
+    "reported_by": "staff_rollout_review fresh authenticated metadata",
+    "cause": "ONE rem002 native JUnit E73 test fails during seed with native_consumption_parties_unbound at consumption-native test line66. Source broad raw-payload substring guard deterministically rejects incidental reference digits; actual failing random reference is not retained.",
+    "all_18_phases_present": true,
+    "schema_gates_complete": true,
+    "external_identity_sql_notice": "PASS",
+    "artifact": 11363181202,
+    "whole_clean_acceptance": false,
+    "mandatory_junit": {
+      "total": 674,
+      "passed": 666,
+      "skipped_complementary_modes": 7,
+      "failures": 1,
+      "errors": 0
+    },
+    "staff_native_cases_passed": 16,
+    "browser_checks_passed": 31,
+    "raw3_parity": "PASS"
+  }
+}

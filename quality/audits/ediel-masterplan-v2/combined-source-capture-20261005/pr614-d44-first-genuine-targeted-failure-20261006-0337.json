@@ -1,0 +1,263 @@
+{
+  "schema": "ordinary-native-feedback-first-genuine-current-head-targeted-failure/v1",
+  "observed_at_utc": "2026-10-06 03:37:34 UTC",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "lease_started_at_utc": "2026-10-06 03:32:23 UTC",
+  "lease_status": "PAUSED_ON_FIRST_GENUINE_FAILURE_SAME_SOLE_OWNER",
+  "regular_polling_status": "STOPPED_PENDING_PARENT_DISPOSITION",
+  "regular_polling_stopped_at_utc": "2026-10-06 03:37:34 UTC",
+  "gate_status": "HOLD_CURRENT_HEAD_GENUINE_FAILURE_NOT_MAIN_READY",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+  "tree_sha": "400a2036314b3df52dcd4992330373a7553655e1",
+  "parent_sha": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "observed_pr_draft": false,
+  "identity_guards": {
+    "exact_public_head_branch_base_tree_parent": true,
+    "exact_current_pull_request_run_job_attempt": true,
+    "genuine_terminal_failed_check_matches_job": true,
+    "genuine_exact_failed_step": true,
+    "real_job_runner_and_terminal_timestamps": true
+  },
+  "first_current_genuine_failure": {
+    "run_id": 37409390245,
+    "workflow_id": 358913488,
+    "workflow_path": ".github/workflows/ediel-masterplan-v2.yml",
+    "event": "pull_request",
+    "run_attempt": 1,
+    "run_status": "completed",
+    "run_conclusion": "failure",
+    "job_id": 112094164648,
+    "job_name": "targeted-regressions",
+    "job_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+    "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+    "job_status": "completed",
+    "job_conclusion": "failure",
+    "job_started_at": "2026-10-06T03:31:40Z",
+    "job_completed_at": "2026-10-06T03:35:15Z",
+    "runner_id": 1000043989,
+    "runner_name": "GitHub Actions 1000043989",
+    "check_run_id": 112094164648,
+    "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+    "check_status": "completed",
+    "check_conclusion": "failure",
+    "check_started_at": "2026-10-06T03:31:40Z",
+    "check_completed_at": "2026-10-06T03:35:15Z",
+    "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390245/job/112094164648",
+    "annotation_count": 3,
+    "failed_steps": [
+      {
+        "number": 7,
+        "name": "Approved masterplan IDs have tagged, passing tests",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-06T03:32:07Z",
+        "completed_at": "2026-10-06T03:35:13Z"
+      }
+    ],
+    "diagnostic_cause": "UNKNOWN_FOR_CURRENT_D44; ROOT_EXCLUSIVELY_OWNS_TERMINAL_ARTIFACT_AND_CAUSE"
+  },
+  "all_current_observed_job_states": [
+    {
+      "id": 112094165210,
+      "name": "verify",
+      "run_id": 37409390302,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:33:29Z",
+      "runner_id": 1000043994,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112094165386,
+      "name": "clean-migration-replay",
+      "run_id": 37409390302,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": null,
+      "runner_id": 1000043996,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types"
+        }
+      ]
+    },
+    {
+      "id": 112094165434,
+      "name": "quality-release-gates",
+      "run_id": 37409390302,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": null,
+      "runner_id": 1000043995,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 10,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test"
+        }
+      ]
+    },
+    {
+      "id": 112094165487,
+      "name": "upgrade-migration-replay",
+      "run_id": 37409390302,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": null,
+      "runner_id": 1000043997,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Genuine ancestor upgrade and independent clean parity"
+        }
+      ]
+    },
+    {
+      "id": 112094165528,
+      "name": "smoke",
+      "run_id": 37409390289,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:33:11Z",
+      "runner_id": 1000043999,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112094165673,
+      "name": "coverage",
+      "run_id": 37409390289,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T03:31:43Z",
+      "completed_at": null,
+      "runner_id": 1000044000,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 5,
+          "name": "Run Vitest V8 coverage"
+        }
+      ]
+    },
+    {
+      "id": 112094165385,
+      "name": "browser-public",
+      "run_id": 37409390271,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T03:32:16Z",
+      "completed_at": "2026-10-06T03:33:26Z",
+      "runner_id": 1000044001,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112094164648,
+      "name": "targeted-regressions",
+      "run_id": 37409390245,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:35:15Z",
+      "runner_id": 1000043989,
+      "failed_steps": [
+        {
+          "number": 7,
+          "name": "Approved masterplan IDs have tagged, passing tests",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:32:07Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        }
+      ],
+      "active_steps": []
+    },
+    {
+      "id": 112094165251,
+      "name": "sc003-sc005-native",
+      "run_id": 37409390237,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:34:46Z",
+      "runner_id": 1000043992,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112094165297,
+      "name": "sc071-native",
+      "run_id": 37409390270,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:35:01Z",
+      "runner_id": 1000043993,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112094165298,
+      "name": "tenant-integrity-regression",
+      "run_id": 37409390384,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:32:00Z",
+      "runner_id": 1000043998,
+      "failed_steps": [],
+      "active_steps": []
+    }
+  ],
+  "counts": {
+    "applicable_names": 12,
+    "created_jobs": 11,
+    "success": 6,
+    "failure": 1,
+    "running": 4,
+    "queued": 0,
+    "pending_names": [
+      "pr-certificate"
+    ],
+    "cancelled": 0
+  },
+  "historical20819_stop_preserved": {
+    "path": "/workspace/agent-review-checkpoints/pr614-20819-terminal-observer-lease-stop-seal-20261006032941.json",
+    "sha256": "734ac6fad107b6b6fe90df0d62e02d9040af49d1afe7ce20d9089c6634c50040",
+    "unchanged": true,
+    "historical_success_and_failed_cause_transferred": false
+  },
+  "configured_protection": "UNKNOWN403_NOT_INFERRED_FROM_TWELVE_OBSERVED_APPLICABLE_CONTEXTS",
+  "limits": [
+    "Current exact d44 targeted check/job/step genuinely terminal FAILURE. Other current genuine successes do not qualify overall current gate/main READY.",
+    "Regular metadata polling pauses at the parent-directed first genuine RED boundary. Remaining clean/upgrade/quality/coverage are RUNNING and certificate has not yet been created; no prediction of completion/cancellation/success.",
+    "Current native-feedback SC003/SC005 and SC071 SUCCESS states retain their own d44 runner/run/attempt/times; they are metadata only and do not establish full CODE_VERIFIED/source/native/Masterplan/canonical replay evidence.",
+    "Root alone owns precise current terminal logs/artifacts/causes/capture/native proofs and any necessary repair or guarded merge. No logs/artifacts/annotations/cause/optional capture/other PR/main/global reads by observer.",
+    "No workflow retry/cancel/dispatch, source edit, local/native tests or new rules. Historical20819 STOP/terminal failure and all older immutable receipts remain unchanged; no success/cause transfer across heads. SKIPPED/CANCELLED are not PASS."
+  ]
+}

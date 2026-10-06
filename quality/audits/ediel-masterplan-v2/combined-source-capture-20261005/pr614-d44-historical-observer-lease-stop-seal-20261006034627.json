@@ -1,0 +1,2203 @@
+{
+  "schema": "ordinary-native-ci-historical-observer-lease-stop/v1",
+  "repository": "heke99/gridex-ops-platform",
+  "pull_request": 614,
+  "observer": "/root/pr612_773_sole_ci_observer",
+  "lease_status": "STOPPED",
+  "disposition": "HISTORICAL_SUPERSEDED_OBSERVATION_SUCCESSOR_NOT_YET_PUBLIC",
+  "regular_polling_resumed": false,
+  "metadata_observed_at_utc": "2026-10-06 03:45:37 UTC",
+  "lease_stopped_at_utc": "2026-10-06 03:46:27 UTC",
+  "source": {
+    "head": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+    "tree": "400a2036314b3df52dcd4992330373a7553655e1",
+    "parent": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+    "branch": "codex/ediel-combined-source-capture-20261005",
+    "producer_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "observed_pr_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "pr_state": "open",
+    "pr_draft": false
+  },
+  "five_identity_guards": {
+    "public_pr_head_branch_base_commit_tree_single_parent": true,
+    "seven_ordinary_producer_repo_event_pr_head_branch_base_workflow_attempt": true,
+    "twelve_unique_applicable_actual_jobs_head_branch_run_attempt": true,
+    "twelve_exact_filtered_check_head_job_id_link_and_state": true,
+    "twelve_real_runner_starts_and_honest_terminal_timestamps": true
+  },
+  "guard_verdict": "PASS_METADATA_IDENTITY_ONLY",
+  "configured_branch_protection": "UNKNOWN_403_NOT_ASSERTED",
+  "applicable_context_names": [
+    "verify",
+    "quality-release-gates",
+    "clean-migration-replay",
+    "upgrade-migration-replay",
+    "smoke",
+    "coverage",
+    "pr-certificate",
+    "browser-public",
+    "targeted-regressions",
+    "sc003-sc005-native",
+    "sc071-native",
+    "tenant-integrity-regression"
+  ],
+  "counts": {
+    "SUCCESS": 7,
+    "FAILURE": 3,
+    "NOT_TERMINAL": 2,
+    "CANCELLED": 0,
+    "SKIPPED": 0
+  },
+  "all_applicable_terminal": false,
+  "merge_qualification": "HOLD_NOT_MAIN_READY",
+  "producers": [
+    {
+      "run_id": 37409390302,
+      "workflow_id": 298519857,
+      "path": ".github/workflows/ops-hardening.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:31:41Z",
+      "status": "in_progress",
+      "conclusion": null,
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37409390289,
+      "workflow_id": 336204822,
+      "path": ".github/workflows/full-e2e.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:39:31Z",
+      "status": "in_progress",
+      "conclusion": null,
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37409390271,
+      "workflow_id": 336345774,
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:33:27Z",
+      "status": "completed",
+      "conclusion": "success",
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37409390245,
+      "workflow_id": 358913488,
+      "path": ".github/workflows/ediel-masterplan-v2.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:35:16Z",
+      "status": "completed",
+      "conclusion": "failure",
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37409390237,
+      "workflow_id": 374987418,
+      "path": ".github/workflows/ediel-sc003-sc005-native.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:34:47Z",
+      "status": "completed",
+      "conclusion": "success",
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37409390270,
+      "workflow_id": 375282113,
+      "path": ".github/workflows/ediel-sc071-native.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:35:01Z",
+      "status": "completed",
+      "conclusion": "success",
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    },
+    {
+      "run_id": 37409390384,
+      "workflow_id": 343826806,
+      "path": ".github/workflows/tenant-integrity-regression.yml",
+      "repository": "heke99/gridex-ops-platform",
+      "head_repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "run_started_at": "2026-10-06T03:31:37Z",
+      "created_at": "2026-10-06T03:31:37Z",
+      "updated_at": "2026-10-06T03:32:01Z",
+      "status": "completed",
+      "conclusion": "success",
+      "pull_requests": [
+        {
+          "number": 614,
+          "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ]
+    }
+  ],
+  "jobs_and_checks": [
+    {
+      "name": "verify",
+      "job_id": 112094165210,
+      "run_id": 37409390302,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:33:29Z",
+      "runner_id": 1000043994,
+      "runner_name": "GitHub Actions 1000043994",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165210,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:31:41Z",
+      "check_completed_at": "2026-10-06T03:33:29Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390302/job/112094165210",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165210",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:42Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:46Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:46Z",
+          "completed_at": "2026-10-06T03:31:49Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:49Z",
+          "completed_at": "2026-10-06T03:32:02Z"
+        },
+        {
+          "number": 5,
+          "name": "Run npm run db:migrations:check",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:02Z",
+          "completed_at": "2026-10-06T03:32:03Z"
+        },
+        {
+          "number": 6,
+          "name": "Run python3 scripts/gridex-ediel-upgrade-inputs-selftest.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:03Z",
+          "completed_at": "2026-10-06T03:32:03Z"
+        },
+        {
+          "number": 7,
+          "name": "Run python3 scripts/gridex-redact-native-evidence-selftest.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:03Z",
+          "completed_at": "2026-10-06T03:32:03Z"
+        },
+        {
+          "number": 8,
+          "name": "Run node --test scripts/bounded-child-process.test.mjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:03Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 9,
+          "name": "Run npm run tenant:service-role-ratchet",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 10,
+          "name": "Run npm run gridex:contract-channel-publication-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 11,
+          "name": "Run node scripts/check-agent-memory-git-state.cjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 12,
+          "name": "Run node scripts/gridex-aud-003-migration-provenance-regression.cjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 13,
+          "name": "Run node scripts/gridex-ops-health-regression.cjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 14,
+          "name": "Run npm run gridex:api-billing-tenant-hardening-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:05Z"
+        },
+        {
+          "number": 15,
+          "name": "Run npm run typecheck",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:05Z",
+          "completed_at": "2026-10-06T03:33:16Z"
+        },
+        {
+          "number": 16,
+          "name": "Canonical quote runtime regression matrix",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:16Z",
+          "completed_at": "2026-10-06T03:33:18Z"
+        },
+        {
+          "number": 17,
+          "name": "Run node scripts/gridex-quote-idempotency-multitenant-regression.cjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:18Z",
+          "completed_at": "2026-10-06T03:33:18Z"
+        },
+        {
+          "number": 18,
+          "name": "Run node scripts/gridex-partner-api-business-contract-regression.cjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:18Z",
+          "completed_at": "2026-10-06T03:33:18Z"
+        },
+        {
+          "number": 19,
+          "name": "Run node scripts/gridex-papilite-centroid-regression.cjs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:18Z",
+          "completed_at": "2026-10-06T03:33:18Z"
+        },
+        {
+          "number": 20,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/papilite-postal-centroid-hardening.test.ts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:18Z",
+          "completed_at": "2026-10-06T03:33:19Z"
+        },
+        {
+          "number": 21,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:19Z",
+          "completed_at": "2026-10-06T03:33:20Z"
+        },
+        {
+          "number": 22,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts __tests__/dependency-circuit.test.ts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:20Z",
+          "completed_at": "2026-10-06T03:33:22Z"
+        },
+        {
+          "number": 23,
+          "name": "Run npm run ops:hardening-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:22Z",
+          "completed_at": "2026-10-06T03:33:22Z"
+        },
+        {
+          "number": 24,
+          "name": "Run npm run ops:hardening-behavior-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:22Z",
+          "completed_at": "2026-10-06T03:33:23Z"
+        },
+        {
+          "number": 25,
+          "name": "Integrated remaining-masterpoints golden path",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:23Z",
+          "completed_at": "2026-10-06T03:33:23Z"
+        },
+        {
+          "number": 26,
+          "name": "Run npm run gridex:canonical-architecture-57-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:23Z",
+          "completed_at": "2026-10-06T03:33:23Z"
+        },
+        {
+          "number": 27,
+          "name": "Run npm run gridex:post-108-health-residuals-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:23Z",
+          "completed_at": "2026-10-06T03:33:23Z"
+        },
+        {
+          "number": 28,
+          "name": "Run npm run gridex:post-332-field-511-health-residuals-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:23Z",
+          "completed_at": "2026-10-06T03:33:24Z"
+        },
+        {
+          "number": 29,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/ediel-utilts-transaction-disposition.test.ts __tests__/ediel-utilts-transaction-persistence.test.ts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:24Z",
+          "completed_at": "2026-10-06T03:33:26Z"
+        },
+        {
+          "number": 30,
+          "name": "Run npm run ops:final-contract-regression",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:26Z",
+          "completed_at": "2026-10-06T03:33:27Z"
+        },
+        {
+          "number": 31,
+          "name": "Run npm run api:error-boundaries",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:27Z",
+          "completed_at": "2026-10-06T03:33:27Z"
+        },
+        {
+          "number": 32,
+          "name": "Run npm run security:audit-production",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:27Z",
+          "completed_at": "2026-10-06T03:33:27Z"
+        },
+        {
+          "number": 63,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:27Z",
+          "completed_at": "2026-10-06T03:33:28Z"
+        },
+        {
+          "number": 64,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:28Z",
+          "completed_at": "2026-10-06T03:33:28Z"
+        },
+        {
+          "number": 65,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:28Z",
+          "completed_at": "2026-10-06T03:33:28Z"
+        }
+      ]
+    },
+    {
+      "name": "clean-migration-replay",
+      "job_id": 112094165386,
+      "run_id": 37409390302,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "in_progress",
+      "conclusion": null,
+      "truthful_state": "NOT_TERMINAL",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": null,
+      "runner_id": 1000043996,
+      "runner_name": "GitHub Actions 1000043996",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165386,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "in_progress",
+      "check_conclusion": null,
+      "check_started_at": "2026-10-06T03:31:40Z",
+      "check_completed_at": null,
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390302/job/112094165386",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165386",
+      "check_app": "github-actions",
+      "annotations_count": 0,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-06T03:32:13Z",
+          "completed_at": null
+        }
+      ],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:43Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:43Z",
+          "completed_at": "2026-10-06T03:31:48Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:48Z",
+          "completed_at": "2026-10-06T03:31:50Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:50Z",
+          "completed_at": "2026-10-06T03:31:58Z"
+        },
+        {
+          "number": 5,
+          "name": "Run supabase/setup-cli@v1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:58Z",
+          "completed_at": "2026-10-06T03:32:00Z"
+        },
+        {
+          "number": 6,
+          "name": "Install a PostgreSQL client matching the replay server",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:00Z",
+          "completed_at": "2026-10-06T03:32:13Z"
+        },
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-06T03:32:13Z",
+          "completed_at": null
+        },
+        {
+          "number": 8,
+          "name": "Redact disposable credentials from native and browser evidence",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 9,
+          "name": "Upload clean-replay evidence",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 17,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "name": "quality-release-gates",
+      "job_id": 112094165434,
+      "run_id": 37409390302,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "failure",
+      "truthful_state": "FAILURE",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:43:27Z",
+      "runner_id": 1000043995,
+      "runner_name": "GitHub Actions 1000043995",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165434,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T03:31:40Z",
+      "check_completed_at": "2026-10-06T03:43:27Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390302/job/112094165434",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165434",
+      "check_app": "github-actions",
+      "annotations_count": 22,
+      "failed_steps": [
+        {
+          "number": 10,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:35:00Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        }
+      ],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:42Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:49Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:49Z",
+          "completed_at": "2026-10-06T03:31:51Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:51Z",
+          "completed_at": "2026-10-06T03:32:06Z"
+        },
+        {
+          "number": 5,
+          "name": "Run npm run lint",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:06Z",
+          "completed_at": "2026-10-06T03:33:52Z"
+        },
+        {
+          "number": 6,
+          "name": "Run npm run typecheck:scripts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:52Z",
+          "completed_at": "2026-10-06T03:34:15Z"
+        },
+        {
+          "number": 7,
+          "name": "Run npm run typecheck:tests",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:15Z",
+          "completed_at": "2026-10-06T03:34:57Z"
+        },
+        {
+          "number": 8,
+          "name": "Run bash quality/mechanical/verify.sh",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:57Z",
+          "completed_at": "2026-10-06T03:34:58Z"
+        },
+        {
+          "number": 9,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run --config quality/vitest.config.ts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:58Z",
+          "completed_at": "2026-10-06T03:35:00Z"
+        },
+        {
+          "number": 10,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:35:00Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 11,
+          "name": "Run npm run api:docs",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 12,
+          "name": "Run npm run api:compatibility",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 13,
+          "name": "Run npm run api:release:verify",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 14,
+          "name": "Run npm run security:rbac",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 15,
+          "name": "Run npm run quality:large-file-budget",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 16,
+          "name": "Run npm run quality:performance",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:40:20Z"
+        },
+        {
+          "number": 17,
+          "name": "Run npm run build",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:40:20Z",
+          "completed_at": "2026-10-06T03:43:25Z"
+        },
+        {
+          "number": 18,
+          "name": "Run npm run quality:bundle-budget",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:43:25Z",
+          "completed_at": "2026-10-06T03:43:25Z"
+        },
+        {
+          "number": 35,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:43:25Z",
+          "completed_at": "2026-10-06T03:43:25Z"
+        },
+        {
+          "number": 36,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:43:25Z",
+          "completed_at": "2026-10-06T03:43:26Z"
+        },
+        {
+          "number": 37,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:43:26Z",
+          "completed_at": "2026-10-06T03:43:26Z"
+        }
+      ]
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "job_id": 112094165487,
+      "run_id": 37409390302,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:39:46Z",
+      "runner_id": 1000043997,
+      "runner_name": "GitHub Actions 1000043997",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165487,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:31:41Z",
+      "check_completed_at": "2026-10-06T03:39:46Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390302/job/112094165487",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165487",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:43Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:43Z",
+          "completed_at": "2026-10-06T03:31:51Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:51Z",
+          "completed_at": "2026-10-06T03:31:54Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:54Z",
+          "completed_at": "2026-10-06T03:32:04Z"
+        },
+        {
+          "number": 5,
+          "name": "Run supabase/setup-cli@v1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:04Z",
+          "completed_at": "2026-10-06T03:32:06Z"
+        },
+        {
+          "number": 6,
+          "name": "Install a PostgreSQL client matching the replay server",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:06Z",
+          "completed_at": "2026-10-06T03:32:22Z"
+        },
+        {
+          "number": 7,
+          "name": "Genuine ancestor upgrade and independent clean parity",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:22Z",
+          "completed_at": "2026-10-06T03:39:41Z"
+        },
+        {
+          "number": 8,
+          "name": "Upload authentic upgrade evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:41Z",
+          "completed_at": "2026-10-06T03:39:44Z"
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:44Z",
+          "completed_at": "2026-10-06T03:39:44Z"
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:44Z",
+          "completed_at": "2026-10-06T03:39:44Z"
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:44Z",
+          "completed_at": "2026-10-06T03:39:44Z"
+        }
+      ]
+    },
+    {
+      "name": "smoke",
+      "job_id": 112094165528,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:33:11Z",
+      "runner_id": 1000043999,
+      "runner_name": "GitHub Actions 1000043999",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165528,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:31:41Z",
+      "check_completed_at": "2026-10-06T03:33:11Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390289/job/112094165528",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165528",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:43Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:43Z",
+          "completed_at": "2026-10-06T03:31:49Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:49Z",
+          "completed_at": "2026-10-06T03:31:51Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:51Z",
+          "completed_at": "2026-10-06T03:32:01Z"
+        },
+        {
+          "number": 5,
+          "name": "Verify executable PROJECT_E2E P0 contract",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:01Z",
+          "completed_at": "2026-10-06T03:32:01Z"
+        },
+        {
+          "number": 6,
+          "name": "Run tenant-wide smoke certificate",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:01Z",
+          "completed_at": "2026-10-06T03:33:09Z"
+        },
+        {
+          "number": 7,
+          "name": "Build sanitized AI verification handoff",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:09Z",
+          "completed_at": "2026-10-06T03:33:09Z"
+        },
+        {
+          "number": 8,
+          "name": "Upload E2E evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:09Z",
+          "completed_at": "2026-10-06T03:33:10Z"
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:10Z",
+          "completed_at": "2026-10-06T03:33:10Z"
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:10Z",
+          "completed_at": "2026-10-06T03:33:10Z"
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:10Z",
+          "completed_at": "2026-10-06T03:33:10Z"
+        }
+      ]
+    },
+    {
+      "name": "coverage",
+      "job_id": 112094165673,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "failure",
+      "truthful_state": "FAILURE",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:43Z",
+      "completed_at": "2026-10-06T03:39:28Z",
+      "runner_id": 1000044000,
+      "runner_name": "GitHub Actions 1000044000",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165673,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T03:31:43Z",
+      "check_completed_at": "2026-10-06T03:39:28Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390289/job/112094165673",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165673",
+      "check_app": "github-actions",
+      "annotations_count": 3,
+      "failed_steps": [
+        {
+          "number": 5,
+          "name": "Run Vitest V8 coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:32:07Z",
+          "completed_at": "2026-10-06T03:39:24Z"
+        }
+      ],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:44Z",
+          "completed_at": "2026-10-06T03:31:45Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:45Z",
+          "completed_at": "2026-10-06T03:31:49Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:49Z",
+          "completed_at": "2026-10-06T03:31:53Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:53Z",
+          "completed_at": "2026-10-06T03:32:07Z"
+        },
+        {
+          "number": 5,
+          "name": "Run Vitest V8 coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:32:07Z",
+          "completed_at": "2026-10-06T03:39:24Z"
+        },
+        {
+          "number": 6,
+          "name": "Record immutable Ediel document coverage separately",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:39:24Z",
+          "completed_at": "2026-10-06T03:39:24Z"
+        },
+        {
+          "number": 7,
+          "name": "Enforce measured coverage ratchet when baseline exists",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:39:24Z",
+          "completed_at": "2026-10-06T03:39:24Z"
+        },
+        {
+          "number": 8,
+          "name": "Upload coverage evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:24Z",
+          "completed_at": "2026-10-06T03:39:25Z"
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:39:25Z",
+          "completed_at": "2026-10-06T03:39:25Z"
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:25Z",
+          "completed_at": "2026-10-06T03:39:26Z"
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:26Z",
+          "completed_at": "2026-10-06T03:39:26Z"
+        }
+      ]
+    },
+    {
+      "name": "pr-certificate",
+      "job_id": 112096102746,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "in_progress",
+      "conclusion": null,
+      "truthful_state": "NOT_TERMINAL",
+      "created_at": "2026-10-06T03:39:28Z",
+      "started_at": "2026-10-06T03:39:31Z",
+      "completed_at": null,
+      "runner_id": 1000044002,
+      "runner_name": "GitHub Actions 1000044002",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112096102746,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "in_progress",
+      "check_conclusion": null,
+      "check_started_at": "2026-10-06T03:39:31Z",
+      "check_completed_at": null,
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390289/job/112096102746",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112096102746",
+      "check_app": "github-actions",
+      "annotations_count": 0,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 6,
+          "name": "Await the existing native producer at this exact checkout",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-06T03:39:59Z",
+          "completed_at": null
+        }
+      ],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:31Z",
+          "completed_at": "2026-10-06T03:39:32Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:32Z",
+          "completed_at": "2026-10-06T03:39:40Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:40Z",
+          "completed_at": "2026-10-06T03:39:40Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:40Z",
+          "completed_at": "2026-10-06T03:39:59Z"
+        },
+        {
+          "number": 5,
+          "name": "Download executed smoke evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:39:59Z",
+          "completed_at": "2026-10-06T03:39:59Z"
+        },
+        {
+          "number": 6,
+          "name": "Await the existing native producer at this exact checkout",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-06T03:39:59Z",
+          "completed_at": null
+        },
+        {
+          "number": 7,
+          "name": "Require deterministic PR gates to execute and pass",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "name": "browser-public",
+      "job_id": 112094165385,
+      "run_id": 37409390271,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:32:16Z",
+      "completed_at": "2026-10-06T03:33:26Z",
+      "runner_id": 1000044001,
+      "runner_name": "GitHub Actions 1000044001",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165385,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:32:16Z",
+      "check_completed_at": "2026-10-06T03:33:26Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390271/job/112094165385",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165385",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:17Z",
+          "completed_at": "2026-10-06T03:32:18Z"
+        },
+        {
+          "number": 2,
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:18Z",
+          "completed_at": "2026-10-06T03:32:42Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:42Z",
+          "completed_at": "2026-10-06T03:32:45Z"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:45Z",
+          "completed_at": "2026-10-06T03:32:48Z"
+        },
+        {
+          "number": 5,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:48Z",
+          "completed_at": "2026-10-06T03:33:02Z"
+        },
+        {
+          "number": 6,
+          "name": "Verify P0 executor contract",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:02Z",
+          "completed_at": "2026-10-06T03:33:02Z"
+        },
+        {
+          "number": 7,
+          "name": "Verify open-source E2E wiring",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:02Z",
+          "completed_at": "2026-10-06T03:33:02Z"
+        },
+        {
+          "number": 8,
+          "name": "Verify pinned Playwright runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:02Z",
+          "completed_at": "2026-10-06T03:33:03Z"
+        },
+        {
+          "number": 9,
+          "name": "Run public browser and accessibility E2E",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:03Z",
+          "completed_at": "2026-10-06T03:33:23Z"
+        },
+        {
+          "number": 10,
+          "name": "Build sanitized AI verification handoff",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:23Z",
+          "completed_at": "2026-10-06T03:33:23Z"
+        },
+        {
+          "number": 11,
+          "name": "Upload browser evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:23Z",
+          "completed_at": "2026-10-06T03:33:24Z"
+        },
+        {
+          "number": 20,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:24Z",
+          "completed_at": "2026-10-06T03:33:24Z"
+        },
+        {
+          "number": 21,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:24Z",
+          "completed_at": "2026-10-06T03:33:25Z"
+        },
+        {
+          "number": 22,
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:25Z",
+          "completed_at": "2026-10-06T03:33:25Z"
+        },
+        {
+          "number": 23,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:33:25Z",
+          "completed_at": "2026-10-06T03:33:25Z"
+        }
+      ]
+    },
+    {
+      "name": "targeted-regressions",
+      "job_id": 112094164648,
+      "run_id": 37409390245,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "failure",
+      "truthful_state": "FAILURE",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:35:15Z",
+      "runner_id": 1000043989,
+      "runner_name": "GitHub Actions 1000043989",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094164648,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T03:31:40Z",
+      "check_completed_at": "2026-10-06T03:35:15Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390245/job/112094164648",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094164648",
+      "check_app": "github-actions",
+      "annotations_count": 3,
+      "failed_steps": [
+        {
+          "number": 7,
+          "name": "Approved masterplan IDs have tagged, passing tests",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:32:07Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        }
+      ],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:41Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:46Z"
+        },
+        {
+          "number": 3,
+          "name": "Record exact source under test",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:46Z",
+          "completed_at": "2026-10-06T03:31:50Z"
+        },
+        {
+          "number": 4,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:50Z",
+          "completed_at": "2026-10-06T03:31:52Z"
+        },
+        {
+          "number": 5,
+          "name": "Run npm ci --ignore-scripts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:52Z",
+          "completed_at": "2026-10-06T03:32:07Z"
+        },
+        {
+          "number": 6,
+          "name": "Verify immutable specification and evidence references",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:07Z",
+          "completed_at": "2026-10-06T03:32:07Z"
+        },
+        {
+          "number": 7,
+          "name": "Approved masterplan IDs have tagged, passing tests",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T03:32:07Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 8,
+          "name": "Verify immutable guide authority and calendar boundaries in three timezones",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 9,
+          "name": "Verify selected source identity without database dependencies",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 10,
+          "name": "Verify source-backed PRODAT fields and actual parser-renderer coherence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 11,
+          "name": "Verify PRODAT characteristic-field components and real preflight consumers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 12,
+          "name": "Verify PRODAT reference identity and affected consumers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 13,
+          "name": "Verify all four PRODAT BGM fields and their consumers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 14,
+          "name": "Verify all twenty PRODAT NAD fields and real party consumers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 15,
+          "name": "Verify twelve PRODAT DTM fields and real consumer boundaries in three timezones",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 16,
+          "name": "Verify PRODAT object and register preservation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 17,
+          "name": "Verify source-derived Z04 consumption-point reference boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 18,
+          "name": "Verify source-derived PRODAT subtype D conditions and non-bypassable send gates",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 19,
+          "name": "Verify release-aware EDIFACT component parsing",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 20,
+          "name": "Verify APERAK source-family guide binding",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 21,
+          "name": "Verify protocol, retained UTILTS decisions and delivery-report isolation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:13Z"
+        },
+        {
+          "number": 22,
+          "name": "Retain exact source evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:35:13Z",
+          "completed_at": "2026-10-06T03:35:14Z"
+        },
+        {
+          "number": 43,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-06T03:35:14Z",
+          "completed_at": "2026-10-06T03:35:14Z"
+        },
+        {
+          "number": 44,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:35:14Z",
+          "completed_at": "2026-10-06T03:35:14Z"
+        },
+        {
+          "number": 45,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:35:14Z",
+          "completed_at": "2026-10-06T03:35:15Z"
+        }
+      ]
+    },
+    {
+      "name": "sc003-sc005-native",
+      "job_id": 112094165251,
+      "run_id": 37409390237,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:34:46Z",
+      "runner_id": 1000043992,
+      "runner_name": "GitHub Actions 1000043992",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165251,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:31:40Z",
+      "check_completed_at": "2026-10-06T03:34:46Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390237/job/112094165251",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165251",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:42Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:46Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:46Z",
+          "completed_at": "2026-10-06T03:31:49Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:49Z",
+          "completed_at": "2026-10-06T03:31:57Z"
+        },
+        {
+          "number": 5,
+          "name": "Run supabase/setup-cli@v1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:57Z",
+          "completed_at": "2026-10-06T03:31:59Z"
+        },
+        {
+          "number": 6,
+          "name": "Execute the actual service owners after disposable clean replay",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:59Z",
+          "completed_at": "2026-10-06T03:34:43Z"
+        },
+        {
+          "number": 7,
+          "name": "Upload redacted native feedback",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:43Z",
+          "completed_at": "2026-10-06T03:34:44Z"
+        },
+        {
+          "number": 13,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:44Z",
+          "completed_at": "2026-10-06T03:34:44Z"
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:44Z",
+          "completed_at": "2026-10-06T03:34:44Z"
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:44Z",
+          "completed_at": "2026-10-06T03:34:44Z"
+        }
+      ]
+    },
+    {
+      "name": "sc071-native",
+      "job_id": 112094165297,
+      "run_id": 37409390270,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:40Z",
+      "completed_at": "2026-10-06T03:35:01Z",
+      "runner_id": 1000043993,
+      "runner_name": "GitHub Actions 1000043993",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165297,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:31:40Z",
+      "check_completed_at": "2026-10-06T03:35:01Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390270/job/112094165297",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165297",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:41Z",
+          "completed_at": "2026-10-06T03:31:42Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:46Z"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:46Z",
+          "completed_at": "2026-10-06T03:31:50Z"
+        },
+        {
+          "number": 4,
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:50Z",
+          "completed_at": "2026-10-06T03:31:57Z"
+        },
+        {
+          "number": 5,
+          "name": "Run supabase/setup-cli@v1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:57Z",
+          "completed_at": "2026-10-06T03:31:59Z"
+        },
+        {
+          "number": 6,
+          "name": "Install the PostgreSQL client for the canonical replay server",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:59Z",
+          "completed_at": "2026-10-06T03:32:11Z"
+        },
+        {
+          "number": 7,
+          "name": "Run bounded export races on a pinned canonical BASE stack",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:32:11Z",
+          "completed_at": "2026-10-06T03:34:57Z"
+        },
+        {
+          "number": 8,
+          "name": "Upload redacted SC071 native feedback",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:57Z",
+          "completed_at": "2026-10-06T03:34:58Z"
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:58Z",
+          "completed_at": "2026-10-06T03:34:58Z"
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:58Z",
+          "completed_at": "2026-10-06T03:34:58Z"
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:34:58Z",
+          "completed_at": "2026-10-06T03:34:58Z"
+        }
+      ]
+    },
+    {
+      "name": "tenant-integrity-regression",
+      "job_id": 112094165298,
+      "run_id": 37409390384,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "success",
+      "truthful_state": "SUCCESS",
+      "created_at": "2026-10-06T03:31:38Z",
+      "started_at": "2026-10-06T03:31:41Z",
+      "completed_at": "2026-10-06T03:32:00Z",
+      "runner_id": 1000043998,
+      "runner_name": "GitHub Actions 1000043998",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions",
+      "check_id": 112094165298,
+      "check_head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T03:31:41Z",
+      "check_completed_at": "2026-10-06T03:32:00Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37409390384/job/112094165298",
+      "job_check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/112094165298",
+      "check_app": "github-actions",
+      "annotations_count": 2,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_metadata": "ACTUAL_CURRENT_STEP_METADATA",
+      "actual_steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:42Z",
+          "completed_at": "2026-10-06T03:31:43Z"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:43Z",
+          "completed_at": "2026-10-06T03:31:47Z"
+        },
+        {
+          "number": 3,
+          "name": "Verify tenant integrity contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:47Z",
+          "completed_at": "2026-10-06T03:31:56Z"
+        },
+        {
+          "number": 4,
+          "name": "Verify tenant shutdown contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:56Z",
+          "completed_at": "2026-10-06T03:31:56Z"
+        },
+        {
+          "number": 5,
+          "name": "Service-role tenant ratchet",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:56Z",
+          "completed_at": "2026-10-06T03:31:57Z"
+        },
+        {
+          "number": 10,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:57Z",
+          "completed_at": "2026-10-06T03:31:58Z"
+        },
+        {
+          "number": 11,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-06T03:31:58Z",
+          "completed_at": "2026-10-06T03:31:58Z"
+        }
+      ]
+    }
+  ],
+  "nonapplicable_jobs": [
+    {
+      "job_id": 112094166332,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "real-customer-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094166537,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "runtime-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094166588,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "nightly-release-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094188295,
+      "run_id": 37409390289,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "full",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094166265,
+      "run_id": 37409390271,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "k6-staging-load",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094166282,
+      "run_id": 37409390271,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "zap-staging-baseline",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094166362,
+      "run_id": 37409390271,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "browser-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094166501,
+      "run_id": 37409390271,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "k6-staging-soak",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    },
+    {
+      "job_id": 112094167199,
+      "run_id": 37409390271,
+      "run_attempt": 1,
+      "head_sha": "d44d60cddf6ae26bd1f201426543127b2e1b344d",
+      "name": "staging-quality-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_as_pass": false
+    }
+  ],
+  "preserved_first_genuine_failure": {
+    "path": "/workspace/agent-review-checkpoints/pr614-d44-first-genuine-targeted-failure-20261006-0337.json",
+    "sha256": "e77c0eccad94548d88c91a1d82a8e71c7faee873d92d26251af6ef7e05dd4e6b",
+    "immutable": true
+  },
+  "preserved_parent_head_stop": {
+    "head": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+    "path": "/workspace/agent-review-checkpoints/pr614-20819-terminal-observer-lease-stop-seal-20261006032941.json",
+    "sha256": "734ac6fad107b6b6fe90df0d62e02d9040af49d1afe7ce20d9089c6634c50040",
+    "immutable": true
+  },
+  "failure_cause": "UNKNOWN_TO_METADATA_OBSERVER_PARENT_OWNS_DIAGNOSIS",
+  "read_scope": "ONE_FINITE_PR_GITCOMMIT_SEVEN_ORDINARY_RUNS_TWELVE_NAME_FILTERED_CHECKS_SEVEN_ACTUAL_ATTEMPT_JOBS",
+  "excluded": "CAPTURE_WORKFLOW_OTHER_PRS_LOGS_ANNOTATIONS_CAUSES_ARTIFACTS_NATIVE_PROOFS",
+  "controls": {
+    "retry": false,
+    "cancel": false,
+    "dispatch": false,
+    "source_edit": false,
+    "ref_edit": false,
+    "merge": false
+  },
+  "qualification_limits": [
+    "NO_HISTORICAL_SUCCESS_TRANSFER",
+    "RUNNING_QUEUED_SKIPPED_CANCELLED_NOT_PASS",
+    "GREEN_JOB_METADATA_NOT_FULL_SOURCE_CODE_NATIVE_OR_MASTERPLAN_CERTIFICATION"
+  ],
+  "resume_requirement": "ROOT_AUTHENTICATES_AND_EXPLICITLY_ASSIGN_NEXT_PUBLIC_HEAD_TREE_PARENT_BASE"
+}

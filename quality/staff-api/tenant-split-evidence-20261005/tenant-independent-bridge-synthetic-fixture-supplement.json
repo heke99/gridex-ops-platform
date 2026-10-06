@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-05T13:38:24.324174+00:00",
+  "change": "Replace only synthetic service-key test literal with constructed alg=none unsigned-test-fixture JWT; no valid credential and no push-protection override",
+  "previous_qualification_receipt": {
+    "path": "/tmp/gridex-staff-review/tenant-independent-onboarding-qualified-source.json",
+    "sha256": "34448bff7e04be9d90cff3290f6925f18fcace523249eac8c2ad514136524539",
+    "bytes": 11056
+  },
+  "previous_test_source": {
+    "path": "/workspace/gridex-support123-web/tests/support-tenant-delivery.test.mjs",
+    "sha256": "c849235512fcf6ddb4a73c4614c494ae128066a90cf3cb9bd8f94a3c6e3ade4a",
+    "bytes": 11877
+  },
+  "new_test_source": {
+    "path": "/workspace/gridex-support123-web/tests/support-tenant-delivery.test.mjs",
+    "sha256": "9816d362bdb8c0ac88b0f8f207333e5142a2359416d9df1dc5119ae88454800e",
+    "bytes": 12108
+  },
+  "unchanged_owned_source_pins_verified": 17,
+  "validation": {
+    "focused_tests": "8/8 PASS",
+    "scoped_eslint": "PASS zero warnings",
+    "git_diff_check": "PASS"
+  },
+  "logs": [
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-bridge-synthetic-fixture-tests.log",
+      "sha256": "60b6de772a42bfc4afd64fb581c6f20b98d0626e28b47b785e5488c26f6d2e81",
+      "bytes": 2712
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-bridge-synthetic-fixture-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "production_source_changes": false,
+  "commits_created": false,
+  "hosted_operations": false
+}

@@ -33,9 +33,12 @@ const approvedEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/e
 // custody. Read available HEAD descriptors even in depth-one CI; only the two
 // owned row spans are normalized in this modeled baseline. No ancestor fetch,
 // historical-object fallback or change to the real production guard occurs.
-const currentTree = spawnSync('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD'], { encoding: 'utf8' })
+// The combined repository's descriptor list exceeds spawnSync's 1 MiB default.
+// Keep these real, bounded Git reads intact as the reviewed tree grows.
+const fixtureGitReadOptions = { encoding: 'utf8' as const, maxBuffer: 16 * 1024 * 1024 }
+const currentTree = spawnSync('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD'], fixtureGitReadOptions)
 if (currentTree.status !== 0) throw Error('fixture_head_tree_unavailable')
-const currentLedger = spawnSync('git', ['--no-replace-objects', 'show', 'HEAD:' + ledgerFile], { encoding: 'utf8' })
+const currentLedger = spawnSync('git', ['--no-replace-objects', 'show', 'HEAD:' + ledgerFile], fixtureGitReadOptions)
 if (currentLedger.status !== 0) throw Error('fixture_head_ledger_unavailable')
 const ledgerSnapshot = { ...currentLedger, stdout: (() => {
   const ledger = JSON.parse(currentLedger.stdout) as { rules: LedgerRow[]; acceptance_contracts: LedgerRow[] }
@@ -56,7 +59,48 @@ const modeledLedgerBlob = createHash('sha1').update('blob ' + Buffer.byteLength(
 const treeSnapshot = { ...currentTree, stdout: currentTree.stdout.split('\0').map(record => record.endsWith('\t' + ledgerFile)
   ? record.replace(/[0-9a-f]{40}\t/, modeledLedgerBlob + '\t') : record).join('\0') }
 const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex')
-type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'run' | 'attempt' | 'job' | 'job_failed'
+// The finite Git port models the original reviewed producer, not admission of
+// HEAD's expanded native suite. Restore only its known additions and require
+// the original pinned bytes; every other source change still fails closed.
+function reviewedProducerFixture(file: string, bytes: Buffer) {
+  // Model the exact original reviewed DDQ producer. The real native fixture
+  // now retains original-mailbox custody; that change is never relabelled as
+  // current-head CODE_VERIFIED by this finite port or production consumer.
+  if (file === 'scripts/ediel-prodat-mixed-native.test.ts') {
+    const originalDigest = '2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6'
+    if (sha256(bytes) === originalDigest) return bytes
+    if (sha256(bytes) !== '44e2460177e5516944d1a9ddf47e8b5c03d03b997fdd6af8739e5f413737ede4') throw Error('fixture_reviewed_ddq_source_unavailable')
+    const corrections: [string, string][] = [
+      ["import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'\n", ""],
+      [" const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})\n", ""],
+      [" INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)\n SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{\"subtype\":\"L\",\"prodatDependentFacts\":{\"market\":\"electricity\",\"meterReadingsSentInUtilts\":false}}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)\n await recordOriginalMailboxNativeReception({...mail,companyId:f.companyId,sourceMessageId:sourceId,actorUserId:f.actorUserId})\n", " INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)\n SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{\"subtype\":\"L\",\"prodatDependentFacts\":{\"market\":\"electricity\",\"meterReadingsSentInUtilts\":false}}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)\n"],
+    ]
+    let original = bytes.toString('utf8')
+    for (const [current, previous] of corrections) {
+      if (original.split(current).length !== 2) throw Error('fixture_reviewed_ddq_correction_not_unique')
+      original = original.replace(current, previous)
+    }
+    const restored = Buffer.from(original)
+    if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_ddq_original_digest_mismatch')
+    return restored
+  }
+  const additions = file === 'scripts/ediel-source-owner-native.config.ts'
+    ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n"]
+    : file === '.github/workflows/ops-hardening.yml'
+      ? ['staff-onboarding-acceptance-regression', 'staff-external-identity-binding-regression'].map(name =>
+        `          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/${name}.sql; then\n` +
+        '            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }\n' +
+        '          fi\n')
+      : []
+  if (!additions.length) return bytes
+  const original = Buffer.from(additions.reduce((text, addition) => text.replace(addition, ''), bytes.toString('utf8')))
+  const digest = file === 'scripts/ediel-source-owner-native.config.ts'
+    ? '722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56'
+    : 'eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261'
+  if (sha256(original) !== digest) throw Error('fixture_reviewed_producer_source_unavailable:' + file)
+  return original
+}
+type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'native_workflow_source' | 'run' | 'attempt' | 'job' | 'job_failed'
   | 'artifact' | 'artifact_head' | 'artifact_run' | 'expired' | 'digest' | 'artifact_attempt' | 'source' | 'native_config_source'
   | 'duplicate' | 'skip' | 'failure' | 'error' | 'missing' | 'wrong_case' | 'wrong_file' | 'xml_entity' | 'duplicate_zip' | 'latest_cancelled'
   | 'setup_input' | 'transitive_input' | 'missing_input' | 'extra_input' | 'mode_input' | 'symlink_input' | 'untracked_input' | 'ignored_input'
@@ -235,10 +279,11 @@ function consume(options: Options = {}) {
       if (args[0] === 'show') {
         const file = args[1].slice(args[1].indexOf(':') + 1)
         if (file === ledgerFile) return good(args[1].startsWith(reviewedBase + ':') || !options.ledgerChange ? ledgerSnapshot.stdout : candidateLedger(options.ledgerChange))
-        const bytes = readFileSync(path.resolve(file))
+        const bytes = reviewedProducerFixture(file, readFileSync(path.resolve(file)))
         const changed = options.fault === 'source' && file === caseFile || options.coverageFault === 'source' && file === tgtFile
           || options.coverageFault === 'workflow_source' && file === '.github/workflows/full-e2e.yml'
           || options.fault === 'native_config_source' && file === 'scripts/ediel-source-owner-native.config.ts'
+          || options.fault === 'native_workflow_source' && file === '.github/workflows/ops-hardening.yml'
         return good(changed ? Buffer.concat([bytes, Buffer.from('\n// changed reviewed source')]) : bytes)
       }
       if (args[0] === 'config') return good(`https://github.com/${repository}.git`)
@@ -379,9 +424,9 @@ it('coverage authenticates six separate code evidence classes and aggregate nati
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/actions/runs?head_sha=${head}&per_page=100`)).toHaveLength(1)
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/actions/runs/12345/attempts/2/jobs?per_page=100`)).toHaveLength(1)
 })
-it('refuses changed native-config bytes while retaining distinct coverage classes and authenticated CI', () => {
+it.each(['native_config_source', 'native_workflow_source'] as const)('refuses changed %s bytes while retaining distinct coverage classes and authenticated CI', fault => {
   // Change only git-show bytes; modeled tree, source cases, API and JUnit stay valid.
-  const result = consume({ coverage: true, fault: 'native_config_source' })
+  const result = consume({ coverage: true, fault })
   expect(result.exit).toBe(0); expect(result.verdict).toBe('GREEN')
   expect(dgi(result.evidence)).toBeUndefined(); expect(ddq(result.evidence)).toBeUndefined()
   for (const level of ['integration', 'tenant_e2e']) expect(result.evidence.levels[level].status).toBe('missing')

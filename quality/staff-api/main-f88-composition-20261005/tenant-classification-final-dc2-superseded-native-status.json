@@ -1,0 +1,48 @@
+{
+  "status": "DC2_HISTORICAL_UPGRADE_PASS_CLEAN_CANCELLED_SUPERSEDED_CURRENT_COMPOSITION_PENDING",
+  "recorded_at_utc": "2026-10-05T18:59:15.314770+00:00",
+  "candidate": {
+    "head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+    "tree": "5e506545d67615cf14d67ceefc7b011508b3fd63",
+    "run_id": 37354775413
+  },
+  "clean": {
+    "job_id": 111914289447,
+    "status": "completed",
+    "conclusion": "cancelled",
+    "started_at": "2026-10-05T18:40:54Z",
+    "completed_at": "2026-10-05T18:57:30Z",
+    "authenticated_metadata_path": "/tmp/gridex-staff-review/tenant-classification-final-dc2-clean-job-superseded-completion.raw.json",
+    "metadata_sha256": "5bfc181046f307a44d3f09dbbfd98d3f0c4793170076d819e12d5fad7f7a574d",
+    "interpretation": "CANCELLED_SUPERSEDED; not classified as a source/native failure. Parent announced same-PR capture pilot to incorporate actual f88 main7forward producer/schema/invariant changes before this cancellation.",
+    "complete_native_acceptance": "NOT_QUALIFIED",
+    "original_E73_assertions_current_run_status": "NOT_QUALIFIED_NO_COMPLETED_CLEAN_ARTIFACT_REVIEW",
+    "artifact_downloads": 0,
+    "partial_native_schema_staff_browser_results": "NOT_REVIEWED; no pass or failure inferred from interrupted job."
+  },
+  "upgrade": {
+    "status": "PASS_EXACT_DC2_UPGRADE_ARTIFACT_ONLY",
+    "job_id": 111914289716,
+    "receipt_path": "/tmp/gridex-staff-review/tenant-classification-final-dc2-upgrade-independent-review.json",
+    "receipt_sha256": "e6c4bec19ee79b6775c5cf5a85a9c0051c1788d30cbf6d5d4ae9fe5298f6ebda",
+    "artifact_id": 11365812224,
+    "artifact_sha256": "fd345d5517ef9cb8062340c006a4d798414534ac623db30e7f1140089296251e"
+  },
+  "current_composition": {
+    "parent_reported_main": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+    "parent_reported_prefix_count": 1076,
+    "fresh_authentic_capture_and_final_exact_head_native_required": true,
+    "dc2_proof_does_not_qualify_new_union": true,
+    "new_final_head_run_handoff": "PENDING_FROM_PARENT"
+  },
+  "reviewer_operations": {
+    "native_pipeline_actions": 0,
+    "tests_or_replays": 0,
+    "source_edits": 0,
+    "hosted_calls": 0,
+    "clean_artifact_downloads": 0,
+    "upgrade_artifact_downloads": 1,
+    "upgrade_verifier_calls": 1,
+    "monitor_terminated_normally_after_both_jobs_completed": true
+  }
+}

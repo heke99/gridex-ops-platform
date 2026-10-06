@@ -1,0 +1,59 @@
+{
+  "scope": "Authentic current c3c7 optional duplicate-capture guard only; no native/schema/business/current-main approval",
+  "source_head": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+  "run_id": 37400151889,
+  "run_attempt": 1,
+  "event": "pull_request",
+  "path": ".github/workflows/staff-api-schema-capture.yml",
+  "status": "completed",
+  "conclusion": "success",
+  "job_id": 112065289239,
+  "job_conclusion": "success",
+  "six_capture_steps": [
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 4
+    },
+    {
+      "name": "Run npm ci",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 5
+    },
+    {
+      "name": "Run supabase/setup-cli@v1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 6
+    },
+    {
+      "name": "Install the matching PostgreSQL 17 client",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 7
+    },
+    {
+      "name": "Capture authentic artifacts from the sourced clean replay",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8
+    },
+    {
+      "name": "Upload capture-only artifacts",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9
+    }
+  ],
+  "artifact_count": 0,
+  "original_capture_reused": {
+    "source_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "run_id": 37392285139,
+    "run_attempt": 1,
+    "artifact_id": 11382240742
+  },
+  "capture_native_browser_type_schema_upgrade_parity": "Original four NOT_RUN scope preserved",
+  "new_capture": "NOT_EXECUTED"
+}

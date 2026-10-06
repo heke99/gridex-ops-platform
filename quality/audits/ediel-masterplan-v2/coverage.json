@@ -117,8 +117,14 @@
     {
       "id": "GOV-08",
       "acceptance_id": "AT-GOV-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        ".agent-memory/masterplan-gov08-checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+        "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+        "scripts/ediel-test-original-outcome-native.test.ts",
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql"
+      ]
     },
     {
       "id": "TEN-01",
@@ -1404,8 +1410,16 @@
     {
       "id": "DB-02",
       "acceptance_id": "AT-DB-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "__tests__/ediel-db02-profile-periods.test.ts",
+        "scripts/ediel-db02-profile-periods-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.md",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.json",
+        ".agent-memory/masterplan-db02-checkpoint.md"
+      ]
     },
     {
       "id": "DB-03",
@@ -1733,8 +1747,16 @@
     },
     {
       "id": "SC-010",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/beneficiaryExport.ts",
+        "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+        "app/api/ediel/beneficiary/exports/process/route.ts",
+        "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+        "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+        "__tests__/ediel-sc-010-beneficiary-export.test.ts",
+        "scripts/ediel-sc-010-beneficiary-export-native.test.ts"
+      ]
     },
     {
       "id": "SC-011",
@@ -2520,8 +2542,14 @@
     },
     {
       "id": "AT-GOV-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        ".agent-memory/masterplan-gov08-checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+        "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+        "scripts/ediel-test-original-outcome-native.test.ts",
+        "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql"
+      ]
     },
     {
       "id": "AT-TEN-01",
@@ -3549,8 +3577,16 @@
     },
     {
       "id": "AT-DB-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "__tests__/ediel-db02-profile-periods.test.ts",
+        "scripts/ediel-db02-profile-periods-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.md",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.json",
+        ".agent-memory/masterplan-db02-checkpoint.md"
+      ]
     },
     {
       "id": "AT-DB-03",

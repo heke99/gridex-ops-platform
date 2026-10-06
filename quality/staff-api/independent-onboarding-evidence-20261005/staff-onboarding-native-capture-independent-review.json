@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-05T11:07:13.585886+00:00",
+  "reviewer": "staff_final_security_review",
+  "status": "PASS_CAPTURE_GENERATED_DELTA_AND_BOUNDED_TEST_TYPING_ONLY_NATIVE_ACCEPTANCE_PENDING",
+  "blockers": [],
+  "scope": "Offline read-only comparison against immutable committed46ec baseline and authored migration. No source edits, suites, replay, importer execution or hosted calls.",
+  "capture": {
+    "source_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
+    "source_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
+    "workflow_run_id": "37299065849",
+    "artifact_id": 11341610088,
+    "root_verified_published_zip_sha256": "750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
+    "purpose": "capture_only",
+    "postgres_server_version": "17.6",
+    "all_eight_source_input_hashes_verified": true,
+    "capture_receipt_sha256": "854639a4faa3e4173fd8b93b5207645939ac35f3614751c4c74b4b76e2b63658",
+    "root_import_binding_sha256": "749024a43fb9fe0a0a7e5d78347786c6439dfdf2bdfe95e4f26f779cf3e831ea",
+    "raw_outputs": {
+      "database.types.ts": {
+        "sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+        "bytes": 3679151,
+        "worktree_byte_equal": true
+      },
+      "schema.sql": {
+        "sha256": "e891f1e8cca13860f060251c41d333430233cfe3ab7192d576c7ab9ce0c2922f",
+        "bytes": 11193134,
+        "worktree_byte_equal": true
+      },
+      "schema.fingerprint.json": {
+        "sha256": "969b0b3f9738cb4846478acba85594c5cb4d3baddd10030c6c8933032d539f16",
+        "bytes": 3625,
+        "worktree_byte_equal": true
+      }
+    }
+  },
+  "schema_delta": {
+    "whole_previous_schema_byte_exact_after_reversal": true,
+    "baseline_dump_blocks": 15519,
+    "captured_dump_blocks": 15522,
+    "added_blocks": [
+      "gridex_accept_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -",
+      "FUNCTION gridex_accept_staff_invitation_v1(p_command jsonb); Type: COMMENT; Schema: public; Owner: -",
+      "FUNCTION gridex_accept_staff_invitation_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -"
+    ],
+    "only_existing_changed_block": "authenticate_integration_request_v1(text, text, text, text[], text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -",
+    "wrapper_body_equals_exact_authored_body": true,
+    "wrapper_body_sha256": "7742e72ad17c18a65efeedc270607f744e7b7055100cc219ab79e0cdaed5d17d",
+    "wrapper_security": "SECURITY DEFINER; search_path pg_catalog; PUBLIC revoked; only service_role granted EXECUTE, implicit owner preserved.",
+    "machine_body_equals_exact_authored_body": true,
+    "machine_body_sha256": "f0ec6bff6c6e749686d68ccc5957e9d52ed447d48139443c1d69c8f81b461ac5",
+    "predecessor_body_md5": "377d73119aba7d046045b1b38805e5d8",
+    "machine_exact_two_edits": [
+      "Recognize staff-onboarding family alongside staff.",
+      "Exact invitations/accept path requires explicit staff_users.write."
+    ],
+    "existing_function_metadata_and_acl_preserved": true,
+    "unrelated_schema_acl_policy_bytes_changed": 0
+  },
+  "types_delta": {
+    "only_new_rpc": "gridex_accept_staff_invitation_v1",
+    "args": {
+      "p_command": "Json"
+    },
+    "returns": "Json",
+    "only_four_line_entry_removal_restores_entire_prior_raw_types": true
+  },
+  "fingerprint": {
+    "canonical_sha256": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+    "unchanged_sections": [
+      "columns",
+      "constraints",
+      "enums",
+      "extensions",
+      "indexes",
+      "policies",
+      "relation_grants",
+      "relations",
+      "schema_grants",
+      "schemas",
+      "triggers"
+    ],
+    "unchanged_sections_count": 11,
+    "changed_sections": {
+      "function_grants": {
+        "before": {
+          "count": 3591,
+          "sha256": "79cf4eee8b75dcd8ab505aba96240515a73751ffd7ff9dba5168c4a79924508c"
+        },
+        "after": {
+          "count": 3593,
+          "sha256": "364036239e7ef131d9652a9f4f58361ed76a88ffbda7b34778e13ea54a89d529"
+        }
+      },
+      "functions": {
+        "before": {
+          "count": 2065,
+          "sha256": "cf8b4a75ae051eae166660283abdfb2a71e0c01041ce82580d50bf2ec96eb9c8"
+        },
+        "after": {
+          "count": 2066,
+          "sha256": "627c2e4f12ae28b5fe03a649c84fd1aad121ca635cc2308f70f6c60772b8eb08"
+        }
+      }
+    },
+    "grant_count_explanation": "Wrapper owner EXECUTE plus service_role EXECUTE; no PUBLIC, anon or authenticated grant. Existing ACL blocks are byte-identical."
+  },
+  "late_typing_delta": {
+    "qualification_receipt": "/tmp/gridex-staff-review/staff-independent-onboarding-test-typing-qualification.json",
+    "qualification_sha256": "66e433a8b81bb61a099974797dd851bfa1f0c5dd1bebd8a9c4cafb73c0196127",
+    "captured_test_sha256": "276e547bdb1fe13ffb94b5fdc846a67f1a21e35b261cf0408963fe1e26dc79ae",
+    "current_test_sha256": "20ba972983ce600fce21eaaae4b0bc100edda1de934288b409eb4f7204b69cca",
+    "captured_source_does_not_include_late_test_change": true,
+    "other_original_sources_hash_equal": 22,
+    "assertion_lines_and_scenario_declarations_preserved": true,
+    "changes": "Exact port signatures on mocks, removal of three unsafe casts, actual company argument and nullable provider fixture check. No runtime or SQL change.",
+    "author_checks_authenticated": {
+      "acceptance_tests": 28,
+      "files": 1,
+      "duration_seconds": 1.04,
+      "full_test_types": "PASS",
+      "scoped_lint": "PASS",
+      "all_three_log_hashes_verified": true
+    }
+  },
+  "limits": [
+    "Published ZIP provenance is attributed to root authenticated binding; this review independently checks extracted raw bytes and all eight source inputs.",
+    "Capture receipt native_tests/browser_tests/type_schema_comparison/upgrade_parity remain NOT_RUN. Full final native and upgrade acceptance required.",
+    "Late typing test20ba is separately reviewed and not relabeled as captured46ec.",
+    "Active profile is a current EXISTS snapshot; Auth user is row-locked. Prior bounded profile concurrency conclusion unchanged.",
+    "Hosted gridex-prod migration/enrollment/Auth/email qualification pending; no reviewer remote writes."
+  ]
+}

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { staffCapturedIdentityAuthoritySql } from './fixtures/staff-captured-identity-authority'
 
 const capturedSchema = readFileSync('supabase/schema.sql', 'utf8')
 const attributionMigration = readFileSync('supabase/migrations/20261004084204_staff_customer_write_attribution.sql', 'utf8')
@@ -52,6 +53,7 @@ beforeAll(async () => {
   await db.exec(capturedTable('customer_identity_change_events'))
   await db.exec(`ALTER TABLE customer_identity_change_requests ADD PRIMARY KEY(id);
     ALTER TABLE customer_identity_change_events ADD PRIMARY KEY(id);`)
+  await db.exec(staffCapturedIdentityAuthoritySql(capturedSchema))
   for (const name of ['gridex_normalize_platform_role', 'canonical_actor_is_platform_admin',
     'gridex_staff_normalize_role_v1', 'gridex_staff_role_profile_v1', 'gridex_staff_actor_permissions_v1',
     'gridex_staff_assert_write_actor_v1', 'gridex_mask_identity_number']) {
@@ -130,6 +132,13 @@ async function decide(options: { companyId?: string; requestId?: string; decided
 }
 
 describe('staff immediate identity application uses a nonretryable optimistic conflict', () => {
+  it('refuses a registered tenant actor without an explicit binding before any identity decision effect', async () => {
+    await db.exec(`UPDATE integration_api_clients SET metadata='{"staff_tenant_auth":{"url":"https://abcdefghijklmnopqrst.supabase.co"}}'::jsonb`)
+    const before = await decisionState()
+    await expect(decide()).rejects.toMatchObject({ code: '42501', message: 'staff_identity_binding_missing' })
+    expect(await decisionState()).toEqual(before)
+  })
+
   it.each(['personal_number', 'org_number'])('returns PT409 for %s changed after request creation and preserves every decision effect', async field => {
     if (field === 'org_number') {
       await db.exec("UPDATE customers SET org_number='5599990001'; UPDATE customer_identity_change_requests SET field='org_number',previous_value='5599990001',new_value='5599990002'")

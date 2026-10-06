@@ -1,0 +1,110 @@
+{
+  "schema": "gridex-pr-ci-metadata-additional-failures/v1",
+  "observed_at_utc": "2026-10-06 00:16:26 UTC",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "lease_status": "ACTIVE_UNTIL_ROOT_FINAL_HEAD_CUTOVER",
+  "gate_status": "HOLD_TARGETED_AND_ADDITIONAL_UNIT_COVERAGE_FAILURES",
+  "first_targeted_failure_preserved": {
+    "file": "pr614-119-first-genuine-targeted-failure-20261006-0011.json",
+    "sha256": "3ca31a292e06ddee10ea7c2d8ee4105eccc918c4ad0a8227ae5b6e33a7375c40"
+  },
+  "identity_guards": {
+    "exact_two_current_head_jobs": true,
+    "exact_filtered_check_job_identities": true,
+    "genuine_failed_steps": true
+  },
+  "additional_failure_metadata": [
+    {
+      "job_id": 112039933648,
+      "job_name": "quality-release-gates",
+      "run_id": 37392285123,
+      "run_attempt": 1,
+      "head_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T00:07:18Z",
+      "completed_at": null,
+      "runner_id": 1000043902,
+      "runner_name": "GitHub Actions 1000043902",
+      "check_run_id": 112039933648,
+      "check_head_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+      "check_status": "in_progress",
+      "check_conclusion": null,
+      "check_started_at": "2026-10-06T00:07:18Z",
+      "check_completed_at": null,
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37392285123/job/112039933648",
+      "annotation_count": 0,
+      "failed_steps": [
+        {
+          "number": 10,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T00:10:09Z",
+          "completed_at": "2026-10-06T00:14:14Z"
+        }
+      ],
+      "active_steps": [
+        {
+          "number": 17,
+          "name": "Run npm run build",
+          "status": "in_progress",
+          "started_at": "2026-10-06T00:14:14Z"
+        }
+      ],
+      "diagnostic_cause": "UNKNOWN_NO_LOG_ARTIFACT_OR_ANNOTATION_DETAIL_READ"
+    },
+    {
+      "job_id": 112039934426,
+      "job_name": "coverage",
+      "run_id": 37392285244,
+      "run_attempt": 1,
+      "head_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T00:07:19Z",
+      "completed_at": "2026-10-06T00:14:42Z",
+      "runner_id": 1000043910,
+      "runner_name": "GitHub Actions 1000043910",
+      "check_run_id": 112039934426,
+      "check_head_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T00:07:19Z",
+      "check_completed_at": "2026-10-06T00:14:42Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37392285244/job/112039934426",
+      "annotation_count": 3,
+      "failed_steps": [
+        {
+          "number": 5,
+          "name": "Run Vitest V8 coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T00:07:43Z",
+          "completed_at": "2026-10-06T00:14:39Z"
+        }
+      ],
+      "active_steps": [],
+      "diagnostic_cause": "UNKNOWN_NO_LOG_ARTIFACT_OR_ANNOTATION_DETAIL_READ"
+    }
+  ],
+  "counts_at_poll": {
+    "applicable": 12,
+    "success": 6,
+    "terminal_failure": 2,
+    "in_progress": 4,
+    "genuine_failed_jobs_including_nonterminal_quality": 3,
+    "pending_not_created": 0
+  },
+  "limits": [
+    "Quality's npm-test step is a genuine completed failure; its job/check remains nonterminal while build runs.",
+    "The targeted first-RED receipt remains unchanged; no previous outcomes are silently discarded.",
+    "Capture producer and #613 are excluded. No source/native/main qualification, logs, artifacts, annotations cause, retry, cancellation, dispatch, source/ref edit or merge."
+  ]
+}

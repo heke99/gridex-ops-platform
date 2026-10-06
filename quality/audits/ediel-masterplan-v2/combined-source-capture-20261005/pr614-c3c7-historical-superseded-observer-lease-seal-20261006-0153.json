@@ -1,0 +1,727 @@
+{
+  "schema": "ordinary-native-feedback-historical-superseded-observer-lease-seal/v1",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "observed_at_utc": "2026-10-06 01:53:39 UTC",
+  "lease_started_at_utc": "2026-10-06 01:39:06 UTC",
+  "lease_status": "STOPPED",
+  "lease_stopped_at_utc": "2026-10-06 01:53:39 UTC",
+  "stop_reason": "Parent requested finite STOP before one necessary minimal package/lock security successor publication. Remaining old producers do not delay successor.",
+  "gate_status": "HISTORICAL_SUPERSEDED_OBSERVATION_CURRENT_HEAD_RED",
+  "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+  "tree_sha": "7cd147cd2efc4311fddb8ed87fad9aba8829e375",
+  "parent_sha": "5d9d00576f930fbee9a087b50f1cb09c9ba855f7",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "observed_pr_api": {
+    "state": "open",
+    "draft": true,
+    "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+    "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+  },
+  "identity_guards": {
+    "exact_public_pr_head_branch_base_commit_tree_parent": true,
+    "seven_exact_ordinary_pull_request_producers": true,
+    "twelve_unique_exact_job_attempt_identities": true,
+    "twelve_current_checks_exact_job_source_and_state": true,
+    "real_runner_starts_and_terminal_execution_times": true
+  },
+  "counts": {
+    "applicable": 12,
+    "success": 9,
+    "failure": 1,
+    "not_terminal": 2,
+    "cancelled": 0,
+    "skipped_applicable": 0
+  },
+  "workflow_producers": [
+    {
+      "run_id": 37400151868,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "workflow_name": "OPS hardening",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-06T01:38:03Z",
+      "run_started_at": "2026-10-06T01:38:03Z",
+      "updated_at": "2026-10-06T01:38:30Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151868"
+    },
+    {
+      "run_id": 37400151749,
+      "workflow_id": 336204822,
+      "workflow_path": ".github/workflows/full-e2e.yml",
+      "workflow_name": "Gridex full E2E",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-06T01:38:03Z",
+      "run_started_at": "2026-10-06T01:38:03Z",
+      "updated_at": "2026-10-06T01:46:20Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151749"
+    },
+    {
+      "run_id": 37400151796,
+      "workflow_id": 336345774,
+      "workflow_path": ".github/workflows/browser-quality-e2e.yml",
+      "workflow_name": "Gridex browser and quality E2E",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T01:38:03Z",
+      "run_started_at": "2026-10-06T01:38:03Z",
+      "updated_at": "2026-10-06T01:39:24Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151796"
+    },
+    {
+      "run_id": 37400151828,
+      "workflow_id": 358913488,
+      "workflow_path": ".github/workflows/ediel-masterplan-v2.yml",
+      "workflow_name": "Ediel masterplan v2 regressions",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T01:38:03Z",
+      "run_started_at": "2026-10-06T01:38:03Z",
+      "updated_at": "2026-10-06T01:43:26Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151828"
+    },
+    {
+      "run_id": 37400152094,
+      "workflow_id": 374987418,
+      "workflow_path": ".github/workflows/ediel-sc003-sc005-native.yml",
+      "workflow_name": "Ediel SC003 SC005 native feedback",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T01:38:04Z",
+      "run_started_at": "2026-10-06T01:38:04Z",
+      "updated_at": "2026-10-06T01:41:45Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400152094"
+    },
+    {
+      "run_id": 37400152029,
+      "workflow_id": 375282113,
+      "workflow_path": ".github/workflows/ediel-sc071-native.yml",
+      "workflow_name": "Ediel SC071 native feedback",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T01:38:04Z",
+      "run_started_at": "2026-10-06T01:38:04Z",
+      "updated_at": "2026-10-06T01:41:32Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400152029"
+    },
+    {
+      "run_id": 37400151750,
+      "workflow_id": 343826806,
+      "workflow_path": ".github/workflows/tenant-integrity-regression.yml",
+      "workflow_name": "Tenant integrity regression",
+      "repository": "heke99/gridex-ops-platform",
+      "event": "pull_request",
+      "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-06T01:38:03Z",
+      "run_started_at": "2026-10-06T01:38:03Z",
+      "updated_at": "2026-10-06T01:38:18Z",
+      "pr_associations": [
+        {
+          "number": 614,
+          "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+          "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+        }
+      ],
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151750"
+    }
+  ],
+  "applicable_contexts": [
+    {
+      "name": "verify",
+      "run_id": 37400151868,
+      "run_attempt": 1,
+      "job_id": 112065383334,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "failure",
+      "qualification": "FAILURE",
+      "created_at": "2026-10-06T01:38:26Z",
+      "job_started_at": "2026-10-06T01:38:29Z",
+      "job_completed_at": "2026-10-06T01:40:04Z",
+      "runner_id": 1000043955,
+      "runner_name": "GitHub Actions 1000043955",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065383334,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "failure",
+      "check_started_at": "2026-10-06T01:38:29Z",
+      "check_completed_at": "2026-10-06T01:40:04Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151868/job/112065383334",
+      "annotation_count": 3,
+      "steps_metadata_count": 35,
+      "failed_steps": [
+        {
+          "number": 32,
+          "name": "Run npm run security:audit-production",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T01:40:00Z",
+          "completed_at": "2026-10-06T01:40:00Z"
+        }
+      ],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "quality-release-gates",
+      "run_id": 37400151868,
+      "run_attempt": 1,
+      "job_id": 112065383541,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:26Z",
+      "job_started_at": "2026-10-06T01:38:28Z",
+      "job_completed_at": "2026-10-06T01:49:23Z",
+      "runner_id": 1000043956,
+      "runner_name": "GitHub Actions 1000043956",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065383541,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:28Z",
+      "check_completed_at": "2026-10-06T01:49:23Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151868/job/112065383541",
+      "annotation_count": 12,
+      "steps_metadata_count": 21,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "clean-migration-replay",
+      "run_id": 37400151868,
+      "run_attempt": 1,
+      "job_id": 112065383601,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "in_progress",
+      "job_conclusion": null,
+      "qualification": "NOT_TERMINAL",
+      "created_at": "2026-10-06T01:38:26Z",
+      "job_started_at": "2026-10-06T01:38:29Z",
+      "job_completed_at": null,
+      "runner_id": 1000043958,
+      "runner_name": "GitHub Actions 1000043958",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065383601,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "in_progress",
+      "check_conclusion": null,
+      "check_started_at": "2026-10-06T01:38:29Z",
+      "check_completed_at": null,
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151868/job/112065383601",
+      "annotation_count": 0,
+      "steps_metadata_count": 11,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types",
+          "started_at": "2026-10-06T01:39:10Z"
+        }
+      ],
+      "phase_disposition": "ACTUAL_CURRENT_STEP_METADATA"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "run_id": 37400151868,
+      "run_attempt": 1,
+      "job_id": 112065383623,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:26Z",
+      "job_started_at": "2026-10-06T01:38:29Z",
+      "job_completed_at": "2026-10-06T01:46:42Z",
+      "runner_id": 1000043957,
+      "runner_name": "GitHub Actions 1000043957",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065383623,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:29Z",
+      "check_completed_at": "2026-10-06T01:46:42Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151868/job/112065383623",
+      "annotation_count": 2,
+      "steps_metadata_count": 11,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "coverage",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "job_id": 112065467125,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:46Z",
+      "job_started_at": "2026-10-06T01:38:50Z",
+      "job_completed_at": "2026-10-06T01:46:16Z",
+      "runner_id": 1000043959,
+      "runner_name": "GitHub Actions 1000043959",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065467125,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:50Z",
+      "check_completed_at": "2026-10-06T01:46:16Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151749/job/112065467125",
+      "annotation_count": 2,
+      "steps_metadata_count": 11,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "smoke",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "job_id": 112065467340,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:46Z",
+      "job_started_at": "2026-10-06T01:38:48Z",
+      "job_completed_at": "2026-10-06T01:40:23Z",
+      "runner_id": 1000043960,
+      "runner_name": "GitHub Actions 1000043960",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065467340,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:48Z",
+      "check_completed_at": "2026-10-06T01:40:23Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151749/job/112065467340",
+      "annotation_count": 2,
+      "steps_metadata_count": 11,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "pr-certificate",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "job_id": 112067435266,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "in_progress",
+      "job_conclusion": null,
+      "qualification": "NOT_TERMINAL",
+      "created_at": "2026-10-06T01:46:16Z",
+      "job_started_at": "2026-10-06T01:46:19Z",
+      "job_completed_at": null,
+      "runner_id": 1000043961,
+      "runner_name": "GitHub Actions 1000043961",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112067435266,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "in_progress",
+      "check_conclusion": null,
+      "check_started_at": "2026-10-06T01:46:19Z",
+      "check_completed_at": null,
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151749/job/112067435266",
+      "annotation_count": 0,
+      "steps_metadata_count": 10,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 6,
+          "name": "Await the existing native producer at this exact checkout",
+          "started_at": "2026-10-06T01:46:46Z"
+        }
+      ],
+      "phase_disposition": "ACTUAL_CURRENT_STEP_METADATA"
+    },
+    {
+      "name": "browser-public",
+      "run_id": 37400151796,
+      "run_attempt": 1,
+      "job_id": 112065289213,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:04Z",
+      "job_started_at": "2026-10-06T01:38:07Z",
+      "job_completed_at": "2026-10-06T01:39:24Z",
+      "runner_id": 1000043952,
+      "runner_name": "GitHub Actions 1000043952",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065289213,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:07Z",
+      "check_completed_at": "2026-10-06T01:39:24Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151796/job/112065289213",
+      "annotation_count": 2,
+      "steps_metadata_count": 15,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "targeted-regressions",
+      "run_id": 37400151828,
+      "run_attempt": 1,
+      "job_id": 112065288998,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:04Z",
+      "job_started_at": "2026-10-06T01:38:07Z",
+      "job_completed_at": "2026-10-06T01:43:25Z",
+      "runner_id": 1000043950,
+      "runner_name": "GitHub Actions 1000043950",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065288998,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:07Z",
+      "check_completed_at": "2026-10-06T01:43:25Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151828/job/112065288998",
+      "annotation_count": 2,
+      "steps_metadata_count": 25,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "sc003-sc005-native",
+      "run_id": 37400152094,
+      "run_attempt": 1,
+      "job_id": 112065296007,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:06Z",
+      "job_started_at": "2026-10-06T01:38:08Z",
+      "job_completed_at": "2026-10-06T01:41:45Z",
+      "runner_id": 1000043954,
+      "runner_name": "GitHub Actions 1000043954",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065296007,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:08Z",
+      "check_completed_at": "2026-10-06T01:41:45Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400152094/job/112065296007",
+      "annotation_count": 2,
+      "steps_metadata_count": 10,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "sc071-native",
+      "run_id": 37400152029,
+      "run_attempt": 1,
+      "job_id": 112065289917,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:04Z",
+      "job_started_at": "2026-10-06T01:38:07Z",
+      "job_completed_at": "2026-10-06T01:41:31Z",
+      "runner_id": 1000043953,
+      "runner_name": "GitHub Actions 1000043953",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065289917,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:07Z",
+      "check_completed_at": "2026-10-06T01:41:31Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400152029/job/112065289917",
+      "annotation_count": 2,
+      "steps_metadata_count": 11,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    },
+    {
+      "name": "tenant-integrity-regression",
+      "run_id": 37400151750,
+      "run_attempt": 1,
+      "job_id": 112065288802,
+      "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "qualification": "SUCCESS",
+      "created_at": "2026-10-06T01:38:04Z",
+      "job_started_at": "2026-10-06T01:38:07Z",
+      "job_completed_at": "2026-10-06T01:38:17Z",
+      "runner_id": 1000043949,
+      "runner_name": "GitHub Actions 1000043949",
+      "runner_group_id": 0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "check_run_id": 112065288802,
+      "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "check_started_at": "2026-10-06T01:38:07Z",
+      "check_completed_at": "2026-10-06T01:38:17Z",
+      "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151750/job/112065288802",
+      "annotation_count": 2,
+      "steps_metadata_count": 7,
+      "failed_steps": [],
+      "active_steps": [],
+      "phase_disposition": "TERMINAL"
+    }
+  ],
+  "excluded_nonapplicable_jobs": [
+    {
+      "job_id": 112065467929,
+      "name": "full",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065468123,
+      "name": "real-customer-staging",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065468177,
+      "name": "runtime-staging",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065469117,
+      "name": "nightly-release-certificate",
+      "run_id": 37400151749,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065290399,
+      "name": "k6-staging-soak",
+      "run_id": 37400151796,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065290482,
+      "name": "browser-staging",
+      "run_id": 37400151796,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065290533,
+      "name": "zap-staging-baseline",
+      "run_id": 37400151796,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065290599,
+      "name": "k6-staging-load",
+      "run_id": 37400151796,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    },
+    {
+      "job_id": 112065290636,
+      "name": "staging-quality-certificate",
+      "run_id": 37400151796,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "credited_success": false
+    }
+  ],
+  "immutable_current_head_receipts": [
+    {
+      "path": "/workspace/agent-review-checkpoints/pr614-c3c7-first-genuine-security-audit-failure-20261006-0141.json",
+      "sha256": "ef48c6077490e6138bc1f7b4b01e360604a317c0c96f69c3b3ea65445e90cf78",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/pr614-c3c7-current-unit-coverage-upgrade-progress-20261006-0147.json",
+      "sha256": "62470934a5818adf8504fe1f573a9281c9682c7057c2b0c636f3ca4dae21f740",
+      "unchanged": true
+    }
+  ],
+  "previous_historical_c1f_seal": {
+    "path": "/workspace/agent-review-checkpoints/pr614-c1f-historical-superseded-observer-lease-seal-20261006-0130.json",
+    "sha256": "053bb90e683367ce5cbcfd60d23b4176f6467ee1ed94fb7ebcf53a73097195c4",
+    "preserved_unchanged": true,
+    "success_or_failure_cause_transfer": false
+  },
+  "diagnostic_cause": "UNKNOWN_TO_METADATA_OBSERVER_FOR_CURRENT_C3C7; ROOT_OWNS_SEPARATE_PRECISE_DIAGNOSIS",
+  "configured_protection": "UNKNOWN403_NOT_ASSERTED_FROM_OBSERVED_APPLICABLE_CONTEXTS",
+  "native_and_source_qualification": "Job metadata alone does not certify CODE_VERIFIED, full source or authentic native evidence. Original594 owner retains source/pin/input disposition; root retains native artifact/capture evidence.",
+  "limits": [
+    "No further c3c7 polling after this STOP seal. Same sole observer will adopt only parent-authenticated successor head/tree/base.",
+    "Verify job/check genuinely FAILURE with actual security-audit step32 01:40:00–01:40:00 and job completed01:40:04, preserved without invented duration or borrowed cause.",
+    "Clean and pr-certificate are genuinely running at stop, actual phases clean step7 and certificate step6. They remain NOT_TERMINAL, not PASS or predicted cancellation.",
+    "Nine successes retain their actual original current-head run/attempt/runner/start/end identities. No result or diagnosis transfer to a successor.",
+    "Excluded capture workflow, DOC613, logs, artifacts, annotation/cause detail, other PR/main/global reads, source review or changes, local/native tests and workflow retry/cancel/dispatch/merge.",
+    "SKIPPED/CANCELLED are not PASS. Configured protected applicability is unknown403; twelve names describe observed applicable ordinary contexts."
+  ]
+}

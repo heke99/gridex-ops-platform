@@ -1,0 +1,89 @@
+{
+  "scope": "Necessary existing native fixture residual correction only; no new Masterplan",
+  "recorded_at_utc": "2026-10-06T05:31:23.063860+00:00",
+  "parent": "18f9325942ad8fa36f077b65a1ba0be319034736",
+  "base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "claim530": 6009940350,
+  "diagnosis614": 6009974136,
+  "source_postimage_sha256": {
+    "scripts/ediel-utilts-err-gateway-native.test.ts": "bdc94d64720fe820c89bbfeb327a9d06c937226bbc77d127fd5be3d270b8f866",
+    "scripts/ediel-outbound-ack-replay-native.test.ts": "c8332e9b864f742093a678be48831ceb0d864bca239eb4f7e271161ded90571a",
+    "scripts/helpers/originalMailboxNative.ts": "5b07084d10ab7833bfbf1e21d05c774761d721f2980429079682fef3923462fa",
+    "scripts/ediel-z04-ack-native.test.ts": "497e9d74c60edfd1957bb523432ea5b3e0be4fa59a4ced51a10d7550ff0497b8"
+  },
+  "independent_peer": {
+    "agent": "/root/existing_reception_actor_fix_review",
+    "root_three_paths": "APPROVE exact3/2/1 replacements and every other byte, original first/third atomic blocks/grants/actors/pins/assertions exact",
+    "Z04_final": "APPROVE actual full current schema chain plus exact diff/assertion preservation",
+    "reception_principal_separate_samecompany_SEND_only_real_GoTrue": true,
+    "business_principal_and_permissions_exact": true,
+    "Z04_common_header_current_edition_field202_source_hash_and_nonbusiness_basis": true,
+    "Z04_ACK_profile_columns_five_null_and_snapshot_empty_object": true,
+    "whole_foreign_production_and_schema_unchanged": true
+  },
+  "verification": {
+    "node": "22.23.3",
+    "four_file_ESLint_exit": 0,
+    "errors": 0,
+    "existing_warning": 1,
+    "final_four_file_focused_semantic_types_exit": 0,
+    "PGlite_exact_current_authorizer_and_canonical_resolver_controls": 12,
+    "PGlite_controls_pass": 12,
+    "existing_scoped_units": {
+      "files": 3,
+      "pass": 54,
+      "owner": "/root/existing_z04_residual_diagnosis",
+      "scope": "Existing unit behavior only, not native"
+    }
+  },
+  "local_native": "NOT_EXECUTED",
+  "successor_ALL12_native_main": "PENDING_GENUINE_CURRENT_HEAD",
+  "adopted_exact_receipts": {
+    "pr614-18f-authentic-clean-native-terminal-diagnosis.json": {
+      "bytes": 29405,
+      "sha256": "16927292eda07901a7c5d81715e4dff6850fac6eedd982459011b891b7d29131",
+      "scope": "Exact retained historical18f diagnosis/STOP or bounded current-schema/local proof; no successor CI credit"
+    },
+    "pr614-18f-terminal-disposition-stop-20261006051919.json": {
+      "bytes": 75971,
+      "sha256": "a674a80bf4d06944a38a8fdd4efbfd9652b10ea97bb1fe9c4512483cc77bcf3b",
+      "scope": "Exact retained historical18f diagnosis/STOP or bounded current-schema/local proof; no successor CI credit"
+    },
+    "pr614-18f-actual-reception-actor-authority-diagnostic.json": {
+      "bytes": 2068,
+      "sha256": "1563e480ccb8c156aea4ecd8237fff477804caeb1ff8fb9f23a87b6820f12333",
+      "scope": "Exact retained historical18f diagnosis/STOP or bounded current-schema/local proof; no successor CI credit"
+    },
+    "pr614-18f-actual-reception-functions.json": {
+      "bytes": 7645,
+      "sha256": "3cab096d1c3e626e62fab1a976b777ce864eb49e5d1b525047bb9880212bcff8",
+      "scope": "Exact retained historical18f diagnosis/STOP or bounded current-schema/local proof; no successor CI credit"
+    },
+    "pr614-18f-reception-actor-authority-diagnostic.cjs.txt": {
+      "bytes": 6135,
+      "sha256": "4a07bf8de954934d2c3be9e81a57dead6b420807b096b78f98fb8c98cf4bb6a3",
+      "scope": "Exact retained historical18f diagnosis/STOP or bounded current-schema/local proof; no successor CI credit"
+    },
+    "pr614-18f-z04-finite-source-preservation.json": {
+      "bytes": 906,
+      "sha256": "1cc050e511fec1c2655aeb4bfc28e7b90162d14dd60ae297723104a79ab8735d",
+      "scope": "Exact retained historical18f diagnosis/STOP or bounded current-schema/local proof; no successor CI credit"
+    }
+  },
+  "allowed_changed_paths": [
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-actual-reception-actor-authority-diagnostic.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-actual-reception-functions.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-authentic-clean-native-terminal-diagnosis.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-reception-actor-authority-diagnostic.cjs.txt",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-residual-peer-local-source-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-terminal-disposition-stop-20261006051919.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-z04-finite-source-preservation.json",
+    "scripts/ediel-outbound-ack-replay-native.test.ts",
+    "scripts/ediel-utilts-err-gateway-native.test.ts",
+    "scripts/ediel-z04-ack-native.test.ts",
+    "scripts/helpers/originalMailboxNative.ts"
+  ],
+  "previous_foreign_mode_type_blob_exact_count": 9179,
+  "all_other352_rows_SQL1079_rawcapture_workflow_package_production_consumer_exact": true
+}

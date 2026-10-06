@@ -12,6 +12,7 @@ import {enqueue} from '@/lib/customer-operations/automation.part-1'
 import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
 import {createSupplierSwitchEvent} from '@/lib/operations/db'
 import {literal,sql,raw,project,seed,seedCorrectionSource} from './helpers/correctionContextNative'
+import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
 import {publishSyntheticRecipientTrust} from './helpers/syntheticCertificateTrust'
 import type {SupabaseClient} from '@supabase/supabase-js'
@@ -648,6 +649,7 @@ async function nativeTechnicalAck(){
   .replace(/\+I(\+\+23-DDQ-PRODAT)/,`+X${sourceId.replaceAll('-','').slice(0,12)}$1`).replace(/UNZ\+1\+I'/,`UNZ+1+X${sourceId.replaceAll('-','').slice(0,12)}'`)
  const wire=utiltsNativeSourceFixture(incoming,sourceId).raw
  const {assertEdielSmtpReadiness}=await import('@/lib/ediel/mailReadiness'),smtp=assertEdielSmtpReadiness()
+ const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key IN('communication.write','communication.read') ON CONFLICT DO NOTHING;
  INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
@@ -660,11 +662,12 @@ async function nativeTechnicalAck(){
  -- Pin the enabled C registry profile like seed(): code/date inference sees
  -- L, LK, C and H as Z05 candidates and cannot choose from parsed facts.
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,
-  message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
   SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},'{}',clock_timestamp(),
-   '23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+   '23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
   WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
+ await recordOriginalMailboxNativeReception({...mail,companyId:f.companyId,sourceMessageId:sourceId,actorUserId:f.actorUserId})
  const {getEdielMessageById}=await import('@/lib/ediel/db')
  const {resolveCanonicalRuntimeDecisionWithRegistry}=await import('@/lib/ediel/core/runtimeDecision')
  const {recordEdielTechnicalSyntaxDecision,captureEdielTechnicalSyntaxAckEvidence}=await import('@/lib/ediel/ack/technicalSyntaxAuthority')

@@ -127,7 +127,7 @@ function definition(kind: 'TABLE' | 'FUNCTION' | 'TYPE', name: string) {
 }
 const knownWire = ownerSource().raw_payload!
 const unknownLegalWire = knownWire.replace('NAD+DO+54321:160:SVK', 'NAD+DO+98765:160:SVK')
-const actor = ownerId(50), mailboxId = ownerId(800)
+const actor = ownerId(50), receivingActor = ownerId(51), mailboxId = ownerId(800)
 const routeId = ownerId(810), profileId = ownerId(811)
 const guideMigration = 'supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql'
 const guideSql = readFileSync(guideMigration, 'utf8')
@@ -162,16 +162,28 @@ async function endpoint(sourceId: string, actorId = actor) {
     return (await port.db!.query<{ value: Row | null }>('select public.ediel_read_technical_source_endpoint_v2($1,$2,$3) value', [sourceId, actorId, 'prepare'])).rows[0].value
   } finally { await port.db!.exec('reset role') }
 }
-async function admitKnownSource() {
+async function admitKnownSource({ reception = false } = {}) {
   const parsed = parseEdifactPayload(knownWire)!
-  return (await port.db!.query<Row>(`insert into ediel_messages(id,company_id,direction,message_standard,message_family,message_code,environment,raw_payload,message_received_at) values($1,$2,'inbound','edifact','PRODAT',$3,'production',$4,'2026-10-05T00:00:00Z') returning *`, [OWNER.source, OWNER.company, parsed.messageCode, knownWire])).rows[0]
+  const db = port.db!
+  // A known-company route now needs a real original reception. Its receive
+  // actor is separate from the unchanged WRITE-only preparation actor.
+  const mail = reception ? (await db.query<Row>(`insert into inbound_email_messages(company_id,mailbox_id,environment,received_at,raw_email,raw_edifact_payload) values($1,$2,'production','2026-10-05T00:00:00Z',$3,$4) returning *`, [OWNER.company, mailboxId, mime(knownWire), knownWire])).rows[0] : null
+  const source = (await db.query<Row>(`insert into ediel_messages(id,company_id,direction,message_standard,message_family,message_code,environment,raw_payload,message_received_at,mailbox_message_id,inbound_email_message_id,sender_ediel_id,receiver_ediel_id,interchange_reference,application_reference) values($1,$2,'inbound','edifact','PRODAT',$3,'production',$4,'2026-10-05T00:00:00Z',$5,$6,$7,$8,$9,$10) returning *`, [OWNER.source, OWNER.company, parsed.messageCode, knownWire, mail?.id ?? null, mail?.id ?? null, reception ? parsed.senderEdielId : null, reception ? parsed.receiverEdielId : null, reception ? parsed.interchangeReference : null, reception ? parsed.applicationReference : null])).rows[0]
+  if (mail) {
+    const parse = (await db.query<Row>(`insert into inbound_ediel_parse_results(inbound_email_message_id,company_id,message_family,message_code,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,interchange_reference,application_reference,raw_payload) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning *`, [mail.id, OWNER.company, parsed.messageFamily, parsed.messageCode, parsed.senderEdielId, parsed.receiverEdielId, parsed.senderSubAddress, parsed.receiverSubAddress, parsed.interchangeReference, parsed.applicationReference, knownWire])).rows[0]
+    await db.query('insert into user_profiles(id) values($1)', [receivingActor])
+    await db.query("insert into company_memberships(company_id,user_id,accepted_at) values($1,$2,'2026-01-01T00:00:00Z')", [OWNER.company, receivingActor])
+    const receipt = await asService(async () => (await db.query<{ value: Row }>('select public.ediel_record_inbound_reception_v1($1,$2,$3,$4,$5) value', [OWNER.company, source.id, receivingActor, mail.id, parse.id])).rows[0].value)
+    expect(receipt).toMatchObject({ classification: 'first_reception', businessEffectAuthorized: false })
+  }
+  return source
 }
 async function asService<T>(work: () => Promise<T>) {
   try { await port.db!.exec('set role service_role'); return await work() }
   finally { await port.db!.exec('reset role') }
 }
 async function captureKnownSyntax() {
-  const source = await admitKnownSource()
+  const source = await admitKnownSource({ reception: true })
   const syntax = validateEdifactSyntax({ ...ownerSource(), environment: 'production', test_flag: 0 })
   expect(syntax).toMatchObject({ ok: true, grammarQualification: 'qualified' })
   const facts = JSON.stringify({ version: 1, owner: 'canonical-runtime-syntax-v1', syntaxDecision: syntax.ok ? 'accepted' : 'rejected', reasonCodes: syntax.issues.filter(issue => issue.severity === 'error').map(issue => issue.code) })
@@ -204,6 +216,14 @@ async function installUnattributedTechnicalIntake() {
   }
   if (!intakeMigrationSql.trim()) throw Error('Forward technical intake migration is not implemented')
   await db.exec(intakeMigrationSql)
+  // Current IMP05 custody is prospective: install its actual capture function
+  // and triggers after intake, without scanning or attesting older raw mail.
+  for (const match of schema.matchAll(/ALTER TABLE ONLY gridex_ediel_inbound_receptions\.technical_mailbox_births\n[\s\S]*?;/g)) await db.exec(match[0])
+  for (const match of schema.matchAll(/ALTER TABLE (?:ONLY )?gridex_ediel_inbound_receptions\.technical_mailbox_births (?:ENABLE|FORCE) ROW LEVEL SECURITY;/g)) await db.exec(match[0])
+  await db.exec(definition('FUNCTION', 'gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1('))
+  for (const match of schema.matchAll(/CREATE TRIGGER [^\n]+ ON (?:gridex_ediel_inbound_receptions\.technical_mailbox_births|gridex_unattributed_intake\.raw_births) [^\n]+;/g)) {
+    if (match[0].includes('gridex_ediel_inbound_receptions.')) await db.exec(match[0])
+  }
 }
 async function installCurrentAtomicCustody() {
   const db = port.db!
@@ -261,15 +281,20 @@ beforeEach(async () => {
   }
   const db = new PGlite(); port.db = db
   for (const [key, value] of Object.entries({ EDIEL_EMAIL_PROVIDER: 'strato', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'configured@example.invalid', EDIEL_SMTP_HOST: 'smtp.example.invalid', EDIEL_SMTP_PORT: '465', EDIEL_SMTP_USER: 'finite-account', EDIEL_SMTP_PASS: 'synthetic-not-a-credential' })) vi.stubEnv(key, value)
-  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide;
+  await db.exec(`create role service_role; create role anon; create role authenticated; create schema extensions; create schema gridex_utilts_binding; create schema gridex_ediel_technical_ack; create schema gridex_ediel_retention; create schema gridex_negative_fixtures; create schema gridex_received_sources; create schema gridex_ediel_ack_guide; create schema gridex_ediel_inbound_receptions;
     -- PGlite crypto port: same PostgreSQL sha256 bytes, not an admission verdict.
     create function extensions.digest(bytea,text) returns bytea language sql immutable as 'select sha256($1)';
     -- Declared finite native permission service. Real current actor/profile/
     -- membership checks below remain the actual production function.
-    create function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as $$select $1='${actor}'::uuid and $2='${OWNER.company}'::uuid and $3='communication.write'$$;`)
+    create function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as $$select $2='${OWNER.company}'::uuid and (($1='${actor}'::uuid and $3='communication.write') or ($1='${receivingActor}'::uuid and $3='communication.send'))$$;`)
   for (const name of ['public.gridex_normalize_org_number(', 'public.gridex_new_external_tenant_reference(']) await db.exec(definition('FUNCTION', name))
   await db.exec(definition('TYPE', 'public.ediel_environment_type AS ENUM ('))
   for (const table of tables) await db.exec(definition('TABLE', `public.${table} (`))
+  // Real rowtypes required by the current configured-route owner, followed by
+  // the real ordinary-reception owner used only for known-company fixtures.
+  for (const table of ['receptions', 'response_requests', 'technical_mailbox_births']) await db.exec(definition('TABLE', `gridex_ediel_inbound_receptions.${table} (`))
+  for (const match of schema.matchAll(/ALTER TABLE ONLY gridex_ediel_inbound_receptions\.receptions\n[\s\S]*?;/g)) if (/ADD CONSTRAINT .* (PRIMARY KEY|UNIQUE) \(/.test(match[0])) await db.exec(match[0])
+  for (const name of ['gridex_ediel_inbound_receptions.authorize_v1(', 'gridex_ediel_inbound_receptions.result_v1(', 'public.ediel_record_inbound_reception_v1(']) await db.exec(definition('FUNCTION', name))
   const outboxIndexStart = schema.indexOf('CREATE UNIQUE INDEX ediel_outbox_lock_key_uidx ')
   if (outboxIndexStart < 0) throw Error('Missing actual outbox lock key index')
   await db.exec(schema.slice(outboxIndexStart, schema.indexOf(';', outboxIndexStart) + 1))
@@ -407,7 +432,9 @@ describe('SC014 actual intake/admission qualification', () => {
     await expect(configuredRoute()).rejects.toMatchObject({ message: 'ediel_technical_ack_route_count:2' })
     await port.db!.query('delete from ediel_route_profiles where id=$1', [ownerId(812)])
     const smtp = assertEdielSmtpReadiness()
-    for (const changed of [{ ...smtp, from: 'old@example.invalid' }, { ...smtp, host: 'old.example.invalid' }, { ...smtp, port: 25 }]) await expect(configuredRoute(actor, changed)).rejects.toMatchObject({ message: 'ediel_technical_ack_route_count:0' })
+    // Current original-mailbox custody rejects changed FROM before route lookup.
+    await expect(configuredRoute(actor, { ...smtp, from: 'old@example.invalid' })).rejects.toMatchObject({ message: 'ediel_original_mailbox_smtp_custody_required', code: 'P0001' })
+    for (const changed of [{ ...smtp, host: 'old.example.invalid' }, { ...smtp, port: 25 }]) await expect(configuredRoute(actor, changed)).rejects.toMatchObject({ message: 'ediel_technical_ack_route_count:0' })
     await expect(configuredRoute(ownerId(999))).rejects.toMatchObject({ message: 'ediel_negative_fixture_actor_not_authorized', code: '42501' })
     expect(await configuredRoute()).toMatchObject({ kind: 'technical_syntax_ack_route' })
   })

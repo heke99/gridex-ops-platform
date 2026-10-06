@@ -1,0 +1,72 @@
+{
+  "scope": "Finite source-only successor guard before commit, not current CI/main",
+  "parent": "20819a562321b23d5af07d2d8ebf84a5c2633d53",
+  "actual_main_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "staged_tree_before_this_guard_metadata": "74744df7abec5ef367cd795cf978eb3a6bc88b4b",
+  "allowed_paths": [
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-authentic-clean-native-terminal-diagnosis.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixture-independent-peer-and-root-checks.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixtures-guardian-final.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-first-genuine-clean-certificate-terminal-failures-20261006-0311.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-terminal-observer-lease-stop-seal-20261006032941.json",
+    "scripts/ediel-ack-first-reception-native.test.ts",
+    "scripts/ediel-correction-context-native.test.ts",
+    "scripts/ediel-inbound-reception-actual-columns-native.test.ts",
+    "scripts/ediel-outbound-ack-replay-native.test.ts",
+    "scripts/ediel-prodat-mixed-native.test.ts",
+    "scripts/ediel-utilts-err-gateway-native.test.ts",
+    "scripts/ediel-utilts-s02-required-native.test.ts",
+    "scripts/ediel-z04-ack-native.test.ts",
+    "scripts/helpers/originalMailboxNative.ts",
+    "scripts/helpers/utiltsConsumptionParties.ts"
+  ],
+  "necessary_fixture_paths": [
+    "scripts/ediel-ack-first-reception-native.test.ts",
+    "scripts/ediel-correction-context-native.test.ts",
+    "scripts/ediel-inbound-reception-actual-columns-native.test.ts",
+    "scripts/ediel-outbound-ack-replay-native.test.ts",
+    "scripts/ediel-prodat-mixed-native.test.ts",
+    "scripts/ediel-utilts-err-gateway-native.test.ts",
+    "scripts/ediel-utilts-s02-required-native.test.ts",
+    "scripts/ediel-z04-ack-native.test.ts",
+    "scripts/helpers/originalMailboxNative.ts",
+    "scripts/helpers/utiltsConsumptionParties.ts"
+  ],
+  "adopted_exact_receipts": {
+    "pr614-20819-existing-native-fixtures-guardian-final.json": {
+      "bytes": 13490,
+      "sha256": "add2d2ee12e15eb753c07b698deb9507d62daa614a2f0fc09b9e40cb01701a92",
+      "custody": "exact original released diagnostic or terminal/STOP seal; historical20819 only"
+    },
+    "pr614-20819-authentic-clean-native-terminal-diagnosis.json": {
+      "bytes": 233978,
+      "sha256": "327e3b755500ee347da9eaa7a65a8066ff959a69e0e5b3e098656ac6dea9cb4f",
+      "custody": "exact original released diagnostic or terminal/STOP seal; historical20819 only"
+    },
+    "pr614-20819-first-genuine-clean-certificate-terminal-failures-20261006-0311.json": {
+      "bytes": 17561,
+      "sha256": "5618a6ec6bd162d5a2ab83b044fe4381fb6c28297d42f4f3b6d9ebabff5dc8bb",
+      "custody": "exact original released diagnostic or terminal/STOP seal; historical20819 only"
+    },
+    "pr614-20819-terminal-observer-lease-stop-seal-20261006032941.json": {
+      "bytes": 18577,
+      "sha256": "734ac6fad107b6b6fe90df0d62e02d9040af49d1afe7ce20d9089c6634c50040",
+      "custody": "exact original released diagnostic or terminal/STOP seal; historical20819 only"
+    },
+    "pr614-20819-existing-native-fixture-independent-peer-and-root-checks.json": {
+      "bytes": 3032,
+      "sha256": "1f12a95a3e375014cc1bc19f06caa3e335fa7ad4cccf355f1e2279718efc0d47"
+    }
+  },
+  "all_prior_foreign_mode_type_blob_exact_count": 9145,
+  "whole_staged_path_count": 9161,
+  "all_prior_SQL_generator_raw3_workflow_package_production_consumer_coverage_exact": true,
+  "SQL_count": 1079,
+  "whole352_coverage_and347_foreign_rows_exact_to20819": true,
+  "historical160_DOC_exact_except_only_own_authorized_append": true,
+  "all44_prior_actual_markers_preserved_no_premature_ACTUAL614": true,
+  "postcommit_whole_source_and_public_identity_guard": "REQUIRED_SEPARATELY",
+  "resulting_head_native_and_ALL12_qualification": "PENDING",
+  "ownership": "ROOT sole publisher/terminal custodian/normal merger; same sole observer, original final DOC owner retained"
+}

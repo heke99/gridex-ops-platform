@@ -1,0 +1,50 @@
+{
+  "status": "COMPOSED_SOURCE_CAPTURE_PENDING",
+  "created_at_utc": "2026-10-05T18:51:33.834498+00:00",
+  "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
+  "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "common_baseline": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+  "staff_and_fixture_source_sha256": {
+    "__tests__/staff-identity-version-conflict-sql.test.ts": "79cf8e3635d87bf2da7dc37cc1b6b12fb42f6b35913b3154680e3c3792b41a4e",
+    "__tests__/staff-invitation-domain-columns.test.ts": "ba42489d917099aa1a9c0601a9739b2d78d5bb12150d2a9f26b2a7ab4c2813b8",
+    "__tests__/staff-user-role-id-nullability.test.ts": "02440f7a0714f8f641660020c24a729728651fd2af2b9ce6c24606b576b7a9f2",
+    "__tests__/fixtures/staff-captured-identity-authority.ts": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296",
+    "lib/customer-service/supportConversation.ts": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+    "__tests__/support-detail-openapi-schema.test.ts": "82916af528bc1bc24c157dad81e31d2aa632f440b2080a6d84f68cd4d2663e37",
+    "scripts/staff-external-identity-binding-regression.sql": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+    "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d",
+    "__tests__/staff-external-identity-classification-sql.test.ts": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d",
+    "scripts/ediel-utilts-consumption-native.test.ts": "c689f3db90e7840217b51dcdc5b31a88bb71410e22a6ba5fd99a60ca69d78df8",
+    "scripts/helpers/utiltsConsumptionBoundParties.ts": "25a568f64005a4f912d45ea74ba5e59199cb89c1b923278ded1d6b569fbbcfbd",
+    "__tests__/utilts-native-bound-parties.test.ts": "93da672fe78125de283e456e754829a4b1f634abbaa5116ad062330737b85e29"
+  },
+  "main_added_migrations_sha256": {
+    "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql": "35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1",
+    "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql": "888d1c2dc890647e69105a3077b0b6b902f27a1afea09e03c74987c275e756e4",
+    "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql": "61beb70a0b8b4837d0356dfe86c2c1a9a4798f74dc549b0292af63f79cde2cb8",
+    "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql": "ed925604abf81ebab51a778797ce040a290c8d05aefcd23a156e4004eb765f6b",
+    "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql": "2fa019efcbf3df9f687595ce057ab2e58f4427b424611c0943006f13811766ad",
+    "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+    "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+  },
+  "raw3_sha256": {
+    "supabase/database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "supabase/schema.sql": "3b962356454ec5abd66f1bd155c7076f1d52522d27060c0d5d43c424b2d14f30",
+    "supabase/schema.fingerprint.json": "4ab388cd791565a5a4a415f394b7f8bc9fb53c3a19dadaf3ccdc805446d75f48"
+  },
+  "previous_complete_manifest_sha256": "335ea10c88b0deb36c84aa1a4c742a1ac06d04d02ba23659b9e414a82c1ef67e",
+  "main_complete_manifest_sha256": "ddb732ce39dfe3e7f90c26e6fbdd03e1e02697bda223c7ce92284a188be2b7bd",
+  "raw3_scope": "Authentic dc2/a315 baseline retained pending composed producer; no synthetic merged generated output imported.",
+  "hosted_writes": 0,
+  "limits": [
+    "Local composition is not final CI acceptance.",
+    "Historical dc2 and main capture/native/CI retain exact original source scopes."
+  ],
+  "comparison_only_auto_merged_tree": "301708b85b15aeabf0c04e44e782e0acee6800ee",
+  "comparison_only_expected_raw2_sha256": {
+    "database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+    "schema.sql": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd"
+  },
+  "comparison_only_scope": "Auto-merged Git bytes may be compared with fresh authentic producer output. They have NOT been imported as generated snapshot or used as native acceptance."
+}

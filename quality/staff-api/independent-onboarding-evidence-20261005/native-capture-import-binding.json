@@ -1,0 +1,83 @@
+{
+  "status": "PASS_AUTHENTIC_CAPTURE_BINDING_ONLY",
+  "source_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
+  "source_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
+  "workflow_run": 37299065849,
+  "artifact_id": 11341610088,
+  "zip_sha256": "750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
+  "artifact_sha256": {
+    "database.types.ts": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+    "schema.sql": "e891f1e8cca13860f060251c41d333430233cfe3ab7192d576c7ab9ce0c2922f",
+    "schema.fingerprint.json": "969b0b3f9738cb4846478acba85594c5cb4d3baddd10030c6c8933032d539f16"
+  },
+  "schema_fingerprint": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+  "schema_sections": {
+    "columns": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "constraints": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "enums": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "extensions": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "function_grants": {
+      "changed": true,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "functions": {
+      "changed": true,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "indexes": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "policies": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "relation_grants": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "relations": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "schema_grants": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "schemas": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    },
+    "triggers": {
+      "changed": false,
+      "before_type": "dict",
+      "after_type": "dict"
+    }
+  },
+  "native_tests": "NOT_RUN",
+  "production_writes": 0
+}

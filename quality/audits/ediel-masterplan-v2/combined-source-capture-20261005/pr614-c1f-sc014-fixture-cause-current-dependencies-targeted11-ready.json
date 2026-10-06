@@ -1,0 +1,165 @@
+{
+  "schema": "gridex-pr614-c1f-sc014-faithful-selected-SQL-fixture-integration-fix/v1",
+  "verdict": "FIXTURE_READY_TARGETED11_PASS_LINT_PASS_ROOT_CROSS_REVIEW_AND_NEW_HEAD_GATES_PENDING",
+  "recorded_at_utc": "2026-10-06T01:20:45.205241+00:00",
+  "author": "/root/pr612_five_component_publication_guard",
+  "source_head": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+  "source_tree": "12362cb677a33e43c09fc36f9e1a24e98f5811f5",
+  "owned_path": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+  "original": {
+    "bytes": 54615,
+    "sha256": "ff81c945d776b5d6c3a2654ddacb012fd23b7c029602940e19cae803f78412d5",
+    "git_blob": "7508a8a91e721751b9b72dbe5a76d373b1de505c"
+  },
+  "pending": {
+    "bytes": 58650,
+    "sha256": "5a20cd0feec360fec1b1ad01d4881b8e738366ce0698886ac71e48e57a56a86d"
+  },
+  "minimal_diff": {
+    "path": "/workspace/agent-review-checkpoints/pr614-c1f-sc014-current-reception-dependency-fixture-fix.patch",
+    "bytes": 10603,
+    "sha256": "c1b4511c248a5dca98a318813cb1fdf964d16fc7e0c18418db1318ac75a0bd14",
+    "insertions": 34,
+    "deletions": 7
+  },
+  "diagnosed_cause": "Current post-IMP05 configured-route SQL declares real reception/SMTP-birth rowtypes missing from the selected component. Older known-source fixture also lacked actual physical mailbox reception and sender/receiver/application/interchange fields required by the current owner; prospective protected SMTP-birth capture was not installed.",
+  "faithful_fixture_fix": {
+    "current_schema_dependencies": [
+      {
+        "kind": "TABLE",
+        "name": "gridex_ediel_inbound_receptions.receptions (",
+        "bytes": 916,
+        "sha256": "8b8667ccf84bd548597d48d2cff3764dd69c80afbde5c22946c0a47a7d552a9a",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "TABLE",
+        "name": "gridex_ediel_inbound_receptions.response_requests (",
+        "bytes": 642,
+        "sha256": "80c15aaf364a652b221c8750d1344185ce8a3bd14e67325e124d5cf80d44da66",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "TABLE",
+        "name": "gridex_ediel_inbound_receptions.technical_mailbox_births (",
+        "bytes": 758,
+        "sha256": "4b29751aa50fe533ea7739263b58731a1015efac99154b7e91dad8f9cde03896",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "FUNCTION",
+        "name": "gridex_ediel_inbound_receptions.authorize_v1(",
+        "bytes": 1196,
+        "sha256": "6f22531c6906cd3c2eeea2896b55e9c49f50dc0ac34e0ee94a6a523e03dfd194",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "FUNCTION",
+        "name": "gridex_ediel_inbound_receptions.result_v1(",
+        "bytes": 820,
+        "sha256": "7570c3dcab0a3d5a9a1c0804c4e09bb0f4b4d408add5842026b41764b0152721",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "FUNCTION",
+        "name": "public.ediel_record_inbound_reception_v1(",
+        "bytes": 6612,
+        "sha256": "4ed01456f6cd9b49d4eb1b4343e39e4b70d43343b870b06a5cadb7ba41f80586",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "FUNCTION",
+        "name": "gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1(",
+        "bytes": 1476,
+        "sha256": "d6ceb408c0f97ce3351addcfa4918477bdebd2bdfc84cf3d65f3e989d7f8b6d7",
+        "origin": "actual current captured schema; no body substitution"
+      },
+      {
+        "kind": "FUNCTION",
+        "name": "gridex_ediel_technical_ack.select_configured_reply_route_v2(",
+        "bytes": 11269,
+        "sha256": "cb7b88e41b7c01ea94fae082578afc369548814e9432f1424ce6f2582c3bb095",
+        "origin": "actual current captured schema; no body substitution"
+      }
+    ],
+    "prospective_SMTP_custody": "Load actual captured technical-mailbox constraints, RLS settings, invoker capture function and exact three triggers after the real intake migration. No scan, historical attestation, dummy private table or source substitution.",
+    "known_source": "Retained known MIME and real parsed physical fields feed actual current ordinary reception function. A distinct fixture receive actor receives SEND permission for reception only; original preparation actor remains WRITE-only with SEND=false and all current actor/membership/endpoint checks intact.",
+    "existing_all11_semantic_controls": "JWT/service contradictory claims, unknown legal attribution/no backfill, real atomic ownership/custody, legacy source, WRITE-only preparation and READ COMMITTED remain fully asserting. Every original test body byte-exact except one authorized precise FROM diagnostic split.",
+    "no_portable_precursor_used_or_edited": true
+  },
+  "single_authorized_diagnostic_disposition": {
+    "root_explicit_ACK": "Original owner selector raises stronger custody error before route lookup; preserve semantic controls, correct obsolete literal diagnostic only",
+    "FROM": "Exact ediel_original_mailbox_smtp_custody_required + P0001 assertion, same old FROM mutation",
+    "HOST_PORT": "Both old mutations and exact ediel_technical_ack_route_count:0 assertions retained",
+    "final_valid_positive_control": "Unchanged",
+    "all_other_test_assertions": "Byte exact original c1f"
+  },
+  "verification": {
+    "Node": "Existing supported Node22.23.3 and matching root-verified ignored dependency symlink",
+    "targeted_command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-sc-014-unattributed-reception.test.ts --maxWorkers=1 --no-file-parallelism --testTimeout=20000",
+    "actual_local_results": [
+      {
+        "stage": "baseline",
+        "tests": 11,
+        "passed": 0,
+        "failed": 11,
+        "skipped": 0,
+        "exit_code": 1,
+        "log_path": "/tmp/pr614-c1f-sc014-before.log",
+        "log_bytes": 5055,
+        "log_sha256": "62013e449a8af5dd5e93c30f1f528d3a300df44a4cfada6f1b610a016de05b69"
+      },
+      {
+        "stage": "current_dependencies",
+        "tests": 11,
+        "passed": 8,
+        "failed": 3,
+        "skipped": 0,
+        "exit_code": 1,
+        "log_path": "/tmp/pr614-c1f-sc014-dependencies.log",
+        "log_bytes": 2404,
+        "log_sha256": "e46b78b7df6f1c2f5660701655775b246ca35ff93b928a272bb5f17bde9311b3"
+      },
+      {
+        "stage": "physical_scope_correction",
+        "tests": 11,
+        "passed": 10,
+        "failed": 1,
+        "skipped": 0,
+        "exit_code": 1,
+        "log_path": "/tmp/pr614-c1f-sc014-physical-fields.log",
+        "log_bytes": 2362,
+        "log_sha256": "ee4c70b46fa3ac8c7a10a0454c3133e4eafd2fa5bebb067d0b5e1e1b86bdd551"
+      },
+      {
+        "stage": "final",
+        "tests": 11,
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "log_path": "/tmp/pr614-c1f-sc014-after.log",
+        "log_bytes": 230,
+        "log_sha256": "08abe0ecc0a53540144aaf14637b320c114fac61d61d731e7913e202796d465d"
+      }
+    ],
+    "eslint": {
+      "command": "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node node_modules/eslint/bin/eslint.js __tests__/ediel-sc-014-unattributed-reception.test.ts",
+      "exit_code": 0,
+      "stdout_stderr_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "git_diff_check_exit": 0,
+    "execution_scope": "Only this existing11-case selected PGlite/finite DB/MIME/permission suite and one-file lint; narrow additional permission for sandbox child stdin, no actual network/GitHub/native/CI/artifact/capture execution"
+  },
+  "preservation": {
+    "only_tracked_modified_path": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+    "all_SQL1079_generators_raw3_production_functions_consumer_workflows_and_coverage_authority": "No tracked changes outside this one test; root metadata additions separate",
+    "current_raw_schema_sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+    "portable_IMP_precursor_sha256": "f93db246832064c4b6355f9b75daab825f06e341bc3a3bb9622832e2e6cc449c",
+    "commit_push_merge_ref_index_changes": "NONE"
+  },
+  "skill_routing": "Existing systematic-debugging, failing regression before fix, differential source preservation and fresh verification-before-completion. No new rule/product/schema/native/full-audit/permission claim.",
+  "blocking_source_findings": [],
+  "next": "Root cross-reviews frozen one-file diff and records this actual result publicly. Root owns its warranted one ordinary full suite, existing CI lease stop/publication, any genuine actual-main carry, and actual successor mandatory CI/native/type-schema/upgrade/parity. No full Masterplan/main/native approval inferred."
+}

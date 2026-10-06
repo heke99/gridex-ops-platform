@@ -1,0 +1,133 @@
+{
+  "status": "PASS_READ_ONLY_SOURCE_BOUNDARIES_WITH_DOCUMENTATION_CORRECTIONS_AND_TEST_GAPS",
+  "recorded_at_utc": "2026-10-05T13:06:30.418342+00:00",
+  "scope": "Corrected tenant Auth/delivery versus central OPS company/data/RBAC client/session boundary; no source qualification or live acceptance implied.",
+  "repository": "/workspace/gridex-support123-web",
+  "base_head": "54b406d82ddb7a26a3bdc510a7fd4b460c4a0cfe",
+  "base_tree": "95b3758e55f5a5aa3a95667e7438111f12d49139",
+  "source_uncommitted": true,
+  "reviewed_files": [
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/config.ts",
+      "sha256": "e34354ac898c21372322a518bbfc341946129f2e08a548db8e1f41a2a3cc44ac",
+      "bytes": 2521
+    },
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/assertion.ts",
+      "sha256": "6af791ff3236970480b9a1d9abc5a70d6bf1af6aee01a3e71ad410a16fa491af",
+      "bytes": 2677
+    },
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/client.ts",
+      "sha256": "bc83c2ebe5ce21ada20366e9182acda68c30596933456c90d0d42ea6f3d3518a",
+      "bytes": 14730
+    },
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/identity.ts",
+      "sha256": "0bc3cfdc6510a349a16a053f879f65aa47327bde0ecfd8ba46d9360a48e1330f",
+      "bytes": 5441
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/lib/session.ts",
+      "sha256": "d8c394a1e6f509684d3dc331d1079a2e909edaa0b5e7f510f9ecd3fdf186ca6d",
+      "bytes": 6470
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/fixtures/support-runtime.mjs",
+      "sha256": "98571111e2536233a83b91ef73155638f12fb77a0aa708f56bb3b529a24a617e",
+      "bytes": 24307
+    }
+  ],
+  "tracked_scope_diff_sha256": "22af4a2aa00bc5363036a232074a65e516a24b3195e598a2298ab4a28e238f1c",
+  "tracked_scope_diff_bytes": 23148,
+  "untracked_identity_included_via_individual_sha256": true,
+  "test_sources_read": [
+    {
+      "path": "/workspace/gridex-support123-web/tests/staff-api-client.test.mjs",
+      "sha256": "e7cad3c13ca56482901fc5d7914d6239df8b96f2c7a6b276c31816a6cdd8b3c0",
+      "bytes": 27917
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-auth-session.test.mjs",
+      "sha256": "ea73ebc86112b31e0770055235f79974338254fb281cbd1abfead6bd77b1b4bb",
+      "bytes": 13137
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-actions.test.mjs",
+      "sha256": "753a29984d5e52b5b3d4424f03e96eb1bbc33de10cd4a62a4820229235beab0d",
+      "bytes": 23720
+    }
+  ],
+  "execution": {
+    "tests_run": false,
+    "helper_run": false,
+    "http_or_sql_calls": false,
+    "hosted_catalog_repeated": false,
+    "private_state_or_env_read": false,
+    "repo_files_changed": false
+  },
+  "verified_from_source": [
+    "Tenant Auth fixed to ayiuxjlfazkjmmtlvhsl; API project attestation separately uses required server-only GRIDEX_STAFF_API_PROJECT_REF. No website key fallback.",
+    "Default session verifies Auth via getUser before bearer transport, resolves a central actor through a fixed OPS endpoint, checks returned local subject matches verified tenant Auth user, and probes central cases.read before returning the API client.",
+    "Normal staff_access proof sub is the central actor, with explicit binding ID/version/local Auth subject/issuer. Local resolution and invitation assertions carry separate token_use values and cannot be selected through a public arbitrary-purpose input.",
+    "Dedicated API key and tenant Auth bearer remain server-only. Tenant bearer is sent only to the fixed identity resolver; normal Staff requests contain signed binding claims, not tenant bearer or cookie.",
+    "Fixed HTTPS endpoints, manual redirects, no-store, bounded response reads, abort deadline, validated closed identity envelope and central project attestation. Errors omit raw upstream messages. No automatic write retry.",
+    "Synthetic fixture uses different local Auth and central actor UUIDs, validates real RSA/JTI/purpose/binding/central attestation, and rejects foreign company/read-only writes. It is an offline model, not hosted binding/RLS/worker evidence."
+  ],
+  "critical_or_important_source_blockers": [],
+  "test_coverage_observed_not_run": [
+    "New client tests prove local/central UUID distinction, both local purposes versus normal staff_access claims, invalid binding inputs, fixed identity transport, unique JTI, incorrect project attestation/contract versions/extra fields/malformed binding, redacted denial/unavailability and redirect rejection.",
+    "Session source test resolves local user 55555555-5555-4555-8555-555555555555 to central actor 11111111-1111-4111-8111-111111111111 and verifies the authorization probe uses the latter.",
+    "Installed SSR test distinguishes verified Auth user from forged cookie subject, but mocks identity resolution. Central live bearer-verification and registered mapping remain outside this web test boundary."
+  ],
+  "actionable_test_gaps": [
+    {
+      "owner": "root web client/session tests",
+      "cases": [
+        "Returned binding.localAuthSubject differs from verified getUser ID: reject before API creation/probe.",
+        "Identity resolver 401/403: access_denied and no API call; 503: propagated service failure.",
+        "Missing getSession bearer, getSession401/403, and transport network failure: no identity resolver/API invocation."
+      ]
+    },
+    {
+      "owner": "root offline fixture/actions tests",
+      "cases": [
+        "Validly signed local-resolution or invitation-purpose proof on normal Staff route is denied.",
+        "Validly signed normal proof with stale/wrong binding ID, version, local subject or issuer is denied before mutation.",
+        "Tenant Auth bearer from another mapped local account paired with signed local subject is rejected by identity resolution."
+      ]
+    }
+  ],
+  "documentation_corrections": [
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/README.md",
+      "correction": "Replace universal gridex-prod data placement, Gridex company-in-tenant-DB requirement, requested API project=tenant ref, missing central schema/22-forward activation prerequisite, central email-delivery claim and old 2026-10-05.1 onboarding version with the actual corrected split and new version; add GRIDEX_STAFF_API_PROJECT_REF. Central OPS company/data/RBAC/client/provider authority stays central. Tenant requires only local Auth and bounded delivery bridge state."
+    },
+    {
+      "path": "/workspace/gridex-support123-web/quality/support123/verification-20261005.md",
+      "correction": "Retain old test/catalog results as source-bound history; do not describe missing central Staff tables/functions in tenant Prod as an activation prerequisite or relabel prior48/15 checks as corrected-split evidence."
+    },
+    {
+      "path": "/workspace/gridex-support123-web/quality/support123/onboarding-verification-20261005.md",
+      "correction": "Update current deployment/contract/delivery boundary after new qualification; preserve its old source/capture/test provenance as history."
+    },
+    {
+      "path": "/workspace/gridex-support123-web/quality/support123/evidence-20261005/manifest.json",
+      "correction": "Preserve authenticated historical bytes and mark old universal-Prod architecture/activation limitations historical in a current wrapper, not current prerequisites."
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/quality/staff-api/gridex-prod-prerequisite-map-20261005.md",
+      "correction": "Mark the central-schema-to-tenant closure plan superseded by the explicit corrected architecture; inventory catalog facts remain true history but none authorize applying the22 central forwards in tenant Prod."
+    },
+    {
+      "path": "/tmp/gridex-staff-review/gridex-prod-onboarding-prerequisite-addendum-20261005.md",
+      "correction": "Mark old23rd-forward tenant installation plan superseded; preserve source/catalog facts as history, not the current activation plan."
+    }
+  ],
+  "limits": [
+    "Working source may continue changing: this review binds exact individual file hashes, not a future freeze.",
+    "No central backend/schema/RLS/registered-provider implementation or tenant delivery bridge reviewed here.",
+    "No production keys, provider/client configuration, delivery email, persistent data or domain changes inspected or authorized by this review.",
+    "New test gaps are source-read findings, not a claim of failing tests."
+  ]
+}

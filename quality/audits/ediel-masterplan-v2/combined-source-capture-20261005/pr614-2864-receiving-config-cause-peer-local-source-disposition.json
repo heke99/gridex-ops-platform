@@ -1,0 +1,90 @@
+{
+  "scope": "Necessary confirmed receiving-only configuration fixture correction; no new Masterplan rule or production change",
+  "recorded_at_utc": "2026-10-06T04:10:09.216139+00:00",
+  "parent": "2864fd53320e97f6d466746ea986d72f6de358b0",
+  "public_claim_PR614": 6009124285,
+  "source_path": "scripts/helpers/utiltsConsumptionParties.ts",
+  "original_sha256": "47839f83ebf381e8cb1b975d30bd433f498f9b7efb28421ef071bcc0395be999",
+  "candidate_sha256": "26fc9da079fb02ab417aa05df30710f1600f6d6de5a7dd1ce315991d212aed75",
+  "original_guardian_read_only_confirmation": "/root/pr612_five_component_publication_guard confirmed introduced send readiness before inbound SQL, consumption four cases configure no SMTP while TR05 configures sender",
+  "independent_peer": {
+    "agent": "/root/existing_native_reception_custody_diagnosis",
+    "verdict": "APPROVE_EXACT_TWO_REPLACEMENTS",
+    "original_bytes": 12234,
+    "candidate_bytes": 12260,
+    "all_other_helper_bytes_exact": true,
+    "callers_actors_source_parse_assertions_unchanged": true,
+    "TR05_configured_sender_retained": true,
+    "actual_production_send_readiness_unchanged": true,
+    "no_peer_test_native_CI_API_or_edit": true
+  },
+  "executed_local_diagnostic": {
+    "scope": "Actual original SMTP config module and exact receiveUtiltsRetry function body, dependency-isolated local SQL spy only; no DB/native/CI or case-approval claim",
+    "recorded_at_utc": "2026-10-06T04:07:51.447Z",
+    "parent": "2864fd53320e97f6d466746ea986d72f6de358b0",
+    "node": "v22.23.3",
+    "helper_path": "scripts/helpers/utiltsConsumptionParties.ts",
+    "original_sha256": "47839f83ebf381e8cb1b975d30bd433f498f9b7efb28421ef071bcc0395be999",
+    "candidate_sha256": "26fc9da079fb02ab417aa05df30710f1600f6d6de5a7dd1ce315991d212aed75",
+    "production_readiness_sha256": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453",
+    "original_no_SMTP": {
+      "throws_before_SQL": true,
+      "exception": "Ediel SMTP saknar milj\u00f6variabler: EDIEL_SMTP_USER, EDIEL_SMTP_PASS eller EDIEL_SMTP_PASSWORD, EDIEL_SMTP_FROM",
+      "SQL_calls": 0
+    },
+    "corrected_no_SMTP": {
+      "real_helper_returns_two_reception_identities": true,
+      "SQL_calls": 1,
+      "synthetic_inbound_mailbox_address": true
+    },
+    "configured_inbound_sender_trimmed_and_preserved_without_send_password": true,
+    "original_configured_FROM_still_requires_send_password_before_SQL": true,
+    "configured_TR05_original_and_candidate_sender_identical": true,
+    "unchanged_actual_production_readiness_still_rejects_missing_send_credentials": true,
+    "exact_candidate_two_replacements": true,
+    "verdict": "PASS_BOUNDED_RECEIVING_CONFIG_REGRESSION_ONLY"
+  },
+  "actual_candidate_lint_exit": 0,
+  "actual_diff_check_exit": 0,
+  "original_guardian_variant_review": "Only new full readiness call was in receiveUtiltsRetry; correction/mixed/S02/Z04 existing calls follow existing synthetic config, ERR and atomic helpers pass explicit addresses; no other introduced configuration dependency",
+  "source_successor_reason": "Confirmed source/control-flow regression and actual bounded reproduction; no fabricated current native RED and no waiting for redundant failure",
+  "historical_observer_stop": {
+    "path": "pr614-2864-historical-superseded-stop-20261006040909.json",
+    "sha256": "90af9363ab556e44a885d9d39b3b506a4d8d0e4c9b06b4ae2f92345931d5f955",
+    "no_workflow_cancel_retry_dispatch": true
+  },
+  "all_parent_passing_results_remain_historical": true,
+  "current_successor_native_ALL12_actual_main": "PENDING_AUTHENTIC_PUBLICATION_AND_CURRENT_ORDINARY_CI",
+  "adopted_exact_receipts": {
+    "pr614-2864-receive-helper-smtp-config-diagnostic.cjs": {
+      "bytes": 5910,
+      "sha256": "b9e8bfdc85d4050f70d20ded0d796b865c6b45fed79ea8eb292016344e6a0f07",
+      "scope": "Immutable actual parent2864 result only; never successor CI/native PASS"
+    },
+    "pr614-2864-receive-helper-smtp-config-diagnostic.json": {
+      "bytes": 1428,
+      "sha256": "4b9d0e53a1374b0e03aab7f133f7c23263fe39fd18ce1056ba4268162e7f8911",
+      "scope": "Immutable actual parent2864 result only; never successor CI/native PASS"
+    },
+    "pr614-2864-historical-superseded-stop-20261006040909.json": {
+      "bytes": 73851,
+      "sha256": "90af9363ab556e44a885d9d39b3b506a4d8d0e4c9b06b4ae2f92345931d5f955",
+      "scope": "Immutable actual parent2864 result only; never successor CI/native PASS"
+    },
+    "pr614-2864-authentic-sc071-ten-case-artifact-root-qualification.json": {
+      "bytes": 11105,
+      "sha256": "d736a361cc0fbbce5634d3255d6d397de1e5b5247dc21e0f27cad96068c5f329",
+      "scope": "Immutable actual parent2864 result only; never successor CI/native PASS"
+    },
+    "pr614-2864-authentic-upgrade-artifact-root-qualification.json": {
+      "bytes": 10757,
+      "sha256": "db0868deb534d89b1279fd67239b626c849b81b05618feded547bf1b44f0179e",
+      "scope": "Immutable actual parent2864 result only; never successor CI/native PASS"
+    },
+    "pr614-2864-authentic-final-optional-capture-skip-guard.json": {
+      "bytes": 1924,
+      "sha256": "a4fb42402366bacdcec107aa827e68a6f7d02bbc6c39e5a88b9ea556eda4a3a0",
+      "scope": "Immutable actual parent2864 result only; never successor CI/native PASS"
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "qualified_base_sha": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "finding": {
+    "scope": "CI finite captured Staff PGlite fixtures",
+    "cause": "Authentic captured write/command guards now call gridex_staff_assert_external_actor_v1, omitted by three historical fixture function lists",
+    "sqlstate": "42883",
+    "missing_signature": "public.gridex_staff_assert_external_actor_v1(uuid,uuid,uuid)",
+    "baseline_main": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+    "not_ediel_failure": true,
+    "not_coverage_ratchet_failure": true
+  },
+  "ci": {
+    "full_e2e": {
+      "run": 37321777115,
+      "job": 111802385652,
+      "failed_files": 3,
+      "failed_tests": 20,
+      "passed_tests": 10738,
+      "ratchet": "SKIPPED",
+      "smoke": "PASS",
+      "pr_certificate": "CONSEQUENT FAIL"
+    },
+    "quality_release_gates": {
+      "run": 37321777130,
+      "job": 111802385712,
+      "same_failed_files": true,
+      "failed_tests": 20,
+      "passed_tests": 10738,
+      "read_method": "Completed job connector logs; only extracted summaries exposed",
+      "raw_log_persisted": false
+    }
+  },
+  "source_hashes": {
+    "__tests__/staff-identity-version-conflict-sql.test.ts": "79cf8e3635d87bf2da7dc37cc1b6b12fb42f6b35913b3154680e3c3792b41a4e",
+    "__tests__/staff-invitation-domain-columns.test.ts": "ba42489d917099aa1a9c0601a9739b2d78d5bb12150d2a9f26b2a7ab4c2813b8",
+    "__tests__/staff-user-role-id-nullability.test.ts": "02440f7a0714f8f641660020c24a729728651fd2af2b9ce6c24606b576b7a9f2",
+    "__tests__/fixtures/staff-captured-identity-authority.ts": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296"
+  },
+  "protected_inputs": {
+    "supabase/schema.sql": {
+      "sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "byte_equal_to_head": true
+    },
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": {
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "byte_equal_to_head": true
+    },
+    "vitest.config.ts": {
+      "sha256": "5745fb70262f40a2a1a6b00223cf112f2696c7253c9387ef5a641b3c2790ae64",
+      "byte_equal_to_head": true
+    },
+    ".github/workflows/full-e2e.yml": {
+      "sha256": "50409111bf3440b2e74df6e06f1bea48e9c8cb7039732b192a23303cb5c82054",
+      "byte_equal_to_head": true
+    },
+    "config/coverage-baseline.json": {
+      "sha256": "3107a6d51115e0b9e8c247258a9f8df44e15d2b9235c8c8f43bd5079ff86a85f",
+      "byte_equal_to_head": true
+    }
+  },
+  "fixture_closure": {
+    "tables": [
+      "tenant_customer_identity_providers",
+      "tenant_staff_actor_anchors",
+      "tenant_staff_identity_bindings",
+      "tenant_staff_identity_deliveries"
+    ],
+    "functions": [
+      "gridex_staff_assert_external_actor_v1",
+      "gridex_staff_anchor_invitation_email_v1"
+    ],
+    "raw_capture_inputs": "Table declarations + RLS + full function bodies + all captured function ACL statements + actual integration client metadata/default declaration",
+    "no_stubs": true,
+    "original_assertions_unchanged": true
+  },
+  "verification": {
+    "red_original": {
+      "total": 42,
+      "pass": 22,
+      "fail": 20,
+      "missing_function": true
+    },
+    "red_added_security": {
+      "total_selected": 3,
+      "pass": 0,
+      "fail": 3,
+      "remaining_skipped": 42
+    },
+    "green": {
+      "total": 45,
+      "pass": 45,
+      "fail": 0,
+      "per_file": [
+        20,
+        13,
+        12
+      ]
+    },
+    "new_negative_behaviors": "Registered tenant Auth client without explicit identity binding is denied before identity application, invitation creation and role mutation; previous rows/jobs/audits preserved",
+    "tests_types": "PASS tsc --noEmit --pretty false -p tsconfig.tests.json --incremental false",
+    "scoped_lint": "PASS --max-warnings 0",
+    "git_diff_check": "PASS"
+  },
+  "log_hashes": {
+    "/tmp/gridex-full-e2e-job-111802385652.raw.log": "a2f9a7f6b632da67c8c7d6a3456dc0f7150e31e5125615ce5823451366a86fd1",
+    "/tmp/gridex-staff-finite-identity-fixture-red.log": "e5e494db5bcd9c545f319b5d2341a0d2cc9e7d4189ef294e2af9dc7e9a76f2a9",
+    "/tmp/gridex-staff-finite-identity-fixture-red.json": "e00f4ee56ba53dd5e17ad68647ca0f765d1d6810cf6b91f14e9fea201d068daa",
+    "/tmp/gridex-staff-finite-identity-security-red.log": "3f9e1b0095522d0c243b404149ffbd7772f45490d2cf6adf1a750b9f6fa6f9a9",
+    "/tmp/gridex-staff-finite-identity-security-red.json": "ec58728e92f90568f7cce3517834a967735abcd6ab339683d08ac04e9ee82da7",
+    "/tmp/gridex-staff-finite-identity-fixture-green.log": "2c0bb208a3c5d37e8c24bd0ae31f23a3eb9986799090dfccad1fe94ecfc79844",
+    "/tmp/gridex-staff-finite-identity-fixture-green.json": "5071a94a9ed9c4c5de5753d2993bafb0c81f2086114e2d8a5b0947ba52fbb947",
+    "/tmp/gridex-staff-finite-identity-fixture-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "commands": {
+    "bounded_tests": "vitest run <three owned Staff SQL files> --maxWorkers 1 --no-file-parallelism --reporter=json --outputFile=<local evidence>",
+    "new_red": "same three files -t refuses a registered tenant actor without an explicit binding"
+  },
+  "limitations": [
+    "Finite PGlite SQL mechanics only",
+    "No full-suite rerun",
+    "No native job cancellation or rerun",
+    "No captured/runtime/migration/contract changes",
+    "No hosted writes/accounts/emails",
+    "New exact-source CI remains for root"
+  ],
+  "skill_routing": {
+    "activated": [
+      "using-superpowers",
+      "systematic-debugging",
+      "test-driven-development",
+      "verification-before-completion"
+    ],
+    "conditional": [
+      "receiving-code-review"
+    ],
+    "skipped_groups": "Read bounded CI failure; no product UI, performance, broad audit or deployment scope"
+  }
+}

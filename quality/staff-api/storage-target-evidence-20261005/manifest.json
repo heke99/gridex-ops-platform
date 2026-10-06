@@ -1,0 +1,26 @@
+{
+  "status": "CODE_GUARDS_VERIFIED_NOT_PROD_ACTIVATION",
+  "database_writes": false,
+  "files": [
+    {
+      "file": "durable-capture-binding.json",
+      "sha256": "085353e99ad217613a83e152a815cfe60df7ca0a8f4c7759501591d7cb21d0d3"
+    },
+    {
+      "file": "support-case-permission-verification.json",
+      "sha256": "92659ec010afc76df0cfb036181ed77295957e3e81259324393130743a8df1f3"
+    },
+    {
+      "file": "final-focused.log",
+      "sha256": "61901c9d205c3ab754ff554b0fb98f6390edf1d263abc8172cbea4151d5b078c"
+    },
+    {
+      "file": "prod-prerequisite-map-review.json",
+      "sha256": "891ea114c31ac68fa61072b67836ac273d1e94db0c9aeec5d36ac0c31ed4740d"
+    },
+    {
+      "file": "portal-baseline-independent-source-review.json",
+      "sha256": "252e3447bf8866930e936b9a480aa61ac2a277bf6a4ba6ca9c82781e64baef48"
+    }
+  ]
+}

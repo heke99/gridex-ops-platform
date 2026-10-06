@@ -28,8 +28,8 @@ function externalAck(family: 'CONTRL' | 'APERAK') {
 async function fixture(family: 'CONTRL' | 'APERAK') {
   const companyId = randomUUID(), mailboxId = randomUUID(), raw = externalAck(family)
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic ACK reception tenant','active');
-    INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,environment,is_active,is_shared_platform_mailbox)
-    VALUES(${literal(mailboxId)},${literal(companyId)},'Synthetic retained ACK mailbox','test',true,false)`)
+    INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox)
+    VALUES(${literal(mailboxId)},${literal(companyId)},'Synthetic retained ACK mailbox','ack-reception@example.invalid','test',true,false)`)
   // Original creation requires communication.write; immutable reception
   // recording resolves its legacy write marker to communication.send.
   const actor = await decisionUser(companyId, ['communication.write', 'communication.send', 'communication.read'], randomUUID() + 'Aa1!')

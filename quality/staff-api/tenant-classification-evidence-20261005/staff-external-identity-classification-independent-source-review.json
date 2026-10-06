@@ -1,0 +1,151 @@
+{
+  "status": "PASS_INDEPENDENT_FROZEN_ADDITIVE_SOURCE_REVIEW_LOCAL_EVIDENCE_RECONCILED_CAPTURE_AND_NATIVE_PENDING",
+  "created_at_utc": "2026-10-05T16:28:06.794490+00:00",
+  "reviewer": "/root/staff_rollout_review",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "baseline_source": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+  "baseline_tree": "ab689d16aeb888ece8c28567d221e40b9dea19ca",
+  "source": [
+    {
+      "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+      "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d"
+    },
+    {
+      "path": "__tests__/staff-external-identity-classification-sql.test.ts",
+      "sha256": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d"
+    }
+  ],
+  "critical_findings": [],
+  "important_findings": [],
+  "scope": {
+    "new_forward_only": true,
+    "repository_edits_by_reviewer": 0,
+    "test_replays_by_reviewer": 0,
+    "generation_by_reviewer": 0,
+    "hosted_calls_by_reviewer": 0,
+    "private_state_reads": 0
+  },
+  "semantic_review": {
+    "classification": "Exactly these three company-owned private external identity tables are truthfully tenant; null_company_meaning is NULL. No system/shared exemption or invariant relaxation.",
+    "nonnull_invitation_equivalence": "Global immediate validated parent PRIMARY KEY(id) plus each validated immediate composite FK(invitation_id,company_id) and UUID company_id NOT NULL fixes one company per nonnull invitation. UNIQUE(invitation_id,company_id) therefore admits exactly the original nonnull rows.",
+    "null_equivalence": "Nullable invitation bindings retain standard NULLS DISTINCT, including multiple explicit enrollment bindings. Source rejects backing NULLS NOT DISTINCT, invalid or nonunique indexes on both old/correct accepted key shapes.",
+    "dependencies": "Exact same constraint names retained; incoming FK references to the replaced unique index are refused; DROP has no CASCADE. Current captured incoming FKs target other preserved composite keys.",
+    "authority": "No application RPC/function/trigger/check/FK/ACL/RLS edit and no application row update. Immutable identity authority is retained.",
+    "atomicity": "Single DO with bounded lock/statement timeouts, three fixed table locks and no inner transaction wrappers. Late drift failures roll back earlier unique replacements and registration inserts.",
+    "idempotence": "Correct key shape is retained; identical registry values avoid UPDATE and classified_at change.",
+    "ddl_effect": "Three constraint/index definitions genuinely change. Fresh authentic schema/fingerprint import is required; generated type byte changes must be decided by authentic producer output."
+  },
+  "resolved_observation": {
+    "description": "Unexpected NULLS NOT DISTINCT catalog shape would have changed nullable binding admission under initial reviewed5a3 variant. Owner added the backing-index guard and one atomic drift control before final freeze.",
+    "status": "CLOSED",
+    "migration_delta_only_reconstruction_to": "5a3b62f6527dfa393f582af48d505088356364af2004c3512219b2e1c65a7782",
+    "test_one_tuple_only_reconstruction_to": "4c4555917073910ce673fab0893c046fdb70527c84e009b247f99837e01387bd"
+  },
+  "test_boundary_review": {
+    "actual_sql": "Complete frozen c6bf and complete new forward execute against captured dependency definitions; entire unchanged tenant-isolation invariant executes.",
+    "fixture_scope": "Unrelated finite fixture infrastructure is closed/classified only within disposable PGlite. This is not full canonical PG17 or hosted qualification.",
+    "positive_checks": [
+      "Exact3 tenant rows and company-scoped unique column lists",
+      "Existing stored identity rows unchanged",
+      "Catalog metadata outside replaced3 keys/indexes unchanged",
+      "Unrelated registry entries unchanged",
+      "Second application full catalog/registry no-op",
+      "Duplicate and foreign-company refusals; multiple NULL bindings; partial NULL pair refusal"
+    ],
+    "drift_checks": [
+      "Missing global parent PK",
+      "Missing identity table",
+      "Nullable company",
+      "Missing composite ownership FK",
+      "Unvalidated composite ownership FK",
+      "Unexpected unique columns",
+      "NULLS NOT DISTINCT uniqueness",
+      "Incoming invitation-only FK"
+    ],
+    "evidence_origin": "Execution counts and exit codes belong to source owner receipts/logs; reviewer authenticated hashes and inspected boundaries without repeating execution."
+  },
+  "reconciled_owner_evidence": [
+    {
+      "path": "/tmp/gridex-staff-review/staff-external-identity-classification-qualification.json",
+      "sha256": "0fa5e961b3f43e1e00198c2042c9b94ab7054844d3610d338483acee88522ae7"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-external-identity-classification-combined-native-qualification.json",
+      "sha256": "b3d3f17811b5607e2b2753878ee2713ab71614da5b40b0abda51592f2d5786e5"
+    }
+  ],
+  "local_results": {
+    "primary_red": {
+      "failed": 1,
+      "passed_control": 1
+    },
+    "final_green": {
+      "passed": 11,
+      "failed": 0,
+      "start_at_utc_time": "16:23:49",
+      "duration_seconds": 13.58,
+      "log_sha256": "7b5469a44b06689255a0740643965dd797350be9fd9c570e7b54ed25afeb9cdf"
+    },
+    "owner_test_typecheck": "PASS_REPORTED_HASH_AUTHENTICATED",
+    "owner_scoped_lint": "PASS_REPORTED_HASH_AUTHENTICATED",
+    "combined_actual_sql_and_original_native_script": "PASS_EMBEDDED_PGLITE_ONLY_LOG_AND_DRIVER_AUTHENTICATED"
+  },
+  "preserved_source": [
+    {
+      "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "scripts/sql/tenant-isolation-invariants.sql",
+      "sha256": "79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "scripts/staff-external-identity-binding-regression.sql",
+      "sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "sha256": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "__tests__/staff-external-identity-sql.test.ts",
+      "sha256": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/staff-v1.json",
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "byte_equal_baseline": true
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json",
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "byte_equal_baseline": true
+    }
+  ],
+  "remaining_required": [
+    "Authentic new-prefix capture/import of raw3 with truthful retained prior provenance",
+    "All mandatory CI including full unchanged tenant isolation gate and actual PostgreSQL17 managed Auth/native/browser/upgrade on final imported head",
+    "Separate authorized hosted activation; no production readiness implied"
+  ],
+  "history": "Authentic0cf clean failure and its native/upgrade partial proofs remain historical. This source review does not relabel0cf whole CI green."
+}

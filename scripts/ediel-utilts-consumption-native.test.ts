@@ -6,6 +6,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
 import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
 import { utiltsNativeSourceFixture, utiltsRecountUnt, utiltsTestEnvironmentWire } from '../__tests__/helpers/utiltsNativeSourceFixture'
+import { assertUtiltsConsumptionPartiesBound } from './helpers/utiltsConsumptionBoundParties'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
@@ -63,7 +64,7 @@ async function seed() {
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
     .replace('+21660:ZZ+', `+${ediel}:ZZ+`).replace('NAD+MR+21660:SVK:260', `NAD+MR+${ediel}:SVK:260`)
     .replace('+91100:ZZ+', `+${issuer}:ZZ+`).replace('NAD+MS+91100:SVK:260', `NAD+MS+${issuer}:SVK:260`)
-  if (message.raw_payload.includes('21660') || message.raw_payload.includes('91100')) throw new Error('native_consumption_parties_unbound')
+  assertUtiltsConsumptionPartiesBound(message.raw_payload, { ediel, issuer })
   ids.ediel = ediel; ids.issuer = issuer
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(ids.company)},'E035 bound consumption synthetic','active');
    INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)

@@ -12129,6 +12129,32 @@ CREATE FUNCTION gridex_ediel_inbound_receptions.authorize_v1(c uuid, actor uuid,
 END $$;
 
 --
+-- Name: capture_technical_mailbox_birth_v1(); Type: FUNCTION; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE mail public.inbound_email_messages%rowtype;box public.ediel_mailboxes%rowtype;
+BEGIN
+ IF TG_OP<>'INSERT' OR TG_TABLE_SCHEMA<>'gridex_unattributed_intake' OR TG_TABLE_NAME<>'raw_births'
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_birth_owner_required';END IF;
+ SELECT * INTO mail FROM public.inbound_email_messages WHERE id=NEW.inbound_email_message_id FOR SHARE;
+ SELECT * INTO box FROM public.ediel_mailboxes WHERE id=mail.mailbox_id FOR SHARE;
+ -- Missing SMTP holds the later return route, not storage of original mail.
+ IF mail.id IS NULL OR box.id IS NULL OR (mail.environment IN ('test','production')) IS NOT TRUE
+  OR box.environment IS DISTINCT FROM mail.environment OR box.is_active IS NOT TRUE
+  OR NEW.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.raw_hash_v1(mail)
+  OR box.email_address IS NULL OR btrim(box.email_address)!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+ THEN RETURN NEW;END IF;
+ INSERT INTO gridex_ediel_inbound_receptions.technical_mailbox_births(
+  inbound_email_message_id,raw_snapshot_hash,mailbox_id,environment,mailbox_company_id,mailbox_shared,smtp_address,observed_at)
+ VALUES(mail.id,NEW.snapshot_hash,box.id,mail.environment,box.company_id,box.is_shared_platform_mailbox,btrim(box.email_address),NEW.observed_at);
+ RETURN NEW;
+END $_$;
+
+--
 -- Name: guard_original_v1(); Type: FUNCTION; Schema: gridex_ediel_inbound_receptions; Owner: -
 --
 
@@ -16798,13 +16824,85 @@ CREATE FUNCTION gridex_ediel_technical_ack.select_configured_reply_route_v2(c uu
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE u jsonb;msg uuid:=(e->>'sourceMessageId')::uuid;route public.communication_routes%rowtype;profile public.ediel_route_profiles%rowtype;runtime jsonb;candidate_ids uuid[];candidate_profile_ids uuid[];env text;
+DECLARE u jsonb;msg uuid:=(e->>'sourceMessageId')::uuid;route public.communication_routes%rowtype;profile public.ediel_route_profiles%rowtype;runtime jsonb;candidate_ids uuid[];candidate_profile_ids uuid[];env text;original public.ediel_messages%rowtype;reception gridex_ediel_inbound_receptions.receptions%rowtype;original_box public.ediel_mailboxes%rowtype;birth_smtp text;technical_birth record;smtp_birth gridex_ediel_inbound_receptions.technical_mailbox_births%rowtype;common_basis jsonb;
 BEGIN
  IF reply_family IS NULL OR reply_family NOT IN('CONTRL','APERAK') OR e->>'companyId' IS DISTINCT FROM c::text THEN RAISE EXCEPTION 'ediel_prescribed_reply_route_basis_required';END IF;
  PERFORM gridex_ediel_technical_ack.require_current_endpoint_v1(e);u:=e->'originalUNB';env:=e->>'environment';
  IF current_smtp_from IS NULL OR current_smtp_from!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$' OR nullif(current_smtp_host,'') IS NULL OR current_smtp_port NOT BETWEEN 1 AND 65535 THEN RAISE EXCEPTION 'ediel_technical_ack_smtp_account_unqualified';END IF;
  -- Hold the configured candidate universe stable; duplicate matches are held,
  -- never chosen by age, preference, old email or a local role/default APP.
+ SELECT * INTO original FROM public.ediel_messages WHERE id=msg AND (company_id=c OR company_id IS NULL) FOR SHARE;
+ IF original.id IS NULL OR original.direction IS DISTINCT FROM 'inbound' OR original.environment IS DISTINCT FROM env
+  OR nullif(original.mailbox_message_id,'') IS NULL OR nullif(original.raw_payload,'') IS NULL
+  OR e->>'sourceHash' IS DISTINCT FROM encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex')
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+ IF original.company_id IS NULL THEN
+  IF gridex_unattributed_intake.is_birth_v1(original) IS NOT TRUE
+   OR gridex_ediel_technical_ack.require_source_v1(c,original.id) IS DISTINCT FROM e
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  IF reply_family='APERAK' THEN
+   common_basis:=gridex_ediel_common_header.require_v1(c,env,original.id);
+   PERFORM gridex_ediel_common_header.require_current_scope_v1(common_basis);
+   IF e->>'sourceHash' IS DISTINCT FROM common_basis->>'sourceHash'
+    OR e->>'syntaxAssessmentId' IS DISTINCT FROM common_basis->>'syntaxAssessmentId'
+   THEN RAISE EXCEPTION 'ediel_common_header_route_basis_mismatch';END IF;
+  END IF;
+  SELECT * INTO technical_birth FROM gridex_unattributed_intake.technical_births WHERE source_message_id=original.id FOR SHARE;
+  PERFORM gridex_unattributed_intake.require_custody_v1(technical_birth.inbound_email_message_id,technical_birth.parse_result_id);
+  IF NOT EXISTS(SELECT FROM gridex_ediel_technical_ack.sources source
+   WHERE source.source_message_id=original.id AND source.company_id=c AND source.source_company_id IS NULL
+    AND source.status='ready' AND source.environment=env AND source.payload_sha256=e->>'sourceHash'
+    AND source.source_received_at=original.message_received_at)
+   OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.physical_claims claim
+    WHERE claim.protected_source_id=original.id
+     AND claim.physical_key=gridex_unattributed_intake.physical_key_v1(technical_birth.physical_envelope))
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  SELECT * INTO smtp_birth FROM gridex_ediel_inbound_receptions.technical_mailbox_births
+   WHERE inbound_email_message_id=technical_birth.inbound_email_message_id AND environment=env FOR SHARE;
+  birth_smtp:=smtp_birth.smtp_address;
+  IF smtp_birth.inbound_email_message_id IS NULL OR birth_smtp IS NULL
+   OR birth_smtp!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+   OR lower(btrim(current_smtp_from)) IS DISTINCT FROM lower(birth_smtp)
+   OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.raw_births raw
+    WHERE raw.inbound_email_message_id=smtp_birth.inbound_email_message_id
+     AND raw.snapshot_hash=smtp_birth.raw_snapshot_hash AND raw.observed_at=smtp_birth.observed_at)
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
+  SELECT box.* INTO original_box FROM public.ediel_mailboxes box
+   JOIN public.inbound_email_messages mail ON mail.mailbox_id=box.id
+   WHERE mail.id=technical_birth.inbound_email_message_id AND box.id=smtp_birth.mailbox_id
+    AND original.mailbox_message_id=mail.id::text AND original.inbound_email_message_id=mail.id
+    AND mail.company_id IS NULL AND mail.environment=env AND box.environment=env AND box.is_active
+    AND (box.company_id=c OR box.company_id IS NULL)
+    AND box.company_id IS NOT DISTINCT FROM smtp_birth.mailbox_company_id
+    AND box.is_shared_platform_mailbox IS NOT DISTINCT FROM smtp_birth.mailbox_shared
+   FOR SHARE OF box,mail;
+  IF original_box.id IS NULL THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  -- Recheck complete custody after the mailbox lock, including mailbox_type.
+  PERFORM gridex_unattributed_intake.require_custody_v1(technical_birth.inbound_email_message_id,technical_birth.parse_result_id);
+ ELSE
+ SELECT * INTO reception FROM gridex_ediel_inbound_receptions.receptions
+  WHERE source_message_id=original.id AND company_id=c AND environment=env
+   AND classification='first_reception' AND inbound_email_message_id::text=original.mailbox_message_id FOR SHARE;
+ birth_smtp:=reception.transport_source_snapshot->>'originalMailboxSmtpAddress';
+ IF reception.id IS NULL OR reception.canonical_payload_hash IS DISTINCT FROM e->>'sourceHash'
+  OR reception.received_payload_hash IS DISTINCT FROM reception.canonical_payload_hash
+  OR reception.transport_source_snapshot->>'parsePayloadHash' IS DISTINCT FROM reception.received_payload_hash
+  OR reception.transport_source_snapshot->>'originalMailboxEnvironment' IS DISTINCT FROM env
+  OR birth_smtp IS NULL OR birth_smtp!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+  OR lower(btrim(current_smtp_from)) IS DISTINCT FROM lower(birth_smtp)
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
+ SELECT box.* INTO original_box FROM public.ediel_mailboxes box
+  JOIN public.inbound_email_messages mail ON mail.mailbox_id=box.id
+  WHERE mail.id=reception.inbound_email_message_id AND box.id::text=reception.transport_source_snapshot->>'mailboxId'
+   AND (mail.company_id IS NULL OR mail.company_id=c) AND (mail.environment IS NULL OR mail.environment=env)
+   AND box.environment=env AND box.is_active
+   AND (box.company_id=c OR box.company_id IS NULL OR box.is_shared_platform_mailbox)
+   AND (reception.transport_source_snapshot->>'originalMailboxCompanyId'=c::text
+    OR reception.transport_source_snapshot->>'originalMailboxCompanyId' IS NULL
+    OR reception.transport_source_snapshot->'originalMailboxShared'='true'::jsonb)
+  FOR SHARE OF box,mail;
+ IF original_box.id IS NULL THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+ END IF;
  LOCK TABLE public.communication_routes,public.ediel_route_profiles,public.ediel_transport_profiles IN SHARE MODE;
  SELECT array_agg(r.id),array_agg(p.id) INTO candidate_ids,candidate_profile_ids FROM public.communication_routes r JOIN public.ediel_route_profiles p ON p.communication_route_id=r.id AND p.company_id=r.company_id
  LEFT JOIN public.ediel_transport_profiles tp ON tp.id=p.transport_profile_id AND tp.company_id=c AND tp.environment=env
@@ -19349,6 +19447,9 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
  SELECT * INTO w FROM gridex_negative_fixtures.negative_prepared_witnesses WHERE id=(NEW.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId')::uuid FOR UPDATE;
  IF w.id IS NULL THEN RAISE EXCEPTION 'ediel_negative_fixture_witness_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  IF NEW.company_id IS DISTINCT FROM w.company_id OR NEW.environment IS DISTINCT FROM 'test' OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_standard IS DISTINCT FROM 'edifact' OR NEW.raw_payload IS DISTINCT FROM f.original_wire THEN RAISE EXCEPTION 'ediel_negative_fixture_message_scope_invalid';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.negative_prepared_consumptions WHERE registration_id=f.id;
  IF FOUND THEN IF prior.message_id IS DISTINCT FROM NEW.id OR prior.witness_id IS DISTINCT FROM w.id THEN RAISE EXCEPTION 'ediel_negative_fixture_original_already_consumed';END IF;RETURN NEW;END IF;
@@ -19377,6 +19478,9 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
  SELECT * INTO w FROM gridex_negative_fixtures.positive_witnesses WHERE id=(NEW.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId')::uuid FOR UPDATE;
  IF w.id IS NULL THEN RAISE EXCEPTION 'ediel_positive_fixture_witness_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.positive_originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  IF NEW.company_id IS DISTINCT FROM w.company_id OR NEW.environment IS DISTINCT FROM 'test' OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_standard IS DISTINCT FROM 'edifact' OR NEW.raw_payload IS DISTINCT FROM f.original_wire THEN RAISE EXCEPTION 'ediel_positive_fixture_message_scope_invalid';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.positive_consumptions WHERE registration_id=f.id;
  IF FOUND THEN IF prior.message_id IS DISTINCT FROM NEW.id OR prior.witness_id IS DISTINCT FROM w.id THEN RAISE EXCEPTION 'ediel_positive_fixture_original_already_consumed';END IF;RETURN NEW;END IF;
@@ -19497,7 +19601,13 @@ BEGIN
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=p_context->>'testReceiverEdielId' AND t#>>'{elements,11,0}'='1') THEN RAISE EXCEPTION 'ediel_positive_fixture_test_original_required';END IF;
- PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||((p_context->>'stepNo')::integer)::text||'|'||hash,0));
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
+  AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.positive_originals WHERE company_id=r.company_id AND run_id=r.id AND step_no=(p_context->>'stepNo')::integer AND revision=r.approval_version AND wire_sha256=hash;
  IF FOUND THEN
   IF prior.test_receiver_ediel_id IS DISTINCT FROM p_context->>'testReceiverEdielId' OR prior.source_reference IS DISTINCT FROM p_context->>'sourceReference'
@@ -19530,7 +19640,13 @@ BEGIN
  OR r.approval_version IS DISTINCT FROM p_context->>'revision' OR (p_context->>'stepNo')::integer<=0 OR (p_context->>'validUntil')::timestamptz<=now()
  THEN RAISE EXCEPTION 'ediel_negative_fixture_run_scope_mismatch';END IF;
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');
- PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||((p_context->>'stepNo')::integer)::text||'|'||hash,0));
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
+  AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.originals WHERE company_id=r.company_id AND run_id=r.id AND step_no=(p_context->>'stepNo')::integer AND revision=r.approval_version AND wire_sha256=hash;
  IF FOUND THEN
   IF prior.expected_diagnostic_codes IS DISTINCT FROM diagnostics OR prior.test_receiver_ediel_id IS DISTINCT FROM p_context->>'testReceiverEdielId'
@@ -19566,6 +19682,9 @@ BEGIN
   -- The server adapter additionally recomputes its actual Latin1 byte hash.
   AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND original_wire=wire AND valid_until>now();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB')<>1 THEN RETURN NULL;END IF;
  SELECT t#>>'{elements,3,0}' INTO receiver FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB';
@@ -19588,6 +19707,9 @@ BEGIN
  SELECT * INTO f FROM gridex_negative_fixtures.positive_originals WHERE company_id=r.company_id AND run_id=r.id AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND revision=r.approval_version
   AND step_no=(p_context->>'stepNo')::integer AND original_wire=wire AND valid_until>clock_timestamp();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=f.test_receiver_ediel_id AND t#>>'{elements,11,0}'='1') THEN RETURN NULL;END IF;
@@ -19618,6 +19740,9 @@ BEGIN
   -- The server adapter additionally recomputes its actual Latin1 byte hash.
   AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND original_wire=wire AND valid_until>now();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB')<>1 THEN RETURN NULL;END IF;
  SELECT t#>>'{elements,3,0}' INTO receiver FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB';
@@ -19639,6 +19764,9 @@ BEGIN
  SELECT witness.* INTO w FROM gridex_negative_fixtures.negative_prepared_consumptions c JOIN gridex_negative_fixtures.negative_prepared_witnesses witness ON witness.id=c.witness_id WHERE c.message_id=m.id AND c.company_id=p_company FOR SHARE OF witness;
  IF w.id IS NULL OR m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS DISTINCT FROM w.id::text THEN RAISE EXCEPTION 'ediel_negative_fixture_original_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  SELECT * INTO STRICT r FROM public.ediel_test_runs WHERE id=w.run_id AND company_id=p_company AND environment='test' AND status IN('draft','running') FOR SHARE;
  IF m.raw_payload IS DISTINCT FROM f.original_wire OR r.role_code IS DISTINCT FROM f.role_code OR r.test_case_code IS DISTINCT FROM f.case_code OR r.test_suite IS DISTINCT FROM f.suite OR r.approval_version IS DISTINCT FROM f.revision OR f.valid_until<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_negative_fixture_current_run_required';END IF;
  IF (SELECT count(*) FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id)<>1 OR NOT EXISTS(SELECT FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id AND l.test_run_id=w.run_id AND l.step_no=w.step_no) THEN RAISE EXCEPTION 'ediel_negative_fixture_actual_run_link_required';END IF;
@@ -19664,6 +19792,9 @@ BEGIN
  SELECT witness.* INTO w FROM gridex_negative_fixtures.positive_consumptions c JOIN gridex_negative_fixtures.positive_witnesses witness ON witness.id=c.witness_id WHERE c.message_id=m.id AND c.company_id=p_company FOR SHARE OF witness;
  IF w.id IS NULL OR m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS DISTINCT FROM w.id::text THEN RAISE EXCEPTION 'ediel_positive_fixture_original_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.positive_originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  SELECT * INTO STRICT r FROM public.ediel_test_runs WHERE id=w.run_id AND company_id=p_company AND environment='test' AND status IN('draft','running') FOR SHARE;
  IF m.raw_payload IS DISTINCT FROM f.original_wire OR r.role_code IS DISTINCT FROM f.role_code OR r.test_case_code IS DISTINCT FROM f.case_code OR r.test_suite IS DISTINCT FROM f.suite OR r.approval_version IS DISTINCT FROM f.revision OR f.valid_until<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_positive_fixture_current_run_required';END IF;
  IF (SELECT count(*) FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id)<>1 OR NOT EXISTS(SELECT FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id AND l.test_run_id=w.run_id AND l.step_no=w.step_no) THEN RAISE EXCEPTION 'ediel_positive_fixture_actual_run_link_required';END IF;
@@ -34051,8 +34182,10 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
   -- may grant this new family. Unknown staff paths fail closed.
   with staff_policy as (
     select
-      p_route ~ '^/api/v1/staff(/|$)' as is_staff_route,
+      p_route ~ '^/api/v1/(staff|staff-onboarding)(/|$)' as is_staff_route,
       case
+        when p_route='/api/v1/staff-onboarding/invitations/accept' then array['staff_users.write']::text[]
+        when p_route='/api/v1/staff-onboarding/identity/resolve' then array['staff_users.read']::text[]
         when p_route='/api/v1/staff/users' then array['staff_users.read','staff_users.write']::text[]
         when p_route='/api/v1/staff/roles' then array['staff_users.read']::text[]
         when p_route ~ '^/api/v1/staff/users/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(/(disable|enable))?$' then array['staff_users.write']::text[]
@@ -34452,7 +34585,7 @@ begin
     raise exception using errcode='42501', message='tenant_invitation_user_mismatch';
   end if;
 
-  select lower(u.email),
+  select coalesce(lower(u.email),public.gridex_staff_anchor_invitation_email_v1(v_invitation.id,v_invitation.company_id,u.id)),
          exists(select 1 from public.user_profiles up where up.id=u.id and up.user_status='active')
     into v_auth_email,v_profile_active
   from auth.users u
@@ -45868,7 +46001,7 @@ BEGIN IF current_user<>'service_role' THEN RAISE EXCEPTION 'ediel_dsn_service_re
 CREATE FUNCTION public.ediel_record_inbound_reception_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$
+    AS $_$
 DECLARE m public.ediel_messages%rowtype;mail public.inbound_email_messages%rowtype;p public.inbound_ediel_parse_results%rowtype;
  box public.ediel_mailboxes%rowtype;prior gridex_ediel_inbound_receptions.receptions%rowtype;r gridex_ediel_inbound_receptions.receptions%rowtype;canonical_hash text;incoming_hash text;kind text;
 BEGIN
@@ -45907,14 +46040,16 @@ BEGIN
   WHEN (m.mailbox_message_id=mail.id::text)
    AND NOT EXISTS(SELECT FROM gridex_ediel_inbound_receptions.receptions old WHERE old.source_message_id=m.id AND old.classification='first_reception') THEN 'first_reception'
   ELSE 'protocol_duplicate' END;
+ IF box.email_address IS NULL OR btrim(box.email_address)!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$' THEN
+  RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
  INSERT INTO gridex_ediel_inbound_receptions.receptions(company_id,source_message_id,inbound_email_message_id,parse_result_id,actor_user_id,environment,canonical_payload_hash,received_payload_hash,received_at,classification,scope,transport_source_snapshot)
- VALUES(p_company_id,m.id,mail.id,p.id,p_actor_user_id,m.environment,canonical_hash,incoming_hash,mail.received_at,kind,jsonb_build_object('sender',p.sender_ediel_id,'receiver',p.receiver_ediel_id,'applicationReference',p.application_reference,'interchangeReference',p.interchange_reference,'family',p.message_family,'code',p.message_code),jsonb_build_object('mailboxId',mail.mailbox_id,'internetMessageId',mail.internet_message_id,'rawMessageSha256',mail.raw_message_sha256,'parsePayloadHash',incoming_hash,'sourceKind','retained_mail_observation','deliveryAuthenticated',false)) RETURNING * INTO r;
+ VALUES(p_company_id,m.id,mail.id,p.id,p_actor_user_id,m.environment,canonical_hash,incoming_hash,mail.received_at,kind,jsonb_build_object('sender',p.sender_ediel_id,'receiver',p.receiver_ediel_id,'applicationReference',p.application_reference,'interchangeReference',p.interchange_reference,'family',p.message_family,'code',p.message_code),jsonb_build_object('mailboxId',mail.mailbox_id,'internetMessageId',mail.internet_message_id,'rawMessageSha256',mail.raw_message_sha256,'parsePayloadHash',incoming_hash,'sourceKind','retained_mail_observation','deliveryAuthenticated',false,'originalMailboxSmtpAddress',btrim(box.email_address),'originalMailboxCompanyId',box.company_id,'originalMailboxEnvironment',box.environment,'originalMailboxShared',box.is_shared_platform_mailbox)) RETURNING * INTO r;
  IF kind<>'first_reception' THEN
   INSERT INTO gridex_ediel_inbound_receptions.response_requests(reception_id,company_id,source_message_id,reason) VALUES(r.id,p_company_id,m.id,CASE kind WHEN 'identity_conflict' THEN 'same_identity_different_original_requires_review' ELSE 'authentic_duplicate_transport_response_policy_required' END);
   UPDATE public.inbound_email_messages SET company_id=p_company_id,processing_status='manual_review',match_status='protocol_response_held',error_message='Ny Ediel-mottagning kräver källbelagt protokollsvar.',match_payload=coalesce(match_payload,'{}')||jsonb_build_object('protocolReception',gridex_ediel_inbound_receptions.result_v1(r,false)),updated_at=clock_timestamp() WHERE id=mail.id AND (company_id IS NULL OR company_id=p_company_id);
  END IF;
  RETURN gridex_ediel_inbound_receptions.result_v1(r,false);
-END $$;
+END $_$;
 
 --
 -- Name: ediel_record_scoped_capability_evidence_v1(uuid, uuid, uuid, text, text, text, text, uuid, text, text, text, uuid[], timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
@@ -48263,6 +48398,138 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: gridex_accept_external_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_accept_external_staff_invitation_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE result jsonb; b public.tenant_staff_identity_bindings%rowtype; i public.company_invitations%rowtype;
+BEGIN
+ result:=public.gridex_lookup_pending_staff_identity_binding_v1(p_command);
+ IF result->>'binding_id' IS DISTINCT FROM p_command->>'binding_id' OR result->>'binding_version' IS DISTINCT FROM p_command->>'binding_version'
+  OR p_command->'email_confirmed' IS DISTINCT FROM 'true'::jsonb
+ THEN RAISE EXCEPTION 'staff_identity_acceptance_invalid' USING ERRCODE='42501'; END IF;
+ SELECT * INTO b FROM public.tenant_staff_identity_bindings WHERE id=(result->>'binding_id')::uuid FOR UPDATE;
+ SELECT * INTO i FROM public.company_invitations WHERE id=b.invitation_id;
+ IF lower(btrim(p_command->>'verified_email')) IS DISTINCT FROM lower(btrim(i.email)) OR i.invited_user_id IS DISTINCT FROM b.actor_user_id
+  OR nullif(btrim(p_command->>'idempotency_key'),'') IS NULL
+ THEN RAISE EXCEPTION 'staff_identity_acceptance_invalid' USING ERRCODE='42501'; END IF;
+ PERFORM 1 FROM auth.users u JOIN public.user_profiles profile ON profile.id=u.id WHERE u.id=b.actor_user_id FOR SHARE OF u,profile;
+ IF NOT FOUND OR NOT EXISTS(SELECT FROM auth.users u JOIN public.user_profiles profile ON profile.id=u.id WHERE u.id=b.actor_user_id AND u.deleted_at IS NULL
+  AND (u.banned_until IS NULL OR u.banned_until<=clock_timestamp()) AND profile.user_status='active')
+ THEN RAISE EXCEPTION 'staff_identity_actor_inactive' USING ERRCODE='42501'; END IF;
+ IF b.status='pending' THEN UPDATE public.tenant_staff_identity_bindings SET status='active' WHERE id=b.id; END IF;
+ -- Stable authority only. No tenant access token, password or verification
+ -- snapshot enters the unchanged command hash, audit or membership engine.
+ RETURN public.canonical_accept_tenant_invitation(jsonb_build_object('company_id',b.company_id,'invitation_id',b.invitation_id,'user_id',b.actor_user_id,'actor_user_id',b.actor_user_id,
+   'api_client_id',b.api_client_id,'channel','staff_external_onboarding','idempotency_key',p_command->>'idempotency_key'));
+END $$;
+
+--
+-- Name: gridex_accept_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  v_company_id uuid := nullif(p_command->>'company_id','')::uuid;
+  v_user_id uuid := nullif(p_command->>'user_id','')::uuid;
+  v_actor_id uuid := nullif(p_command->>'actor_user_id','')::uuid;
+  v_invitation_id uuid := nullif(p_command->>'invitation_id','')::uuid;
+  v_client_id uuid := nullif(p_command->>'api_client_id','')::uuid;
+  v_provider_id uuid := nullif(p_command->>'provider_id','')::uuid;
+  v_key text := nullif(btrim(p_command->>'idempotency_key'),'');
+  v_client public.integration_api_clients%rowtype;
+  v_provider public.tenant_customer_identity_providers%rowtype;
+  v_invitation public.company_invitations%rowtype;
+  v_binding jsonb;
+  v_origin text;
+  v_email text;
+  v_auth_confirmed timestamptz;
+  v_deleted timestamptz;
+  v_banned timestamptz;
+  v_company_status text;
+  v_company_active boolean;
+BEGIN
+  IF v_company_id IS NULL OR v_user_id IS NULL OR v_actor_id IS DISTINCT FROM v_user_id
+    OR v_invitation_id IS NULL OR v_client_id IS NULL OR v_provider_id IS NULL OR v_key IS NULL
+    OR p_command->>'channel' IS DISTINCT FROM 'staff_onboarding'
+    OR jsonb_typeof(p_command->'verified_client') IS DISTINCT FROM 'object'
+    OR jsonb_typeof(p_command->'verified_provider') IS DISTINCT FROM 'object'
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_identity_invalid'; END IF;
+
+  -- Shared staff commands lock company first. Client/provider/Auth updates
+  -- cannot invalidate a checked snapshot during the canonical transaction.
+  SELECT status,is_active INTO v_company_status,v_company_active FROM public.companies WHERE id=v_company_id FOR NO KEY UPDATE;
+  IF NOT FOUND OR v_company_status IS DISTINCT FROM 'active' OR v_company_active IS DISTINCT FROM true
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_company_inactive'; END IF;
+  SELECT * INTO v_client FROM public.integration_api_clients
+    WHERE id=v_client_id AND company_id=v_company_id FOR SHARE;
+  IF NOT FOUND OR v_client.status IS DISTINCT FROM 'active' OR v_client.deleted_at IS NOT NULL OR v_client.revoked_at IS NOT NULL
+    OR (v_client.expires_at IS NOT NULL AND v_client.expires_at<=now())
+    OR NOT ('staff_users.write'=ANY(coalesce(v_client.scopes,ARRAY[]::text[])))
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_invalid'; END IF;
+  v_origin := v_client.metadata->>'staff_onboarding_origin';
+  IF v_origin IS NULL OR v_origin !~ '^https://([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'
+    OR v_origin ~ '\.(localhost|local|internal|test|invalid)$'
+    OR NOT (v_origin=ANY(coalesce(v_client.allowed_origins,ARRAY[]::text[])))
+    OR p_command->'verified_client' IS DISTINCT FROM jsonb_build_object(
+      'secret_hash',v_client.secret_hash,'scopes',to_jsonb(v_client.scopes),
+      'allowed_origins',to_jsonb(v_client.allowed_origins),'staff_onboarding_origin',v_origin)
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_changed'; END IF;
+
+  SELECT * INTO v_provider FROM public.tenant_customer_identity_providers
+    WHERE id=v_provider_id AND company_id=v_company_id FOR SHARE;
+  IF NOT FOUND OR v_provider.purpose IS DISTINCT FROM 'staff' OR NOT coalesce(v_provider.is_active,false)
+    OR v_provider.subject_claim IS DISTINCT FROM 'sub' OR v_provider.enforcement IS DISTINCT FROM 'enforce'
+    OR p_command->'verified_provider' IS DISTINCT FROM jsonb_build_object(
+      'kind',v_provider.kind,'issuer',v_provider.issuer,'audience',v_provider.audience,
+      'jwks_uri',v_provider.jwks_uri,'public_jwk',v_provider.public_jwk,
+      'subject_claim',v_provider.subject_claim,'enforcement',v_provider.enforcement)
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_provider_changed'; END IF;
+
+  SELECT lower(u.email),u.email_confirmed_at,u.deleted_at,u.banned_until
+    INTO v_email,v_auth_confirmed,v_deleted,v_banned FROM auth.users u WHERE u.id=v_user_id FOR SHARE;
+  IF NOT FOUND OR v_email IS NULL OR v_auth_confirmed IS NULL OR v_deleted IS NOT NULL
+    OR (v_banned IS NOT NULL AND v_banned>now())
+    OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=v_user_id AND user_status='active')
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_auth_invalid'; END IF;
+  SELECT * INTO v_invitation FROM public.company_invitations
+    WHERE id=v_invitation_id AND company_id=v_company_id FOR UPDATE;
+  IF NOT FOUND OR v_invitation.invited_user_id IS DISTINCT FROM v_user_id
+    OR lower(btrim(v_invitation.email)) IS DISTINCT FROM v_email
+    OR v_invitation.status NOT IN ('pending','accepted')
+    OR (v_invitation.status='pending' AND (v_invitation.expires_at IS NULL OR v_invitation.expires_at<=now()))
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_invalid'; END IF;
+  SELECT request_payload INTO v_binding FROM public.canonical_command_results
+    WHERE company_id=v_company_id AND command_type='tenant.invitation.create'
+      AND result_payload->>'invitation_id'=v_invitation_id::text FOR SHARE;
+  IF NOT FOUND OR v_binding->>'company_id' IS DISTINCT FROM v_company_id::text
+    OR v_binding->>'channel' IS DISTINCT FROM 'staff_api'
+    OR v_binding->>'staff_operation' IS DISTINCT FROM 'invite'
+    OR v_binding->>'api_client_id' IS DISTINCT FROM v_client_id::text
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_client_mismatch'; END IF;
+
+  -- Only stable canonical authority fields enter the durable request/hash.
+  -- Verification snapshots and secrets are never copied into receipts/audits.
+  RETURN public.canonical_accept_tenant_invitation(jsonb_build_object(
+    'company_id',v_company_id,'invitation_id',v_invitation_id,'user_id',v_user_id,
+    'actor_user_id',v_user_id,'idempotency_key',v_key,
+    'channel','staff_onboarding','api_client_id',v_client_id));
+END;
+$_$;
+
+--
+-- Name: FUNCTION gridex_accept_staff_invitation_v1(p_command jsonb); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) IS 'Independent staff onboarding: verified Prod Auth and signed provider proof are checked by the API; locked native client/provider/invitation authority is checked before unchanged canonical acceptance. Service-only.';
 
 --
 -- Name: gridex_acquire_automation_lock(text, uuid, uuid, integer, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -51373,6 +51640,7 @@ BEGIN
         AND (client.expires_at IS NULL OR client.expires_at>clock_timestamp())
         AND 'staff_users.write'=ANY(client.scopes)
     ) THEN RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied'; END IF;
+    PERFORM public.gridex_staff_assert_external_actor_v1(v_company_id,v_actor_user_id,v_client_id);
     -- Check eligibility after all potentially blocking row locks, before any
     -- replay return or target mutation. Use wall-clock time for current bans.
     IF NOT EXISTS (
@@ -58772,6 +59040,24 @@ begin
   return v_site_id;
 end;
 $_$;
+
+--
+-- Name: gridex_create_external_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_external_staff_invitation_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE membership text;
+BEGIN
+ PERFORM public.gridex_staff_identity_registration_v1(p_command,true);
+ SELECT membership_role INTO membership FROM public.canonical_tenant_access_role_mapping WHERE role_key=p_command->>'role_key' AND is_assignable;
+ RETURN public.canonical_create_tenant_invitation(jsonb_build_object('company_id',(p_command->>'company_id')::uuid,'actor_user_id',(p_command->>'actor_user_id')::uuid,
+  'api_client_id',(p_command->>'api_client_id')::uuid,'channel','ops','staff_operation','invite','external_staff_identity',true,
+  'email',p_command->>'email','full_name',p_command->>'full_name','role_key',p_command->>'role_key','membership_role',membership,
+  'idempotency_key',p_command->>'idempotency_key','source','ops_external_staff_bootstrap'));
+END $$;
 
 --
 -- Name: gridex_create_grid_owner_data_request_v1(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -71605,6 +71891,25 @@ CREATE FUNCTION public.gridex_lonlat_to_grid_area(p_longitude numeric, p_latitud
 $$;
 
 --
+-- Name: gridex_lookup_pending_staff_identity_binding_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_lookup_pending_staff_identity_binding_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE registration jsonb; b public.tenant_staff_identity_bindings%rowtype;
+BEGIN
+ registration:=public.gridex_staff_identity_registration_v1(p_command,true);
+ PERFORM public.gridex_staff_identity_invitation_v1(p_command,false);
+ SELECT * INTO b FROM public.tenant_staff_identity_bindings WHERE company_id=(p_command->>'company_id')::uuid AND api_client_id=(p_command->>'api_client_id')::uuid
+  AND provider_id=(p_command->>'provider_id')::uuid AND invitation_id=(p_command->>'invitation_id')::uuid AND local_user_id=(p_command->>'local_user_id')::uuid
+  AND local_auth_issuer=p_command->>'local_auth_issuer' AND local_auth_issuer=registration->>'auth_issuer' AND status IN('pending','active') FOR UPDATE;
+ IF NOT FOUND OR b.provider_configuration IS DISTINCT FROM p_command->'verified_provider' THEN RAISE EXCEPTION 'staff_identity_binding_missing' USING ERRCODE='42501'; END IF;
+ RETURN jsonb_build_object('actor_user_id',b.actor_user_id,'binding_id',b.id,'binding_version',b.version);
+END $$;
+
+--
 -- Name: gridex_luhn_valid(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -77093,6 +77398,40 @@ end
 $_$;
 
 --
+-- Name: gridex_prepare_staff_identity_delivery_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_prepare_staff_identity_delivery_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE registration jsonb; i public.company_invitations%rowtype; d public.tenant_staff_identity_deliveries%rowtype; actor uuid; payload jsonb; delivery_id uuid;
+BEGIN
+ registration:=public.gridex_staff_identity_registration_v1(p_command,true);
+ i:=public.gridex_staff_identity_invitation_v1(p_command,true);
+ SELECT * INTO d FROM public.tenant_staff_identity_deliveries WHERE invitation_id=i.id FOR UPDATE;
+ IF FOUND THEN
+  IF d.company_id<>i.company_id OR d.api_client_id<>(p_command->>'api_client_id')::uuid OR d.provider_id<>(p_command->>'provider_id')::uuid OR d.local_auth_issuer<>registration->>'auth_issuer'
+  THEN RAISE EXCEPTION 'staff_identity_delivery_mismatch' USING ERRCODE='42501'; END IF;
+  RETURN d.request_payload||jsonb_build_object('request_hash',d.request_hash);
+ END IF;
+ IF i.invited_user_id IS NOT NULL OR i.status<>'pending' OR i.token IS NULL
+ THEN RAISE EXCEPTION 'staff_identity_existing_actor_requires_explicit_binding' USING ERRCODE='42501'; END IF;
+ actor:=gen_random_uuid(); delivery_id:=gen_random_uuid();
+ INSERT INTO auth.users(id,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_anonymous)
+ VALUES(actor,'{}','{}',now(),now(),false);
+ -- Contact/display data is explicit invitation data, never a GoTrue credential.
+ INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(actor,lower(btrim(i.email)),i.full_name,'active');
+ INSERT INTO public.tenant_staff_actor_anchors(actor_user_id,company_id,invitation_id) VALUES(actor,i.company_id,i.id);
+ payload:=jsonb_build_object('delivery_id',delivery_id,'actor_user_id',actor,'company_id',i.company_id,'api_client_id',(p_command->>'api_client_id')::uuid,
+  'provider_id',(p_command->>'provider_id')::uuid,'invitation_id',i.id,'recipient_email',lower(btrim(i.email)),'full_name',i.full_name,
+  'auth_issuer',registration->>'auth_issuer','callback_url',(registration->>'origin')||'/auth/invitation?token='||i.token::text);
+ INSERT INTO public.tenant_staff_identity_deliveries(id,company_id,api_client_id,provider_id,invitation_id,actor_user_id,local_auth_issuer,recipient_email,request_payload,request_hash)
+ VALUES(delivery_id,i.company_id,(p_command->>'api_client_id')::uuid,(p_command->>'provider_id')::uuid,i.id,actor,registration->>'auth_issuer',lower(btrim(i.email)),payload,public.canonical_json_sha256(payload));
+ RETURN payload||jsonb_build_object('request_hash',public.canonical_json_sha256(payload));
+END $$;
+
+--
 -- Name: gridex_prevent_locked_portfolio_price_mutation(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -81680,6 +82019,39 @@ BEGIN
 END $$;
 
 --
+-- Name: gridex_record_staff_identity_delivery_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_staff_identity_delivery_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE registration jsonb; i public.company_invitations%rowtype; d public.tenant_staff_identity_deliveries%rowtype; b public.tenant_staff_identity_bindings%rowtype; r jsonb:=p_command->'verified_receipt'; subject uuid;
+BEGIN
+ registration:=public.gridex_staff_identity_registration_v1(p_command,true); i:=public.gridex_staff_identity_invitation_v1(p_command,true);
+ SELECT * INTO d FROM public.tenant_staff_identity_deliveries WHERE id=(p_command->>'delivery_id')::uuid AND invitation_id=i.id AND company_id=i.company_id FOR UPDATE;
+ subject:=nullif(r->>'local_auth_subject','')::uuid;
+ IF NOT FOUND OR subject IS NULL OR subject=d.actor_user_id OR d.api_client_id<>(p_command->>'api_client_id')::uuid OR d.provider_id<>(p_command->>'provider_id')::uuid
+  OR d.local_auth_issuer<>registration->>'auth_issuer' OR r IS DISTINCT FROM jsonb_build_object('request_hash',d.request_hash,'company_id',d.company_id,'api_client_id',d.api_client_id,
+   'provider_id',d.provider_id,'invitation_id',d.invitation_id,'delivery_id',d.id,'local_auth_subject',subject,'auth_issuer',d.local_auth_issuer,'email',d.recipient_email,'status','sent')
+ THEN RAISE EXCEPTION 'staff_identity_delivery_receipt_invalid' USING ERRCODE='42501'; END IF;
+ IF d.status='sent' AND d.receipt_payload IS DISTINCT FROM r THEN RAISE EXCEPTION 'staff_identity_delivery_receipt_changed' USING ERRCODE='42501'; END IF;
+ SELECT * INTO b FROM public.tenant_staff_identity_bindings WHERE invitation_id=i.id FOR UPDATE;
+ IF FOUND THEN
+  IF b.status='revoked' OR b.api_client_id<>d.api_client_id OR b.provider_id<>d.provider_id OR b.local_auth_issuer<>d.local_auth_issuer OR b.local_user_id<>subject OR b.actor_user_id<>d.actor_user_id
+  THEN RAISE EXCEPTION 'staff_identity_binding_mismatch' USING ERRCODE='42501'; END IF;
+ ELSE
+  -- No email or UUID lookup, no conflict-upsert/remap. Duplicate external pairs
+  -- must be resolved explicitly by an operator rather than merged implicitly.
+  INSERT INTO public.tenant_staff_identity_bindings(company_id,api_client_id,provider_id,local_auth_issuer,local_user_id,actor_user_id,provider_configuration,invitation_id,delivery_id)
+  VALUES(d.company_id,d.api_client_id,d.provider_id,d.local_auth_issuer,subject,d.actor_user_id,p_command->'verified_provider',d.invitation_id,d.id) RETURNING * INTO b;
+ END IF;
+ IF d.status='prepared' THEN UPDATE public.tenant_staff_identity_deliveries SET status='sent',receipt_payload=r,sent_at=now() WHERE id=d.id; END IF;
+ UPDATE public.company_invitations SET invited_user_id=d.actor_user_id,metadata=metadata||jsonb_build_object('provider_delivery_status','sent','tenant_staff_delivery_id',d.id),updated_at=now() WHERE id=i.id;
+ RETURN jsonb_build_object('actor_user_id',b.actor_user_id,'binding_id',b.id,'binding_version',b.version);
+END $$;
+
+--
 -- Name: gridex_record_utilts_source_validation_v1(uuid, text, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -81990,6 +82362,34 @@ begin
   returning * into v_result;
   return v_result;
 end $_$;
+
+--
+-- Name: gridex_refresh_staff_identity_binding_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_refresh_staff_identity_binding_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE b public.tenant_staff_identity_bindings%rowtype; operator_id uuid:=(p_command->>'operator_user_id')::uuid;
+BEGIN
+ PERFORM public.gridex_staff_identity_registration_v1(p_command,false);
+ PERFORM 1 FROM auth.users u JOIN public.user_profiles profile ON profile.id=u.id WHERE u.id=operator_id FOR SHARE OF u,profile;
+ IF NOT FOUND OR NOT coalesce('users.write'=ANY(public.gridex_staff_actor_permissions_v1((p_command->>'company_id')::uuid,operator_id,true)),false)
+ THEN RAISE EXCEPTION 'staff_identity_rotation_not_authorized' USING ERRCODE='42501'; END IF;
+ SELECT * INTO b FROM public.tenant_staff_identity_bindings WHERE id=(p_command->>'binding_id')::uuid AND company_id=(p_command->>'company_id')::uuid
+  AND api_client_id=(p_command->>'api_client_id')::uuid AND provider_id=(p_command->>'provider_id')::uuid FOR UPDATE;
+ IF NOT FOUND OR b.status NOT IN('pending','active') OR b.version IS DISTINCT FROM (p_command->>'binding_version')::integer
+  OR b.local_auth_issuer IS DISTINCT FROM (p_command->'verified_client'->'staff_tenant_auth'->>'url')||'/auth/v1'
+ THEN RAISE EXCEPTION 'staff_identity_binding_mismatch' USING ERRCODE='42501'; END IF;
+ IF b.provider_configuration IS DISTINCT FROM p_command->'verified_provider' THEN
+  UPDATE public.tenant_staff_identity_bindings SET provider_configuration=p_command->'verified_provider',version=version+1 WHERE id=b.id RETURNING * INTO b;
+  INSERT INTO public.canonical_audit_events(company_id,event_type,aggregate_type,aggregate_id,actor_user_id,reason,idempotency_key,before_state,after_state)
+  VALUES(b.company_id,'TENANT_STAFF_IDENTITY_KEY_ROTATED','tenant_staff_identity',b.id,operator_id,'Explicit staff provider key rotation without identity remap','staff-binding-rotation:'||b.id::text||':'||b.version::text,
+   jsonb_build_object('binding_version',b.version-1),jsonb_build_object('binding_version',b.version,'actor_user_id',b.actor_user_id));
+ END IF;
+ RETURN jsonb_build_object('actor_user_id',b.actor_user_id,'binding_id',b.id,'binding_version',b.version);
+END $$;
 
 --
 -- Name: gridex_register_customer_lifecycle_decision_v1(uuid, uuid, uuid, text, text, uuid, timestamp with time zone, text); Type: FUNCTION; Schema: public; Owner: -
@@ -84390,6 +84790,30 @@ end
 $$;
 
 --
+-- Name: gridex_resolve_staff_identity_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_resolve_staff_identity_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE registration jsonb; b public.tenant_staff_identity_bindings%rowtype;
+BEGIN
+ registration:=public.gridex_staff_identity_registration_v1(p_command,false);
+ IF p_command->>'local_auth_issuer' IS DISTINCT FROM registration->>'auth_issuer'
+  OR (p_command ? 'local_auth_url' AND p_command->>'local_auth_url' IS DISTINCT FROM p_command->'verified_client'->'staff_tenant_auth'->>'url')
+ THEN RAISE EXCEPTION 'staff_identity_issuer_mismatch' USING ERRCODE='42501'; END IF;
+ SELECT * INTO b FROM public.tenant_staff_identity_bindings WHERE company_id=(p_command->>'company_id')::uuid AND api_client_id=(p_command->>'api_client_id')::uuid
+  AND provider_id=(p_command->>'provider_id')::uuid AND local_auth_issuer=p_command->>'local_auth_issuer' AND local_user_id=(p_command->>'local_user_id')::uuid AND status='active' FOR SHARE;
+ IF NOT FOUND OR b.provider_configuration IS DISTINCT FROM p_command->'verified_provider' THEN RAISE EXCEPTION 'staff_identity_binding_missing' USING ERRCODE='42501'; END IF;
+ PERFORM 1 FROM public.company_memberships cm JOIN public.user_profiles profile ON profile.id=cm.user_id JOIN auth.users u ON u.id=cm.user_id
+ WHERE cm.company_id=b.company_id AND cm.user_id=b.actor_user_id FOR SHARE OF cm,profile,u;
+ IF NOT FOUND OR NOT EXISTS(SELECT FROM public.gridex_staff_active_membership_v1(b.company_id,b.actor_user_id))
+ THEN RAISE EXCEPTION 'staff_identity_actor_inactive' USING ERRCODE='42501'; END IF;
+ RETURN jsonb_build_object('actor_user_id',b.actor_user_id,'binding_id',b.id,'binding_version',b.version);
+END $$;
+
+--
 -- Name: gridex_restore_archived_contract(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -86733,6 +87157,73 @@ END;
 $$;
 
 --
+-- Name: gridex_staff_anchor_invitation_email_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_anchor_invitation_email_v1(p_invitation_id uuid, p_company_id uuid, p_actor uuid) RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT d.recipient_email FROM public.tenant_staff_actor_anchors a
+ JOIN public.tenant_staff_identity_bindings b ON b.actor_user_id=a.actor_user_id AND b.company_id=a.company_id AND b.invitation_id=a.invitation_id AND b.status='active'
+ JOIN public.tenant_staff_identity_deliveries d ON d.id=b.delivery_id AND d.company_id=b.company_id AND d.status='sent'
+ WHERE a.actor_user_id=p_actor AND a.company_id=p_company_id AND a.invitation_id=p_invitation_id
+$$;
+
+--
+-- Name: gridex_staff_anchor_no_login_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_anchor_no_login_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE v_actor uuid;
+BEGIN
+ IF TG_TABLE_NAME='users' THEN
+  v_actor:=NEW.id;
+  IF EXISTS(SELECT FROM public.tenant_staff_actor_anchors WHERE actor_user_id=v_actor) AND
+    (NEW.email IS NOT NULL OR NEW.phone IS NOT NULL OR nullif(NEW.encrypted_password,'') IS NOT NULL
+     OR NEW.email_confirmed_at IS NOT NULL OR NEW.phone_confirmed_at IS NOT NULL OR NEW.last_sign_in_at IS NOT NULL
+     OR nullif(NEW.confirmation_token,'') IS NOT NULL OR nullif(NEW.recovery_token,'') IS NOT NULL
+     OR NEW.is_anonymous IS DISTINCT FROM false OR coalesce(NEW.is_super_admin,false))
+  THEN RAISE EXCEPTION 'staff_anchor_has_no_login' USING ERRCODE='23514'; END IF;
+ ELSE
+  v_actor:=nullif(to_jsonb(NEW)->>'user_id','')::uuid;
+  IF EXISTS(SELECT FROM public.tenant_staff_actor_anchors WHERE actor_user_id=v_actor)
+  THEN RAISE EXCEPTION 'staff_anchor_has_no_login' USING ERRCODE='23514'; END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: gridex_staff_assert_external_actor_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_assert_external_actor_v1(p_company uuid, p_actor uuid, p_client uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE c public.integration_api_clients%rowtype; b public.tenant_staff_identity_bindings%rowtype; p public.tenant_customer_identity_providers%rowtype;
+BEGIN
+ SELECT * INTO c FROM public.integration_api_clients WHERE id=p_client AND company_id=p_company FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'staff_identity_client_inactive' USING ERRCODE='42501'; END IF;
+ IF NOT c.metadata ? 'staff_tenant_auth' THEN
+  IF EXISTS(SELECT FROM public.tenant_staff_actor_anchors WHERE actor_user_id=p_actor)
+   OR EXISTS(SELECT FROM public.tenant_staff_identity_bindings WHERE company_id=p_company AND api_client_id=p_client AND actor_user_id=p_actor)
+  THEN RAISE EXCEPTION 'staff_identity_registration_removed' USING ERRCODE='42501'; END IF;
+  RETURN;
+ END IF;
+ SELECT * INTO b FROM public.tenant_staff_identity_bindings WHERE company_id=p_company AND api_client_id=p_client AND actor_user_id=p_actor FOR SHARE;
+ IF NOT FOUND OR b.status<>'active' OR b.local_auth_issuer IS DISTINCT FROM (c.metadata->'staff_tenant_auth'->>'url')||'/auth/v1'
+ THEN RAISE EXCEPTION 'staff_identity_binding_missing' USING ERRCODE='42501'; END IF;
+ SELECT * INTO p FROM public.tenant_customer_identity_providers WHERE id=b.provider_id AND company_id=p_company FOR SHARE;
+ IF NOT FOUND OR NOT p.is_active OR p.purpose<>'staff' OR p.enforcement<>'enforce' OR p.subject_claim<>'sub'
+  OR b.provider_configuration IS DISTINCT FROM jsonb_build_object('kind',p.kind,'issuer',p.issuer,'audience',p.audience,'jwks_uri',p.jwks_uri,'public_jwk',p.public_jwk,'subject_claim',p.subject_claim,'enforcement',p.enforcement)
+ THEN RAISE EXCEPTION 'staff_identity_provider_changed' USING ERRCODE='42501'; END IF;
+END $$;
+
+--
 -- Name: gridex_staff_assert_write_actor_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -86769,6 +87260,7 @@ BEGIN
     WHERE client.id=p_api_client_id AND client.company_id=p_company_id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'staff_api_client_not_in_scope' USING ERRCODE='42501'; END IF;
 
+  PERFORM public.gridex_staff_assert_external_actor_v1(p_company_id,p_actor_user_id,p_api_client_id);
   -- Read eligibility again only after every potentially blocking lock. In
   -- particular, scope removal/revocation while the client lock is pending must
   -- fail before the caller performs a write.
@@ -86855,6 +87347,134 @@ BEGIN
 END$$;
 
 --
+-- Name: gridex_staff_identity_immutable_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_identity_immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_OP IN('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'staff_identity_immutable' USING ERRCODE='23514'; END IF;
+ IF TG_TABLE_NAME='tenant_staff_actor_anchors' OR
+   (TG_TABLE_NAME='tenant_staff_identity_bindings' AND
+    (to_jsonb(NEW)-ARRAY['status','version','revoked_at','provider_configuration']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['status','version','revoked_at','provider_configuration'])) OR
+   (TG_TABLE_NAME='tenant_staff_identity_deliveries' AND
+    (to_jsonb(NEW)-ARRAY['status','receipt_payload','sent_at']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['status','receipt_payload','sent_at']))
+ THEN RAISE EXCEPTION 'staff_identity_immutable' USING ERRCODE='23514'; END IF;
+ IF TG_TABLE_NAME='tenant_staff_identity_bindings' THEN
+  IF NOT ((OLD.status='pending' AND NEW.status='active' AND NEW.version=OLD.version AND NEW.revoked_at IS NULL AND NEW.provider_configuration=OLD.provider_configuration)
+    OR (OLD.status IN('pending','active') AND NEW.status='revoked' AND NEW.version=OLD.version+1 AND NEW.revoked_at IS NOT NULL AND NEW.provider_configuration=OLD.provider_configuration)
+    OR (OLD.status IN('pending','active') AND NEW.status=OLD.status AND NEW.version=OLD.version+1 AND NEW.revoked_at IS NULL AND NEW.provider_configuration IS DISTINCT FROM OLD.provider_configuration)
+    OR NEW IS NOT DISTINCT FROM OLD)
+  THEN RAISE EXCEPTION 'staff_identity_invalid_transition' USING ERRCODE='23514'; END IF;
+ ELSE
+  IF NOT ((OLD.status='prepared' AND NEW.status='sent') OR NEW IS NOT DISTINCT FROM OLD)
+  THEN RAISE EXCEPTION 'staff_identity_delivery_immutable' USING ERRCODE='23514'; END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: company_invitations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.company_invitations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    email text NOT NULL,
+    role text,
+    role_id uuid,
+    status text DEFAULT 'pending'::text NOT NULL,
+    invitation_token text,
+    expires_at timestamp with time zone,
+    accepted_at timestamp with time zone,
+    cancelled_at timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    idempotency_key text,
+    full_name text,
+    membership_role text,
+    role_key text,
+    token uuid,
+    invited_by uuid,
+    accept_token_hash text,
+    invited_user_id uuid,
+    revoked_at timestamp with time zone,
+    invited_email text,
+    CONSTRAINT company_invitations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'delivery_uncertain'::text, 'accepted'::text, 'revoked'::text, 'expired'::text, 'invitation_revoked'::text, 'invited'::text, 'failed'::text])))
+);
+
+--
+-- Name: gridex_staff_identity_invitation_v1(jsonb, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_identity_invitation_v1(p_command jsonb, p_lease boolean DEFAULT false) RETURNS public.company_invitations
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE i public.company_invitations%rowtype; intent jsonb;
+BEGIN
+ SELECT * INTO i FROM public.company_invitations WHERE id=(p_command->>'invitation_id')::uuid AND company_id=(p_command->>'company_id')::uuid FOR UPDATE;
+ IF NOT FOUND OR i.status NOT IN('pending','accepted') OR (i.status='pending' AND (i.expires_at IS NULL OR i.expires_at<=clock_timestamp()))
+ THEN RAISE EXCEPTION 'staff_identity_invitation_invalid' USING ERRCODE='42501'; END IF;
+ SELECT request_payload INTO intent FROM public.canonical_command_results WHERE company_id=i.company_id AND command_type='tenant.invitation.create' AND result_payload->>'invitation_id'=i.id::text FOR SHARE;
+ IF NOT FOUND OR intent->>'company_id' IS DISTINCT FROM i.company_id::text
+  OR NOT (intent->>'channel'='staff_api' OR (intent->>'channel'='ops' AND intent->'external_staff_identity'='true'::jsonb))
+  OR intent->>'staff_operation' IS DISTINCT FROM 'invite' OR intent->>'api_client_id' IS DISTINCT FROM p_command->>'api_client_id'
+ THEN RAISE EXCEPTION 'staff_identity_invitation_client_mismatch' USING ERRCODE='42501'; END IF;
+ IF p_lease THEN
+  PERFORM 1 FROM public.company_provisioning_jobs WHERE id=(p_command->>'provisioning_job_id')::uuid AND company_id=i.company_id
+   AND job_key='auth_invite' AND idempotency_key=i.idempotency_key AND status='processing' AND lease_token=(p_command->>'provisioning_lease_token')::uuid
+   AND lease_token IS NOT NULL FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'staff_identity_delivery_lease_invalid' USING ERRCODE='42501'; END IF;
+ END IF;
+ RETURN i;
+END $$;
+
+--
+-- Name: gridex_staff_identity_registration_v1(jsonb, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_identity_registration_v1(p_command jsonb, p_delivery boolean DEFAULT false) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE c public.integration_api_clients%rowtype; p public.tenant_customer_identity_providers%rowtype; origin text; auth_url text; delivery jsonb;
+BEGIN
+ PERFORM 1 FROM public.companies WHERE id=(p_command->>'company_id')::uuid AND status='active' AND is_active FOR NO KEY UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'staff_identity_company_inactive' USING ERRCODE='42501'; END IF;
+ SELECT * INTO c FROM public.integration_api_clients WHERE id=(p_command->>'api_client_id')::uuid AND company_id=(p_command->>'company_id')::uuid FOR SHARE;
+ IF NOT FOUND OR c.status<>'active' OR c.deleted_at IS NOT NULL OR c.revoked_at IS NOT NULL OR (c.expires_at IS NOT NULL AND c.expires_at<=clock_timestamp())
+  OR NOT EXISTS(SELECT FROM unnest(c.scopes) scope WHERE scope IN('staff_users.read','staff_users.write','staff_customers.read','staff_customers.write','staff_cases.read','staff_cases.write'))
+ THEN RAISE EXCEPTION 'staff_identity_client_inactive' USING ERRCODE='42501'; END IF;
+ origin:=c.metadata->>'staff_onboarding_origin'; auth_url:=c.metadata->'staff_tenant_auth'->>'url'; delivery:=c.metadata->'staff_tenant_delivery';
+ IF origin IS NULL OR origin !~ '^https://([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$' OR origin ~ '\.(localhost|local|internal|test|invalid)$'
+  OR NOT origin=ANY(c.allowed_origins) OR auth_url IS NULL OR auth_url !~ '^https://[a-z0-9]{20}\.supabase\.co$'
+  OR nullif(c.metadata->'staff_tenant_auth'->>'public_key','') IS NULL
+  OR p_command->'verified_client' IS DISTINCT FROM jsonb_build_object('secret_hash',c.secret_hash,'scopes',to_jsonb(c.scopes),'allowed_origins',to_jsonb(c.allowed_origins),
+    'staff_onboarding_origin',origin,'staff_tenant_auth',c.metadata->'staff_tenant_auth','staff_tenant_delivery',delivery)
+ THEN RAISE EXCEPTION 'staff_identity_client_changed' USING ERRCODE='42501'; END IF;
+ IF p_delivery AND (NOT 'staff_users.write'=ANY(c.scopes) OR jsonb_typeof(delivery) IS DISTINCT FROM 'object'
+  OR delivery->>'url' IS DISTINCT FROM origin||'/api/internal/staff/invitations/deliver'
+  OR delivery->>'audience' IS DISTINCT FROM delivery->>'url' OR nullif(delivery->>'issuer','') IS NULL
+  OR nullif(delivery->>'key_id','') IS NULL OR jsonb_typeof(delivery->'request_public_jwk') IS DISTINCT FROM 'object'
+  OR delivery->'request_public_jwk' ?| ARRAY['d','p','q','dp','dq','qi','oth','k']
+  OR delivery->'request_public_jwk'->>'kty' IS DISTINCT FROM 'RSA'
+  OR nullif(delivery->'request_public_jwk'->>'n','') IS NULL OR nullif(delivery->'request_public_jwk'->>'e','') IS NULL
+  OR delivery->'request_public_jwk'->>'kid' IS DISTINCT FROM delivery->>'key_id')
+ THEN RAISE EXCEPTION 'staff_identity_delivery_not_registered' USING ERRCODE='42501'; END IF;
+ SELECT * INTO p FROM public.tenant_customer_identity_providers WHERE id=(p_command->>'provider_id')::uuid AND company_id=c.company_id FOR SHARE;
+ IF NOT FOUND OR NOT p.is_active OR p.purpose<>'staff' OR p.subject_claim<>'sub' OR p.enforcement<>'enforce'
+  OR p_command->'verified_provider' IS DISTINCT FROM jsonb_build_object('kind',p.kind,'issuer',p.issuer,'audience',p.audience,'jwks_uri',p.jwks_uri,'public_jwk',p.public_jwk,'subject_claim',p.subject_claim,'enforcement',p.enforcement)
+ THEN RAISE EXCEPTION 'staff_identity_provider_changed' USING ERRCODE='42501'; END IF;
+ RETURN jsonb_build_object('auth_issuer',auth_url||'/auth/v1','origin',origin);
+END $_$;
+
+--
 -- Name: gridex_staff_normalize_role_v1(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -86923,6 +87543,17 @@ BEGIN
       jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,'customer_id',p_customer_id,'event_id',v_event.id));
   RETURN to_jsonb(v_event);
 END$$;
+
+--
+-- Name: gridex_staff_tenant_onboarding_ready_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_tenant_onboarding_ready_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ PERFORM public.gridex_staff_identity_registration_v1(p_command,true); RETURN 'true'::jsonb;
+END $$;
 
 --
 -- Name: gridex_staff_update_customer_case_status(uuid, uuid, uuid, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -91927,6 +92558,20 @@ select array_remove(array[
 $_$;
 
 --
+-- Name: gridex_validate_staff_identity_binding_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_validate_staff_identity_binding_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$ DECLARE result jsonb; BEGIN
+ result:=public.gridex_resolve_staff_identity_v1(p_command);
+ IF result->>'binding_id' IS DISTINCT FROM p_command->>'binding_id' OR result->>'binding_version' IS DISTINCT FROM p_command->>'binding_version' OR result->>'actor_user_id' IS DISTINCT FROM p_command->>'actor_user_id'
+ THEN RAISE EXCEPTION 'staff_identity_binding_mismatch' USING ERRCODE='42501'; END IF;
+ RETURN result;
+END $$;
+
+--
 -- Name: gridex_validate_website_application_portal_identity(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -95772,6 +96417,26 @@ CREATE TABLE gridex_ediel_inbound_receptions.response_requests (
 );
 
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: technical_mailbox_births; Type: TABLE; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TABLE gridex_ediel_inbound_receptions.technical_mailbox_births (
+    inbound_email_message_id uuid NOT NULL,
+    raw_snapshot_hash text NOT NULL,
+    mailbox_id uuid NOT NULL,
+    environment text NOT NULL,
+    mailbox_company_id uuid,
+    mailbox_shared boolean NOT NULL,
+    smtp_address text NOT NULL,
+    observed_at timestamp with time zone NOT NULL,
+    CONSTRAINT technical_mailbox_births_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT technical_mailbox_births_raw_snapshot_hash_check CHECK ((raw_snapshot_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT technical_mailbox_births_smtp_address_check CHECK ((smtp_address ~ '^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'::text))
+);
+
+ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: consumptions; Type: TABLE; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -104468,39 +105133,6 @@ CREATE TABLE public.company_email_templates (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
---
--- Name: company_invitations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.company_invitations (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    email text NOT NULL,
-    role text,
-    role_id uuid,
-    status text DEFAULT 'pending'::text NOT NULL,
-    invitation_token text,
-    expires_at timestamp with time zone,
-    accepted_at timestamp with time zone,
-    cancelled_at timestamp with time zone,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    idempotency_key text,
-    full_name text,
-    membership_role text,
-    role_key text,
-    token uuid,
-    invited_by uuid,
-    accept_token_hash text,
-    invited_user_id uuid,
-    revoked_at timestamp with time zone,
-    invited_email text,
-    CONSTRAINT company_invitations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'delivery_uncertain'::text, 'accepted'::text, 'revoked'::text, 'expired'::text, 'invitation_revoked'::text, 'invited'::text, 'failed'::text])))
 );
 
 --
@@ -119377,7 +120009,8 @@ CREATE TABLE public.tenant_ediel_profiles (
     valid_to timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT tenant_ediel_profiles_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text))
+    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text)),
+    CONSTRAINT tenant_ediel_profiles_validity_order CHECK (((valid_to IS NULL) OR (valid_to >= valid_from)))
 );
 
 ALTER TABLE ONLY public.tenant_ediel_profiles FORCE ROW LEVEL SECURITY;
@@ -119789,6 +120422,17 @@ CREATE TABLE public.tenant_portal_customer_links (
 );
 
 --
+-- Name: tenant_staff_actor_anchors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_staff_actor_anchors (
+    actor_user_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    invitation_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
 -- Name: tenant_staff_assertion_replays; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -119805,6 +120449,55 @@ CREATE TABLE public.tenant_staff_assertion_replays (
 --
 
 COMMENT ON TABLE public.tenant_staff_assertion_replays IS 'Staff API replay protection; customer and staff jti namespaces are intentionally separate.';
+
+--
+-- Name: tenant_staff_identity_bindings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_staff_identity_bindings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    api_client_id uuid NOT NULL,
+    provider_id uuid NOT NULL,
+    local_auth_issuer text NOT NULL,
+    local_user_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    provider_configuration jsonb NOT NULL,
+    invitation_id uuid,
+    delivery_id uuid,
+    status text DEFAULT 'pending'::text NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT tenant_staff_identity_bindings_check CHECK (((invitation_id IS NULL) = (delivery_id IS NULL))),
+    CONSTRAINT tenant_staff_identity_bindings_check1 CHECK (((status = 'revoked'::text) = (revoked_at IS NOT NULL))),
+    CONSTRAINT tenant_staff_identity_bindings_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'revoked'::text]))),
+    CONSTRAINT tenant_staff_identity_bindings_version_check CHECK ((version >= 1))
+);
+
+--
+-- Name: tenant_staff_identity_deliveries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_staff_identity_deliveries (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    api_client_id uuid NOT NULL,
+    provider_id uuid NOT NULL,
+    invitation_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    local_auth_issuer text NOT NULL,
+    recipient_email text NOT NULL,
+    request_payload jsonb NOT NULL,
+    request_hash text NOT NULL,
+    status text DEFAULT 'prepared'::text NOT NULL,
+    receipt_payload jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    sent_at timestamp with time zone,
+    CONSTRAINT tenant_staff_identity_deliveries_check CHECK ((((status = 'prepared'::text) AND (receipt_payload IS NULL) AND (sent_at IS NULL)) OR ((status = 'sent'::text) AND (receipt_payload IS NOT NULL) AND (sent_at IS NOT NULL)))),
+    CONSTRAINT tenant_staff_identity_deliveries_request_hash_check CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT tenant_staff_identity_deliveries_status_check CHECK ((status = ANY (ARRAY['prepared'::text, 'sent'::text])))
+);
 
 --
 -- Name: tenant_website_installation_receipts; Type: TABLE; Schema: public; Owner: -
@@ -121364,6 +122057,13 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
 
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
     ADD CONSTRAINT response_requests_reception_id_key UNIQUE (reception_id);
+
+--
+-- Name: technical_mailbox_births technical_mailbox_births_pkey; Type: CONSTRAINT; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
+    ADD CONSTRAINT technical_mailbox_births_pkey PRIMARY KEY (inbound_email_message_id);
 
 --
 -- Name: consumptions consumptions_pkey; Type: CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -128030,6 +128730,13 @@ ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_company_id_environment_market_valid_f_key UNIQUE (company_id, environment, market, valid_from);
 
 --
+-- Name: tenant_ediel_profiles tenant_ediel_profiles_enabled_period_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_ediel_profiles
+    ADD CONSTRAINT tenant_ediel_profiles_enabled_period_excl EXCLUDE USING gist (company_id WITH =, environment WITH =, market WITH =, tstzrange(valid_from, valid_to, '[)'::text) WITH &&) WHERE (is_enabled);
+
+--
 -- Name: tenant_ediel_profiles tenant_ediel_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -128177,11 +128884,88 @@ ALTER TABLE ONLY public.tenant_portal_customer_links
     ADD CONSTRAINT tenant_portal_customer_links_pkey PRIMARY KEY (id);
 
 --
+-- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_actor_user_id_company_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_actor_anchors
+    ADD CONSTRAINT tenant_staff_actor_anchors_actor_user_id_company_id_key UNIQUE (actor_user_id, company_id);
+
+--
+-- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_invitation_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_actor_anchors
+    ADD CONSTRAINT tenant_staff_actor_anchors_invitation_id_key UNIQUE (invitation_id, company_id);
+
+--
+-- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_actor_anchors
+    ADD CONSTRAINT tenant_staff_actor_anchors_pkey PRIMARY KEY (actor_user_id);
+
+--
 -- Name: tenant_staff_assertion_replays tenant_staff_assertion_replays_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tenant_staff_assertion_replays
     ADD CONSTRAINT tenant_staff_assertion_replays_pkey PRIMARY KEY (company_id, jti);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_binding_company_id_api_client_id_acto_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_binding_company_id_api_client_id_acto_key UNIQUE (company_id, api_client_id, actor_user_id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_binding_company_id_provider_id_local__key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_binding_company_id_provider_id_local__key UNIQUE (company_id, provider_id, local_auth_issuer, local_user_id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_invitation_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_invitation_id_key UNIQUE (invitation_id, company_id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliver_id_company_id_actor_user_id_a_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliver_id_company_id_actor_user_id_a_key UNIQUE (id, company_id, actor_user_id, api_client_id, provider_id, invitation_id, local_auth_issuer);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_id_company_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_id_company_id_key UNIQUE (id, company_id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_invitation_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_invitation_id_key UNIQUE (invitation_id, company_id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_pkey PRIMARY KEY (id);
 
 --
 -- Name: tenant_website_installation_receipts tenant_website_installation_r_company_id_environment_profil_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -138202,6 +138986,48 @@ CREATE INDEX spot_price_import_jobs_due_idx ON public.spot_price_import_jobs USI
 CREATE INDEX spot_price_import_jobs_running_idx ON public.spot_price_import_jobs USING btree (started_at) WHERE (status = 'running'::text);
 
 --
+-- Name: staff_client_company_identity_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX staff_client_company_identity_key ON public.integration_api_clients USING btree (id, company_id);
+
+--
+-- Name: staff_identity_binding_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_identity_binding_actor ON public.tenant_staff_identity_bindings USING btree (actor_user_id);
+
+--
+-- Name: staff_identity_binding_delivery; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_identity_binding_delivery ON public.tenant_staff_identity_bindings USING btree (delivery_id, company_id);
+
+--
+-- Name: staff_identity_delivery_client; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_identity_delivery_client ON public.tenant_staff_identity_deliveries USING btree (api_client_id, company_id);
+
+--
+-- Name: staff_identity_delivery_provider; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_identity_delivery_provider ON public.tenant_staff_identity_deliveries USING btree (provider_id, company_id);
+
+--
+-- Name: staff_invitation_company_identity_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX staff_invitation_company_identity_key ON public.company_invitations USING btree (id, company_id);
+
+--
+-- Name: staff_provider_company_identity_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX staff_provider_company_identity_key ON public.tenant_customer_identity_providers USING btree (id, company_id);
+
+--
 -- Name: supplier_switch_requests_application_contract_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -140497,6 +141323,12 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_recepti
 CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_receptions.response_requests FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: technical_mailbox_births immutable_receipt; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_receptions.technical_mailbox_births FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
 -- Name: receptions immutable_truncate; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
 --
 
@@ -140507,6 +141339,12 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_recept
 --
 
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.response_requests FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: technical_mailbox_births immutable_truncate; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.technical_mailbox_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
 
 --
 -- Name: consumptions immutable_rows; Type: TRIGGER; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -143389,6 +144227,12 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.o
 CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.revocations FOR EACH ROW EXECUTE FUNCTION gridex_transport_exception.immutable_v1();
 
 --
+-- Name: raw_births ediel_original_technical_mailbox_birth; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER ediel_original_technical_mailbox_birth AFTER INSERT ON gridex_unattributed_intake.raw_births FOR EACH ROW EXECUTE FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1();
+
+--
 -- Name: physical_claims gridex_complete_physical_claim; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
 --
 
@@ -145495,6 +146339,42 @@ CREATE TRIGGER spot_price_monthly_locked_immutable BEFORE DELETE OR UPDATE ON pu
 --
 
 CREATE TRIGGER spot_price_monthly_server_aggregate_v1 BEFORE INSERT OR UPDATE ON public.spot_price_monthly_summaries FOR EACH ROW WHEN ((pg_trigger_depth() = 0)) EXECUTE FUNCTION public.gridex_enforce_spot_price_month_server_aggregate_v1();
+
+--
+-- Name: tenant_staff_actor_anchors staff_identity_anchor_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_identity_anchor_immutable BEFORE DELETE OR UPDATE ON public.tenant_staff_actor_anchors FOR EACH ROW EXECUTE FUNCTION public.gridex_staff_identity_immutable_v1();
+
+--
+-- Name: tenant_staff_actor_anchors staff_identity_anchor_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_identity_anchor_no_truncate BEFORE TRUNCATE ON public.tenant_staff_actor_anchors FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_staff_identity_immutable_v1();
+
+--
+-- Name: tenant_staff_identity_bindings staff_identity_binding_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_identity_binding_immutable BEFORE DELETE OR UPDATE ON public.tenant_staff_identity_bindings FOR EACH ROW EXECUTE FUNCTION public.gridex_staff_identity_immutable_v1();
+
+--
+-- Name: tenant_staff_identity_bindings staff_identity_binding_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_identity_binding_no_truncate BEFORE TRUNCATE ON public.tenant_staff_identity_bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_staff_identity_immutable_v1();
+
+--
+-- Name: tenant_staff_identity_deliveries staff_identity_delivery_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_identity_delivery_immutable BEFORE DELETE OR UPDATE ON public.tenant_staff_identity_deliveries FOR EACH ROW EXECUTE FUNCTION public.gridex_staff_identity_immutable_v1();
+
+--
+-- Name: tenant_staff_identity_deliveries staff_identity_delivery_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_identity_delivery_no_truncate BEFORE TRUNCATE ON public.tenant_staff_identity_deliveries FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_staff_identity_immutable_v1();
 
 --
 -- Name: supplier_switch_requests supplier_switch_requests_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
@@ -147839,6 +148719,13 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
 
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
     ADD CONSTRAINT response_requests_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: technical_mailbox_births technical_mailbox_births_inbound_email_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
+    ADD CONSTRAINT technical_mailbox_births_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES gridex_unattributed_intake.raw_births(inbound_email_message_id);
 
 --
 -- Name: consumptions consumptions_witness_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -158999,11 +159886,123 @@ ALTER TABLE ONLY public.tenant_portal_customer_links
     ADD CONSTRAINT tenant_portal_customer_links_customer_company_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 --
+-- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_actor_anchors
+    ADD CONSTRAINT tenant_staff_actor_anchors_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_actor_anchors
+    ADD CONSTRAINT tenant_staff_actor_anchors_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: tenant_staff_actor_anchors tenant_staff_actor_anchors_invitation_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_actor_anchors
+    ADD CONSTRAINT tenant_staff_actor_anchors_invitation_id_company_id_fkey FOREIGN KEY (invitation_id, company_id) REFERENCES public.company_invitations(id, company_id);
+
+--
 -- Name: tenant_staff_assertion_replays tenant_staff_assertion_replays_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tenant_staff_assertion_replays
     ADD CONSTRAINT tenant_staff_assertion_replays_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_binding_delivery_id_company_id_actor_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_binding_delivery_id_company_id_actor_fkey FOREIGN KEY (delivery_id, company_id, actor_user_id, api_client_id, provider_id, invitation_id, local_auth_issuer) REFERENCES public.tenant_staff_identity_deliveries(id, company_id, actor_user_id, api_client_id, provider_id, invitation_id, local_auth_issuer);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_api_client_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_api_client_id_company_id_fkey FOREIGN KEY (api_client_id, company_id) REFERENCES public.integration_api_clients(id, company_id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_delivery_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_delivery_id_company_id_fkey FOREIGN KEY (delivery_id, company_id) REFERENCES public.tenant_staff_identity_deliveries(id, company_id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_invitation_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_invitation_id_company_id_fkey FOREIGN KEY (invitation_id, company_id) REFERENCES public.company_invitations(id, company_id);
+
+--
+-- Name: tenant_staff_identity_bindings tenant_staff_identity_bindings_provider_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_bindings
+    ADD CONSTRAINT tenant_staff_identity_bindings_provider_id_company_id_fkey FOREIGN KEY (provider_id, company_id) REFERENCES public.tenant_customer_identity_providers(id, company_id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_actor_user_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_actor_user_id_company_id_fkey FOREIGN KEY (actor_user_id, company_id) REFERENCES public.tenant_staff_actor_anchors(actor_user_id, company_id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_api_client_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_api_client_id_company_id_fkey FOREIGN KEY (api_client_id, company_id) REFERENCES public.integration_api_clients(id, company_id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_invitation_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_invitation_id_company_id_fkey FOREIGN KEY (invitation_id, company_id) REFERENCES public.company_invitations(id, company_id);
+
+--
+-- Name: tenant_staff_identity_deliveries tenant_staff_identity_deliveries_provider_id_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_identity_deliveries
+    ADD CONSTRAINT tenant_staff_identity_deliveries_provider_id_company_id_fkey FOREIGN KEY (provider_id, company_id) REFERENCES public.tenant_customer_identity_providers(id, company_id);
 
 --
 -- Name: tenant_website_installation_receipts tenant_website_installation_receipts_api_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -160068,6 +161067,12 @@ ALTER TABLE gridex_ediel_inbound_receptions.receptions ENABLE ROW LEVEL SECURITY
 --
 
 ALTER TABLE gridex_ediel_inbound_receptions.response_requests ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: technical_mailbox_births; Type: ROW SECURITY; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+ALTER TABLE gridex_ediel_inbound_receptions.technical_mailbox_births ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: consumptions; Type: ROW SECURITY; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -179707,10 +180712,28 @@ ALTER TABLE public.tenant_portal_customer_links ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_portal_customer_links_service_role_all ON public.tenant_portal_customer_links TO service_role USING (true) WITH CHECK (true);
 
 --
+-- Name: tenant_staff_actor_anchors; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_staff_actor_anchors ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: tenant_staff_assertion_replays; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.tenant_staff_assertion_replays ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tenant_staff_identity_bindings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_staff_identity_bindings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tenant_staff_identity_deliveries; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_staff_identity_deliveries ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: tenant_website_installation_receipts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -182250,6 +183273,12 @@ REVOKE ALL ON FUNCTION gridex_ediel_inbound_context.require_v1(p_company_id uuid
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.authorize_v1(c uuid, actor uuid, permission text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION capture_technical_mailbox_birth_v1(); Type: ACL; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION guard_original_v1(); Type: ACL; Schema: gridex_ediel_inbound_receptions; Owner: -
@@ -189319,6 +190348,20 @@ GRANT ALL ON FUNCTION public.ediel_witness_confirmed_customer_source_v1(p_compan
 GRANT ALL ON FUNCTION public.ensure_customer_invoice_reference_v1() TO service_role;
 
 --
+-- Name: FUNCTION gridex_accept_external_staff_invitation_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_accept_external_staff_invitation_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_accept_external_staff_invitation_v1(p_command jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_accept_staff_invitation_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_acquire_automation_lock(p_lock_key text, p_lock_token uuid, p_company_id uuid, p_ttl_seconds integer, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -190456,6 +191499,13 @@ GRANT ALL ON FUNCTION public.gridex_create_customer_info_request_v1(p_company_id
 
 REVOKE ALL ON FUNCTION public.gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_create_external_staff_invitation_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_external_staff_invitation_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_external_staff_invitation_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb); Type: ACL; Schema: public; Owner: -
@@ -191866,6 +192916,13 @@ REVOKE ALL ON FUNCTION public.gridex_lonlat_to_grid_area(p_longitude numeric, p_
 GRANT ALL ON FUNCTION public.gridex_lonlat_to_grid_area(p_longitude numeric, p_latitude numeric) TO service_role;
 
 --
+-- Name: FUNCTION gridex_lookup_pending_staff_identity_binding_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_lookup_pending_staff_identity_binding_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_lookup_pending_staff_identity_binding_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_luhn_valid(p_value text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -192342,6 +193399,13 @@ GRANT ALL ON FUNCTION public.gridex_prepare_manual_contract_binding(p_company_id
 --
 
 REVOKE ALL ON FUNCTION public.gridex_prepare_signature_before_record_retention_v1(p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_token_hash text, p_recipient_email text, p_expires_at timestamp with time zone, p_actor_user_id uuid, p_channel text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_prepare_staff_identity_delivery_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_prepare_staff_identity_delivery_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_prepare_staff_identity_delivery_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_prevent_locked_portfolio_price_mutation(); Type: ACL; Schema: public; Owner: -
@@ -192862,6 +193926,13 @@ REVOKE ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_record_staff_identity_delivery_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_staff_identity_delivery_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_staff_identity_delivery_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_record_utilts_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text, p_transaction_facts_text text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -192937,6 +194008,13 @@ GRANT ALL ON TABLE public.platform_runtime_readiness TO service_role;
 
 REVOKE ALL ON FUNCTION public.gridex_refresh_platform_runtime_readiness_v1(p_schema_version text, p_deployment_id text, p_migration_version text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_refresh_platform_runtime_readiness_v1(p_schema_version text, p_deployment_id text, p_migration_version text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_refresh_staff_identity_binding_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_refresh_staff_identity_binding_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_refresh_staff_identity_binding_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_register_customer_lifecycle_decision_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_decision_type text, p_scope_type text, p_scope_id uuid, p_received_at timestamp with time zone, p_reason text); Type: ACL; Schema: public; Owner: -
@@ -193215,6 +194293,13 @@ REVOKE ALL ON FUNCTION public.gridex_resolve_partner_api_offer_v1(p_company_id u
 GRANT ALL ON FUNCTION public.gridex_resolve_partner_api_offer_v1(p_company_id uuid, p_offer_reference text, p_customer_type text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_resolve_staff_identity_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_resolve_staff_identity_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_resolve_staff_identity_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_restore_archived_contract(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -193428,6 +194513,24 @@ REVOKE ALL ON FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uui
 GRANT ALL ON FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean) TO service_role;
 
 --
+-- Name: FUNCTION gridex_staff_anchor_invitation_email_v1(p_invitation_id uuid, p_company_id uuid, p_actor uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_anchor_invitation_email_v1(p_invitation_id uuid, p_company_id uuid, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_staff_anchor_no_login_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_anchor_no_login_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_staff_assert_external_actor_v1(p_company uuid, p_actor uuid, p_client uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_assert_external_actor_v1(p_company uuid, p_actor uuid, p_client uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -193447,6 +194550,31 @@ GRANT ALL ON FUNCTION public.gridex_staff_customer_id_for_reference_v1(p_company
 
 REVOKE ALL ON FUNCTION public.gridex_staff_customer_search_v1(p_company_id uuid, p_query text, p_page integer, p_page_size integer, p_status text, p_customer_type text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_staff_customer_search_v1(p_company_id uuid, p_query text, p_page integer, p_page_size integer, p_status text, p_customer_type text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_identity_immutable_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_identity_immutable_v1() FROM PUBLIC;
+
+--
+-- Name: TABLE company_invitations; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.company_invitations TO authenticated;
+GRANT ALL ON TABLE public.company_invitations TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_identity_invitation_v1(p_command jsonb, p_lease boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_identity_invitation_v1(p_command jsonb, p_lease boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_staff_identity_registration_v1(p_command jsonb, p_delivery boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_identity_registration_v1(p_command jsonb, p_delivery boolean) FROM PUBLIC;
 
 --
 -- Name: FUNCTION gridex_staff_normalize_role_v1(p_role_key text); Type: ACL; Schema: public; Owner: -
@@ -193475,6 +194603,13 @@ GRANT ALL ON FUNCTION public.gridex_staff_role_profile_v1(p_role_key text) TO se
 
 REVOKE ALL ON FUNCTION public.gridex_staff_support_event(p_company_id uuid, p_case_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_event_type text, p_message text, p_payload jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_staff_support_event(p_company_id uuid, p_case_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_event_type text, p_message text, p_payload jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_tenant_onboarding_ready_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_tenant_onboarding_ready_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_tenant_onboarding_ready_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_staff_update_customer_case_status(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_status text, p_expected_source text, p_message text); Type: ACL; Schema: public; Owner: -
@@ -193944,6 +195079,13 @@ GRANT ALL ON FUNCTION public.gridex_validate_price_option_publication_v1(p_compa
 
 REVOKE ALL ON FUNCTION public.gridex_validate_publication_graph_v1(p_publication_version_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_validate_publication_graph_v1(p_publication_version_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_validate_staff_identity_binding_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_validate_staff_identity_binding_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_validate_staff_identity_binding_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_validate_website_application_portal_identity(); Type: ACL; Schema: public; Owner: -
@@ -195160,13 +196302,6 @@ GRANT ALL ON TABLE public.company_email_settings TO service_role;
 
 GRANT ALL ON TABLE public.company_email_templates TO authenticated;
 GRANT ALL ON TABLE public.company_email_templates TO service_role;
-
---
--- Name: TABLE company_invitations; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.company_invitations TO authenticated;
-GRANT ALL ON TABLE public.company_invitations TO service_role;
 
 --
 -- Name: TABLE company_market_party_routes; Type: ACL; Schema: public; Owner: -

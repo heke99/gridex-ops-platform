@@ -1,0 +1,80 @@
+{
+  "schema": "gridex-combined066-source-only-guard/v1",
+  "verdict": "APPROVE_SOURCE_ONLY_PRESERVATION_AND_EXACT_REVIEWED_GOV08_UNION_CAPTURE_PENDING",
+  "created_at": "2026-10-05T19:14:32.190464+00:00",
+  "candidate": "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+  "candidate_tree": "f9ebdbc719e52c31810c3b646641e7b2c1b3b0c1",
+  "genuine_ordered_parents": [
+    "3251d20a8b9fe0294367977dca49de65aabe7513",
+    "eca119cb5bd016cfe27d70720783fb08ad8970d1"
+  ],
+  "pinned_main_at_composition": "3251d20a8b9fe0294367977dca49de65aabe7513",
+  "public_reviewed_GOV08_head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+  "later_main_not_adopted_or_qualified_by_this_receipt": "4b179ee45dce580142f0684e330675fe9e033d69",
+  "preserved": {
+    "all_main_app_lib_and_root13_source_blobs_exact": true,
+    "root13_pinset_exact_historical5be": true,
+    "F3_approved_gate_test_pair_exact_prior10f4_and_main": true,
+    "generated3_outputs_exact_main_and_prior_authentic5be": true,
+    "every1073_existing_SQL_path_blob_mode_exact_main": true,
+    "all_other_main_blobs_and_modes_exact_except20_reviewed_GOV08_delta_paths": true,
+    "all19_nonledger_delta_paths_exact_public_GOV08_head": true,
+    "existing_authority_tests_all_previous_lines_assertions_retained_with_additions": true,
+    "native_config_existing_bytes_exact_after_single_newtest_registration_removed": true,
+    "migration_manifest_all_existing_entries_exact_plus_single9da_entry": true
+  },
+  "only_new_SQL": {
+    "path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+    "sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
+    "blob": "14cead09ae5d5a7d9b1d21351a0ad724e6d39664",
+    "exact_approved_owner_source": true,
+    "main_SQL_count": 1073,
+    "candidate_SQL_count": 1074,
+    "candidate_migration_tree": "078d1c39b3351845bb1b575ab027b84df7194d9e",
+    "scope": "Previously whole-reviewed GOV08 original outcome conflict/isolation/canonical integer step guard. No duplicated whole SQL/native review or current execution claim."
+  },
+  "SC068_author_fixture": {
+    "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+    "original_author_correction_commit": "a7eb3a1acbb226ec2715da0a39b23ec6427be3c8",
+    "approved_blob": "2f32623b0d7161b40ce2fe4ddde2b18081deb470",
+    "sha256": "412298f5ce479d4c56dc77fc359af970f9b83c0816410f74add20a05f1883132",
+    "exact_original_author_and_admitted609_postimage": true,
+    "admitted609_pointer_only": "4b179ee45dce580142f0684e330675fe9e033d69",
+    "effect": "Two fixture lines retain actual initial.policy.timeAnchors in catalog/historical diagnostic policy, preserving the original copied-decision authority-negative assertions. No manufactured opaque authority or assertion replacement."
+  },
+  "coverage": {
+    "all352_IDs_order_and_main_metadata_exact": true,
+    "foreign350_ordered_complete_rows_and_evidence_exact_main": true,
+    "foreign350_ordered_rows_sha256": "9165b2c9accf2c47068da7443b66bd3a501254739a3489b38a58d7d052b6d96b",
+    "only_owned_promotions": {
+      "GOV-08": "VERIFIED",
+      "AT-GOV-08": "PASSED"
+    },
+    "owned_rows_and_evidence_exact_reviewed_public_GOV08_head": true,
+    "main_PASSED_or_VERIFIED": 260,
+    "candidate_PASSED_or_VERIFIED": 262,
+    "root6_now_foreign_rows_and_evidence_preserved": true
+  },
+  "manifest_origin_history": {
+    "path": "scripts/supabase-types-manifest.json",
+    "sha256": "5c7f4d94c83383868eaef0fef0d76d5671957ccf8490bb084b4ab1146eb33fe1",
+    "all_complete_old_main_JSON_values_and_nested_origin_history_exact_except3_pending_note_fields": true,
+    "intentional_changed_scalar_fields": [
+      "composition_capture_pending",
+      "composition_capture_pending_scope",
+      "composition_note"
+    ],
+    "only_added_key": "gov08_previous_manifest_before_f88",
+    "nested_complete_original_GOV_manifest": "d0a85ac78307699b1f86aff4bba36360617f5676",
+    "original_GOV_manifest_sha256": "0b41ab9b13baa504a5c9c3abf2ad91caa78672fd411e3f22b6591f697b2a766d",
+    "nested_original_exact_actual_original_blob_JSON": true,
+    "historical_root_capture_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "historical_root_capture_run": "37319901610",
+    "original_native_browser_typeschema_upgrade_flags": "NOT_RUN",
+    "composition_capture_pending": true,
+    "generated3_not_current1074_SQL_prefix_capture_or_parity": true,
+    "historical43f_d0a_capture_native_receipts_not_relabelled_current": true
+  },
+  "skill_routing": "Scoped differential/source preservation and verification-before-completion; Supabase guidance for SQL/source/capture separation. Implementation, broad audit/security scan, native execution, test rerun and hosted actions skipped because this is source-only preservation of already reviewed owner changes.",
+  "limits": "Source-only local candidate066 at pinned3251+publiceca; latest4b admission is used only to authenticate unchanged approved fixture. No assertion that066 adopts4b or that current main has been qualified. No tests/native/CI/capture/wholeGov rerun, hosted operation, source/index/ref/sharedmemory/coverage/generated mutation, push, merge or publication. Own immutable public-safe JSON only. Current1074-prefix capture and current-head mandatory gates remain pending and root-owned; historical5be source/capture attribution unchanged."
+}

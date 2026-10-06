@@ -1,0 +1,33 @@
+{
+  "scope": "EXACT_ORIGINAL_TWO_ORACLE_HANDOFF_ADOPTED_ONCE_NO_NEW_IMPLEMENTATION",
+  "actual_main_carried": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "genuine_carry_head": "fd9710f9e9d9b56b7e709a3a0d4b6ec3e2ebbe17",
+  "ordered_parents": [
+    "933792302362e4cf98b8c16501c970918cfa19c2",
+    "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2"
+  ],
+  "original_source_only_ready_receipt_sha256": "a6835a4e60339ac39b03e6f899176bd62e7091485cb57b5230d86da964b499c5",
+  "original_public_patch_sha256": "723254780937ce5043a063482dd64942838a86cc12d0e24bf0fa3a5cbc7d61e1",
+  "original_public_patch_bytes": 7589,
+  "release": "https://github.com/heke99/gridex-ops-platform/pull/578#issuecomment-6003893283",
+  "one_operator_ack": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005413298",
+  "adopted_paths": {
+    "scripts/canonical-runtime-consistency-regression.cjs": {
+      "preimage_blob": "92a75dd0b62b6a64623fef4dcfe018cc93ea05f7",
+      "postimage_blob": "fcae2fd344b5686b6b0c6b64976c319de8456ecd",
+      "postimage_sha256": "348fb5e053c688fdc6c0a9f0a039f060efe8fe07d5f43d831441ee2b623606c8"
+    },
+    "__tests__/staff-api-openapi.test.ts": {
+      "preimage_blob": "c72afb09e24c7aaa66ae94d41b20b16c84c5aee9",
+      "postimage_blob": "378984abc0ff1da6c459e04efea1282d08b8ee4e",
+      "postimage_sha256": "5fe84f326ff60f31a727e0c53c2c0428f0c6d010cb82f75437391e3bc5841964"
+    }
+  },
+  "unused_quote_hunk": "EXCLUDED_ORIGINAL612_ALREADY_DELIVERED",
+  "all_old_generator_manifest_and_SQL_inputs": "UNCHANGED",
+  "SQL_files": 1078,
+  "capture": "PENDING_SINGLE_FINAL_UNION_CAPTURE",
+  "native_current_union": "NOT_RUN",
+  "CI_current_union": "NOT_RUN",
+  "new_masterplan_work": false
+}

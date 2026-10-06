@@ -1,0 +1,657 @@
+{
+  "scope": "Authentic current18f terminal clean/native failure diagnosis only; no successor qualification or main admission",
+  "recorded_at_utc": "2026-10-06T05:28:27.655293+00:00",
+  "source": {
+    "head": "18f9325942ad8fa36f077b65a1ba0be319034736",
+    "tree": "dcaeb1754408105f46e92b499c067addc4a3bed8",
+    "parent": "bdf7207ff950df44cdbed72f811c3d0930ddceaf",
+    "base": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+  },
+  "producer": {
+    "run": 37413134902,
+    "job": 112105888880,
+    "attempt": 1,
+    "runner": 1000044041,
+    "job_end": "2026-10-06T05:17:36Z",
+    "conclusion": "failure",
+    "step7_start": "2026-10-06T04:20:10Z",
+    "step7_end": "2026-10-06T05:17:31Z"
+  },
+  "artifact": {
+    "id": 11392187060,
+    "name": "gridex-rem-002-clean-replay",
+    "created_at": "2026-10-06T05:17:34Z",
+    "bytes": 16425555,
+    "zip_sha256": "17e49c27aa3fcf30f15c5f81d313604679b86e0481acc24ee21d7e2c432791cb",
+    "unique_members": 57,
+    "CRC": "PASS",
+    "source_bound_via_authentic_metadata_and_typed_observer": true
+  },
+  "terminalSTOP": {
+    "file": "pr614-18f-terminal-disposition-stop-20261006051919.json",
+    "sha256": "a674a80bf4d06944a38a8fdd4efbfd9652b10ea97bb1fe9c4512483cc77bcf3b",
+    "all12_terminal": true,
+    "success": 10,
+    "failure": 2,
+    "no_manual_controls": true
+  },
+  "all_JUnit": [
+    {
+      "member": "rem002-native-junit.xml",
+      "cases": 694,
+      "failures": [
+        {
+          "class": "scripts/ediel-outbound-ack-replay-native.test.ts",
+          "name": "atomically mints common negative ACK, rolls back the last event write, serializes same/opposite races and holds prewrite/replay grant revocation",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "actual canonical consumer persists two independent same-code E87 ERRs, no forbidden effects, stable retry and positive control",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "SC-047 real inbound admission rejects a foreign-only object with E10 on its TN and accepts the own-tenant contrast without creating master data",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "actual mixed consumer keeps positive, guide-negative and two E87 ERR reservations and ACK wire scopes separate",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "SC-044 exact three-IDE consumer stores only accepted data and finalizes independent positive, guide-negative and functional responses on stable retry",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "actual direct consumer refuses UNT count before application responses or accepted storage on stable retry",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "actual direct consumer refuses UNH/UNT reference before application responses or accepted storage on stable retry",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "SC-045 actual header rejection emits one message-scope U-APERAK without invented ACW or later functional effects and retries stably",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "committed first ERR and reservation survive an interruption before second ACK, then converge without rewriting",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-utilts-err-gateway-native.test.ts",
+          "name": "actual canonical functional owner and native reservations qualify same/different IDE races atomically without business storage",
+          "message": "ediel_reception_actor_forbidden",
+          "failure_xml": "<failure message=\"ediel_reception_actor_forbidden\">\nUnknown Error: ediel_reception_actor_forbidden\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nSerialized Error: { code: '42501', details: null, hint: null }\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-z04-ack-native.test.ts",
+          "name": "real inbound Z04 missing-header-code holds unowned physical codes and persists only qualified ACK intent, retry-stable without business state",
+          "message": "expected [ [ 'APERAK', 'negative' ], \u2026(1) ] to deeply equal [ [ 'CONTRL', 'positive' ] ]",
+          "failure_xml": "<failure message=\"expected [ [ 'APERAK', 'negative' ], \u2026(1) ] to deeply equal [ [ 'CONTRL', 'positive' ] ]\" type=\"AssertionError\">\nAssertionError: expected [ [ 'APERAK', 'negative' ], \u2026(1) ] to deeply equal [ [ 'CONTRL', 'positive' ] ]\n\n- Expected\n+ Received\n\n  [\n    [\n+     \"APERAK\",\n+     \"negative\",\n+   ],\n+   [\n      \"CONTRL\",\n      \"positive\",\n    ],\n  ]\n\n \u276f scripts/ediel-z04-ack-native.test.ts:132:63\n            </failure>\n        "
+        },
+        {
+          "class": "scripts/ediel-z04-ack-native.test.ts",
+          "name": "real inbound Z04 unlisted-header-code holds unowned physical codes and persists only qualified ACK intent, retry-stable without business state",
+          "message": "expected [ [ 'APERAK', 'negative' ], \u2026(1) ] to deeply equal [ [ 'CONTRL', 'positive' ] ]",
+          "failure_xml": "<failure message=\"expected [ [ 'APERAK', 'negative' ], \u2026(1) ] to deeply equal [ [ 'CONTRL', 'positive' ] ]\" type=\"AssertionError\">\nAssertionError: expected [ [ 'APERAK', 'negative' ], \u2026(1) ] to deeply equal [ [ 'CONTRL', 'positive' ] ]\n\n- Expected\n+ Received\n\n  [\n    [\n+     \"APERAK\",\n+     \"negative\",\n+   ],\n+   [\n      \"CONTRL\",\n      \"positive\",\n    ],\n  ]\n\n \u276f scripts/ediel-z04-ack-native.test.ts:132:63\n            </failure>\n        "
+        }
+      ],
+      "errors": [],
+      "skipped": 1,
+      "passed": 681,
+      "sha256": "d6c4ecf83fe860aa48df7f4a07fa0f0baba532fcb2e58e6f513740b7732ca33c"
+    },
+    {
+      "member": "rem002-case-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "d55bc978728e59a77deb52e414f8b6cf86924787cf701f2d80f9277686b1beda"
+    },
+    {
+      "member": "rem002-case-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "d69fbc7605d713811b9f95135c49b4b270bbed92ca3bee1fd5eaf4259940331c"
+    },
+    {
+      "member": "rem002-requested-change-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "7a85dadfc7cd9214cb19c95f5811a29c0e3d863f25b67ace168f94353c620714"
+    },
+    {
+      "member": "rem002-requested-change-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "5fb3f3b6bfa510dd32a2f7f4b9155b682509a90d02396e7d276386acffa04ec1"
+    },
+    {
+      "member": "rem002-regulated-supply-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "aff5a5f2f5084e907c49148a40de391f7c35b084e7ab95f1e462674fc72ad581"
+    },
+    {
+      "member": "rem002-regulated-supply-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "d4b466adf9ccb5db3faed59aaa9b21d19e0ac6f1f74352ce166e21a2898f1e0f"
+    },
+    {
+      "member": "rem002-bilateral-customer-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "b40dbc94760aea52f5d7acead72f0a22a40b329283ee7e3537b9a5661c87c5cc"
+    },
+    {
+      "member": "rem002-bilateral-customer-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "c16ba62716fe121ef116ed1e9737728bbd0b23af533416626aa7226605d10cad"
+    },
+    {
+      "member": "rem002-bilateral-prodat-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "676a279e116531efc2b6e56cd26ec1d1390f72cbb56d8f732d77c32e858802d5"
+    },
+    {
+      "member": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "c721598b83a5be64b84918d59be808bfed62f07799a095fd8c01f64b7ef4af37"
+    },
+    {
+      "member": "rem002-ai-purpose-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "3c84c73f7a99081d4dbf53a1409abc76bfec0199f55d34e092b96dede13c6003"
+    },
+    {
+      "member": "rem002-ai-purpose-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "fdb3f80d2612e7321d862214e471aa1ba4af89c011766c919909cc0352e57f5b"
+    },
+    {
+      "member": "rem002-record-retention-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "029116b15d55e9b302f5c479a2df976ec48b75a8b949f6a185364b3ff4e97fcc"
+    },
+    {
+      "member": "rem002-record-retention-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "012250a3065aa9b745b81b998bf1eddf0a2468c701cbb666fd02d7073e42a849"
+    },
+    {
+      "member": "rem002-business-incident-native-junit.xml",
+      "cases": 6,
+      "failures": [],
+      "errors": [],
+      "skipped": 1,
+      "passed": 5,
+      "sha256": "6a03b2b89bd46a04afa5b8d1903118ae82af9ca5418b0f7c611f24672092b8bb"
+    },
+    {
+      "member": "rem002-business-incident-after-browser-junit.xml",
+      "cases": 6,
+      "failures": [],
+      "errors": [],
+      "skipped": 5,
+      "passed": 1,
+      "sha256": "0f064048a13694821ce44012ad5486d3ef2a5a07e6d2c9bbb9a8d87205d0379f"
+    },
+    {
+      "member": "rem002-blob-retention-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "e38beb2b7df0b15804e3313b4f1ec15a5de4435ecc6c2223e7360bd2a7b3c3c7"
+    },
+    {
+      "member": "rem002-blob-retention-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "71dcbb779929b01c1141c33ada65fd64382b1fd790dbd07a7e1604a45a1827b8"
+    },
+    {
+      "member": "rem002-process-journal-retention-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "bb26bd3789b3d81d8206189488548eb707c37e7b5b3742810edc26691e76ae74"
+    },
+    {
+      "member": "rem002-process-journal-retention-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "4dcd57758731267ae7ff3edfdd8d66ca4c00aefb54cb1bc9bc7dde58f22abb28"
+    },
+    {
+      "member": "rem002-finance-copy-retention-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "492c9d2693ca8afb641446469154cdf1eafafbe0e610a71943d5e27716c3f293"
+    },
+    {
+      "member": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "f845da87adc50522071940b85d04938dd1a5784a54a143582fc16e4857f30078"
+    },
+    {
+      "member": "rem002-decision-original-after-browser-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "611b3974799961b0bc852b69602e118e9649eb59207b0413d9e0ac8e067b0f8b"
+    },
+    {
+      "member": "rem002-decision-original-native-junit.xml",
+      "cases": 1,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 1,
+      "sha256": "69611aafa5cdefec16c482e4e881f29edeecd7b53ffcddfbf298d1be3457e3ce"
+    },
+    {
+      "member": "e2e-artifacts/playwright-junit.xml",
+      "cases": 31,
+      "failures": [],
+      "errors": [],
+      "skipped": 0,
+      "passed": 31,
+      "sha256": "3d198dc0155245817986e46e531ce2efb9b9f17d3a72473662a58bfda0226116"
+    }
+  ],
+  "cause": {
+    "actor_errors": 10,
+    "ERR": 9,
+    "atomic_second_case": 1,
+    "actual_error": "ediel_reception_actor_forbidden",
+    "sqlstate": "42501",
+    "canonical_actual_SEND_required_under_preserved_WRITE_operation_marker": true,
+    "forward": "20261001084343_ediel_inbound_reception_canonical_permission.sql",
+    "actual_authorizer_and_resolver_definitions_sha256": {
+      "gridex_ediel_inbound_receptions.authorize_v1": "6f22531c6906cd3c2eeea2896b55e9c49f50dc0ac34e0ee94a6a523e03dfd194",
+      "public.gridex_actor_has_company_permission": "1cc4af3a4ce60b2ee1133771542f708cdbd492ddd533d2af02b137c893d5b4b8",
+      "public.gridex_get_user_permissions_in_company": "bbc206d16b1993c105f8ad0ee616da5c340a4f10dd2955d1e37400b868e5b8df",
+      "public.gridex_normalize_platform_role": "85f4be9f53f94ccb99573ed9db5a29c676657b763458dd3a31f792a8d60bb531"
+    },
+    "Z04_policy_only": 2,
+    "actual": "APERAK negative and CONTRL positive",
+    "peer_diagnosis": "Existing protected independent common-header202 owner qualifies exact physically missing/unlisted code after retained source/mail admission; stale hold-only test expectation",
+    "certificate": "actual dependent native await failure; artifact upload step also failed; no production consumer defect inferred"
+  },
+  "generated_types_byte_exact_committed": true,
+  "member_inventory": [
+    {
+      "name": "rem002-clean-replay.log",
+      "bytes": 2138915,
+      "sha256": "6842c1b91f4875634024066aa4fbd7a7d13e85cb56e7df3b30902b3c272de486"
+    },
+    {
+      "name": "rem002-database.types.ts",
+      "bytes": 3705243,
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a"
+    },
+    {
+      "name": "rem002-schema-snapshot/schema.fingerprint.json",
+      "bytes": 3687,
+      "sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863"
+    },
+    {
+      "name": "rem002-schema-snapshot/schema.sql",
+      "bytes": 11352093,
+      "sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98"
+    },
+    {
+      "name": "rem002-native-junit.xml",
+      "bytes": 374841,
+      "sha256": "d6c4ecf83fe860aa48df7f4a07fa0f0baba532fcb2e58e6f513740b7732ca33c"
+    },
+    {
+      "name": "rem002-case-native-junit.xml",
+      "bytes": 555,
+      "sha256": "d55bc978728e59a77deb52e414f8b6cf86924787cf701f2d80f9277686b1beda"
+    },
+    {
+      "name": "rem002-case-after-browser-junit.xml",
+      "bytes": 557,
+      "sha256": "d69fbc7605d713811b9f95135c49b4b270bbed92ca3bee1fd5eaf4259940331c"
+    },
+    {
+      "name": "rem002-requested-change-native-junit.xml",
+      "bytes": 605,
+      "sha256": "7a85dadfc7cd9214cb19c95f5811a29c0e3d863f25b67ace168f94353c620714"
+    },
+    {
+      "name": "rem002-requested-change-after-browser-junit.xml",
+      "bytes": 602,
+      "sha256": "5fb3f3b6bfa510dd32a2f7f4b9155b682509a90d02396e7d276386acffa04ec1"
+    },
+    {
+      "name": "rem002-regulated-supply-native-junit.xml",
+      "bytes": 634,
+      "sha256": "aff5a5f2f5084e907c49148a40de391f7c35b084e7ab95f1e462674fc72ad581"
+    },
+    {
+      "name": "rem002-regulated-supply-after-browser-junit.xml",
+      "bytes": 634,
+      "sha256": "d4b466adf9ccb5db3faed59aaa9b21d19e0ac6f1f74352ce166e21a2898f1e0f"
+    },
+    {
+      "name": "rem002-bilateral-customer-native-junit.xml",
+      "bytes": 594,
+      "sha256": "b40dbc94760aea52f5d7acead72f0a22a40b329283ee7e3537b9a5661c87c5cc"
+    },
+    {
+      "name": "rem002-bilateral-customer-after-browser-junit.xml",
+      "bytes": 594,
+      "sha256": "c16ba62716fe121ef116ed1e9737728bbd0b23af533416626aa7226605d10cad"
+    },
+    {
+      "name": "rem002-bilateral-prodat-native-junit.xml",
+      "bytes": 668,
+      "sha256": "676a279e116531efc2b6e56cd26ec1d1390f72cbb56d8f732d77c32e858802d5"
+    },
+    {
+      "name": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "bytes": 667,
+      "sha256": "c721598b83a5be64b84918d59be808bfed62f07799a095fd8c01f64b7ef4af37"
+    },
+    {
+      "name": "rem002-ai-purpose-native-junit.xml",
+      "bytes": 613,
+      "sha256": "3c84c73f7a99081d4dbf53a1409abc76bfec0199f55d34e092b96dede13c6003"
+    },
+    {
+      "name": "rem002-ai-purpose-after-browser-junit.xml",
+      "bytes": 613,
+      "sha256": "fdb3f80d2612e7321d862214e471aa1ba4af89c011766c919909cc0352e57f5b"
+    },
+    {
+      "name": "rem002-record-retention-native-junit.xml",
+      "bytes": 656,
+      "sha256": "029116b15d55e9b302f5c479a2df976ec48b75a8b949f6a185364b3ff4e97fcc"
+    },
+    {
+      "name": "rem002-record-retention-after-browser-junit.xml",
+      "bytes": 655,
+      "sha256": "012250a3065aa9b745b81b998bf1eddf0a2468c701cbb666fd02d7073e42a849"
+    },
+    {
+      "name": "rem002-business-incident-native-junit.xml",
+      "bytes": 2115,
+      "sha256": "6a03b2b89bd46a04afa5b8d1903118ae82af9ca5418b0f7c611f24672092b8bb"
+    },
+    {
+      "name": "rem002-business-incident-after-browser-junit.xml",
+      "bytes": 2164,
+      "sha256": "0f064048a13694821ce44012ad5486d3ef2a5a07e6d2c9bbb9a8d87205d0379f"
+    },
+    {
+      "name": "rem002-blob-retention-native-junit.xml",
+      "bytes": 635,
+      "sha256": "e38beb2b7df0b15804e3313b4f1ec15a5de4435ecc6c2223e7360bd2a7b3c3c7"
+    },
+    {
+      "name": "rem002-blob-retention-after-browser-junit.xml",
+      "bytes": 635,
+      "sha256": "71dcbb779929b01c1141c33ada65fd64382b1fd790dbd07a7e1604a45a1827b8"
+    },
+    {
+      "name": "rem002-process-journal-retention-native-junit.xml",
+      "bytes": 704,
+      "sha256": "bb26bd3789b3d81d8206189488548eb707c37e7b5b3742810edc26691e76ae74"
+    },
+    {
+      "name": "rem002-process-journal-retention-after-browser-junit.xml",
+      "bytes": 704,
+      "sha256": "4dcd57758731267ae7ff3edfdd8d66ca4c00aefb54cb1bc9bc7dde58f22abb28"
+    },
+    {
+      "name": "rem002-finance-copy-retention-native-junit.xml",
+      "bytes": 702,
+      "sha256": "492c9d2693ca8afb641446469154cdf1eafafbe0e610a71943d5e27716c3f293"
+    },
+    {
+      "name": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "bytes": 702,
+      "sha256": "f845da87adc50522071940b85d04938dd1a5784a54a143582fc16e4857f30078"
+    },
+    {
+      "name": "rem002-decision-original-after-browser-junit.xml",
+      "bytes": 1084,
+      "sha256": "611b3974799961b0bc852b69602e118e9649eb59207b0413d9e0ac8e067b0f8b"
+    },
+    {
+      "name": "rem002-decision-original-native-junit.xml",
+      "bytes": 642,
+      "sha256": "69611aafa5cdefec16c482e4e881f29edeecd7b53ffcddfbf298d1be3457e3ce"
+    },
+    {
+      "name": "e2e-artifacts/native/utilts-catalog-clean.json",
+      "bytes": 16412176,
+      "sha256": "6862b71c4eeda0a145b91389cc0d17691a680a6db6c546b6c7c3fd496f6166de"
+    },
+    {
+      "name": "e2e-artifacts/playwright-junit.xml",
+      "bytes": 9131,
+      "sha256": "3d198dc0155245817986e46e531ce2efb9b9f17d3a72473662a58bfda0226116"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/028d416b65b39b50854e94ee2407931a1105195e.png",
+      "bytes": 408194,
+      "sha256": "8a6c883e0f69de2765806e77f40a7f75d0e719fab4585d5ab823186341748d93"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/0c2d9b7d1e3d26ed232491462f2143d5fc7e01c5.png",
+      "bytes": 375891,
+      "sha256": "62ee8c9cb0ddee9d8d42836950f4103eaa177f69de053fce88142037a5218e0f"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/1cf55364622372bdc3788a40b4b90fe464968e4c.png",
+      "bytes": 519425,
+      "sha256": "714b02c9d2ebc5449d94d98be6803b299816377043b729418b5a796690487724"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/1a4e0e44391064d056410a06421d24b8f7d406a7.png",
+      "bytes": 862583,
+      "sha256": "384a21b7c8ffe507da726f1037fbefb79191731e0232c2f30c3cc2243a8558b7"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/1d1245d439e1d229247a6360e02196286e8dfa33.png",
+      "bytes": 511580,
+      "sha256": "8c74323e3d2e7362ed28e78a3b4d1fc46475efec02dcc82bba31b259242076e5"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/2d90f40e0d2534b200b40fc297834da7e4780b8d.png",
+      "bytes": 419908,
+      "sha256": "3956e57472e432a523a9593fc513ef6215f28f46ea58a036804e572477f7b839"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/38fb715ea9048f51ebed18a40e3c634281d7ffe9.png",
+      "bytes": 396794,
+      "sha256": "a6ff6a4c81bda39a49894dd2516294eb4ff909d434c1b3d047b7603cd1e2b265"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/33d69e8f2ab816d4cdcd03797222cf28bb882549.png",
+      "bytes": 257560,
+      "sha256": "0a82d68cb9a85818f377496e612b15cc27986fcbd2e003f5dd632c4d243c769c"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/449865a6881ed304416722f74821863fefbff0ae.png",
+      "bytes": 794820,
+      "sha256": "e00e5e210ceb56f8eefaaff804be1edbdeffd5ebe9f26c67a8044dc4951cecf3"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/486d6713951634807267bea719fb3259d03d7f36.png",
+      "bytes": 225731,
+      "sha256": "f98438760fbbb58c2c36ef468badf6a12b40fb8ee0dcb4d51a82804b3b762780"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/53e2069e6d3da81e7823a0377e5a8001da4e1e6b.png",
+      "bytes": 176936,
+      "sha256": "fad347a3908a3d9806a6cc0335c7d5fccf4ab2de8e3603e9f2b1cd3583c79ba9"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/6ddd22e510466cc885eedfd32bde41f75fbfd84c.png",
+      "bytes": 394640,
+      "sha256": "f23647b3713ceb0a7e591d0e9d2ff77083397b10b0749c621c2732e093622b3f"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/5499cd84bc7063f288285b1f2b4f2573f9c05ff0.png",
+      "bytes": 663657,
+      "sha256": "2195750782ed28a071fd6c2dcad15cb7c63fac103f029f1e1792c1450d8b18fb"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/7ad38e72282f5107a517dba549f5907919f91b30.png",
+      "bytes": 441523,
+      "sha256": "fca1b9835842dd855f56bf2048d4ef2a0394a8f911b56c75ce155b900e735969"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/b3cb98b9af012c2afa12c707e70b2122db064f68.png",
+      "bytes": 753417,
+      "sha256": "0a5a4cd26cb8f0a96e183c99823051af8442c99990d7a04049375603f62b9738"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/b3cd21f1548e7b20fdd3f199ec14f90f5a5f4bb1.png",
+      "bytes": 533229,
+      "sha256": "4708f47c3d9a95fbc0c129ea0727ae0e30ba054f9a4464436e8b4f621a0bfa22"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/b6542e8b1b47e5c8961fe24ba6cb2c2c98b01a0d.png",
+      "bytes": 805465,
+      "sha256": "8eafb7388cd81ce40c3f7d864379e94c630a528f6490683ec2beb238e0d7a7c0"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/b67ddbda771a042daadea61ab685898d7828128e.png",
+      "bytes": 741245,
+      "sha256": "ac5ade0bbb2026c54b6ff8c5b287149b214a69e35e7ce6077c766aa87576bc4d"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/c21aee33e7c535c5d23d1f669f3e4c55e675ccdf.png",
+      "bytes": 474739,
+      "sha256": "4e949ee6f5a4b67f1ea646211d059f6d93cb5dda9eb82132355f69f7090864f5"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/cff983c0cf3c011e3921d9d43247acd14f8b80b0.png",
+      "bytes": 430460,
+      "sha256": "51605d5b5abf60082130578d1285542b63228e2c0dc9df95c239b4db38c221d7"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/d82ee18b19f708ebabb7fb555c8c7982e7b7fb90.png",
+      "bytes": 1040593,
+      "sha256": "c9659227244bec1fd9b48fd784dde29d93b51cf354692e17367c94eee9f974bf"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/dfdc2e26a39b9429553c866ac76ab67d1cb9477b.png",
+      "bytes": 769026,
+      "sha256": "8c62949b56a478a8134a90e337ddf0c5f920c4f9af4841de555ac9d5bee13637"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/e3179ccd28a15edabcd7df466c3495e97c398990.png",
+      "bytes": 450357,
+      "sha256": "ce3a8b42781619f8969709390741ba39533123292d6f864c28fc0dc985aec100"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/ee4d7636e0992926254031ec57c46d8aa80a92a2.png",
+      "bytes": 369487,
+      "sha256": "ae7ec5776ae92172ccd638708cb5b1c015d504ffa3c702e218a98d2654a819b6"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/data/ff9ccb9beb5352ae436fbc151c4d9b0896c55004.png",
+      "bytes": 372034,
+      "sha256": "e11670c6ced7b1ca5aeb8f253bf2904ebbbcf6db17afb2d0269e1ea69d52b4bf"
+    },
+    {
+      "name": "e2e-artifacts/playwright-report/index.html",
+      "bytes": 856884,
+      "sha256": "1926091a63ca81ed0c6d6469ba82916480cfd36874f1957c79ff501913c218dd"
+    }
+  ],
+  "native_successor": "PENDING_GENUINE_CURRENT_HEAD_CI",
+  "new_Masterplan_rules": false,
+  "formal_live_market_approval": false
+}

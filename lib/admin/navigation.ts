@@ -65,7 +65,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     title: 'Ärenden',
     description: 'Kundsupport via webb, telefon och OPS',
     items: [
-      { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'operations.tasks' },
+      { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'support.cases' },
       { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'EDIEL-meddelanden, utskick och kommunikationshistorik', pageKey: 'operations.tasks' },
       { key: 'ediel.requested_change_sources', label: 'Ändringsunderlag', href: '/admin/ediel/requested-changes', description: 'Original, separat granskning och begäran för dödsfall eller avtalad mätning', requiredPermissions: ['communication.read'] },
       { key: 'ediel.regulated_supply_sources', label: 'Reglerad leveransgrund', href: '/admin/ediel/regulated-supply', description: 'Arkiverade original och separat granskad leveransgrund', requiredPermissions: ['communication.read'] },

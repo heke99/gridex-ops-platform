@@ -1,0 +1,147 @@
+{
+  "schema": "gridex-combined119-import-observer-seal-peer-copy-custody-supplement/v1",
+  "verdict": "SOURCE_ONLY_READY_IMPORT_PLUS_HISTORICAL_OBSERVER_SEAL_AND_EXACT_PEER_RECEIPT_RESULTING_HEAD_GATES_PENDING",
+  "recorded_at_utc": "2026-10-06T00:35:06.638903+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "One finite metadata supplement to completed ten-path guard; added observer seal and exact peer-receipt copy only, no new CI or source review",
+  "source": {
+    "head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
+    "pending_paths": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic119-final1079-raw3-import-custody.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined119-authentic-raw3-origin-fixtureIO-import-custody-independent-ready.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-additional-unit-coverage-failures-20261006-0016.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-first-genuine-targeted-failure-20261006-0011.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-historical-superseded-observer-lease-seal-20261006-0031.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+      "scripts/supabase-types-manifest.json",
+      "supabase/schema.fingerprint.json",
+      "supabase/schema.sql"
+    ],
+    "pending_count": 12,
+    "delivery_paths": 11,
+    "peer_review_copy_paths": 1,
+    "no_resulting_commit_created": true
+  },
+  "prior_qualification": {
+    "path": "/workspace/agent-review-checkpoints/combined119-authentic-raw3-origin-fixtureIO-import-custody-independent-ready.json",
+    "sha256": "0a15f655e9ecd268d93c5d6c27b6c69471798e8adc5c9e9cdb8a9c08bf80266a",
+    "bytes": 8959,
+    "verdict": "SOURCE_ONLY_READY_AUTHENTIC_CAPTURE_IMPORT_AND_BOUNDED_FIXTURE_IO_ONLY_RESULTING_HEAD_GATES_PENDING",
+    "scope_reused": "Prior exact raw3 ZIP/input/history/fixture and 8954 foreign tuple proof; root reports no new source edits"
+  },
+  "sole_added_delivery_metadata": {
+    "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-historical-superseded-observer-lease-seal-20261006-0031.json",
+    "bytes": 26109,
+    "sha256": "88e85a66fcd225f0e8b5e2028682060ea1008f3a35105b32921fadd77a27c73b",
+    "head_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "lease_status": "STOPPED",
+    "observation_status": "HISTORICAL_SUPERSEDED_OBSERVATION",
+    "overall_gate_status": "HOLD_PRESERVED_GENUINE_RED_AND_NOT_TERMINAL_RESULTS",
+    "counts": {
+      "observed_applicable": 12,
+      "genuine_success": 7,
+      "terminal_failure": 3,
+      "not_terminal": 2,
+      "cancelled": 0,
+      "skipped_applicable": 0,
+      "missing_applicable": 0
+    },
+    "custody": "Exact existing original observer seal, no API reobservation"
+  },
+  "peer_receipt_copy": {
+    "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined119-authentic-raw3-origin-fixtureIO-import-custody-independent-ready.json",
+    "bytes": 8959,
+    "sha256": "0a15f655e9ecd268d93c5d6c27b6c69471798e8adc5c9e9cdb8a9c08bf80266a",
+    "byte_exact_original_outside_receipt": true
+  },
+  "pending_path_byte_pins": [
+    {
+      "path": ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "bytes": 17789,
+      "sha256": "70e5d0d2c8222ab0dc599b8452b1287cdde955d8b4c2bca8f8263df294343442"
+    },
+    {
+      "path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "bytes": 43097,
+      "sha256": "5da60659c5055a14f6f06756c6efc110ddab68c32f418a38da38e4aed3bc648c"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
+      "bytes": 4056,
+      "sha256": "1759154f07434e9bc8f0490063e404191044a546525bb80c32f7b9b319c46170"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic119-final1079-raw3-import-custody.json",
+      "bytes": 2687,
+      "sha256": "715ade95855d99eaffb6cb05051c0ca319d0daa4e3742ea926f283bc624b4e77"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined119-authentic-raw3-origin-fixtureIO-import-custody-independent-ready.json",
+      "bytes": 8959,
+      "sha256": "0a15f655e9ecd268d93c5d6c27b6c69471798e8adc5c9e9cdb8a9c08bf80266a"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-additional-unit-coverage-failures-20261006-0016.json",
+      "bytes": 4333,
+      "sha256": "5db8317d8ee65f5d167fb4c9e668281ac02e9e623e143a46b18c4c86a7facd14"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-first-genuine-targeted-failure-20261006-0011.json",
+      "bytes": 12335,
+      "sha256": "3ca31a292e06ddee10ea7c2d8ee4105eccc918c4ad0a8227ae5b6e33a7375c40"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-historical-superseded-observer-lease-seal-20261006-0031.json",
+      "bytes": 26109,
+      "sha256": "88e85a66fcd225f0e8b5e2028682060ea1008f3a35105b32921fadd77a27c73b"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+      "bytes": 192272,
+      "sha256": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73"
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "bytes": 193007,
+      "sha256": "3338eb5eeae988aee054d7e6be019265c5db4eb00855803db9f4b49f3d710679"
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "bytes": 3687,
+      "sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "bytes": 11352093,
+      "sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98"
+    }
+  ],
+  "finite_revalidation": {
+    "head_tree_complete12path_status_exact": true,
+    "prior_raw3_capture_receipt_fixture_fullpreimportsnapshot_historicalRED_hashes_exact": true,
+    "new_metadata_regularfiles_only": true,
+    "tracked_SQL1079_coverage_workflows_foreign_tuples": "Prior complete ten-path source preservation proof reused; only two own audit metadata paths added",
+    "no_CI_test_control_native_capture_or_archive_rerun": true
+  },
+  "blocking_source_findings": [],
+  "pending": "Actual successor ordinary/native/type-schema/upgrade/parity gates still require resulting-head qualification. Capture fourNOT_RUN and historical119 RED scope retained; no success transfer, main or full-plan approval.",
+  "actions": "Read-only Git identity/status and finite custody hashes. One immutable outside-Git supplement; no source/index/ref/GitHub writes, log/download/CI/test/native/capture/archive rerun.",
+  "publication_precondition_disposition": {
+    "supersedes": "Prior ten-path receipt wording requiring old containing workflows to settle before successor publication",
+    "actual_observer_lease_status": "STOPPED",
+    "original119_observer_seal_sha256": "88e85a66fcd225f0e8b5e2028682060ea1008f3a35105b32921fadd77a27c73b",
+    "publication_observer_precondition": "FULFILLED_BY_ORIGINAL_OBSERVER_STOP_ACK_SEAL",
+    "old119_two_not_terminal_jobs": "Remain genuine NOT_TERMINAL; ordinary automatic concurrency may cancel after actual successor publication; no manual cancellation, retry, success transfer or producer-wait gate",
+    "successor_head_gates": "Actual resulting head must execute its own mandatory CI; SOURCE_ONLY_READY does not imply CI/native/type-schema/upgrade/parity PASS",
+    "attribution": "Parent explicit clarified publication ownership and original stopped-lease seal, no live CI observation by reviewer"
+  },
+  "intermediate_metadata_supplement": {
+    "path": "/workspace/agent-review-checkpoints/combined119-import-observer-seal-peer-copy-custody-source-only-ready.json",
+    "sha256": "8ee0baba070b727442a62117886b6653ea2b7dbf772172bd2da85c901fee6936",
+    "preservation": "Unchanged immutable source guard; this final disposition may be retained as the sole supplementary peer copy instead of retaining both"
+  }
+}

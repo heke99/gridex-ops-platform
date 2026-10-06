@@ -1,0 +1,162 @@
+{
+  "status": "LOCAL_CORRECTED_SOURCE_PASS_GENUINE_CAPTURE_AND_NATIVE_CI_PENDING",
+  "created_at_utc": "2026-10-05T13:37:01.226727+00:00",
+  "base_head": "4fd1b0447400bcfaa0381524c575383eba966297",
+  "architecture": {
+    "gridex_is_ordinary_ops_tenant": true,
+    "tenant_auth_database": "gridex-prod ayiuxjlfazkjmmtlvhsl",
+    "central_company_customers_cases_membership_rbac_audit": "independent OPS database; company-scoped API",
+    "binding": "explicit registered issuer/local subject to central actor; normal Staff sub stays central actor",
+    "no_hosted_writes": true
+  },
+  "source_sha256": {
+    ".agent-memory/support-portal-checkpoint.md": "319a1de534db3cb4db3d732d927da6c417e5bedcf837d05057a1f6a219624e5b",
+    ".github/workflows/ops-hardening.yml": "0f04e48eed93545c2a796fed06d476be75b21bca770ae691889ed145e9b4694a",
+    "__tests__/staff-api-context.test.ts": "83720dd9cbabec8b4d25048e7553623c63d8d09201a07383ee73bea4120241bd",
+    "__tests__/staff-external-identity-sql.test.ts": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+    "__tests__/staff-identity-resolution-machine-auth.test.ts": "9c18d367a9cb56abc1586efa573ebe0bdb8866d7fcdc10878ec6f73487da6d48",
+    "__tests__/staff-identity-resolution.test.ts": "5d22c3a11f259ab92e18a533a34ad3ff7f4d3c2700c050705b31160c56c094e4",
+    "__tests__/staff-invitation-routing.test.ts": "3ca56d7cf14fc943e58296b61387f8635044a858946a70e03cc9139dc038e49d",
+    "__tests__/staff-onboarding-acceptance.test.ts": "08efc4a39f0bf6a22058256ab920e5fe5d78fdc429a65c8f23b34648ba9a226e",
+    "__tests__/staff-onboarding-contract.test.ts": "c0efb1d4928fbeb9a69e3a6eecf799508c0a07ed99a7a8178463138cfd28a55f",
+    "__tests__/staff-tenant-auth.test.ts": "7641cb249279050b463251924f1955f62553a24b10890de4a9cd8a67eb6a1884",
+    "__tests__/tenant-staff-delivery.test.ts": "5df49c7d49165b81b39165df56801cb1b7a5b1d9efe6b5e61b3939d0b2c073d3",
+    "app/api/v1/staff-onboarding/identity/resolve/route.ts": "fe3f61035ae998beff8ccc51b21ba95696f4c8d4f00871570a8e56e0daaaac19",
+    "docs/openapi/prototypes/2026-10-05.1/staff-onboarding-v1.json": "5b074690ffaba2192d75c6229fc8c2f13ce3e0e014296f2533ec817e72ba47ff",
+    "docs/openapi/staff-onboarding-v1.json": "5a70f265a58cfe1ba06728205f3dae08841188b90e3ac5892d4185f6e6c4a372",
+    "docs/staff-api/independent-onboarding.md": "43320469d7e6e2956f03c50d3d3fe2ef789d6d1187a36dfb690e669170bfacb1",
+    "lib/api/publicRouteRegistry.ts": "83191a3dba8b6aab25dd44bb3685a9e2d5d6e4afc2bc026e7a8fbcf6633dbdb0",
+    "lib/auth/companyInvitationFlow.ts": "f54ad468ff651ec2aca0d324e5562d8937785d5be76a8f9ea183644233b268d4",
+    "lib/auth/staffInvitationRouting.ts": "9bea35beb513a397fd6dd2a04e6fef9f716dee257706eed56d02f606148b28e9",
+    "lib/auth/tenantStaffDelivery.ts": "0d99671c63840d1cf02d142c7eca68084f5d8bf31bfe3dbac730f5742dbde1ae",
+    "lib/staff-api/context.ts": "226fcaf7991727337b0ef93cb942e34fee4a43cdac209ae8b50817c9e8e771bd",
+    "lib/staff-api/identityAuthority.ts": "c694cd3502d64d3d6651b3d7965fe3e8ff634f681aebca362f12b5971ff2cf7e",
+    "lib/staff-api/identityResolution.ts": "c5563950dfa7948291e66e9dfe83247fd890a36a52c9f23f81e3e41fde386f16",
+    "lib/staff-api/onboarding.ts": "9b9f00805eaf4735b27e581c220cddce534f350bce3703b1ec5b212d664d9989",
+    "lib/staff-api/onboardingContract.ts": "ad7a444d70713557457804653ea30b37466114cc48acaaf534501c0b1e1fb3e6",
+    "lib/staff-api/tenantAuth.ts": "a405c684c8626997d14a7b5e01c8a6faed8c94624fdeeeeb1d567a41949c502c",
+    "lib/tenant/provisioningWorker.ts": "eac96d9d762025a09b0efc909309d3c495659f7d8c6f35b87f4d64ae41a3dd98",
+    "quality/staff-api/gridex-prod-prerequisite-map-20261005.md": "eb73d6a5c9fd36675a6f2ee96a2b58fd00af1668fabaf55e9a10afeb29acd23d",
+    "scripts/check-openapi-runtime-parity.cjs": "f5da310f94715fa7e4a58e2da421f3bfe3ae6468a71529ab757d09326d0483eb",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": "be645db1ce40defa8ae74b0b3c3f722dd7ab99ff452dcf6af56184271c31a8cb",
+    "scripts/migration-history-manifest.json": "ef624c7fecd352d0fe8bf87b464bdd40c25fecccd4465bd02c2e42c69a608d5b",
+    "scripts/staff-external-identity-binding-regression.sql": "4297b6c1eca57a51a6732fce65295d8fd0acc0c3a2e9de04df0838d885febe12",
+    "scripts/supabase-types-manifest.json": "6318d0ea43a935cab4dca6947f1eb712779f3d22d1cb8f8375f037eb79e818fb",
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3"
+  },
+  "receipt_sha256": {
+    "staff-external-identity-binding-qualification.json": "69cd99c2381bb49ea12626eb75600d451f374f57c2be87ed71bc42b14834b03d",
+    "staff-external-identity-resolver-qualification.json": "0147758aafe44c99527385dffdda952baa094041bf56197eaf517367c3353a8f",
+    "tenant-independent-onboarding-qualified-source.json": "34448bff7e04be9d90cff3290f6925f18fcace523249eac8c2ad514136524539",
+    "support-split-identity-client-independent-review-20261005.json": "fc32a8580118c621d150818eefce84ea05910273915c043b86565f31e61ad7bc",
+    "support-split-delivery-native-independent-review-20261005.json": "3f363a1d98d5f3cb1ef53572f02700fcdbbc5b8a86c6232be5225aa8618c5ac9"
+  },
+  "log_sha256": {
+    "staff-external-identity-green.log": "98ebccc932e09d3620654f43046971d0def5dcef2b52e23123ff497466b5ebad",
+    "staff-external-identity-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-external-identity-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tenant-independent-onboarding-tests.log": "523498d295b6ba813d7729b5a5be8f0c648955992428287c962ae5a4f2113219",
+    "tenant-independent-onboarding-test-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tenant-independent-onboarding-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "corrected-ops-api-docs.log": "368ea28c0b5c23770e094fe009aca43db6727c428f3ced2e2f9f6f3858313445",
+    "corrected-ops-tenant-ratchet.log": "f4e9c049d28c7ef2e3da7ac543d8146b648578086853811f7bfa7f20e08e1d47",
+    "staff-identity-final-tests.log": "6f8c8fe7f27984a972b4bd913706b1364e44567d4fb49dd1fa0a3d9eaa5b8bb4",
+    "staff-identity-final-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-identity-final-test-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-identity-final-app-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-identity-final-parity.log": "5ba55328bbbebd115804d7068eb4c6a0a46444ecb4ac4129923036dc69ffb0a0"
+  },
+  "checks": {
+    "resolver_context_real_sdk_machine_auth_contract": "123 PASS, counts overlap other suites; not additive",
+    "independent_onboarding_routing_signed_delivery": "84 PASS, counts overlap resolver/context; not additive",
+    "actual_entire_forward_and_native_regression_embedded": "7 PASS; includes managed-owner nonsuper trigger/ACL case; genuine PostgreSQL17 separate",
+    "app_and_full_test_types": "PASS",
+    "scoped_lint": "PASS0warnings",
+    "public_contract_runtime_parity": "PASS116registry137operations",
+    "api_docs": "PASS",
+    "tenant_service_role_ratchet": "PASS",
+    "migration_integrity": "PASS1068files971versiongroups;1067previoushashesunchanged"
+  },
+  "pending": [
+    "Authentic exact-source PostgreSQL17 schema/types capture and raw-byte import",
+    "Final-source clean and upgrade native replay plus all required CI checks",
+    "Trusted concrete tenant/client/provider/admin enrollment and own Auth callback configuration",
+    "Separate support application deployment and domain assignment"
+  ],
+  "qualification_limits": [
+    "Historical4fd native receipts remain historical only",
+    "Capture-only is not native SQL/browser/comparison acceptance",
+    "No cross-database transaction or incoming-JWT-version-to-native-commit claim",
+    "Single durable claim prevents automatic repeat delivery; unknown email outcome remains indeterminate and requires operator reconciliation"
+  ],
+  "log_storage": {
+    "format": "lossless deterministic gzip; owner receipts refer to the unchanged decompressed raw bytes",
+    "files": {
+      "staff-external-identity-green.log": {
+        "file": "staff-external-identity-green.log.gz",
+        "gzip_sha256": "ea7e0e19f5c6ea515d148640f1ff10bbee28bd8809c35861efe7998381bf78f1",
+        "raw_sha256": "98ebccc932e09d3620654f43046971d0def5dcef2b52e23123ff497466b5ebad"
+      },
+      "staff-external-identity-lint.log": {
+        "file": "staff-external-identity-lint.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "staff-external-identity-types.log": {
+        "file": "staff-external-identity-types.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tenant-independent-onboarding-tests.log": {
+        "file": "tenant-independent-onboarding-tests.log.gz",
+        "gzip_sha256": "c66ceca4dc564702945351384e45cfaf122e50c33b0a8a764ea14d850d205860",
+        "raw_sha256": "523498d295b6ba813d7729b5a5be8f0c648955992428287c962ae5a4f2113219"
+      },
+      "tenant-independent-onboarding-test-types.log": {
+        "file": "tenant-independent-onboarding-test-types.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tenant-independent-onboarding-lint.log": {
+        "file": "tenant-independent-onboarding-lint.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "corrected-ops-api-docs.log": {
+        "file": "corrected-ops-api-docs.log.gz",
+        "gzip_sha256": "bdf5d4158ea9f69a4fe409298cc88dd07e29990bdb3e9ab9c42afcd53451d4db",
+        "raw_sha256": "368ea28c0b5c23770e094fe009aca43db6727c428f3ced2e2f9f6f3858313445"
+      },
+      "corrected-ops-tenant-ratchet.log": {
+        "file": "corrected-ops-tenant-ratchet.log.gz",
+        "gzip_sha256": "7a97e0d3d9bfa72d1ef91aa8b8b38e33d3ad6013f608a86ca32fa5d0cb372e4d",
+        "raw_sha256": "f4e9c049d28c7ef2e3da7ac543d8146b648578086853811f7bfa7f20e08e1d47"
+      },
+      "staff-identity-final-tests.log": {
+        "file": "staff-identity-final-tests.log.gz",
+        "gzip_sha256": "3175d5a7baa97644f2bf1bd9bd6ca29090b75dace3fb8689cb6fcd2a7978ea9a",
+        "raw_sha256": "6f8c8fe7f27984a972b4bd913706b1364e44567d4fb49dd1fa0a3d9eaa5b8bb4"
+      },
+      "staff-identity-final-lint.log": {
+        "file": "staff-identity-final-lint.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "staff-identity-final-test-types.log": {
+        "file": "staff-identity-final-test-types.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "staff-identity-final-app-types.log": {
+        "file": "staff-identity-final-app-types.log.gz",
+        "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+        "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "staff-identity-final-parity.log": {
+        "file": "staff-identity-final-parity.log.gz",
+        "gzip_sha256": "5d486eab3e73bc1b7f5c4a38809fae870b981b8358dc4621a453889dd94368dc",
+        "raw_sha256": "5ba55328bbbebd115804d7068eb4c6a0a46444ecb4ac4129923036dc69ffb0a0"
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "status": "SOURCE_QUALIFIED_AUTHENTIC_GENERATED_ARTIFACTS_IMPORTED_NATIVE_CI_PENDING",
+  "date": "2026-10-05",
+  "production_project": "ayiuxjlfazkjmmtlvhsl",
+  "production_writes": 0,
+  "frozen_migration_sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+  "tests": 84,
+  "scope": "Actual adapters/proofs and embedded source SQL; native PostgreSQL and hosted prod not qualified",
+  "root_checks": {
+    "API_documentation_and_runtime_parity": "PASS",
+    "migration_checksum_integrity": "PASS_1067_FILES",
+    "database_contract_hardening": "PASS",
+    "generated_types": "PASS_AUTHENTIC_BYTES_IMPORTED_AGGREGATE_MIGRATION_CHECK",
+    "app_types_after_import": "PASS",
+    "full_test_types_after_correction": "PASS",
+    "full_test_types_after_main85b6_merge": "PASS"
+  },
+  "files": {
+    "gridex-support-api-docs-final.log": "ac37492795f4b22a6081ad46f01a4c062f527b7e3f33ef0e153aa89af6051695",
+    "gridex-support-migrations-final.log": "14e368464d445d25e981c82b692fecc3f7fb39ad5a7fd509e03b10bbab2fe3b3",
+    "staff-independent-onboarding-initial-independent-review.json": "889e8836132f8c73b7630eda6655a193ea742f76b479ea7ef2cc1a273405fad0",
+    "staff-independent-onboarding-qualification.json": "b9bfa954cd570e2b12f0c35e812d502ce573b7e00e9416d2510f5e27b3ea3649",
+    "staff-onboarding-final-tests.log": "42d809a9fe025745a0c0f22d17955e37382f991def7dc38adce6818489f00db2",
+    "staff-onboarding-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-onboarding-openapi-parity.log": "ab7024d3c03a1aa79d7e642cead84be9eb9ff369e6817e6aab4856f11ac96230",
+    "staff-onboarding-tenant-ratchet.log": "4c627ac9740e45f4e3d951980c52ecc31e52ce90e5feb98403a28cf498df175f",
+    "staff-onboarding-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "support-onboarding-password-first-green.log": "a2b45b6d84721ebfdbe3eb45071f5481e2d4cda480ca1c8a132881e2ada6e118",
+    "staff-independent-onboarding-final-independent-review.json": "051420290084ec1c1d14f0cfec24c394be15a1334a62734b5181deeddf1c982d",
+    "native-capture-receipt.json": "854639a4faa3e4173fd8b93b5207645939ac35f3614751c4c74b4b76e2b63658",
+    "native-capture-import-binding.json": "749024a43fb9fe0a0a7e5d78347786c6439dfdf2bdfe95e4f26f779cf3e831ea",
+    "staff-independent-onboarding-test-typing-qualification.json": "66e433a8b81bb61a099974797dd851bfa1f0c5dd1bebd8a9c4cafb73c0196127",
+    "aggregate-migrations-import.log": "142380611fe2eae54e06383634068fbc7ebee178f5d2d29221ec5ea2fe87d583",
+    "app-types-after-import.log": "d61bcb853872bcfa3e424b49249cdc82eef14fa02679f2d32c2df50cb790d945",
+    "full-test-types-after-correction.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acceptance-after-typing-correction.log": "293914c0508e777c87fdddb7d60781167630ffdcf59ae712dbb6a6923b0e393c",
+    "staff-onboarding-native-capture-independent-review.json": "d4ef5fab3c0a09380688d45a3b56e23330b237052fa2974cf6c47a9d7ac07235",
+    "combined-main-test-types.log": "7c4a49bd020047814a408e7d86238c340f2cd6995e6c3318156bbdfdc1d1d6ef"
+  },
+  "next_action": "Pass final local checks and independent artifact review, then publish the import/test-typing correction and pass required full native clean/upgrade/schema CI.",
+  "normalized_logs": {
+    "staff-onboarding-final-tests.log": {
+      "original_sha256": "f2caeb86a962a199a87cb899e83bcbde500bb9d721aec08be7858a2c1d21786f",
+      "archived_sha256": "42d809a9fe025745a0c0f22d17955e37382f991def7dc38adce6818489f00db2",
+      "original_bytes": 223,
+      "transformation": "Remove trailing empty line only; immutable author/reviewer receipts retain original log hash."
+    },
+    "app-types-after-import.log": {
+      "original_sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+      "archived_sha256": "d61bcb853872bcfa3e424b49249cdc82eef14fa02679f2d32c2df50cb790d945",
+      "original_bytes": 135,
+      "transformation": "Remove trailing empty line only; original source log and typed-delta receipt retain original hash."
+    },
+    "acceptance-after-typing-correction.log": {
+      "original_sha256": "c3416f982c9c90ebd072c6c40f96c088230a83487d58f316fa97a1d7b19b1e39",
+      "archived_sha256": "293914c0508e777c87fdddb7d60781167630ffdcf59ae712dbb6a6923b0e393c",
+      "original_bytes": 223,
+      "transformation": "Remove trailing empty line only; original source log and typed-delta receipt retain original hash."
+    }
+  },
+  "native_capture": {
+    "run": 37299065849,
+    "source_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
+    "artifact_id": 11341610088,
+    "zip_sha256": "750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
+    "production_writes": 0,
+    "native_acceptance": "NOT_RUN"
+  },
+  "independent_artifact_review": "PASS_BOUNDED_EXACT_FUNCTION_TYPE_ACL_DELTA"
+}

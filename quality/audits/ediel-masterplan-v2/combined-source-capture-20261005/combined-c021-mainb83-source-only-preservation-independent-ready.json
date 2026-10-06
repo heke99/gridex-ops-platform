@@ -1,0 +1,157 @@
+{
+  "schema": "gridex-combined-c021-mainb83-source-only-preservation-guard/v1",
+  "verdict": "READY_BOUNDED_ACTUAL606_SOURCE_CARRY_ONLY_CAPTURE_NATIVE_CURRENT_CI_MAIN_DELIVERY_PENDING",
+  "recorded_at_utc": "2026-10-05T22:21:42.413843+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "ONE bounded source-preservation check of existing active combined lane; retained originald26/e4 qualification scopes reused, no new source/whole/schema/control review",
+  "candidate": {
+    "head": "c021ef7cd4df171a0fd3e53b9c36c104a6a81591",
+    "tree": "cdcce2da09e965c8f914b591bbfe95addc7cc3c9",
+    "single_parent": "5d513072f986eef6afedd4a2b7ef7caf9ff1b884"
+  },
+  "genuine_source_carry": {
+    "head": "5d513072f986eef6afedd4a2b7ef7caf9ff1b884",
+    "tree": "70a091e0edf964eba0a470cddd6d7142694b0a34",
+    "ordered_parents": [
+      "4aa69216f0e37ba53ec78ee5c733a8a839f2696b",
+      "b83b284467c8e0fcaa277706a708706e0a705068"
+    ],
+    "prior_public_combined_source": "4aa69216f0e37ba53ec78ee5c733a8a839f2696b",
+    "actual_main_snapshot": "b83b284467c8e0fcaa277706a708706e0a705068",
+    "actual_main_tree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+    "previous_main": "2964415adec9e36932583e95f8506437d262c507"
+  },
+  "actual606_incoming": {
+    "count": 11,
+    "paths": [
+      ".agent-memory/main-baseline-pr225-repair-checkpoint-20261005.md",
+      ".agent-memory/tenant-website-primary-selection-checkpoint-20261005.md",
+      "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+      "__tests__/main-baseline-pr225-facility-aliases.test.ts",
+      "__tests__/tenant-website-go-live-selection.test.ts",
+      "app/admin/platform/go-live/actions.ts",
+      "lib/integrations/tenantWebsiteClient.ts",
+      "lib/integrations/tenantWebsiteGoLive.ts",
+      "lib/website/applicationReview.ts",
+      "lib/website/customerApplicationCore.ts",
+      "lib/website/customerApplicationOnboarding.ts"
+    ],
+    "exact_postimage_mode_type_blob_actualmain_source_and_candidate": true,
+    "source5d_versus_prior4aa_delta_exactly_those11_paths": true,
+    "incoming_entries_pinset_sha256": "16c0676129ef835d641c1f51dab9816fc3ddb0eb16bfc4b51a139e34ee1b2317"
+  },
+  "prior_owned_packet": {
+    "count": 42,
+    "all42_mode_type_blob_tuples_exact_prior4aa_at_source5d": true,
+    "source5d_versus_actualmain_delta_exactly_prior42": true,
+    "currentc021_41prior_tuples_exact_oneown_checkpoint_append_only": true,
+    "prior_own_checkpoint_complete_prefix_preserved": true,
+    "prior_packet_pinset_sha256": "cfb53f7d370515c4ab0d0193f4287d6bc630ffba3a1355afc7cfd8fdbae2eb90",
+    "all_prior_author_payloads_native_tests_source_configs_receipts_unchanged": true
+  },
+  "current_owned_docs": {
+    "delta_after_source5d_count": 2,
+    "paths": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-mainb83-gov-db-sc010-source-only-carry.json"
+    ],
+    "new_own_receipt_sha256": "c0362a9a025f283d0eea4e4950d9578ae7da7b3f4e72ffb98f5e7b9ea656eb45",
+    "new_own_receipt_all_heads_trees_parents_counts_and_preservation_statements_bound_to_observed_objects": true,
+    "total_current_delta_versus_actualmain_paths": 43
+  },
+  "foreign_main_guard": {
+    "entries": 8621,
+    "all_current_mode_type_blob_path_tuples_exact_actualmain": true,
+    "pinset_sha256": "33e52846456e1b3ee2b30bcbfa85c70ca9befe7beebbf7172c7252dde64a9e8d",
+    "pinset_encoding": "UTF-8 JSON array[path,mode,type,blob] sorted by path, compact comma/colon separators",
+    "production_F3_native_generated_workflow_package_test_foreign_source_exact_except11_inherited_actualmain_entries": true
+  },
+  "coverage": {
+    "ordered_rows": 352,
+    "rule_rows": 121,
+    "acceptance_contract_rows": 231,
+    "all_ids_original_order_and_actualmain_metadata_exact": true,
+    "foreign_full_rows_evidence_exact": 347,
+    "foreign_full_rows_canonical_sha256": "0d21e6d41e3a94392c77968943c82b8dfb7bd8442751e7525a091ed209768814",
+    "only_five_owned_whole_row_deltas": [
+      "AT-DB-02",
+      "AT-GOV-08",
+      "DB-02",
+      "GOV-08",
+      "SC-010"
+    ],
+    "all_five_complete_owned_rows_and_whole_coverage_blob_exact_prior4aa": true,
+    "current_stored_approvals": 276,
+    "actualmain_stored_approvals": 271,
+    "SC071_full_row_preserved": true,
+    "coverage_git_blob": "dd1ac9012f4d555fc0cff5c6228ddc1643abff71",
+    "no_new_row_promotion_or_main_coverage_delivery": true
+  },
+  "SQL": {
+    "historical_main_count": 1073,
+    "current_prior_count": 1075,
+    "all1073_historical_path_mode_type_blob_tuples_exactmain": true,
+    "all1075_current_path_mode_type_blob_tuples_exactprior4aa": true,
+    "only_previously_qualified_original_forward_files": [
+      {
+        "path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+        "sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25"
+      },
+      {
+        "path": "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "sha256": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0"
+      }
+    ],
+    "migration_tree": "defbf44a6fc563a8516c9a8a80a5b847b90cefa3",
+    "no_Staff_IMP05_DB05_or_new_forward_admission": true
+  },
+  "generator_capture_custody": {
+    "eight_input_paths": [
+      "scripts/gridex-aud-003-clean-replay.sh",
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json",
+      "scripts/supabase-types-manifest.json",
+      "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "scripts/gridex-schema-snapshot.cjs",
+      "supabase/config.toml"
+    ],
+    "all_eight_mode_type_blob_tuples_exactprior4aa": true,
+    "raw_three_paths": [
+      "supabase/database.types.ts",
+      "supabase/schema.sql",
+      "supabase/schema.fingerprint.json"
+    ],
+    "all_three_mode_type_blob_tuples_exactprior4aa": true,
+    "full_manifest_sha256": "f26ede7d9ae73e5d863a49172df7cb8fdd586682f5b37e92be4823600e4dc4ca",
+    "whole_manifest_nested_origins_history_notes_complete_bytes_exactprior4aa": true,
+    "historical_capture_only_native_browser_comparison_upgrade_flags": "NOT_RUN",
+    "historical_original_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "composition_capture_pending": true,
+    "new_current_capture_native_schema_parity_runtime_qualification": "NOT_EXECUTED_NOT_CLAIMED"
+  },
+  "prior_independent_proofs_reused": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-8f851-sc010-composition-publication-independent-ready.json",
+      "sha256": "d26a0dcec7f9eb2cec14ad313c18ea71fb4b63c05d7da9e50b2a3293c99704d1",
+      "blob": "a330ddf21ae6dfeb52668c981169fca9724ce0ce",
+      "reused_within_exact_preserved_source_scope": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combineda2-main38-public533535-source-only-carry.json",
+      "sha256": "e4de81f4e59d1bd5a1be2b68b36472daa7e50af525fb87962c3d2c947dd4d041",
+      "blob": "70533986c2aa19943d9e003ee41bf7b701187bfb",
+      "reused_within_exact_preserved_source_scope": true
+    }
+  ],
+  "blocking_findings": [],
+  "skills_and_coordination": "Already-read applicable AGENTS/source-only memory and verification-before-completion; fresh exact Git-object/source-ledger assertions beforeREADY. Original component/domain proof and sole root publisher/capture/observer lanes retained; no new rule or duplicate reviews.",
+  "pending": {
+    "Staff": "Current original canonical fixture/source/input/native/whole handoff remains originalowner",
+    "IMP05": "Original correction held; no public/private report or held source intake here",
+    "capture": "Existing single final admitted-union capture remains root-owned and pending",
+    "current_resulting_ordinary_CI_and_main_delivery": "PENDING_ORIGINAL_ROOT_QUALIFICATION_AND_NORMAL_GUARDED_DELIVERY",
+    "finish": "Finish already-active work and accurate main baseline only; select no new Masterplan rules"
+  },
+  "actions": "Immutable Git tuples and bounded source-ledger JSON/hash reads only. ONE new sanitary immutable outsideGit JSON written. No fetch/source/index/ref/sharedmemory/GitHub mutation, source/whole/control/schema review/runs, AST/runtime/test/native/CI/capture/log/artifact/privatehistory/archive reopening."
+}
