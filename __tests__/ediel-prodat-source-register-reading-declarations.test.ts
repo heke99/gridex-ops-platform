@@ -6,6 +6,7 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {readSourceQualifiedProdatBilateralCapability,sourceQualifiedProdatBilateralCapability} from '@/lib/ediel/core/prodatBilateralSourceCapability'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
+import {sourceProdatRegisterReadingDeclarations} from '@/lib/ediel/core/prodatSourceRegisterReadingDeclarations'
 import {parseCanonicalMessageRow} from '@/lib/ediel/core/canonicalMessage'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
@@ -125,4 +126,63 @@ it('copying the opaque capability cannot create physical reading authority',asyn
  const copied={...capability!}
  expect(sourceQualifiedProdatBilateralCapability(row,copied)).toBeNull()
  expect(()=>resolveCanonicalMessagePolicy(row,undefined,{prodatSourceCapability:copied})).toThrow('prodat_bilateral_capability_required:Z04:A')
+})
+
+it('the public policy refuses an explicit admission clock sixty seconds after its authenticated receipt',async()=>{
+ const {row,capability}=await qualifiedPolicy()
+ expect(()=>resolveCanonicalMessagePolicy(row,undefined,{prodatSourceCapability:capability,admissionAt:'2026-10-01T12:02:00Z'}))
+  .toThrow('prodat_source_readings_admission_clock_mismatch')
+})
+
+it('the public policy accepts an explicit UTC-equivalent admission clock',async()=>{
+ const {row,capability}=await qualifiedPolicy()
+ const policy=resolveCanonicalMessagePolicy(row,undefined,{prodatSourceCapability:capability,admissionAt:'2026-10-01T14:01:00+02:00'})!
+ expect(policy.timeAnchors?.admissionAt).toBe('2026-10-01T12:01:00.000Z')
+ expect(policy.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:points[0],identityAgency:'9',meterReadingsSentInUtilts:true}])
+ const conditions=policy.prodatDependentConditions.filter(condition=>['214','218','259'].includes(condition.fieldNumber))
+ expect(conditions).toHaveLength(3)
+ expect(conditions.every(condition=>condition.status==='required')).toBe(true)
+})
+
+it('a copied canonical policy still needs the genuine opaque unit capability for physical declarations',async()=>{
+ const {row,capability,policy}=await qualifiedPolicy()
+ const copiedPolicy=structuredClone(policy)
+ expect(sourceProdatRegisterReadingDeclarations({message:row,qualification:capability,policy:copiedPolicy}))
+  .toEqual([{meteringPointId:points[0],identityAgency:'9',meterReadingsSentInUtilts:true}])
+ expect(sourceProdatRegisterReadingDeclarations({message:row,qualification:{...capability!},policy:copiedPolicy})).toBeNull()
+})
+
+const originalHeaderChanges=[
+ {name:'GAS application reference',before:'23-DDQ-PRODAT',after:'27-DDQ-PRODAT',metadata:{application_reference:'27-DDQ-PRODAT'}},
+ {name:'historical UNH association',before:'E2SE6A',after:'E2SE5A',metadata:{message_version:'E2SE5A'}},
+ {name:'different physical BGM',before:'BGM+Z04',after:'BGM+Z06',metadata:{}},
+]
+
+async function remintAlteredOriginal(change:{before:string;after:string;metadata:Partial<EdielMessageRow>}){
+ const f=fixture(),raw=f.row.raw_payload!.replace(change.before,change.after),payloadHash=createHash('sha256').update(raw).digest('hex')
+ const context=(f.row.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}).receivedProdatContext
+ const row={...f.row,...change.metadata,id:id(10),raw_payload:raw,execution_context_snapshot:{receivedProdatContext:{...context,sourceMessageId:id(10),payloadHash}}}
+ const receipt={...f.receipt,sourceMessageId:id(10),sourcePayloadHash:payloadHash}
+ // Deliberately port the protected RPC to this explicit unit boundary. The
+ // stored row and receipt match these original bytes; no private flags mint
+ // authority. Invalid headers/reasons would meet earlier native grammar/ground
+ // gates too. This does not claim those SQL owners approve these originals.
+ // For BGM, retain the receipt's declared Z04 selector to exercise the reader's
+ // independent original-byte guard rather than the outer code exclusion.
+ database.stored=structuredClone(row);database.rpc.mockResolvedValueOnce({data:receipt,error:null})
+ const qualification=await readSourceQualifiedProdatBilateralCapability(row)
+ expect(qualification).not.toBeNull()
+ return {row,qualification}
+}
+
+it.each(originalHeaderChanges)('a copied current policy cannot replace the original $name',async change=>{
+ const {policy}=await qualifiedPolicy(),original=await remintAlteredOriginal(change)
+ expect(()=>sourceProdatRegisterReadingDeclarations({message:original.row,qualification:original.qualification,policy:structuredClone(policy)}))
+  .toThrow('prodat_source_readings_wire_guide_unqualified')
+})
+
+it('a copied A policy and scoped unit receipt cannot replace original physical reason Z70 with Z26',async()=>{
+ const {policy}=await qualifiedPolicy(),original=await remintAlteredOriginal({before:'CAV+Z26',after:'CAV+Z70',metadata:{}})
+ expect(sourceProdatRegisterReadingDeclarations({message:original.row,qualification:original.qualification,policy:structuredClone(policy)}))
+  .toEqual([{meteringPointId:points[0],identityAgency:'9',meterReadingsSentInUtilts:null}])
 })

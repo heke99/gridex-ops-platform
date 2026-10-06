@@ -282,6 +282,9 @@ export function productionReceiptWire(f: Awaited<ReturnType<typeof createProduct
     // Solar identifies the product; no microproduction capacity is assumed.
     ...characteristic('Z13', 'Z70'), ...characteristic('Z04', 'Z04'), ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3),
     ...characteristic('Z15', 'Z32'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L641Q']],
+    // Real source-local reading declaration, not a parsed dependency flag or
+    // evidence that downstream UTILTS production readings have already arrived.
+    ...characteristic('Z02', '1', 3), ...characteristic('Z05', '6', 3), ...characteristic('Z16', '111', 3),
     ['RFF', ['MG', `METER-${f.productionExternal}`]], ['RFF', ['Z05', f.gridAreaCode]], ['RFF', ['LI', reference]],
     ...(options.omitConsumptionReference ? [] : [['RFF', ['Z07', options.consumptionPoint ?? f.external]] as Parts]),
     ['NAD', 'UD', [f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency], '', 'Synthetic Own Customer', 'Street', 'City', '', '12345', 'SE'],

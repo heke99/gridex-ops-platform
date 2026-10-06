@@ -108,3 +108,21 @@ it('equivalent UTC clock spellings preserve authenticated minting and redemption
  expect(sourceQualifiedProdatBilateralCapability(row,qualified)).toBe(qualified)
  expect(sourceQualifiedProdatBilateralCapability(equivalent,qualified)).toBe(qualified)
 })
+
+const contextBoundaryChanges=[
+ ['an extra context key',{...receivedContext,extra:'caller'}],
+ ['one microsecond of captured time',{...receivedContext,capturedAt:'2026-10-01T12:01:00.000001Z'}],
+] as const
+
+it.each(contextBoundaryChanges)('initial %s cannot become authenticated insertion context',async(_name,context)=>{
+ rpc.mockResolvedValueOnce({data:receipt(),error:null} as never)
+ const caller={...row,execution_context_snapshot:{receivedProdatContext:context}}
+ expect(await readSourceQualifiedProdatBilateralCapability(caller).catch(()=>null)).toBeNull()
+})
+
+it.each(contextBoundaryChanges)('a minted capability cannot redeem with %s',async(_name,context)=>{
+ rpc.mockResolvedValueOnce({data:receipt(),error:null} as never)
+ const qualified=await readSourceQualifiedProdatBilateralCapability(row)
+ expect(qualified).not.toBeNull()
+ expect(sourceQualifiedProdatBilateralCapability({...row,execution_context_snapshot:{receivedProdatContext:context}},qualified)).toBeNull()
+})

@@ -1,6 +1,5 @@
 import type {EdielMessageRow} from '@/lib/ediel/types'
-import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type {CanonicalEdielPolicy,ProdatDependentConditionFacts} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {prodatRegisterReadingMarket,prodatRegisterReadingState,prodatRegisterReadingSubtype} from '@/lib/ediel/prodat/prodatRegisterReadings'
 import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'

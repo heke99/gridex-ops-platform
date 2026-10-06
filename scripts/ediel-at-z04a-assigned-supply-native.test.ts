@@ -36,6 +36,9 @@ function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
     line('1', f.external, undefined, '9'), ['DTM', ['92', start, '203']], ['DTM', ['354', '15', '806']], qty('1000'),
     ...characteristic('Z13', 'Z26'), ...characteristic('Z04', 'Z04'), ...characteristic('Z07', 'Z12'),
     ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'Z32'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L639Q']],
+    // Independent physical register input; the source owner derives TRUE.
+    // This does not assert that any UTILTS reading has already arrived.
+    ...characteristic('Z02', '1', 3), ...characteristic('Z05', '6', 3), ...characteristic('Z16', '111', 3),
     ['RFF', ['MG', `METER-${f.external}`]], ['RFF', ['Z05', f.gridAreaCode]], ['RFF', ['LI', reference]],
     ['NAD', 'UD', [f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency], '', 'Synthetic Own Customer', 'Street', 'City', '', '12345', 'SE'],
     ['NAD', 'IT', [f.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
@@ -91,6 +94,8 @@ async function source(options: WireOptions = {}) {
   // Explicit narrower source path: prospective public INSERT chooses the real
   // canonical A profile. Private source/context/reception/validation/effects
   // are never seeded or patched. This does not qualify the mail adapter below.
+  // Retained legacy FALSE metadata supplies no authority: the qualified own
+  // physical259 declaration now establishes TRUE independently.
   sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
     SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(f.wire)},${literal({ ...f.mail.parsed, prodatDependentFacts: { market: 'electricity', meterReadingsSentInUtilts: false } })}::jsonb,
       ${literal(f.receivedAt)}::timestamptz,'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(f.mail.parsed.interchangeReference)},${literal(f.mail.inboundEmailMessageId)},${literal(f.mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
@@ -252,8 +257,8 @@ it.each([
 }, 120000)
 
 it('physically complete invoicee is accepted by the declared prospective-source control, without billing/customer mutation', async () => {
-  // The existing control's explicitly declared readings=false port remains
-  // narrower than actual parser intake; never credit this as adapter success.
+  // This public/profile INSERT remains narrower than actual adapter intake.
+  // Its legacy FALSE hint is overridden by qualified physical259, not credited.
   await assertAssignedEffects(await source({ invoiceeIdentity: '199001011234' }))
 }, 120000)
 

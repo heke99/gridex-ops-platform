@@ -77,6 +77,9 @@ jobs:
           test_scope = os.environ['Z04A_ASSIGNED_SUPPLY_NATIVE_TEST_SCOPE'].splitlines()
           paths = test_scope + ['.github/workflows/ediel-z04a-assigned-supply-native.yml', 'scripts/ediel-at-z04a-assigned-supply-native.config.ts', 'scripts/helpers/ediel-regulated-supply-ground-native-fixture.ts', 'scripts/helpers/ediel-normal-switch-native-fixture.ts', 'scripts/helpers/originalMailboxNative.ts', '__tests__/helpers/prodatGuideOrderedFixture.ts', '__tests__/fixtures/prodat-register.ts', 'scripts/helpers/ediel-native-permission-catalog.setup.ts', 'scripts/gridex-redact-native-evidence.py', 'scripts/ediel-source-owner-native.config.ts', 'scripts/gridex-aud-003-clean-replay.sh', 'lib/inbound-mail/inboundStatusUpdater.ts',
               'scripts/helpers/ediel-z04d-production-native-fixture.ts', '__tests__/helpers/sourceOwnerFixtures.ts', 'lib/ediel/core/messagePolicy.ts',
+              'lib/ediel/core/prodatBilateralSourceCapability.ts', 'lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts',
+              '__tests__/ediel-prodat-bilateral-source-capability.test.ts', '__tests__/ediel-prodat-source-register-reading-declarations.test.ts',
+              'lib/ediel/prodat/prodatRegisterReadings.ts', 'lib/ediel/prodat/prodatRegisterGroups.ts', 'lib/ediel/rulebook/guideRegistry.ts', 'lib/ediel/core/canonicalMessage.ts',
               'lib/customer-contracts/agreementPdf.ts', 'lib/customer-contracts/documents.ts', 'lib/ediel/testing/invoiceTestContractLifecycle.ts',
               'lib/ediel/core/sourceRulePackEvidence.ts', 'lib/ediel/sources/receivedSourceOwnerSession.ts', 'lib/ediel/flows/inboundBusinessStateMachine.ts',
               'supabase/schema.sql', 'docs/ediel/masterplan-v2/annex/source_tables.json',
