@@ -152,6 +152,28 @@ for (const kind of ['contrl','aperak27','aperak34'] as const) {
     const stable = effects(f)
     expect(await prepareAndQueueProdatRecovery(input)).toMatchObject({status:'existing',messageId:fresh.id})
     expect(effects(f)).toEqual(stable); expect(smtp).toHaveBeenCalledTimes(1)
+    // New bounded after-correction proof: this is the fresh generation, not
+    // a transport-loss retry of the old original. No whole OPS04/live claim.
+    const id = sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(fresh.id)}`)
+    const ackBefore = sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)
+    expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId:`native-corrected-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})).toMatchObject({status:'sent'})
+    expect(smtp).toHaveBeenCalledTimes(2)
+    const sent = (await getEdielMessageById(fresh.id))!
+    expect(sent).toMatchObject({id:fresh.id,status:'sent',original_message_id:f.originalZ03.id,source_operation_id:operationId,raw_payload:fresh.raw_payload,immutable_payload_hash:hash(fresh.raw_payload!)})
+    const attempt = sql<{id:string;company_id:string;message_id:string;classification:string}>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE company_id=${literal(f.companyId)} AND message_id=${literal(fresh.id)}`)
+    expect(attempt).toMatchObject({company_id:f.companyId,message_id:fresh.id,classification:'accepted'})
+    const mime = await readVerifiedEdielTransportCopy({companyId:f.companyId,actorUserId:f.actorUserId,messageId:fresh.id,attemptId:attempt.id})
+    expect(mime.length).toBeGreaterThan(0)
+    expect(originals(f)).toEqual(before)
+    expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)).toEqual(ackBefore)
+    const sentState = effects(f), sentQueue = workerState(id)
+    expect(await prepareAndQueueProdatRecovery(input)).toMatchObject({status:'existing',messageId:fresh.id})
+    await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId:`native-corrected-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
+    expect(effects(f)).toEqual(sentState); expect(workerState(id)).toEqual(sentQueue); expect(smtp).toHaveBeenCalledTimes(2)
+    expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE id=${literal(attempt.id)}`)).toEqual(attempt)
+    expect(await readVerifiedEdielTransportCopy({companyId:f.companyId,actorUserId:f.actorUserId,messageId:fresh.id,attemptId:attempt.id})).toEqual(mime)
+    expect(originals(f)).toEqual(before)
+    expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)).toEqual(ackBefore)
   },120000)
 }
 it('actual correction preparation denies omitted/foreign objects and a prepared correction cannot queue after current actor revocation',async () => {
@@ -523,4 +545,39 @@ it('a genuine worker blocked on its claimed row cannot enter SMTP when its lease
       finally {observe.mockRestore()}
     }
   }
+},120000)
+
+// Bounded OPS04 implementation evidence only: synthetic upstream replies and
+// SMTP are explicit. The selected agreed-test/incident consumer stays unproved.
+it.each(['actor','network_source'] as const)('fresh queued correction rechecks current %s before worker provider entry',async fault=>{
+ const f=await seed(),ack=await receiveAck(f,externalAck(f,'contrl')),operationId=randomUUID()
+ const input={companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId,correctedRawPayload:correction(f)}
+ const queued=await prepareAndQueueProdatRecovery(input)
+ expect(queued).toMatchObject({status:'queued',operationId})
+ if(!('messageId' in queued)||!('outboxId' in queued))throw Error('actual_fresh_correction_not_queued')
+ expect(queued.messageId).not.toBe(f.originalZ03.id)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(queued.messageId)}`)).toBe(1)
+ const old=originals(f),raw=(await getEdielMessageById(queued.messageId))!.raw_payload
+ const ackBefore=sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)
+ if(fault==='actor'){
+  const before=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:f.actorUserId,p_company_id:f.companyId,p_permission:'communication.write'})
+  expect(before.error).toBeNull();expect(before.data).toBe(true)
+  sql(`UPDATE public.company_memberships SET status='revoked',is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)}`)
+  const denied=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:f.actorUserId,p_company_id:f.companyId,p_permission:'communication.write'})
+  expect(denied.error).toBeNull();expect(denied.data).toBe(false)
+ }else{
+  const registry=normalSwitchNetworkRegistry(f.companyId)!
+  expect(registry).toBeTruthy()
+  expect(await revokeNetworkRegistrySource({...registry.artifact,companyId:f.companyId,actorUserId:registry.reviewerId,reason:'Synthetic withdrawal before fresh corrected generation enters provider'})).toMatchObject({status:'held'})
+ }
+ const calls=smtp.mock.calls.length
+ const result=await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:queued.outboxId,workerId:`native-fresh-refusal-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
+ expect(result.status).not.toBe('sent');expect(smtp).toHaveBeenCalledTimes(calls)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)} AND message_id=${literal(queued.messageId)} AND entered_at IS NOT NULL`)).toBe(0)
+ expect((await getEdielMessageById(queued.messageId))!.raw_payload).toBe(raw)
+ expect(originals(f)).toEqual(old);expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)).toEqual(ackBefore)
+ const first=effects(f)
+ await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:queued.outboxId,workerId:`native-fresh-refusal-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
+ expect(effects(f)).toEqual(first);expect(smtp).toHaveBeenCalledTimes(calls)
+ expect(originals(f)).toEqual(old)
 },120000)

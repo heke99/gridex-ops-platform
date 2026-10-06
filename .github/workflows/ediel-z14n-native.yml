@@ -1,0 +1,138 @@
+name: Ediel Z14N native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-at-z14n-esco-native.test.ts'
+      - 'scripts/ediel-at-z15c-z18v-esco-native.test.ts'
+      - 'scripts/ediel-tr-05-recovery-native.test.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/fixtures/**'
+      - 'scripts/helpers/**'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - 'lib/supabase/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ediel-z14n-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z14n-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Additional genuine feedback. Ordinary full-native, clean/upgrade, browser,
+# tenant, parity and certificate gates remain mandatory. OPS04 stays partial.
+jobs:
+  z14n-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Run genuine N, unchanged C/V and corrected-generation consumers
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p z14n-native-working
+          export GRIDEX_N_GIT_INPUTS="$RUNNER_TEMP/z14n-git-inputs.json"
+          # Freeze original Git blobs before replay generates local types/schema.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
+          source={}
+          for entry in entries:
+              if not entry: continue
+              header,path=entry.split(b'\t',1)
+              mode,kind,oid=header.decode().split()
+              if kind!='blob': continue
+              name=path.decode()
+              blob=subprocess.check_output(['git','cat-file','blob',oid])
+              source[name]={'mode':mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
+          required=['scripts/ediel-at-z14n-esco-native.test.ts','scripts/ediel-at-z15c-z18v-esco-native.test.ts',
+                    'scripts/ediel-tr-05-recovery-native.test.ts','scripts/fixtures/ediel-service-evidence-native.ts',
+                    'scripts/ediel-source-owner-native.config.ts','.github/workflows/ediel-z14n-native.yml']
+          if not all(name in source for name in required): raise RuntimeError('native_input_missing_from_frozen_git')
+          pathlib.Path(os.environ['GRIDEX_N_GIT_INPUTS']).write_text(json.dumps(dict(sorted(source.items())),indent=2)+'\n')
+          PY
+          # Replay owns its EXIT cleanup. Disposable status/credentials stay local.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z14n-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z14n-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-source-owner-native.config.ts \
+            scripts/ediel-at-z14n-esco-native.test.ts \
+            scripts/ediel-at-z15c-z18v-esco-native.test.ts \
+            scripts/ediel-tr-05-recovery-native.test.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=z14n-native-working/native-junit.xml \
+            > z14n-native-working/native.log 2>&1 || native_exit=$?
+          export GRIDEX_N_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          source=json.loads(pathlib.Path(os.environ['GRIDEX_N_GIT_INPUTS']).read_text())
+          changed={}
+          for name,identity in source.items():
+              path=pathlib.Path(name)
+              if not path.is_file(): raise RuntimeError('tracked_native_runtime_input_missing:'+name)
+              actual=hashlib.sha256(path.read_bytes()).hexdigest()
+              if actual!=identity['sha256']: changed[name]=actual
+          allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json',
+                   'scripts/supabase-types-manifest.json'}
+          if set(changed)-allowed: raise RuntimeError('unexpected_replay_runtime_source_change:'+','.join(sorted(set(changed)-allowed)))
+          receipt={
+              'purpose':'supplemental_actual_native_feedback',
+              'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'native_exit_code':int(os.environ['GRIDEX_N_NATIVE_EXIT']),
+              'input_identity':'immutable_checkout_before_replay',
+              'source_blobs':source,
+              'input_sha256':{name:identity['sha256'] for name,identity in source.items()},
+              'runtime_generated_input_sha256':changed,
+              'test_scope':['scripts/ediel-at-z14n-esco-native.test.ts',
+                            'scripts/ediel-at-z15c-z18v-esco-native.test.ts',
+                            'scripts/ediel-tr-05-recovery-native.test.ts'],
+              'ordinary_required_gates':'NOT_REPLACED',
+              'schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN',
+              'whole_ops04':'BLOCKED_SELECTED_AGREED_TEST_INPUT_AND_CONSUMER',
+              'authentic_market_evidence':'NOT_PROVIDED',
+          }
+          pathlib.Path('z14n-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root z14n-native-working
+          mv z14n-native-working z14n-native-evidence
+          cat z14n-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_N_GIT_INPUTS"
+          exit "$native_exit"
+      - name: Upload redacted native proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z14n-native-${{ github.run_id }}
+          path: z14n-native-evidence
+          if-no-files-found: ignore
+          retention-days: 14
