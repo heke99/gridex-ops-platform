@@ -18,8 +18,13 @@ function table(name:string){const start=schema.indexOf(`CREATE TABLE ${name} (`)
 function fn(source:string,name:string){const start=source.indexOf(`CREATE FUNCTION ${name}(`),delimiter=source.slice(start).match(/\bAS (\$[\w]*\$)/)?.[1],end=delimiter?source.indexOf(delimiter+';',source.indexOf(delimiter,start)+delimiter.length):-1;if(start<0||end<start||!delimiter)throw Error('actual_function_required:'+name);return source.slice(start,end+delimiter.length+1)}
 async function setup(){
  const db=new PGlite()
+ // The captured route-profile table now depends on this existing real enum.
+ // Install its exact DDL; do not strip the column from the real table fixture.
+ const environmentType=schema.match(/^CREATE TYPE public\.ediel_environment_type AS ENUM \([\s\S]*?\n\);/m)?.[0]
+ if(!environmentType)throw Error('actual_environment_type_required')
  await db.exec(`CREATE ROLE service_role;CREATE ROLE declared_owner;CREATE ROLE declared_reader;
  CREATE SCHEMA gridex_requested_changes;CREATE SCHEMA gridex_ediel_ack_replay;CREATE SCHEMA gridex_ediel_transport;CREATE SCHEMA gridex_received_sources;
+ ${environmentType}
  ${['public.ediel_message_intents','public.outbound_requests','public.ediel_route_profiles','gridex_requested_changes.events','gridex_requested_changes.origins'].map(table).join('\n')}
  CREATE TABLE public.metering_points(id uuid,company_id uuid,customer_id uuid,site_id uuid,meter_point_id text,ediel_metering_point_id text,grid_area_code text);
  CREATE TABLE public.customer_sites(id uuid,company_id uuid,customer_id uuid);

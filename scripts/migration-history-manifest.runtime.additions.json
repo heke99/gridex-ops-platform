@@ -137,6 +137,8 @@
     "20261006205800_ediel_generic_requested_change_current_bridge.sql": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
     "20261006205324_ediel_production_all_family_smime.sql": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
     "20261006210116_ediel_db01_legacy_address_containment.sql": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
-    "20261006213222_ediel_public_supplier_route_column_contract.sql": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5"
+    "20261006213222_ediel_public_supplier_route_column_contract.sql": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
+    "20261006214250_ediel_requested_change_owned_site_origin.sql": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
+    "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b"
   }
 }

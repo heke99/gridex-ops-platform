@@ -155,6 +155,12 @@ CREATE SCHEMA gridex_ediel_inbound_context;
 CREATE SCHEMA gridex_ediel_inbound_receptions;
 
 --
+-- Name: gridex_ediel_legacy_archive; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_ediel_legacy_archive;
+
+--
 -- Name: gridex_ediel_outbound_owner; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -12262,6 +12268,22 @@ CREATE FUNCTION gridex_ediel_inbound_receptions.result_v1(r gridex_ediel_inbound
     LANGUAGE sql STABLE
     SET search_path TO 'pg_catalog'
     AS $$SELECT jsonb_build_object('companyId',r.company_id,'sourceMessageId',r.source_message_id,'inboundEmailMessageId',r.inbound_email_message_id,'parseResultId',r.parse_result_id,'receptionId',r.id,'classification',r.classification,'isReplay',replay,'receivedAt',r.received_at,'canonicalPayloadHash',r.canonical_payload_hash,'receivedPayloadHash',r.received_payload_hash,'responseRequestId',q.id,'status',CASE WHEN q.id IS NULL THEN 'observed' ELSE 'held' END,'reason',q.reason,'businessEffectAuthorized',false) FROM (SELECT 1) single LEFT JOIN gridex_ediel_inbound_receptions.response_requests q ON q.reception_id=r.id$$;
+
+--
+-- Name: refuse_new_address_reference_v1(); Type: FUNCTION; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF NEW.party_address_id IS NOT NULL THEN
+    RAISE EXCEPTION 'ediel_legacy_party_address_hint_retired' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END
+$$;
 
 --
 -- Name: witnesses; Type: TABLE; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -31628,7 +31650,7 @@ BEGIN
  IF action='prepare' AND r->>'proceed'='true' THEN
   SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=mid AND company_id=c FOR SHARE;
   IF b IS NULL OR b='null'::jsonb THEN
-   IF m.direction='outbound' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.environment='production'
+   IF m.direction='outbound' AND m.environment='production'
     AND i#>>'{binding,mimeMode}' IS DISTINCT FROM 'ediel-smime-enveloped' THEN RAISE EXCEPTION 'transport_exception_actual_approved_plaintext_source_required';END IF;
    RETURN;
   END IF;
@@ -43247,7 +43269,7 @@ BEGIN
  sealed:=gridex_ediel_outbound_owner.prepare_v1(jsonb_build_object('companyId',p_company_id,'actorUserId',p_actor_user_id,'environment',env,'rawPayload',raw,'rulePackEvidence',e,'bilateralOriginalMessageId',mid));
  INSERT INTO gridex_bilateral_prodat.outbound_receipts(message_id,company_id,witness_id,payload_hash) VALUES(mid,p_company_id,(sealed->>'witnessId')::uuid,cap->>'payloadHash');
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,created_by,updated_by,raw_payload,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,tenant_resolution_status,business_match_status,processing_status,message_version,process_type,transport_type,mailbox,sender_ediel_id,sender_name,sender_sub_address,receiver_ediel_id,receiver_name,receiver_sub_address,sender_email,receiver_email,subject,file_name,mime_type,interchange_reference,external_reference,correlation_reference,transaction_reference,application_reference,original_message_id,original_transaction_id,original_message_code,source_operation_id,transport_security_mode,route_transport_security_mode,contrl_status,aperak_status,utilts_err_status,communication_route_id,route_profile_id,intent_id,party_id,party_address_id,expected_receiver_certificate_id,outbound_request_id,switch_request_id,grid_owner_data_request_id,partner_export_id,customer_id,site_id,metering_point_id,grid_owner_id,parsed_payload,validation_report,requires_contrl,requires_aperak,was_smime_encrypted,cms_expected_receiver_present,test_flag,unb_sender_id,unb_receiver_id,unb_sender_subaddress,unb_receiver_subaddress,message_reference,bgm_code,bgm_reference)
- VALUES(mid,p_company_id,env,'outbound','edifact','PRODAT',cap->>'messageCode',coalesce(p_draft->>'status','draft'),p_actor_user_id,p_actor_user_id,raw,(e->>'rulePackId')::uuid,e->>'profileKey',(e->>'messageProfileId')::uuid,e->>'version',e->>'sourceHash',e->'snapshot',jsonb_build_object('outboundOwnerWitnessId',sealed->>'witnessId'),'tenant_resolved','not_checked',coalesce(p_draft->>'status','draft'),p_draft->>'messageVersion',p_draft->>'processType',p_draft->>'transportType',p_draft->>'mailbox',p_draft->>'senderEdielId',p_draft->>'senderName',p_draft->>'senderSubAddress',p_draft->>'receiverEdielId',p_draft->>'receiverName',p_draft->>'receiverSubAddress',p_draft->>'senderEmail',p_draft->>'receiverEmail',p_draft->>'subject',p_draft->>'fileName',p_draft->>'mimeType',p_draft->>'interchangeReference',p_draft->>'externalReference',p_draft->>'correlationReference',p_draft->>'transactionReference',p_draft->>'applicationReference',p_draft->>'originalMessageId',p_draft->>'originalTransactionId',p_draft->>'originalMessageCode',p_draft->>'sourceOperationId',p_draft->>'transportSecurityMode',p_draft->>'routeTransportSecurityMode',p_draft->>'contrlStatus',p_draft->>'aperakStatus',p_draft->>'utiltsErrStatus',nullif(p_draft->>'communicationRouteId','')::uuid,nullif(p_draft->>'routeProfileId','')::uuid,nullif(p_draft->>'intentId','')::uuid,nullif(p_draft->>'partyId','')::uuid,nullif(p_draft->>'partyAddressId','')::uuid,nullif(p_draft->>'expectedReceiverCertificateId','')::uuid,nullif(p_draft->>'outboundRequestId','')::uuid,nullif(p_draft->>'switchRequestId','')::uuid,nullif(p_draft->>'gridOwnerDataRequestId','')::uuid,nullif(p_draft->>'partnerExportId','')::uuid,nullif(p_draft->>'customerId','')::uuid,nullif(p_draft->>'siteId','')::uuid,nullif(p_draft->>'meteringPointId','')::uuid,nullif(p_draft->>'gridOwnerId','')::uuid,coalesce(p_draft->'parsedPayload','{}'::jsonb),coalesce(p_draft->'validationReport','{}'::jsonb),(p_draft->>'requiresContrl')::boolean,(p_draft->>'requiresAperak')::boolean,(p_draft->>'wasSmimeEncrypted')::boolean,(p_draft->>'cmsExpectedReceiverPresent')::boolean,coalesce((p_draft->>'testFlag')::integer,CASE env WHEN 'test' THEN 1 ELSE 0 END),p_draft->>'senderEdielId',p_draft->>'receiverEdielId',p_draft->>'senderSubAddress',p_draft->>'receiverSubAddress',p_draft->>'originalMessageId',cap->>'messageCode',p_draft->>'externalReference') RETURNING * INTO m;
+ VALUES(mid,p_company_id,env,'outbound','edifact','PRODAT',cap->>'messageCode',coalesce(p_draft->>'status','draft'),p_actor_user_id,p_actor_user_id,raw,(e->>'rulePackId')::uuid,e->>'profileKey',(e->>'messageProfileId')::uuid,e->>'version',e->>'sourceHash',e->'snapshot',jsonb_build_object('outboundOwnerWitnessId',sealed->>'witnessId'),'tenant_resolved','not_checked',coalesce(p_draft->>'status','draft'),p_draft->>'messageVersion',p_draft->>'processType',p_draft->>'transportType',p_draft->>'mailbox',p_draft->>'senderEdielId',p_draft->>'senderName',p_draft->>'senderSubAddress',p_draft->>'receiverEdielId',p_draft->>'receiverName',p_draft->>'receiverSubAddress',p_draft->>'senderEmail',p_draft->>'receiverEmail',p_draft->>'subject',p_draft->>'fileName',p_draft->>'mimeType',p_draft->>'interchangeReference',p_draft->>'externalReference',p_draft->>'correlationReference',p_draft->>'transactionReference',p_draft->>'applicationReference',p_draft->>'originalMessageId',p_draft->>'originalTransactionId',p_draft->>'originalMessageCode',p_draft->>'sourceOperationId',p_draft->>'transportSecurityMode',p_draft->>'routeTransportSecurityMode',p_draft->>'contrlStatus',p_draft->>'aperakStatus',p_draft->>'utiltsErrStatus',nullif(p_draft->>'communicationRouteId','')::uuid,nullif(p_draft->>'routeProfileId','')::uuid,nullif(p_draft->>'intentId','')::uuid,nullif(p_draft->>'partyId','')::uuid,NULL,nullif(p_draft->>'expectedReceiverCertificateId','')::uuid,nullif(p_draft->>'outboundRequestId','')::uuid,nullif(p_draft->>'switchRequestId','')::uuid,nullif(p_draft->>'gridOwnerDataRequestId','')::uuid,nullif(p_draft->>'partnerExportId','')::uuid,nullif(p_draft->>'customerId','')::uuid,nullif(p_draft->>'siteId','')::uuid,nullif(p_draft->>'meteringPointId','')::uuid,nullif(p_draft->>'gridOwnerId','')::uuid,coalesce(p_draft->'parsedPayload','{}'::jsonb),coalesce(p_draft->'validationReport','{}'::jsonb),(p_draft->>'requiresContrl')::boolean,(p_draft->>'requiresAperak')::boolean,(p_draft->>'wasSmimeEncrypted')::boolean,(p_draft->>'cmsExpectedReceiverPresent')::boolean,coalesce((p_draft->>'testFlag')::integer,CASE env WHEN 'test' THEN 1 ELSE 0 END),p_draft->>'senderEdielId',p_draft->>'receiverEdielId',p_draft->>'senderSubAddress',p_draft->>'receiverSubAddress',p_draft->>'originalMessageId',cap->>'messageCode',p_draft->>'externalReference') RETURNING * INTO m;
  PERFORM gridex_ediel_source_rules.capture_v1(m.company_id,m.id);
  IF m.message_code='Z03' THEN
   UPDATE public.ediel_message_intents SET ediel_message_id=m.id,outbound_request_id=m.outbound_request_id,render_status='rendered',updated_at=now() WHERE id=m.intent_id AND company_id=m.company_id;
@@ -43315,7 +43337,7 @@ BEGIN
  sealed:=gridex_ediel_outbound_owner.prepare_v1(jsonb_build_object('companyId',p_company_id,'actorUserId',p_actor_user_id,'environment',env,'rawPayload',raw,'rulePackEvidence',e,'nationalOriginalMessageId',mid));
  INSERT INTO gridex_supply_rescission.outbound_receipts(message_id,company_id,witness_id,payload_hash) VALUES(mid,p_company_id,(sealed->>'witnessId')::uuid,cap->>'payloadHash');
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,created_by,updated_by,raw_payload,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,tenant_resolution_status,business_match_status,processing_status,message_version,process_type,transport_type,mailbox,sender_ediel_id,sender_name,sender_sub_address,receiver_ediel_id,receiver_name,receiver_sub_address,sender_email,receiver_email,subject,file_name,mime_type,interchange_reference,external_reference,correlation_reference,transaction_reference,application_reference,original_message_id,original_transaction_id,original_message_code,source_operation_id,transport_security_mode,route_transport_security_mode,contrl_status,aperak_status,utilts_err_status,communication_route_id,route_profile_id,intent_id,party_id,party_address_id,expected_receiver_certificate_id,outbound_request_id,switch_request_id,grid_owner_data_request_id,partner_export_id,customer_id,site_id,metering_point_id,grid_owner_id,parsed_payload,validation_report,requires_contrl,requires_aperak,was_smime_encrypted,cms_expected_receiver_present,test_flag,unb_sender_id,unb_receiver_id,unb_sender_subaddress,unb_receiver_subaddress,message_reference,bgm_code,bgm_reference)
- VALUES(mid,p_company_id,env,'outbound','edifact','PRODAT',cap->>'messageCode',coalesce(p_draft->>'status','draft'),p_actor_user_id,p_actor_user_id,raw,(e->>'rulePackId')::uuid,e->>'profileKey',(e->>'messageProfileId')::uuid,e->>'version',e->>'sourceHash',e->'snapshot',jsonb_build_object('outboundOwnerWitnessId',sealed->>'witnessId'),'tenant_resolved','not_checked',coalesce(p_draft->>'status','draft'),p_draft->>'messageVersion',p_draft->>'processType',p_draft->>'transportType',p_draft->>'mailbox',p_draft->>'senderEdielId',p_draft->>'senderName',p_draft->>'senderSubAddress',p_draft->>'receiverEdielId',p_draft->>'receiverName',p_draft->>'receiverSubAddress',p_draft->>'senderEmail',p_draft->>'receiverEmail',p_draft->>'subject',p_draft->>'fileName',p_draft->>'mimeType',p_draft->>'interchangeReference',p_draft->>'externalReference',p_draft->>'correlationReference',p_draft->>'transactionReference',p_draft->>'applicationReference',p_draft->>'originalMessageId',p_draft->>'originalTransactionId',p_draft->>'originalMessageCode',p_draft->>'sourceOperationId',p_draft->>'transportSecurityMode',p_draft->>'routeTransportSecurityMode',p_draft->>'contrlStatus',p_draft->>'aperakStatus',p_draft->>'utiltsErrStatus',nullif(p_draft->>'communicationRouteId','')::uuid,nullif(p_draft->>'routeProfileId','')::uuid,nullif(p_draft->>'intentId','')::uuid,nullif(p_draft->>'partyId','')::uuid,nullif(p_draft->>'partyAddressId','')::uuid,nullif(p_draft->>'expectedReceiverCertificateId','')::uuid,nullif(p_draft->>'outboundRequestId','')::uuid,nullif(p_draft->>'switchRequestId','')::uuid,nullif(p_draft->>'gridOwnerDataRequestId','')::uuid,nullif(p_draft->>'partnerExportId','')::uuid,nullif(p_draft->>'customerId','')::uuid,nullif(p_draft->>'siteId','')::uuid,nullif(p_draft->>'meteringPointId','')::uuid,nullif(p_draft->>'gridOwnerId','')::uuid,coalesce(p_draft->'parsedPayload','{}'::jsonb),coalesce(p_draft->'validationReport','{}'::jsonb),(p_draft->>'requiresContrl')::boolean,(p_draft->>'requiresAperak')::boolean,(p_draft->>'wasSmimeEncrypted')::boolean,(p_draft->>'cmsExpectedReceiverPresent')::boolean,coalesce((p_draft->>'testFlag')::integer,CASE env WHEN 'test' THEN 1 ELSE 0 END),p_draft->>'senderEdielId',p_draft->>'receiverEdielId',p_draft->>'senderSubAddress',p_draft->>'receiverSubAddress',p_draft->>'originalMessageId',cap->>'messageCode',p_draft->>'externalReference') RETURNING * INTO m;
+ VALUES(mid,p_company_id,env,'outbound','edifact','PRODAT',cap->>'messageCode',coalesce(p_draft->>'status','draft'),p_actor_user_id,p_actor_user_id,raw,(e->>'rulePackId')::uuid,e->>'profileKey',(e->>'messageProfileId')::uuid,e->>'version',e->>'sourceHash',e->'snapshot',jsonb_build_object('outboundOwnerWitnessId',sealed->>'witnessId'),'tenant_resolved','not_checked',coalesce(p_draft->>'status','draft'),p_draft->>'messageVersion',p_draft->>'processType',p_draft->>'transportType',p_draft->>'mailbox',p_draft->>'senderEdielId',p_draft->>'senderName',p_draft->>'senderSubAddress',p_draft->>'receiverEdielId',p_draft->>'receiverName',p_draft->>'receiverSubAddress',p_draft->>'senderEmail',p_draft->>'receiverEmail',p_draft->>'subject',p_draft->>'fileName',p_draft->>'mimeType',p_draft->>'interchangeReference',p_draft->>'externalReference',p_draft->>'correlationReference',p_draft->>'transactionReference',p_draft->>'applicationReference',p_draft->>'originalMessageId',p_draft->>'originalTransactionId',p_draft->>'originalMessageCode',p_draft->>'sourceOperationId',p_draft->>'transportSecurityMode',p_draft->>'routeTransportSecurityMode',p_draft->>'contrlStatus',p_draft->>'aperakStatus',p_draft->>'utiltsErrStatus',nullif(p_draft->>'communicationRouteId','')::uuid,nullif(p_draft->>'routeProfileId','')::uuid,nullif(p_draft->>'intentId','')::uuid,nullif(p_draft->>'partyId','')::uuid,NULL,nullif(p_draft->>'expectedReceiverCertificateId','')::uuid,nullif(p_draft->>'outboundRequestId','')::uuid,nullif(p_draft->>'switchRequestId','')::uuid,nullif(p_draft->>'gridOwnerDataRequestId','')::uuid,nullif(p_draft->>'partnerExportId','')::uuid,nullif(p_draft->>'customerId','')::uuid,nullif(p_draft->>'siteId','')::uuid,nullif(p_draft->>'meteringPointId','')::uuid,nullif(p_draft->>'gridOwnerId','')::uuid,coalesce(p_draft->'parsedPayload','{}'::jsonb),coalesce(p_draft->'validationReport','{}'::jsonb),(p_draft->>'requiresContrl')::boolean,(p_draft->>'requiresAperak')::boolean,(p_draft->>'wasSmimeEncrypted')::boolean,(p_draft->>'cmsExpectedReceiverPresent')::boolean,coalesce((p_draft->>'testFlag')::integer,CASE env WHEN 'test' THEN 1 ELSE 0 END),p_draft->>'senderEdielId',p_draft->>'receiverEdielId',p_draft->>'senderSubAddress',p_draft->>'receiverSubAddress',p_draft->>'originalMessageId',cap->>'messageCode',p_draft->>'externalReference') RETURNING * INTO m;
  PERFORM gridex_ediel_source_rules.capture_v1(m.company_id,m.id);
  IF m.message_code='Z03' THEN
   UPDATE public.ediel_message_intents SET ediel_message_id=m.id,outbound_request_id=m.outbound_request_id,render_status='rendered',updated_at=now() WHERE id=m.intent_id AND company_id=m.company_id;
@@ -44128,19 +44150,27 @@ CREATE FUNCTION public.ediel_originate_requested_change_before_scope_fence_v1(p_
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE e gridex_requested_changes.events%rowtype;b jsonb;o gridex_requested_changes.origins%rowtype;i public.ediel_message_intents%rowtype;r public.outbound_requests%rowtype;route public.ediel_route_profiles%rowtype;ref text;
+DECLARE e gridex_requested_changes.events%rowtype;b jsonb;o gridex_requested_changes.origins%rowtype;i public.ediel_message_intents%rowtype;r public.outbound_requests%rowtype;route public.ediel_route_profiles%rowtype;ref text;owned_site uuid;
 BEGIN
  SELECT * INTO e FROM gridex_requested_changes.events WHERE id=p_event_id AND company_id=p_company_id FOR UPDATE;b:=gridex_requested_changes.context_v1(p_company_id,p_event_id,p_actor_user_id);IF b->>'status' IS DISTINCT FROM 'authorized' THEN RETURN b;END IF;
  SELECT * INTO o FROM gridex_requested_changes.origins WHERE event_id=e.id FOR UPDATE;
  IF FOUND THEN RETURN jsonb_build_object('status','originated','intentId',o.intent_id,'outboundRequestId',o.outbound_request_id,'messageId',o.message_id);END IF;
+
+ SELECT site_id INTO owned_site FROM public.metering_points
+  WHERE id=e.metering_point_id AND company_id=e.company_id AND customer_id=e.customer_id FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'requested_change_owned_point_site_required';END IF;
+ IF owned_site IS NOT NULL THEN
+  PERFORM id FROM public.customer_sites WHERE id=owned_site AND company_id=e.company_id AND customer_id=e.customer_id FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'requested_change_owned_point_site_required';END IF;
+ END IF;
  SELECT * INTO route FROM public.ediel_route_profiles WHERE id=(p_route->>'routeProfileId')::uuid AND company_id=p_company_id AND environment=e.environment FOR SHARE;
  PERFORM id FROM public.communication_routes WHERE id=(p_route->>'communicationRouteId')::uuid AND company_id=p_company_id AND is_active FOR SHARE;
  IF NOT FOUND OR route.id IS NULL OR NOT route.is_enabled OR NOT route.is_active OR route.sender_ediel_id IS DISTINCT FROM p_route->>'senderEdielId' OR route.receiver_ediel_id IS DISTINCT FROM p_route->>'receiverEdielId' OR nullif(route.sender_sub_address,'') IS DISTINCT FROM nullif(p_route->>'senderSubaddress','') OR nullif(route.receiver_sub_address,'') IS DISTINCT FROM nullif(p_route->>'receiverSubaddress','') OR p_route->>'applicationReference' IS DISTINCT FROM '23-DDQ-PRODAT' THEN RETURN jsonb_build_object('status','held','missing',ARRAY['requested_change_exact_owned_current_route']);END IF;
  ref:=replace(gen_random_uuid()::text,'-','');ref:=upper(substring(ref,1,14));
- INSERT INTO public.ediel_message_intents(company_id,environment,market,message_family,message_code,business_process,direction,sender_ediel_id,sender_subaddress,receiver_ediel_id,receiver_subaddress,application_reference,route_profile_id,communication_route_id,customer_id,operation_id,metering_point_id,facility_id,grid_area_code,interchange_reference,message_reference,transaction_reference,payload,idempotency_key,created_by,updated_by)
- VALUES(p_company_id,e.environment,'electricity','PRODAT','Z09','customer_masterdata','outbound',route.sender_ediel_id,nullif(route.sender_sub_address,''),route.receiver_ediel_id,nullif(route.receiver_sub_address,''),'23-DDQ-PRODAT',route.id,(p_route->>'communicationRouteId')::uuid,e.customer_id,e.id,e.point_id,e.point_id,e.grid_area_code,ref,'1',ref,jsonb_build_object('actorRole','supplier','requestedChangeEventId',e.id,'variant',e.variant),'requested-change:'||e.id::text,p_actor_user_id,p_actor_user_id) RETURNING * INTO i;
- INSERT INTO public.outbound_requests(company_id,customer_id,metering_point_id,communication_route_id,request_type,source_type,source_id,status,channel_type,payload,created_by,updated_by,operation_id)
- VALUES(p_company_id,e.customer_id,e.metering_point_id,i.communication_route_id,'customer_masterdata','manual',i.id,'prepared','smtp',jsonb_build_object('requestedChangeEventId',e.id,'intentId',i.id),p_actor_user_id,p_actor_user_id,e.id) RETURNING * INTO r;
+ INSERT INTO public.ediel_message_intents(company_id,environment,market,message_family,message_code,business_process,direction,sender_ediel_id,sender_subaddress,receiver_ediel_id,receiver_subaddress,application_reference,route_profile_id,communication_route_id,customer_id,customer_site_id,operation_id,metering_point_id,facility_id,grid_area_code,interchange_reference,message_reference,transaction_reference,payload,idempotency_key,created_by,updated_by)
+ VALUES(p_company_id,e.environment,'electricity','PRODAT','Z09','customer_masterdata','outbound',route.sender_ediel_id,nullif(route.sender_sub_address,''),route.receiver_ediel_id,nullif(route.receiver_sub_address,''),'23-DDQ-PRODAT',route.id,(p_route->>'communicationRouteId')::uuid,e.customer_id,owned_site,e.id,e.point_id,e.point_id,e.grid_area_code,ref,'1',ref,jsonb_build_object('actorRole','supplier','requestedChangeEventId',e.id,'variant',e.variant),'requested-change:'||e.id::text,p_actor_user_id,p_actor_user_id) RETURNING * INTO i;
+ INSERT INTO public.outbound_requests(company_id,customer_id,site_id,metering_point_id,communication_route_id,request_type,source_type,source_id,status,channel_type,payload,created_by,updated_by,operation_id)
+ VALUES(p_company_id,e.customer_id,owned_site,e.metering_point_id,i.communication_route_id,'customer_masterdata','manual',i.id,'prepared','smtp',jsonb_build_object('requestedChangeEventId',e.id,'intentId',i.id),p_actor_user_id,p_actor_user_id,e.id) RETURNING * INTO r;
  INSERT INTO gridex_requested_changes.origins(event_id,company_id,actor_user_id,intent_id,outbound_request_id,basis,intent_binding,request_binding) VALUES(e.id,p_company_id,p_actor_user_id,i.id,r.id,b,to_jsonb(i)-ARRAY['validation_result','blocking_reasons','validation_status','render_status','outbox_status','updated_by','updated_at','ediel_message_id','outbound_request_id'],to_jsonb(r)-ARRAY['status','payload','response_payload','attempts_count','queued_at','prepared_at','sent_at','acknowledged_at','failed_at','failure_reason','updated_at','updated_by']);
  RETURN jsonb_build_object('status','originated','intentId',i.id,'outboundRequestId',r.id,'messageId',null);
 END$$;
@@ -96595,6 +96625,41 @@ CREATE TABLE gridex_ediel_inbound_receptions.technical_mailbox_births (
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: ediel_party_addresses; Type: TABLE; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE TABLE gridex_ediel_legacy_archive.ediel_party_addresses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    party_id uuid NOT NULL,
+    ediel_id text NOT NULL,
+    qualifier text DEFAULT 'ZZ'::text NOT NULL,
+    subaddress text,
+    message_family text NOT NULL,
+    message_type text,
+    business_code text,
+    environment text NOT NULL,
+    smtp_address text NOT NULL,
+    transport_security_mode text DEFAULT 'needs_verification'::text NOT NULL,
+    requires_subaddress boolean DEFAULT false NOT NULL,
+    certificate_required boolean DEFAULT false NOT NULL,
+    receiver_certificate_id uuid,
+    status text DEFAULT 'needs_verification'::text NOT NULL,
+    source text DEFAULT 'manual'::text NOT NULL,
+    last_verified_at timestamp with time zone,
+    valid_from timestamp with time zone,
+    valid_to timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    CONSTRAINT ediel_party_addresses_environment_chk CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text, 'agt'::text]))),
+    CONSTRAINT ediel_party_addresses_security_chk CHECK ((transport_security_mode = ANY (ARRAY['required_encrypted'::text, 'encrypted'::text, 'unencrypted'::text, 'needs_verification'::text]))),
+    CONSTRAINT ediel_party_addresses_source_chk CHECK ((source = ANY (ARRAY['ediel_registry'::text, 'ediel_catalog'::text, 'grid_owner_confirmation'::text, 'manual_verified'::text, 'manual'::text]))),
+    CONSTRAINT ediel_party_addresses_status_chk CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'expired'::text, 'needs_verification'::text])))
+);
+
+--
 -- Name: consumptions; Type: TABLE; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -105105,6 +105170,9 @@ CREATE TABLE public.communication_routes (
     environment_type public.ediel_environment_type,
     market_party_role text,
     counterparty_ediel_id text,
+    route_group text,
+    supported_message_families jsonb DEFAULT '[]'::jsonb NOT NULL,
+    supported_message_codes jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT communication_routes_ediel_ack_environment_required CHECK (((route_scope <> 'ediel_ack'::text) OR (environment_type IS NOT NULL))),
     CONSTRAINT communication_routes_route_scope_check CHECK ((route_scope = ANY (ARRAY['supplier_switch'::text, 'customer_masterdata'::text, 'meter_values'::text, 'metering_values'::text, 'billing_underlay'::text, 'metering_access'::text, 'ediel_ack'::text])))
 );
@@ -107826,6 +107894,7 @@ CREATE TABLE public.ediel_route_profiles (
     transport_environment text,
     target_system text,
     is_production_ready boolean DEFAULT false NOT NULL,
+    environment_type public.ediel_environment_type,
     CONSTRAINT ediel_route_profiles_ack_mode_check CHECK ((ack_mode = ANY (ARRAY['default'::text, 'none'::text, 'contrl_only'::text, 'contrl_and_aperak'::text]))),
     CONSTRAINT ediel_route_profiles_production_mode_check CHECK ((production_mode = ANY (ARRAY['disabled'::text, 'shadow'::text, 'dry_run'::text, 'live'::text, 'active'::text]))),
     CONSTRAINT ediel_route_profiles_receiver_source_check CHECK (((receiver_source IS NULL) OR (receiver_source = ANY (ARRAY['fixed_counterparty'::text, 'selected_metering_point_grid_owner'::text, 'selected_customer_site_grid_owner'::text, 'selected_supplier_switch_grid_owner'::text, 'selected_data_request_grid_owner'::text, 'original_inbound_sender'::text, 'original_inbound_receiver'::text, 'explicit_counterparty_role'::text, 'manual_superadmin_only'::text]))))
@@ -110473,41 +110542,6 @@ CREATE TABLE public.ediel_parties (
 );
 
 --
--- Name: ediel_party_addresses; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.ediel_party_addresses (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    party_id uuid NOT NULL,
-    ediel_id text NOT NULL,
-    qualifier text DEFAULT 'ZZ'::text NOT NULL,
-    subaddress text,
-    message_family text NOT NULL,
-    message_type text,
-    business_code text,
-    environment text NOT NULL,
-    smtp_address text NOT NULL,
-    transport_security_mode text DEFAULT 'needs_verification'::text NOT NULL,
-    requires_subaddress boolean DEFAULT false NOT NULL,
-    certificate_required boolean DEFAULT false NOT NULL,
-    receiver_certificate_id uuid,
-    status text DEFAULT 'needs_verification'::text NOT NULL,
-    source text DEFAULT 'manual'::text NOT NULL,
-    last_verified_at timestamp with time zone,
-    valid_from timestamp with time zone,
-    valid_to timestamp with time zone,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    CONSTRAINT ediel_party_addresses_environment_chk CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text, 'agt'::text]))),
-    CONSTRAINT ediel_party_addresses_security_chk CHECK ((transport_security_mode = ANY (ARRAY['required_encrypted'::text, 'encrypted'::text, 'unencrypted'::text, 'needs_verification'::text]))),
-    CONSTRAINT ediel_party_addresses_source_chk CHECK ((source = ANY (ARRAY['ediel_registry'::text, 'ediel_catalog'::text, 'grid_owner_confirmation'::text, 'manual_verified'::text, 'manual'::text]))),
-    CONSTRAINT ediel_party_addresses_status_chk CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'expired'::text, 'needs_verification'::text])))
-);
-
---
 -- Name: ediel_permission_cases; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -111865,6 +111899,10 @@ CREATE TABLE public.electricity_suppliers (
     last_seen_in_import_at timestamp with time zone,
     verification_checked_at timestamp with time zone,
     verification_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    customer_service_email text,
+    switching_email text,
+    contract_email text,
+    website text,
     CONSTRAINT electricity_suppliers_own_requires_company CHECK (((NOT COALESCE(is_own_supplier, false)) OR (company_id IS NOT NULL)))
 );
 
@@ -122222,6 +122260,13 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
     ADD CONSTRAINT technical_mailbox_births_pkey PRIMARY KEY (inbound_email_message_id);
 
 --
+-- Name: ediel_party_addresses ediel_party_addresses_pkey; Type: CONSTRAINT; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
+    ADD CONSTRAINT ediel_party_addresses_pkey PRIMARY KEY (id);
+
+--
 -- Name: consumptions consumptions_pkey; Type: CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -126870,13 +126915,6 @@ ALTER TABLE ONLY public.ediel_parties
     ADD CONSTRAINT ediel_parties_pkey PRIMARY KEY (id);
 
 --
--- Name: ediel_party_addresses ediel_party_addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ediel_party_addresses
-    ADD CONSTRAINT ediel_party_addresses_pkey PRIMARY KEY (id);
-
---
 -- Name: ediel_permission_cases ediel_permission_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -129312,6 +129350,24 @@ CREATE UNIQUE INDEX one_first_reception_per_original ON gridex_ediel_inbound_rec
 --
 
 CREATE INDEX receptions_source_message ON gridex_ediel_inbound_receptions.receptions USING btree (source_message_id);
+
+--
+-- Name: ediel_party_addresses_resolution_idx; Type: INDEX; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE INDEX ediel_party_addresses_resolution_idx ON gridex_ediel_legacy_archive.ediel_party_addresses USING btree (party_id, environment, message_family, business_code, status);
+
+--
+-- Name: ediel_party_addresses_route_unique_idx; Type: INDEX; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE UNIQUE INDEX ediel_party_addresses_route_unique_idx ON gridex_ediel_legacy_archive.ediel_party_addresses USING btree (party_id, environment, message_family, COALESCE(NULLIF(business_code, ''::text), '*'::text), COALESCE(subaddress, ''::text), smtp_address);
+
+--
+-- Name: idx_fk_ediel_party_addresses_86cb43505bcf; Type: INDEX; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE INDEX idx_fk_ediel_party_addresses_86cb43505bcf ON gridex_ediel_legacy_archive.ediel_party_addresses USING btree (receiver_certificate_id);
 
 --
 -- Name: ediel_scoped_readiness_evidence_lookup; Type: INDEX; Schema: gridex_ediel_readiness; Owner: -
@@ -132396,18 +132452,6 @@ CREATE INDEX ediel_parties_customer_flow_idx ON public.ediel_parties USING btree
 --
 
 CREATE UNIQUE INDEX ediel_parties_ediel_id_idx ON public.ediel_parties USING btree (ediel_id);
-
---
--- Name: ediel_party_addresses_resolution_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ediel_party_addresses_resolution_idx ON public.ediel_party_addresses USING btree (party_id, environment, message_family, business_code, status);
-
---
--- Name: ediel_party_addresses_route_unique_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX ediel_party_addresses_route_unique_idx ON public.ediel_party_addresses USING btree (party_id, environment, message_family, COALESCE(NULLIF(business_code, ''::text), '*'::text), COALESCE(subaddress, ''::text), smtp_address);
 
 --
 -- Name: ediel_permission_cases_company_status_idx; Type: INDEX; Schema: public; Owner: -
@@ -135648,12 +135692,6 @@ CREATE INDEX idx_fk_ediel_outbox_f52c6dd40bd8 ON public.ediel_outbox USING btree
 --
 
 CREATE INDEX idx_fk_ediel_outbox_ff0519d0e1e6 ON public.ediel_outbox USING btree (source_message_id);
-
---
--- Name: idx_fk_ediel_party_addresses_86cb43505bcf; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_fk_ediel_party_addresses_86cb43505bcf ON public.ediel_party_addresses USING btree (receiver_certificate_id);
 
 --
 -- Name: idx_fk_ediel_permission_events_f45392dc68a4; Type: INDEX; Schema: public; Owner: -
@@ -145741,6 +145779,18 @@ CREATE TRIGGER ediel_grant_history AFTER INSERT OR UPDATE ON public.ediel_data_a
 CREATE TRIGGER ediel_grant_scope_guard BEFORE INSERT OR UPDATE ON public.ediel_data_access_grants FOR EACH ROW EXECUTE FUNCTION public.ediel_service_scope_guard_v1();
 
 --
+-- Name: ediel_messages ediel_legacy_address_insert_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_legacy_address_insert_only BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1();
+
+--
+-- Name: ediel_route_profiles ediel_legacy_address_insert_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_legacy_address_insert_only BEFORE INSERT ON public.ediel_route_profiles FOR EACH ROW EXECUTE FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1();
+
+--
 -- Name: ediel_messages ediel_messages_canonical_contract_biu; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -148882,6 +148932,20 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
 
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
     ADD CONSTRAINT technical_mailbox_births_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES gridex_unattributed_intake.raw_births(inbound_email_message_id);
+
+--
+-- Name: ediel_party_addresses ediel_party_addresses_party_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
+    ADD CONSTRAINT ediel_party_addresses_party_id_fkey FOREIGN KEY (party_id) REFERENCES public.ediel_parties(id) ON DELETE CASCADE;
+
+--
+-- Name: ediel_party_addresses ediel_party_addresses_receiver_certificate_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
+    ADD CONSTRAINT ediel_party_addresses_receiver_certificate_id_fkey FOREIGN KEY (receiver_certificate_id) REFERENCES public.ediel_certificates(id) ON DELETE SET NULL;
 
 --
 -- Name: consumptions consumptions_witness_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -156735,7 +156799,7 @@ ALTER TABLE ONLY public.ediel_messages
 --
 
 ALTER TABLE ONLY public.ediel_messages
-    ADD CONSTRAINT ediel_messages_party_address_id_fkey FOREIGN KEY (party_address_id) REFERENCES public.ediel_party_addresses(id) ON DELETE SET NULL;
+    ADD CONSTRAINT ediel_messages_party_address_id_fkey FOREIGN KEY (party_address_id) REFERENCES gridex_ediel_legacy_archive.ediel_party_addresses(id) ON DELETE SET NULL;
 
 --
 -- Name: ediel_messages ediel_messages_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -156799,20 +156863,6 @@ ALTER TABLE ONLY public.ediel_outbox
 
 ALTER TABLE ONLY public.ediel_outbox
     ADD CONSTRAINT ediel_outbox_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id) ON DELETE SET NULL;
-
---
--- Name: ediel_party_addresses ediel_party_addresses_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ediel_party_addresses
-    ADD CONSTRAINT ediel_party_addresses_party_id_fkey FOREIGN KEY (party_id) REFERENCES public.ediel_parties(id) ON DELETE CASCADE;
-
---
--- Name: ediel_party_addresses ediel_party_addresses_receiver_certificate_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.ediel_party_addresses
-    ADD CONSTRAINT ediel_party_addresses_receiver_certificate_id_fkey FOREIGN KEY (receiver_certificate_id) REFERENCES public.ediel_certificates(id) ON DELETE SET NULL;
 
 --
 -- Name: ediel_permission_cases ediel_permission_cases_customer_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -157015,7 +157065,7 @@ ALTER TABLE ONLY public.ediel_route_profiles
 --
 
 ALTER TABLE ONLY public.ediel_route_profiles
-    ADD CONSTRAINT ediel_route_profiles_party_address_id_fkey FOREIGN KEY (party_address_id) REFERENCES public.ediel_party_addresses(id) ON DELETE SET NULL;
+    ADD CONSTRAINT ediel_route_profiles_party_address_id_fkey FOREIGN KEY (party_address_id) REFERENCES gridex_ediel_legacy_archive.ediel_party_addresses(id) ON DELETE SET NULL;
 
 --
 -- Name: ediel_route_profiles ediel_route_profiles_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -161229,6 +161279,36 @@ ALTER TABLE gridex_ediel_inbound_receptions.response_requests ENABLE ROW LEVEL S
 --
 
 ALTER TABLE gridex_ediel_inbound_receptions.technical_mailbox_births ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ediel_party_addresses; Type: ROW SECURITY; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+ALTER TABLE gridex_ediel_legacy_archive.ediel_party_addresses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ediel_party_addresses gridex_launch_platform_only_delete; Type: POLICY; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE POLICY gridex_launch_platform_only_delete ON gridex_ediel_legacy_archive.ediel_party_addresses FOR DELETE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
+
+--
+-- Name: ediel_party_addresses gridex_launch_platform_only_insert; Type: POLICY; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE POLICY gridex_launch_platform_only_insert ON gridex_ediel_legacy_archive.ediel_party_addresses FOR INSERT TO authenticated WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
+
+--
+-- Name: ediel_party_addresses gridex_launch_platform_only_select_restored; Type: POLICY; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE POLICY gridex_launch_platform_only_select_restored ON gridex_ediel_legacy_archive.ediel_party_addresses FOR SELECT TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
+
+--
+-- Name: ediel_party_addresses gridex_launch_platform_only_update; Type: POLICY; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+CREATE POLICY gridex_launch_platform_only_update ON gridex_ediel_legacy_archive.ediel_party_addresses FOR UPDATE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)) WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
 
 --
 -- Name: consumptions; Type: ROW SECURITY; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -165481,12 +165561,6 @@ CREATE POLICY ediel_outbox_tenant_update ON public.ediel_outbox FOR UPDATE USING
 ALTER TABLE public.ediel_parties ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: ediel_party_addresses; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.ediel_party_addresses ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: ediel_permission_cases; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -167347,12 +167421,6 @@ CREATE POLICY gridex_launch_platform_only_delete ON public.ediel_message_build_r
 CREATE POLICY gridex_launch_platform_only_delete ON public.ediel_parties FOR DELETE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
 
 --
--- Name: ediel_party_addresses gridex_launch_platform_only_delete; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY gridex_launch_platform_only_delete ON public.ediel_party_addresses FOR DELETE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
-
---
 -- Name: ediel_rule_activation_log gridex_launch_platform_only_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -167527,12 +167595,6 @@ CREATE POLICY gridex_launch_platform_only_insert ON public.ediel_message_build_r
 CREATE POLICY gridex_launch_platform_only_insert ON public.ediel_parties FOR INSERT TO authenticated WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
 
 --
--- Name: ediel_party_addresses gridex_launch_platform_only_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY gridex_launch_platform_only_insert ON public.ediel_party_addresses FOR INSERT TO authenticated WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
-
---
 -- Name: ediel_rule_activation_log gridex_launch_platform_only_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -167681,12 +167743,6 @@ CREATE POLICY gridex_launch_platform_only_select_restored ON public.ediel_messag
 --
 
 CREATE POLICY gridex_launch_platform_only_select_restored ON public.ediel_parties FOR SELECT TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
-
---
--- Name: ediel_party_addresses gridex_launch_platform_only_select_restored; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY gridex_launch_platform_only_select_restored ON public.ediel_party_addresses FOR SELECT TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
 
 --
 -- Name: ediel_rule_activation_log gridex_launch_platform_only_select_restored; Type: POLICY; Schema: public; Owner: -
@@ -167861,12 +167917,6 @@ CREATE POLICY gridex_launch_platform_only_update ON public.ediel_message_build_r
 --
 
 CREATE POLICY gridex_launch_platform_only_update ON public.ediel_parties FOR UPDATE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)) WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
-
---
--- Name: ediel_party_addresses gridex_launch_platform_only_update; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY gridex_launch_platform_only_update ON public.ediel_party_addresses FOR UPDATE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)) WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
 
 --
 -- Name: ediel_rule_activation_log gridex_launch_platform_only_update; Type: POLICY; Schema: public; Owner: -
@@ -183449,6 +183499,12 @@ REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.guard_original_v1() FROM 
 REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.result_v1(r gridex_ediel_inbound_receptions.receptions, replay boolean) FROM PUBLIC;
 
 --
+-- Name: FUNCTION refuse_new_address_reference_v1(); Type: ACL; Schema: gridex_ediel_legacy_archive; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION assert_message_before_native_ack_guide_v1(m public.ediel_messages, w gridex_ediel_outbound_owner.witnesses); Type: ACL; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -197607,13 +197663,6 @@ GRANT ALL ON TABLE public.ediel_overdue_message_acks_v TO service_role;
 
 GRANT ALL ON TABLE public.ediel_parties TO authenticated;
 GRANT ALL ON TABLE public.ediel_parties TO service_role;
-
---
--- Name: TABLE ediel_party_addresses; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.ediel_party_addresses TO authenticated;
-GRANT ALL ON TABLE public.ediel_party_addresses TO service_role;
 
 --
 -- Name: TABLE ediel_permission_cases; Type: ACL; Schema: public; Owner: -
