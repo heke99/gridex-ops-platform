@@ -40,6 +40,7 @@ async function configureAckProfile(companyId:string){
   RETURNING p.id) SELECT to_jsonb(count(*)) FROM configured`)).toBe(1)
 }
 async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={}){
+ candidate={...candidate,retainOriginalMailbox:true}
  if(variant==='L'){
   const f=await receivedNationalRescissionEnd(true,false,candidate)
   await configureAckProfile(f.companyId)
@@ -52,7 +53,11 @@ async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEnd
 const immutable=(id:string)=>sql(`SELECT jsonb_build_object('raw',raw_payload,
  'direction',direction,'company',company_id,'hash',immutable_payload_hash,'renderedAt',immutable_rendered_at,'receivedAt',message_received_at,
  'context',execution_context_snapshot,'captured',(SELECT to_jsonb(s)
- FROM gridex_received_sources.sources s WHERE s.source_message_id=m.id))
+ FROM gridex_received_sources.sources s WHERE s.source_message_id=m.id),
+ 'originalMail',(SELECT jsonb_build_object('id',mail.id,'mailbox',mail.mailbox_id,'raw',mail.raw_edifact_payload,
+ 'mime',mail.raw_email,'receivedAt',mail.received_at,'from',mail.from_address,'to',mail.to_address)
+ FROM public.inbound_email_messages mail WHERE mail.id=m.inbound_email_message_id),
+ 'reception',(SELECT to_jsonb(r) FROM gridex_ediel_inbound_receptions.receptions r WHERE r.source_message_id=m.id))
  FROM public.ediel_messages m WHERE id=${literal(id)}`)
 // Full durable business rows across all tenants. The sole permitted end period
 // and this received source's review/final-value cases are inspected separately.
