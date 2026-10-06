@@ -20,6 +20,7 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
 import { readSwitchCancellationSource } from '@/lib/ediel/production/switchCancellationSource'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import { applySupplyMarketSource } from '@/lib/ediel/flows/supplyMarketTransition'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
@@ -114,6 +115,15 @@ function ownedEffects(f: Fixture, sourceId: string) {
     'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'raw',raw_payload,'status',status,'hash',immutable_payload_hash) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(sourceId)}),
     'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE source_message_id=${literal(sourceId)}),
     'tasks',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]') FROM public.customer_cases c WHERE company_id=${literal(f.companyId)}));`)
+}
+function supplyBusinessState(f: Fixture) {
+  return { periods:periods(f),original:original(f),permissions:permissions(f),history:sql(`SELECT jsonb_build_object(
+    'transitions',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.source_message_id),'[]') FROM gridex_received_sources.supply_source_transitions t WHERE company_id=${literal(f.companyId)}),
+    'effects',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.id),'[]') FROM gridex_received_sources.supply_object_effect_receipts t WHERE company_id=${literal(f.companyId)}),
+    'partitions',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.source_message_id),'[]') FROM gridex_received_sources.supply_object_partitions t WHERE company_id=${literal(f.companyId)}));`) }
+}
+function positiveAperakCount(f: Fixture, sourceId: string) {
+  return sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(sourceId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)
 }
 async function sendOwnAcks(f: Fixture, sourceId: string) {
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('company_id', f.companyId)
@@ -289,7 +299,10 @@ describe('actual native supplier cancellation chains', () => {
     expect(decision.issues).toContainEqual(expect.objectContaining({
       prodatDiagnostic:expect.objectContaining({fieldNumber,...(fieldNumber === '223' ? {errorKind:'missing'} : {})}),
     }))
-    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id})
+    if (fieldNumber === '223') {
+      await expect(processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id}))
+        .rejects.toThrow(/^prodat_subtype_unknown:missing$/)
+    } else await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id})
     expect(periods(f)).toEqual(before); expect(permissions(f)).toEqual(permissionBefore)
     expect(transitions()).toEqual(historyBefore)
     // A valid syntax CONTRL is permitted; no positive business APERAK is.
@@ -306,7 +319,23 @@ describe('actual native supplier cancellation chains', () => {
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
     // Concurrent INVOCATION only: this does not attest observed lock overlap
     // or a transaction's final-write rollback boundary.
-    await Promise.all([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})))
+    const settled = await Promise.allSettled([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})))
+    const outcomes = settled.map(result => {
+      if (result.status === 'fulfilled') return {status:result.status}
+      const reason = result.reason as {code?:unknown;message?:unknown;details?:unknown} | null
+      return {status:result.status,code:typeof reason?.code === 'string' ? reason.code : null,
+        message:typeof reason?.message === 'string' ? reason.message : null,
+        details:typeof reason?.details === 'string' ? reason.details : null}
+    })
+    const durable = sql(`SELECT jsonb_build_object(
+      'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
+      'effectReceipts',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
+      'partitions',(SELECT count(*) FROM gridex_received_sources.supply_object_partitions WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
+      'responseBindings',(SELECT count(*) FROM gridex_ediel_ack_guide.prodat_structural_response_bindings WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
+      'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',message_family,'outcome',ack_outcome) ORDER BY message_family,id),'[]') FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(continuation.id)} AND direction='outbound'));`)
+    const diagnostic = JSON.stringify({outcomes,durable,periods:periods(f).map(p => ({id:p.id,status:p.status,
+      version:p.market_state_version,endingSource:p.source_end_message_id}))})
+    expect(outcomes.filter(result => result.status === 'rejected'),diagnostic).toEqual([])
     expect(periods(f)).toHaveLength(1)
     expect(periods(f)[0]).toMatchObject({ id:baseline.id,status:baseline.status,source_message_id:baseline.source_message_id,
       source_end_message_id:baseline.source_end_message_id,end_date:baseline.end_date,market_end_at:baseline.market_end_at,
@@ -316,6 +345,58 @@ describe('actual native supplier cancellation chains', () => {
       .toEqual([{family:'APERAK',outcome:'positive'},{family:'CONTRL',outcome:'positive'}])
     expect(original(f)).toEqual(beforeOriginal); expect(endingHistory()).toEqual(historyBefore)
     expect(permissions(f)).toEqual(permissionBefore)
+  }, 180000)
+
+  it('a receiver supplier role expired after genuine C reception cannot restore the ending period', async () => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'), before = supplyBusinessState(f)
+    expect(sql(`WITH changed AS (UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier' AND valid_to IS NULL RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
+    expect(supplyBusinessState(f)).toEqual(before)
+    expect(positiveAperakCount(f,continuation.id)).toBe(0)
+  }, 180000)
+
+  it('a genuine foreign execution actor cannot apply the own fresh C source', async () => {
+    const f = await seed(), foreign = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
+    const before = supplyBusinessState(f), foreignBefore = supplyBusinessState(foreign), effectsBefore = ownedEffects(f,continuation.id)
+    expect(await applySupplyMarketSource({actorUserId:foreign.actorUserId,message:continuation}))
+      .toMatchObject({applied:false,reason:'supply_execution_actor_unqualified',periods:[],commits:[],effectReceiptIds:[]})
+    expect(supplyBusinessState(f)).toEqual(before); expect(supplyBusinessState(foreign)).toEqual(foreignBefore)
+    expect(ownedEffects(f,continuation.id)).toEqual(effectsBefore)
+    expect(positiveAperakCount(f,continuation.id)).toBe(0)
+  }, 180000)
+
+  it('a sender grid-owner role revoked before fresh C reception cannot restore the ending period', async () => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const before = supplyBusinessState(f)
+    expect(sql(`WITH changed AS (UPDATE public.platform_actor_roles SET is_active=false WHERE actor_id=${literal(f.marketActorId)} AND actor_role='grid_owner' AND is_active RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
+    expect(supplyBusinessState(f)).toEqual(before)
+    expect(positiveAperakCount(f,continuation.id)).toBe(0)
+  }, 180000)
+
+  it('failure at the final C partition insert rolls back restoration and receipts and records the named held warning', async () => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'), before = supplyBusinessState(f)
+    const constraint = 'z05c_final_partition_'+randomUUID().replaceAll('-','')
+    // A stricter disposable CHECK rejects only this own final INSERT. It
+    // creates no receipt or business authority and leaves all other rows valid.
+    sql(`ALTER TABLE gridex_received_sources.supply_object_partitions ADD CONSTRAINT ${constraint} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND source_message_id=${literal(continuation.id)}::uuid)) NOT VALID;`)
+    try {
+      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
+      const warnings = sql(`SELECT coalesce(jsonb_agg(payload ORDER BY id),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)} AND event_type='manual_note' AND event_status='warning' AND payload->>'supplySourceApply'='rolled_back';`)
+      expect(warnings).toEqual(expect.arrayContaining([expect.objectContaining({supplySourceApply:'rolled_back',reason:expect.stringContaining(constraint)})]))
+      expect(supplyBusinessState(f)).toEqual(before)
+      expect(positiveAperakCount(f,continuation.id)).toBe(0)
+    } finally {
+      sql(`ALTER TABLE gridex_received_sources.supply_object_partitions DROP CONSTRAINT ${constraint};`)
+    }
   }, 180000)
 
   it.each(['li','point','stop','required-date','required-user','selected-invoicee'])('holds Z05C %s without restoring its real ending decision', async variant => {
