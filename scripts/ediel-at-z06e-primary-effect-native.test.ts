@@ -10,7 +10,8 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:delivery.smtp
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 
-import {createBilateralCustomerSourceFixture} from './helpers/ediel-bilateral-customer-native-fixture'
+import {createBilateralCustomerSourceFixture,captureBilateralCustomerNativeSource,customerChangeMinute} from './helpers/ediel-bilateral-customer-native-fixture'
+import {bilateralCustomerNativeWire} from './helpers/ediel-bilateral-customer-native-wire'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {archiveBilateralCustomerSource,reviewBilateralCustomerSourceArtifact} from '@/lib/ediel/production/bilateralCustomerSource'
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource'
@@ -20,6 +21,7 @@ import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSo
 import {supabaseService} from '@/lib/supabase/service'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent'
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 
 type Fixture=Awaited<ReturnType<typeof createBilateralCustomerSourceFixture>>
 type Snapshot={customer:Record<string,unknown>;supply:unknown;point:unknown;site:unknown}
@@ -141,5 +143,74 @@ it.each(['bankruptcy','customer_change'] as const)('native %s classification com
   sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from,valid_to)VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},'communication.write','deny',true,now()-interval '1 day',now()+interval '1 day')`)
   await expect(applyInboundCustomerLifeEvent({message:f.message,actorUserId:f.reviewer.id})).rejects.toMatchObject({message:'customer_life_event_actor_forbidden'})
   expect(counts(f)).toEqual(committed)
+  expect(snapshot(f)).toEqual(before)
+},120000)
+
+const noEffects={transitions:0,versions:0,partitions:0,tasks:0,primary:0,confirmedFacets:0,deathEvents:0}
+async function negativeFixture(){
+  for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)
+  return createBilateralCustomerSourceFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}))
+}
+function originalAndLedger(f:Fixture){
+  return sql(`SELECT jsonb_build_object('message',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(f.sourceMessageId)} AND company_id=${literal(f.companyId)}),
+    'source',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${literal(f.sourceMessageId)} AND company_id=${literal(f.companyId)}),
+    'assessments',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM gridex_received_sources.validation_assessments a WHERE source_message_id=${literal(f.sourceMessageId)} AND company_id=${literal(f.companyId)}))`)
+}
+function authorityCounts(f:Fixture){
+  return sql(`SELECT jsonb_build_object('classifications',(SELECT count(*) FROM gridex_customer_life_events.inbound_classifications WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceMessageId)}),
+    'grounds',(SELECT count(*) FROM gridex_customer_life_events.inbound_grounds WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceMessageId)}),
+    'origins',(SELECT count(*) FROM gridex_bilateral_customer_sources.origins WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceMessageId)}))`)
+}
+it('same-tenant signed authority for original A cannot classify or apply original B, with actual correct-A review control',async()=>{
+  const f=await negativeFixture(),before=snapshot(f)
+  // Reuse the existing finite native-original seam. This is deliberately not
+  // a claim of prospective mailbox/intake qualification for either original.
+  const b={...f,...await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true,name:'SYNTHETIC SECOND CUSTOMER ORIGINAL'})}
+  expect(b.sourceMessageId).not.toBe(f.sourceMessageId)
+  expect(b.wire).not.toBe(f.wire)
+  const submission=f.submission('SYNTHETIC same-tenant wrong-original authority',f.pdf('same actual issuer receipt'))
+  const signed=JSON.parse(Buffer.from(submission.issuerReceipt!.payloadBase64,'base64').toString('utf8')) as {claims:{sourceMessageId:string}}
+  expect(signed.claims.sourceMessageId).toBe(f.sourceMessageId)
+  const archive=await archiveBilateralCustomerSource({...submission,sourceMessageId:b.sourceMessageId,companyId:f.companyId,actorUserId:f.uploader.id})
+  const missing=['authentic_current_bilateral_dso_receipt_and_representation']
+  expect(archive.missing).toEqual(missing)
+  expect(await reviewBilateralCustomerSourceArtifact({...archive,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic separate wrong-original review',clause:f.clause})).toMatchObject({status:'held',missing})
+  expect(authorityCounts(b)).toEqual({classifications:0,grounds:0,origins:0})
+  const held=await applyInboundCustomerLifeEvent({message:b.message,actorUserId:f.reviewer.id})
+  expect(held).toMatchObject({applied:false,reason:'customer_life_event_source_held'})
+  expect(held.heldObjects).toEqual(expect.arrayContaining([expect.objectContaining({missing:expect.arrayContaining(['independent_original_customer_event_classification'])})]))
+  expect(counts(b)).toEqual(noEffects)
+  expect(snapshot(f)).toEqual(before)
+  const correct=await archiveBilateralCustomerSource({...submission,companyId:f.companyId,actorUserId:f.uploader.id})
+  expect(correct.missing).toEqual([])
+  expect(await reviewBilateralCustomerSourceArtifact({...correct,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic separate correct-original control',clause:f.clause})).toMatchObject({status:'authorized',sourceMessageId:f.sourceMessageId})
+  expect(authorityCounts(f)).toEqual({classifications:1,grounds:1,origins:1})
+  expect(authorityCounts(b)).toEqual({classifications:0,grounds:0,origins:0})
+  expect(counts(f)).toEqual(noEffects);expect(counts(b)).toEqual(noEffects)
+  expect(snapshot(f)).toEqual(before)
+},120000)
+it.each([
+  ['raw','immutable_ediel_payload_cannot_change'],
+  ['direction','immutable_ediel_received_context_cannot_change'],
+  ['receipt_time','immutable_ediel_receipt_time_cannot_change'],
+] as const)('actual REST %s mutation cannot change the sealed E original, ledger or business effects',async(field,guard)=>{
+  const f=await negativeFixture(),before=snapshot(f),sealed=originalAndLedger(f)
+  const patch=field==='raw'?{raw_payload:f.wire+'SYNTHETIC MUTATION'}:field==='direction'?{direction:'outbound'}:{message_received_at:new Date(Date.parse(f.message.message_received_at!)+60000).toISOString()}
+  const result=await supabaseService.from('ediel_messages').update(patch).eq('company_id',f.companyId).eq('id',f.sourceMessageId)
+  expect(result.error).toMatchObject({code:'23514',message:guard})
+  expect(originalAndLedger(f)).toEqual(sealed)
+  expect(authorityCounts(f)).toEqual({classifications:0,grounds:0,origins:0})
+  expect(counts(f)).toEqual(noEffects)
+  expect(snapshot(f)).toEqual(before)
+},120000)
+it('actual supplier outbound kernel refuses fresh Z06E direction before creating an original or owner witness',async()=>{
+  const f=await negativeFixture(),before=snapshot(f)
+  const outboundState=()=>sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),'witnesses',(SELECT count(*) FROM gridex_ediel_outbound_owner.witnesses WHERE company_id=${literal(f.companyId)}))`)
+  const prior=outboundState(),providerCalls=delivery.smtp.mock.calls.length
+  const raw=bilateralCustomerNativeWire({sender:f.sender,receiver:f.receiver,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),repeatRegister:true,invoicee:true})
+  await expect(createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'customer_masterdata',baseInput:{actorUserId:f.actorUserId,companyId:f.companyId,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z06',applicationReference:'23-DDQ-PRODAT',senderEdielId:f.sender,receiverEdielId:f.receiver,sourceOperationId:randomUUID(),rawPayload:raw}})).rejects.toThrow('PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED')
+  expect(outboundState()).toEqual(prior)
+  expect(delivery.smtp).toHaveBeenCalledTimes(providerCalls)
+  expect(counts(f)).toEqual(noEffects)
   expect(snapshot(f)).toEqual(before)
 },120000)
