@@ -6,6 +6,8 @@ on:
       - '__tests__/ediel-sc-003-provider-legal-dgi.test.ts'
       - '__tests__/ediel-sc-005-shared-dgi-projections.test.ts'
       - 'scripts/ediel-sc-003-005-service-native.test.ts'
+      - 'scripts/ediel-ten-09-service-coordination-native.test.ts'
+      - 'scripts/ediel-ten-09-service-native.config.ts'
       - 'scripts/fixtures/ediel-service-evidence-native.ts'
       - 'scripts/helpers/utiltsConsumptionParties.ts'
       - 'scripts/ediel-source-owner-native.config.ts'
@@ -56,12 +58,12 @@ jobs:
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/sc003-sc005-replay.log" 2>&1
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/sc003-sc005-native-status.json"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
-          native_tests=(scripts/ediel-sc-003-005-service-native.test.ts)
+          native_tests=(scripts/ediel-sc-003-005-service-native.test.ts scripts/ediel-ten-09-service-coordination-native.test.ts)
           export SC003_SC005_NATIVE_TEST_SCOPE
           SC003_SC005_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
           native_exit=0
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
-            --config scripts/ediel-source-owner-native.config.ts \
+            --config scripts/ediel-ten-09-service-native.config.ts \
             "${native_tests[@]}" \
             --reporter=default --reporter=junit \
             --outputFile=sc003-sc005-native-working/native-junit.xml \
@@ -72,6 +74,7 @@ jobs:
           test_scope = os.environ['SC003_SC005_NATIVE_TEST_SCOPE'].splitlines()
           paths = test_scope + ['.github/workflows/ediel-sc003-sc005-native.yml',
                    'scripts/fixtures/ediel-service-evidence-native.ts',
+                   'scripts/ediel-ten-09-service-native.config.ts',
                    'scripts/helpers/utiltsConsumptionParties.ts',
                    'scripts/helpers/ediel-native-permission-catalog.setup.ts',
                    'scripts/gridex-redact-native-evidence.py',
