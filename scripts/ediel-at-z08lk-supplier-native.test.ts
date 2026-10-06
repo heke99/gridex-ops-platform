@@ -38,10 +38,10 @@ it.each([
  const originalBefore=sourceSnapshot(f.original.id),receivedBefore=sourceSnapshot(f.sourceId),unrelatedBefore=unrelatedPeriods(f.periodId)
  expect(before).toMatchObject({period:{id:f.periodId,source_end_message_id:null},
   ends:0,transitions:0,positive:0,followups:0,audits:0})
- expect(sql(`SELECT gridex_bilateral_prodat.matched_closure_operation_v1(m,w.wire,w.wire->'objects'->0)
+ expect(sql(`SELECT to_jsonb(gridex_bilateral_prodat.matched_closure_operation_v1(m,w.wire,w.wire->'objects'->0) IS NULL)
   FROM public.ediel_messages m CROSS JOIN LATERAL
   (SELECT gridex_received_sources.normal_switch_wire_v1(m.raw_payload) wire) w
-  WHERE m.id=${literal(f.sourceId)}`)).toBeNull()
+  WHERE m.id=${literal(f.sourceId)}`)).toBe(true)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  expect(lkEffects(f)).toEqual(before)
  expect(()=>sql(`SELECT public.ediel_apply_supply_source_v1(${literal(f.companyId)},${literal(f.sourceId)},${literal(f.actorUserId)})`))

@@ -247,6 +247,21 @@ describe('AT-Z08LK protected closure flow and actual queue gateway', () => {
     expect(io.render).not.toHaveBeenCalled(); expect(io.finalize).not.toHaveBeenCalled(); expectNoQueue()
   })
 
+  it('actual canonical finalizer rejects an inbound LK candidate before authorization, persistence or queue', async () => {
+    const renderer = await vi.importActual<typeof import('@/lib/ediel/intent/renderers/bilateralClosure')>('@/lib/ediel/intent/renderers/bilateralClosure')
+    const kernel = await vi.importActual<typeof import('@/lib/ediel/core/kernel')>('@/lib/ediel/core/kernel')
+    io.render.mockImplementation(async params => {
+      const { draft } = await renderer.buildBilateralClosureDraft(params)
+      return { draft: { ...draft, direction: 'inbound' as const } }
+    })
+    io.finalize.mockImplementation(params => kernel.finalizeCanonicalOutboundDraft(params))
+    await expect(gateway()).rejects.toThrow('canonical_outbound_owner_scope_required')
+    expect(io.finalize).toHaveBeenCalledOnce()
+    expect(io.authorize).not.toHaveBeenCalled(); expect(io.duplicate).not.toHaveBeenCalled()
+    expect(io.rpc.mock.calls.filter(([name]) => /create.*original|create.*message|persist/i.test(name))).toEqual([])
+    expectNoQueue()
+  })
+
   it.each([
     ['R262', 'Z02', 'FIELD_MATRIX_REQUIRED_FIELD_MISSING', 'NAD+Z02/C082/3039'],
     ['activated IV', 'IV', 'PRODAT_INVOICEE_REQUIRED', 'Z08:INVOICEE_GROUP'],
