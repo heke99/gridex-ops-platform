@@ -28,14 +28,17 @@ describe('real Z06E native-effect consumer with an explicit finite RPC port', ()
     const receipt = { applied: true, sourceMessageId: message.id, scopes: [{ objectId: 'SYNTHETIC-OWN' }] }
     io.rpc.mockResolvedValue({ data: receipt, error: null })
     let retained: SourceCustomerLifeEventCommit | undefined
+    const observations: unknown[] = []
     const observer = vi.fn(async (commit: SourceCustomerLifeEventCommit) => {
       retained = commit
-      expect(isSourceCustomerLifeEventCommit(commit)).toBe(true)
-      expect(isSourceCustomerLifeEventCommit({ ...commit })).toBe(false)
-      expect(isSourceCustomerLifeEventCommit(structuredClone(commit))).toBe(false)
-      expect(commit.actorUserId).toBe(actorUserId)
-      expect(commit.message).toEqual(before)
-      expect(Object.isFrozen(commit)).toBe(true)
+      observations.push({
+        valid: isSourceCustomerLifeEventCommit(commit),
+        copied: isSourceCustomerLifeEventCommit({ ...commit }),
+        cloned: isSourceCustomerLifeEventCommit(structuredClone(commit)),
+        actorUserId: commit.actorUserId,
+        message: structuredClone(commit.message),
+        frozen: Object.isFrozen(commit),
+      })
       commit.message.parsed_payload.customer = { name: 'OBSERVER mutation' }
     })
     expect(await applyInboundCustomerLifeEvent({ message, actorUserId, onCustomerLifeEventCommitted: observer })).toEqual(receipt)
@@ -43,6 +46,7 @@ describe('real Z06E native-effect consumer with an explicit finite RPC port', ()
       p_company_id: companyId, p_source_message_id: message.id, p_actor_user_id: actorUserId,
     }]])
     expect(observer).toHaveBeenCalledTimes(1)
+    expect(observations).toEqual([{ valid: true, copied: false, cloned: false, actorUserId, message: before, frozen: true }])
     expect(message).toEqual(before)
     expect(isSourceCustomerLifeEventCommit(retained)).toBe(false)
   })

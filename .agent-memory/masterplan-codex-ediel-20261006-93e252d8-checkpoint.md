@@ -1,6 +1,6 @@
 # codex-ediel-20261006-93e252d8 — AT-Z06E-SUPPLIER, AT-Z09E-SUPPLIER
 
-Status: CLAIMED; no implementation, test execution or coverage approval.
+Status: bounded consumer tests locally verified; final review/full-suite pending; whole-contract native proof BLOCKED. No coverage approval.
 
 Session/packet: 93e252d8-2e95-4176-9f34-d62402545d0f
 Branch: codex/ediel-at-z06e-z09e-93e252d8
@@ -55,3 +55,7 @@ Verification log hashes:
 New file hashes:
 - __tests__/ediel-at-z06e-supplier-acceptance.test.ts: cecca15d0545008dca48536b9a947c6953f97bb3102987a492ab17f897f8626d
 - __tests__/ediel-at-z09e-supplier-acceptance.test.ts: 998c09c52b9681bdc88f7ce42d1b926ea4042c474db85d402489110aee0f7ea4
+
+## Independent review correction
+
+Initial immutable implementation:848c3a3da4e5fe542ae60f4f46cd9f2799128142. Independent reviewer identified one Important test defect: product publisher deliberately catches observer errors, so six assertions inside that callback could fail silently. Fixed only the owned Z06E test: record capability/copy/clone/actor/original-snapshot/frozen observations during callback, assert their exact values after the real consumer resolves. This preserves product error handling and makes failures visible. Corrected two suites12/12 PASS and scoped lint PASS; refreshed typecheck and final full-suite verification still pending. Original review/initial logs remain retained. Reviewer must reread the immutable correction before merge. Whole native blockers and coverage are unchanged. Next owner action: finish verification, record exact corrected commit and review on #530, publish component-only PR and await genuine current-head gates.
