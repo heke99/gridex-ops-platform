@@ -84,6 +84,28 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_ddq_original_digest_mismatch')
     return restored
   }
+  // Model only the original reviewed SC005 input, never admission of the
+  // current optional custody/termination fixture or its unexecuted new cases.
+  if (file === 'scripts/fixtures/ediel-service-evidence-native.ts') {
+    const originalDigest = "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
+    if (sha256(bytes) === originalDigest) return bytes
+    if (sha256(bytes) !== "7b80b1fcd3555d7261e2fcdabd310eddc9c937d7b25a921ec4c23ed0a0efeb71") throw Error('fixture_reviewed_esco_source_unavailable')
+    const corrections: [string, string][] = [
+      [" const insert=async(raw:string,family:'PRODAT'|'UTILTS'|'CONTRL'|'APERAK',code:string,profileKey?:string,mail?:{inboundEmailMessageId:string})=>{\n", " const insert=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profileKey?:string)=>{\n"],
+      ["  const values=`${nativeEscoLiteral(id)},${nativeEscoLiteral(ids.company)},${nativeEscoLiteral(ids.customer)},${nativeEscoLiteral(ids.site)},${nativeEscoLiteral(ids.point)},${nativeEscoLiteral(ids.grid)},'test','inbound','edifact',${nativeEscoLiteral(family)},${nativeEscoLiteral(code)},'received',${nativeEscoLiteral(raw)},'{}','{}',clock_timestamp(),'{}',${nativeEscoLiteral(envelope.applicationReference)},${nativeEscoLiteral(envelope.sender)},${nativeEscoLiteral(envelope.receiver)},${nativeEscoLiteral(envelope.interchangeReference)}${mail?`,${nativeEscoLiteral(mail.inboundEmailMessageId)},${nativeEscoLiteral(mail.inboundEmailMessageId)}`:\"\"}`\n", "  const values=`${nativeEscoLiteral(id)},${nativeEscoLiteral(ids.company)},${nativeEscoLiteral(ids.customer)},${nativeEscoLiteral(ids.site)},${nativeEscoLiteral(ids.point)},${nativeEscoLiteral(ids.grid)},'test','inbound','edifact',${nativeEscoLiteral(family)},${nativeEscoLiteral(code)},'received',${nativeEscoLiteral(raw)},'{}','{}',clock_timestamp(),'{}',${nativeEscoLiteral(envelope.applicationReference)},${nativeEscoLiteral(envelope.sender)},${nativeEscoLiteral(envelope.receiver)},${nativeEscoLiteral(envelope.interchangeReference)}`\n"],
+      ["  const columns='id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference'+(mail?',inbound_email_message_id,mailbox_message_id':'')\n", "  const columns='id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference'\n"],
+      ["export async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedNativeEscoFixture>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},termination?:{reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}){\n", "export async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedNativeEscoFixture>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow}){\n"],
+      [" const termsFor=(kind:string)=>({...baseTerms,permission_agreement_reference:kind==='end_user_contract'?'SYN-'+f.ids.customer.slice(0,20):null,permission_requested_method:kind==='end_user_contract'?'Z04' as const:null,permission_network_contract_start:kind==='dso_contract'?'2026-05-01':null,permission_network_contract_end:null,...(kind==='service_contract'&&termination?{permission_termination_reason:termination.reason,permission_termination_at:termination.at}:{})})\n", " const termsFor=(kind:string)=>({...baseTerms,permission_agreement_reference:kind==='end_user_contract'?'SYN-'+f.ids.customer.slice(0,20):null,permission_requested_method:kind==='end_user_contract'?'Z04' as const:null,permission_network_contract_start:kind==='dso_contract'?'2026-05-01':null,permission_network_contract_end:null})\n"],
+    ]
+    let original = bytes.toString('utf8')
+    for (const [current, previous] of corrections) {
+      if (original.split(current).length !== 2) throw Error('fixture_reviewed_esco_correction_not_unique')
+      original = original.replace(current, previous)
+    }
+    const restored = Buffer.from(original)
+    if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_esco_original_digest_mismatch')
+    return restored
+  }
   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
     ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n"]
     : file === '.github/workflows/ops-hardening.yml'
