@@ -62,22 +62,25 @@ async function ground() {
   expect(reference).not.toBe(f.caseReference)
   const wire = assignedWire(f, reference), smtp = assertEdielSmtpReadiness(), receivedAt = new Date().toISOString()
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire, receivedAt, smtpFrom: smtp.from })
-  return { ...f, authorized, reference, wire, mail, smtp, receivedAt,
+  const ackRoute = randomUUID(), ackProfile = randomUUID()
+  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+    VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic assigned ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
+    VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic assigned ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted',${literal(smtp.from)},${literal(smtp.host)},${smtp.port},'recipient@example.invalid','recipient@example.invalid');
+`)
+  return { ...f, authorized, reference, wire, mail, smtp, receivedAt, ackRoute, ackProfile,
     beforeSwitch: sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(f.switchId)}`),
     beforeContract: sql(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(f.contractId)}`),
     beforeCustomer: sql(`SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}`) }
 }
 
 async function source() {
-  const f = await ground(), sourceId = randomUUID(), ackRoute = randomUUID(), ackProfile = randomUUID()
+  const f = await ground()
+  const sourceId: string = randomUUID()
   // Explicit narrower source path: prospective public INSERT chooses the real
   // canonical A profile. Private source/context/reception/validation/effects
   // are never seeded or patched. This does not qualify the mail adapter below.
-  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
-    VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic assigned ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
-    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
-    VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic assigned ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted',${literal(f.smtp.from)},${literal(f.smtp.host)},${f.smtp.port},'recipient@example.invalid','recipient@example.invalid');
-    INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
     SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(f.wire)},${literal({ ...f.mail.parsed, prodatDependentFacts: { market: 'electricity', meterReadingsSentInUtilts: false } })}::jsonb,
       ${literal(f.receivedAt)}::timestamptz,'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(f.mail.parsed.interchangeReference)},${literal(f.mail.inboundEmailMessageId)},${literal(f.mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
     FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:A:26.A:r3' AND profile.is_enabled;`)
@@ -86,7 +89,7 @@ async function source() {
   expect(error).toBeNull()
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(data as EdielMessageRow)
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify(decision.issues)).toEqual(['accepted', 'accepted', 'accepted'])
-  return { ...f, sourceId, ackRoute, ackProfile }
+  return { ...f, sourceId }
 }
 
 function state(f: Awaited<ReturnType<typeof source>>) {
@@ -120,13 +123,15 @@ it('actual unmatched mail adapter must admit physical A with genuine custody and
   preserves(f)
   // A failed canonical birth must never be reported as successful acceptance.
   const profiles = sql(`SELECT coalesce(jsonb_agg(profile_key ORDER BY profile_key),'[]') FROM public.ediel_message_profiles WHERE profile->>'family'='PRODAT' AND message_code='Z04' AND direction IN('inbound','both') AND is_enabled`)
-  expect(id, JSON.stringify({ seam: 'actual_createInboundEdielMessage', profiles })).toMatch(/^[0-9a-f-]{36}$/)
+  expect(typeof id, JSON.stringify({ seam: 'actual_createInboundEdielMessage', profiles })).toBe('string')
+  expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const row = sql<{ raw: string; mail: string; mailbox: string; profile: string }>(`SELECT jsonb_build_object('raw',raw_payload,'mail',inbound_email_message_id,'mailbox',mailbox_message_id,'profile',rule_profile_key) FROM public.ediel_messages WHERE id=${literal(id)}`)
   expect(row).toEqual({ raw: f.wire, mail: f.mail.inboundEmailMessageId, mailbox: f.mail.inboundEmailMessageId, profile: 'PRODAT:Z04:A:26.A:r3' })
+  await assertAssignedEffects({ ...f, sourceId: id! })
 }, 120000)
 
-it('approved ground and genuine reception commit assigned start, own effects and routed ACKs, retry-stable without normal switch activation', async () => {
-  const f = await source(), input = { actorUserId: f.actorUserId, edielMessageId: f.sourceId }
+async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
+  const input = { actorUserId: f.actorUserId, edielMessageId: f.sourceId }
   await processInboundEdielMessage(input)
   const first = state(f)
   expect(first).toMatchObject({ raw: f.wire, effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
@@ -145,6 +150,10 @@ it('approved ground and genuine reception commit assigned start, own effects and
   await processInboundEdielMessage(input)
   expect(state(f)).toEqual(first)
   preserves(f)
+}
+
+it('approved ground and genuine reception commit assigned start, own effects and routed ACKs, retry-stable without normal switch activation', async () => {
+  await assertAssignedEffects(await source())
 }, 120000)
 
 it('revoked separate reviewer permission holds current ground with no source effect or positive own APERAK', async () => {

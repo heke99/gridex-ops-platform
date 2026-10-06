@@ -12,6 +12,8 @@ on:
       - 'scripts/gridex-aud-003-clean-replay.sh'
       - 'scripts/migration-history-manifest*.json'
       - 'lib/inbound-mail/inboundStatusUpdater.ts'
+      - 'lib/inbound-mail/assignedSupplyBirthProfile.ts'
+      - '__tests__/ediel-assigned-supply-birth-profile.test.ts'
       - 'lib/ediel/production/regulatedSupplyGroundIntake.ts'
       - 'lib/ediel/flows/inboundProcessing.ts'
       - 'lib/ediel/flows/supplyMarketTransition.ts'
@@ -71,7 +73,8 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
           test_scope = os.environ['Z04A_ASSIGNED_SUPPLY_NATIVE_TEST_SCOPE'].splitlines()
-          paths = test_scope + ['.github/workflows/ediel-z04a-assigned-supply-native.yml', 'scripts/ediel-at-z04a-assigned-supply-native.config.ts', 'scripts/helpers/ediel-regulated-supply-ground-native-fixture.ts', 'scripts/helpers/ediel-normal-switch-native-fixture.ts', 'scripts/helpers/originalMailboxNative.ts', '__tests__/helpers/prodatGuideOrderedFixture.ts', '__tests__/fixtures/prodat-register.ts', 'scripts/helpers/ediel-native-permission-catalog.setup.ts', 'scripts/gridex-redact-native-evidence.py', 'scripts/ediel-source-owner-native.config.ts', 'scripts/gridex-aud-003-clean-replay.sh', 'lib/inbound-mail/inboundStatusUpdater.ts', 'lib/ediel/production/regulatedSupplyGroundIntake.ts', 'lib/ediel/core/runtimeDecision.ts', 'lib/ediel/flows/inboundProcessing.ts', 'lib/ediel/flows/supplyMarketTransition.ts', 'supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql', 'docs/ediel/masterplan-v2/registers/acceptance_tests.json', 'scripts/migration-history-manifest.json', 'scripts/migration-history-manifest.additions.json', 'scripts/migration-history-manifest.runtime.additions.json']
+          paths = test_scope + ['.github/workflows/ediel-z04a-assigned-supply-native.yml', 'scripts/ediel-at-z04a-assigned-supply-native.config.ts', 'scripts/helpers/ediel-regulated-supply-ground-native-fixture.ts', 'scripts/helpers/ediel-normal-switch-native-fixture.ts', 'scripts/helpers/originalMailboxNative.ts', '__tests__/helpers/prodatGuideOrderedFixture.ts', '__tests__/fixtures/prodat-register.ts', 'scripts/helpers/ediel-native-permission-catalog.setup.ts', 'scripts/gridex-redact-native-evidence.py', 'scripts/ediel-source-owner-native.config.ts', 'scripts/gridex-aud-003-clean-replay.sh', 'lib/inbound-mail/inboundStatusUpdater.ts',
+              'lib/inbound-mail/assignedSupplyBirthProfile.ts', '__tests__/ediel-assigned-supply-birth-profile.test.ts', 'lib/ediel/production/regulatedSupplyGroundIntake.ts', 'lib/ediel/core/runtimeDecision.ts', 'lib/ediel/flows/inboundProcessing.ts', 'lib/ediel/flows/supplyMarketTransition.ts', 'supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql', 'docs/ediel/masterplan-v2/registers/acceptance_tests.json', 'scripts/migration-history-manifest.json', 'scripts/migration-history-manifest.additions.json', 'scripts/migration-history-manifest.runtime.additions.json']
           receipt = {
               'purpose': 'supplemental_actual_native_feedback',
               'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
