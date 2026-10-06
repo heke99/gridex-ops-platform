@@ -52,7 +52,7 @@ export async function pendingZ14(bounded=false):Promise<PendingZ14>{
    permission_network_contract_start:kind==='dso_contract'?'2026-05-01':null,permission_network_contract_end:null}
   const bootstrap=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:a.scope_basis_version,kind,terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference:'z14-bootstrap-'+randomUUID(),version:'synthetic-v1'}}})
   expect(bootstrap.missing).toContain('authentic_current_issuer_and_representation_receipt')
-  const canonical=await readEdielServiceEvidenceArchive({companyId:f.ids.company,actorUserId:f.ids.actor,artifactId:bootstrap.artifactId})
+  const canonical=await readEdielServiceEvidenceArchive({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:bootstrap.artifactId})
   expect(canonical.scopeBasisVersion).toBe(a.scope_basis_version);expect(canonical.issuerCurrent).toBe(false)
   // The real public reader owns canonical scope and normalized terms. The
   // synthetic signer consumes them; this fixture copies no private algorithm.
