@@ -26,8 +26,9 @@ Before every non-trivial task:
 10. Search `.agent-memory/known-failures.md`.
 11. Inspect `git status` and `git diff` when Git metadata is available.
 12. Inspect the actual implementation.
-13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`, your
-    own checkpoint, the legacy PR register and latest #530 allocations before
+13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`,
+    `.agent-memory/masterplan-reservations.md`, your own checkpoint, the legacy PR register,
+    latest #530 receipts and live remote locks before
     selecting a packet.
 14. Continue from the recorded next action.
 
@@ -39,8 +40,8 @@ After every atomic subtask, inspect changes, run targeted verification, update
 the checkpoint and current task, record the exact next action, and continue.
 
 For parallel Masterplan packets, each technical agent records these updates in
-its own packet checkpoint and on #530. The nominated campaign-memory writer
-maintains the shared current-task/checkpoint/handover files from those receipts.
+its own packet checkpoint and on #530. Agents acquire the atomic memory-role
+lock to reconcile shared current-task/checkpoint/handover from those receipts.
 
 Before session end, update checkpoint, handover, current state, blockers,
 completed work, verification matrix and the session log. Never store secrets,
@@ -270,24 +271,29 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    remaining partial cards.
 7. **Shared work:** before starting a cluster, check open PRs and
    `.agent-memory/handover.md` so two sessions never fix the same thing.
-8. **Claim board (mandatory, Claude and Codex):** issue #530 is the single
-   source of who works on which rule. Before writing code, read it and post
-   `CLAIM <ID>, <ID> — <agent> — branch <branch>` (two rules at a time, only
-   unclaimed IDs, or a bounded remaining contract/scenario pair). The wave
-   coordinator confirms ownership and file boundaries before code; elapsed
-   start delays are not locks. Post `READY <IDs> — PR #N` for reviewable work,
+8. **Self-selection and reservation (mandatory, Claude and Codex):** choose
+   two eligible unapproved rule IDs and their contracts yourself from current
+   main, priority and dependencies (or two remaining contract/scenario IDs when
+   work is acceptance-only; a final single eligible ID is allowed). Read #530,
+   current PRs, checkpoints and live remote locks. Atomically reserve IDs and
+   exact file scope using `.agent-memory/masterplan-reservations.md`, then post
+   `CLAIM <IDs> — <agent> — packet <UUID> — branch <branch>` with the receipt
+   and next action before code. Conflicts require selecting other free work.
+   No user assignment, coordinator acknowledgement or staggered launch is needed.
+   Issue #530 carries progress; atomic refs establish ownership. Acquire the
+   merge-role lock for serial current-head delivery. Post `READY <IDs> — PR #N` for reviewable work,
    `CI_GREEN` only for the current head, and `MERGED <IDs> — PR #N — <main SHA>`
    after actual delivery. Only then select the next pair. A legacy `DONE` comment
    about a green open PR is not a merge receipt or released ownership.
    Post `RELEASE <ID> — <reason/remaining work/checkpoint>` on explicit handover.
    Never edit `coverage.json` rows for IDs you have not claimed.
-   The nominated campaign-memory writer mirrors claims and actual merge receipts;
-   each technical agent maintains its own checkpoint rather than overwriting
-   shared campaign status.
+   Each agent maintains its checkpoint, mirrors actual receipts under the
+   shared-memory role lock, releases its own resources after documentation and
+   delivery/handover, and selects the next eligible packet without another prompt.
 9. **Mandatory documentation before more work:** each agent records what it
    claimed, what it completed, exact commit/verification, blockers/dependencies
    and its next action before starting and after each meaningful transition.
-   No next packet without current memory and confirmed ownership. Follow
+   No next packet without current memory and atomically confirmed ownership. Follow
    `.agent-memory/masterplan-agent-workflow.md` for the complete contract.
 10. **Retained PR work first:** assess relevant entries in
     `.agent-memory/masterplan-legacy-pr-register.json` against current main and

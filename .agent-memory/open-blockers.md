@@ -1,3 +1,22 @@
+## Current autonomous dispatch contract — 2026-10-06T13:00:25.023661+00:00
+
+Owner clarification supersedes coordinator-assigned packets: every agent receives
+one identical prompt, reads current main/memory/coverage/PRs, selects its own
+eligible two-ID packet, and reserves IDs plus file scope atomically using
+`masterplan-reservations.md`. A conflict means selecting other free work.
+No user assignment or coordinator acknowledgement is needed. After actual green
+merge and documented release, the agent refreshes state and selects the next pair
+without another prompt. Shared memory and merge roles are elected by atomic locks.
+
+PR #617 delivered the previous coordination memory to main at
+`c19610cbbdd468467d0a5173c175d5100e1cbd0f` after all eight required PR checks
+passed. Receipt: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6016670441.
+Coverage remains 111/121 rules and 167/231 contracts approved: 278/352;74 remain.
+This update launches no agents. Receiving `masterplan-next-wave-prompt.md` is the
+per-agent dispatch. Existing HOLD/PAUSED and external approval boundaries persist.
+
+Earlier sections below are historical; use this current autonomous contract.
+
 ## Current coordination baseline — 2026-10-06T11:44:10.912279+00:00
 
 The user authorized completion of the existing administrative closeout and this
