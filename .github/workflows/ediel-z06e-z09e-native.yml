@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 # Supplemental execution of preserved source proofs. Ordinary required gates
-# remain mandatory; these four cases do not approve either whole E contract.
+# remain mandatory; these source cases do not approve either whole E contract.
 jobs:
   z06e-z09e-native:
     runs-on: ubuntu-latest
@@ -52,6 +52,7 @@ jobs:
           native_tests=(
             scripts/ediel-confirmed-customer-bilateral-native.test.ts
             scripts/ediel-requested-customer-change-source-native.test.ts
+            scripts/ediel-at-z06e-primary-effect-native.test.ts
           )
           export Z06E_Z09E_NATIVE_TEST_SCOPE
           Z06E_Z09E_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"

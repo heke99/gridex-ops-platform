@@ -10,6 +10,7 @@ export default defineConfig({
     include: [
       'scripts/ediel-confirmed-customer-bilateral-native.test.ts',
       'scripts/ediel-requested-customer-change-source-native.test.ts',
+      'scripts/ediel-at-z06e-primary-effect-native.test.ts',
     ],
   },
 })
