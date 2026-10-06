@@ -114,8 +114,51 @@ function configureLegacy(f: Pick<Authorized, 'receiver' | 'companyId' | 'routePr
   else sql(`UPDATE public.ediel_route_profiles SET party_address_id=${literal(addressId)} WHERE id=${literal(profileId)};`)
   return {partyId, addressId, certificateId, profileId}
 }
-async function configureAgt() {
+function agtSnapshotAuthorization(f: {companyId: string; actorUserId: string}, otherCompanyId: string) {
+  expect(otherCompanyId).not.toBe(f.companyId)
+  return sql<{authorized: boolean; platformAdmin: boolean; otherCompany: boolean}>(`SELECT jsonb_build_object(
+    'authorized',public.canonical_actor_is_authorized(${literal(f.companyId)},${literal(f.actorUserId)},'ediel.profile.write',false),
+    'platformAdmin',public.canonical_actor_is_platform_admin(${literal(f.actorUserId)}),
+    'otherCompany',public.canonical_actor_is_authorized(${literal(otherCompanyId)},${literal(f.actorUserId)},'ediel.profile.write',false))`)
+}
+function prepareAgtSnapshotActor(f: {companyId: string; actorUserId: string}, otherCompanyId: string) {
+  // Declared prospective RBAC input for the real snapshot owner, not an
+  // approval, source receipt or configuration snapshot. Direct user grants
+  // do not satisfy this owner's role-backed canonical authorization predicate.
+  const input = sql<{roles: Array<{id: string; key: string}>; permissions: Array<{id: string; key: string}>}>(`SELECT jsonb_build_object(
+    'roles',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',r.id,'key',r.key)),'[]'::jsonb)
+      FROM public.user_roles ur JOIN public.roles r ON r.id=ur.role_id
+      JOIN public.company_memberships cm ON cm.user_id=ur.user_id AND cm.company_id=ur.company_id
+      JOIN auth.users u ON u.id=ur.user_id JOIN public.user_profiles up ON up.id=u.id
+      WHERE ur.user_id=${literal(f.actorUserId)} AND ur.company_id=${literal(f.companyId)}
+        AND ur.status='active' AND ur.is_active AND r.scope='company' AND r.is_active AND NOT r.is_system_role
+        AND r.key='native_actor_'||r.id::text AND cm.status='active' AND cm.is_active
+        AND u.deleted_at IS NULL AND (u.banned_until IS NULL OR u.banned_until<=now())
+        AND u.email_confirmed_at IS NOT NULL AND up.user_status='active'),
+    'permissions',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'key',key)),'[]'::jsonb)
+      FROM public.permissions WHERE key='ediel.profile.write' AND is_active))`)
+  expect(input.roles).toHaveLength(1); expect(input.permissions).toHaveLength(1)
+  const role = input.roles[0], permission = input.permissions[0]
+  expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('actor',user_id,'company',company_id,'status',status,'active',is_active)),'[]'::jsonb)
+    FROM public.user_roles WHERE role_id=${literal(role.id)}`))
+    .toEqual([{actor: f.actorUserId, company: f.companyId, status: 'active', active: true}])
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE role_id=${literal(role.id)}`)).toBe(0)
+  expect(agtSnapshotAuthorization(f, otherCompanyId)).toEqual({authorized: false, platformAdmin: false, otherCompany: false})
+  const otherPermissions = sql<Json>(`SELECT ${hashRows('public.role_permissions', `t.role_id IS DISTINCT FROM ${literal(role.id)}`)}`)
+  sql(`INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key,effect)
+    SELECT r.id,r.key,p.id,p.key,'allow' FROM public.roles r CROSS JOIN public.permissions p
+    WHERE r.id=${literal(role.id)} AND r.key=${literal(role.key)} AND r.scope='company' AND r.is_active AND NOT r.is_system_role
+      AND p.id=${literal(permission.id)} AND p.key='ediel.profile.write' AND p.is_active;`)
+  expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('role_id',role_id,'role_key',role_key,
+    'permission_id',permission_id,'permission_key',permission_key,'effect',effect)),'[]'::jsonb)
+    FROM public.role_permissions WHERE role_id=${literal(role.id)}`))
+    .toEqual([{role_id: role.id, role_key: role.key, permission_id: permission.id, permission_key: permission.key, effect: 'allow'}])
+  expect(sql<Json>(`SELECT ${hashRows('public.role_permissions', `t.role_id IS DISTINCT FROM ${literal(role.id)}`)}`)).toEqual(otherPermissions)
+  expect(agtSnapshotAuthorization(f, otherCompanyId)).toEqual({authorized: true, platformAdmin: false, otherCompany: false})
+}
+async function configureAgt(otherCompanyId: string) {
   const f = await chain.stage(), routeId = randomUUID(), profileId = randomUUID()
+  prepareAgtSnapshotActor(f, otherCompanyId)
   sql(`UPDATE public.ediel_actor_settings SET actor_role='supplier',brp_ediel_id=${literal(f.brpEdielId)},mailbox='synthetic@example.invalid' WHERE company_id=${literal(f.companyId)} AND environment='test';
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
     VALUES(${literal(routeId)},${literal(f.companyId)},${literal(getEdielAgtRouteName('PRODAT'))},'supplier_switch','agt_test',true,'portal@example.invalid');
@@ -130,7 +173,10 @@ async function configureAgt() {
   expect(settings.routeProfileId).toBe(profileId)
   return {...f, routeId, routeProfileId: profileId}
 }
-async function agtOriginal(f: {companyId: string; actorUserId: string; profileId: string}) {
+async function agtOriginal(f: {companyId: string; actorUserId: string; profileId: string}, otherCompanyId: string) {
+  // The current phase reuses the historical role grant without regranting or
+  // changing it after the forwards. Both phases call the actual predicate.
+  expect(agtSnapshotAuthorization(f, otherCompanyId)).toEqual({authorized: true, platformAdmin: false, otherCompany: false})
   // Actual public run creation captures current configuration. No seeded
   // locked-run, certification/approval result or fabricated ready decision.
   const run = await createEdielTestRun({companyId: f.companyId, actorUserId: f.actorUserId, testSuite: 'PRODAT', roleCode: 'supplier',
@@ -214,8 +260,8 @@ if (phase === 'historical') {
     // No accepted/application/legal fact is assigned to this audit birth.
     const {original, originalDraft} = await originateWithHint(f, old.addressId)
     expect(original).toMatchObject({party_address_id: old.addressId})
-    const af = await configureAgt(), aold = configureLegacy(af)
-    const am = await agtOriginal({companyId: af.companyId, actorUserId: af.actorUserId, profileId: af.routeProfileId})
+    const af = await configureAgt(f.companyId), aold = configureLegacy(af)
+    const am = await agtOriginal({companyId: af.companyId, actorUserId: af.actorUserId, profileId: af.routeProfileId}, f.companyId)
     expect(am).toMatchObject({party_address_id: aold.addressId, company_id: af.companyId, message_code: 'Z09'})
     const table = catalog('public.ediel_party_addresses')
     expect(table.policies).toHaveLength(4)
@@ -323,7 +369,7 @@ if (phase === 'historical') {
   })
 
   it('current real AGT L7 public run/render/preflight/locked route ignores the retained old profile hint and preserves actual route authority', async () => {
-    const h = readHandoff(), a = h.agt, message = await agtOriginal(a)
+    const h = readHandoff(), a = h.agt, message = await agtOriginal(a, h.companyId)
     expect(message).toMatchObject({company_id: a.companyId, party_address_id: null, communication_route_id: a.routeId,
       sender_ediel_id: a.sender, receiver_ediel_id: '91100', receiver_sub_address: 'PRODAT', message_code: 'Z09', environment: 'test'})
     expect(message.raw_payload?.includes("CCI++Z13'CAV+E32'")).toBe(true)
