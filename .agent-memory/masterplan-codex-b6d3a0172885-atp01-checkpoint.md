@@ -293,3 +293,18 @@ sharedmemoryrole mirror; publish currentcampaigncounts preservinghistory,
 then releaseownresource refs with SHA checks. Never oldheadsuccessasnewgates.
 Ifanotherowner nowhasID/path, leaveit anddocumenthandoff; silence isnotrelease.
 No user/coordinator assignment needed toresume this recordedresponsibility.
+
+## Actual release confirmation
+
+BLOCKED/RELEASE5306027110301 and RELEASE_CONFIRMED6027111663:
+https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6027110301
+https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6027111663
+BothsoleAT66c5 exactID/test refs actualGETMATCH/DELETE/remote404. All11
+metadata963c97 alreadyreleased6026866335. No ID/file/role ref heldbythis
+session. No furthertechnicalpacketstarted. Reviewed6465d/64572fa branches
+preserved; currentmain356290 and exactlocalcandidate291 remain distinct.
+Localread-only gh run watcher stopped; no current/foreignCI job stopped.
+Nextthissession actions remainthe exact currentmandatorygates→freshstatus/
+freeownresources→expectedheadguardedmergeorexplicitchangedscopehandover,
+with actualmain receipt/shared-role mirror. Remaining61map andsource
+producerblockers retainedabove; no customer/legal/external acceptance claim.
