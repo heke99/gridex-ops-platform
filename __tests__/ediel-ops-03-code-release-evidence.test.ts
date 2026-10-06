@@ -63,6 +63,29 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // HEAD's expanded native suite. Restore only its known additions and require
 // the original pinned bytes; every other source change still fails closed.
 function reviewedProducerFixture(file: string, bytes: Buffer) {
+  // Model the exact reviewed default helper only. The optional public case
+  // creator and its new native assertions confer no historical/current proof.
+  if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
+    const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
+    if (sha256(bytes) === originalDigest) return bytes
+    if (sha256(bytes) !== '72f50e5a064f5416ef707daa06d567ede4bcb8d7a11e9ad70fc4fffc4751f28c') throw Error('fixture_reviewed_normal_source_unavailable')
+    const corrections: [string, string][] = [
+      ["export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}\n", ""],
+      [";createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>", ""],
+      [" // An opt-in caller may exercise its public request creator before any case\n // exists. Existing callers retain their exact prospective SQL input below.\n let createdSwitchId:string=switchId\n if(input.createSwitchRequest){\n  createdSwitchId=await input.createSwitchRequest({companyId,actorUserId,customerId,siteId,pointId,contractId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id,invoiceeSnapshot})\n }else{\n", ""],
+      ["\n }\n sql(`INSERT INTO public.user_permissions(", "\n sql(`INSERT INTO public.user_permissions("],
+      ["switchId:createdSwitchId,external", "switchId,external"],
+      ["switchRequestId:createdSwitchId,communicationRouteId", "switchRequestId:switchId,communicationRouteId"],
+    ]
+    let original = bytes.toString('utf8')
+    for (const [current, previous] of corrections) {
+      if (original.split(current).length !== 2) throw Error('fixture_reviewed_normal_correction_not_unique')
+      original = original.replace(current, previous)
+    }
+    const restored = Buffer.from(original)
+    if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_normal_original_digest_mismatch')
+    return restored
+  }
   // Model the exact original reviewed DDQ producer. The real native fixture
   // now retains original-mailbox custody; that change is never relabelled as
   // current-head CODE_VERIFIED by this finite port or production consumer.
