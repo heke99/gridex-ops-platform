@@ -10,6 +10,7 @@ import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact,segmentSourceSpan,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import type {RequestedCustomerChangeSubmission} from '@/lib/ediel/production/requestedCustomerChangeSource'
+import type {RequestedChangeSourceSubmission} from '@/lib/ediel/production/requestedChangeIntake'
 export async function createRequestedCustomerChangeNativeFixture(provider:(email:string)=>void){
  const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
@@ -51,5 +52,30 @@ export async function createRequestedCustomerChangeNativeFixture(provider:(email
   const receiptBytes=Buffer.from(JSON.stringify({format:'ediel_requested_customer_change_receipt_v1',purpose:'prodat_z09e_requested_customer_change',receiptId:randomUUID(),claims:actual,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceReference:reference,sourceVersion:'1',authorizedFields:['227','228','229','231','232','316','250','251','252','253','317','318'],clause,issuedAt:new Date(Date.now()-60000).toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString()}))
   return{environment:'test',agreementId,supplyPeriodId:f.period,contractId:f.contractId,rawPayload,source:{bytesBase64:bytes.toString('base64'),mimeType:'application/pdf',reference,version:'1'},...(withReceipt?{issuerReceipt:{keyId,representationId,payloadBase64:receiptBytes.toString('base64'),signatureHex:createHmac('sha256',secret).update(receiptBytes).digest('hex')}}:{})}
  }
- return{...f,uploader,reviewer,reader,agreementId,keyId,representationId,rawPayload,clause,pdf,submission}
+ return{...f,uploader,reviewer,reader,agreementId,keyId,representationId,rawPayload,clause,pdf,submission,customerRouteId}
+}
+
+/** Completed generic death producer, distinct from bilateral customer-change
+ * authority. External legal issuer controls are explicitly synthetic; archive,
+ * separate review, source/event/original and every consumer remain native. */
+export async function createRequestedDeathNativeFixture(provider:(email:string)=>void){
+ const f=await createRequestedCustomerChangeNativeFixture(provider),marketMinute=customerChangeMinute(f.requestedStartDate)
+ const effectiveAt=new Date(Date.UTC(Number(marketMinute.slice(0,4)),Number(marketMinute.slice(4,6))-1,Number(marketMinute.slice(6,8)),Number(marketMinute.slice(8,10)),Number(marketMinute.slice(10,12)))-3600000).toISOString()
+ const supply=sql<{qualified:boolean;legalActorId:string;customerId:string;meteringPointId:string}>(`SELECT gridex_received_sources.supply_period_source_basis_v1(${literal(f.companyId)},${literal(f.period)},${literal(effectiveAt)}::timestamptz,${literal(effectiveAt)}::timestamptz+interval '1 minute')`)
+ expect(supply).toMatchObject({qualified:true,customerId:f.customerId,meteringPointId:f.pointId})
+ if(!supply.legalActorId)throw Error('actual_death_supply_legal_actor_required')
+ const customerIdentity={...f.customerIdentity,name:'SYNTHETIC DATED CUSTOMER',addressLines:['TEST ROAD 1'],city:'TEST',postalCode:'12345',country:'SE'}
+ const deathKeyId=randomUUID(),deathRepresentationId=randomUUID(),secret=Buffer.from('SYNTHETIC GENERIC DEATH ISSUER ONLY 0123456789012345'),authorityHash=createHash('sha256').update('SYNTHETIC DEATH COMPETENCE ONLY').digest('hex')
+ sql(`INSERT INTO gridex_requested_changes.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${literal(deathKeyId)},${literal(f.companyId)},'test','SYNTHETIC','SYNTHETIC DEATH COMPETENCE ONLY',${literal(authorityHash)},decode('${secret.toString('hex')}','hex'),'2020-01-01','2099-01-01');
+ INSERT INTO gridex_requested_changes.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,permitted_kind,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${literal(deathRepresentationId)},${literal(f.companyId)},'test',${literal(deathKeyId)},${literal(supply.legalActorId)},'death','SYNTHETIC DEATH REPRESENTATION ONLY',${literal(authorityHash)},'2020-01-01','2099-01-01')`)
+ function deathSubmission(reference:string,withReceipt=true):RequestedChangeSourceSubmission{
+  const address={lines:['TEST ROAD 1','',''] as [string,string,string],city:'TEST',postalCode:'12345',country:'SE',representation:{convention:'originalunderlag',reference,mode:1 as const}}
+  const invoiceeProfile:RequestedChangeSourceSubmission['invoiceeProfile']={meteringPointId:f.external,identityAgency:'9',endUser:{identity:f.customerIdentity,address},invoicee:{identity:f.customerIdentity,nameLines:['SYNTHETIC INVOICEE'],address:{...address,lines:['OTHER ROAD 2','',''],postalCode:'54321'},availability:'available'},event:{state:'none',reference},source:{kind:'caller_selection',companyId:f.companyId,reference}}
+  // Both UD and IV representations are in the signed original bytes. The
+  // generic receipt compares customerIdentity and binds these complete bytes.
+  const bytes=Buffer.from('%PDF-1.7\nSYNTHETIC SIGNED UD/IV DEATH UNDERLAG\n'+JSON.stringify({kind:'death',effectiveAt,customerIdentity,invoiceeProfile})+'\n%%EOF')
+  const receiptBytes=Buffer.from(JSON.stringify({format:'ediel_requested_change_issuer_receipt_v1',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',legalActorId:supply.legalActorId,customerId:f.customerId,meteringPointId:f.pointId,kind:'death',effectiveAt,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceReference:reference,sourceVersion:'1',customerIdentity,issuedAt:new Date(Date.now()-60000).toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString()}))
+  return {supplyPeriodId:f.period,contractId:f.contractId,kind:'death',effectiveAt,source:{bytesBase64:bytes.toString('base64'),mimeType:'application/pdf',reference,version:'1'},customerIdentity,invoiceeProfile,...(withReceipt?{issuerReceipt:{keyId:deathKeyId,representationId:deathRepresentationId,payloadBase64:receiptBytes.toString('base64'),signatureHex:createHmac('sha256',secret).update(receiptBytes).digest('hex')}}:{})}
+ }
+ return {...f,marketMinute,effectiveAt,deathKeyId,deathRepresentationId,deathSubmission}
 }

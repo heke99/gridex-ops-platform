@@ -1,11 +1,11 @@
-import {randomUUID} from 'node:crypto'
+import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 const delivery=vi.hoisted(()=>({smtp:vi.fn()}))
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:delivery.smtp})}}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
-import {createRequestedCustomerChangeNativeFixture} from './helpers/ediel-requested-customer-change-native-fixture'
+import {createRequestedCustomerChangeNativeFixture,createRequestedDeathNativeFixture} from './helpers/ediel-requested-customer-change-native-fixture'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {archiveRequestedCustomerChangeSource,readRequestedCustomerChangeSourceArtifact,readRequestedCustomerChangeSourceBytes,reviewRequestedCustomerChangeSourceArtifact} from '@/lib/ediel/production/requestedCustomerChangeSource'
 import {readRequestedCustomerChangeFacts,requestedCustomerChangeRegisterFacts} from '@/lib/ediel/production/requestedCustomerChangeFacts'
@@ -18,8 +18,30 @@ import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
+import {archiveRequestedChangeSource,reviewRequestedChangeArtifact} from '@/lib/ediel/production/requestedChangeIntake'
+import {readRequestedChangeSource} from '@/lib/ediel/production/requestedChangeSource'
+import {prepareAndQueueProdatRequestedChange} from '@/lib/ediel/flows/prodatRequestedChange'
+import {captureBilateralCustomerNativeSource} from './helpers/ediel-bilateral-customer-native-fixture'
+import {bilateralCustomerNativeWire} from './helpers/ediel-bilateral-customer-native-wire'
+import {applyConfirmedCustomerSource} from '@/lib/ediel/production/confirmedCustomerSource'
+import {readConfirmedCustomerHistory,isConfirmedCustomerHistoryQualified} from '@/lib/ediel/production/confirmedCustomerHistory'
+import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 afterEach(()=>{vi.unstubAllEnvs();delivery.smtp.mockReset()})
 async function fixture(){for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v);return createRequestedCustomerChangeNativeFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}))}
+async function deathFixture(){for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v);return createRequestedDeathNativeFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}))}
+type DeathFixture=Awaited<ReturnType<typeof deathFixture>>
+function deathBusiness(f:DeathFixture){return sql(`SELECT jsonb_build_object('customer',(SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}),'supply',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(f.period)}),'point',(SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(f.pointId)}),'site',(SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(f.siteId)}),'switches',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.supplier_switch_requests s WHERE company_id=${literal(f.companyId)}))`)}
+async function reviewDeath(f:DeathFixture){
+ const artifact=await archiveRequestedChangeSource({...f.deathSubmission('SYNTHETIC exact signed death original'),companyId:f.companyId,actorUserId:f.uploader.id})
+ expect(artifact.missing).toEqual([])
+ const reviewed=await reviewRequestedChangeArtifact({...artifact,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic separate review of complete signed death UD/IV underlag'})
+ expect(reviewed.status).toBe('authorized');if(reviewed.status!=='authorized')throw Error('actual_reviewed_death_event_required')
+ const basis=await readRequestedChangeSource({companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.uploader.id})
+ expect(basis).toMatchObject({status:'authorized',variant:'E',eventKind:'death',supplyPeriodId:f.period,customerId:f.customerId})
+ if(basis.status!=='authorized')throw Error('actual_current_death_source_required')
+ expect(Date.parse(basis.effectiveAt)).toBe(Date.parse(f.effectiveAt))
+ return reviewed
+}
 it('actual non-death outgoing mandate archives missing authority, holds separate review and makes no event or queue',async()=>{
  const f=await fixture(),scope={companyId:f.companyId,actorUserId:f.uploader.id},before=sql(`SELECT jsonb_build_object('events',(SELECT count(*) FROM gridex_customer_life_events.events WHERE company_id=${literal(f.companyId)}),'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z09'))`)
  const artifact=await archiveRequestedCustomerChangeSource({...f.submission('SYNTHETIC missing outgoing issuer',f.pdf('held'),false),...scope});expect(artifact.missing).toContain('authentic_current_outgoing_customer_mandate')
@@ -27,6 +49,65 @@ it('actual non-death outgoing mandate archives missing authority, holds separate
  expect(await prepareAndQueueRequestedCustomerChange({...scope,artifactId:artifact.artifactId})).toMatchObject({status:'held'})
  expect(sql(`SELECT jsonb_build_object('events',(SELECT count(*) FROM gridex_customer_life_events.events WHERE company_id=${literal(f.companyId)}),'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z09'))`)).toEqual(before)
 })
+
+it('genuine generic death archive and separate review reach the actual Z09 gateway and fresh SMTP send without automatic customer effects',async()=>{
+ const f=await deathFixture(),before=deathBusiness(f),reviewed=await reviewDeath(f)
+ const scope={companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.uploader.id,preferredRouteId:f.customerRouteId}
+ const result=await prepareAndQueueProdatRequestedChange(scope)
+ expect(result.status).toBe('queued');if(result.status==='held')throw Error('actual_death_original_gateway_required')
+ const message=result.message,e=EdifactEnvelopeCodec.decode(message.raw_payload)
+ expect(message).toMatchObject({direction:'outbound',message_family:'PRODAT',message_code:'Z09',sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,source_operation_id:reviewed.eventId})
+ expect(e.applicationReference).toBe('23-DDQ-PRODAT')
+ expect(e.segments.find(s=>s.tag==='BGM')!.elements[1]).toBe('Z09')
+ expect(e.segments.filter(s=>s.tag==='CAV').map(s=>segmentComposite(s,1,e.una)[0])).toEqual(expect.arrayContaining(['E34','Z41']))
+ expect(segmentComposite(e.segments.find(s=>s.tag==='NAD'&&segmentComposite(s,1,e.una)[0]==='UD')!,2,e.una)).toEqual([f.customerIdentity.id,'SE2','260'])
+ expect(segmentComposite(e.segments.find(s=>s.tag==='DTM'&&segmentComposite(s,1,e.una)[0]==='157')!,1,e.una)).toEqual(['157',f.marketMinute,'203'])
+ expect(e.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,e.una)[0]==='LI')).toHaveLength(1)
+ expect(await prepareAndQueueProdatRequestedChange(scope)).toMatchObject({status:'existing',message:{id:message.id,raw_payload:message.raw_payload}})
+ expect(deathBusiness(f)).toEqual(before)
+ const calls=delivery.smtp.mock.calls.length
+ // This successful-send oracle deliberately exposes any genuine current
+ // consumer incompatibility; no historical-source refusal is suppressed.
+ expect(await sendEdielMessageViaSmtp(message,{actorUserId:f.actorUserId})).toMatchObject({accepted:['recipient@example.invalid'],rejected:[],messageId:expect.any(String)})
+ expect(delivery.smtp).toHaveBeenCalledTimes(calls+1)
+ const sent=await supabaseService.from('ediel_messages').select('raw_payload,message_sent_at').eq('id',message.id).single();expect(sent.error).toBeNull()
+ expect(sent.data?.raw_payload).toBe(message.raw_payload);expect(sent.data?.message_sent_at).toBeTruthy()
+ expect(sql(`SELECT jsonb_build_object('primary',(SELECT count(*) FROM gridex_customer_life_events.customer_versions WHERE company_id=${literal(f.companyId)}),'desired',(SELECT count(*) FROM gridex_customer_life_events.desired_changes WHERE company_id=${literal(f.companyId)}),'confirmed',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE company_id=${literal(f.companyId)}),'automaticZ06',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_code='Z06'))`)).toEqual({primary:0,desired:0,confirmed:0,automaticZ06:0})
+ expect(deathBusiness(f)).toEqual(before)
+},120000)
+
+it('genuine reviewed death event qualifies only its own physical Z06 confirmed facet and committed history; orphan and retry have no primary customer effect',async()=>{
+ const f=await deathFixture(),before=deathBusiness(f),reference=randomUUID().replaceAll('-','').slice(0,14).toUpperCase()
+ const base=EdifactEnvelopeCodec.decode(bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+reference,marketMinute:f.marketMinute,repeatRegister:false,invoicee:true}))
+ const body=base.segments.filter(s=>!['UNB','UNH','UNT','UNZ'].includes(s.tag)).flatMap(s=>{
+  if(s.tag==='BGM')return ['BGM+Z06+'+reference+'+9+AB']
+  return [s.raw,...(s.tag==='CAV'&&segmentComposite(s,1,base.una)[0]==='E34'?['CCI++Z17','CAV+Z41']:[])]
+ })
+ const wire=EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,senderQualifier:base.senderQualifier,receiverQualifier:base.receiverQualifier,senderSubAddress:base.senderSubAddress,receiverSubAddress:base.receiverSubAddress,applicationReference:base.applicationReference,acknowledgementRequest:true,environment:'test',interchangeReference:reference,una:base.una,messages:[{messageReference:reference,messageTypeToken:base.segments.find(s=>s.tag==='UNH')!.elements[2],businessSegments:body}]})
+ // Actual no-context canonical admission, complete record, capture and finish.
+ // No requested outgoing context is relabelled as an inbound classification.
+ const source=await captureBilateralCustomerNativeSource(f,{sourceWire:wire,physicalBirth:true,repeatRegister:false})
+ const input={companyId:f.companyId,sourceMessageId:source.sourceMessageId,actorUserId:f.reviewer.id}
+ expect(await applyConfirmedCustomerSource(input)).toEqual({applied:false,reason:'customer_source_qualified_life_event_missing'})
+ const state=()=>sql(`SELECT jsonb_build_object('confirmed',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(source.sourceMessageId)}),'availability',(SELECT count(*) FROM gridex_requested_changes.customer_version_availability WHERE source_message_id=${literal(source.sourceMessageId)}),'primary',(SELECT count(*) FROM gridex_customer_life_events.customer_versions WHERE company_id=${literal(f.companyId)}),'transitions',(SELECT count(*) FROM gridex_customer_life_events.transitions WHERE company_id=${literal(f.companyId)}),'primaryReceipts',(SELECT count(*) FROM gridex_received_sources.customer_primary_response_receipts WHERE source_message_id=${literal(source.sourceMessageId)}))`)
+ expect(state()).toEqual({confirmed:0,availability:0,primary:0,transitions:0,primaryReceipts:0})
+ expect(deathBusiness(f)).toEqual(before)
+ const reviewed=await reviewDeath(f),payloadHash=createHash('sha256').update(wire).digest('hex')
+ expect(await applyConfirmedCustomerSource(input)).toMatchObject({applied:true,sourceMessageId:source.sourceMessageId,eventId:reviewed.eventId,payloadHash})
+ expect(state()).toEqual({confirmed:1,availability:1,primary:0,transitions:0,primaryReceipts:0})
+ expect(sql(`SELECT jsonb_build_object('event',event_id,'bilateral',bilateral_artifact_id,'source',source_message_id,'payloadHash',payload_hash,'period',supply_period_id,'object',object_id,'agency',identity_agency,'canonical',canonical_assessment_id IS NOT NULL,'effectiveMs',extract(epoch FROM effective_at)*1000,'party',party) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(source.sourceMessageId)}`)).toMatchObject({event:reviewed.eventId,bilateral:null,source:source.sourceMessageId,payloadHash,period:f.period,object:f.external,agency:'9',canonical:true,effectiveMs:Date.parse(f.effectiveAt),party:{id:f.customerIdentity.id,qualifier:'SE2',agency:'260',deathStatus:'Z41'}})
+ const cutoffAt=sql<string>('SELECT to_jsonb(clock_timestamp())'),scope={companyId:f.companyId,environment:'test' as const,customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,legalSupplier:f.sender,legalNetwork:f.receiver,fromDate:f.requestedStartDate,toDate:f.requestedStartDate,cutoffAt}
+ const snapshot=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:f.companyId,p_environment:'test',p_cutoff:cutoffAt});expect(snapshot.error).toBeNull()
+ const readset=inspectStructuralReadset(scope,snapshot.data);expect(readset.timeline).toMatchObject({status:'inspected',boundedReadComplete:true})
+ const history=await readConfirmedCustomerHistory({scope,readset,actorUserId:f.reviewer.id})
+ expect(isConfirmedCustomerHistoryQualified(history,scope,readset)).toBe(true);expect(history.versions).toHaveLength(1)
+ expect(history.versions[0]).toMatchObject({sourceMessageId:source.sourceMessageId,payloadHash,supplyPeriodId:f.period,objectId:f.external,identityAgency:'9',marketMinute:f.marketMinute,legalSender:f.receiver,legalReceiver:f.sender,party:{id:f.customerIdentity.id,qualifier:'SE2',agency:'260',deathStatus:'Z41'}})
+ expect(Date.parse(history.versions[0].effectiveAt)).toBe(Date.parse(f.effectiveAt))
+ const stable=state()
+ expect(await applyConfirmedCustomerSource(input)).toMatchObject({applied:true,sourceMessageId:source.sourceMessageId,eventId:reviewed.eventId,payloadHash})
+ expect(state()).toEqual(stable);expect(deathBusiness(f)).toEqual(before)
+ expect((await supabaseService.from('ediel_messages').select('raw_payload').eq('id',source.sourceMessageId).single()).data?.raw_payload).toBe(wire)
+},120000)
 it('actual independent outgoing review publishes exact immutable non-death event; current issuer/reviewer revocation blocks every fresh consumer',async()=>{
  const f=await fixture(),scope={companyId:f.companyId,actorUserId:f.uploader.id},original=f.pdf('actual original'),artifact=await archiveRequestedCustomerChangeSource({...f.submission('SYNTHETIC exact outgoing customer agreement',original),...scope})
  expect(artifact.missing).toEqual([]);expect(Buffer.from((await readRequestedCustomerChangeSourceBytes({...scope,artifactId:artifact.artifactId})).bytes)).toEqual(original)
