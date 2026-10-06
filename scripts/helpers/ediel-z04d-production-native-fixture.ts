@@ -84,17 +84,23 @@ export async function createConsumptionPrecondition(provider: Provider) {
 
 async function createProductionContract(f: Awaited<ReturnType<typeof createConsumptionPrecondition>>) {
   // The normal fixture has already removed its temporary platform admin.
-  // Configure only the two registered operations this public producer needs.
+  // Clean native replay lacks some hosted reference catalog keys. This local
+  // catalog insert grants nothing; the existing company actor is qualified below.
+  const permissions = ['contracts.create', 'contracts.publish', 'pricing.publish', 'pricing.write']
+  const permissionKeys = permissions.map(literal).join(',')
+  sql(`INSERT INTO public.permissions(key,name,description,category,is_active)
+    SELECT key,key,'Synthetic D public production operations reference','native_fixture',true
+    FROM unnest(ARRAY[${permissionKeys}]::text[]) key
+    ON CONFLICT(key) DO NOTHING`)
   expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.company_memberships
     WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)} AND status='active' AND is_active)
     AND EXISTS(SELECT FROM public.user_roles WHERE company_id=${literal(f.companyId)}
     AND user_id=${literal(f.actorUserId)} AND status='active' AND is_active))`)).toBe(true)
-  const permissions = ['contracts.create', 'pricing.write']
   expect(sql(`SELECT jsonb_agg(key ORDER BY key) FROM public.permissions
-    WHERE key IN('contracts.create','pricing.write') AND is_active`)).toEqual(permissions)
+    WHERE key IN(${permissionKeys}) AND is_active`)).toEqual(permissions)
   sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active)
     SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key,'allow','active',true FROM public.permissions
-    WHERE key IN('contracts.create','pricing.write') AND is_active`)
+    WHERE key IN(${permissionKeys}) AND is_active`)
   for (const permission of permissions) {
     const checked = await supabaseService.rpc('gridex_actor_has_company_permission', {
       p_actor_user_id: f.actorUserId, p_company_id: f.companyId, p_permission: permission,
@@ -118,11 +124,74 @@ async function createProductionContract(f: Awaited<ReturnType<typeof createConsu
     price_areas: ['SE3'], production: { enabled: true, settlement_mode: 'credit_invoice', compensation_ore_per_kwh: 1 },
     base_components: [{ source_type: 'spot', label: 'Spotpris', weight_percent: 100, price_area: 'SE3' }],
     price_components: [{ component_code: 'spot_markup', component_type: 'markup', name: 'Påslag', calculation_type: 'per_kwh', amount: 1, unit: 'ore_per_kwh', website_card_visible: true }] }
-  const binding = await supabaseService.rpc('gridex_prepare_manual_contract_binding', { p_company_id: f.companyId, p_actor_user_id: f.actorUserId,
-    p_payload: { name: 'Synthetic separate production receipt contract', contract_type: 'variable_hourly', customer_type: 'both', pricing_model: 'spot', energy_direction: 'production',
-      terms_version: 'canonical', default_binding_months: 0, default_notice_months: 1, valid_from: f.requestedStartDate }, p_pricing_snapshot: pricing })
-  expect(binding.error).toBeNull()
-  const bound = binding.data as Record<string, unknown>
+  // Offer availability is today; the customer's supply start remains future.
+  // Use public draft creation and readiness-gated publication, not the legacy
+  // one-off producer whose draft save cannot yield a locked publication.
+  const availableFrom = sql<string>('SELECT to_jsonb(current_date::text)')
+  const created = await supabaseService.rpc('gridex_upsert_internal_contract_offer_v2', {
+    p_company_id: f.companyId, p_offer_id: null, p_actor_user_id: f.actorUserId,
+    p_payload: { name: 'Synthetic separate production receipt contract', lifecycle_status: 'draft', contract_type: 'variable_hourly',
+      customer_type: 'both', pricing_model: 'spot', energy_direction: 'production', terms_version: 'canonical',
+      spot_markup_ore_per_kwh: 1, monthly_fee_sek: 0, invoice_fee_sek: 0, default_binding_months: 0, default_notice_months: 1,
+      power_of_attorney_required: true, valid_from: availableFrom }, p_pricing_snapshot: pricing,
+  })
+  expect(created.error).toBeNull()
+  expect(created.data, JSON.stringify(created.data)).toMatchObject({ ok: true, offer: { id: expect.any(String) } })
+  const offerId = String((created.data as { offer: { id: string } }).offer.id)
+  expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
+  expect(sql(`SELECT jsonb_build_object('direction',p.energy_direction,'productionLegal',
+    'production_terms'=ANY(p.required_legal_modules)) FROM public.contract_offers o
+    JOIN public.contract_product_versions p ON p.id=o.contract_product_version_id AND p.contract_product_id=o.contract_product_id
+    WHERE o.id=${literal(offerId)} AND o.company_id=${literal(f.companyId)}`)).toEqual({ direction: 'production', productionLegal: true })
+  const legalVersionId = sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(
+    ${literal(f.companyId)},(SELECT contract_product_version_id FROM public.contract_offers
+      WHERE id=${literal(offerId)} AND company_id=${literal(f.companyId)}),NULL,${literal(f.actorUserId)}))`)
+  expect(legalVersionId).toMatch(/^[0-9a-f-]{36}$/)
+  sql(`UPDATE public.contract_offers SET legal_bundle_version_id=${literal(legalVersionId)}
+    WHERE id=${literal(offerId)} AND company_id=${literal(f.companyId)} AND lifecycle_status='draft'`)
+  const published = await supabaseService.rpc('gridex_publish_internal_contract_version', {
+    p_company_id: f.companyId, p_offer_id: offerId, p_actor_user_id: f.actorUserId,
+  })
+  expect(published.error).toBeNull()
+  expect(published.data, JSON.stringify(published.data)).toMatchObject({ ok: true, mode: 'published' })
+  // Ordinary selectable production price input. Only public publication owners
+  // create immutable option snapshots and locked product/legal/publication rows.
+  sql(`WITH template AS (
+    INSERT INTO public.contract_price_options(company_id,contract_product_version_id,price_plan_version_id,
+      option_reference,option_code,customer_name,contract_type,binding_months,notice_months,auto_renew_enabled,
+      status,customer_type,is_default,selection_required,created_by)
+    SELECT company_id,contract_product_version_id,price_plan_version_id,'production-default','production-default',
+      'Synthetic production price','variable_hourly',0,1,false,'active','both',true,false,${literal(f.actorUserId)}
+    FROM public.contract_offers WHERE id=${literal(offerId)} AND company_id=${literal(f.companyId)}
+    RETURNING id,company_id,price_plan_version_id
+  ) INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,price_plan_version_id,
+    price_row_reference,price_area,amount,unit,created_by)
+    SELECT company_id,id,price_plan_version_id,'production-se3','SE3',1,'ore_per_kwh',${literal(f.actorUserId)} FROM template`)
+  const channel = await supabaseService.rpc('gridex_publish_contract_channel', {
+    p_company_id: f.companyId, p_offer_id: offerId, p_channel: 'internal', p_actor_user_id: f.actorUserId,
+  })
+  expect(channel.error).toBeNull()
+  expect(channel.data, JSON.stringify(channel.data)).toMatchObject({ ok: true, channel: 'internal', contract_publication_version_id: expect.any(String) })
+  const publicationVersionId = String((channel.data as { contract_publication_version_id: string }).contract_publication_version_id)
+  expect(publicationVersionId).toMatch(/^[0-9a-f-]{36}$/)
+  const bound = sql<Record<string, unknown>>(`SELECT jsonb_build_object('contract_offer_id',o.id,
+    'contract_product_id',p.contract_product_id,'contract_product_version_id',v.contract_product_version_id,
+    'contract_publication_version_id',v.id,'price_plan_id',v.price_plan_id,'price_plan_version_id',v.price_plan_version_id,
+    'price_book_id',v.price_book_id,'legal_bundle_version_id',v.legal_bundle_version_id,'offer_reference',v.offer_reference,
+    'commercial_snapshot',p.commercial_snapshot,'legal_snapshot',l.rendered_snapshot)
+    FROM public.contract_offers o JOIN public.contract_product_versions p
+      ON p.id=o.contract_product_version_id AND p.contract_product_id=o.contract_product_id
+    JOIN public.contract_publication_versions v ON v.contract_product_version_id=p.id
+      AND v.price_plan_version_id=o.price_plan_version_id AND v.legal_bundle_version_id=o.legal_bundle_version_id
+    JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id AND l.company_id=o.company_id
+    JOIN public.contract_publications publication ON publication.id=v.contract_publication_id
+    JOIN public.tenant_contract_assignments assignment ON assignment.id=publication.assignment_id
+      AND assignment.company_id=o.company_id AND assignment.contract_product_version_id=p.id
+    WHERE o.id=${literal(offerId)} AND o.company_id=${literal(f.companyId)} AND v.id=${literal(publicationVersionId)}
+      AND o.lifecycle_status='published' AND o.is_active AND p.energy_direction='production' AND v.energy_direction='production'
+      AND p.status='approved' AND p.locked_at IS NOT NULL AND v.status='published' AND v.locked_at IS NOT NULL
+      AND l.status='published' AND l.locked_at IS NOT NULL AND cardinality(l.unresolved_variables)=0
+      AND publication.channel='internal' AND publication.status='published' AND assignment.status='active' AND assignment.internal_sales_allowed`)
   expect(bound).toMatchObject({ contract_publication_version_id: expect.any(String), contract_product_version_id: expect.any(String), legal_bundle_version_id: expect.any(String) })
   // Only public canonical binding outputs are copied to this new draft. No
   // signature, approval, archive or protected original is manufactured.

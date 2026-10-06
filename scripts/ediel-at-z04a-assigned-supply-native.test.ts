@@ -34,12 +34,12 @@ function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
     ['NAD', 'FR', [f.receiver, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
     ['NAD', 'DO', [f.sender, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
     line('1', f.external, undefined, '9'), ['DTM', ['92', start, '203']], ['DTM', ['354', '15', '806']], qty('1000'),
-    ...characteristic('Z13', 'Z26'), ...characteristic('Z04', 'Z03'), ...characteristic('Z07', 'E22'),
-    ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'D'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L917', '8716867000030']],
+    ...characteristic('Z13', 'Z26'), ...characteristic('Z04', 'Z04'), ...characteristic('Z07', 'Z12'),
+    ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'Z32'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L639Q']],
     ['RFF', ['MG', `METER-${f.external}`]], ['RFF', ['Z05', f.gridAreaCode]], ['RFF', ['LI', reference]],
     ['NAD', 'UD', [f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency], '', 'Synthetic Own Customer', 'Street', 'City', '', '12345', 'SE'],
     ['NAD', 'IT', [f.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
-    ['NAD', 'Z02', [f.sender, '160', 'SVK']],
+    ['NAD', 'Z02', [f.brpEdielId, '160', 'SVK']],
   ]
   if (options.omitStart) body.splice(body.findIndex(part => part[0] === 'DTM' && Array.isArray(part[1]) && part[1][0] === '92'), 1)
   if (options.omitAnnualVolume) body.splice(body.findIndex(part => part[0] === 'QTY'), 1)
@@ -287,10 +287,6 @@ it('dated supplier role loss before actual source birth holds the original legal
 it('real public outbound owner rejects supplier-originated physical A before any draft, outbox or source effects', async () => {
   const f = await ground()
   const raw = assignedWire({ ...f, sender: f.receiver, receiver: f.sender }, f.reference)
-    .replace(`NAD+Z02+${f.receiver}:160:SVK`, `NAD+Z02+${f.sender}:160:SVK`)
-    // Outbound field506 is forbidden; keep required242 so this independent
-    // literal reaches the modern direction owner if its other gates qualify.
-    .replace('CAV+:::L917:8716867000030', 'CAV+:::L917')
   const counts = () => sql(`SELECT jsonb_build_object(
     'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),
     'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),
