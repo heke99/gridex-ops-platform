@@ -23,6 +23,7 @@ import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receive
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
 import {tokenizeEdifact} from "@/lib/ediel/core/edifactTokenizer";
+import {prodatCharacteristicValues} from "@/lib/ediel/prodat/prodatCharacteristicFields";
 
 import {
   createEdielMessageEvent,
@@ -474,7 +475,11 @@ async function createAutomaticPositiveAcks(params: {
   let policy: Awaited<ReturnType<typeof getAutomaticAckPolicy>>;
   try{policy = await getAutomaticAckPolicy(params.sourceMessage);}
   catch(error){
-    if(!/^(?:prodat_bilateral_capability_required:|canonical_ediel_application_reference_required:PRODAT:)/.test(error instanceof Error?error.message:''))throw error;
+    const code=error instanceof Error?error.message:'';
+    const wire=params.sourceMessage.message_family==='PRODAT'&&params.sourceMessage.direction==='inbound'&&params.sourceMessage.raw_payload
+      ?tokenizeEdifact(params.sourceMessage.raw_payload):null;
+    const missingSubtype=code==='prodat_subtype_unknown:missing'&&wire!==null&&prodatCharacteristicValues('223',wire.segments,wire.una).length===0;
+    if(!missingSubtype&&!/^(?:prodat_bilateral_capability_required:|canonical_ediel_application_reference_required:PRODAT:)/.test(code))throw error;
     await createAckBlockedEvent({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:"APERAK",
       reason:formatErrorMessage(error,"Källbunden kvittenspolicy saknas.")});
     return createdIds;

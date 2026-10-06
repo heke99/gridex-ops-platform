@@ -174,46 +174,65 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:field,errorKind:'missing'})})]))
   }
   if(field==='314'){
-   // Native feedback rejects the missing LIN sequence at the protected v6
-   // source ledger. This proves the prohibited execution stays blocked; it
-   // does not claim successful processing or a negative APERAK response.
-   const {events:diagnosticEvents,...protectedEffects}=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
-   void diagnosticEvents
+   const protectedEffects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
    const wire=tokenizeEdifact(source.raw_payload!)
    expect(segmentComposite(wire.segments.find(s=>s.tag==='LIN'),1,wire.una)[0]).toBe('')
    const evidence=buildReceivedSourceValidationEvidence({original:source,validated:source,resolvedCompanyId:f.ids.company,decision})
    expect(evidence).not.toBeNull()
-   // Expose the actual native refusal hidden by the normal adapter; these
-   // are solely this fresh canonical invocation's facts, never approvals.
-   const refused=await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
-    p_company_id:evidence!.companyId,p_environment:evidence!.environment,p_source_message_id:evidence!.sourceMessageId,
-    p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:evidence!.factsText,
-    p_ignored_fields_text:evidence!.prodatIgnoredFields?JSON.stringify(evidence!.prodatIgnoredFields):null,
-    p_object_facts_text:evidence!.prodatObjectValidation?JSON.stringify(evidence!.prodatObjectValidation):null,
-    p_response_facts_text:evidence!.prodatResponseValidation?JSON.stringify(evidence!.prodatResponseValidation):null,
-    p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
-    p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
-   })
-   expect(refused.data).toBeNull()
-   expect(refused.error?.message).toBe('prodat_full_object_physical_scope_required')
-   const {events:rpcDiagnosticEvents,...rpcEffects}=f.effects();void rpcDiagnosticEvents
-   expect(rpcEffects).toEqual(protectedEffects)
-   await expect(process(f,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
-   // Syntax is valid: its sole technical CONTRL may precede the APP ledger
-   // refusal. Prove that exact source-bound ACK, never treat it as permission
-   // execution or a positive APERAK, and account for only its own effects.
-   const technical=sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object('acks',(SELECT coalesce(jsonb_agg(to_jsonb(a)),'[]') FROM public.ediel_messages a WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND direction='outbound'),'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o)),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
-   expect(technical.acks).toHaveLength(1);expect(technical.outbox).toHaveLength(1)
-   expect(technical.acks[0]).toMatchObject({message_family:'CONTRL',ack_outcome:'positive',company_id:f.ids.company,environment:'test',related_message_id:source.id})
-   expect(validateEdifactEnvelope(technical.acks[0].raw_payload!).syntaxOk).toBe(true)
-   const correlation=readPhysicalAckSourceCorrelation(technical.acks[0],source)
-   expect(correlation.classification.outcome).toBe('positive')
-   expect(correlation.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(source.raw_payload!).interchangeReference])
-   expect(technical.outbox[0]).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,ediel_message_id:technical.acks[0].id,message_family:'CONTRL',ack_outcome:'positive'})
-   const {events:updatedDiagnosticEvents,...actualEffects}=f.effects();void updatedDiagnosticEvents
-   expect(actualEffects).toEqual({...protectedEffects,messages:protectedEffects.messages+1,acks:protectedEffects.acks+1,creationReceipts:protectedEffects.creationReceipts+1,namespace:protectedEffects.namespace+1,outbox:protectedEffects.outbox+1})
+   const assessments=()=>sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`)
+   const originalAssessments=assessments()
+   // A missing sequence can carry rejection evidence, never accepted objects
+   // or a caller-selected physical offset. All are real native owner calls.
+   for(const alteration of ['segmentIndex','lineIndex','accepted'] as const){
+    const facts=JSON.parse(evidence!.factsText),objects=structuredClone(evidence!.prodatObjectValidation!)
+    if(alteration==='accepted'){objects.sharedAccepted=true;objects.objects[0].disposition='accepted';objects.objects[0].reasons=[];objects.objects[0].negativeFields=[]}
+    else{
+     facts.registerValidation.objects[0].registers[0][alteration]++
+     if(alteration==='lineIndex')objects.objects[0].firstLineIndex++
+    }
+    const refused=await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
+     p_company_id:evidence!.companyId,p_environment:evidence!.environment,p_source_message_id:evidence!.sourceMessageId,
+     p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:JSON.stringify(facts),
+     p_ignored_fields_text:evidence!.prodatIgnoredFields?JSON.stringify(evidence!.prodatIgnoredFields):null,
+     p_object_facts_text:JSON.stringify(objects),
+     p_response_facts_text:evidence!.prodatResponseValidation?JSON.stringify(evidence!.prodatResponseValidation):null,
+     p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
+     p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
+    })
+    expect(refused.data,alteration).toBeNull();expect(refused.error,alteration).not.toBeNull()
+    expect(assessments(),alteration).toBe(originalAssessments)
+    expect(f.effects(),alteration).toEqual(protectedEffects)
+    expect(market(f,a.permissionId),alteration).toEqual(before)
+   }
+   await process(f,source)
+   const replies=()=>sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object('acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.message_family),'[]') FROM public.ediel_messages a WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND direction='outbound'),'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
+   const actual=replies();expect(actual.acks.map(x=>[x.message_family,x.ack_outcome])).toEqual([['APERAK','negative'],['CONTRL','positive']]);expect(actual.outbox).toHaveLength(2)
+   for(const ack of actual.acks){
+    expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',related_message_id:source.id})
+    expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+    const correlation=readPhysicalAckSourceCorrelation(ack,source)
+    expect(correlation.classification.outcome).toBe(ack.ack_outcome)
+    if(ack.message_family==='CONTRL')expect(correlation.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(source.raw_payload!).interchangeReference])
+    else{
+     const response=tokenizeEdifact(ack.raw_payload!)
+     expect(segmentComposite(response.segments.find(t=>t.tag==='BGM'),3,response.una)[0]).toBe('27')
+     expect(response.segments.some(t=>t.tag==='ERC'&&segmentComposite(t,1,response.una)[0]==='41')).toBe(true)
+     expect(response.segments.some(t=>t.tag==='FTX'&&segmentComposite(t,3,response.una)[0]==='314')).toBe(true)
+     expect(correlation.lookupReferences).toContainEqual({type:'BGM_REF',value:segmentComposite(wire.segments.find(t=>t.tag==='BGM'),2,wire.una)[0]})
+    }
+    const entries=actual.outbox.filter(x=>x.ediel_message_id===ack.id);expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,message_family:ack.message_family,ack_outcome:ack.ack_outcome})
+   }
+   expect(market(f,a.permissionId)).toEqual(before)
    expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
    expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+   const {events:diagnosticEvents,...afterEffects}=f.effects();void diagnosticEvents
+   const {events:initialDiagnosticEvents,...beforeEffects}=protectedEffects;void initialDiagnosticEvents
+   expect(afterEffects).toEqual({...beforeEffects,messages:beforeEffects.messages+2,acks:beforeEffects.acks+2,creationReceipts:beforeEffects.creationReceipts+2,namespace:beforeEffects.namespace+2,outbox:beforeEffects.outbox+2})
+   await process(f,source)
+   const {events:replayEvents,...replayEffects}=f.effects();void replayEvents
+   expect(replies()).toEqual(actual);expect(replayEffects).toEqual(afterEffects)
+   expect(market(f,a.permissionId)).toEqual(before);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
   }else{
    // Preserve failure for every ordinary processing path, while exercising
    // each independent omission before reporting the complete failing set.
