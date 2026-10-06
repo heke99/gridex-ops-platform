@@ -3984,7 +3984,7 @@
     },
     {
       "id": "AT-Z15C-ESCO",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-at-z15c-z18v-esco-profile.test.ts",
         "scripts/ediel-at-z15c-z18v-esco-native.test.ts",

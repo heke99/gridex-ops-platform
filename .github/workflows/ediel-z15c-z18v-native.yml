@@ -16,6 +16,7 @@ on:
       - 'lib/ediel/permissions/**'
       - 'lib/ediel/flows/prodatServicePermission.ts'
       - 'lib/ediel/flows/inboundProcessing.ts'
+      - 'lib/ediel/core/tenantResolver.ts'
       - 'lib/ediel/rulebook/canonicalPolicyFieldValidator.ts'
       - 'supabase/migrations/**'
       - '.github/workflows/ediel-z15c-z18v-native.yml'
@@ -86,6 +87,7 @@ jobs:
                    'lib/ediel/services/projection.ts',
                    'lib/ediel/flows/prodatServicePermission.ts',
                    'lib/ediel/flows/inboundProcessing.ts',
+                   'lib/ediel/core/tenantResolver.ts',
                    'lib/ediel/rulebook/canonicalPolicyFieldValidator.ts',
                    'lib/ediel/core/receivedProdatFinalResponsePlan.ts',
                    'lib/ediel/ack/committedInboundAck.ts',

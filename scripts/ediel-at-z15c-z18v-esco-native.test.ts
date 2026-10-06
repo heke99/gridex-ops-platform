@@ -339,6 +339,19 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
   }
   expect(market(f,a.permissionId),field).toEqual(before)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
+  const heldSource=(await getEdielMessageById(source.id))!
+  const diagnostics=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY u.id),'[]') FROM public.ediel_unresolved_items u WHERE u.source_message_id=${lit(source.id)}`)
+  for(const diagnostic of diagnostics){
+   expect(diagnostic,field).toMatchObject({company_id:heldSource.company_id,environment:heldSource.environment,source_message_id:source.id})
+  }
+  if(['tenant_not_found','tenant_ambiguous'].includes(heldSource.tenant_resolution_status??'')){
+   expect(diagnostics,field).toHaveLength(1)
+   expect(heldSource,field).toMatchObject({company_id:f.ids.company,business_match_status:'business_blocked',processing_status:'routing_unresolved'})
+   const captured=diagnostics[0]
+   await process(f,heldSource)
+   expect(sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY u.id),'[]') FROM public.ediel_unresolved_items u WHERE u.source_message_id=${lit(source.id)}`),field).toEqual([captured])
+   expect(market(f,a.permissionId),field).toEqual(before)
+  }
  }
  expect(z18Count(f)).toBe(0)
  expect(processingFailures).toEqual([])
