@@ -1,3 +1,12 @@
+## Reconciled autonomous deliveries — 2026-10-06T16:19:08.597444+00:00
+
+- 2026-10-06 ACTUAL MAIN MERGE PR #618: 9cd954080a2b65d0b73f1662c4bd3f92adb3b122; exact source 93eed89ec80152f8cf32dd60ad303dccf82dae5a; eight applicable mandatory source-head checks SUCCESS. Autonomous dispatch/reservation docs. No resulting-main full or external acceptance.
+- 2026-10-06 ACTUAL MAIN MERGE PR #623: c6f2223f8900c9f3946678f45c596637b2ff1aba; exact source ddbf4a523c7d5c704095aeec882efe11a73ad8d9; nine mandatory source-head checks SUCCESS. Bounded component tests/checkpoint only; whole contract rows unchanged. No resulting-main full or external acceptance.
+- 2026-10-06 ACTUAL MAIN MERGE PR #619: 6e2e8df4f8545775e0ed4d7176ba6cd13202f39b; exact source d4c31a54472b371da09ee5f6f8d29e4917c7e4a5; nine mandatory source-head checks SUCCESS. Bounded component tests/checkpoint only; whole contract rows unchanged. No resulting-main full or external acceptance.
+- 2026-10-06 ACTUAL MAIN MERGE PR #622: c52782efc3875c7622d30669a0ce21283697d2fd; exact source 2507d3932cc39f33d724422c845331f078671380; nine mandatory source-head checks SUCCESS. Bounded component tests/checkpoint only; whole contract rows unchanged. No resulting-main full or external acceptance.
+- 2026-10-06 ACTUAL MAIN MERGE PR #624: d73f87dd5449e747b86d0f1b814ceb799603819b; exact source 444a2a23dacb6eb21793cd498860deca81f59804; nine mandatory source-head checks SUCCESS. Bounded component tests/checkpoint only; whole contract rows unchanged. No resulting-main full or external acceptance.
+- 2026-10-06 ACTUAL MAIN MERGE PR #625: c05625c71ada1023ef73749c51fbebf2af0673fb; exact source 75f25e9ff93f11a68c2cbaf163319827fb85f042; nine mandatory source-head checks SUCCESS. Bounded component tests/checkpoint only; whole contract rows unchanged. No resulting-main full or external acceptance.
+
 ## Autonomous packet selection — 2026-10-06T13:00:25.023661+00:00
 
 Owner requires identical prompts, self-selected eligible pairs, atomic ID/file
