@@ -1148,3 +1148,20 @@ independentlyGETall27refs/updateCP+CLAIM530beforecode; no secretshared.
 CurrentownZ059bcCLEAN/frozen/12refs, sixmandatorySUCCESS/othersrunning or
 queued, no ownnative/wholecurrentgreen/roles/newpair. Next95bc reportexact
 helperreceipt orconcreteblocker andcontinueowncurrent39/clean/gates reviews.
+
+## Currentquality/full CI PASS / helper stopped on occupied tags
+
+Current9bc quality112550878051 SUCCESS; originalofficialjoblogs Node22.23.3
+full895files12045PASS/213.95s, quality2files45PASS/853ms; allblockingsteps
+SUCCESS. NinemandatorySUCCESS, current39/clean/cert nowIN_PROGRESS.
+Helperattempt6027517756 STOPPED at firstoccupied GET BEFORE ANYmutation;
+24fa had executed explicitowner2frequest6027416446, completed6027523704.
+Readonlyhelper95bc independently both exactrefs GETMATCHreceipt
+1530218d50ef8f5faaf9d3874d938651a3db59dd ownercodex-ediel-20261006-2f72c8ab/
+packet601fb279, tree75c93/exactsingleparent356/fullrequestedreceipt matches.
+No unreferencedcommit/ref/source/ID/role creation/deletion by95bc; no
+allocationchange/rollback. Owner2f independentlyconfirmsprior25+2 and
+CP+CLAIM530beforecode. OwnsoleZ05pair9bc/12refs remain unchanged; no
+currentWHOLE/CI_GREEN/mainmerge/external/newpair/roles. Next95bc authenticate
+current39/fullcleanunchangedZ22tails/cert/all12SUCCESS, finalnativeexecution
+peers thenactualserialguardedmerge/role-firstmemory/release andowncleanup.
