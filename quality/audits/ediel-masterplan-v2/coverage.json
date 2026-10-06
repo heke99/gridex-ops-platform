@@ -4000,7 +4000,7 @@
     },
     {
       "id": "AT-Z15C-ESCO",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-at-z15c-z18v-esco-profile.test.ts",
         "scripts/ediel-at-z15c-z18v-esco-native.test.ts",
@@ -4009,7 +4009,13 @@
         "lib/ediel/services/administration.ts",
         "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/receipt.json",
         "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/native-junit.xml",
-        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/artifact-metadata.json"
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/artifact-metadata.json",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-3fd2fdea/receipt.json",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-3fd2fdea/native-junit.xml",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-3fd2fdea/artifact-metadata.json",
+        "lib/ediel/core/receivedProdatResponseValidation.ts",
+        "lib/ediel/core/tenantResolver.ts",
+        "__tests__/ediel-tenant-diagnostic-custody.test.ts"
       ]
     },
     {
@@ -4023,7 +4029,11 @@
         "lib/ediel/services/administration.ts",
         "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/receipt.json",
         "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/native-junit.xml",
-        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/artifact-metadata.json"
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-ed908c6d/artifact-metadata.json",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-3fd2fdea/receipt.json",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-3fd2fdea/native-junit.xml",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/native-3fd2fdea/artifact-metadata.json",
+        "lib/ediel/core/receivedProdatResponseValidation.ts"
       ]
     }
   ]
