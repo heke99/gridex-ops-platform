@@ -1,0 +1,55 @@
+{
+  "scope": "AUTHENTIC1079_CAPTURE_RAW3_IMPORT_ONLY_RESULTING_HEAD_QUALIFICATION_PENDING",
+  "producer_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+  "producer_tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
+  "workflow_run": 37392285139,
+  "workflow_attempt": 1,
+  "actual_capture_job": 112039934055,
+  "actual_capture_conclusion": "SUCCESS",
+  "artifact_id": 11382240742,
+  "artifact_zip_sha256": "8f7a56fc116a3995b58e07fe4d16e67a056a19a095c7f3d65227650e14e403b3",
+  "artifact_zip_bytes": 1643730,
+  "receipt_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
+  "receipt_sha256": "1759154f07434e9bc8f0490063e404191044a546525bb80c32f7b9b319c46170",
+  "eight_inputs_exact_frozen_preimport": true,
+  "SQL1079_full_vector_exact": true,
+  "SQL_vector_sha256": "d2b4ae0456b0fac28b231f5ded9b539b8daf30a384a5608fbf55b2c5f2cc9b85",
+  "versions": {
+    "supabase_cli_version": "2.101.0",
+    "postgres_server_version": "17.6",
+    "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)"
+  },
+  "raw3": {
+    "database.types.ts": {
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+      "bytes": 3705243
+    },
+    "schema.sql": {
+      "sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+      "bytes": 11352093
+    },
+    "schema.fingerprint.json": {
+      "sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863",
+      "bytes": 3687
+    }
+  },
+  "complete_preimport_manifest": {
+    "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+    "sha256": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73",
+    "bytes": 192272,
+    "git_blob": "caea705230be7c9ff53d6514c1910ce8bf21d52a",
+    "source_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "scope": "ENTIRE pre-import current and all older provenance envelopes retained byte-exact; no historical capture/native flag rewritten."
+  },
+  "older_history_fields_unchanged": true,
+  "capture_only_original_flags": {
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN"
+  },
+  "current_resulting_head_native_CI_type_schema_upgrade_parity": "PENDING_NOT_INFERRED",
+  "fixture_IO_correction": "ONLY two existing OPS03 Git reads receive bounded16MiB maxBuffer; all Git status/custody/source/negative assertions and production guard unchanged",
+  "historical119_ordinary_failures": "Preserved; no failed job retry or old-head success transfer",
+  "new_masterplan_work": false
+}

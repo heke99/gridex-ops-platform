@@ -33,9 +33,12 @@ const approvedEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/e
 // custody. Read available HEAD descriptors even in depth-one CI; only the two
 // owned row spans are normalized in this modeled baseline. No ancestor fetch,
 // historical-object fallback or change to the real production guard occurs.
-const currentTree = spawnSync('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD'], { encoding: 'utf8' })
+// The combined repository's descriptor list exceeds spawnSync's 1 MiB default.
+// Keep these real, bounded Git reads intact as the reviewed tree grows.
+const fixtureGitReadOptions = { encoding: 'utf8' as const, maxBuffer: 16 * 1024 * 1024 }
+const currentTree = spawnSync('git', ['--no-replace-objects', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD'], fixtureGitReadOptions)
 if (currentTree.status !== 0) throw Error('fixture_head_tree_unavailable')
-const currentLedger = spawnSync('git', ['--no-replace-objects', 'show', 'HEAD:' + ledgerFile], { encoding: 'utf8' })
+const currentLedger = spawnSync('git', ['--no-replace-objects', 'show', 'HEAD:' + ledgerFile], fixtureGitReadOptions)
 if (currentLedger.status !== 0) throw Error('fixture_head_ledger_unavailable')
 const ledgerSnapshot = { ...currentLedger, stdout: (() => {
   const ledger = JSON.parse(currentLedger.stdout) as { rules: LedgerRow[]; acceptance_contracts: LedgerRow[] }

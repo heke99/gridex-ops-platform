@@ -1,17 +1,17 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-06T00:10:34.401370+00:00",
-  "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37392285139",
+  "generated_at": "2026-10-05T19:03:43.393504+00:00",
+  "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37359791003",
   "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
   "latest_migration": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
-  "latest_migration_schema_effect": "Authentic final1079 combined-prefix raw3 are imported byte-exact from119/37392285139/11382240742. Resulting-head ordinary/native/type-schema/upgrade-parity qualification remains mandatory.",
-  "composition_capture_pending": false,
+  "latest_migration_schema_effect": "Active raw3 are authentic cff1076 historical output only; current actual admitted union requires the ONE genuine combined-prefix capture. Complete current and older root/GovDB/Staff origin envelopes are retained unchanged.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-06T00:10:34.401370+00:00",
-    "checkout_sha": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
-    "checkout_tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
-    "workflow_run_id": "37392285139",
+    "captured_at": "2026-10-05T19:03:43.393504+00:00",
+    "checkout_sha": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "checkout_tree": "20a7dc9d75b5db20a32f918fe638a11ca928fbf3",
+    "workflow_run_id": "37359791003",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
@@ -78,18 +78,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "41670c0c4fe65a7661bfe27ca4702445b1edf7a3c2dec6ce2d8b615158a3e1f4",
+    "schema_fingerprint": "e10e9bb25061f4faf6ad003831cca1d76577c5a5b26b7be685e4e9d03b1600db",
     "artifact_sha256": {
       "database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
-      "schema.sql": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
-      "schema.fingerprint.json": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863"
+      "schema.sql": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd",
+      "schema.fingerprint.json": "aa62329efddaee84f699f6bbc235cc325f3d5a4f3d20374f7adfac08a19f6ab4"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
-      "scripts/migration-history-manifest.json": "bd6eae63217a8ab796f6325f8ed6601bf39a265c115a507208c4899eb807e618",
-      "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+      "scripts/migration-history-manifest.json": "0b15e290c942d458161574f09d6b1cfec90f7a28429e12f05363ea6adffbe28e",
+      "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
       "scripts/migration-history-manifest.runtime.additions.json": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
-      "scripts/supabase-types-manifest.json": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73",
+      "scripts/supabase-types-manifest.json": "f8d3ebcc4cce79d1e7925c99cfe4d9b123b12d92af3be779cd59a1266735ad3b",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
@@ -99,16 +99,16 @@
     "type_schema_comparison": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
-    "artifact_id": 11382240742,
-    "artifact_zip_sha256": "8f7a56fc116a3995b58e07fe4d16e67a056a19a095c7f3d65227650e14e403b3",
-    "published_artifact_digest": "sha256:8f7a56fc116a3995b58e07fe4d16e67a056a19a095c7f3d65227650e14e403b3",
-    "artifact_expires_at": "2026-10-20T00:10:54Z",
-    "actual_checkout_commit": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
-    "actual_checkout_tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
-    "receipt": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
-    "input_hash_scope": "All eight inputs bind exact frozen pre-import119 source. Raw3 are imported unchanged; the changed provenance manifest and fixture Git-read capacity require actual resulting-head ordinary/native/type-schema/upgrade-parity qualification."
+    "artifact_id": 11365813975,
+    "artifact_zip_sha256": "26675a16792c21549027b6def48c6e67b55ce18fb81926a8de71afa0a7bed93c",
+    "published_artifact_digest": "sha256:26675a16792c21549027b6def48c6e67b55ce18fb81926a8de71afa0a7bed93c",
+    "artifact_expires_at": "2026-10-19T19:04:03Z",
+    "actual_checkout_commit": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "actual_checkout_tree": "20a7dc9d75b5db20a32f918fe638a11ca928fbf3",
+    "receipt": "quality/staff-api/main-f88-composition-20261005/authentic-capture-receipt-cff.json",
+    "input_hash_scope": "All eight inputs bind exact pre-import cff union source; later genuine generated/provenance import has its own final CI qualification."
   },
-  "composition_note": "ONE authentic final1079 capture is imported byte-exact. Entire prior current and older root/GovDB/Staff origin envelopes survive unchanged in the bound complete pre-import manifest and existing history fields. Four capture-only NOT_RUN flags are preserved; resulting-head qualification is separate and pending.",
+  "composition_note": "Field-family composition preserves every complete root/GovDB and Staff current/older provenance envelope. Active raw3 remain exact authentic Staffcff1076 outputs; this prepared union adds qualified GovDB forwards and retains SC010, so current combined capture and resulting-head native/CI/parity remain pending. No historical native or capture flag is relabeled.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -118,7 +118,7 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "authentic_final_union_capture_imported_resulting_head_qualification_pending",
+    "kind": "provisional_final_union_requires_resulting_head_qualification",
     "actual_main": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
     "qualified_gov_db_sc010_staff_oracle_source": "4f065a727eace6347af4d887ca3f4d069d20c415",
     "provisional_IMP05_source": "d020d7ec804d827615487d43f4f59f3ba33eca0c",
@@ -127,17 +127,13 @@
       "sha256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab"
     },
     "original_IMP05_scoped_result": "NOT_OBSERVED_NO_SUCCESS_INFERRED",
-    "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
+    "status": "CANDIDATE_COMPOSED_CAPTURE_AND_RESULTING_HEAD_GATES_PENDING",
     "requirements": [
-      "Actual resulting-head ordinary/full-source/clean/upgrade/native/type-schema/parity before normal main merge; no old-head success transfer.",
-      "Keep authentic producer119 capture-only four NOT_RUN flags unchanged; ordinary resulting-head results have their own execution scope."
-    ],
-    "actual_capture_source": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
-    "actual_capture_tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
-    "actual_capture_run": 37392285139,
-    "SQL_files": 1079,
-    "capture_eight_inputs": "EXACT_FROZEN_PREIMPORT119",
-    "raw3_import": "BYTE_EXACT_AUTHENTIC_ARTIFACT11382240742"
+      "Guard actual source/input/migration vector before the ONE genuine final union capture; reconcile real movement.",
+      "Capture exact final chosen prefix using PG17.6/pg_dump17.11/SupabaseCLI2.101.0 and import raw3 unchanged.",
+      "Original exact current-head ordinary/native/upgrade/parity/baseline owners qualify the resulting union; neither oldcff nor5be is that execution.",
+      "Do not admit this provisional corrective source to main until genuine current-union ordinary/native/type-schema/upgrade-parity qualification."
+    ]
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -232,13 +228,13 @@
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
   "capture_artifact": {
-    "workflow_run": 37392285139,
-    "artifact_id": 11382240742,
-    "zip_sha256": "8f7a56fc116a3995b58e07fe4d16e67a056a19a095c7f3d65227650e14e403b3",
-    "source_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
-    "source_tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
+    "workflow_run": 37359791003,
+    "artifact_id": 11365813975,
+    "zip_sha256": "26675a16792c21549027b6def48c6e67b55ce18fb81926a8de71afa0a7bed93c",
+    "source_head": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "source_tree": "20a7dc9d75b5db20a32f918fe638a11ca928fbf3",
     "purpose": "capture_only",
-    "receipt": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json"
+    "receipt": "quality/staff-api/main-f88-composition-20261005/authentic-capture-receipt-cff.json"
   },
   "inherited_main7edef_current_prefix_verification": {
     "kind": "mandatory_actual_composed_head_proof",
@@ -291,7 +287,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "FALSE only because the ONE authentic final1079 capture is now imported byte-exact. It does not assert ordinary/native/parity success or main admission.",
+  "composition_capture_pending_scope": "Actualmain53b3 + qualified GovDB/SC010/Staffebf and originalTWO7232 + provisional publicIMP05d020 source candidate; ONE final authentic unioncapture/resulting-head qualification pending. No original scoped IMP05 test success is inferred.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -1479,17 +1475,15 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
-    "producer": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
-    "producer_tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
-    "run": 37392285139,
-    "run_attempt": 1,
-    "artifact": 11382240742,
+    "producer": "cff34a54982f6b5269c340511c933c5af76ec8e8",
+    "run": 37359791003,
+    "artifact": 11365813975,
     "files": {
       "supabase/database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
-      "supabase/schema.sql": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
-      "supabase/schema.fingerprint.json": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863"
+      "supabase/schema.sql": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd",
+      "supabase/schema.fingerprint.json": "aa62329efddaee84f699f6bbc235cc325f3d5a4f3d20374f7adfac08a19f6ab4"
     },
-    "current_composition_qualification": "Authentic combined1079 capture bytes only. Actual resulting-head ordinary/native/type-schema/upgrade-parity PENDING. Capture-only four original flags remain NOT_RUN."
+    "current_composition_qualification": "Authentic original Staffcff capture bytes only; current final union capture/native/CI/parity PENDING. Original producer flags stay NOT_RUN."
   },
   "pre_intake_export_capture_manifest": {
     "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
@@ -3145,13 +3139,5 @@
       "Original exact current-head ordinary/native/upgrade/parity/baseline owners qualify the resulting union; neither oldcff nor5be is that execution."
     ]
   },
-  "pre_IMP05_provisional_capture_pending_scope": "Current actual-mainfc + qualified GovDB + exact released Staffebf source union; ONE final authentic combined-prefix capture pending. Historical cff1076 and5be capture flags retain their original scopes.",
-  "pre_final1079_complete_manifest_preserved": {
-    "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
-    "sha256": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73",
-    "bytes": 192272,
-    "git_blob": "caea705230be7c9ff53d6514c1910ce8bf21d52a",
-    "source_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
-    "scope": "ENTIRE pre-import current and all older provenance envelopes retained byte-exact; no historical capture/native flag rewritten."
-  }
+  "pre_IMP05_provisional_capture_pending_scope": "Current actual-mainfc + qualified GovDB + exact released Staffebf source union; ONE final authentic combined-prefix capture pending. Historical cff1076 and5be capture flags retain their original scopes."
 }

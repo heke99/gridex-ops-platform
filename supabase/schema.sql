@@ -12129,6 +12129,32 @@ CREATE FUNCTION gridex_ediel_inbound_receptions.authorize_v1(c uuid, actor uuid,
 END $$;
 
 --
+-- Name: capture_technical_mailbox_birth_v1(); Type: FUNCTION; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE mail public.inbound_email_messages%rowtype;box public.ediel_mailboxes%rowtype;
+BEGIN
+ IF TG_OP<>'INSERT' OR TG_TABLE_SCHEMA<>'gridex_unattributed_intake' OR TG_TABLE_NAME<>'raw_births'
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_birth_owner_required';END IF;
+ SELECT * INTO mail FROM public.inbound_email_messages WHERE id=NEW.inbound_email_message_id FOR SHARE;
+ SELECT * INTO box FROM public.ediel_mailboxes WHERE id=mail.mailbox_id FOR SHARE;
+ -- Missing SMTP holds the later return route, not storage of original mail.
+ IF mail.id IS NULL OR box.id IS NULL OR (mail.environment IN ('test','production')) IS NOT TRUE
+  OR box.environment IS DISTINCT FROM mail.environment OR box.is_active IS NOT TRUE
+  OR NEW.snapshot_hash IS DISTINCT FROM gridex_unattributed_intake.raw_hash_v1(mail)
+  OR box.email_address IS NULL OR btrim(box.email_address)!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+ THEN RETURN NEW;END IF;
+ INSERT INTO gridex_ediel_inbound_receptions.technical_mailbox_births(
+  inbound_email_message_id,raw_snapshot_hash,mailbox_id,environment,mailbox_company_id,mailbox_shared,smtp_address,observed_at)
+ VALUES(mail.id,NEW.snapshot_hash,box.id,mail.environment,box.company_id,box.is_shared_platform_mailbox,btrim(box.email_address),NEW.observed_at);
+ RETURN NEW;
+END $_$;
+
+--
 -- Name: guard_original_v1(); Type: FUNCTION; Schema: gridex_ediel_inbound_receptions; Owner: -
 --
 
@@ -16798,13 +16824,85 @@ CREATE FUNCTION gridex_ediel_technical_ack.select_configured_reply_route_v2(c uu
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE u jsonb;msg uuid:=(e->>'sourceMessageId')::uuid;route public.communication_routes%rowtype;profile public.ediel_route_profiles%rowtype;runtime jsonb;candidate_ids uuid[];candidate_profile_ids uuid[];env text;
+DECLARE u jsonb;msg uuid:=(e->>'sourceMessageId')::uuid;route public.communication_routes%rowtype;profile public.ediel_route_profiles%rowtype;runtime jsonb;candidate_ids uuid[];candidate_profile_ids uuid[];env text;original public.ediel_messages%rowtype;reception gridex_ediel_inbound_receptions.receptions%rowtype;original_box public.ediel_mailboxes%rowtype;birth_smtp text;technical_birth record;smtp_birth gridex_ediel_inbound_receptions.technical_mailbox_births%rowtype;common_basis jsonb;
 BEGIN
  IF reply_family IS NULL OR reply_family NOT IN('CONTRL','APERAK') OR e->>'companyId' IS DISTINCT FROM c::text THEN RAISE EXCEPTION 'ediel_prescribed_reply_route_basis_required';END IF;
  PERFORM gridex_ediel_technical_ack.require_current_endpoint_v1(e);u:=e->'originalUNB';env:=e->>'environment';
  IF current_smtp_from IS NULL OR current_smtp_from!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$' OR nullif(current_smtp_host,'') IS NULL OR current_smtp_port NOT BETWEEN 1 AND 65535 THEN RAISE EXCEPTION 'ediel_technical_ack_smtp_account_unqualified';END IF;
  -- Hold the configured candidate universe stable; duplicate matches are held,
  -- never chosen by age, preference, old email or a local role/default APP.
+ SELECT * INTO original FROM public.ediel_messages WHERE id=msg AND (company_id=c OR company_id IS NULL) FOR SHARE;
+ IF original.id IS NULL OR original.direction IS DISTINCT FROM 'inbound' OR original.environment IS DISTINCT FROM env
+  OR nullif(original.mailbox_message_id,'') IS NULL OR nullif(original.raw_payload,'') IS NULL
+  OR e->>'sourceHash' IS DISTINCT FROM encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex')
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+ IF original.company_id IS NULL THEN
+  IF gridex_unattributed_intake.is_birth_v1(original) IS NOT TRUE
+   OR gridex_ediel_technical_ack.require_source_v1(c,original.id) IS DISTINCT FROM e
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  IF reply_family='APERAK' THEN
+   common_basis:=gridex_ediel_common_header.require_v1(c,env,original.id);
+   PERFORM gridex_ediel_common_header.require_current_scope_v1(common_basis);
+   IF e->>'sourceHash' IS DISTINCT FROM common_basis->>'sourceHash'
+    OR e->>'syntaxAssessmentId' IS DISTINCT FROM common_basis->>'syntaxAssessmentId'
+   THEN RAISE EXCEPTION 'ediel_common_header_route_basis_mismatch';END IF;
+  END IF;
+  SELECT * INTO technical_birth FROM gridex_unattributed_intake.technical_births WHERE source_message_id=original.id FOR SHARE;
+  PERFORM gridex_unattributed_intake.require_custody_v1(technical_birth.inbound_email_message_id,technical_birth.parse_result_id);
+  IF NOT EXISTS(SELECT FROM gridex_ediel_technical_ack.sources source
+   WHERE source.source_message_id=original.id AND source.company_id=c AND source.source_company_id IS NULL
+    AND source.status='ready' AND source.environment=env AND source.payload_sha256=e->>'sourceHash'
+    AND source.source_received_at=original.message_received_at)
+   OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.physical_claims claim
+    WHERE claim.protected_source_id=original.id
+     AND claim.physical_key=gridex_unattributed_intake.physical_key_v1(technical_birth.physical_envelope))
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  SELECT * INTO smtp_birth FROM gridex_ediel_inbound_receptions.technical_mailbox_births
+   WHERE inbound_email_message_id=technical_birth.inbound_email_message_id AND environment=env FOR SHARE;
+  birth_smtp:=smtp_birth.smtp_address;
+  IF smtp_birth.inbound_email_message_id IS NULL OR birth_smtp IS NULL
+   OR birth_smtp!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+   OR lower(btrim(current_smtp_from)) IS DISTINCT FROM lower(birth_smtp)
+   OR NOT EXISTS(SELECT FROM gridex_unattributed_intake.raw_births raw
+    WHERE raw.inbound_email_message_id=smtp_birth.inbound_email_message_id
+     AND raw.snapshot_hash=smtp_birth.raw_snapshot_hash AND raw.observed_at=smtp_birth.observed_at)
+  THEN RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
+  SELECT box.* INTO original_box FROM public.ediel_mailboxes box
+   JOIN public.inbound_email_messages mail ON mail.mailbox_id=box.id
+   WHERE mail.id=technical_birth.inbound_email_message_id AND box.id=smtp_birth.mailbox_id
+    AND original.mailbox_message_id=mail.id::text AND original.inbound_email_message_id=mail.id
+    AND mail.company_id IS NULL AND mail.environment=env AND box.environment=env AND box.is_active
+    AND (box.company_id=c OR box.company_id IS NULL)
+    AND box.company_id IS NOT DISTINCT FROM smtp_birth.mailbox_company_id
+    AND box.is_shared_platform_mailbox IS NOT DISTINCT FROM smtp_birth.mailbox_shared
+   FOR SHARE OF box,mail;
+  IF original_box.id IS NULL THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+  -- Recheck complete custody after the mailbox lock, including mailbox_type.
+  PERFORM gridex_unattributed_intake.require_custody_v1(technical_birth.inbound_email_message_id,technical_birth.parse_result_id);
+ ELSE
+ SELECT * INTO reception FROM gridex_ediel_inbound_receptions.receptions
+  WHERE source_message_id=original.id AND company_id=c AND environment=env
+   AND classification='first_reception' AND inbound_email_message_id::text=original.mailbox_message_id FOR SHARE;
+ birth_smtp:=reception.transport_source_snapshot->>'originalMailboxSmtpAddress';
+ IF reception.id IS NULL OR reception.canonical_payload_hash IS DISTINCT FROM e->>'sourceHash'
+  OR reception.received_payload_hash IS DISTINCT FROM reception.canonical_payload_hash
+  OR reception.transport_source_snapshot->>'parsePayloadHash' IS DISTINCT FROM reception.received_payload_hash
+  OR reception.transport_source_snapshot->>'originalMailboxEnvironment' IS DISTINCT FROM env
+  OR birth_smtp IS NULL OR birth_smtp!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'
+  OR lower(btrim(current_smtp_from)) IS DISTINCT FROM lower(birth_smtp)
+ THEN RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
+ SELECT box.* INTO original_box FROM public.ediel_mailboxes box
+  JOIN public.inbound_email_messages mail ON mail.mailbox_id=box.id
+  WHERE mail.id=reception.inbound_email_message_id AND box.id::text=reception.transport_source_snapshot->>'mailboxId'
+   AND (mail.company_id IS NULL OR mail.company_id=c) AND (mail.environment IS NULL OR mail.environment=env)
+   AND box.environment=env AND box.is_active
+   AND (box.company_id=c OR box.company_id IS NULL OR box.is_shared_platform_mailbox)
+   AND (reception.transport_source_snapshot->>'originalMailboxCompanyId'=c::text
+    OR reception.transport_source_snapshot->>'originalMailboxCompanyId' IS NULL
+    OR reception.transport_source_snapshot->'originalMailboxShared'='true'::jsonb)
+  FOR SHARE OF box,mail;
+ IF original_box.id IS NULL THEN RAISE EXCEPTION 'ediel_original_mailbox_source_required';END IF;
+ END IF;
  LOCK TABLE public.communication_routes,public.ediel_route_profiles,public.ediel_transport_profiles IN SHARE MODE;
  SELECT array_agg(r.id),array_agg(p.id) INTO candidate_ids,candidate_profile_ids FROM public.communication_routes r JOIN public.ediel_route_profiles p ON p.communication_route_id=r.id AND p.company_id=r.company_id
  LEFT JOIN public.ediel_transport_profiles tp ON tp.id=p.transport_profile_id AND tp.company_id=c AND tp.environment=env
@@ -19349,6 +19447,9 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
  SELECT * INTO w FROM gridex_negative_fixtures.negative_prepared_witnesses WHERE id=(NEW.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId')::uuid FOR UPDATE;
  IF w.id IS NULL THEN RAISE EXCEPTION 'ediel_negative_fixture_witness_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  IF NEW.company_id IS DISTINCT FROM w.company_id OR NEW.environment IS DISTINCT FROM 'test' OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_standard IS DISTINCT FROM 'edifact' OR NEW.raw_payload IS DISTINCT FROM f.original_wire THEN RAISE EXCEPTION 'ediel_negative_fixture_message_scope_invalid';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.negative_prepared_consumptions WHERE registration_id=f.id;
  IF FOUND THEN IF prior.message_id IS DISTINCT FROM NEW.id OR prior.witness_id IS DISTINCT FROM w.id THEN RAISE EXCEPTION 'ediel_negative_fixture_original_already_consumed';END IF;RETURN NEW;END IF;
@@ -19377,6 +19478,9 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
  SELECT * INTO w FROM gridex_negative_fixtures.positive_witnesses WHERE id=(NEW.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId')::uuid FOR UPDATE;
  IF w.id IS NULL THEN RAISE EXCEPTION 'ediel_positive_fixture_witness_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.positive_originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  IF NEW.company_id IS DISTINCT FROM w.company_id OR NEW.environment IS DISTINCT FROM 'test' OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_standard IS DISTINCT FROM 'edifact' OR NEW.raw_payload IS DISTINCT FROM f.original_wire THEN RAISE EXCEPTION 'ediel_positive_fixture_message_scope_invalid';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.positive_consumptions WHERE registration_id=f.id;
  IF FOUND THEN IF prior.message_id IS DISTINCT FROM NEW.id OR prior.witness_id IS DISTINCT FROM w.id THEN RAISE EXCEPTION 'ediel_positive_fixture_original_already_consumed';END IF;RETURN NEW;END IF;
@@ -19497,7 +19601,13 @@ BEGIN
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=p_context->>'testReceiverEdielId' AND t#>>'{elements,11,0}'='1') THEN RAISE EXCEPTION 'ediel_positive_fixture_test_original_required';END IF;
- PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||((p_context->>'stepNo')::integer)::text||'|'||hash,0));
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
+  AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.positive_originals WHERE company_id=r.company_id AND run_id=r.id AND step_no=(p_context->>'stepNo')::integer AND revision=r.approval_version AND wire_sha256=hash;
  IF FOUND THEN
   IF prior.test_receiver_ediel_id IS DISTINCT FROM p_context->>'testReceiverEdielId' OR prior.source_reference IS DISTINCT FROM p_context->>'sourceReference'
@@ -19530,7 +19640,13 @@ BEGIN
  OR r.approval_version IS DISTINCT FROM p_context->>'revision' OR (p_context->>'stepNo')::integer<=0 OR (p_context->>'validUntil')::timestamptz<=now()
  THEN RAISE EXCEPTION 'ediel_negative_fixture_run_scope_mismatch';END IF;
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');
- PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||((p_context->>'stepNo')::integer)::text||'|'||hash,0));
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
+  AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.originals WHERE company_id=r.company_id AND run_id=r.id AND step_no=(p_context->>'stepNo')::integer AND revision=r.approval_version AND wire_sha256=hash;
  IF FOUND THEN
   IF prior.expected_diagnostic_codes IS DISTINCT FROM diagnostics OR prior.test_receiver_ediel_id IS DISTINCT FROM p_context->>'testReceiverEdielId'
@@ -19566,6 +19682,9 @@ BEGIN
   -- The server adapter additionally recomputes its actual Latin1 byte hash.
   AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND original_wire=wire AND valid_until>now();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB')<>1 THEN RETURN NULL;END IF;
  SELECT t#>>'{elements,3,0}' INTO receiver FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB';
@@ -19588,6 +19707,9 @@ BEGIN
  SELECT * INTO f FROM gridex_negative_fixtures.positive_originals WHERE company_id=r.company_id AND run_id=r.id AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND revision=r.approval_version
   AND step_no=(p_context->>'stepNo')::integer AND original_wire=wire AND valid_until>clock_timestamp();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=f.test_receiver_ediel_id AND t#>>'{elements,11,0}'='1') THEN RETURN NULL;END IF;
@@ -19618,6 +19740,9 @@ BEGIN
   -- The server adapter additionally recomputes its actual Latin1 byte hash.
   AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND original_wire=wire AND valid_until>now();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB')<>1 THEN RETURN NULL;END IF;
  SELECT t#>>'{elements,3,0}' INTO receiver FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB';
@@ -19639,6 +19764,9 @@ BEGIN
  SELECT witness.* INTO w FROM gridex_negative_fixtures.negative_prepared_consumptions c JOIN gridex_negative_fixtures.negative_prepared_witnesses witness ON witness.id=c.witness_id WHERE c.message_id=m.id AND c.company_id=p_company FOR SHARE OF witness;
  IF w.id IS NULL OR m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS DISTINCT FROM w.id::text THEN RAISE EXCEPTION 'ediel_negative_fixture_original_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  SELECT * INTO STRICT r FROM public.ediel_test_runs WHERE id=w.run_id AND company_id=p_company AND environment='test' AND status IN('draft','running') FOR SHARE;
  IF m.raw_payload IS DISTINCT FROM f.original_wire OR r.role_code IS DISTINCT FROM f.role_code OR r.test_case_code IS DISTINCT FROM f.case_code OR r.test_suite IS DISTINCT FROM f.suite OR r.approval_version IS DISTINCT FROM f.revision OR f.valid_until<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_negative_fixture_current_run_required';END IF;
  IF (SELECT count(*) FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id)<>1 OR NOT EXISTS(SELECT FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id AND l.test_run_id=w.run_id AND l.step_no=w.step_no) THEN RAISE EXCEPTION 'ediel_negative_fixture_actual_run_link_required';END IF;
@@ -19664,6 +19792,9 @@ BEGIN
  SELECT witness.* INTO w FROM gridex_negative_fixtures.positive_consumptions c JOIN gridex_negative_fixtures.positive_witnesses witness ON witness.id=c.witness_id WHERE c.message_id=m.id AND c.company_id=p_company FOR SHARE OF witness;
  IF w.id IS NULL OR m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS DISTINCT FROM w.id::text THEN RAISE EXCEPTION 'ediel_positive_fixture_original_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.positive_originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  SELECT * INTO STRICT r FROM public.ediel_test_runs WHERE id=w.run_id AND company_id=p_company AND environment='test' AND status IN('draft','running') FOR SHARE;
  IF m.raw_payload IS DISTINCT FROM f.original_wire OR r.role_code IS DISTINCT FROM f.role_code OR r.test_case_code IS DISTINCT FROM f.case_code OR r.test_suite IS DISTINCT FROM f.suite OR r.approval_version IS DISTINCT FROM f.revision OR f.valid_until<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_positive_fixture_current_run_required';END IF;
  IF (SELECT count(*) FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id)<>1 OR NOT EXISTS(SELECT FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id AND l.test_run_id=w.run_id AND l.step_no=w.step_no) THEN RAISE EXCEPTION 'ediel_positive_fixture_actual_run_link_required';END IF;
@@ -45870,7 +46001,7 @@ BEGIN IF current_user<>'service_role' THEN RAISE EXCEPTION 'ediel_dsn_service_re
 CREATE FUNCTION public.ediel_record_inbound_reception_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$
+    AS $_$
 DECLARE m public.ediel_messages%rowtype;mail public.inbound_email_messages%rowtype;p public.inbound_ediel_parse_results%rowtype;
  box public.ediel_mailboxes%rowtype;prior gridex_ediel_inbound_receptions.receptions%rowtype;r gridex_ediel_inbound_receptions.receptions%rowtype;canonical_hash text;incoming_hash text;kind text;
 BEGIN
@@ -45909,14 +46040,16 @@ BEGIN
   WHEN (m.mailbox_message_id=mail.id::text)
    AND NOT EXISTS(SELECT FROM gridex_ediel_inbound_receptions.receptions old WHERE old.source_message_id=m.id AND old.classification='first_reception') THEN 'first_reception'
   ELSE 'protocol_duplicate' END;
+ IF box.email_address IS NULL OR btrim(box.email_address)!~'^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$' THEN
+  RAISE EXCEPTION 'ediel_original_mailbox_smtp_custody_required';END IF;
  INSERT INTO gridex_ediel_inbound_receptions.receptions(company_id,source_message_id,inbound_email_message_id,parse_result_id,actor_user_id,environment,canonical_payload_hash,received_payload_hash,received_at,classification,scope,transport_source_snapshot)
- VALUES(p_company_id,m.id,mail.id,p.id,p_actor_user_id,m.environment,canonical_hash,incoming_hash,mail.received_at,kind,jsonb_build_object('sender',p.sender_ediel_id,'receiver',p.receiver_ediel_id,'applicationReference',p.application_reference,'interchangeReference',p.interchange_reference,'family',p.message_family,'code',p.message_code),jsonb_build_object('mailboxId',mail.mailbox_id,'internetMessageId',mail.internet_message_id,'rawMessageSha256',mail.raw_message_sha256,'parsePayloadHash',incoming_hash,'sourceKind','retained_mail_observation','deliveryAuthenticated',false)) RETURNING * INTO r;
+ VALUES(p_company_id,m.id,mail.id,p.id,p_actor_user_id,m.environment,canonical_hash,incoming_hash,mail.received_at,kind,jsonb_build_object('sender',p.sender_ediel_id,'receiver',p.receiver_ediel_id,'applicationReference',p.application_reference,'interchangeReference',p.interchange_reference,'family',p.message_family,'code',p.message_code),jsonb_build_object('mailboxId',mail.mailbox_id,'internetMessageId',mail.internet_message_id,'rawMessageSha256',mail.raw_message_sha256,'parsePayloadHash',incoming_hash,'sourceKind','retained_mail_observation','deliveryAuthenticated',false,'originalMailboxSmtpAddress',btrim(box.email_address),'originalMailboxCompanyId',box.company_id,'originalMailboxEnvironment',box.environment,'originalMailboxShared',box.is_shared_platform_mailbox)) RETURNING * INTO r;
  IF kind<>'first_reception' THEN
   INSERT INTO gridex_ediel_inbound_receptions.response_requests(reception_id,company_id,source_message_id,reason) VALUES(r.id,p_company_id,m.id,CASE kind WHEN 'identity_conflict' THEN 'same_identity_different_original_requires_review' ELSE 'authentic_duplicate_transport_response_policy_required' END);
   UPDATE public.inbound_email_messages SET company_id=p_company_id,processing_status='manual_review',match_status='protocol_response_held',error_message='Ny Ediel-mottagning kräver källbelagt protokollsvar.',match_payload=coalesce(match_payload,'{}')||jsonb_build_object('protocolReception',gridex_ediel_inbound_receptions.result_v1(r,false)),updated_at=clock_timestamp() WHERE id=mail.id AND (company_id IS NULL OR company_id=p_company_id);
  END IF;
  RETURN gridex_ediel_inbound_receptions.result_v1(r,false);
-END $$;
+END $_$;
 
 --
 -- Name: ediel_record_scoped_capability_evidence_v1(uuid, uuid, uuid, text, text, text, text, uuid, text, text, text, uuid[], timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
@@ -96286,6 +96419,26 @@ CREATE TABLE gridex_ediel_inbound_receptions.response_requests (
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: technical_mailbox_births; Type: TABLE; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TABLE gridex_ediel_inbound_receptions.technical_mailbox_births (
+    inbound_email_message_id uuid NOT NULL,
+    raw_snapshot_hash text NOT NULL,
+    mailbox_id uuid NOT NULL,
+    environment text NOT NULL,
+    mailbox_company_id uuid,
+    mailbox_shared boolean NOT NULL,
+    smtp_address text NOT NULL,
+    observed_at timestamp with time zone NOT NULL,
+    CONSTRAINT technical_mailbox_births_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT technical_mailbox_births_raw_snapshot_hash_check CHECK ((raw_snapshot_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT technical_mailbox_births_smtp_address_check CHECK ((smtp_address ~ '^[^[:space:]@<>]+@[^[:space:]@<>]+\.[^[:space:]@<>]+$'::text))
+);
+
+ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: consumptions; Type: TABLE; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -119856,7 +120009,8 @@ CREATE TABLE public.tenant_ediel_profiles (
     valid_to timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT tenant_ediel_profiles_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text))
+    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text)),
+    CONSTRAINT tenant_ediel_profiles_validity_order CHECK (((valid_to IS NULL) OR (valid_to >= valid_from)))
 );
 
 ALTER TABLE ONLY public.tenant_ediel_profiles FORCE ROW LEVEL SECURITY;
@@ -121903,6 +122057,13 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
 
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
     ADD CONSTRAINT response_requests_reception_id_key UNIQUE (reception_id);
+
+--
+-- Name: technical_mailbox_births technical_mailbox_births_pkey; Type: CONSTRAINT; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
+    ADD CONSTRAINT technical_mailbox_births_pkey PRIMARY KEY (inbound_email_message_id);
 
 --
 -- Name: consumptions consumptions_pkey; Type: CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -128567,6 +128728,13 @@ ALTER TABLE ONLY public.tenant_customer_sync_requests
 
 ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_company_id_environment_market_valid_f_key UNIQUE (company_id, environment, market, valid_from);
+
+--
+-- Name: tenant_ediel_profiles tenant_ediel_profiles_enabled_period_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_ediel_profiles
+    ADD CONSTRAINT tenant_ediel_profiles_enabled_period_excl EXCLUDE USING gist (company_id WITH =, environment WITH =, market WITH =, tstzrange(valid_from, valid_to, '[)'::text) WITH &&) WHERE (is_enabled);
 
 --
 -- Name: tenant_ediel_profiles tenant_ediel_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -141155,6 +141323,12 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_recepti
 CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_receptions.response_requests FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: technical_mailbox_births immutable_receipt; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_receptions.technical_mailbox_births FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
 -- Name: receptions immutable_truncate; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
 --
 
@@ -141165,6 +141339,12 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_recept
 --
 
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.response_requests FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: technical_mailbox_births immutable_truncate; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.technical_mailbox_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
 
 --
 -- Name: consumptions immutable_rows; Type: TRIGGER; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -144045,6 +144225,12 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.o
 --
 
 CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.revocations FOR EACH ROW EXECUTE FUNCTION gridex_transport_exception.immutable_v1();
+
+--
+-- Name: raw_births ediel_original_technical_mailbox_birth; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
+--
+
+CREATE TRIGGER ediel_original_technical_mailbox_birth AFTER INSERT ON gridex_unattributed_intake.raw_births FOR EACH ROW EXECUTE FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1();
 
 --
 -- Name: physical_claims gridex_complete_physical_claim; Type: TRIGGER; Schema: gridex_unattributed_intake; Owner: -
@@ -148533,6 +148719,13 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
 
 ALTER TABLE ONLY gridex_ediel_inbound_receptions.response_requests
     ADD CONSTRAINT response_requests_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: technical_mailbox_births technical_mailbox_births_inbound_email_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
+    ADD CONSTRAINT technical_mailbox_births_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES gridex_unattributed_intake.raw_births(inbound_email_message_id);
 
 --
 -- Name: consumptions consumptions_witness_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -160874,6 +161067,12 @@ ALTER TABLE gridex_ediel_inbound_receptions.receptions ENABLE ROW LEVEL SECURITY
 --
 
 ALTER TABLE gridex_ediel_inbound_receptions.response_requests ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: technical_mailbox_births; Type: ROW SECURITY; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+ALTER TABLE gridex_ediel_inbound_receptions.technical_mailbox_births ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: consumptions; Type: ROW SECURITY; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -183074,6 +183273,12 @@ REVOKE ALL ON FUNCTION gridex_ediel_inbound_context.require_v1(p_company_id uuid
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.authorize_v1(c uuid, actor uuid, permission text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION capture_technical_mailbox_birth_v1(); Type: ACL; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.capture_technical_mailbox_birth_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION guard_original_v1(); Type: ACL; Schema: gridex_ediel_inbound_receptions; Owner: -

@@ -1,0 +1,154 @@
+{
+  "schema": "gridex-combined119-authentic-raw3-origin-fixtureIO-import-custody/v1",
+  "verdict": "SOURCE_ONLY_READY_AUTHENTIC_CAPTURE_IMPORT_AND_BOUNDED_FIXTURE_IO_ONLY_RESULTING_HEAD_GATES_PENDING",
+  "recorded_at_utc": "2026-10-06T00:30:49.932072+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "One finite authenticcapture ZIP/raw3/history+two Git fixture read custody review; pendingworktree ten-path delta only",
+  "source": {
+    "head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "tree": "669f5bc63badbf7f7bbed0bb0104c877a745f88d",
+    "pending_paths": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic119-final1079-raw3-import-custody.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-additional-unit-coverage-failures-20261006-0016.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-first-genuine-targeted-failure-20261006-0011.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+      "scripts/supabase-types-manifest.json",
+      "supabase/schema.fingerprint.json",
+      "supabase/schema.sql"
+    ],
+    "pending_count": 10,
+    "no_resulting_commit_created": true
+  },
+  "capture_origin": {
+    "run": 37392285139,
+    "attempt": 1,
+    "job": 112039934055,
+    "actual_job_conclusion": "SUCCESS attributed existing root authenticated receipt; not reobserved",
+    "artifact": 11382240742,
+    "zip_bytes": 1643730,
+    "zip_sha256": "8f7a56fc116a3995b58e07fe4d16e67a056a19a095c7f3d65227650e14e403b3",
+    "receipt_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
+    "receipt_sha256": "1759154f07434e9bc8f0490063e404191044a546525bb80c32f7b9b319c46170",
+    "versions": {
+      "supabase_cli_version": "2.101.0",
+      "postgres_server_version": "17.6",
+      "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)"
+    },
+    "safe_unique4_members_CRC_and_exact_worktree_bytes": [
+      {
+        "path": "database.types.ts",
+        "bytes": 3705243,
+        "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+        "safe_CRC_and_worktree_byte_exact": true
+      },
+      {
+        "path": "schema.sql",
+        "bytes": 11352093,
+        "sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+        "safe_CRC_and_worktree_byte_exact": true
+      },
+      {
+        "path": "schema.fingerprint.json",
+        "bytes": 3687,
+        "sha256": "3ffb759caf023ed238692d901a59b443d617b28ebe7ef61b1a54b926ed6c8863",
+        "safe_CRC_and_worktree_byte_exact": true
+      },
+      {
+        "path": "capture-receipt.json",
+        "bytes": 4056,
+        "sha256": "1759154f07434e9bc8f0490063e404191044a546525bb80c32f7b9b319c46170",
+        "safe_CRC_and_worktree_byte_exact": true
+      }
+    ],
+    "only_new_capture_ZIP_reviewed_no_download_repeat": true
+  },
+  "frozen_input_reuse": {
+    "eight_producer_input_SHA_metadata_exact_receipt_and_original_freeze": true,
+    "eight_source_gitblob_pins_exact_frozen119": true,
+    "root_full1079_vector_check_reused": true,
+    "vector_file": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/final1079-provisional-source-migration-vector.json",
+    "vector_sha256": "d2b4ae0456b0fac28b231f5ded9b539b8daf30a384a5608fbf55b2c5f2cc9b85",
+    "all_current1079_SQL_tuples_unchanged_by_complete10path_scope": true,
+    "no_eight_input_or_SQL_inventory_body_execution_repeated": true
+  },
+  "origin_manifest": {
+    "entire_preimport_manifest_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+    "bytes": 192272,
+    "sha256": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73",
+    "original_git_blob": "caea705230be7c9ff53d6514c1910ce8bf21d52a",
+    "complete_source119_bytes_exact": true,
+    "one_new_fullsnapshot_binding": {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+      "sha256": "eb96170a6321bda77014a27afff5d17e6ca7f3c2b91fcf238e98633bfa37cf73",
+      "bytes": 192272,
+      "git_blob": "caea705230be7c9ff53d6514c1910ce8bf21d52a",
+      "source_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+      "scope": "ENTIRE pre-import current and all older provenance envelopes retained byte-exact; no historical capture/native flag rewritten."
+    },
+    "only_expected10_active_capture_scope_fields_changed": [
+      "active_generated_outputs_origin",
+      "capture",
+      "capture_artifact",
+      "composition_capture_pending",
+      "composition_capture_pending_scope",
+      "composition_note",
+      "current_prefix_verification",
+      "generated_at",
+      "generated_with",
+      "latest_migration_schema_effect"
+    ],
+    "every_other_old_origin_and_history_value_exact": true,
+    "active_origin_exact119_artifact11382240742": true,
+    "all_four_capture_only_flags": "NOT_RUN",
+    "composition_capture_pending": "FALSE_CAPTURE_COMPLETE_ONLY",
+    "resulting_head_ordinary_native_type_schema_upgradeparity": "PENDING_NOT_INFERRED",
+    "original_IMP05_scoped_PASS": "NOT_OBSERVED_NO_SUCCESS_INFERRED"
+  },
+  "fixture_IO": {
+    "path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+    "original_sha256": "60cfa5fe3b2e3be8690b1662256b7f276fde4eb22e784fb2f6bf74baebd2367b",
+    "pending_sha256": "5da60659c5055a14f6f06756c6efc110ddab68c32f418a38da38e4aed3bc648c",
+    "source119_actual_Git_descriptor_bytes": 1049532,
+    "default_buffer_bytes": 1048576,
+    "new_max_buffer_bytes": 16777216,
+    "exact_delta": "Only shared utf8/asconst 16MiB maxBuffer option for the two existing real Git ls-tree/show calls and two explanatory comments",
+    "Git_arguments_and_status_guards_all_remaining_assertions_negativecontrols_production_guard": "Byte exact outside those two IO substitutions",
+    "test_or_source_execution": "NONE"
+  },
+  "preservation": {
+    "all_other_tracked_source_mode_type_blob_tuples_exact119": true,
+    "foreign_tracked_entries": 8954,
+    "foreign_pinset_sha256": "1551fdf401c80b58bb18383c4624da8eeb486cae4fe353e16c41e56bbd04df63",
+    "pinset_encoding": "UTF-8 compact sorted arrays[path,mode,type,blob]",
+    "SQL1079_coverage352_capture_workflow_other_mandatory_workflows_native_product_source_unchanged": true,
+    "new_untracked_only_five_owned_audit_paths": true,
+    "own_checkpoint_old_prefix_retained": true,
+    "historical119_RED_receipts": [
+      {
+        "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-first-genuine-targeted-failure-20261006-0011.json",
+        "sha256": "3ca31a292e06ddee10ea7c2d8ee4105eccc918c4ad0a8227ae5b6e33a7375c40",
+        "old_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+        "historical_failure_scope_preserved": true
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-additional-unit-coverage-failures-20261006-0016.json",
+        "sha256": "5db8317d8ee65f5d167fb4c9e668281ac02e9e623e143a46b18c4c86a7facd14",
+        "old_head": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+        "historical_failure_scope_preserved": true
+      }
+    ],
+    "raw_types_output_already_identical_oldbytes_but_authenticnew_producer_scope_preserved": true
+  },
+  "blocking_source_findings": [],
+  "pending": {
+    "actual_resulting_head_ordinary_clean_upgrade_native_type_schema_parity": "REQUIRED_NEW_HEAD_AUTHENTIC_QUALIFICATION_BEFORE_MAIN",
+    "same614_publication_and_sole_observer": "Root retains commit/publication after containing119workflows settle; no new PR or observer",
+    "original613_docadopter": "Existing owner awaits actual614 main carry; no early baseline/main claim",
+    "whole_unionGREEN_or_actual_main_delivery": "NOT_CLAIMED"
+  },
+  "actions": "New already-downloadedcapture ZIP opened for this custody review; raw3 compared byteforbyte without schema/product review. Bounded source Git descriptor/status/receipt/history hashes only. One new immutable outsideGit JSON. No edits/index/ref/publish/fetch/CI/log/artifact download/test/native/AST/control/schema/capture rerun; no old native artifact/archive replay.",
+  "next": "Root may consume exact119working-delta SOURCE_ONLY receipt to commit/publish actualsuccessor on same614 when oldcontaining workflows settle; soleobserver authenticates actualresultinghead mandatorygates, then guarded normalmerge and original613docadoption. Finish existingwork only."
+}
