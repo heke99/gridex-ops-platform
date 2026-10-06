@@ -1,0 +1,510 @@
+{
+  "kind": "Actual PR612 ordinary expected-head merge after source and all9 guards",
+  "pr_number": 612,
+  "actual_main": "8c18fe64988154707a927e1af6bd6645de1be6e6",
+  "actual_main_tree": "5f61a80b764ff3c389c3f9d7df3b05be64c9504c",
+  "ordered_parents": [
+    "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+    "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+  ],
+  "source_head": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+  "merged_at_utc": "2026-10-05T23:19:32Z",
+  "method": "merge",
+  "serial_before_comment": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005251283",
+  "serial_actual_release_comment": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005274870",
+  "independent_source_guard_sha256": "a3a43aef9b357723f81d60e428b34db7ab2831260d9496b80dd8c5b6fe2b45b3",
+  "final_observer_seal_sha256": "b71dd21a3193716d6724329a313011213e4a49f79f7c6727d7e4e2ad5f985169",
+  "fresh_final_api_guard_sha256": "0f0156c2e88131f336f7440dbc48dd9e73ca30fc3d313ee2ea454ac092763156",
+  "original_producer_base": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "actual_tree_equals_qualified_prediction": true,
+  "complete_68_owned_actual_postimages": [
+    {
+      "path": ".agent-memory/canonical-source-regression-checks-checkpoint-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "5e8a20bbb0d969a3930e9dbb4d108519626a3de6",
+      "exact_frozen_source": true
+    },
+    {
+      "path": ".agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "c3a5c05b8a70ac691df71f33dffb3bbfcea53068",
+      "exact_frozen_source": true
+    },
+    {
+      "path": ".agent-memory/remaining-source-regression-checks-checkpoint-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "f6adcf3432036bc6ea5dd698f90cf0c631ff41c5",
+      "exact_frozen_source": true
+    },
+    {
+      "path": ".agent-memory/supplier-billing-surface-characterization-checkpoint-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "fd45520fd1427be3d72a2aad40a1ba7da85681a6",
+      "exact_frozen_source": true
+    },
+    {
+      "path": ".agent-memory/supplier-billing-surface-main296-carry-checkpoint-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "ebe0623742ad74604af93cc48c6c26e66bae4dcb",
+      "exact_frozen_source": true
+    },
+    {
+      "path": ".agent-memory/supplier-canonical-effect-guard-checkpoint-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "4173ee414975a71fbc398a095739e74d99061037",
+      "exact_frozen_source": true
+    },
+    {
+      "path": ".agent-memory/website-quote-canonical-version-checker-20261005.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "3a4c776259ed1a9f275350a5c53eede0a93d8f07",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "0b46aad38c6a52332ef383a75a8871fa7836464b",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/SHA256SUMS",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "02bfe25a8fa8307f71f9c35199017e6e169037ad",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/after.stderr.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/after.stdout.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "666ed62e994b98bcd0e88e09bb8acd2ce6ef9208",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/applied-review.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "678e8a5a02d2ef23fedd5da39f7c49e086fd3158",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/baseline.stderr.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "9c0aa9a19fb9a70f16b8f610d06cc2a4637c9a45",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/baseline.stdout.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "934fad27a3ccb252805931c64ce4d88537cc4966",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/controls.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "18d140fff4c0dab729ae1a32a5e28dbb0355a32f",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/input-guard.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "51090380be1d2f880d171c62bca06b73e65867d8",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/proposal-review.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "6e1ebbd1eaf210a90c84840a5d7d7578ea5c422e",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "f470824bb771c3cbfc7dd91ab6096e91db9c8dc4",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/canonical-source-regression-checks-20261005/canonical-source-regression-239974a6-publication-boundary-independent-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "705c529a287a3397de9e193d2f02fb0e57d58e62",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/canonical-source-regression-checks-20261005/current-main38-source-readset.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "765d1b45f471741e518bbf4389f1dac1c4e78afe",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/canonical-source-regression-checks-20261005/current-main4a-source-readset.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "4519ae3268e43acebc14cc58058a546df665d1bd",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/canonical-source-regression-checks-20261005/z01-characterization-raw-receipts.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "e6f88639d5f25ef335a8827a1dda487099585a00",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/canonical-source-regression-checks-20261005/z01-characterization-raw-receipts.zip",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "1eee89050a518533db8d5c5cf006fc7ca5a1756d",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-lint-fix-verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "4f51b156f2c9d54ea5e6d433635e1c2afa84625b",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output-index.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "7bf7c29afc66c76d358df878a0ca4ad918eb4140",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output.zip",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "13bcf328c5f62f5b64fc4f01db6c4f7dbb49fe39",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-main296-component-readset.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "6ab5a9299fa8602714ad9d4ba8e63dba64fb29d0",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-main5cde-component-readset.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "5b5a7dc61a5ee68228ff0a6a3a464388407a4957",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-mainb83-five-component-source-carry.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "e4f1a549e1f92ab5c9b90e912c94bf66d66acc8c",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/next3a-main5c-component-source-only-historical-guard.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "e01959968225ce661de1139201a5c5df49b79cd7",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-4bd-delivery-archive-custody-independent-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "ac4415a6fc388e6b9199f1fd970d653da562e2e3",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-c34-certificate-first-error-20261005-2027.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "f8d717370eece04bb52d1549fd9e38e68013d364",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-c34-terminal-all9-hold-20261005-2030.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "75d4dab5cb81d449e2c09752ec1164722e370dc1",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-five-components-6bb-mainb83-final-publication-source-only-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "c9923ea4f62e14a33656a1c8c6f0917f6ea249ce",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/public773-first-genuine-lint-step-failure.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "ccd0ea1567c8eb2752e548e6dd132274b727c0ed",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-0f624-main296-publication-carry-independent-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "2f4a94ebdb79c40930715262198b9f41cbc776e7",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-4ddd-publication-boundary-independent-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "ad806350e8e820ca1b2a7413fc03415f3e6054a0",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/supplier-billing-surface-main296-existing-block-boundaries.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "b533d1b3c013820de2838dbb700903141054600e",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-characterization-20261005/raw-evidence-index.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "7b0b70fedd4d6fb5ad28de460d847adaf6bb79ff",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-characterization-20261005/raw-evidence.zip",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "2ab8f9ffa7452880d4af52be12e74a09014fb09b",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-characterization-20261005/verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "c898967795768d0a664333714e0ce4ef7cabdd38",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-main296-carry-20261005/raw-evidence-index.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "5b8dda300f164da677de5c04e06322cfc861cf7d",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-main296-carry-20261005/raw-evidence.zip",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "9baeb47d2229acc949c4d1e0af3b26435385b769",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-billing-surface-main296-carry-20261005/verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "0137a006c46c03a8ae398427dfff9c7e7fb700ad",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/chain.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "2bb7fa3317ef6d3c0ccb6fc1de077c33b5c4b46e",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/corrected-checker-ast-diagnostic.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "cc58ec24e582dfc87a099dba6436e67afdb2d538",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/corrected-checker-red.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "1d28c7602517b5a56971be7721f6613de837124a",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/direct-remaining.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "6409f84cf9d695dd624d5f666278af28bd506c17",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/final-direct-remaining.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "ef301801594bee6e666d520855661e2bbf9c86c6",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/independent-corrected-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "c924c93e99491170e543fc39594767679db1200e",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/independent-initial-hold.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "22049be651ddde471bb50df024098fd5f836dd54",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/independent-one-byte-ready.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "8035bee72ce470a95f694e5c5b458345c71912b6",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source-index.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "290b0609556b8b9450d3a366e1bcd76f2c007c53",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source.zip",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "4b722fee98d627ef253f073aa31a0d340b55a203",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls.log",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "edecc9fb8ae6c29a300522ad39e9e84845597c0b",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/verification.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "29bf525aee8e0d7be941028e9311afbf9c851e36",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/focused-check.stdout.txt",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "f17619b18b2354e78b0aee40c3c9a2d1e56c0820",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/manifest.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "4949bbf8878f409862ef4a56eb36845dddedd761",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-integrity-proposal-peer.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "c1ea09ca1cb768b9fbee6e8039d9ade0b3d45f47",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-integrity-source-review.patch",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "a468a1e24df38a2aba316020649ef662f4c6b189",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-maintenance-baseline-red.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "edd18a2360671513357aa15358a1c26a626dada8",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-maintenance-focused-after-patch.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "ebf61c02eff8ee02a5a407f0afa1d70c64fe21d9",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/website-quote-canonical-version-checker-20261005/website-quote-maintenance-parent-applicability.json",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "23531180f5f79fb84f6d8f43c61e93ff16d58d7d",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "4eddbb25fb01d415aa058b2c8b7edd50d15a55ba",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "5cf6582348ca687c442daaac1b3ee4d7215fea95",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "scripts/gridex-supplier-remaining-business-regression.cjs",
+      "mode": "100755",
+      "type": "blob",
+      "git_blob": "6182ed0254f19bb2a31bb6b0daa99e375bd10f0f",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "632728ef27fc4be9d66f17dacbe9c700599a3bf7",
+      "exact_frozen_source": true
+    },
+    {
+      "path": "scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+      "mode": "100644",
+      "type": "blob",
+      "git_blob": "3ebb37804d07a67bf6c33c683cda9a3973f3e6c3",
+      "exact_frozen_source": true
+    }
+  ],
+  "foreign_main_entries_exact": 8638,
+  "whole_coverage_exact": [
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "sql_count_unchanged": 1073,
+  "scope": "Five original source-checker corrections plus owned immutable evidence/archive custody; no product/SQL/generated/native/workflow/coverage changes",
+  "common_handover": "ONE new612 ACTUAL marker; all40 prior ACTUAL lines preserved byte-exact",
+  "limits": [
+    "Nine ordinary checks and four genuine attempt1 workflows certify this source. Prior old773 failure/cancellation and oldc34 remain historical.",
+    "No repeated checker/control/AST/test/native/capture execution or original raw receipt rewriting.",
+    "No full73/push-main/wholeMasterplan/production acceptance inferred; original final baseline and combined-prefix owners remain."
+  ]
+}

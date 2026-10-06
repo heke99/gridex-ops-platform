@@ -1,0 +1,109 @@
+{
+  "schema": "root503_actual_qualified_delivery_v1",
+  "pr": 503,
+  "actual_merge": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "actual_tree": "14729bfdbe56f67149d51e227e25d7274aa4025e",
+  "parents": [
+    "8a072448f2b6a1d77e9dad343f4cb07136ac7260",
+    "9132a6ed4649e8b17aba4270417c649939c3e0c4"
+  ],
+  "merged_at": "2026-10-05T18:34:44Z",
+  "published_head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "actual_api_main_at_postguard": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "predicted_tree": "14729bfdbe56f67149d51e227e25d7274aa4025e",
+  "tree_matches_prediction": true,
+  "parents_match_prediction": true,
+  "final_premerge": {
+    "observed_at": "2026-10-05 18:34:32 UTC",
+    "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+    "base": "8a072448f2b6a1d77e9dad343f4cb07136ac7260",
+    "expected_tree": "14729bfdbe56f67149d51e227e25d7274aa4025e",
+    "required": [
+      {
+        "name": "verify",
+        "id": 111888126598,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "quality-release-gates",
+        "id": 111888126969,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "clean-migration-replay",
+        "id": 111888126963,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "upgrade-migration-replay",
+        "id": 111888126938,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "targeted-regressions",
+        "id": 111888126826,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "browser-public",
+        "id": 111888126896,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "smoke",
+        "id": 111888127958,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "coverage",
+        "id": 111888127477,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "pr-certificate",
+        "id": 111896469328,
+        "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "CodeRabbit": [
+      {
+        "state": "success",
+        "description": "Review skipped: manual review required for this OSS repository"
+      }
+    ],
+    "state": "open",
+    "mergeable": true,
+    "blockers": [],
+    "native_terminal_qualified_by_sole_observer": true,
+    "current_main_green_baseline": "NOT_CLAIMED"
+  },
+  "stored_approved": 260,
+  "foreign_full_rows_preserved": 346,
+  "authentic_capture_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "old_individual_19_failure_identities": "UNKNOWN; not inferred from currentF3pass",
+  "current_main_green_baseline": "NOT_CLAIMED; SC068 authoritative carrier and production-full residuals remain",
+  "public_coordination": [
+    "5306000715950",
+    "5036000718562"
+  ],
+  "source_delivery_complete": true,
+  "final_common_baseline_writer": "Existing retained coordinator; unchanged"
+}

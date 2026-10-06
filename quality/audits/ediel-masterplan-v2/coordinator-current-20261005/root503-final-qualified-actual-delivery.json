@@ -1,0 +1,44 @@
+{
+  "scope": "Original bounded independent current-main carry and actual completed-head CI qualification plus guarded actual merge custody",
+  "actual_merge": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "actual_tree": "14729bfdbe56f67149d51e227e25d7274aa4025e",
+  "parents": [
+    "8a072448f2b6a1d77e9dad343f4cb07136ac7260",
+    "9132a6ed4649e8b17aba4270417c649939c3e0c4"
+  ],
+  "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "mandatory_success": 9,
+  "archive_sha256": "fec3c3f06686ac88313cf6a4a420daea793dcbd7c9316b6db9ff456848c8ecbb",
+  "members": [
+    {
+      "name": "root503-frozen913-main8a-current-carry.md",
+      "sha256": "f943796032a029499929ec70b8eb3ef86416529750cff9d9f22a28732366fbb6",
+      "bytes": 5679
+    },
+    {
+      "name": "root503-frozen913-main8a-current-carry.json",
+      "sha256": "de21e134db943f89eb769de29c851638742f53f19e9647f8aa049fbdfdbe59b7",
+      "bytes": 11296
+    },
+    {
+      "name": "pr503-913-current-head-nine-success-20261005-1834.md",
+      "sha256": "19c5c6143cc845c3df5fc634d705f4bbaca8ee5812c81c78281e959394cd3490",
+      "bytes": 3160
+    },
+    {
+      "name": "pr503-913-current-head-nine-success-20261005-1834.json",
+      "sha256": "55a4aff89a971822e4a5775ae5dc927188a04435f22048599450043da5042741",
+      "bytes": 14820
+    },
+    {
+      "name": "root503-actual-delivery-f88e88fb.json",
+      "sha256": "d355f77d887801ca93d4d4b4d48509ba87ee901eefa604416bbd0010351cd81d",
+      "bytes": 3577
+    }
+  ],
+  "full_private_logs_or_native_artifacts_exported": false,
+  "original_real_skip_counts_retained": true,
+  "old19_individual_identities": "UNKNOWN",
+  "capture5be_original_four_NOT_RUN_flags": "PRESERVED",
+  "final_current_main_green_baseline": "NOT_CLAIMED"
+}

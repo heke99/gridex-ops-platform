@@ -1,0 +1,28 @@
+{
+  "scope": "Independent narrow frozen913/actual996 five-document source and ledger carry; no actual merge or global-green claim",
+  "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "main": "99676683338e11e60666345782609a822de9181e",
+  "expected_parents": [
+    "99676683338e11e60666345782609a822de9181e",
+    "9132a6ed4649e8b17aba4270417c649939c3e0c4"
+  ],
+  "expected_tree": "dd4aba7be5ca034e288d53e595d28b744cf7a8c8",
+  "known_SC068_boundary": {
+    "SC068": "Two known current-main fixture REDs remain outside the previous seven-suite142 composed control. No repair is included or admitted in main996 or frozen913.",
+    "exclusive_owner": "GOV01 author a7eb3a1; peer publication7b3f041afa20b598be663e8c13f5ea2261176c73 is separate/unadmitted here.",
+    "scope": "Documentation-only delta adds no defect or source input; this guard does not resolve or re-review the SC068 owner correction and does not claim globalgreen."
+  },
+  "archive_sha256": "7ff5947c6b5592f4f4551d5341dab1c372e4192fd288a8e1030e5ddc9079d641",
+  "byte_exact_members": [
+    {
+      "name": "root503-frozen913-main996-current-carry.md",
+      "sha256": "ff0d8a89a23459c3581e2605fbc228590a3033f305d19723f9fbfbe792befb28",
+      "bytes": 4217
+    },
+    {
+      "name": "root503-frozen913-main996-current-carry.json",
+      "sha256": "87d941ab90f117a856c5c2ec7498365bc1e218a397de9731016bba904bf6e7fe",
+      "bytes": 7945
+    }
+  ]
+}

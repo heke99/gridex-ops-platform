@@ -1,0 +1,104 @@
+{
+  "schema": "gridex-pr612-6d-freshmain1a-two-documentation-delta-source-refresh/v1",
+  "verdict": "SOURCE_ONLY_READY_EXACT_REFRESHED_PROSPECTIVE_MERGE_TREE_CURRENT_ALL9_AND_ACTUAL_MERGE_PENDING",
+  "recorded_at_utc": "2026-10-05T22:59:03.900118+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "ONE bounded refresh of prior907 source guard for exactly two incoming foreign documentation postimages; no repeated original source/component/archive/input/runtime review",
+  "retained_previous_source_guard": {
+    "path": "/workspace/agent-review-checkpoints/pr612-6d-freshmain9538-prospective-source-only-ready.json",
+    "sha256": "907c09df094787df4c4063c5d39bd2348d617f9874faad0d059449abd98630eb",
+    "old_fresh_main": "9538c4818a5802e066cbae5639a5f07a28675560",
+    "old_expected_tree": "2b25326bf2c5ffcca181731d57e4361261ebda5c",
+    "reused_source_guard_523_sha256": "523ee2f66cc772bb06a1a7a4349bbf003f89c1bd4ee3b89ff6a059e8d346eb2c",
+    "reused_archive_guard_48_sha256": "48bae51752e3a1a77df8a65b468c71a5c291418ba442f7a76d44d653d319db73",
+    "old_guard_is_historical_frozen_to9538_not_relabelled_newmain": true
+  },
+  "frozen_source": {
+    "head": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+    "tree": "65a020f4fccf69482ed05cdb19f6bb21c54b0208",
+    "unchanged_exact_source_commit": true,
+    "source_worktree_clean": true
+  },
+  "fresh_actual_main_snapshot": {
+    "head": "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+    "tree": "264b9568a361fe88fc3d9fe8db1047d1ce497ccf",
+    "actual_PR": 520,
+    "ordered_parents": [
+      "9538c4818a5802e066cbae5639a5f07a28675560",
+      "17c37e1d3e11748a16d9f5ab15e76de7fd1962e6"
+    ],
+    "previous_main": "9538c4818a5802e066cbae5639a5f07a28675560"
+  },
+  "single_prospective_merge_tree_refresh": {
+    "command": "git merge-tree --write-tree 1a1a2e4599d7f191c0f477a5649d919d56ced4e1 6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+    "observed_exit_code": 0,
+    "expected_tree": "5f61a80b764ff3c389c3f9d7df3b05be64c9504c",
+    "true_prospective_ordered_parents": [
+      "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+      "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    ],
+    "merge_base": "b83b284467c8e0fcaa277706a708706e0a705068",
+    "conflicts": 0,
+    "actual_merge_commit": "NOT_CREATED_NOT_CLAIMED",
+    "effects": "Immutable tree objects only; no checkout/index/ref/source/publication mutation"
+  },
+  "new_two_foreign_postimages": {
+    "count": 2,
+    "paths": [
+      ".agent-memory/handover.md",
+      "quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md"
+    ],
+    "only_modified_existing_documentation_paths": true,
+    "expected_tree_versus_prior_expected_tree_delta_exactly_these_two": true,
+    "exact_freshmain_mode_type_blob": [
+      {
+        "path": ".agent-memory/handover.md",
+        "mode_type_blob": [
+          "100644",
+          "blob",
+          "ae23edd4fcbfdbd56d234ad8992fa34e23dee1d2"
+        ]
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md",
+        "mode_type_blob": [
+          "100644",
+          "blob",
+          "6b1d1a0cce268c05ee86520267d941f1fddae3b8"
+        ]
+      }
+    ],
+    "pinset_sha256": "372acef4864bcf1c791f2a2651227b58a1f779cdf3f3bf73fb151ed8be9d387a",
+    "no612_owned_or_checker_advisor_read_SQL_native_generated_coverage_overlap": true
+  },
+  "unchanged_previous_boundaries": {
+    "every_other_expectedtree_path_mode_type_blob_tuple_exact_prior_expectedtree": true,
+    "same68_owned612_path_set_tuples_exact_source6d": true,
+    "owned_pinset_sha256": "cf3ac505743171d819ed08859fe402d7249d7da96bc8c8f6c3337fa74eb7deac",
+    "foreign_freshmain_entries": 8638,
+    "every_foreign_currentmain_mode_type_blob_tuple_exact": true,
+    "foreign_pinset_sha256": "b1d00fa0b73c569951267432ad39a99777fead07562cacfb1e074c0e02d6009c",
+    "old611_13postimages_retained_exact": true,
+    "cumulative611_plus520_incoming_paths": 15,
+    "all_five_checker_body_SHA_originalpayload_and_receipts_unchanged": "Reused907+523+48 scopes with exactsame source6d and all-other-tree tupleidentity",
+    "all60_prior_readinput_pins": "Reused907 scope; zero new incoming read-input path changes",
+    "coverage_whole352rows_271storedapprovals_and_SQL1073": "Reused907 scope; exactsame Gitobjects under complete two-path refresh",
+    "generator_native_workflow_tests_canonical_whole_ENV07454_and_SC0682f": "Reused907 scope; no protected-source tuple changed"
+  },
+  "pinset_encoding": "UTF-8 compact JSON arrays[path,mode,type,blob] sorted by path",
+  "CI_boundary": {
+    "source6d_status_at_parent_assignment": "8/9; clean replay RUNNING",
+    "observer_metadata_not_read_by_this_reviewer": true,
+    "all9": "NOT_CLAIMED",
+    "actual_merge": "NOT_PERFORMED"
+  },
+  "blocking_source_findings": [],
+  "pending": {
+    "all9": "Sole retained observer authenticates actualfinalclean+all9success on exact6d",
+    "finalapi_serial_merge": "Root final freshmain/head/source/API guard and exclusive expectedhead normalmerge afterall9",
+    "later_main_move": "Receipt frozen to1a/source6d. Refresh only actual newly changed delta if main moves again; never infer an unseen future tree",
+    "source_native_whole_capture_final_baseline": "NOT_CLAIMED"
+  },
+  "actions": "One new prospective merge-tree and bounded complete two-path Git identity refresh, one outsideGit immutable sanitary JSON. No tests/controls/AST/native/CI/archive/sourcewhole rerun, duplicate observer, source/ref/index/head/worktree/GitHub/publication manipulation, fetch or IMP05 read.",
+  "next": "Root alone combines this exactexpectedtree with currentactualall9 and final freshAPI/serialexpectedhead guards, then normalmerge; finish existing active work and accuratebaseline only, no newrules."
+}

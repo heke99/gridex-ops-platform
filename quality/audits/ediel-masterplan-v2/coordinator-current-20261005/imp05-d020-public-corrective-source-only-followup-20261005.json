@@ -1,0 +1,110 @@
+{
+  "kind": "Original IMP05 corrective PUBLIC source-only admission follow-up; no execution or private analysis",
+  "source_head": "d020d7ec804d827615487d43f4f59f3ba33eca0c",
+  "ordered_parents": [
+    "1f8b55ee89b531f720bfd1ff6098f88f585f0f41",
+    "b83b284467c8e0fcaa277706a708706e0a705068"
+  ],
+  "source_base": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "current_main_doc_only_successor": "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+  "complete_original_owned_delta": [
+    {
+      "path": ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+      "git_blob": "a25f2df21821001525b4c6c2a605fe02f0f5a753",
+      "sha256": "6466c63c5d02994d78b579a3cd3a2125ee0f573b4b185c9c5b4811fc05c203dd",
+      "bytes": 30558
+    },
+    {
+      "path": "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+      "git_blob": "a011262e28438fc7f27ea8e0af6b98ebf81955d0",
+      "sha256": "6a5b83df065c6a69ae67855f67bdad48b93a145ddd041eaea10d2dfae33b3838",
+      "bytes": 4332
+    },
+    {
+      "path": "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+      "git_blob": "fb5a67e4941d034966fae7ccd6c0bb7aa03a82f9",
+      "sha256": "4f52240b4ae19da80af47fe4aaaa1bdf36c0418341141fdcef9c22a347d61bd9",
+      "bytes": 28866
+    },
+    {
+      "path": "__tests__/ediel-recipient-address-binding.test.ts",
+      "git_blob": "d456447c3810c0ba5359f5ca4adf18735441e3ab",
+      "sha256": "eedf98739fdb01f07991f60da0e4ae16973d7a1327f2ae81c95511c153c2c545",
+      "bytes": 11395
+    },
+    {
+      "path": "__tests__/ediel-recipient-readiness.test.ts",
+      "git_blob": "b3b7466d3ad7879180ed579437d87739513549b0",
+      "sha256": "d8067e53d9be71234ea363dae32029a5f2617257388ee21b730d39ee2367cc60",
+      "bytes": 10903
+    },
+    {
+      "path": "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "git_blob": "8b8723b3fc40aca1e50a47cf85b799caaace4dbe",
+      "sha256": "62ef62230f75ac3db5b4e92ccf81e602f922fc9f4a254e1d4293fc866c3ca3c4",
+      "bytes": 39697
+    },
+    {
+      "path": "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+      "git_blob": "7bd6d17893d95748f1965cdb7a2a03d24d585020",
+      "sha256": "dd4f4cfa416c10fd3db34abc712601a4d9dddc551a4a9e612d943fefbacfd217",
+      "bytes": 29493
+    },
+    {
+      "path": "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+      "git_blob": "ad15e659e02001cacc591e65fc37956f9bdf7baa",
+      "sha256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+      "bytes": 15542
+    }
+  ],
+  "forward_sha256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+  "forward_bytes": 15542,
+  "existing_preimage_boundary_checks": {
+    "reception_single_insert_boundary": {
+      "occurrences": 1,
+      "pass": true
+    },
+    "reception_single_snapshot_boundary": {
+      "occurrences": 1,
+      "pass": true
+    },
+    "selector_single_declaration_boundary": {
+      "occurrences": 1,
+      "pass": true
+    },
+    "selector_single_current_route_lock_boundary": {
+      "occurrences": 1,
+      "pass": true
+    },
+    "reception_existing_refusal_contract": {
+      "pass": true
+    },
+    "selector_existing_endpoint_and_profile_contract": {
+      "pass": true
+    }
+  },
+  "unchanged_protected_contracts": {
+    "gridex_unattributed_intake.capture_custody_v1": "81c2900e6649c6a21a71d77be8b6347b6cf5474266e26743e039b39fd575a28e",
+    "gridex_unattributed_intake.is_birth_v1": "9a82221188a41675c70df8e44c571bd7366e91bbe6518fd3bddadacdb312a532",
+    "gridex_ediel_technical_ack.require_source_v1": "1b4c899e8b02dc68893ac47a1c4bc788e428cbc2df277d1dbb708473f77c819b",
+    "gridex_ediel_common_header.read_negative_route_v1": "fc49dd125d1805d552dc9eb35c53d39255c0bcdc1bbc1f425cb4a5b7120047a0"
+  },
+  "source_observations": [
+    "Technical mailbox SMTP is captured prospectively by an invoker AFTER INSERT trigger under the existing raw-birth definer; forced RLS/revokes/immutable receipts and owner/trigger guards are retained. No historical scan/backfill or ordinary reception is synthesized.",
+    "NULL original uses is_birth_v1, exact require_source evidence, raw/parse custody and physical/source claims, immutable SMTP birth and mailbox scope; complete custody is rechecked after mailbox lock. Legal company/resolved context remains NULL.",
+    "Technical CONTRL and common-header APERAK retain qualified endpoint/profile/actor owners; APERAK additionally requalifies current common header scope/hash/syntax assessment. Existing source/route function authority tuples remain guarded.",
+    "Public12-case new suite invokes actual prospective source admission with finite permission/parser/lock ports; its declared limits exclude national ACK guide/native concurrency/full IMP05. Source reading is not test execution."
+  ],
+  "verdict": "Bounded public corrective source no longer has the original company_id=c applicability defect; current owner qualification/input freeze NOT_OBSERVED. No admission, native/capture or whole-IMP05 approval.",
+  "not_performed": [
+    "No local test or native/runtime/CI execution.",
+    "No reading/exporting any private old IMP05/source capture report.",
+    "No checkout/index/source/ref mutation or prefix admission.",
+    "No copying previous1f8/6ca evidence onto corrected forward."
+  ],
+  "retained_prerequisites": [
+    "Original author exact public source freeze and original scoped executed result or concrete remaining HOLD.",
+    "Root later composes/registers only actually qualified source into the ONE final genuine combined-prefix capture.",
+    "Full native/runtime/whole criterion qualification remains scoped to its original owner."
+  ]
+}

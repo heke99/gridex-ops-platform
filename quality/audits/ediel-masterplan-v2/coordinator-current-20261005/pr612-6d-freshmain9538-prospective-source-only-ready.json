@@ -1,0 +1,164 @@
+{
+  "schema": "gridex-pr612-6d-freshmain9538-prospective-source-only-guard/v1",
+  "verdict": "SOURCE_ONLY_READY_EXACT_PROSPECTIVE_MERGE_TREE_CURRENT_ALL9_AND_ACTUAL_MERGE_PENDING",
+  "recorded_at_utc": "2026-10-05T22:46:56.642888+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "frozen_source": {
+    "head": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+    "tree": "65a020f4fccf69482ed05cdb19f6bb21c54b0208",
+    "source_worktree_clean": true
+  },
+  "fresh_actual_main_snapshot": {
+    "head": "9538c4818a5802e066cbae5639a5f07a28675560",
+    "tree": "bad0f6ca5929572fe5bba65ac81b7440882a9ad4",
+    "actual_PR": 611,
+    "ordered_parents": [
+      "b83b284467c8e0fcaa277706a708706e0a705068",
+      "e6edca6cd4d71645425e29ea66d7546c46857f5f"
+    ],
+    "previous_main": "b83b284467c8e0fcaa277706a708706e0a705068"
+  },
+  "single_prospective_merge_tree": {
+    "command": "git merge-tree --write-tree 9538c4818a5802e066cbae5639a5f07a28675560 6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+    "actual_exit_code": 0,
+    "expected_tree": "2b25326bf2c5ffcca181731d57e4361261ebda5c",
+    "prospective_ordered_merge_parents": [
+      "9538c4818a5802e066cbae5639a5f07a28675560",
+      "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    ],
+    "merge_base": "b83b284467c8e0fcaa277706a708706e0a705068",
+    "conflicts": 0,
+    "actual_merge_commit": "NOT_CREATED_NOT_CLAIMED",
+    "Git_effect": "Immutable prospective tree objects only; no checkout/index/ref/source/publication mutation"
+  },
+  "incoming611_documentation_delta": {
+    "count": 13,
+    "paths": [
+      ".agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/README.md",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/actual-merge-preservation.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/actual-pr600-merged.raw.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-premerge-guard.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-receipt.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-receipt.md",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/publication-manifest.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-checks.raw.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-commit-status.raw.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-pr.raw.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-runs.raw.json",
+      "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/working-main-adoption.json"
+    ],
+    "all_MD_JSON_only_existing611_scope": true,
+    "all13_expected_mode_type_blob_postimages_exact_freshmain": true,
+    "incoming_pinset_sha256": "b8f6c6fdb23ff16e644d10cefe0c9aa00a3c51ce0031fe1dec2962b4f8bc671a",
+    "no_612_advisor_SQL_native_read_input_overlap": true
+  },
+  "owned612_source_preservation": {
+    "old6d_versus_b83_delta_paths": 68,
+    "expected_tree_versus_freshmain9538_delta_paths": 68,
+    "same_exact_owned_path_set_and_mode_type_blob_tuples": true,
+    "owned_pinset_sha256": "cf3ac505743171d819ed08859fe402d7249d7da96bc8c8f6c3337fa74eb7deac",
+    "all_previous_source_payload_and_receipt_bytes_unchanged": true,
+    "all_source6d_existing_entries_except_single_incoming_foreignMD_postimage_exact": true,
+    "five_existing_checker_postimages": [
+      {
+        "path": "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "blob": "6182ed0254f19bb2a31bb6b0daa99e375bd10f0f",
+        "sha256": "1937ab14b3ff9fd84e4c1f2f762c477b135b87fb632ffd248d068f851798f7b3"
+      },
+      {
+        "path": "scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+        "blob": "3ebb37804d07a67bf6c33c683cda9a3973f3e6c3",
+        "sha256": "bb4faff930d887bc0065c62ff95df3308e88ad379d5b14656c43672c262d83af"
+      },
+      {
+        "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+        "blob": "632728ef27fc4be9d66f17dacbe9c700599a3bf7",
+        "sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2"
+      },
+      {
+        "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+        "blob": "5cf6582348ca687c442daaac1b3ee4d7215fea95",
+        "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1"
+      },
+      {
+        "path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+        "blob": "4eddbb25fb01d415aa058b2c8b7edd50d15a55ba",
+        "sha256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654"
+      }
+    ],
+    "no_original_payload_edit_or_rule_promotion": true
+  },
+  "foreign_freshmain": {
+    "entries": 8638,
+    "every_path_mode_type_blob_tuple_exact": true,
+    "foreign_pinset_sha256": "19d933e39d0fa67d1fcf464ce1d5069bdb8d39ee04ae64b3facdf87d1e461366",
+    "pinset_encoding": "UTF-8 JSON array[path,mode,type,blob], sorted paths, compact separators",
+    "coverage_whole_blob_and352rows_currentmain_exact": true,
+    "stored_main_approvals": 271,
+    "historical_SQL_count": 1073,
+    "all_SQL_native_generator_workflow_test_and_generated_entries_exactmain_source": true,
+    "eight_generator_input_paths": [
+      "scripts/gridex-aud-003-clean-replay.sh",
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json",
+      "scripts/supabase-types-manifest.json",
+      "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "scripts/gridex-schema-snapshot.cjs",
+      "supabase/config.toml"
+    ],
+    "sixty_original_input_pins": "All60 original SHA custody metadata+gitblob pins exact6d/source/freshmain/expectedtree; input bytes not reread",
+    "original60readset_sha256": "3e103f935de9e75a72c80433cc1954ffec513c54ce2092129d4652b9f05c2286"
+  },
+  "canonical_whole_fixtures": [
+    {
+      "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+      "blob": "45437dfbf60867dd70d96c28f38874a63bd3c374",
+      "sha256": "78f4065d8e2d4fa8fd633332736c4eac0abf3909eb0078bc0f3f931d07625a3a",
+      "whole_exact_first_actualmain_postimage": true
+    },
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "blob": "2f32623b0d7161b40ce2fe4ddde2b18081deb470",
+      "sha256": "412298f5ce479d4c56dc77fc359af970f9b83c0816410f74add20a05f1883132",
+      "whole_exact_first_actualmain_postimage": true
+    }
+  ],
+  "prior_independent_source_archive_guards_reused": [
+    {
+      "prior_guard_file": "/workspace/agent-review-checkpoints/pr612-five-components-6bb-mainb83-final-publication-source-only-ready.json",
+      "sha256": "523ee2f66cc772bb06a1a7a4349bbf003f89c1bd4ee3b89ff6a059e8d346eb2c",
+      "verdict": "READY_EXACT_SOURCE_PUBLICATION_ONLY_CURRENT_HEAD_CI_AND_MAIN_DELIVERY_PENDING",
+      "exact_tracked_copies_in_source": [
+        "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-five-components-6bb-mainb83-final-publication-source-only-ready.json"
+      ],
+      "reuse_scope": "Prior completed component/receipt/archive/source byte custody only; no repeat review"
+    },
+    {
+      "prior_guard_file": "/workspace/agent-review-checkpoints/pr612-4bd-delivery-archive-custody-independent-ready.json",
+      "sha256": "48bae51752e3a1a77df8a65b468c71a5c291418ba442f7a76d44d653d319db73",
+      "verdict": "READY_BOUNDED_DELIVERY_ARCHIVE_ONLY_FRESH_HEAD_CI_AND_MAIN_DELIVERY_PENDING",
+      "exact_tracked_copies_in_source": [
+        "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/pr612-4bd-delivery-archive-custody-independent-ready.json"
+      ],
+      "reuse_scope": "Prior completed component/receipt/archive/source byte custody only; no repeat review"
+    }
+  ],
+  "CI_boundary": {
+    "source6d_status_at_parent_assignment": "8/9; clean replay still executing",
+    "parent_status_is_not_new_observer_snapshot": true,
+    "all9": "NOT_YET_CLAIMED",
+    "merge": "NOT_PERFORMED",
+    "no_old_local_or_different_head_result_transfer": true
+  },
+  "blocking_source_findings": [],
+  "pending": {
+    "ordinary_all9": "Sole existing observer must authenticate actual final clean replay+all9 success on exact6d",
+    "final_merge_guard": "Root final freshAPI currentmain/head/source check plus exclusive serial expectedhead normalmerge afterall9",
+    "main_moves": "Root refreshes only actual changed incoming delta; this receipt is frozen to9538 and does not qualify an unobserved latermain",
+    "capture_full73_wholemain_finalbaseline": "NOT_CLAIMED"
+  },
+  "actions": "One readonly prospective merge-tree and bounded immutable Git tuple/readset/receipt identity assertions. ONE new outsideGit immutable JSON. No fetch/source/ref/index/checkout/commonmemory/GitHub mutation, AST/sourcewhole/finitecontrol/test/archive review/rerun, CI/native/capture/whole execution or duplicate observer.",
+  "next": "Root consumes this exact expectedtree proof with sole observer actualall9 and final freshAPI guard, then normal expectedhead merge. Finish already-active work and accurate baseline only; no newrules or newsource/CI/capture scope."
+}

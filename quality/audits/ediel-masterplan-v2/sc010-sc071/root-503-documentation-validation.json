@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-10-05T14:23:04.009049+00:00",
+  "scope": "Owned documentation/receipt-only checkpoint; no product source/SQL/coverage/shared capture edits.",
+  "full_cached_diff_check": {
+    "exit_code": 2,
+    "only_warning": "next-pair-scout-main-coverage-498ebd1c.json:3291 new blank line at EOF",
+    "reason": "Preserved original historical received JSON bytes/hash; not normalized or relabeled PASS."
+  },
+  "source_new_review_and_custody_scoped_check": {
+    "exit_code": 0
+  },
+  "artifact_reviews": {
+    "capture_native": "root-503-capture-independent-review.md",
+    "sha256": "e990289855eba4dd49f8f7b4558e3f73bea7b5e5b5f43bb1a770f0e3e1552e29"
+  },
+  "publication": "Push only existing checkpoint ref; immutableproducerPR570head9b50 unaffected."
+}

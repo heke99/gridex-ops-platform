@@ -1,0 +1,5 @@
+2026-10-05T12:20:40.6241960Z HEAD is now at 9b50b1b test(ediel): bound real export lease waits before RPC cancellation
+2026-10-05T12:20:40.6341231Z 9b50b1b9a5aae19e9cabead09c92af4e0443c44c
+2026-10-05T12:20:59.6988043Z Migration integrity check failed (1 issue(s)):
+2026-10-05T12:20:59.6992025Z - Migration is missing from checksum manifest: 20261005101500_ediel_beneficiary_export_jobs.sql (sha256=d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596)
+2026-10-05T12:20:59.7182718Z ##[error]Process completed with exit code 1.

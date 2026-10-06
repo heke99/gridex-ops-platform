@@ -1,0 +1,25 @@
+{
+  "scope": "Actual570 source delivery through guarded503; no separate root570 merge or closure action",
+  "pr": 570,
+  "head": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "github_state": "closed",
+  "github_merged": true,
+  "github_merged_at": "2026-10-05T18:34:46Z",
+  "github_merge_commit": "daac5e58946630c82fec6873724edee2be8d8f2f",
+  "carrier_parents": [
+    "13735ed37978c295f9762f8d3054feac26615423",
+    "9b50b1b9a5aae19e9cabead09c92af4e0443c44c"
+  ],
+  "carrier_tree": "0ffb8e6d269bfb624649879ef379514546a8124a",
+  "carrier_is_existing_ancestor_of_actual_f88": true,
+  "actual_main": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "actual_tree": "14729bfdbe56f67149d51e227e25d7274aa4025e",
+  "all67_packet_paths_exact": true,
+  "raw_evidence_paths": 40,
+  "source_residual": [],
+  "corrected_native_14611_and_effective_SC071_33b7_retained": true,
+  "no_new_tests_native_artifacts_or_whole_approval": true,
+  "public_delivery_comment": "5706000871936",
+  "review_receipt_sha256": "3569a5bc57dedd6911636f4757906234fb6ef1464a0abbd715210f9626707af3",
+  "common_handover": "Actual503 line already records main source delivery; no second first-parent570 main merge entry"
+}

@@ -1,0 +1,355 @@
+{
+  "scope": "Once-only actual common-handover delivery ledger; no source/test/native/CI mutation",
+  "actual_observed_main": "37b06fd31d91b23671c6f62fd459b6eb7635d605",
+  "actual_main_tree": "59c478ef38697b72ba63a8af7cbc9c360516ae25",
+  "root503_remains_frozen": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "later_main_adopted_by_root913": false,
+  "final_stable_main_CI": "NOT_QUALIFIED_BY_THIS_DOCUMENTARY_TASK",
+  "deliveries": [
+    {
+      "pr": 591,
+      "actual_merge_sha": "b7a2daa3627f1f8f56055681ba5a8d78e902ad55",
+      "tree": "bddfea4e8f6e2cb0c49629715de8b2f94448bf6a",
+      "parents": [
+        "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+        "bbf89d53f62b495739097601133bea30007d5dfb"
+      ],
+      "source_subject": "Merge pull request #591 from heke99/codex/ediel-at-p04-parent-applicability-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 133,
+        "NOT_EXECUTED": 82
+      },
+      "stored_approved": 225,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 544,
+      "actual_merge_sha": "863806547821e92f37aad866261123882810e37e",
+      "tree": "3e0a9068188996d7c65efe900f366701076f065f",
+      "parents": [
+        "b7a2daa3627f1f8f56055681ba5a8d78e902ad55",
+        "4e6b196e9957606d6e05b9259e1a8a2303930be7"
+      ],
+      "source_subject": "Merge pull request #544 from heke99/codex/ediel-sc009-sc019-evidence-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 135,
+        "NOT_EXECUTED": 80
+      },
+      "stored_approved": 227,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 593,
+      "actual_merge_sha": "728e4f99bf13fae5ead9678f9a2931a298f94e0d",
+      "tree": "57e7c123cb919a6fb0ed8bfa599f0746a0d1b3c3",
+      "parents": [
+        "863806547821e92f37aad866261123882810e37e",
+        "4e98af7a33feffd013c20524887cc65424d98912"
+      ],
+      "source_subject": "Merge pull request #593 from heke99/codex/ediel-at-z02l-z02lk-supplier-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 135,
+        "NOT_EXECUTED": 80
+      },
+      "stored_approved": 227,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 559,
+      "actual_merge_sha": "6a42223d1adfe48c773ab9a1bf5ab9ae8fdc9806",
+      "tree": "1e2df721fc5f60d88f09be6ae70f3628dd9bc5df",
+      "parents": [
+        "728e4f99bf13fae5ead9678f9a2931a298f94e0d",
+        "234f76b9383b7d56a15018dbbbe46a2d79e84654"
+      ],
+      "source_subject": "Merge pull request #559 from heke99/codex/ediel-sc015-sc016-permission-evidence-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 137,
+        "NOT_EXECUTED": 78
+      },
+      "stored_approved": 229,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 597,
+      "actual_merge_sha": "e3606a6575b1f00bc571da3340c34c7d183730b1",
+      "tree": "ec5d5e467b94d590f2fcafb6d00634b11bd1210b",
+      "parents": [
+        "6a42223d1adfe48c773ab9a1bf5ab9ae8fdc9806",
+        "850493836e9905f379f391fd1e544a6564c09743"
+      ],
+      "source_subject": "Merge pull request #597 from heke99/codex/ediel-at-z05l-z05lk-supplier-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 137,
+        "NOT_EXECUTED": 78
+      },
+      "stored_approved": 229,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 592,
+      "actual_merge_sha": "de6d22bea64cf2b8810969cb87924128176ebab1",
+      "tree": "b73ded987f065ca0ca064544d8f2bac612fac84c",
+      "parents": [
+        "e3606a6575b1f00bc571da3340c34c7d183730b1",
+        "0da9360cd4cd94f08f0c5b038fd95aefe86214fd"
+      ],
+      "source_subject": "Merge pull request #592 from heke99/codex/ediel-sc047-joined-native-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 137,
+        "NOT_EXECUTED": 78
+      },
+      "stored_approved": 229,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 561,
+      "actual_merge_sha": "faddfdccb214305330e408a06c0f1d5a8c96896b",
+      "tree": "99633083b4aa204d1c205af1e47e2ac198f006a6",
+      "parents": [
+        "de6d22bea64cf2b8810969cb87924128176ebab1",
+        "16e7c71d8f307cf193a5ef14be6b5aad9db8d74c"
+      ],
+      "source_subject": "Merge pull request #561 from heke99/codex/ediel-sc051-sc068-revision-and-replay-evidence-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 139,
+        "NOT_EXECUTED": 76
+      },
+      "stored_approved": 231,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 595,
+      "actual_merge_sha": "c65aacf80169b8f25720e76916290d20b43e7355",
+      "tree": "03afa25a3137198605fc09736de2cc7b1a70afe4",
+      "parents": [
+        "faddfdccb214305330e408a06c0f1d5a8c96896b",
+        "3d8defcfe9788dea2ff21dd2aa98f7b2a50c6200"
+      ],
+      "source_subject": "Merge pull request #595 from heke99/codex/ediel-at-z03l-z03lk-supplier-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 24,
+        "VERIFIED": 92,
+        "PARTIAL": 21,
+        "PASSED": 139,
+        "NOT_EXECUTED": 76
+      },
+      "stored_approved": 231,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 508,
+      "actual_merge_sha": "a24885d52275f832307329b92bcfaef95fca8cb2",
+      "tree": "11829a51d300c2cb5a3b8f5ab4bd7746baaf40d0",
+      "parents": [
+        "c65aacf80169b8f25720e76916290d20b43e7355",
+        "6688c5e17e781861b6006e9ce188ad6e27eb0c2d"
+      ],
+      "source_subject": "Merge pull request #508 from heke99/codex/ediel-env02-position-stability-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 23,
+        "VERIFIED": 93,
+        "PARTIAL": 21,
+        "PASSED": 140,
+        "NOT_EXECUTED": 75
+      },
+      "stored_approved": 233,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 598,
+      "actual_merge_sha": "7a016db1c174ee1fedaeba1dfdb32b2ebe5155d7",
+      "tree": "3b3022f093c4d99a994ebd77650cdab6bcd9f72d",
+      "parents": [
+        "a24885d52275f832307329b92bcfaef95fca8cb2",
+        "321931a506f7ee6d0560e5d5e7c1133b8c3378f4"
+      ],
+      "source_subject": "Merge pull request #598 from heke99/codex/ediel-at-z09b-z09d-supplier-20261005",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 23,
+        "VERIFIED": 93,
+        "PARTIAL": 21,
+        "PASSED": 140,
+        "NOT_EXECUTED": 75
+      },
+      "stored_approved": 233,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 526,
+      "actual_merge_sha": "b817c1f19d4c8322d1e80c840406ddf12557d8b2",
+      "tree": "3339f3942427ce745754e5c3c315f5a22e2c4997",
+      "parents": [
+        "7a016db1c174ee1fedaeba1dfdb32b2ebe5155d7",
+        "44ac89975d2671c6d0ae3520185ae5dc36b0cb36"
+      ],
+      "source_subject": "Merge pull request #526 from heke99/codex/ediel-imp03-05-route-history-inventory-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 22,
+        "VERIFIED": 94,
+        "PARTIAL": 21,
+        "PASSED": 141,
+        "NOT_EXECUTED": 74
+      },
+      "stored_approved": 235,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 516,
+      "actual_merge_sha": "eb1331ddd4fc4c2f38f0e9308f749b63e8d1e6f5",
+      "tree": "a481b78d652238adb56cfed96aa4798c6f287fb8",
+      "parents": [
+        "b817c1f19d4c8322d1e80c840406ddf12557d8b2",
+        "e4ee78bb893571c0be70968a61cf58d286c8fec0"
+      ],
+      "source_subject": "Merge pull request #516 from heke99/codex/ediel-env08-fixed-normal-time-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 21,
+        "VERIFIED": 95,
+        "PARTIAL": 21,
+        "PASSED": 142,
+        "NOT_EXECUTED": 73
+      },
+      "stored_approved": 237,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 519,
+      "actual_merge_sha": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+      "tree": "34091802c5a3a1e149624d6c1957dc16a7d10258",
+      "parents": [
+        "eb1331ddd4fc4c2f38f0e9308f749b63e8d1e6f5",
+        "9be18214f23938899dedbf524d5690be3ebcf137"
+      ],
+      "source_subject": "Merge pull request #519 from heke99/codex/ediel-imp01-unreadable-company-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 20,
+        "VERIFIED": 96,
+        "PARTIAL": 21,
+        "PASSED": 143,
+        "NOT_EXECUTED": 72
+      },
+      "stored_approved": 239,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 512,
+      "actual_merge_sha": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+      "tree": "013b625fafc4c3e72824e150f2c26a5a0a75f98a",
+      "parents": [
+        "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+        "924248a07bc5f175df7519b1e74acefd3ab18cd7"
+      ],
+      "source_subject": "Merge pull request #512 from heke99/codex/ediel-env10-family-release-evidence-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 19,
+        "VERIFIED": 97,
+        "PARTIAL": 21,
+        "PASSED": 144,
+        "NOT_EXECUTED": 71
+      },
+      "stored_approved": 241,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 514,
+      "actual_merge_sha": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+      "tree": "bd7a50913a5c23eabe11e4f16a84b604d95c1822",
+      "parents": [
+        "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+        "338a6abb47291eb9d3bcc7bf3261626e0e29162c"
+      ],
+      "source_subject": "Merge pull request #514 from heke99/codex/ediel-env07-compatible-batching-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 18,
+        "VERIFIED": 98,
+        "PARTIAL": 21,
+        "PASSED": 145,
+        "NOT_EXECUTED": 70
+      },
+      "stored_approved": 243,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 525,
+      "actual_merge_sha": "25c0a12f78e650d456a62c789be8f814b595783e",
+      "tree": "20a37b55372328c236e7bca7eed2be993cad66da",
+      "parents": [
+        "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+        "2e9f1521b1030fbabda2d10e81ab7054430ec77b"
+      ],
+      "source_subject": "Merge pull request #525 from heke99/codex/ediel-imp02-market-family-evidence-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 17,
+        "VERIFIED": 99,
+        "PARTIAL": 21,
+        "PASSED": 146,
+        "NOT_EXECUTED": 69
+      },
+      "stored_approved": 245,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 513,
+      "actual_merge_sha": "fd429e5dc042a01a2fd86ccf9875b31dc5e212c7",
+      "tree": "a12d34bfbd6dee7cace2ca76dcac574e11b033d6",
+      "parents": [
+        "25c0a12f78e650d456a62c789be8f814b595783e",
+        "7eb5faa09ebee5a72a7415eaa7c85c00ce063ed1"
+      ],
+      "source_subject": "Merge pull request #513 from heke99/codex/ediel-sc041-envelope-evidence-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 17,
+        "VERIFIED": 99,
+        "PARTIAL": 21,
+        "PASSED": 147,
+        "NOT_EXECUTED": 68
+      },
+      "stored_approved": 246,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    },
+    {
+      "pr": 522,
+      "actual_merge_sha": "37b06fd31d91b23671c6f62fd459b6eb7635d605",
+      "tree": "59c478ef38697b72ba63a8af7cbc9c360516ae25",
+      "parents": [
+        "fd429e5dc042a01a2fd86ccf9875b31dc5e212c7",
+        "b828f32fcd98c2af797f781d9902482a14fe0784"
+      ],
+      "source_subject": "Merge pull request #522 from heke99/codex/ediel-gov05-coherent-guide-evidence-20261004",
+      "stored_status_counts": {
+        "NOT_VERIFIED": 16,
+        "VERIFIED": 100,
+        "PARTIAL": 21,
+        "PASSED": 148,
+        "NOT_EXECUTED": 67
+      },
+      "stored_approved": 248,
+      "acceptance_boundary": "Actual Git source/statistics only; no new native/market/current-main baseline assertion. Original owner receipts retain their scope."
+    }
+  ],
+  "existing_handover_bytes_retained": true,
+  "original_handover_sha256": "3928400ddc2d4e159ab38f42e28723aca63e7e463460e37799831dbd9a954436",
+  "new_handover_sha256": "8343bef713f35e675d69976860db644dd06264813cd5b56da6f5acb1b43556ab"
+}
