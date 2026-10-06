@@ -3,18 +3,18 @@
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {createRequestedChangeSupplyFixture} from './ediel-requested-change-native-fixture'
-import {createBilateralSourceOperator} from './ediel-bilateral-customer-native-fixture'
+import {createBilateralSourceOperator,customerChangeMinute} from './ediel-bilateral-customer-native-fixture'
 import {bilateralCustomerNativeWire} from './ediel-bilateral-customer-native-wire'
-import {nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
+import {nativeSql as sql,literal,futureNativeSupplyDate} from './ediel-normal-switch-native-fixture'
 import {tokenizeEdifact,segmentSourceSpan,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import type {RequestedCustomerChangeSubmission} from '@/lib/ediel/production/requestedCustomerChangeSource'
 export async function createRequestedCustomerChangeNativeFixture(provider:(email:string)=>void){
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:'2026-10-03'}),uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
+ const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
  const counterparty=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`),agreementId=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),secret=Buffer.from('SYNTHETIC OUTGOING EXTERNAL ISSUER ONLY 0123456789012345'),authorityHash=createHash('sha256').update('SYNTHETIC OUTGOING LEGAL MANDATE CONTROL ONLY').digest('hex')
  sql(`INSERT INTO public.tenant_bilateral_agreements(id,company_id,environment,counterparty_actor_id,capability_code,terms,is_enabled,valid_from,valid_to,source_reference)VALUES(${literal(agreementId)},${literal(f.companyId)},'test',${literal(counterparty)},'prodat_z09e_requested_customer_change','{}',true,'2020-01-01','2099-01-01','SYNTHETIC outgoing legal mandate control');`)
- let rawPayload=bilateralCustomerNativeWire({sender:f.sender,receiver:f.receiver,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),repeatRegister:true,invoicee:true}).replace('BGM+Z06+','BGM+Z09+')
+ let rawPayload=bilateralCustomerNativeWire({sender:f.sender,receiver:f.receiver,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),repeatRegister:true,invoicee:true}).replace('BGM+Z06+','BGM+Z09+')
  const headerClock=sql<{unb:string;dtm:string}>(`SELECT jsonb_build_object('unb',to_char(clock_timestamp() AT TIME ZONE 'Etc/GMT-1','YYMMDD:HH24MI'),'dtm',to_char(clock_timestamp() AT TIME ZONE 'Etc/GMT-1','YYYYMMDDHH24MI'))`)
  let tokens=tokenizeEdifact(rawPayload);const header=tokens.segments.find(s=>s.tag==='UNB')!,span=segmentSourceSpan(header)!,parts=header.raw.split(tokens.una.dataElementSeparator);parts[4]=headerClock.unb
  rawPayload=rawPayload.slice(0,span.startOffset)+parts.join(tokens.una.dataElementSeparator)+rawPayload.slice(span.endOffset);tokens=tokenizeEdifact(rawPayload)
