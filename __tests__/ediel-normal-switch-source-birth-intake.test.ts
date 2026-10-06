@@ -16,7 +16,7 @@ const parse=()=>{const p=parseInboundEmailContent({attachmentText:raw()});if(!p)
 const evidence={rulePackId:'declared-pack',messageProfileId:'declared-profile',databaseProfileKey:'PRODAT:Z04:L:26.A:r3',profileKey:'semantic-alias',originalVersion:'26.A:r3',sourceHash:'a'.repeat(64),unhAssociationCode:'E2SE6A',originalSnapshot:{rulePack:{id:'declared-pack'},messageProfile:{id:'declared-profile'},guideSources:[]}}
 let db:ReturnType<typeof inboundReceptionBoundary>
 const input=()=>({companyId:company,actorUserId:actor,environment:'test',inboundEmailMessageId:mailId,parseResultId:parseId,parsed:parse()})
-beforeEach(()=>{vi.clearAllMocks();db=inboundReceptionBoundary(parse());io.from.mockImplementation(db.from);io.rpc.mockImplementation(db.rpc);io.catalog.mockReset().mockImplementation(async()=>{expect(db.writes('ediel_messages')).toEqual([]);return evidence})})
+beforeEach(()=>{vi.clearAllMocks();db=inboundReceptionBoundary(parse());io.from.mockImplementation((table:string)=>db.from(table));io.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>db.rpc(name,args));io.catalog.mockReset().mockImplementation(async()=>{expect(db.writes('ediel_messages')).toEqual([]);return evidence})})
 
 it.each(['Z22','Z23'] as const)('binds own %s and only the returned original witness before first INSERT at the actual retained mail receipt',async subtype=>{
  reason=subtype;db=inboundReceptionBoundary(parse());db.state.existing=false
