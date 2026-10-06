@@ -1,3 +1,13 @@
+## AUTHENTIC CURRENT PUBLISHED CATALOG5 — 2026-10-06T23:41:32.965467+00:00
+
+Official source fa55054e252aa91201a42a99294585291e970874/tree d285341340c936b31fc9430fd5e0ffaeb46cd4f4 run37542926006/job112539973049/artifact11449714728 SUCCESS. OriginalZIP172464bytes SHA6ca4fd65f355201be6f277319aaddec228f0674e5d9d6e4cbbcf541e1d2fc97a, metadataAPI/digest/size/CRC/exact3members/currenttree and ALL3374immutableGitinputs matched; strictJUnit5PASS0FAILERRORSKIP/nativeexit0/time0.122599472s. Qualifier /tmp/gridex-c3ae-z02-fa550-qualified.json; artifact preserved /workspace/attachments/774e625a-ea70-4ac8-8fc9-30300909058b/gridex-c3ae-z02-fa550-native5.zip. These five prove direct catalog/profile contrasts ONLY, not public Z01/Z02 receive/effects/whole89 or new D source integration.
+
+Nine-file pre-code extension documented7ba7541a and530 before GO, same18held refs/solepair/no sharedrole. Disjoint work: componentagent context + two finite unit/runtime tests; SQLagent forward20261006233239; clientagent actual finite installed-SQL CJS; nativeauthor role/replay corrections; root actual runtime/validator/caller integration only after integration RED. SQL CJS actual embeddedPG absent-reader RED observed; detailed hashes pending author receipt. Global sender-role inference withdrawn: TEN05 immutable registry process-source is authority, existing role tables not equivalent.
+
+Actual canonical local replay baseline1049 detached verification-onlyworktree running session19896, unchanged trusted script/source/guards; Docker downloads in progress, no exit/schema/result receipt yet. Supabase current functions+changelog docs actual200 fetched under inherited proxy/TLS. Newforward is not canonical main/captured until reviewed publication+narrow release/fresh GEN5 owner93e claim+complete actual capture. Nextroot meaningful integrationRED then exact bounded implementation/freshfull/types/lint/review and actual replay diagnostics; no coverage/merge while whole producer dependencies remain.
+
+---
+
 ## PRE-CODE D229 EXTENSION CLAIM — 2026-10-06T23:37:30.317535+00:00
 
 Same sole packet bebe25f4-d2a5-4c59-b6b5-35e5d08192e3 / session codex-20261006T134154Z-c3ae376b9893. PR643 published source fa55054e252aa91201a42a99294585291e970874; local adopted main356 source1049b135e039b999d84cc6d89abd382967fe82af. New create-only receipt 347ec8e7ff13909fb52237dfedd3b6f9b8a90ccb on actual main356e153b64d83b84379791a4b4bda1e47ca464a0; nine sorted refs acquired and ALL18 currently held refs twice owner-GET MATCH. Released producer two excluded. No second pair or foreign/shared/merge role taken.
