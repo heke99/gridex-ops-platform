@@ -1,3 +1,9 @@
+## ACTUAL RELEASE CONFIRMED — 2026-10-06 22:20 UTC
+
+All FIFTEEN remaining own packet resources were read back at their exact receipt SHA, deleted, and individually confirmed GET404. Both AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER are explicitly released; no active pair remains. Foreign and previously handed-off resources were untouched. Source PR635 a360abd7a5632a71c11dbb55fbef6045dfdde2bf remains OPEN DRAFT, locally full-green 903 files / 12219 tests, source-reviewed, whole-contract and mandatory-CI BLOCKED as documented below. No coverage promotion or merge. Actual release follows pre-release checkpoint 5d31d3f0 and #530 comment6026462223; detailed 15 resource/receipt confirmation is preserved in /tmp/gridex-c3ae-z03-session.json. Next owner actions and exact reusable source remain in the preceding handover. Root next: refresh main/ordered memory/latest530/legacy/open PR/live locks, then reserve eligible free Z02L/LK pair and its own exact paths before code.
+
+---
+
 ## BLOCKED WHOLE / EXPLICIT RELEASE BEFORE NEXT PACKET — 2026-10-06 22:16:48 UTC
 
 RELEASE AT-Z03L-SUPPLIER + AT-Z03LK-SUPPLIER — codex-20261006T134154Z-c3ae376b9893 — packet4d60a957-a79f-44b6-af7c-41fe3faa7653. Preserve PR635 OPEN DRAFT/sourcea360abd7a5632a71c11dbb55fbef6045dfdde2bf/tree256be576e324a883edc98e5efffdb70c0c9fc0c3/branchcodex/ediel-z03l-z03lk-c3ae376b9893 and personalCPb617/30fe/a2 history. Actualcurrentsource boundedreviews6356026224982; supported903files12219PASS/410.74s/exit0/logb72cfe7e957ba722a9c395227190310941427dd92e4745c7ab6afb9f7b16708c and174affectedPASS/allTS/lint/diff. Dispatch/request-scope/environment repairs/immutableowner8birthsource/actualpubliccase/timer proposals/eightcolumnforward/finiteOPShelper inverse/expiredbanfixture completed, no test/guard/criteria weakened. These are code/unit results, NOT whole32/mainapproval.
