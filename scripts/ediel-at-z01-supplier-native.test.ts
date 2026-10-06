@@ -299,6 +299,18 @@ it('already-correct supplier data can actually originate Z03 without any Z01 or 
   expect(activation(f)).toEqual(before); expect(external.send).not.toHaveBeenCalled()
 })
 
+it('already-correct move-in data can actually originate Z03LK without any Z01 or positive APERAK gate', async () => {
+  const f = await createZ01SupplierNativeFixture('LK', provider), before = activation(f)
+  const original = await prepareAndQueueEdielZ03({actorUserId: f.actorUserId, switchRequestId: f.switchId,
+    communicationRouteId: f.routeId, environment: 'test'})
+  expect(original).toMatchObject({direction: 'outbound', message_code: 'Z03', company_id: f.companyId,
+    immutable_payload_hash: sha(original.raw_payload!)})
+  expect(original.raw_payload).toContain('CAV+Z23')
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code IN('Z01','APERAK')`)).toBe(0)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_info_requests WHERE company_id=${literal(f.companyId)}`)).toBe(0)
+  expect(activation(f)).toEqual(before); expect(external.send).not.toHaveBeenCalled()
+})
+
 // Run fresh before-original probes after the ordinary information chain.
 // Their real queued operations are left genuine; no fake completion is seeded.
 describe.each(['L', 'LK'] as const)('actual outbound Z01%s R/D refusal', variant => {
