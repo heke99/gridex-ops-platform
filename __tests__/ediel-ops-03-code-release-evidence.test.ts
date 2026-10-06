@@ -85,7 +85,7 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     return restored
   }
   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
-    ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n"]
+    ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n"]
     : file === '.github/workflows/ops-hardening.yml'
       ? ['staff-onboarding-acceptance-regression', 'staff-external-identity-binding-regression'].map(name =>
         `          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/${name}.sql; then\n` +

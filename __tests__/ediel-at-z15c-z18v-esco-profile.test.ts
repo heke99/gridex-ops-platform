@@ -5,6 +5,7 @@ import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecisio
 import { assessPriorPermissionFlow, assertPriorPermissionContext, priorPermissionWire } from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
 import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { omitPermissionField, permissionRequiredFields } from '../scripts/helpers/ediel-permission-field-omissions'
 import { alphabets, msg, object, prior, scopeRecords } from './fixtures/prodat-prior-flow'
 
 const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn() }))
@@ -97,4 +98,26 @@ for (const field of ['327', '324', '325'] as const) it(`Z18V refuses missing req
   const decision = resolveCanonicalRuntimeDecision(message)
   expect(decision.applicationDecision).toBe('rejected')
   expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({ prodatDiagnostic: expect.objectContaining({ fieldNumber: field, errorKind: 'missing' }) })]))
+})
+
+for (const code of ['Z15', 'Z18'] as const) for (const field of permissionRequiredFields.filter(field => code === 'Z15' || field !== '322')) it(`${code} rejects required common/own/UD field ${field} with its own source diagnostic`, () => {
+  const message = code === 'Z15' ? msg('Z15', 'Z24') : prior('Z18')
+  message.raw_payload = omitPermissionField(message.raw_payload!, field)
+  const decision = resolveCanonicalRuntimeDecision(message)
+  if (['207', '208', '227'].includes(field)) {
+    // These empty NAD identifiers violate the underlying UNSM mandatory
+    // C082/3039 component before national application assessment can execute.
+    expect(decision.syntaxDecision).toBe('rejected')
+    expect(decision.applicationDecision).toBe('not_applicable')
+    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'UNSM_MANDATORY_ELEMENT_MISSING' })]))
+  } else if (code === 'Z15' && field === '311') {
+    // No physical process prefix: canonical guide selection is held; the
+    // cached row app must not qualify application/effect acceptance.
+    expect(decision.applicationDecision).toBe('manual_review')
+    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'CANONICAL_POLICY_RESOLUTION_FAILED' })]))
+  } else {
+    expect(decision.applicationDecision).toBe('rejected')
+    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({ prodatDiagnostic: expect.objectContaining({ fieldNumber: field, errorKind: 'missing' }) })]))
+  }
+  expect(decision.responsePlan.some(plan => plan.family === 'APERAK' && plan.outcome === 'positive')).toBe(false)
 })
