@@ -205,6 +205,51 @@ describe('actual native supplier cancellation chains', () => {
     expect(original(decoy)).toEqual(decoyOriginal); expect(switchState(decoy)).toEqual(decoySwitch); expect(periods(decoy)).toEqual([])
   }, 180000)
 
+  it('a stale cancellation of restored end A cannot restore the current distinct end B', async () => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L')
+    await process(f,confirmation)
+    const [baseline] = periods(f)
+    const endingA = await receiveProdat(f,z05(f),'Z05','L'); await process(f,endingA)
+    expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: 'ending', source_end_message_id: endingA.id })
+    const restorationA = await receiveProdat(f,z05(f,'Z24'),'Z05','C'); await process(f,restorationA)
+    expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: baseline.status, source_end_message_id: null })
+    const endBMinute = new Date(Date.UTC(Number(f.endMinute.slice(0,4)),Number(f.endMinute.slice(4,6))-1,
+      Number(f.endMinute.slice(6,8))+1)).toISOString().slice(0,10).replaceAll('-','')+'0000'
+    expect(endBMinute).not.toBe(f.endMinute)
+    const endingB = await receiveProdat(f,z05({...f,endMinute:endBMinute}),'Z05','L'); await process(f,endingB)
+    expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: 'ending', source_end_message_id: endingB.id })
+    const before = periods(f), permissionBefore = permissions(f)
+    const transitionCount = sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)};`)
+    const staleA = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:staleA.id})
+    expect(periods(f)).toEqual(before); expect(permissions(f)).toEqual(permissionBefore)
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)};`)).toBe(transitionCount)
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(staleA.id)};`)).toBe(0)
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(staleA.id)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)).toBe(0)
+  }, 180000)
+
+  it('refuses raw and direction rewrites of a genuinely received Z05C without changing source, reception or effects', async () => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'); await process(f,continuation)
+    const retained = () => sql(`SELECT jsonb_build_object('message',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(continuation.id)} AND company_id=${literal(f.companyId)}),
+      'source',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)}),
+      'receptions',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_inbound_receptions.receptions r WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)}),
+      'responseRequests',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_inbound_receptions.response_requests r WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)}));`)
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_inbound_receptions.receptions WHERE source_message_id=${literal(continuation.id)} AND classification='first_reception';`)).toBe(1)
+    const before = retained(), effectsBefore = ownedEffects(f,continuation.id), permissionBefore = permissions(f)
+    expect(continuation.raw_payload).toContain('CAV+Z24')
+    const rawChange = await supabaseService.from('ediel_messages').update({raw_payload:continuation.raw_payload!.replace('CAV+Z24','CAV+Z22')})
+      .eq('company_id',f.companyId).eq('id',continuation.id)
+    expect(rawChange.error).toMatchObject({code:'23514',message:'immutable_ediel_payload_cannot_change'})
+    expect(retained()).toEqual(before); expect(ownedEffects(f,continuation.id)).toEqual(effectsBefore)
+    const directionChange = await supabaseService.from('ediel_messages').update({direction:'outbound'})
+      .eq('company_id',f.companyId).eq('id',continuation.id)
+    expect(directionChange.error).toMatchObject({code:'23514',message:'immutable_ediel_received_context_cannot_change'})
+    expect(retained()).toEqual(before); expect(ownedEffects(f,continuation.id)).toEqual(effectsBefore)
+    expect(permissions(f)).toEqual(permissionBefore)
+  }, 180000)
+
   it.each(['li','point','stop','required-date','required-user','selected-invoicee'])('holds Z05C %s without restoring its real ending decision', async variant => {
     const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
     const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
@@ -237,7 +282,8 @@ describe('actual native supplier cancellation chains', () => {
 
   it('uses actual prospective LK public input at its zero-day cancellation boundary', async () => {
     configureSmtp()
-    const f = await seedNormalSwitchNativeFixture({deferOriginal:true,requestedStartDate:futureNativeSupplyDate(0)})
+    const cancellationDay = sql<string>(`SELECT to_jsonb((clock_timestamp()+interval '1 hour')::date);`)
+    const f = await seedNormalSwitchNativeFixture({deferOriginal:true,requestedStartDate:cancellationDay})
     // Change prospective business input before origination; the actual renderer,
     // signature/legal source and native original producer must still qualify it.
     sql(`UPDATE public.supplier_switch_requests SET prodat_variant='LK',prodat_reason='Z23',request_type='move_in'
@@ -246,6 +292,7 @@ describe('actual native supplier cancellation chains', () => {
     await sendEdielMessageViaSmtp(queued,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
     const sent = (await getEdielMessageById(queued.id))!
     const wire=tokenizeEdifact(sent.raw_payload!),li=wire.segments.find(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,wire.una)[0]==='LI')
+    expect(sql(`SELECT to_jsonb((clock_timestamp()+interval '1 hour')::date);`)).toBe(f.requestedStartDate)
     const source = await readSwitchCancellationSource({companyId:f.companyId,switchRequestId:f.switchId,actorUserId:f.actorUserId})
     expect(source).toMatchObject({status:'authorized',originalSubtype:'LK',originalMessageId:sent.id,
       li:segmentComposite(li,1,wire.una)[1],deadline:f.requestedStartDate})
