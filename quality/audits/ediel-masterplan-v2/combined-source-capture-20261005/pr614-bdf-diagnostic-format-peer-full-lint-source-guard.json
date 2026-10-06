@@ -1,0 +1,89 @@
+{
+  "scope": "Existing archived diagnostic metadata-format correction only; no runtime or new Masterplan work",
+  "recorded_at_utc": "2026-10-06T04:18:09.911787+00:00",
+  "parent": "bdf7207ff950df44cdbed72f811c3d0930ddceaf",
+  "public_claim_PR614": 6009214107,
+  "genuine_current_failed_step": {
+    "run": 37412452737,
+    "job": 112103776447,
+    "attempt": 1,
+    "step": 5,
+    "step_name": "Run npm run lint",
+    "start": "2026-10-06T04:11:30Z",
+    "end": "2026-10-06T04:13:27Z",
+    "job_not_terminal_at_original_snapshot": true
+  },
+  "authentic_terminal_job_log": "Not available at single in-progress request04:14, 404 BlobNotFound; no exact terminal-log cause claimed",
+  "actual_local_precise_original_lint": {
+    "exit": 1,
+    "errors": 4,
+    "rule": "@typescript-eslint/no-require-imports",
+    "lines": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "file": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs"
+  },
+  "byte_exact_metadata_rename": {
+    "original": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs",
+    "archived": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs.txt",
+    "bytes": 5910,
+    "sha256": "b9e8bfdc85d4050f70d20ded0d796b865c6b45fed79ea8eb292016344e6a0f07",
+    "original_blob": "100644 blob 776015aeddd742fdce3bf0a3536336c51e0ae71e"
+  },
+  "independent_peer": {
+    "agent": "/root/existing_native_reception_custody_diagnosis",
+    "verdict": "APPROVE_METADATA_ONLY_RENAME",
+    "whole_archived_bytes_exact": true,
+    "no_lint_ignore_or_guard_waiver": true,
+    "historical2864_receipt_scope_unchanged": true,
+    "no_peer_tests_or_actions": true
+  },
+  "actual_full_project_ESLint": {
+    "node": "22.23.3",
+    "command": "node node_modules/eslint/bin/eslint.js",
+    "exit": 0,
+    "errors": 0,
+    "existing_warnings": 125,
+    "output_bytes": 18733,
+    "output_sha256": "a4f3f2b29f15265f51d4e5a00ea2817dd07fabb799399e8d0ecbb2962717e308"
+  },
+  "runtime_invariants": {
+    "receiving_helper_sha256": "26fc9da079fb02ab417aa05df30710f1600f6d6de5a7dd1ce315991d212aed75",
+    "production_readiness_sha256": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453",
+    "all_runtime_SQL_gen_workflow_package_assertion_352rows_unchanged": true
+  },
+  "adopted_exact_receipts": {
+    "pr614-bdf-first-genuine-lint-step-failure-20261006-0414.json": {
+      "bytes": 20153,
+      "sha256": "69583782fc036727002ca8a0dac652c3467ebe7e381dcfb05475bbf8b8f20ea0",
+      "scope": "Immutable real bdf metadata only, failed lint STEP, job not terminal at snapshot; no successor PASS"
+    },
+    "pr614-bdf-historical-superseded-stop-20261006041627.json": {
+      "bytes": 69941,
+      "sha256": "c4877e331d456ba182438f101f4a1c6e75708229c898b49685e79faddea57493",
+      "scope": "Immutable real bdf metadata only, failed lint STEP, job not terminal at snapshot; no successor PASS"
+    },
+    "pr614-bdf-actual-whole-eslint-zero-errors.json": {
+      "bytes": 19159,
+      "sha256": "36958b27ba6407884404ef5e60b49caf189e93f45bbacd399cd705ccde26a384",
+      "raw_output_bytes": 18733,
+      "raw_output_sha256": "a4f3f2b29f15265f51d4e5a00ea2817dd07fabb799399e8d0ecbb2962717e308",
+      "scope": "Actual local full ESLint raw bytes exactly retained in JSON string, no native/CI credit"
+    }
+  },
+  "current_successor_ALL12_native_actual_main": "PENDING_AUTHENTIC_PUBLICATION_AND_GENUINE_CURRENT_CI",
+  "no_new_Masterplan_or_CI_controls_capture_or_borrowed_PASS": true,
+  "allowed_changed_paths": [
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs.txt",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-actual-whole-eslint-zero-errors.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-diagnostic-format-peer-full-lint-source-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-first-genuine-lint-step-failure-20261006-0414.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-historical-superseded-stop-20261006041627.json"
+  ],
+  "previous_foreign_mode_type_blob_exact_count": 9178
+}
