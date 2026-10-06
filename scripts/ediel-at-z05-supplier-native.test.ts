@@ -24,30 +24,48 @@ import {resolveInboundTenantFromIdentifiers} from '@/lib/ediel/tenant/resolveInb
 import {parseRulebookMessage} from '@/lib/ediel/rulebook/messageParser'
 import {type EdielMessageRow} from '@/lib/ediel/types'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {supabaseService} from '@/lib/supabase/service'
 import {type Parts} from '../__tests__/fixtures/prodat-register'
 const {receivedHStart,nationalRescissionOperation}=nationalRescissionNativeChain({provider,sourceSession})
 const {receivedNationalRescissionEnd,nationalEndEffects}=nationalEndNativeChain({nationalRescissionOperation,provider})
 const {receivedLkEnd,lkEffects}=bilateralClosureNativeChain({receivedHStart,provider})
 const variants=['L','LK'] as const
-async function configureAckProfile(companyId:string){
+async function configureAckProfile(companyId:string,raw:string){
  // Configure this suite's existing disposable transport route, before its
  // first ACK. This supplies no syntax/business decision or private witness.
  const {from,host,port}=edielSmtpConfig()
  expect(sql(`WITH configured AS(UPDATE public.ediel_route_profiles p
-  SET mailbox=${literal(from)},smtp_host=${literal(host)},smtp_port=${literal(port)}
+  SET is_active=true,mailbox=${literal(from)},smtp_host=${literal(host)},smtp_port=${literal(port)}
   FROM public.communication_routes r WHERE r.id=p.communication_route_id AND r.company_id=p.company_id
   AND r.company_id=${literal(companyId)} AND r.route_scope='ediel_ack' AND p.environment='test'
   RETURNING p.id) SELECT to_jsonb(count(*)) FROM configured`)).toBe(1)
+ const wire=tokenizeEdifact(raw),unb=wire.segments.find(s=>s.tag==='UNB')
+ const sender=segmentComposite(unb,3,wire.una),receiver=segmentComposite(unb,2,wire.una)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',p.company_id,'environment',p.environment,
+  'active',p.is_active,'enabled',p.is_enabled,'standard',p.message_standard,'format',p.payload_format,
+  'sender',p.sender_ediel_id,'receiver',p.receiver_ediel_id,
+  'senderSubaddress',coalesce(p.sender_subaddress,p.sender_sub_address,''),
+  'receiverSubaddress',coalesce(p.receiver_subaddress,p.receiver_sub_address,''),
+  'app',p.application_reference,'family',p.message_family,'code',p.business_code,
+  'mailbox',p.mailbox,'host',p.smtp_host,'port',p.smtp_port,'transport',p.transport_profile_id,
+  'routeActive',r.is_active,'routeScope',r.route_scope,'routeEnvironment',r.environment_type,'target',r.target_email))
+  FROM public.ediel_route_profiles p JOIN public.communication_routes r ON r.id=p.communication_route_id AND r.company_id=p.company_id
+  WHERE r.company_id=${literal(companyId)} AND r.route_scope='ediel_ack' AND p.environment='test'`)).toEqual([{
+  company:companyId,environment:'test',active:true,enabled:true,standard:'edifact',format:'edifact',
+  sender:sender[0],receiver:receiver[0],senderSubaddress:sender[2]||'',receiverSubaddress:receiver[2]||'',
+  app:segmentComposite(unb,7,wire.una)[0],family:null,code:null,mailbox:from,host,port,transport:null,
+  routeActive:true,routeScope:'ediel_ack',routeEnvironment:'bilateral_test',target:'recipient@example.invalid',
+ }])
 }
 async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={}){
  candidate={...candidate,retainOriginalMailbox:true}
  if(variant==='L'){
   const f=await receivedNationalRescissionEnd(true,false,candidate)
-  await configureAckProfile(f.companyId)
+  await configureAckProfile(f.companyId,f.endWire)
   return{...f,sourceId:f.endSourceId,wire:f.endWire,startSourceId:f.sourceId,effects:()=>nationalEndEffects(f)}
  }
  const f=await receivedLkEnd(true,candidate)
- await configureAckProfile(f.companyId)
+ await configureAckProfile(f.companyId,f.wire)
  return{...f,effects:()=>lkEffects(f)}
 }
 const immutable=(id:string)=>sql(`SELECT jsonb_build_object('raw',raw_payload,
@@ -70,15 +88,27 @@ const unrelated=(periodId:string,sourceId:string)=>sql(`SELECT jsonb_build_objec
  'tasks',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.customer_cases c WHERE metadata->>'source_ediel_message_id' IS DISTINCT FROM ${literal(sourceId)}))`)
 const acknowledgements=(sourceId:string)=>sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY message_family),'[]')
  FROM public.ediel_messages m WHERE related_message_id=${literal(sourceId)} AND direction='outbound'`)
-const ackDiagnostics=(sourceId:string)=>sql(`SELECT jsonb_build_object(
+async function ackDiagnostics(f:{sourceId:string;companyId:string;actorUserId:string}){
+ const {sourceId}=f
+ const observed=sql(`SELECT jsonb_build_object(
  'technical',(SELECT jsonb_build_object('status',status,'reason',reason) FROM gridex_ediel_technical_ack.sources WHERE source_message_id=${literal(sourceId)}),
  'blocked',(SELECT jsonb_agg(jsonb_build_object('family',payload->>'ackFamily','message',message) ORDER BY id)
  FROM public.ediel_message_events WHERE ediel_message_id=${literal(sourceId)} AND payload->>'blockedBy'='canonical_inbound_ack_guard'))`)
+ if(acknowledgements(f.sourceId).some(m=>m.message_family==='CONTRL'))return observed
+ const {from,host,port}=edielSmtpConfig()
+ // Observe the real read-only public refusal; never manufacture a route,
+ // disclose its DTO or convert a refusal into accepted transport authority.
+ const {error}=await supabaseService.rpc('ediel_read_technical_syntax_ack_route_v1',{
+  p_company_id:f.companyId,p_actor_user_id:f.actorUserId,p_source_message_id:f.sourceId,
+  p_smtp_from:from,p_smtp_host:host,p_smtp_port:port,
+ })
+ return{observed,routeReadError:error?{code:error.code,message:error.message}:null}
+}
 const invoicee=(name:string):Parts=>['NAD','IV',['SYNTHETIC-BILL','','89'],'',name,'Invoice Street','Town','','12345','SE']
 const withInvoicee=(name:string)=>(parts:Parts[]):Parts[]=>[...parts,invoicee(name)]
 async function missingFieldAcknowledgements(f:Awaited<ReturnType<typeof receivedEnd>>,field:'211'|'251'){
  const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
- expect(acks.map(m=>[m.message_family,m.ack_outcome]),JSON.stringify(ackDiagnostics(f.sourceId))).toEqual([['APERAK','negative'],['CONTRL','positive']])
+ expect(acks.map(m=>[m.message_family,m.ack_outcome]),JSON.stringify(await ackDiagnostics(f))).toEqual([['APERAK','negative'],['CONTRL','positive']])
  const original=tokenizeEdifact(f.wire),unb=original.segments.find(s=>s.tag==='UNB')
  const li=segmentComposite(original.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,original.una)[0]==='LI'),1,original.una)[1]
  for(const ack of acks){
@@ -135,7 +165,7 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
     plan:{kind:'end',periodId:f.periodId},resultingStates:[{id:f.periodId,source_end_message_id:f.sourceId}]}})
  }
  const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
- expect(acks.map(m=>[m.message_family,m.ack_outcome]),JSON.stringify(ackDiagnostics(f.sourceId))).toEqual([['APERAK','positive'],['CONTRL','positive']])
+ expect(acks.map(m=>[m.message_family,m.ack_outcome]),JSON.stringify(await ackDiagnostics(f))).toEqual([['APERAK','positive'],['CONTRL','positive']])
  const sourceWire=tokenizeEdifact(f.wire),sourceUnb=sourceWire.segments.find(s=>s.tag==='UNB')
  const li=segmentComposite(sourceWire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,sourceWire.una)[0]==='LI'),1,sourceWire.una)[1]
  for(const ack of acks){
