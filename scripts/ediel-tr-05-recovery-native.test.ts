@@ -118,7 +118,7 @@ async function transportOriginal(f: Fixture, attemptId: string) {
   return bytes
 }
 function effects(f: Fixture) {
-  return sql(`SELECT jsonb_build_object('operations',(SELECT count(*) FROM gridex_received_sources.prodat_recovery_operations WHERE company_id=${literal(f.companyId)}),'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),'outboxes',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)}))`)
+  return sql<{operations:number;messages:number;outboxes:number;attempts:number}>(`SELECT jsonb_build_object('operations',(SELECT count(*) FROM gridex_received_sources.prodat_recovery_operations WHERE company_id=${literal(f.companyId)}),'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),'outboxes',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)}))`)
 }
 for (const kind of ['contrl','aperak27','aperak34'] as const) {
   it(`received ${kind} drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged`,async () => {
@@ -162,6 +162,7 @@ for (const kind of ['contrl','aperak27','aperak34'] as const) {
     expect(sent).toMatchObject({id:fresh.id,status:'sent',original_message_id:f.originalZ03.id,source_operation_id:operationId,raw_payload:fresh.raw_payload,immutable_payload_hash:hash(fresh.raw_payload!)})
     const attempt = sql<{id:string;company_id:string;message_id:string;classification:string}>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE company_id=${literal(f.companyId)} AND message_id=${literal(fresh.id)}`)
     expect(attempt).toMatchObject({company_id:f.companyId,message_id:fresh.id,classification:'accepted'})
+    expect(effects(f)).toEqual({...stable,attempts:stable.attempts+1})
     const mime = await readVerifiedEdielTransportCopy({companyId:f.companyId,actorUserId:f.actorUserId,messageId:fresh.id,attemptId:attempt.id})
     expect(mime.length).toBeGreaterThan(0)
     expect(originals(f)).toEqual(before)
@@ -554,9 +555,11 @@ it.each(['actor','network_source'] as const)('fresh queued correction rechecks c
  const input={companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId,correctedRawPayload:correction(f)}
  const queued=await prepareAndQueueProdatRecovery(input)
  expect(queued).toMatchObject({status:'queued',operationId})
- if(!('messageId' in queued)||!('outboxId' in queued))throw Error('actual_fresh_correction_not_queued')
+ if(!('messageId' in queued))throw Error('actual_fresh_correction_not_queued')
  expect(queued.messageId).not.toBe(f.originalZ03.id)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(queued.messageId)}`)).toBe(1)
+ const outboxId=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(queued.messageId)}`)
+ expect(outboxId).toMatch(/^[0-9a-f-]{36}$/)
  const old=originals(f),raw=(await getEdielMessageById(queued.messageId))!.raw_payload
  const ackBefore=sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)
  if(fault==='actor'){
@@ -571,13 +574,14 @@ it.each(['actor','network_source'] as const)('fresh queued correction rechecks c
   expect(await revokeNetworkRegistrySource({...registry.artifact,companyId:f.companyId,actorUserId:registry.reviewerId,reason:'Synthetic withdrawal before fresh corrected generation enters provider'})).toMatchObject({status:'held'})
  }
  const calls=smtp.mock.calls.length
- const result=await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:queued.outboxId,workerId:`native-fresh-refusal-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
+ const result=await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:outboxId,workerId:`native-fresh-refusal-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
  expect(result.status).not.toBe('sent');expect(smtp).toHaveBeenCalledTimes(calls)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)} AND message_id=${literal(queued.messageId)} AND entered_at IS NOT NULL`)).toBe(0)
  expect((await getEdielMessageById(queued.messageId))!.raw_payload).toBe(raw)
  expect(originals(f)).toEqual(old);expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)).toEqual(ackBefore)
- const first=effects(f)
- await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:queued.outboxId,workerId:`native-fresh-refusal-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
- expect(effects(f)).toEqual(first);expect(smtp).toHaveBeenCalledTimes(calls)
- expect(originals(f)).toEqual(old)
+ const first=effects(f),queueBeforeReplay=workerState(outboxId)
+ await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:outboxId,workerId:`native-fresh-refusal-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
+ expect(effects(f)).toEqual(first);expect(workerState(outboxId)).toEqual(queueBeforeReplay);expect(smtp).toHaveBeenCalledTimes(calls)
+ expect((await getEdielMessageById(queued.messageId))!.raw_payload).toBe(raw)
+ expect(originals(f)).toEqual(old);expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(ack.id)}`)).toEqual(ackBefore)
 },120000)

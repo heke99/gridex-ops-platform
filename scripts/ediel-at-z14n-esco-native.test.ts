@@ -20,6 +20,7 @@ import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition'
 import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 import {supabaseService} from '@/lib/supabase/service'
+import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 beforeEach(resetNativeEscoFixture)
@@ -149,7 +150,18 @@ it.each(required)('actual N source independently omitting required field %s neve
  const f=await seed(),p=await prepare(f);configureAckRoute(f)
  const control=await receive(f,denial(f,p,'A13')),decision=await resolveCanonicalRuntimeDecisionWithRegistry(control)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
- const source=await receive(f,omitPermissionField(denial(f,p,'A13'),field)),before=market(f),reports=reporting(f),old=original(p),calls=nativeEscoExternal.send.mock.calls.length
+ const omitted=omitPermissionField(denial(f,p,'A13'),field),before=market(f),reports=reporting(f),old=original(p),calls=nativeEscoExternal.send.mock.calls.length
+ if(field==='202'){
+  // Missing BGM cannot select a canonical guide at actual mailbox birth.
+  // Keep the observed parser identity; never fabricate Z14/profile metadata.
+  expect(parseEdifactPayload(omitted).messageCode).toBe('PRODAT_UNKNOWN')
+  const effects=f.effects()
+  await expect(receive(f,omitted)).rejects.toThrow(/canonical_inbound_rule_profile_resolution_failed:PRODAT:PRODAT_UNKNOWN:/)
+  expect(market(f)).toEqual(before);expect(reporting(f)).toEqual(reports);expect(original(p)).toEqual(old)
+  expect(f.effects()).toEqual(effects);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(calls)
+  return
+ }
+ const source=await receive(f,omitted)
  await consume(f,source)
  expect(market(f)).toEqual(before);expect(reporting(f)).toEqual(reports);expect(original(p)).toEqual(old)
  expect(ackRows(f,source).acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
@@ -178,7 +190,10 @@ it('N outbound direction and actual raw/direction mutations refuse before denial
  const calls=nativeEscoExternal.send.mock.calls.length
  const outboundSegments=tokenizeEdifact(denial(f,p,'A13',{legalSenderId:f.sender,legalReceiverId:f.receiver})).segments.filter(s=>!['UNA','UNB','UNH','UNT','UNZ'].includes(s.tag)).map(s=>s.raw)
  const outboundRaw=EdifactEnvelopeCodec.encode({sender:f.sender,receiver:f.receiver,applicationReference:f.app,interchangeReference:randomUUID().replaceAll('-','').slice(0,14),environment:'test',acknowledgementRequest:true,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:outboundSegments}]})
- await expect(createCanonicalOutboundMessage({actorUserId:f.ids.actor,requestType:'metering_access',baseInput:{actorUserId:f.ids.actor,companyId:f.ids.company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z14',messageVersion:'E2SE6A',applicationReference:f.app,rawPayload:outboundRaw,senderEdielId:f.sender,receiverEdielId:f.receiver,communicationRouteId:f.ids.route,routeProfileId:f.ids.routeProfile}})).rejects.toThrow()
+ const old=original(p),effects=f.effects()
+ await expect(createCanonicalOutboundMessage({actorUserId:f.ids.actor,requestType:'metering_access',baseInput:{actorUserId:f.ids.actor,companyId:f.ids.company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z14',messageVersion:'E2SE6A',applicationReference:f.app,rawPayload:outboundRaw,senderEdielId:f.sender,receiverEdielId:f.receiver,communicationRouteId:f.ids.route,routeProfileId:f.ids.routeProfile}})).rejects.toThrow(/canonical Ediel-policy: PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED/)
+ expect(f.effects()).toEqual(effects);expect(original(p)).toEqual(old)
+ expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${lit(source.id)}`)).toEqual(originalRow)
  for(const [patch,reason] of [[{raw_payload:raw+' '},'immutable_ediel_payload_cannot_change'],[{direction:'outbound'},'immutable_ediel_received_context_cannot_change']] as const){
   const changed=await supabaseService.from('ediel_messages').update(patch).eq('id',source.id).eq('company_id',f.ids.company)
   expect(changed.error).toMatchObject({code:'23514',message:reason})

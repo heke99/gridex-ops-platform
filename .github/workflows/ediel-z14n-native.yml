@@ -89,6 +89,11 @@ jobs:
             --outputFile=z14n-native-working/native-junit.xml \
             > z14n-native-working/native.log 2>&1 || native_exit=$?
           export GRIDEX_N_NATIVE_EXIT="$native_exit"
+          # Restore replay's original tracked migrations/seed before comparing
+          # working files with their immutable pre-replay Git identities.
+          cleanup
+          trap - EXIT
+          set -euo pipefail
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
           source=json.loads(pathlib.Path(os.environ['GRIDEX_N_GIT_INPUTS']).read_text())
