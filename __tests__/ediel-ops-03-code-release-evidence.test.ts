@@ -59,7 +59,27 @@ const modeledLedgerBlob = createHash('sha1').update('blob ' + Buffer.byteLength(
 const treeSnapshot = { ...currentTree, stdout: currentTree.stdout.split('\0').map(record => record.endsWith('\t' + ledgerFile)
   ? record.replace(/[0-9a-f]{40}\t/, modeledLedgerBlob + '\t') : record).join('\0') }
 const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex')
-type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'run' | 'attempt' | 'job' | 'job_failed'
+// The finite Git port models the original reviewed producer, not admission of
+// HEAD's expanded native suite. Restore only its known additions and require
+// the original pinned bytes; every other source change still fails closed.
+function reviewedProducerFixture(file: string, bytes: Buffer) {
+  const additions = file === 'scripts/ediel-source-owner-native.config.ts'
+    ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n"]
+    : file === '.github/workflows/ops-hardening.yml'
+      ? ['staff-onboarding-acceptance-regression', 'staff-external-identity-binding-regression'].map(name =>
+        `          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/${name}.sql; then\n` +
+        '            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }\n' +
+        '          fi\n')
+      : []
+  if (!additions.length) return bytes
+  const original = Buffer.from(additions.reduce((text, addition) => text.replace(addition, ''), bytes.toString('utf8')))
+  const digest = file === 'scripts/ediel-source-owner-native.config.ts'
+    ? '722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56'
+    : 'eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261'
+  if (sha256(original) !== digest) throw Error('fixture_reviewed_producer_source_unavailable:' + file)
+  return original
+}
+type Fault = 'api' | 'repository' | 'commit' | 'tree' | 'workflow' | 'native_workflow_source' | 'run' | 'attempt' | 'job' | 'job_failed'
   | 'artifact' | 'artifact_head' | 'artifact_run' | 'expired' | 'digest' | 'artifact_attempt' | 'source' | 'native_config_source'
   | 'duplicate' | 'skip' | 'failure' | 'error' | 'missing' | 'wrong_case' | 'wrong_file' | 'xml_entity' | 'duplicate_zip' | 'latest_cancelled'
   | 'setup_input' | 'transitive_input' | 'missing_input' | 'extra_input' | 'mode_input' | 'symlink_input' | 'untracked_input' | 'ignored_input'
@@ -238,10 +258,11 @@ function consume(options: Options = {}) {
       if (args[0] === 'show') {
         const file = args[1].slice(args[1].indexOf(':') + 1)
         if (file === ledgerFile) return good(args[1].startsWith(reviewedBase + ':') || !options.ledgerChange ? ledgerSnapshot.stdout : candidateLedger(options.ledgerChange))
-        const bytes = readFileSync(path.resolve(file))
+        const bytes = reviewedProducerFixture(file, readFileSync(path.resolve(file)))
         const changed = options.fault === 'source' && file === caseFile || options.coverageFault === 'source' && file === tgtFile
           || options.coverageFault === 'workflow_source' && file === '.github/workflows/full-e2e.yml'
           || options.fault === 'native_config_source' && file === 'scripts/ediel-source-owner-native.config.ts'
+          || options.fault === 'native_workflow_source' && file === '.github/workflows/ops-hardening.yml'
         return good(changed ? Buffer.concat([bytes, Buffer.from('\n// changed reviewed source')]) : bytes)
       }
       if (args[0] === 'config') return good(`https://github.com/${repository}.git`)
@@ -382,9 +403,9 @@ it('coverage authenticates six separate code evidence classes and aggregate nati
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/actions/runs?head_sha=${head}&per_page=100`)).toHaveLength(1)
   expect(result.calls.filter(row => row.at(-1) === `repos/${repository}/actions/runs/12345/attempts/2/jobs?per_page=100`)).toHaveLength(1)
 })
-it('refuses changed native-config bytes while retaining distinct coverage classes and authenticated CI', () => {
+it.each(['native_config_source', 'native_workflow_source'] as const)('refuses changed %s bytes while retaining distinct coverage classes and authenticated CI', fault => {
   // Change only git-show bytes; modeled tree, source cases, API and JUnit stay valid.
-  const result = consume({ coverage: true, fault: 'native_config_source' })
+  const result = consume({ coverage: true, fault })
   expect(result.exit).toBe(0); expect(result.verdict).toBe('GREEN')
   expect(dgi(result.evidence)).toBeUndefined(); expect(ddq(result.evidence)).toBeUndefined()
   for (const level of ['integration', 'tenant_e2e']) expect(result.evidence.levels[level].status).toBe('missing')

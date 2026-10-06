@@ -1,0 +1,57 @@
+{
+  "schema": "gridex-pr-ci-metadata-additional-failure/v1",
+  "observed_at_utc": "2026-10-06 00:44:16 UTC",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "tree_sha": "b298508d3cb3a1cb782de48c48756797631c2ede",
+  "producer_base_sha": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "lease_status": "ACTIVE",
+  "gate_status": "HOLD_CURRENT_TARGETED_AND_COVERAGE_FAILURES",
+  "job": {
+    "id": 112048396213,
+    "name": "coverage",
+    "run_id": 37394830873,
+    "run_attempt": 1,
+    "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+    "head_branch": "codex/ediel-combined-source-capture-20261005",
+    "status": "completed",
+    "conclusion": "failure",
+    "started_at": "2026-10-06T00:36:32Z",
+    "completed_at": "2026-10-06T00:42:21Z",
+    "runner_id": 1000043924,
+    "runner_name": "GitHub Actions 1000043924",
+    "failed_steps": [
+      {
+        "number": 5,
+        "name": "Run Vitest V8 coverage",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-06T00:36:55Z",
+        "completed_at": "2026-10-06T00:42:17Z"
+      }
+    ]
+  },
+  "check": {
+    "id": 112048396213,
+    "name": "coverage",
+    "head_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+    "status": "completed",
+    "conclusion": "failure",
+    "started_at": "2026-10-06T00:36:32Z",
+    "completed_at": "2026-10-06T00:42:21Z",
+    "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37394830873/job/112048396213",
+    "annotation_count": 3
+  },
+  "current_targeted_red_receipt": {
+    "file": "pr614-675-first-genuine-targeted-failure-20261006-0042.json",
+    "sha256": "2a8a0680d69bd21a62e40c2f32829a78ece1aee1c777f7bc558da7b6f0cf12a9"
+  },
+  "diagnostic_cause": "UNKNOWN_FROM_THIS_OBSERVER_NO_LOG_ARTIFACT_OR_ANNOTATION_DETAIL_READ",
+  "limits": [
+    "Exact current675 coverage job/check genuinely failed on attempt1. Old119 results and diagnoses are not borrowed.",
+    "Quality npm-test step remains in progress at this snapshot and is not labeled failed.",
+    "Root exclusively may read the precise current coverage log; observer excludes all diagnostic cause, raw logs, artifacts, capture workflow and DOC613.",
+    "Metadata only; no retry/cancel/dispatch/source review or mutation/native execution/merge."
+  ]
+}

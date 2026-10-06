@@ -1,0 +1,43 @@
+{
+  "scope": "ACTUAL_POSTIMPORT_CAPTURE_DUPLICATION_GUARD_ONLY_NOT_NATIVE_QUALIFICATION",
+  "head": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "tree": "b298508d3cb3a1cb782de48c48756797631c2ede",
+  "run": 37394831099,
+  "attempt": 1,
+  "event": "pull_request",
+  "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+  "job": 112048196708,
+  "conclusion": "success",
+  "capture_steps": [
+    {
+      "name": "Run actions/setup-node@v4",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Run npm ci",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Run supabase/setup-cli@v1",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Install the matching PostgreSQL 17 client",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Capture authentic artifacts from the sourced clean replay",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Upload capture-only artifacts",
+      "conclusion": "skipped"
+    }
+  ],
+  "artifact_count": 0,
+  "authentic_import_producer": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+  "authentic_import_artifact": 11382240742,
+  "authentic_capture_only_flags": "FOUR_NOT_RUN_UNCHANGED",
+  "current_head_ordinary_native_type_schema_upgrade_parity": "SEPARATE_PENDING",
+  "new_masterplan_work": false
+}

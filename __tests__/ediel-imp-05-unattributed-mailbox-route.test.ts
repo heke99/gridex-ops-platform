@@ -18,21 +18,41 @@ const hash = createHash('sha256').update(wire).digest('hex')
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const intake = readFileSync('supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql', 'utf8')
 const forward = readFileSync('supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql', 'utf8')
+// Exercise the real migration boundary even after the combined schema capture
+// includes that migration. These two byte-exact source definitions match the
+// admitted pre-forward main; the rest of the fixture uses the current schema.
+const preForward = readFileSync('__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql', 'utf8')
+const forwardFunctions = [
+  ['gridex_ediel_technical_ack.select_configured_reply_route_v2(', 'gridex_ediel_technical_ack.select_configured_reply_route_v2(uuid,jsonb,text,text,text,integer)'],
+  ['public.ediel_record_inbound_reception_v1(', 'public.ediel_record_inbound_reception_v1(uuid,uuid,uuid,uuid,uuid)'],
+] as const
 let db: PGlite
 
-function definition(kind: 'TABLE' | 'FUNCTION' | 'TYPE', name: string) {
-  const start = schema.indexOf(`CREATE ${kind} ${name}`)
+function definition(kind: 'TABLE' | 'FUNCTION' | 'TYPE', name: string, source = schema) {
+  const start = source.indexOf(`CREATE ${kind} ${name}`)
   if (start < 0) throw Error(`Missing actual ${kind} ${name}`)
   if (kind !== 'FUNCTION') {
-    const end = schema.indexOf('\n);', start)
+    const end = source.indexOf('\n);', start)
     if (end < 0) throw Error(`Missing actual definition end ${name}`)
-    return schema.slice(start, end + 3)
+    return source.slice(start, end + 3)
   }
-  const match = /\bAS (\$[\w]*\$)/.exec(schema.slice(start))
+  const match = /\bAS (\$[\w]*\$)/.exec(source.slice(start))
   if (!match) throw Error(`Missing actual function body ${name}`)
-  const end = schema.indexOf(`${match[1]};`, start + match.index + match[0].length)
+  const end = source.indexOf(`${match[1]};`, start + match.index + match[0].length)
   if (end < 0) throw Error(`Missing actual function end ${name}`)
-  return schema.slice(start, end + match[1].length + 1)
+  return source.slice(start, end + match[1].length + 1)
+}
+async function installForward() {
+  await db.exec(forward)
+  // The modeled predecessor must migrate to the actual captured current body.
+  // A stale snapshot or a different production correction fails this binding.
+  for (const [name, identity] of forwardFunctions) {
+    const current = definition('FUNCTION', name)
+    const marker = /\bAS (\$[\w]*\$)/.exec(current)!
+    const body = current.slice(marker.index + marker[0].length, current.lastIndexOf(marker[1]))
+    const actual = (await db.query<{ prosrc: string }>('select prosrc from pg_proc where oid=$1::regprocedure', [identity])).rows[0].prosrc
+    expect(actual).toBe(body)
+  }
 }
 async function rows(table: string) { return (await db.query<Row>(`select * from ${table}`)).rows }
 async function service<T>(work: () => Promise<T>) {
@@ -83,7 +103,8 @@ beforeEach(async () => {
     'public.ediel_read_technical_syntax_ack_route_v1(', 'public.ediel_record_technical_syntax_facet_v2(',
     'gridex_received_sources.capture_insert(',
     'gridex_received_sources.capture_utilts_insert_v1(', 'public.gridex_ediel_message_inbound_email_tenant_guard(',
-    'public.ediel_record_inbound_reception_v1(']) await db.exec(definition('FUNCTION', name))
+    'public.ediel_record_inbound_reception_v1(']) await db.exec(definition('FUNCTION', name,
+      forwardFunctions.some(([forwardName]) => forwardName === name) ? preForward : schema))
   // Lock-only finite graph: no authority/verdict/data returned. Actual endpoint
   // and actor functions still read and lock their real fixture tables. This
   // component does not qualify full graph concurrency or native isolation.
@@ -110,7 +131,7 @@ afterEach(async () => { await db?.close() })
 
 async function admit({ legacy = false, mailboxAddress = smtp, payload = wire, code = 'Z04' }: { legacy?: boolean; mailboxAddress?: string; payload?: string; code?: string } = {}) {
   const payloadHash = createHash('sha256').update(payload).digest('hex')
-  if (!legacy) await db.exec(forward)
+  if (!legacy) await installForward()
   await db.query('update public.ediel_mailboxes set email_address=$1 where id=$2', [mailboxAddress, mailbox])
   // Explicit finite parser port: physically matching fields, then genuine SQL
   // selection/custody admission. No private receipt row is supplied by test.
@@ -120,7 +141,7 @@ async function admit({ legacy = false, mailboxAddress = smtp, payload = wire, co
   await service(() => db.query(`insert into public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,message_family,message_code,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,interchange_reference,application_reference,parsed_payload,raw_payload) values($1,$2,null,'PRODAT',$7,'12345','54321',null,null,$3,$4,$5,$6)`, [parse, mail, envelope.interchangeReference, envelope.applicationReference, JSON.stringify({ rawPayload: payload }), payload, code]))
   // Real old raw/parse births precede the migration. Installing the forward
   // migration must not synthesize a new SMTP receipt for historical bytes.
-  if (legacy) await db.exec(forward)
+  if (legacy) await installForward()
   const receipt = await service(async () => (await db.query<{ value: Row }>('select public.ediel_admit_unattributed_technical_source_v1($1,$2,$3,$4,$5) value', [mail, parse, actor, payloadHash, 'production'])).rows[0].value)
   const source = String(receipt.sourceMessageId)
   expect(receipt).toMatchObject({ companyId: null, resolvedCompanyId: null, technicalCompanyId: company, authorizesBusinessEffect: false })
@@ -263,7 +284,7 @@ describe('IMP05 protected unattributed original mailbox return route component',
     ]
     const authority = async (name: string) => (await db.query<Row>(`select oid,proowner,proacl,prosecdef,proconfig,provolatile,proparallel from pg_proc where oid=$1::regprocedure`, [name])).rows[0]
     const before = await Promise.all(existing.map(authority))
-    await db.exec(forward)
+    await installForward()
     expect(await Promise.all(existing.map(authority))).toEqual(before)
     const state = (await db.query<Row>(`select t.relrowsecurity,t.relforcerowsecurity,
       t.relowner=c.proowner and c.proowner=a.proowner owner_matches,

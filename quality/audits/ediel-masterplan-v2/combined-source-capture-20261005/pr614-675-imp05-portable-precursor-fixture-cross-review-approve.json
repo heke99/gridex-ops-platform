@@ -1,0 +1,84 @@
+{
+  "schema": "gridex-pr614-675-imp05-fixture-precursor-cross-review/v1",
+  "verdict": "APPROVE_BOUNDED_FIXTURE_SOURCE_PROVENANCE_AND_FORWARD_GUARD_ONLY",
+  "recorded_at_utc": "2026-10-06T00:54:26.303686+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "source_head": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "source_tree": "b298508d3cb3a1cb782de48c48756797631c2ede",
+  "review_paths": [
+    "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+    "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql"
+  ],
+  "portable_fixture": {
+    "path": "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql",
+    "bytes": 11862,
+    "sha256": "f93db246832064c4b6355f9b75daab825f06e341bc3a3bb9622832e2e6cc449c",
+    "only_two_original_functions_plus_comments": true,
+    "main53": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+    "authentic_preimport119": "11975e0531dddafde5a5a62f6781d7b50777ba6f",
+    "authentic_preimport_schema_sha256": "98e11a05acb6a2e0e879a3400981916a5d0aeaf29bedcd947be947d454cb17bd",
+    "functions": [
+      {
+        "name": "gridex_ediel_technical_ack.select_configured_reply_route_v2(",
+        "precursor_utf8_bytes": 5314,
+        "precursor_characters": 5314,
+        "precursor_sha256": "3aaf4967bf8e7056736cb6b47b6bd8a359c6980beab17d5d4dd7d9dcaeb79e78",
+        "byte_exact_main53_and_authentic_preimport119": true,
+        "current_definition_sha256": "cb7b88e41b7c01ea94fae082578afc369548814e9432f1424ce6f2582c3bb095"
+      },
+      {
+        "name": "public.ediel_record_inbound_reception_v1(",
+        "precursor_utf8_bytes": 6221,
+        "precursor_characters": 6219,
+        "precursor_sha256": "b9679a74edecdaf1435f83edfa306b49d3c8a1066dddc38c30720cb0ff343904",
+        "byte_exact_main53_and_authentic_preimport119": true,
+        "current_definition_sha256": "4ed01456f6cd9b49d4eb1b4343e39e4b70d43343b870b06a5cadb7ba41f80586"
+      }
+    ],
+    "size_clarification": "Reception precursor 6219 characters equals 6221 UTF-8 bytes; supplied original hash exact"
+  },
+  "test_delta": {
+    "path": "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+    "original_sha256": "4f52240b4ae19da80af47fe4aaaa1bdf36c0418341141fdcef9c22a347d61bd9",
+    "pending_sha256": "e8325423677ac88c933e47ee14d1756b5dee7cf82ab97843033946bded7d8707",
+    "all_original12_controls_assertions_byte_exact_after_only_known_plumbing_reversal": true,
+    "definition_helper_only_source_parameter_and_schema_to_source_substitution": true,
+    "only_initial2_functions_from_portable_fixture_all_other_definitions_current_schema": true,
+    "actual_forward_db_exec_remains_all3_calls": true,
+    "both_actual_pg_proc_prosrc_equal_current_capture_body_after_forward": true,
+    "no_body_check_disable_dummy_birth_table_invented_reverse_SQL_or_custody_backfill": true
+  },
+  "actual_forward": {
+    "path": "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+    "sha256": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+    "byte_exact675": true
+  },
+  "runtime_evidence_reused": {
+    "owner": "/root",
+    "receipt_path": "/workspace/agent-review-checkpoints/pr614-675-imp05-fixture-targeted-local.json",
+    "receipt_sha256": "467db50f87f45e981df30d8bbd3f47e931e30434208a3610d6e2c78df51c559e",
+    "tests": 12,
+    "passed": 12,
+    "failed": 0,
+    "skipped_or_pending": 0,
+    "success": true,
+    "root_reported_exit_code": 0,
+    "reviewer_test_rerun": false
+  },
+  "preservation": {
+    "tracked_modified_paths": [
+      "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+      "__tests__/ediel-ops-03-code-release-evidence.test.ts"
+    ],
+    "untracked_paths": [
+      "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql"
+    ],
+    "OPS03": "Separate root review; not rereviewed/rerun here",
+    "all_SQL1079_generators_raw3_workflows_coverage_production_consumer": "Outside two fixture tests all tracked source tuples unchanged versus675",
+    "current_capture_schema_sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+    "diff_check_exit": 0
+  },
+  "blocking_source_findings": [],
+  "pending": "Root-owned ESLint and authentic actual successor mandatory CI/native/type-schema/upgrade/parity remain required; no whole IMP05/main/native approval.",
+  "actions": "Read-only exact2 source-block custody, complete oldtest byte-preservation, actual-forward/prosrc source guards and original owner result receipt. No edits/tests/native/CI/log/download/artifact/archive/capture reruns or publication."
+}
