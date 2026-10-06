@@ -170,7 +170,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    expect(decision.applicationDecision,field).toBe('rejected')
    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:field,errorKind:'missing'})})]))
   }
-  await process(f,source)
+  await process(f,source).catch(error=>{throw new Error(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`,{cause:error})})
   expect(market(f,a.permissionId),field).toEqual(before)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
  }
@@ -234,6 +234,19 @@ it('actual ESCO terminate command protects a shared active mission then sends it
  const physical=sql<{code:string;objects:Record<string,unknown>[]}>(`SELECT gridex_received_sources.permission_wire_v1(${lit(outgoing.raw_payload)})`)
  expect(physical).toMatchObject({code:'Z18',objects:[{reason:'S17',endReason:'B79',permissionEnd:prodatDate203(end),permissionId:protectedState.permission.permission_id,li:protectedState.permission.rff_li_reference,point:f.point}]})
  for(const internal of [f.ids.company,f.ids.beneficiary,second.ids.beneficiary,f.assignment,second.assignment])expect(outgoing.raw_payload).not.toContain(internal)
+ const queuedOriginal=(await getEdielMessageById(outgoing.id))!
+ expect(queuedOriginal).toMatchObject({status:'queued',direction:'outbound',raw_payload:outgoing.raw_payload})
+ const queuedEffects=f.effects(),queuedMarket=market(f,a.permissionId),queuedSends=nativeEscoExternal.send.mock.calls.length
+ for(const attempted of [{...queuedOriginal,direction:'inbound' as const},{...queuedOriginal,raw_payload:queuedOriginal.raw_payload!.replace('RFF+LI:','RFF+LI:MUTATED-')}]){
+  await expect(sendEdielMessageViaSmtp(attempted,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'})).rejects.toBeTruthy()
+  expect(await getEdielMessageById(outgoing.id)).toEqual(queuedOriginal)
+  expect(f.effects()).toEqual(queuedEffects);expect(market(f,a.permissionId)).toEqual(queuedMarket)
+  expect(nativeEscoExternal.send).toHaveBeenCalledTimes(queuedSends)
+ }
+ expect(()=>sql(`UPDATE public.ediel_messages SET direction='inbound' WHERE id=${lit(outgoing.id)}`)).toThrow(/ediel_wire_reference_namespace_context_immutable/)
+ expect(await getEdielMessageById(outgoing.id)).toEqual(queuedOriginal)
+ expect(f.effects()).toEqual(queuedEffects);expect(market(f,a.permissionId)).toEqual(queuedMarket)
+ expect(nativeEscoExternal.send).toHaveBeenCalledTimes(queuedSends)
  await sendEdielMessageViaSmtp(outgoing,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'})
  const sent=(await getEdielMessageById(outgoing.id))!;expect(sent.status).toBe('sent')
  expect(market(f,a.permissionId).permission.status).toBe('active')
