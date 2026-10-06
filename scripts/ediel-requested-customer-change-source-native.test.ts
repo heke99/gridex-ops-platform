@@ -64,6 +64,7 @@ it('genuine generic death archive and separate review reach the actual Z09 gatew
  const result=await prepareAndQueueProdatRequestedChange(scope)
  expect(result.status).toBe('queued');if(result.status==='held')throw Error('actual_death_original_gateway_required')
  const message=result.message,e=EdifactEnvelopeCodec.decode(message.raw_payload)
+ expect(sql(`SELECT jsonb_build_object('validated',i.validation_status='validated' AND i.validation_result->>'ok'='true' AND i.validation_result->>'status'='validated' AND i.blocking_reasons='[]'::jsonb,'originalBinding',i.ediel_message_id=m.id AND i.outbound_request_id=m.outbound_request_id,'ownedSite',i.customer_site_id=p.site_id AND m.site_id=p.site_id AND o.intent_binding->>'customer_site_id'=p.site_id::text) FROM public.ediel_messages m JOIN public.ediel_message_intents i ON i.id=m.intent_id AND i.company_id=m.company_id JOIN public.metering_points p ON p.id=m.metering_point_id AND p.company_id=m.company_id AND p.customer_id=m.customer_id JOIN gridex_requested_changes.origins o ON o.intent_id=i.id AND o.company_id=m.company_id WHERE m.id=${literal(message.id)}`)).toEqual({validated:true,originalBinding:true,ownedSite:true})
  expect(message).toMatchObject({direction:'outbound',message_family:'PRODAT',message_code:'Z09',sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,source_operation_id:reviewed.eventId})
  expect(e.applicationReference).toBe('23-DDQ-PRODAT')
  expect(e.segments.find(s=>s.tag==='BGM')!.elements[1]).toBe('Z09')

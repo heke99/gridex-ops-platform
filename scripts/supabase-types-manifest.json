@@ -5,7 +5,7 @@
   "sha256": "404c60184c1367af9cdcc5a97660055277dc132df8bc42dd9028522b6ef1d9fd",
   "latest_migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
   "latest_migration_schema_effect": "Authentic complete 1086-file migration tail capture at 3094ee19d23031195a9e7dae0c8512930de2a828 imported byte-exact. Includes delivered main152/160/1725 and own1731/184/1955/2058. Current requested-change facts RPC and private wire/current-owner consumers captured; original capture-only NOT_RUN flags preserved. Resulting-head full/current native/clean/upgrade/type-schema/parity checks remain required.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-06T21:23:40.728393+00:00",
@@ -110,21 +110,22 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "complete_tail_capture_imported_current_execution_and_resulting_head_checks_pending",
-    "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
-    "source_tree": "879dcc8c1c615d241c945333e6b279e10204d850",
-    "actual_capture_run": 37532651197,
-    "SQL_files": 1086,
-    "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
-    "actual_supplemental_native": {
+    "kind": "prospective_owned_site_source_pending_authentic_capture",
+    "status": "CAPTURE_PENDING",
+    "actual_previous_supplemental_native": {
       "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
       "run_id": 37532651137,
-      "status": "IN_PROGRESS",
-      "ordinary_required_gates": "NOT_REPLACED"
+      "artifact_id": 11446130764,
+      "status": "FAILURE",
+      "tests": 22,
+      "passed": 21,
+      "failed": 1,
+      "failure": "ediel_native_validated_intent_required"
     },
     "requirements": [
-      "Current resulting-head mandatory clean/upgrade/native/type-schema/parity gates before merge.",
-      "Original capture-only NOT_RUN flags remain unchanged; current native must have a separate authenticated receipt."
+      "Fresh native22 with all original guards and same strict send oracle.",
+      "New complete-tail official capture and byte-exact import preserving previous receipts.",
+      "All mandatory current-head gates and whole-contract independent review before coverage/merge."
     ]
   },
   "superseded_capture": {
@@ -287,7 +288,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "False for the authentic complete 3094 migration-tail capture imported byte-exact; resulting-head checks and whole-contract approval remain separate.",
+  "composition_capture_pending_scope": "Prospective fresh-origin owned-site forward requires a new authentic complete-tail capture. Original 3094 raw3 and capture-only flags are unchanged and cover the previous 2058 tail only.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -742,7 +743,7 @@
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
-  "source_latest_migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+  "source_latest_migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -3460,14 +3461,12 @@
     }
   },
   "pending_forward_capture": {
-    "migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
-    "sha256": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
-    "status": "AUTHENTIC_COMPLETE_TAIL_CAPTURE_IMPORTED",
-    "native_status": "CURRENT_NATIVE_IN_PROGRESS",
-    "required_gates": "Current resulting-head clean/upgrade/native/type-schema/parity remain mandatory",
-    "capture_run": 37532651197,
-    "artifact_id": 11445058303,
-    "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828"
+    "migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
+    "sha256": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
+    "status": "GENUINE_COMPLETE_TAIL_CAPTURE_PENDING",
+    "native_status": "NEW_SOURCE_NOT_PUBLISHED",
+    "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
+    "previous_authentic_capture_source": "3094ee19d23031195a9e7dae0c8512930de2a828"
   },
   "pre_generic_e_current_bridge_active_state": {
     "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
@@ -3648,6 +3647,42 @@
         "capture_run": 37503523389,
         "artifact_id": 11430358745,
         "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6"
+      }
+    }
+  },
+  "pre_requested_change_owned_site_pending_state": {
+    "source_head": "234d13268b2d62bb25156446c8b7eb6207b76908",
+    "fields": {
+      "source_latest_migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+      "composition_capture_pending": false,
+      "composition_capture_pending_scope": "False for the authentic complete 3094 migration-tail capture imported byte-exact; resulting-head checks and whole-contract approval remain separate.",
+      "pending_forward_capture": {
+        "migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+        "sha256": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
+        "status": "AUTHENTIC_COMPLETE_TAIL_CAPTURE_IMPORTED",
+        "native_status": "CURRENT_NATIVE_IN_PROGRESS",
+        "required_gates": "Current resulting-head clean/upgrade/native/type-schema/parity remain mandatory",
+        "capture_run": 37532651197,
+        "artifact_id": 11445058303,
+        "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828"
+      },
+      "current_prefix_verification": {
+        "kind": "complete_tail_capture_imported_current_execution_and_resulting_head_checks_pending",
+        "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+        "source_tree": "879dcc8c1c615d241c945333e6b279e10204d850",
+        "actual_capture_run": 37532651197,
+        "SQL_files": 1086,
+        "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
+        "actual_supplemental_native": {
+          "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+          "run_id": 37532651137,
+          "status": "IN_PROGRESS",
+          "ordinary_required_gates": "NOT_REPLACED"
+        },
+        "requirements": [
+          "Current resulting-head mandatory clean/upgrade/native/type-schema/parity gates before merge.",
+          "Original capture-only NOT_RUN flags remain unchanged; current native must have a separate authenticated receipt."
+        ]
       }
     }
   }

@@ -41,6 +41,23 @@ BEGIN
  IF NOT denied THEN RAISE EXCEPTION 'generic_current_bridge_actual_nonservice_refusal_required';END IF;
  RAISE NOTICE 'generic current bridge existing private/public service boundary PASS';
 END $generic_boundary$;
+DO $origin_boundary$
+DECLARE
+ wrapper regprocedure := 'public.ediel_originate_requested_change_v1(uuid,uuid,uuid,jsonb)'::regprocedure;
+ retained regprocedure := 'public.ediel_originate_requested_change_before_scope_fence_v1(uuid,uuid,uuid,jsonb)'::regprocedure;
+ denied boolean := false;
+BEGIN
+ IF NOT has_function_privilege('service_role',wrapper,'EXECUTE')
+ OR EXISTS(SELECT FROM pg_roles r WHERE r.rolname IN('anon','authenticated','service_role') AND has_function_privilege(r.oid,retained,'EXECUTE'))
+ OR has_function_privilege('anon',wrapper,'EXECUTE') OR has_function_privilege('authenticated',wrapper,'EXECUTE')
+ OR EXISTS(SELECT FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE p.oid IN(wrapper,retained) AND acl.grantee=0 AND acl.privilege_type='EXECUTE')
+ OR (SELECT count(*) FROM pg_proc WHERE oid IN(wrapper,retained) AND prosecdef AND proconfig=ARRAY['search_path=pg_catalog'])<>2 THEN
+  RAISE EXCEPTION 'requested_origin_owned_site_existing_service_acl_required';
+ END IF;
+ BEGIN PERFORM public.ediel_originate_requested_change_v1('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000003','{}');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;
+ IF NOT denied THEN RAISE EXCEPTION 'requested_origin_owned_site_actual_nonservice_refusal_required';END IF;
+ RAISE NOTICE 'requested origin owned site existing private/public service boundary PASS';
+END $origin_boundary$;
 SET LOCAL ROLE service_role;
 DO $scope$
 DECLARE denied boolean := false;
