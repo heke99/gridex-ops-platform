@@ -468,14 +468,15 @@ async function createAutomaticPositiveAcks(params: {
   deferProdatPositive?:boolean;
 }) {
   const createdIds: string[] = [];
-  // A bilateral capability that is no longer current (e.g. a revoked reviewer
-  // on replay) leaves no qualified policy: record the block, create nothing.
+  // A bilateral capability that is no longer current, or a source missing
+  // the physical process reference, leaves no qualified policy. Retain the
+  // source for review without manufacturing a guide, ACK or domain effect.
   let policy: Awaited<ReturnType<typeof getAutomaticAckPolicy>>;
   try{policy = await getAutomaticAckPolicy(params.sourceMessage);}
   catch(error){
-    if(!/^prodat_bilateral_capability_required:/.test(error instanceof Error?error.message:''))throw error;
+    if(!/^(?:prodat_bilateral_capability_required:|canonical_ediel_application_reference_required:PRODAT:)/.test(error instanceof Error?error.message:''))throw error;
     await createAckBlockedEvent({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:"APERAK",
-      reason:formatErrorMessage(error,"Bilateral förmåga är inte längre aktuell.")});
+      reason:formatErrorMessage(error,"Källbunden kvittenspolicy saknas.")});
     return createdIds;
   }
 

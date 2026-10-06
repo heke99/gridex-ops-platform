@@ -100,7 +100,7 @@ export function validateCanonicalPolicyFields(input: {
     family: input.policy.family,
     code: input.policy.code,
     rawSegments: input.rawSegments ?? null,
-    applicationReference: observedApplicationReference,
+    applicationReference: input.policy.applicationReference,
     expectedApplicationReference: input.policy.applicationReference,
     // Do not let the legacy `send => dependent required` fallback execute.
     mode: 'parse',
@@ -122,11 +122,17 @@ export function validateCanonicalPolicyFields(input: {
     }
     return !prodatSourceSubtypeRule(input.policy.code, field)
   }) : rules
+  // Physical field311 observations belong to its selected base rule. Other
+  // consumers use the already selected process/guide reference, including
+  // partial field validations that do not own the interchange header.
+  const baseInput = baseRules.some(rule => rule.fieldNumber === '311')
+    ? {...matrixInput, applicationReference: observedApplicationReference}
+    : matrixInput
   const issues = input.scope === 'dependent_only'
     ? input.policy.family === 'PRODAT'
-      ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
+      ? validateFieldMatrixPayload(baseInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
-    : validateFieldMatrixPayload(matrixInput, baseRules)
+    : validateFieldMatrixPayload(baseInput, baseRules)
   if (input.scope !== 'dependent_only') issues.push(...validateEdifactHeaderGuide({
     direction: input.policy.direction as 'inbound' | 'outbound', rawPayload: input.rawPayload, rawSegments: input.rawSegments, una: input.una,
   }))

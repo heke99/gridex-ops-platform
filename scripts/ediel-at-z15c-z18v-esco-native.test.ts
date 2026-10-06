@@ -31,10 +31,11 @@ type Authority=Awaited<ReturnType<typeof qualify>>
 const end='2026-09-01T00:00:00Z'
 
 function ackRoute(f:Fixture){
- const id=randomUUID(),smtp=edielSmtpConfig()
- sql(`INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
- VALUES(${lit(id)},${lit(f.ids.company)},${lit(f.ids.ackRoute)},'Synthetic DGI PRODAT ACK','test','edifact','edifact',${lit(f.sender)},${lit(f.receiver)},${lit(f.app)},true,true,${lit(smtp.from)},${lit(smtp.host)},${lit(smtp.port)},'dso-native@example.invalid','dso-native@example.invalid')`)
- return id
+ const smtp=edielSmtpConfig()
+ // These permission scenarios do not consume E66. Each communication route
+ // has one runtime profile; two profiles make its actual maybeSingle read fail.
+ expect(sql(`UPDATE public.ediel_route_profiles SET application_reference=${lit(f.app)},route_name='Synthetic DGI PRODAT ACK',mailbox=${lit(smtp.from)},smtp_host=${lit(smtp.host)},smtp_port=${lit(smtp.port)} WHERE id=${lit(f.ids.ackProfile)} AND company_id=${lit(f.ids.company)} AND communication_route_id=${lit(f.ids.ackRoute)} RETURNING to_jsonb(id)`)).toBe(f.ids.ackProfile)
+ return f.ids.ackProfile
 }
 async function receive(f:Fixture,raw:string,family:'PRODAT'|'CONTRL'|'APERAK',code:string,profile?:string){
  const mail=await seedOriginalMailboxNative(sql,lit,{companyId:f.ids.company,environment:'test',raw,smtpFrom:edielSmtpConfig().from,senderEmail:'dso-native@example.invalid'})
@@ -66,7 +67,8 @@ async function ownAcks(f:Fixture,source:EdielMessageRow,profile:string){
  const actual=sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object(
  'acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.message_family),'[]') FROM public.ediel_messages a WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND direction='outbound'),
  'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
- expect(actual.acks.map(a=>a.message_family)).toEqual(['APERAK','CONTRL'])
+ const diagnostics=sql(`SELECT jsonb_build_object('events',(SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'status',event_status)),'[]') FROM public.ediel_message_events WHERE company_id=${lit(f.ids.company)} AND ediel_message_id=${lit(source.id)}),'permissionPartition',(SELECT result FROM gridex_received_sources.permission_partition_receipts WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
+ expect(actual.acks.map(a=>a.message_family),JSON.stringify(diagnostics)).toEqual(['APERAK','CONTRL'])
  const envelope=EdifactEnvelopeCodec.decode(source.raw_payload!)
  const wire=tokenizeEdifact(source.raw_payload!),line=wire.segments.find(s=>s.tag==='LIN')!,li=wire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI')!
  for(const ack of actual.acks){
