@@ -471,3 +471,30 @@ ordinary CI; acquire exact additional LK fixture/helper/test/config/workflow
 refs, confirm all and CLAIM530 before editing. Then reuse actual qualified
 LK chain for wrong correlation and sealed source refusal with durable zero
 effects. Coverage unchanged; role-memory still foreign-held.
+
+## CLAIM same-pair LK native scope extension
+
+Receipt bcf484376c3518e529c10f7dd20c40d3194a4876; exact main c05625c71ada1023ef73749c51fbebf2af0673fb.
+All five sorted refs POST-created and exact GET-confirmed; fresh remote
+lock/open-PR overlap assessment free before acquisition. Paths:
+- scripts/ediel-bilateral-prodat-h-original-native.test.ts
+- scripts/helpers/ediel-bilateral-lk-native-fixture.ts
+- scripts/ediel-at-z08lk-supplier-native.test.ts
+- scripts/ediel-z08lk-native.config.ts
+- .github/workflows/ediel-z08lk-native.yml
+Refs:
+- file-24f56a73c11337ec455c0c7e8fa145820afac5a47b546d30a90111c03c9ff58e
+- file-446f8b9f6f07efad41174a41c35ea4a3d0485f620a93ddd04a3c20819cba343a
+- file-bee2a55ca01833064f75b69ae00f0efa42de252fe8fcf1530f260140905743fd
+- file-d25c231ba11735af1e133bca631e8009268e9975d600fe368d36c9b1be642841
+- file-d8bdf024f37dae49660cfa896980576bec6327074064599aa4340d096e1afbd0
+
+Owner remains this agent/same packet SC064+AT-Z08LK-SUPPLIER.
+Existing completed retained source is reused; no retained ID takeover or
+foreign config/source-helper mutation. Review-approved minimal extraction
+passes unchanged public receivedHStart/provider; old defaults/assertions/P16B
+are retained. New source overrides exist only before wire birth.
+Next owner this agent: CLAIM530 then code extraction/new actual correlation
+and immutable tests, run affected retained cases and exact supplemental
+clean native workflow. Source9a published626; actual fresh CI pending.
+Whole coverage/external approval unchanged; no new pair.
