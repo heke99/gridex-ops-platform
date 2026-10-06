@@ -148,6 +148,16 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
  const ended=await receive(f,z15(f,a,false),'PRODAT','Z15','PRODAT:Z15:V:26.A:r3');await process(f,ended)
  const before=market(f,a.permissionId);expect(before.permission.status).toBe('ended')
  for(const field of permissionRequiredFields){
+  if(field==='202'){
+   // A physical message without BGM code has no selectable guide. The actual
+   // parser calls it PRODAT_UNKNOWN and native canonical birth refuses it;
+   // never invent a Z15 row/profile to reach a later business consumer.
+   const effects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
+   await expect(receive(f,omitPermissionField(z15(f,a,true),field),'PRODAT','Z15','PRODAT:Z15:C:26.A:r3')).rejects.toThrow(/canonical_inbound_rule_profile_resolution_failed:PRODAT:PRODAT_UNKNOWN:/)
+   expect(market(f,a.permissionId)).toEqual(before);expect(f.effects()).toEqual(effects)
+   expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+   continue
+  }
   const source=await receive(f,omitPermissionField(z15(f,a,true),field),'PRODAT','Z15','PRODAT:Z15:C:26.A:r3').catch(error=>{throw new Error(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`,{cause:error})})
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
   if(['207','208','227'].includes(field)){
@@ -297,7 +307,8 @@ it('every required common/own/UD Z18V omission is rejected by the actual registr
  expect(await f.command({action:'end_assignment',assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'market_termination_required'})
  const queued=await f.command({action:'terminate_permission',assignmentId:f.assignment,expectedVersion:f.current().version,permissionId:a.permissionId,preferredRouteId:f.ids.route})
  expect(queued).toMatchObject({status:'queued',blockingReasons:[]})
- const original=queued.message as EdielMessageRow,before=market(f,a.permissionId),effects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
+ const original=(await getEdielMessageById((queued.message as EdielMessageRow).id))!,before=market(f,a.permissionId),effects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
+ expect(original).toMatchObject({status:'queued',raw_payload:(queued.message as EdielMessageRow).raw_payload})
  for(const field of permissionRequiredFields.filter(field=>field!=='322')){
   // Deliberately malformed caller bytes; the stored original and its source
   // authority stay unchanged. Real consumers must refuse this attempted send.
