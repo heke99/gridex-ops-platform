@@ -1,3 +1,8 @@
+## Actual bounded deliveries preserved with the retained #631 snapshot
+
+- ACTUAL MERGED PR #633: `b155d8b789988cb008c9711c23df729112f60f97`; exact source `60e33df3547081028554d7fc0055013f921d391f`; all ten mandatory source-head checks SUCCESS and independent bounded source/native review; authentic native 2 PASS / 0 FAIL with all 36 original input hashes qualified. Delivers held-response processor projection only; whole C/M remain unapproved, with no resulting-main full or external acceptance claim. Actual receipt6023282979; own seven resources and merge role owner-released6023358271.
+- ACTUAL MERGED PR #634: `ed3d0731261cba73440a52a0dd2e57af128a7b13`; exact source `59f7f58c7f4d7784240e1f388cd6e117980e3f31`; eight applicable mandatory source-head checks SUCCESS and independent metadata review. Eight metadata paths only; coverage remains 113 rules + 171 contracts =284/352. No resulting-main full or external acceptance claim. Actual receipt6024231854; memory and merge roles owner-released6024234061.
+
 ## Actual code and campaign deliveries — observed 2026-10-06T18:36:53.464635+00:00
 
 - ACTUAL MERGED PR #626: `8f388b04ddf74758ae4b37dc45ccfadf3ea8d978`; SC-064 + AT-Z08LK-SUPPLIER PASSED; all9ordinary+2selectednative currentheadSUCCESS, independentwholeSC/LKAPPROVE, SC4/LK24/0failure-error-skip/exit0 and893files11955testsPASS; actualledger113+171=284/352, no marketqualification. Actualreceipt6022650732/all13resource RELEASE6022686031.
