@@ -1,3 +1,13 @@
+## Current remaining boundaries — actual main24720181 / 68unapproved
+
+626 SC064/LK08 effects/gates complete and13refs released.IMP05/SC014/047/071
+readyproofs retain originalapproval owners;SC023 needs history/window/DDQ joins.
+C627actual26/4 retains217/senderrole/case-arbitration repairs.629 birth/address/gen
+and630 incomingreadings/production inputs retain namedsource owners.633 bounded
+heldresponse repair isnotwholeC/M. NewZ03L/LK andZ05L/LK nativeNOT_RUN.
+OriginalHOLD/PAUSED/externalgates/allfailures preserved; consult current-state.md
+andlive530 for exactresponsibility/nextactions. Earlier sections are history.
+
 ## Current joint continuation — 2026-10-06T17:07:13.371390+00:00
 
 The owner has renewed autonomous joint continuation toward all whole Masterplan IDs. Current observed main is `c0385ee4ee8340eb9e68029c2bd09d05bdf37f40`, tree `f56cc25ae1c4564adb0e64856a6c3698c7cfb2ce`. Stored approvals are **113/121 rules +169/231 contracts =282/352; 70 remain**. PR #620 actually merged its four owned rows and sharp0.35.5 dependency repair; exact source `39a0e472a99ce06c436e136f4ccd3465ae05ab68`, all ten applicable checks SUCCESS, actual receipt [6021215200](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6021215200). This replaces the former “620 unmerged / main278 / dependency fix missing” status. Other branches must adopt actual main and obtain their own current-head gates; old audit failures remain historical evidence.
