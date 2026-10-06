@@ -1,6 +1,8 @@
 import {isDeepStrictEqual} from 'node:util'
 import {segmentComposite,tokenizeEdifact} from './edifactTokenizer'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {bindReceivedRegisterValidation} from './receivedRegisterValidationBinding'
+import {bindReceivedProdatApplicationObjects,qualifyReceivedProdatApplicationObject} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {renderAperakEdiel} from '@/lib/ediel/aperakEngine'
@@ -31,6 +33,9 @@ export function buildReceivedProdatResponseValidation(message:EdielMessageRow,de
    return {lineIndex:first.segments[0].index,registerLineIndices:registers.map(group=>group!.segments[0].index),id:first.itemId,
     li:refs.length===1?segmentComposite(refs[0],1,wire.una)[1]||null:null,outcome:'held'}
   })
+  const boundRegister=bindReceivedRegisterValidation(registered,message.raw_payload)
+  const boundApplication=decision.prodatApplicationValidation
+   ?bindReceivedProdatApplicationObjects({...decision.prodatApplicationValidation,sourcePayloadHash:evidenceHash(message.raw_payload)},message.raw_payload):null
   const responses:ReceivedProdatResponseValidation['responses']=[]
   for(const plan of decision.responsePlan.filter(response=>response.family==='APERAK')){
    if(plan.outcome!=='positive'&&plan.outcome!=='negative')return null
@@ -52,6 +57,20 @@ export function buildReceivedProdatResponseValidation(message:EdielMessageRow,de
     const matches=objects.filter(object=>(li!==null?object.li===li:object.id===id)&&(id===null||object.id===id))
     if(scope==='object'&&matches.length!==1)return null
     const object=scope==='object'?matches[0]:null
+    if(ercCode==='100'){
+     // A protocol-positive plan is not an accepted own application. Preserve
+     // held objects without inventing an ERC100 that the source SQL rejects.
+     if(!object||decision.applicationDecision!=='accepted'||decision.functionalDecision!=='accepted')continue
+     const candidates=boundRegister?.objects.filter(candidate=>candidate.objectId===object.id
+      &&isDeepStrictEqual(candidate.registers.map(register=>register.segmentIndex),object.registerLineIndices))??[]
+     if(candidates.length!==1||candidates[0].disposition!=='accepted'||!boundApplication)continue
+     const candidate=candidates[0],ownScope={messageIndex:candidate.messageIndex,messageReference:candidate.messageReference,
+      objectId:candidate.objectId,identityAgency:candidate.identityAgency,registers:candidate.registers}
+     if(!qualifyReceivedProdatApplicationObject(boundApplication,ownScope))continue
+     const ownApplications=boundApplication.objects.filter(application=>isDeepStrictEqual({messageIndex:application.messageIndex,
+      messageReference:application.messageReference,objectId:application.objectId,identityAgency:application.identityAgency,registers:application.registers},ownScope))
+     if(ownApplications.length!==1||ownApplications[0].reasonCodes.length)continue
+    }
     if(object){const outcome=ercCode==='100'?'positive':'negative';if(object.outcome!=='held'&&object.outcome!==outcome)return null;object.outcome=outcome}
     responses.push({scope,lineIndex:object?.lineIndex??null,ercCode,fieldCode:segmentComposite(ftx[0],3,own.una)[0]||null,
      text:segmentComposite(ftx[0],4,own.una)[0],id,li})
