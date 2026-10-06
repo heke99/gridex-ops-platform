@@ -114,3 +114,18 @@ Expected110 numericD/10parentD must remain separate; no constructor-only
 metadata or synthetic persisted authority. New claim GETall+#530 pending.
 Nextthissession atomically reserve file-9b88d26a33853f8397bf33f4bff02beb26e9458d3b5ed58ac9a39621846c3bb7, id-AT-P-01 and
 confirm before code. Allproduct/schema/sharedmemory paths excluded.
+
+## Claimed / first supplement execution
+
+Both refs GETMATCH66c5ce222f3649aa30b767f45f29991e29d47195, CLAIM5306026877247
+before all test edits. New composition executes854unchanged reused controls
+and14new supplement cases. Supported22 first actual868:865PASS3FAIL/14.05s.
+All3 failures have correct national41/213 metadata and ownB absentLI; the
+new assertion incorrectly expected sourceRule to contain field213. Actual
+canonical register source is PRODAT26A:P47/114–116 (not numericfieldtext).
+This is a newtest source-locator expectation error, not product failure.
+Preserve /tmp/gridex-b6d3/at-p01-first.log and exactREDsourcecommit.
+Nextthissession correct only that expected frozen guide locator to exact
+PRODAT26A:P47/114–116; do not weaken ownobject/field/case assertions. Rerun
+868 and typecheck/lint, independent literal/diffreview before anyapproval.
+Coverage stillPARTIAL; source/schema/allother tests/rows unchanged.
