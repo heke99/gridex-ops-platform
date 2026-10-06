@@ -328,12 +328,14 @@ describe('actual native supplier cancellation chains', () => {
         details:typeof reason?.details === 'string' ? reason.details : null}
     })
     const durable = sql(`SELECT jsonb_build_object(
+      'inboundCases',(SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(continuation.id)}),
+      'routeCardinality',(SELECT coalesce(jsonb_agg(jsonb_build_object('routeId',r.communication_route_id,'count',r.n) ORDER BY r.communication_route_id),'[]') FROM (SELECT communication_route_id,count(*) n FROM public.ediel_route_runtime_v WHERE company_id=${literal(f.companyId)} GROUP BY communication_route_id) r),
       'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
       'effectReceipts',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
       'partitions',(SELECT count(*) FROM gridex_received_sources.supply_object_partitions WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
       'responseBindings',(SELECT count(*) FROM gridex_ediel_ack_guide.prodat_structural_response_bindings WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(continuation.id)}),
       'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',message_family,'outcome',ack_outcome) ORDER BY message_family,id),'[]') FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(continuation.id)} AND direction='outbound'));`)
-    const diagnostic = JSON.stringify({outcomes,durable,periods:periods(f).map(p => ({id:p.id,status:p.status,
+    const diagnostic = JSON.stringify({companyId:f.companyId,sourceId:continuation.id,outcomes,durable,periods:periods(f).map(p => ({id:p.id,status:p.status,
       version:p.market_state_version,endingSource:p.source_end_message_id}))})
     expect(outcomes.filter(result => result.status === 'rejected'),diagnostic).toEqual([])
     expect(periods(f)).toHaveLength(1)
