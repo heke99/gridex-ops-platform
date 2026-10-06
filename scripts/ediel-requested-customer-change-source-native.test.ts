@@ -33,7 +33,9 @@ type DeathFixture=Awaited<ReturnType<typeof deathFixture>>
 function deathBusiness(f:DeathFixture){return sql(`SELECT jsonb_build_object('customer',(SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}),'supply',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(f.period)}),'point',(SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(f.pointId)}),'site',(SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(f.siteId)}),'switches',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.supplier_switch_requests s WHERE company_id=${literal(f.companyId)}))`)}
 async function reviewDeath(f:DeathFixture){
  const artifact=await archiveRequestedChangeSource({...f.deathSubmission('SYNTHETIC exact signed death original'),companyId:f.companyId,actorUserId:f.uploader.id})
- expect(artifact.missing).toEqual([])
+ expect(artifact.status).toBe('archived')
+ expect(artifact.missing).toEqual(['separate_source_review_required'])
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_requested_changes.events WHERE company_id=${literal(f.companyId)}`)).toBe(0)
  const reviewed=await reviewRequestedChangeArtifact({...artifact,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic separate review of complete signed death UD/IV underlag'})
  expect(reviewed.status).toBe('authorized');if(reviewed.status!=='authorized')throw Error('actual_reviewed_death_event_required')
  const basis=await readRequestedChangeSource({companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.uploader.id})
