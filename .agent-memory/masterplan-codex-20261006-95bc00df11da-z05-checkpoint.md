@@ -982,3 +982,19 @@ maintenance aftercurrentZ05closeout/freshexactscope, notnewpair/code now.
 Next95bc finalclean/cert terminalSUCCESS, allcurrentgates refreshed/actual
 main/12ownrefs andfreeatomicmergerole before expectedheadnormalmerge, actual
 main receipt/role-releasefirst/commonrole reconcile/own12release.
+
+## Actual641 main356 compatibility preserved / tenfinalchecks green
+
+Foreign641 normallysquashmerged source74c at22:30:55UTC, actualmain
+356e153b64d83b84379791a4b4bda1e47ca464a0/tree75c93f2f8128c1a76166c62b50eb2fe3745220ac,
+receipt5306026666590. Fetchedactualmain nine sharedmemory-onlychanges, NO
+product/ownZ05 execution delta. Readonly cleanmergepreview ontoactual356
+nowtree1198d224b6724d493c793e83d6678d5cf5cdf402; ALLnineforeign641blobs
+exactactualmain andALL350foreignrows/order/metadata preserved, onlyown2
+promoted yields292/352. Sourcec726 unchanged/frozenCLEAN.
+Ten currentmandatorychecks SUCCESS; clean/cert stillrunning. Previousmain
+fd4 previewa9 historical; mustre-readmain/preview/gates immediatelyunderlock.
+No rootrole/CI_GREEN/merge/newpair. Next95bc terminalclean/cert success→
+currentexactheadREADY/CI_GREENCP530→freeatomicmergerole/expectedmerge, actual
+main/tree/parents/own2foreign350 verification→CP530→matchedmergerole release
+FIRST→freeatomicrolememory sharedreconcile→own12matchedscope release.
