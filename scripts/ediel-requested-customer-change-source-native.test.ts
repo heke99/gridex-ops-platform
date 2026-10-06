@@ -139,6 +139,16 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  expect(isConfirmedCustomerHistoryQualified(history,scope,readset)).toBe(true);expect(history.versions).toHaveLength(1)
  expect(history.versions[0]).toMatchObject({sourceMessageId:source.sourceMessageId,payloadHash,supplyPeriodId:f.period,objectId:f.external,identityAgency:'9',marketMinute:f.marketMinute,legalSender:f.receiver,legalReceiver:f.sender,party:{id:f.customerIdentity.id,qualifier:'SE2',agency:'260',deathStatus:'Z41'}})
  expect(Date.parse(history.versions[0].effectiveAt)).toBe(Date.parse(f.effectiveAt))
+ // A committed version is not prospective authority after its independent
+ // reviewer loses the source-review permission. Restore only by expiry of
+ // that actual permission override before the first new reply is prepared.
+ sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from,valid_to)VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},'ediel.source.review','deny',true,now()-interval '1 day',now()+interval '1 day')`)
+ expect(await readRequestedChangeSource({companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.uploader.id})).toMatchObject({status:'held'})
+ const beforeRefusedReply=state()
+ await expect(readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceMessageId,rawPayload:wire})).rejects.toMatchObject({message:'prodat_confirmed_death_response_current_owner_required'})
+ await expect(createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId})).rejects.toMatchObject({message:'prodat_confirmed_death_response_current_owner_required'})
+ expect(replies()).toEqual({contrl:1,aperak:0});expect(state()).toEqual(beforeRefusedReply);expect(deathBusiness(f)).toEqual(before)
+ sql(`UPDATE public.user_permission_overrides SET valid_to=now()-interval '1 second' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer.id)} AND permission_key='ediel.source.review' AND effect='deny'`)
  const final=await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceMessageId,rawPayload:wire})
  expect(final).not.toBeNull()
  if(!final)throw Error('actual_reviewed_death_final_response_required')
@@ -160,8 +170,14 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  expect(await applyConfirmedCustomerSource(input)).toMatchObject({applied:true,sourceMessageId:source.sourceMessageId,eventId:reviewed.eventId,payloadHash})
  expect(state()).toEqual(stable);expect(deathBusiness(f)).toEqual(before)
  expect((await supabaseService.from('ediel_messages').select('raw_payload').eq('id',source.sourceMessageId).single()).data?.raw_payload).toBe(wire)
+ // The already born reply keeps its own fixed committed proof after issuer
+ // revocation; a fresh materialization must still refuse current authority.
+ sql(`INSERT INTO gridex_requested_changes.issuer_revocations(target_kind,target_id,source_reference,source_hash)VALUES('key',${literal(f.deathKeyId)},'SYNTHETIC death issuer revoked after fixed reply',${literal('e'.repeat(64))})`)
+ expect(await readRequestedChangeSource({companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.uploader.id})).toMatchObject({status:'held'})
+ await expect(readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceMessageId,rawPayload:wire})).rejects.toMatchObject({message:'prodat_confirmed_death_response_current_owner_required'})
  expect(await createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId})).toEqual(ids)
  expect(sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m WHERE related_message_id=${literal(source.sourceMessageId)} AND direction='outbound'),'outboxes',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM public.ediel_outbox o WHERE ediel_message_id=${literal(ids[0])}))`)).toEqual(fixedReplies)
+ expect(state()).toEqual(stable);expect(deathBusiness(f)).toEqual(before)
 },120000)
 it('actual independent outgoing review publishes exact immutable non-death event; current issuer/reviewer revocation blocks every fresh consumer',async()=>{
  const f=await fixture(),scope={companyId:f.companyId,actorUserId:f.uploader.id},original=f.pdf('actual original'),artifact=await archiveRequestedCustomerChangeSource({...f.submission('SYNTHETIC exact outgoing customer agreement',original),...scope})

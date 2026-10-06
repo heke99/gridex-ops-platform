@@ -849,6 +849,7 @@
     "20261006205800_ediel_generic_requested_change_current_bridge.sql": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
     "20261006214250_ediel_requested_change_owned_site_origin.sql": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
     "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
+    "20261006231000_ediel_confirmed_death_final_response.sql": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
