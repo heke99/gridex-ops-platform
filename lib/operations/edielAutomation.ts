@@ -177,6 +177,8 @@ export async function ensureInitialSwitchEdielAutomation(
       companyId: context.switchRequest.company_id ?? null,
       requestedStartDate: context.switchRequest.requested_start_date ?? null,
       status: context.switchRequest.status ?? null,
+      requestType: context.switchRequest.request_type,
+      transactionSubtype: context.switchRequest.prodat_variant ?? context.switchRequest.prodat_reason ?? null,
       siteId: context.switchRequest.site_id ?? null,
       meteringPointId: context.switchRequest.metering_point_id ?? null,
     })

@@ -66,6 +66,11 @@ async function stage(variant: Variant, date=days(today(),14), invoicee=false) {
       idAgency:selected.invoicee.identity.agency,name:'Synthetic Invoicee',nameLines:['Synthetic Invoicee'],
       address:'Invoicegatan 2',addressLines:['Invoicegatan 2'],postalCode:'54321',city:'Annanstad',country:'SE' }
     sql(`UPDATE public.supplier_switch_requests SET validation_snapshot=${literal(snapshot)}::jsonb WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
+    // Installation is optional until the own public site supplies an address.
+    // Select it before production; no accepted source or rendered wire changes.
+    sql(`UPDATE public.customer_sites SET street='Installationgatan 3',postal_code='11122',city='Installationsstad',country='SE' WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)};`)
+    expect(sql(`SELECT jsonb_build_object('street',street,'postalCode',postal_code,'city',city,'country',country) FROM public.customer_sites WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)};`))
+      .toEqual({street:'Installationgatan 3',postalCode:'11122',city:'Installationsstad',country:'SE'})
   }
   return { ...f,variant }
 }
@@ -142,7 +147,9 @@ async function physicalAck(f: Fixture, family:'CONTRL'|'APERAK') {
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
   expect(await recordReceivedSourceValidation({ original:ack,validated:ack,resolvedCompanyId:f.companyId,decision })).toMatchObject({ status:'recorded' })
   expect(await processInboundAckMessage({ actorUserId:f.actorUserId,message:ack })).toMatchObject({ outcome:'positive',sourceMessage:{ id:f.original.id } })
-  expect(await readCommittedInboundAck({ actorUserId:f.actorUserId,message:(await getEdielMessageById(ack.id))! })).toMatchObject({ kind:'exact_receipt',sourceMessageId:f.original.id })
+  const received=(await getEdielMessageById(ack.id))!
+  expect(received).toMatchObject({ack_outcome:'positive'})
+  expect(await readCommittedInboundAck({ actorUserId:f.actorUserId,message:received })).toMatchObject({ kind:'exact_receipt',sourceMessageId:f.original.id,result:{outcome:'positive'} })
   const before=effects(f)
   expect(await processInboundAckMessage({ actorUserId:f.actorUserId,message:ack })).toMatchObject({ outcome:'positive',sourceMessage:{ id:f.original.id } })
   expect(effects(f)).toEqual(before)
@@ -350,7 +357,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     await send(f); noActivation(f)
     await physicalAck(f,'CONTRL'); noActivation(f)
     await physicalAck(f,'APERAK'); noActivation(f)
-    expect(await getEdielMessageById(original.id)).toMatchObject({contrl_status:'positive',aperak_status:'positive'})
+    expect(await getEdielMessageById(original.id)).toMatchObject({contrl_status:'received',aperak_status:'received'})
     const source=await receive(f,confirmation(f)),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
     expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})

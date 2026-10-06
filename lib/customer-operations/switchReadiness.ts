@@ -11,7 +11,7 @@ import { findActiveSwitchLifecycleBlock } from '@/lib/operations/switchLifecycle
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 import { verifyAuthorizationScopeCoverage } from '@/lib/legal/authorizationChain'
-import type { SwitchReadinessResult } from '@/lib/operations/types'
+import type { SupplierSwitchRequestRow, SwitchReadinessResult } from '@/lib/operations/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 
 /**
@@ -62,7 +62,7 @@ export type SupplierSwitchReadinessInput = {
    * of the automated engine. Set false to treat them as warnings only.
    */
   treatNormalIssuesAsBlockers?: boolean
-  /** Skip the async route/scheduler checks (used by pure unit tests). */
+  /** Clock for readiness and scheduler evaluation; no gates are skipped. */
   now?: Date
 }
 
@@ -145,6 +145,41 @@ export async function checkSupplierSwitchReadiness(
       candidateMeteringPoint: null,
       openSwitchRequestId: null,
     }
+  }
+
+  // A latest-open duplicate probe is not the selected request's authority.
+  // Qualify this exact durable scope before any authorization healing.
+  let selectedSwitch: Pick<SupplierSwitchRequestRow,
+    'id' | 'company_id' | 'customer_id' | 'site_id' | 'metering_point_id' |
+    'requested_start_date' | 'status' | 'request_type' | 'prodat_variant' | 'prodat_reason'> | null = null
+  if (input.switchRequestId) {
+    const selected = await supabaseService
+      .from('supplier_switch_requests')
+      .select('id,company_id,customer_id,site_id,metering_point_id,requested_start_date,status,request_type,prodat_variant,prodat_reason')
+      .eq('id', input.switchRequestId)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('site_id', input.siteId)
+      .maybeSingle()
+    if (selected.error || !selected.data) {
+      const blocker: SupplierSwitchReadinessBlocker = {
+        code: 'supplier_switch_request_missing_or_out_of_scope',
+        message: 'Leverantörsbytesärendet kunde inte verifieras för rätt tenant, kund och anläggning.',
+        source: 'input',
+      }
+      return {
+        ready: false, blockers: [blocker], warnings: [],
+        nextRequiredAction: nextActionForBlockers([blocker]),
+        readinessSnapshot: {
+          evaluated_at: evaluatedAt, company_id: input.companyId,
+          customer_id: input.customerId, site_id: input.siteId,
+          switch_request_id: input.switchRequestId, ready: false,
+          blockers: [blocker], warnings: [],
+        },
+        siteReadiness: null, site, candidateMeteringPoint: null, openSwitchRequestId: null,
+      }
+    }
+    selectedSwitch = selected.data
   }
 
   const meteringPoints = await listMeteringPointsForSite(supabaseService, site.id)
@@ -396,13 +431,16 @@ export async function checkSupplierSwitchReadiness(
   }
 
   let scheduleSnapshot: Record<string, unknown> | null = null
-  if (input.switchRequestId) {
+  if (selectedSwitch) {
     const schedule = await evaluateSupplierSwitchSchedule({
-      switchRequestId: input.switchRequestId,
+      switchRequestId: selectedSwitch.id,
       companyId: input.companyId,
-      requestedStartDate: input.requestedStartDate ?? null,
+      requestedStartDate: selectedSwitch.requested_start_date ?? null,
+      status: selectedSwitch.status,
+      requestType: selectedSwitch.request_type,
+      transactionSubtype: selectedSwitch.prodat_variant ?? selectedSwitch.prodat_reason ?? null,
       siteId: input.siteId,
-      meteringPointId: candidateMeteringPoint?.id ?? null,
+      meteringPointId: selectedSwitch.metering_point_id ?? null,
       now: input.now,
     })
     scheduleSnapshot = {
