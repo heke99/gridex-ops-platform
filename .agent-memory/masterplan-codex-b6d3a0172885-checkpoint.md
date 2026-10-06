@@ -1,6 +1,6 @@
 # Masterplan session b6d3a0172885
 
-Status: IN_PROGRESS — startup/eligibility; before shared-memory edits.
+Status: BLOCKED/RELEASE — reviewed memory645 waits for mandatory CI capacity; preparing eligible AT-P01 singleton.
 
 Agent `codex-20261006T223328Z-b6d3a0172885`; packet `93c199e9-2fe3-433f-9b92-9eb92ec6155d`.
 Branch `codex/ediel-20261006T223328Z-b6d3a0172885`; worktree `/workspace/gridex-ediel-b6d3a0172885`.
@@ -68,3 +68,33 @@ needed, no synthetic/foreignsource bypass. Other ownership/dependencies are
 recorded in peer review and #530; no blanket allremainingowned assertion.
 Next owner=thissession qualify645 current gates or record concretequeue
 blocker/release before continuing AT-P01 claim/proof on a separate branch.
+
+## Explicit metadata handover / next eligible work
+
+Memory645 frozen source72fa9396998817a188f9edd03a480978ebaf9a75 retains
+independent peer APPROVE5435329809. Actual source verify SUCCESS, six other
+mandatory jobs QUEUED with empty runner_name; dependent pr-certificate has
+not run. This is a current CI-capacity dependency, not a test failure or
+permanent inability to deliver. No merge-lock acquisition/merge/CI_GREEN.
+BLOCKED/RELEASE metadata packet93c199e9: preserve source branch/PR and all
+history. Next owner=thissession: authenticate current required checks; when
+all green, refresh main/shared files, reacquire necessary exact roles and
+deliver unchanged645 if scope still fits; otherwise a small reconciled PR.
+All11 refs may be released only after explicit #530 handover and SHA MATCH;
+verify remote404 before any technical packet. Foreign writers may then use
+shared memory; no row/product/source ownership is transferred.
+
+Baseline supported Node22.23.3: four existing suites86PASS0FAIL, then independent
+plan-selected14 pure behavior suites854PASS0FAIL in8.33s (22:46:59), base356.
+This is baseline reuse, not newly authored854 tests or wholeAT-P01 approval.
+AT-P01 whole plan is independently approved for implementation: frozen74/3
+sets,110numericD+10parentD, executable source link, exact per-code projection,
+real validator/projector metadata, multiobject/register isolation, misleading
+DTM/RFF digits under alternate UNA and inactive parents. Reuse unchanged14
+suites; do not credit synthetic registry mocks/persisted send authority.
+
+After confirmed release: fresh main/coverage/#530/refs eligibility read; only
+if AT-P01 still PARTIAL and no claim, reserve last eligible singleton plus
+unique test path __tests__/ediel-at-p01-field-contract-b6d3.test.ts, ownCP and
+only AT-P01 coverage row. No source/schema/shared-memory edit in that packet.
+Next owner=thissession post all-ref-confirmed CLAIM before technical coding.
