@@ -141,3 +141,26 @@ it('actual D intake cannot borrow another customer and company consumption319; b
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
 }, 120000)
+
+it.each(['raw_payload', 'direction', 'message_received_at'] as const)(
+  'actual D original refuses a %s backpatch with its whole row and graphs unchanged', async field => {
+    const f = await createProductionReceiptNativeFixture(externalTransport()), beforeGraph = graph(f, f)
+    const input = await source(f)
+    const before = sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)
+    const providerCalls = smtp.provider.mock.calls.length
+    const patch = field === 'raw_payload' ? { raw_payload: `${input.wire} ` }
+      : field === 'direction' ? { direction: 'outbound' }
+        : { message_received_at: new Date(Date.now() + 60000).toISOString() }
+    const changed = await supabaseService.from('ediel_messages').update(patch)
+      .eq('id', input.sourceId).eq('company_id', f.companyId)
+    const expected = field === 'raw_payload' ? 'immutable_ediel_payload_cannot_change'
+      : field === 'direction' ? 'immutable_ediel_received_context_cannot_change' : 'immutable_ediel_receipt_time_cannot_change'
+    expect(changed.error).toMatchObject({ code: '23514', message: expected })
+    expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(before)
+    const result = noEffects(input)
+    expect(result.acks).toEqual([])
+    expect(result.outbox).toEqual([])
+    expect(graph(f, f)).toEqual(beforeGraph)
+    expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
+  }, 120000,
+)

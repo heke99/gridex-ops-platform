@@ -83,6 +83,25 @@ export async function createConsumptionPrecondition(provider: Provider) {
 }
 
 async function createProductionContract(f: Awaited<ReturnType<typeof createConsumptionPrecondition>>) {
+  // The normal fixture has already removed its temporary platform admin.
+  // Configure only the two registered operations this public producer needs.
+  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.company_memberships
+    WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)} AND status='active' AND is_active)
+    AND EXISTS(SELECT FROM public.user_roles WHERE company_id=${literal(f.companyId)}
+    AND user_id=${literal(f.actorUserId)} AND status='active' AND is_active))`)).toBe(true)
+  const permissions = ['contracts.create', 'pricing.write']
+  expect(sql(`SELECT jsonb_agg(key ORDER BY key) FROM public.permissions
+    WHERE key IN('contracts.create','pricing.write') AND is_active`)).toEqual(permissions)
+  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active)
+    SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key,'allow','active',true FROM public.permissions
+    WHERE key IN('contracts.create','pricing.write') AND is_active`)
+  for (const permission of permissions) {
+    const checked = await supabaseService.rpc('gridex_actor_has_company_permission', {
+      p_actor_user_id: f.actorUserId, p_company_id: f.companyId, p_permission: permission,
+    })
+    expect(checked.error).toBeNull()
+    expect(checked.data).toBe(true)
+  }
   const productionPointId = randomUUID(), productionSiteId = randomUUID(), productionContractId = randomUUID(), productionExternal = freshGsrn()
   const marker = { test_center: { kind: 'invoice_test_customer' } }
   const site = await supabaseService.from('customer_sites').insert({ id: productionSiteId, company_id: f.companyId, customer_id: f.customerId,
