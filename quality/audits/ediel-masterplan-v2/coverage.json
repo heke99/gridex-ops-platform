@@ -1486,8 +1486,19 @@
     {
       "id": "DB-04",
       "acceptance_id": "AT-DB-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/db.ts",
+        "lib/ediel/operations/ackSlaMonitor.ts",
+        "lib/ediel/operations/controlTower.ts",
+        "supabase/schema.sql",
+        "scripts/ediel-transport-data-query-plan-native.test.ts",
+        "scripts/helpers/ediel-db04-query-fixture.ts",
+        "__tests__/ediel-db-04-query-consumers.test.ts",
+        "scripts/ediel-db04-current-consumers-native.test.ts",
+        "scripts/ediel-db04-current-consumers-native.config.ts",
+        ".github/workflows/ediel-db04-current-consumers-native.yml"
+      ]
     },
     {
       "id": "DB-05",
@@ -3692,8 +3703,19 @@
     },
     {
       "id": "AT-DB-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/db.ts",
+        "lib/ediel/operations/ackSlaMonitor.ts",
+        "lib/ediel/operations/controlTower.ts",
+        "supabase/schema.sql",
+        "scripts/ediel-transport-data-query-plan-native.test.ts",
+        "scripts/helpers/ediel-db04-query-fixture.ts",
+        "__tests__/ediel-db-04-query-consumers.test.ts",
+        "scripts/ediel-db04-current-consumers-native.test.ts",
+        "scripts/ediel-db04-current-consumers-native.config.ts",
+        ".github/workflows/ediel-db04-current-consumers-native.yml"
+      ]
     },
     {
       "id": "AT-DB-05",
