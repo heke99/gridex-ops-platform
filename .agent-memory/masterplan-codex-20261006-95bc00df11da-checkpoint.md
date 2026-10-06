@@ -174,3 +174,19 @@ and role-memory4d184dd belong to root-self-selection-20261006 even after actual
 618 merge9cd95408. Their publisher must reconcile actual delivery and DELETE
 only its own exact roles or record its operation blocker. Shared campaign
 reconciliation BLOCKED_ON_ROLE_MEMORY; own checkpoint/530 receipts continue.
+
+## Complete recovered unit gate — frozen PR625 source75f25e9f
+
+Full unit PASS exit0:884/884 files,11856/11856 tests, zero failures/skips,
+279.67s. Node22.23.3 PATH, NODE_OPTIONS6GB + original unit-loopback boundary,
+maxWorkers2, supported additional-permission environment. Source files remain
+byte-exact to PR625; SC064 SHAeabd9232 and Z08LK SHA934839b4. Original
+interrupted namespace attempt and Docker no-space failure remain recorded.
+
+Current-head remote coverage and upgrade now SUCCESS, alongside targeted,
+browser-public, smoke and verify. Quality-release-gates/clean-migration-replay/
+pr-certificate still running. No CI_GREEN/MERGED or native whole-ID approval.
+Own rows and main totals111/121+167/231=278/352 remain unchanged.
+Next action this session: refresh remaining exact-head gates/roles and preserve
+reviewed delivery if foreign roles remain occupied. Remaining owner actions and
+74-row eligibility mapping above are unchanged; no new independent pair.
