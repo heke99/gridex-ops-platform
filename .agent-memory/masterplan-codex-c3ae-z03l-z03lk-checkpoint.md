@@ -1,3 +1,9 @@
+## BEFORE WORKFLOW PROVENANCE CORRECTION — 2026-10-06 20:05 UTC
+
+Same12refs/pair. Main634ed3d0731261cba73440a52a0dd2e57af128a7b13 adopted normally, metadata-only actual284/352. #5306024426409 records beforecode: officialfbe121 declared hashes all qualified, finite list not complete imported/replayed scope. Root changes ONLY owned workflow to capture all tracked lib/types/supabase/helpers/fixtures/Edieldocs plus original explicit files before unchanged sourced replay, verify actual import closure and original mandatory inputs. Preserve canonicalPG/CLI/Node/local-only/redaction/refusal/exit/ordinarygates; no weaker authority. Native author separately owns229/252 assertions. Prospective route/public materializer still under qualification; ACK+birth foreign-owner request6024382092 pending. Next exactsyntax/inventory/importclosure/peer review, currentactualexecution. WholeIDs NOT_APPROVED; no secondpair/role.
+
+---
+
 ## ACTUAL SUCCESSOR RECEIPT / QUALIFIED NEXT REPAIR — 2026-10-06 20:00 UTC
 
 Only existing AT-Z03L-SUPPLIER/AT-Z03LK-SUPPLIER pair, packet4d60a957 and all12 owned refs retained; no role/next pair. PR635 frozen fbeabe9451ac62f3997623354211959d8fcbe7c9/tree d506d673ae9b0c22610b78a5ccc4e674551d219b. Actualrun37520650552/job112464884775 FAILURE:32executed12PASS20FAIL0errors0skips/172.118521552s/exit1. Officialartifact11441066777 ZIP12607 SHA2562cc8568693adf278ef65ed5cbb724cb1070de930c4fe4bcce0a6e5e79d140e8f; root AND independent reviewer qualifiedCRC/exacthead/tree/run/ALL121git-show input hashes. Receipt47da8808004597f55cc65821e7f276a906b1ebf56a09fd492dcc7729ccf05d44, JUnitce05bf6faf561fd1f73ff9e9139ad8d24e82011f4ca0e59a8c70dcd8e12bd59d, log82d35cd2130941874df35fb9cabb06f78a6f84be4dca3d38f36d4fe06ebc42fb. Previous e7 32/12/20 and112input receipts retained separately; no changed historical outcome. Both whole IDs NOT_APPROVED, no coverage/merge/external acceptance.
