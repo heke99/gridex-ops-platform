@@ -1,6 +1,6 @@
 # codex-20261006T134154Z-c3ae376b9893 — Z03C/Z05C acceptance packet
 
-Status: CLAIMED; no implementation or coverage change.
+Status: COMPONENT_REVIEW_APPROVED; native blocked, whole coverage unchanged.
 Packet: deb226b2-f9d2-48a3-ba41-71fc2a055c14. Branch: codex/ediel-codex-20261006T134154Z-c3ae376b9893.
 Worktree: /workspace/gridex-codex-20261006T134154Z-c3ae376b9893. Current main: c19610cbbdd468467d0a5173c175d5100e1cbd0f.
 Atomic receipt: 7c732df179101e4ac089894f1792963ccea5ac0e; all 4 resource refs GET-confirmed.
@@ -45,3 +45,15 @@ Native composition qualified read-only using exported normal-switch, original-ma
 Before native implementation, additional exact NEW path scripts/ediel-at-z03c-z05c-supplier-native.test.ts atomically created-if-absent and GET-confirmed at receipt 9227648fbae8b0bfa28ba23c1d90bbc9b0345a90; ref refs/tags/agent-claims/masterplan/file-4448931032f88e12ad39b4a315a96e5ccdcaa21cb254a0dba5fe3eff00b839e7. Original4 reservations remain receipt 7c732df179101e4ac089894f1792963ccea5ac0e. No foreign source/helper/config path is acquired. New file needs registration by owner codex-20261006-2c0823a3eed5 (bde0638) in existing mandatory native config. Shared memory role still foreign4d184dd. No native execution or whole approval claimed.
 
 Next owner codex-20261006T134154Z-c3ae376b9893: implement bounded native chains using existing producers, install disposable CLI/client prerequisites, coordinate existing native config registration/stack scheduling, then actual native run and independent final review. If native/config remains unavailable, preserve source and exact blocker; do not promote either row. Components reviewed; publication and complete mandatory checks pending.
+
+## 2026-10-06T14:05:31.499381+00:00 — native setup blocker; component publication
+
+Component source661f643c6f9d7815071550857f11b82e6b53ea48 reviewed and test/type/lint green. Full Node22 unit first run stopped exit130 after pre-existing child-process tests failed spawnSync /bin/sh EPERM; affected unchanged two suites rerun with supported additional network permission35/35 PASS. Same mandatory unit loopback network preload retained. Full884-file rerun is RUNNING, no full-green claim. No product/test invariant weakened. Frozen register checker exit0 (33 originals/121 rules/231 contracts), memory checker exit0 reports PARTIAL/campaign_complete:false as expected.
+
+Native prerequisites installed tasklocal only: Supabase2.101.0 (CI version), official SUPABASE_CLI_BINARY_OVERRIDE uses shipped Go backend to avoid unsupported wrapper home writes; PostgreSQL client17.11 downloaded/extracted under/tmp with package SHA2569d8558f8dd57c8e92e218a20698383575d53742ca3f9e7c2b7fe5f246d5216ae. Original wrapper failed read-only /home/agent/.supabase; recovered without repurposing HOME/system changes. Docker prescribed public.ecr.aws/supabase/postgres:17.6.1.155 pull failed `failed to register layer: no space left on device`. Docker reports zero images/containers/volumes/build cache; no foreign data can be reclaimed. Host/workspace has29G free, /tmp8.1G; daemon backing storage remains unavailable. Nonroot session cannot change/restart managed Docker storage. Local native process never started. Existing source/no second harness preserved.
+
+Held native source249lines11cases at SHA25650bf7ad15af360435fff9ac3af4767aeecbb07be92cc0cf8a89cb0aba83eb72c, new owned scripts/ediel-at-z03c-z05c-supplier-native.test.ts. Scripts typecheck/lint/diff exit0; NEVER executed, no whole tags. New source not included in component PR head. Preserve for explicit handover after review; registration requested at #5306017826443 remains foreign-owner pending. Authored L4/LK0 and exact restoration/physical ACK chains are UNVERIFIED; L3/LK-1 historical-boundary, inbound opposite role/direction, same-tenant nonempty decoy and transaction rollback still need assertions. Whole rows NOT_EXECUTED.
+
+Fetched actual main9cd954080a2b65d0b73f1662c4bd3f92adb3b122: PR618 merged, reread now-main reservations/workflow; protocol unchanged from published93eed89. Baseline actual source unchanged. Legacy implementation0dc68c77 (part2e-PRODAT split #426) reused, not rebuilt. Role-memory4d184dd and role-mergefb798bdd still foreign; no shared edits/lock takeover.
+
+Next owner codex-20261006T134154Z-c3ae376b9893: publish only bounded reviewed components with no coverage promotion, finish full unit/current-head required CI and review; merge only when eligible. Preserve unexecuted native followup separately with explicit storage/config/source-assertion blockers. Native owner can register exact new path; environment operator must provide capacity for prescribed image. Formal BLOCKED/RELEASE and refresh candidates before another pair.
