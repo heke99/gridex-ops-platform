@@ -87,7 +87,36 @@ async function materializeWindowRoute(f: NormalSwitchStageNativeFixture) {
     <PartyId>${f.receiver}</PartyId><InterchangePartyId>${f.receiver}</InterchangePartyId>
     <ApplicationReference>23-DDQ-PRODAT</ApplicationReference><SubAddress>NATIVE</SubAddress>
     <CommunicationAddress Type="SMTP">recipient@example.invalid</CommunicationAddress></EDIFACTDetails></Company></Market>`
-  const imported=await importActorRegistryXml({xml,uploadedBy:f.actorUserId,sourceFilename:'synthetic-window-test-route.xml'})
+  // The normal producer fixture removes its temporary platform administrator
+  // before returning. Its supplier must retain only tenant business authority.
+  expect(sql(`SELECT to_jsonb(public.canonical_actor_is_platform_admin(${literal(f.actorUserId)}::uuid));`)).toBe(false)
+  const registryTables=['public.actor_registry_import_runs','public.actor_registry_import_items',
+    'public.platform_actor_import_runs','public.platform_actor_import_issues',
+    'public.platform_market_actors','public.platform_actor_identifiers','public.platform_actor_roles',
+    'public.platform_actor_routes','public.platform_actor_certificates',
+    'gridex_registry_import.batches','gridex_registry_import.normalized_batches',
+    'gridex_registry_import.market_records','gridex_registry_import.market_current',
+    'gridex_registry_import.route_market_sources','gridex_registry_import.route_market_current']
+  const registryState=()=>sql(`SELECT jsonb_build_object(${registryTables.map(table=>
+    `${literal(table)},(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]'::jsonb) FROM ${table} r)`).join(',')});`)
+  const beforeSupplierImport=registryState()
+  await expect(importActorRegistryXml({xml,uploadedBy:f.actorUserId,sourceFilename:'synthetic-window-test-route.xml'}))
+    .rejects.toMatchObject({code:'42501',message:'ediel_registry_platform_actor_required'})
+  expect(registryState()).toEqual(beforeSupplierImport)
+  // Prospective disposable administrative configuration, separate from the
+  // supplier. No route readiness, certificate or accepted business fact is set.
+  const registryAdmin=randomUUID()
+  sql(`INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,
+    id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+    VALUES('00000000-0000-0000-0000-000000000000','','','','',${literal(registryAdmin)},
+      'authenticated','authenticated',${literal(registryAdmin+'@example.invalid')},now(),'{}','{}',now(),now(),false,false);
+    INSERT INTO public.user_profiles(id,email,full_name,user_status)
+    VALUES(${literal(registryAdmin)},${literal(registryAdmin+'@example.invalid')},'Synthetic window registry administrator','active');
+    INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(registryAdmin)},'platform_admin',true);`)
+  expect(sql(`SELECT jsonb_build_object('supplier',public.canonical_actor_is_platform_admin(${literal(f.actorUserId)}::uuid),
+    'administrator',public.canonical_actor_is_platform_admin(${literal(registryAdmin)}::uuid));`))
+    .toEqual({supplier:false,administrator:true})
+  const imported=await importActorRegistryXml({xml,uploadedBy:registryAdmin,sourceFilename:'synthetic-window-test-route.xml'})
   const routeIds=Reflect.get(imported,'routeIds')
   expect(routeIds).toEqual([expect.stringMatching(/^[0-9a-f-]{36}$/)])
   expect(Reflect.get(imported,'activation')).toBe('held_pending_current_source_readiness')
@@ -97,7 +126,7 @@ async function materializeWindowRoute(f: NormalSwitchStageNativeFixture) {
     wire:{family:'PRODAT',environment:'test',partyId:f.receiver,interchangePartyId:f.receiver,
       subaddress:'NATIVE',applicationReference:'23-DDQ-PRODAT',address:'recipient@example.invalid'}})
   if (source.status!=='source_qualified') throw Error('native_window_actual_registry_source_required')
-  expect(await verifyElRegistryActor({actorUserId:f.actorUserId,actorId:source.actorId,routeId:platformRouteId}))
+  expect(await verifyElRegistryActor({actorUserId:registryAdmin,actorId:source.actorId,routeId:platformRouteId}))
     .toEqual({actorId:source.actorId,routeIds:[platformRouteId],market:'EL',autoSendAllowed:false})
   expect(sql(`WITH changed AS(UPDATE public.grid_owners SET platform_market_actor_id=${literal(source.actorId)}
     WHERE id=${literal(f.gridId)} AND company_id=${literal(f.companyId)} AND ediel_id=${literal(f.receiver)} AND environment='test' RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
