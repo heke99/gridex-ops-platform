@@ -8,7 +8,7 @@ Parentsown916bd681 +actualmainc0385ee4ee8340eb9e68029c2bd09d05bdf37f40.
 (113rules+171contracts), only2ownrows changed/all350foreignrows preserved.
 Wholeliteralreviews APPROVE at67dactualSC4/LK24 andsupported40consumers;
 publishedpre-adoption916LK24alsoauthenticated. Integratedb109SCreview
-APPROVEconditionalfreshnative/currentmandatoryCI, ATintegrationreviewpending.
+APPROVEconditionalfreshnative/currentmandatoryCI; ATintegrationreviewalsoAPPROVE.
 FreshsupportedNode22 npmci,61own+GOV04/SMTP tests, scripts/testsTS/ownlint/diff
 PASS. Originalproductionaudit nowPASS high0critical0, originalexceptionunchanged.
 Currentb109native/allmandatoryCI pendingpublication; no currentheadCIgreen/main
@@ -835,3 +835,26 @@ Memoryrole8e60 exactownerDELETE/remoteabsence afterhandover6021264507
 confirmed6021266002, no ownroles; all13packetrefs confirmed.
 Nextthisauthor publishqualifiedb109 once, freshcurrentnative/requiredchecks
 andfinalreview, rolemergeonlyallgreen/expectedhead, actualdelivery/release.
+
+## Current published b109 / final integration reviews / common handover accepted
+
+ActualnormalpublishedPR626 b1093858e78924b29c7b14ae98322dd0cf0b9588
+APIconfirmed/basec038/mergeabletrue; READY5306021356429. FinalATindependent
+integrationAPPROVE conditionalfreshcurrent24native/allgates, no literalgap;
+peer supportedNode22 current40/40PASS2.66s, all350foreignrows verified.
+SCfinalintegrationAPPROVE conditionalfresh4native/gates. CodeRabbitactual
+currentheadSUCCESS; currenttargeted-regressions/smokeSUCCESS, otherlong
+producersqueued/running. NoCIgreen/mergeclaim, no sourcechange afterpublish.
+CurrentSCnative37500760774, LK37500760750, OPS37500760888, full37500760764,
+regressions37500760703, browser37500760840. Artifact/JUnit actualfeedback
+and all9ordinarymandatoryplus2selectednative precede expectedheadmerge.
+
+Freshlegitimate memorywriter c3ae receipt ae4c3562d1386fa732018e979a2b882bc7410c18/packet86e77481-068c-4987-a2dd-c1955abb12c2 confirmed read-only.
+Its ownreceipt explicitlyreusesreleasedreviewed7a proposal andactual620
+282facts. Ourformerrole8e60 remainsreleased; no ownrole/commonedits.
+Afterownactual626delivery handoverpreciseactualmain+unique626line tocurrent
+writerunderitsrole, orfreshownrole iffree; noforeigntakeover.
+Own13packetrefs remainheld, actualmain282/owncandidate284 separate.
+Nextthissession authenticatecurrentnative/requiredterminalstatuses and
+currentmain/head/dependencies, rolemergeallgreen only, actualdelivery then
+ownresourceGET/DELETE/404/reconciledmemory/fresheligibility.
