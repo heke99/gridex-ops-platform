@@ -197,7 +197,7 @@ Supabase skill read c0/supabase: localhost-onlyserviceclient/real actorgrants/te
 
 Own beforebirth rawNAD FR/DO nowinclude SE at3207(index9), matchingoriginalP pp45/46. No authority/profile/sourceclock/binding/acceptedfacts change; allnativeoracles/diagnostics unchanged. ChangedfullscriptsTypeScript/ownESLint/diffcheckPASS. Independent bounded exacttest1399c9246391a702b822a7fc6b20b792599995671810a718929805026e854a15 APPROVE feedbackpublication; config/workflow unchanged. Actual69c9 and2e017 failednativeartefacts retained. Currentfullsuppliedregisters unknownreceiverfacts projection remainspotentialindependentsourcehold, not resolvedby this owninputfix. Source exactnewcommit in following530receipt; nativepending. No wholecoverage/tag/newpair. Next24fa actualcurrentnative, precise remainingholdsourceownerhandover; preserve source7refs until documentedblockerrelease/delivery.
 
-## Current-head independent review and source refutation — 2026-10-06T15:55Z
+## Current-head independent review and source refutation — 2026-10-06T15:50Z
 
 Exact7fc test1399c9246391a702b822a7fc6b20b792599995671810a718929805026e854a15; independent country delta review APPROVE. Workflowf19a2bd8e1928c32f99110f80eba754c3c8a607c7d3f62932f3a42fc581dcabc/config458b8c838e1bf52740b422b04207dc2cf23a1f299744f2130a184123e90438b1 unchanged and independently APPROVE syntax/path/receipt scope. These are bounded publication reviews, not native/whole/merge approvals. Focused37489723130/job112358951011 remains QUEUED at last actual snapshot; current-head browser-public/targeted-regressions SUCCESS, remaining mandatory gates pending. No rerun/cancellation/sourcepush to chase statuses.
 
