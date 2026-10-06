@@ -43,7 +43,7 @@ export async function seedOriginalMailboxNative(sql: Sql, literal: Literal, inpu
   return { mailboxId, inboundEmailMessageId, parseResultId, parsed, sourcePayloadHash: createHash('sha256').update(input.raw, 'utf8').digest('hex') }
 }
 
-/** Actual WRITE-authorized production RPC; no private receipts or extra grants.
+/** Actual canonical SEND-authorized production RPC; no private receipts or extra grants.
  * A first reception observes transport custody without business authorization. */
 export async function recordOriginalMailboxNativeReception(input: {
   companyId: string

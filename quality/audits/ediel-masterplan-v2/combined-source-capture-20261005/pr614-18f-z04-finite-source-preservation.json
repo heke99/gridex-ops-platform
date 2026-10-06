@@ -1,0 +1,19 @@
+{
+  "sourceHead": "18f9325942ad8fa36f077b65a1ba0be319034736",
+  "path": "scripts/ediel-z04-ack-native.test.ts",
+  "oldBytes": 20178,
+  "newBytes": 20772,
+  "oldSha256": "8b95445c2fc204bd50090d799fed3f8ec3eec7aac5914ff8180663c89fd16156",
+  "newSha256": "497e9d74c60edfd1957bb523432ea5b3e0be4fa59a4ced51a10d7550ff0497b8",
+  "exactDelta": "One import and ONLY policyOnly proof block; every other byte exact",
+  "allOldExpectNodes": 35,
+  "allNewExpectNodes": 35,
+  "staleConditionalExpectNodesReplaced": 6,
+  "newActualProtectedBasisExpectNodes": 6,
+  "allOutsideExpectNodesByteExact": 29,
+  "oldBranchZeroBusinessAndRetryAssertionsStillEnforcedByUnchangedSharedTail": true,
+  "wireSetup16VariantsTwoOrdinaryIngressDenialsExact": true,
+  "wholeFinalSourceTypescriptParseDiagnostics": 0,
+  "readOnlyExistingUnitScope": "54/54 PASS in 3 files; no native PostgreSQL execution",
+  "localNative": "NOT_EXECUTED"
+}

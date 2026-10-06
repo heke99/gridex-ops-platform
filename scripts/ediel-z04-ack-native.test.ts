@@ -10,6 +10,7 @@ import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {normalizeEdifactMessageCode} from '@/lib/inbound-mail/edielEmailParser'
+import {readPersistedProdatCommonHeaderNegativeAckBasis} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -127,17 +128,19 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   const first=persisted()
   const blocked=sql<{message:string;payload:unknown}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'payload',payload) ORDER BY created_at),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(ids.source)} AND event_status='warning'`)
   if (policyOnly) {
-    // Syntax is accepted, so the technical CONTRL is queued (5595c695); the
-    // policy-only business rejection has no frozen owner and stays held.
-    expect(first.messages.map(row=>[row.family,row.outcome])).toEqual([['CONTRL','positive']])
-    expect(first.outbox).toHaveLength(1)
-    const ackWarnings=blocked.filter(row=>typeof (row.payload as {ackFamily?:unknown}).ackFamily==='string')
-    expect(ackWarnings.map(row=>(row.payload as {ackFamily:string}).ackFamily).sort()).toEqual(['APERAK'])
-    expect(ackWarnings.every(row=>(row.payload as {blockedBy?:string}).blockedBy==='canonical_inbound_ack_guard')).toBe(true)
-    expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
-    await processInboundEdielMessage(input)
-    expect(persisted()).toEqual(first)
-    return
+    // The actual common-header owner qualifies only a field 202 negative;
+    // it supplies neither a code-specific profile nor business authorization.
+    expect(decision.policy).toBeNull()
+    const {sourceMessage:original,ackMessage,evidence}=await readPersistedProdatCommonHeaderNegativeAckBasis({
+      companyId:ids.company,environment:'test',ackMessageId:first.messages[0].id,expectedRawPayload:first.messages[0].wire})
+    expect([original.id,original.message_code,original.raw_payload]).toEqual([ids.source,sourceCode,wire])
+    expect(evidence).toMatchObject({companyId:ids.company,environment:'test',sourceMessageId:ids.source,
+      sourceHash:evidenceHash(wire),authorizesBusinessEffect:false,familyEdition:{version:'26.A:r3'}})
+    expect(evidence.field202).toEqual({fieldCode:'202',ercCode:variant==='missing-header-code'?'41':'42',
+      text:variant==='missing-header-code'?'Meddelandenamn saknas':'Felaktigt Meddelandenamn Z99'})
+    expect(evidence.familyEdition).not.toHaveProperty('messageProfile')
+    expect([ackMessage.canonical_rule_pack_id,ackMessage.rule_profile_key,ackMessage.rule_profile_version_id,
+      ackMessage.rule_profile_version,ackMessage.rule_pack_checksum,ackMessage.rule_pack_snapshot]).toEqual([null,null,null,null,null,{}])
   }
   if (variant === 'missing-own-quantity' || variant === 'gas-unit-on-electric-register') {
     // The sibling object has no committed own outcome: a BGM34 must answer every

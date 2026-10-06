@@ -7,6 +7,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture, type UtiltsAckFixtureTransaction } from '../__tests__/helpers/utiltsErrGatewayFixture'
 import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './helpers/originalMailboxNative'
+import { decisionUser } from './helpers/ediel-decision-original-native-fixture'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { buildUtiltsErrDraft } from '@/lib/ediel/ack'
@@ -94,6 +95,9 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
     INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope)
       VALUES(${literal(ids.request)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'billing_underlay');`)
   registerUtiltsIssuer(sql, literal, issuer, ids.actor)
+  // Transport reception has its own canonical SEND actor; the original
+  // business consumer retains its WRITE-only permission boundary.
+  const receptionActor = await decisionUser(ids.company, ['communication.send'], randomUUID() + 'Aa1!')
   const insertSource = async (ownTransactions: UtiltsAckFixtureTransaction[], transformRaw?: (raw: string) => string) => {
     const fixture = utiltsErrGatewayFixture({ company: ids.company, receiver: actorEdielId, transactions: ownTransactions })
     // Field 203 is unique per issuer over time: each source has its own document number.
@@ -109,7 +113,7 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
     expect(error).toBeNull()
     expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
       databaseRole: 'evidence_only', family: 'UTILTS', code: 'E66', effectiveDate: '2026-10-15' })
-    await recordOriginalMailboxNativeReception({ ...mail, companyId: ids.company, sourceMessageId: id, actorUserId: ids.actor })
+    await recordOriginalMailboxNativeReception({ ...mail, companyId: ids.company, sourceMessageId: id, actorUserId: receptionActor.id })
     // Production reception records the technical syntax decision before any
     // application response; every business reply reads that protected basis.
     await recordUtiltsTechnicalReception(data as EdielMessageRow, ids.actor)

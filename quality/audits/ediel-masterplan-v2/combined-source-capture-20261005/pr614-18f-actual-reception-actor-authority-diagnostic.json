@@ -1,0 +1,65 @@
+{
+  "scope": "Bounded exact authentic current-schema reception authorization and canonical resolver evaluation on PGlite; NOT native PostgreSQL/full-suite/CI/source delivery proof",
+  "source": "18f9325942ad8fa36f077b65a1ba0be319034736",
+  "artifact": 11392187060,
+  "functions": {
+    "gridex_ediel_inbound_receptions.authorize_v1": "6f22531c6906cd3c2eeea2896b55e9c49f50dc0ac34e0ee94a6a523e03dfd194",
+    "public.gridex_actor_has_company_permission": "1cc4af3a4ce60b2ee1133771542f708cdbd492ddd533d2af02b137c893d5b4b8",
+    "public.gridex_get_user_permissions_in_company": "bbc206d16b1993c105f8ad0ee616da5c340a4f10dd2955d1e37400b868e5b8df",
+    "public.gridex_normalize_platform_role": "85f4be9f53f94ccb99573ed9db5a29c676657b763458dd3a31f792a8d60bb531"
+  },
+  "node": "v22.23.3",
+  "outcomes": [
+    {
+      "name": "original WRITE-only business actor cannot record reception",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "separate SEND-only own receiver records reception",
+      "actual": "ALLOW"
+    },
+    {
+      "name": "READ-only actor cannot record reception",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "READ-only actor can select receipt",
+      "actual": "ALLOW"
+    },
+    {
+      "name": "SEND actor cannot cross company",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "business actor remains WRITE allowed and SEND denied",
+      "actual": "PASS"
+    },
+    {
+      "name": "explicit own SEND DENY prevents receipt",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "inactive catalog prevents receipt",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "inactive own membership prevents receipt",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "inactive profile prevents receipt",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "unaccepted own membership prevents receipt",
+      "actual": "DENY_42501"
+    },
+    {
+      "name": "restored receiver remains allowed",
+      "actual": "ALLOW"
+    }
+  ],
+  "controls": 12,
+  "local_native": "NOT_EXECUTED",
+  "no_production_changes": true
+}

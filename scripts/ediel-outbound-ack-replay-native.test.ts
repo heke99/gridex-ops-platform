@@ -8,6 +8,7 @@ import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
+import {decisionUser} from './helpers/ediel-decision-original-native-fixture'
 
 // Disposable native Supabase only. No parser, owner, database, gateway or
 // permission mock and no provider entry/traffic. Source/ACK are synthetic.
@@ -85,7 +86,10 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  const retained=await seedOriginalMailboxNative(sql,literal,{companyId:company,environment:'test',raw,receivedAt,smtpFrom:'local@example.invalid',parsed})
  const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:company,...unlistedProdatRulePin(),environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z99',status:'received',raw_payload:raw,message_received_at:receivedAt,mailbox_message_id:retained.inboundEmailMessageId,inbound_email_message_id:retained.inboundEmailMessageId,sender_ediel_id:parsed.senderEdielId,receiver_ediel_id:parsed.receiverEdielId,application_reference:parsed.applicationReference,interchange_reference:parsed.interchangeReference}).select('*').single()
  expect(stored.error).toBeNull();const source=stored.data as EdielMessageRow
- await recordOriginalMailboxNativeReception({companyId:company,sourceMessageId:sourceId,actorUserId:actor,inboundEmailMessageId:retained.inboundEmailMessageId,parseResultId:retained.parseResultId})
+ // Reception uses a distinct canonical SEND actor; ACK creation and all
+ // revocation/race controls keep the original WRITE-only actor unchanged.
+ const receptionActor=await decisionUser(company,['communication.send'],randomUUID()+'Aa1!')
+ await recordOriginalMailboxNativeReception({companyId:company,sourceMessageId:sourceId,actorUserId:receptionActor.id,inboundEmailMessageId:retained.inboundEmailMessageId,parseResultId:retained.parseResultId})
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source);expect(decision.syntaxDecision,JSON.stringify(decision.issues)).toBe('accepted')
  await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:'accepted',reasonCodes:decision.issues.map(issue=>issue.code),execution:{actorUserId:actor,phase:'prepare'}})
  await captureEdielTechnicalSyntaxAckEvidence(company,sourceId,{actorUserId:actor,phase:'prepare'})
