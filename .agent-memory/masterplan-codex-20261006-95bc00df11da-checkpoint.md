@@ -11,7 +11,8 @@ APPROVE; actualSC4/LK24,0fail/error/skip/exit0, all12+18inputs/digests;
 fullunit893files11955testsPASS. This proves code contracts, notmarketacceptance.
 Atomic mergerole368c5393e9232477211fc11259639fe828e66b70 ownerGETmatched/
 DELETE/GET404 released afteractualMERGED5306022650732, confirmed6022652159.
-Own13packetrefs remainhelduntil documentaryDELIVERY/RELEASE and exactcleanup.
+All13packetrefs ownerGETmatched/DELETE/GET404 physicallyreleased6022686031;
+zeroownresource refs, no pair orrole held.
 Foreignmemoryae4c/c3ae owns common reconciliation; actual626 uniquehandover
 mustbe mirroredunderitsrole, released7a proposal retained. No commonedit here.
 Nextthisauthor postactualMERGED/role release, explicit13resourceRELEASE and
@@ -1002,3 +1003,30 @@ No nextpair until cleanup/reconciliation complete. Nextthisauthor freshmain/
 coverage/board/legacy/liveclaims then assess originals601/595 finite RELEASEs,
 source614COMPLETE/STOP and actualpublic H/LK end seams for wholeZ05L/LK or
 another trulyeligible pair; no other agent's assumed fixture/claim/coverage.
+
+## Physical packet RELEASE confirmed / provenance correction before next selection
+
+All13 exact grouprefs b57/266/bcf/a8a ownerGETmatched/DELETEsuccess/GET404,
+matchingrefs zeroownreceipts; confirmation5306022686031. Rolemerge released
+6022652159, no ownmemoryrole. Actualmain8f388b04 fetched andqualified284/352,
+68remain; oldpublicsourceb109/actual625+626 branches/evidence preserved.
+Commonwriter c3ae/ae4c remainslegitimate/occupied; actual626/uniquehandover
+receipt6022650732 delivered tothatwriter, no commonmerge claimbythissession.
+
+Provenance correction: earlierpreflight loosely called Z05 finitecomponent601.
+Authenticated actual Z05L/LK component is PR597/850493836e9905f379f391fd1e544a6564c09743,
+actuallyMERGEDe3606a6575b1f00bc571da3340c34c7d183730b1;601 is SC010statusdoc,
+not Z05source. Reuse597actual40unchangedtests+sourcecache taskfix alreadymain;
+no restart/duplicatecomponent orwholeapprovalfromfinite89oldpasses.
+Read-onlywholeZ05qualification lookscompatible withactualnationalH→Z05L and
+currentpublicLKclosure→Z05LK chains alreadyexecuted by6264+24, but actual
+physicalACK/conditionalfields/site-switch/receipt→Legacy joins stillneedwhole
+mapping and anyadditionalassertions. OriginalfiniteRELEASE/remainingownership
+mustbe authenticated beforeclaim; currentZ05IDs freeinlive matchingrefs.
+Z03L/LK now occupiedforeign46456986; do nottakeit. Normalstartfixture still
+explicitlyL/H-only andbilateralLKprofile supportsONLYZ08/Z05; do not treat
+closureLKproducer asnormalLKZ03authority. Original source614COMPLETE/STOP
+6014759009 endsitswholeintegration lane; external/HOLDrequirements notapproved.
+Nextthisauthor verify597finite RELEASE and originalwhole scope/currentboard,
+chooseeligibleZ05L/LK orother genuinelyfree compatiblepair, atomicallyclaim
+exactfiles/IDs + checkpoint/530 BEFORE coding. No activepair ornewcodeyet.
