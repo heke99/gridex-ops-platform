@@ -1,8 +1,9 @@
+// masterplan: GOV-04, AT-GOV-04
 import {createHash,randomUUID} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
 import {sendEdielEmail,type SendEdielEmailInput} from '@/lib/email/sendEdielEmail'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
-import {createGenericEdielAttemptGate,sendGenericFencedEdielEmail} from '@/lib/ediel/transport/outboundAttempt'
+import {assertEdielAdmissionDateCurrent,createGenericEdielAttemptGate,sendGenericFencedEdielEmail} from '@/lib/ediel/transport/outboundAttempt'
 import type {EdielBusinessExpectationPlan,EdielTechnicalExpectationPlan} from '@/lib/ediel/businessExpectations'
 import type {EdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
 import type {ProdatTransportRetryBasis} from '@/lib/ediel/recovery/transportRetry'
@@ -59,6 +60,7 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   const entry={archiveContext:{companyId:message.company_id!,messageId:message.id},beforeProviderCall:async (actual:Record<string,unknown>)=>{
    if(callbackUsed)throw Error('outbound_dispatch_callback_reused')
    callbackUsed=true
+   assertEdielAdmissionDateCurrent(context.admissionDecision)
    const binding={...actual,originalHash:hash(Buffer.from(message.raw_payload ?? '','utf8')),routeId:message.communication_route_id,
     mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length,admissionDecision:context.admissionDecision??null,
     businessExpectationPlan:context.businessExpectationPlan??null,technicalExpectationPlan:context.technicalExpectationPlan??null,
@@ -86,11 +88,13 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
    }
    prepared=true
    await witness(reservation)
+   assertEdielAdmissionDateCurrent(context.admissionDecision)
    // Set before RPC: response loss after commit is not proof that entry failed.
    entryAttempted=true
    const entered=await call('enter')
    if(entered.proceed!==true)throw Error('outbound_dispatch_entry_denied')
    await witness(entered)
+   assertEdielAdmissionDateCurrent(context.admissionDecision)
   }}
   const result=await sendEdielEmail(input,entry)
   if(!callbackUsed)throw Error('outbound_dispatch_callback_missing')
