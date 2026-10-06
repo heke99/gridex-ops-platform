@@ -12,9 +12,10 @@ import {buildRequestedChangeDraft} from '@/lib/ediel/intent/renderers/lifeEvent'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const signature='public.ediel_originate_requested_change_before_scope_fence_v1(uuid,uuid,uuid,jsonb)'
 const forward=new URL('../supabase/migrations/20261006214250_ediel_requested_change_owned_site_origin.sql',import.meta.url)
+const requestForward=new URL('../supabase/migrations/20261006221015_ediel_requested_change_owned_request_site.sql',import.meta.url)
 const schema=readFileSync(new URL('../supabase/schema.sql',import.meta.url),'utf8')
 function table(name:string){const start=schema.indexOf(`CREATE TABLE ${name} (`),end=schema.indexOf('\n);',start);if(start<0||end<start)throw Error('actual_table_required:'+name);return schema.slice(start,end+3)}
-function fn(source:string,name:string){const start=source.indexOf(`CREATE FUNCTION ${name}(`),end=source.indexOf('$$;',start);if(start<0||end<start)throw Error('actual_function_required:'+name);return source.slice(start,end+3)}
+function fn(source:string,name:string){const start=source.indexOf(`CREATE FUNCTION ${name}(`),delimiter=source.slice(start).match(/\bAS (\$[\w]*\$)/)?.[1],end=delimiter?source.indexOf(delimiter+';',source.indexOf(delimiter,start)+delimiter.length):-1;if(start<0||end<start||!delimiter)throw Error('actual_function_required:'+name);return source.slice(start,end+delimiter.length+1)}
 async function setup(){
  const db=new PGlite()
  await db.exec(`CREATE ROLE service_role;CREATE ROLE declared_owner;CREATE ROLE declared_reader;
@@ -43,6 +44,7 @@ async function setup(){
  const before=(await db.query(`SELECT to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid='${signature}'::regprocedure`)).rows
  const wrapper=(await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid='public.ediel_originate_requested_change_v1(uuid,uuid,uuid,jsonb)'::regprocedure`)).rows
  if(existsSync(forward))await db.exec(readFileSync(forward,'utf8'))
+ if(existsSync(requestForward))await db.exec(readFileSync(requestForward,'utf8'))
  expect((await db.query(`SELECT to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid='${signature}'::regprocedure`)).rows).toEqual(before)
  expect((await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid='public.ediel_originate_requested_change_v1(uuid,uuid,uuid,jsonb)'::regprocedure`)).rows).toEqual(wrapper)
  return db
@@ -54,6 +56,13 @@ it('fresh actual origination captures the owned point site before freezing inten
  const db=await setup();try{
   expect((await db.query<{result:{status:string}}>(call)).rows[0].result.status).toBe('originated')
   expect((await db.query(`SELECT i.customer_site_id,o.intent_binding->>'customer_site_id' frozen_site,i.validation_status,i.validation_result FROM public.ediel_message_intents i JOIN gridex_requested_changes.origins o ON o.intent_id=i.id`)).rows).toEqual([{customer_site_id:id(10),frozen_site:id(10),validation_status:'draft',validation_result:{}}])
+ }finally{await db.close()}
+},20000)
+it.each([id(10),null])('fresh actual request captures owned site %s before its immutable binding',async site=>{
+ const db=await setup();try{
+  if(site===null)await db.exec('UPDATE public.metering_points SET site_id=NULL')
+  await db.query(call)
+  expect((await db.query(`SELECT r.site_id,o.request_binding->'site_id' frozen_site FROM public.outbound_requests r JOIN gridex_requested_changes.origins o ON o.outbound_request_id=r.id`)).rows).toEqual([{site_id:site,frozen_site:site}])
  }finally{await db.close()}
 },20000)
 it('a legitimate null point site remains null in the fresh intent and its frozen binding',async()=>{
@@ -107,4 +116,59 @@ it('the unchanged actual intent guard accepts matching declared site binding the
 },20000)
 it('the unchanged actual intent guard refuses an independently changed message site before wire checks',async()=>{
  const db=await setup();try{await db.query(call);await installActualIntentGuard(db);await db.exec(`UPDATE public.ediel_messages SET site_id='${id(99)}'`);await expect(db.query(guard)).rejects.toThrow('ediel_native_validated_intent_required')}finally{await db.close()}
+},20000)
+
+// Real producer -> unchanged real source projector. The accepted receipt and
+// actor permission below are explicit finite ports, not authentic authority,
+// journal entry, SMTP success or native proof. No request site is patched.
+async function installActualProjector(db:PGlite){
+ await db.exec(`CREATE SCHEMA gridex_outbound_dispatch;CREATE SCHEMA gridex_supply_rescission;CREATE SCHEMA gridex_business_expectations;
+ CREATE TABLE public.user_profiles(id uuid,user_status text);INSERT INTO public.user_profiles VALUES('${id(3)}','active');
+ CREATE TABLE public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean,accepted_at timestamptz);INSERT INTO public.company_memberships VALUES('${id(1)}','${id(3)}','active',true,now());
+ CREATE FUNCTION public.gridex_actor_has_company_permission(a uuid,c uuid,p text)RETURNS boolean LANGUAGE sql AS $$SELECT a='${id(3)}'::uuid AND c='${id(1)}'::uuid AND p IN('ediel.send','communication.send')$$;
+ CREATE TABLE public.ediel_messages(id uuid,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,status text,raw_payload text,immutable_payload_hash text,customer_id uuid,site_id uuid,metering_point_id uuid,outbound_request_id uuid,grid_owner_data_request_id uuid,requires_contrl boolean,contrl_status text,contrl_due_at timestamptz,ack_due_at timestamptz,business_response_due_at timestamptz,message_sent_at timestamptz,updated_by uuid,updated_at timestamptz);
+ CREATE TABLE public.grid_owner_data_requests(id uuid,company_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,status text,sent_at timestamptz,failed_at timestamptz,failure_reason text,updated_by uuid,updated_at timestamptz);
+ CREATE TABLE public.customer_info_requests(id uuid,company_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,ediel_message_id uuid,outbound_request_id uuid,grid_owner_data_request_id uuid,status text,sent_at timestamptz,blocker_code text,blocker_reason text,blocker_details jsonb,next_required_action text,updated_by uuid,updated_at timestamptz);
+ CREATE TABLE gridex_ediel_transport.attempts(id uuid,company_id uuid,environment text,message_id uuid,binding jsonb);
+ CREATE TABLE gridex_outbound_dispatch.attempts(id uuid,company_id uuid,environment text,message_id uuid,binding jsonb);
+ CREATE TABLE public.declared_projection_receipt(value jsonb);
+ INSERT INTO public.declared_projection_receipt VALUES(jsonb_build_object('originalHash',repeat('d',64),'observedAt','2026-10-06T21:00:00Z','lane','generic_journal','attemptId','${id(40)}'));
+ CREATE FUNCTION gridex_ediel_transport.accepted_source_basis_v1(m public.ediel_messages)RETURNS jsonb LANGUAGE sql AS $$SELECT value FROM public.declared_projection_receipt$$;
+ CREATE FUNCTION gridex_ediel_transport.require_technical_expectation_plan_v1(m public.ediel_messages,p jsonb)RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'unexpected_declared_technical_port';END$$;
+ CREATE FUNCTION gridex_supply_rescission.outbound_required_v1(text)RETURNS boolean LANGUAGE sql AS $$SELECT false$$;
+ CREATE FUNCTION gridex_supply_rescission.sender_v1(uuid,uuid)RETURNS boolean LANGUAGE sql AS $$SELECT false$$;
+ CREATE FUNCTION gridex_business_expectations.mutate_v1(jsonb)RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'unexpected_declared_business_port';END$$;
+ INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_payload_hash,customer_id,site_id,metering_point_id,outbound_request_id,requires_contrl)
+ SELECT '${id(7)}',i.company_id,i.environment,'outbound','edifact',i.message_family,i.message_code,'queued','DECLARED wire port',repeat('d',64),i.customer_id,i.customer_site_id,'${id(11)}',o.outbound_request_id,false FROM public.ediel_message_intents i JOIN gridex_requested_changes.origins o ON o.intent_id=i.id;
+ INSERT INTO gridex_ediel_transport.attempts SELECT '${id(40)}',company_id,environment,id,jsonb_build_object('originalHash',immutable_payload_hash) FROM public.ediel_messages;`)
+ await db.exec(fn(schema,'public.ediel_project_accepted_source_state_v1'))
+}
+const project=`SELECT public.ediel_project_accepted_source_state_v1('${id(1)}','test','${id(3)}','${id(7)}',repeat('d',64)) result`
+async function projectionState(db:PGlite){return{source:await state(db),messages:(await db.query('SELECT to_jsonb(m) value FROM public.ediel_messages m')).rows}}
+it.each([id(10),null])('actual fresh request and unchanged projector compose for owned site %s and preserve immutable origin on replay',async site=>{
+ const db=await setup();try{
+  if(site===null)await db.exec('UPDATE public.metering_points SET site_id=NULL')
+  const origin=(await db.query(call)).rows;await installActualProjector(db)
+  const frozen=(await db.query('SELECT to_jsonb(o) value FROM gridex_requested_changes.origins o')).rows
+  expect((await db.query<{result:{status:string;authorizesProviderEntry:boolean}}>(project)).rows[0].result).toMatchObject({status:'source_projection',authorizesProviderEntry:false})
+  expect((await db.query(`SELECT r.status,r.site_id,r.sent_at='2026-10-06T21:00:00Z'::timestamptz request_clock,m.message_sent_at=r.sent_at message_clock FROM public.outbound_requests r JOIN public.ediel_messages m ON m.outbound_request_id=r.id`)).rows).toEqual([{status:'sent',site_id:site,request_clock:true,message_clock:true}])
+  expect((await db.query(call)).rows).toEqual(origin)
+  expect((await db.query('SELECT to_jsonb(o) value FROM gridex_requested_changes.origins o')).rows).toEqual(frozen)
+  await db.query(project)
+  expect((await db.query('SELECT to_jsonb(o) value FROM gridex_requested_changes.origins o')).rows).toEqual(frozen)
+ }finally{await db.close()}
+},20000)
+it.each([
+ ['request company',`UPDATE public.outbound_requests SET company_id='${id(99)}'`,'ediel_source_projection_owned_outbound_request_required'],
+ ['request customer',`UPDATE public.outbound_requests SET customer_id='${id(99)}'`,'ediel_source_projection_owned_outbound_request_required'],
+ ['request site',`UPDATE public.outbound_requests SET site_id='${id(99)}'`,'ediel_source_projection_owned_outbound_request_required'],
+ ['request point',`UPDATE public.outbound_requests SET metering_point_id='${id(99)}'`,'ediel_source_projection_owned_outbound_request_required'],
+ ['message site',`UPDATE public.ediel_messages SET site_id='${id(99)}'`,'ediel_source_projection_owned_outbound_request_required'],
+ ['original hash',`UPDATE public.ediel_messages SET immutable_payload_hash=repeat('e',64)`,'ediel_source_projection_original_changed'],
+ ['receipt absent','DELETE FROM public.declared_projection_receipt','ediel_source_projection_accepted_receipt_required'],
+ ['receipt hash',`UPDATE public.declared_projection_receipt SET value=jsonb_set(value,'{originalHash}',to_jsonb(repeat('e',64)))`,'ediel_source_projection_frozen_clock_required'],
+ ['attempt binding',`UPDATE gridex_ediel_transport.attempts SET binding=jsonb_build_object('originalHash',repeat('e',64))`,'ediel_source_projection_accepted_binding_required'],
+ ['actor revoked',"UPDATE public.user_profiles SET user_status='disabled'",'ediel_source_projection_actor_forbidden'],
+] as const)('unchanged actual projector refuses %s before any message/request/origin effect',async(_label,mutation,reason)=>{
+ const db=await setup();try{await db.query(call);await installActualProjector(db);await db.exec(mutation);const before=await projectionState(db);await expect(db.query(project)).rejects.toThrow(reason);expect(await projectionState(db)).toEqual(before)}finally{await db.close()}
 },20000)
