@@ -30,10 +30,13 @@ function replies(p:PendingZ14,source:EdielMessageRow){
 function noPositiveObjectAck(p:PendingZ14,source:EdielMessageRow){
  expect(replies(p,source).acks.filter(x=>x.message_family==='APERAK'&&x.ack_outcome==='positive')).toEqual([])
 }
-async function committedReplies(p:PendingZ14,source:EdielMessageRow){
+function ackEvidence(p:PendingZ14,source:EdielMessageRow){
+ const actual=replies(p,source)
+ return {sourceMessageId:source.id,acks:actual.acks.map(a=>({id:a.id,family:a.message_family,outcome:a.ack_outcome})),outbox:actual.outbox.map(x=>({id:x.id,messageId:x.ediel_message_id,family:x.message_family})),blockedEvents:sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('type',event_type,'status',event_status,'message',message,'payload',payload) ORDER BY created_at,id),'[]') FROM public.ediel_message_events WHERE company_id=${lit(p.f.ids.company)} AND ediel_message_id=${lit(source.id)} AND payload->>'blockedBy'='canonical_inbound_ack_guard'`)}
+}
+function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow){
  const actual=replies(p,source),wire=tokenizeEdifact(source.raw_payload!),envelope=EdifactEnvelopeCodec.decode(source.raw_payload!)
  const line=wire.segments.find(s=>s.tag==='LIN')!,li=wire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI')!
- expect(actual.acks.map(a=>a.message_family)).toEqual(['APERAK','CONTRL']);expect(actual.outbox).toHaveLength(2)
  for(const ack of actual.acks){
   expect(ack).toMatchObject({company_id:p.f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,ack_outcome:'positive'})
   expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
@@ -49,6 +52,14 @@ async function committedReplies(p:PendingZ14,source:EdielMessageRow){
   }
   expect(actual.outbox.filter(x=>x.ediel_message_id===ack.id)).toEqual([expect.objectContaining({company_id:p.f.ids.company,environment:'test',source_message_id:source.id,message_family:ack.message_family,ack_outcome:'positive'})])
  }
+ return actual
+}
+async function committedReplies(p:PendingZ14,source:EdielMessageRow){
+ const diagnostic=JSON.stringify(ackEvidence(p,source))
+ console.info('Z14 final ACK evidence',diagnostic)
+ const actual=observedPositiveReplies(p,source)
+ expect(actual.acks.map(a=>a.message_family),diagnostic).toEqual(['APERAK','CONTRL']);expect(actual.outbox,diagnostic).toHaveLength(2)
+ const line=tokenizeEdifact(source.raw_payload!).segments.find(s=>s.tag==='LIN')!
  const plan=await readReceivedProdatFinalResponsePlan({companyId:p.f.ids.company,sourceMessageId:source.id,rawPayload:source.raw_payload!})
  expect(plan?.plans).toHaveLength(1);expect(plan!.plans[0]).toMatchObject({effectKind:'metering_permission',outcome:'positive',objectLineIndices:[line.index]})
  expect(sql(`SELECT jsonb_build_object('source',source_message_id,'company',company_id,'hash',payload_hash,'canonical',canonical_assessment_id) FROM gridex_received_sources.permission_effect_receipts WHERE id=${lit(plan!.plans[0].effectReceiptId)}`)).toEqual({source:source.id,company:p.f.ids.company,hash:createHash('sha256').update(source.raw_payload!).digest('hex'),canonical:plan!.plans[0].canonicalAssessmentId})
@@ -80,9 +91,13 @@ async function firstPositive(p:PendingZ14){
  expect(after.receipts).toHaveLength(1)
  expect(after.receipts[0]).toMatchObject({source_message_id:source.id,qualified_original_message_id:p.z13.id,permission_id:p.permissionId,company_id:p.f.ids.company})
  expect(sql(`SELECT jsonb_build_object('source',source_message_id,'hash',payload_hash,'result',result) FROM gridex_received_sources.permission_partition_receipts WHERE company_id=${lit(p.f.ids.company)} AND source_message_id=${lit(source.id)}`)).toMatchObject({source:source.id,hash:createHash('sha256').update(raw).digest('hex'),result:{applied:true}})
- const acks=await committedReplies(p,source)
+ console.info('Z14 first-processing ACK evidence',JSON.stringify(ackEvidence(p,source)))
+ const acks=observedPositiveReplies(p,source)
  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
- await process(p,source);expect(z14Market(p)).toEqual(after);expect(await committedReplies(p,source)).toEqual(acks)
+ await process(p,source)
+ console.info('Z14 replay ACK evidence',JSON.stringify(ackEvidence(p,source)))
+ expect(z14Market(p)).toEqual(after);expect(observedPositiveReplies(p,source)).toEqual(acks)
+ expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(p.f.ids.company)} AND message_code='Z04'`)).toBe(0)
  return source
 }
@@ -98,6 +113,7 @@ it.each([false,true])('first mailbox-born private Z14V/S17 commits permission an
  expect(()=>sql(`UPDATE public.ediel_messages SET direction='outbound' WHERE id=${lit(source.id)}`)).toThrow(/immutable/)
  expect(await applyPermissionMarketSource({actorUserId:p.f.ids.actor,message:{...source,direction:'outbound'}})).toMatchObject({applied:false,reason:'not_inbound_permission_source'})
  expect(z14Market(p)).toEqual(stable);expect((await getEdielMessageById(p.z13.id))?.raw_payload).toBe(z13Bytes)
+ await committedReplies(p,source)
 })
 
 it.each(z14RequiredFields)('fresh pending private V omits required field %s before its FIRST processing: no permission, grant, supply or committed positive object ACK',async field=>{
@@ -107,17 +123,19 @@ it.each(z14RequiredFields)('fresh pending private V omits required field %s befo
   expect(z14Market(p)).toEqual(before);return
  }
  const source=await receiveZ14(p,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
- expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify({field,issues:decision.issues})).not.toEqual(['accepted','accepted','accepted'])
- if(!['207','208','227','311','312'].includes(field))expect(decision.issues,field).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:field})})]))
  await process(p,source)
  expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify({field,issues:decision.issues})).not.toEqual(['accepted','accepted','accepted'])
+ if(field==='233')expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UNSM_MANDATORY_ELEMENT_MISSING',layer:'syntax',severity:'error',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'})]))
+ else if(field==='209')expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'PRODAT_REPORTING_PURPOSE_SCOPE_UNQUALIFIED',layer:'application',severity:'error',prodatDiagnostic:{kind:'internal',reason:'Supplied323 has no qualified own process/first object',sourceRule:'PRODAT26A:P21/74/119/123'}})]))
+ else if(!['207','208','227','311','312'].includes(field))expect(decision.issues,field).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:field})})]))
 })
 
 it('fresh bounded V omits required 321 and cannot mutate the still-pending permission',async()=>{
  const p=await pendingZ14(true),before=z14Market(p),source=await receiveZ14(p,omitZ14Field(z14Wire(p),'321'))
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
- expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:'321'})})]))
  await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
+ expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:'321'})})]))
 })
 
 it.each([
@@ -184,14 +202,16 @@ it.each(['product','sender','receiver','environment','S18'] as const)('fresh phy
   expect(changed).toContain("CCI++Z13'CAV+S18")
   expect(p.z13.raw_payload).toContain("CCI++Z13'CAV+S17")
  }
- const source=await receiveZ14(p,changed);await process(p,source)
+ const source=await receiveZ14(p,changed)
+ if(target==='environment')await expect(process(p,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
+ else await process(p,source)
  expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
 })
 
 it('actual Z14 permission still grants no access: separate public publication, genuine E66 storage/ACK, scoped projection, and refreshed revocation',async()=>{
  const p=await pendingZ14(),outsider=await pendingZ14(),foreignBefore=z14Market(outsider),{f}=p
  expect(outsider.f.point).toBe(f.point);expect(foreignBefore.permission.id).toBe(outsider.permissionId)
- await firstPositive(p);expect(z14Market(outsider)).toEqual(foreignBefore)
+ const source=await firstPositive(p);expect(z14Market(outsider)).toEqual(foreignBefore)
  const link=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_assignment_permission_links WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)} AND permission_id=${lit(p.permissionId)}`)
  const grant=await f.command({action:'create_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,fields:{permission_link_id:link,object_ids:[f.point],product_ids:[f.product],fields:f.fields.field_sets,data_start:f.fields.data_start,data_end:f.fields.data_end,valid_from:f.fields.valid_from,valid_to:f.fields.valid_to}})
  expect(grant).toMatchObject({status:'held',accessGranted:false})
@@ -222,4 +242,5 @@ it('actual Z14 permission still grants no access: separate public publication, g
  await expect(projectEdielSeriesToBeneficiary({...request,expectedGrantVersion:sql<number>(`SELECT to_jsonb(version) FROM public.ediel_data_access_grants WHERE id=${lit(grant.grantId)}`)})).rejects.toBeDefined()
  await expect(incoming.persist()).rejects.toBeDefined();await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toBeDefined()
  expect(stable()).toEqual(upstream);expect(z14Market(outsider)).toEqual(foreignBefore)
+ await committedReplies(p,source)
 })
