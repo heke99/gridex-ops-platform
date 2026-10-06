@@ -1,8 +1,11 @@
-import {randomUUID} from 'node:crypto'
+import {createHash, randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {importActorRegistryXml} from '@/lib/actor-registry/importActorRegistry'
+import {requireElRegistryRouteSource, requireRegistryDispatchSource, verifyElRegistryActor} from '@/lib/actor-registry/registryMarketSource'
+import {resolveCustomerInfoOperationEnvironment} from '@/lib/ediel/customerInfoEnvironmentResolver'
 import {sendOutboxItem} from '@/lib/ediel/outbox/sendOutboxItem'
 import {enqueueCustomerDataRequestAutomation, processCustomerOperationJobs} from '@/lib/customer-operations/automation'
 import {resolveCustomerSiteProcessContext} from '@/lib/customer-operations/customerSiteProcessContext'
@@ -43,21 +46,63 @@ export type Z01SupplierNativeFixture = NormalSwitchStageNativeFixture & {
   customerAddress: ExternalZ02Address
   customerMasterdataSource: SourceQualifiedCustomerMasterdataProjection
   installationAddress: ExternalZ02Address
+  registry: Awaited<ReturnType<typeof importZ01RegistryFixture>> & {
+    dispatchSource: Awaited<ReturnType<typeof requireRegistryDispatchSource>>
+    environmentResolution: Awaited<ReturnType<typeof resolveCustomerInfoOperationEnvironment>>
+  }
 }
 
 function phaseFailure(phase: string, observations: unknown): never {
   throw new Error(`native_z01_${phase}:${JSON.stringify(observations)}`)
 }
 
+async function importZ01RegistryFixture(f: NormalSwitchStageNativeFixture) {
+  const adminState = () => sql<{rows: Row[]; allowed: boolean}>(`SELECT jsonb_build_object('rows',
+    (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY id),'[]') FROM public.admin_users a WHERE user_id=${literal(f.actorUserId)}),
+    'allowed',public.canonical_actor_is_platform_admin(${literal(f.actorUserId)}))`)
+  const adminBefore = adminState(), grantId = randomUUID()
+  expect(adminBefore).toEqual({rows: [], allowed: false})
+  const name = sql<string>(`SELECT to_jsonb(name) FROM public.platform_market_actors WHERE id=${literal(f.marketActorId)}`)
+  const xmlText = (value: string) => value.replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'}[char]!))
+  // This is a declared synthetic registry upload, not an issuer's attestation.
+  const xml = `<Market Code="EL" Country="SE"><Company><Name>${xmlText(name)}</Name><Key Type="EdielId">${xmlText(f.receiver)}</Key><Role>DSO</Role><EDIFACTDetails Type="PRODAT"><Environment>test</Environment><ApplicationReference>23-DDQ-PRODAT</ApplicationReference><PartyId>${xmlText(f.receiver)}</PartyId><InterchangePartyId>${xmlText(f.receiver)}</InterchangePartyId><CommunicationAddress Type="SMTP">recipient@example.invalid</CommunicationAddress></EDIFACTDetails></Company></Market>`
+  let importResult: Awaited<ReturnType<typeof importActorRegistryXml>>, verification: Awaited<ReturnType<typeof verifyElRegistryActor>>, routeId: string
+  try {
+    // Public prospective administrative input, confined to these two real
+    // producers. No preparation, worker, source reader or send runs as admin.
+    sql(`INSERT INTO public.admin_users(id,user_id,role,is_active,metadata) VALUES(${literal(grantId)},${literal(f.actorUserId)},'platform_admin',true,'{"synthetic_native_registry_import":true}')`)
+    expect(adminState().allowed).toBe(true)
+    importResult = await importActorRegistryXml({xml, uploadedBy: f.actorUserId, sourceFilename: 'synthetic-z01-registry.xml'})
+    const routeIds: unknown = Reflect.get(importResult, 'routeIds'), actors: unknown = Reflect.get(importResult, 'actors')
+    if (!Array.isArray(routeIds) || routeIds.length !== 1 || typeof routeIds[0] !== 'string'
+      || !Array.isArray(actors) || actors.length !== 1) phaseFailure('registry_actual_import_ids_required', importResult)
+    routeId = routeIds[0]
+    const actorId = objectRecord(actors[0]).actorId
+    if (typeof actorId !== 'string' || actorId !== f.marketActorId) phaseFailure('registry_import_actor_mismatch', importResult)
+    verification = await verifyElRegistryActor({actorUserId: f.actorUserId, actorId, routeId})
+    expect(verification).toEqual({actorId, routeIds: [routeId], market: 'EL', autoSendAllowed: false})
+  } finally {
+    sql(`DELETE FROM public.admin_users WHERE id=${literal(grantId)} AND user_id=${literal(f.actorUserId)}`)
+    expect(adminState()).toEqual(adminBefore)
+  }
+  const adminAfter = adminState(), source = await requireElRegistryRouteSource(routeId)
+  expect(source).toMatchObject({actorId: f.marketActorId, routeId, market: 'EL', countryCode: 'SE', legalEdielId: f.receiver,
+    sourceSha256: createHash('sha256').update(xml, 'utf8').digest('hex'), roles: ['grid_owner'],
+    wire: {actorId: f.marketActorId, market: 'EL', family: 'PRODAT', environment: 'test', subaddress: null,
+      applicationReference: '23-DDQ-PRODAT', address: 'recipient@example.invalid', transport: 'SMTP', partyId: f.receiver, interchangePartyId: f.receiver}})
+  return {source, importResult, verification, adminBefore, adminAfter}
+}
+
 /** Declared disposable upstream inputs. The reused base owns genuine contract
  * publication/signature/PDF/authorization producers and its explicitly
  * synthetic signed source declarations; those are not real customer/issuer
- * approval. This file writes only public prospective process/address/routing
- * data. It never inserts source admission, assessments, snapshots, dispatch
+ * approval. This file writes public prospective process/address/routing/admin
+ * inputs and calls the real registry importer. It never inserts source admission, assessments, snapshots, dispatch
  * receipts, watches or an accepted response. SMTP is the sole injected port.
  */
 export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provider: (email: string) => void): Promise<Z01SupplierNativeFixture> {
   const f = await seedNormalSwitchNativeFixture({deferOriginal: true, requestedStartDate: futureNativeSupplyDate(), provider})
+  const registry = await importZ01RegistryFixture(f)
   const z01RouteId = randomUUID(), z01RouteProfileId = randomUUID(), ackRouteId = randomUUID(), ackRouteProfileId = randomUUID()
   const smtp = edielSmtpConfig()
   // Observe the existing producer's literal signed source through the same real
@@ -84,22 +129,31 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
       WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)};
     UPDATE public.grid_owners SET platform_market_actor_id=${literal(f.marketActorId)}
       WHERE id=${literal(f.gridId)} AND company_id=${literal(f.companyId)};
-    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
-      VALUES(${literal(z01RouteId)},${literal(f.companyId)},'Synthetic Z01 customer data route','customer_masterdata',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid'),
-      (${literal(ackRouteId)},${literal(f.companyId)},'Synthetic Z01 reply ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email,route_type,auth_config)
+      VALUES(${literal(z01RouteId)},${literal(f.companyId)},'Synthetic Z01 customer data route','customer_masterdata',${literal(f.gridId)},'bilateral_test',true,
+        ${literal(registry.source.wire.address)},'ediel_partner',jsonb_build_object('platform_actor_route_id',${literal(registry.source.routeId)})),
+      (${literal(ackRouteId)},${literal(f.companyId)},'Synthetic Z01 reply ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid','ediel_partner','{}');
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,
       sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,payload_format,transport_security_mode,
-      smtp_to,receiver_email,mailbox,smtp_host,smtp_port,message_family,business_code)
+      smtp_to,receiver_email,mailbox,smtp_host,smtp_port,message_family,business_code,message_code,receiver_source,transport_type,receiver_sub_address,metadata)
       VALUES(${literal(z01RouteProfileId)},${literal(f.companyId)},${literal(z01RouteId)},'Synthetic Z01 customer data profile','test','edifact',
-        ${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'edifact','unencrypted',
-        'recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},'PRODAT','Z01'),
+        ${literal(f.sender)},${literal(registry.source.wire.interchangePartyId)},${literal(registry.source.wire.applicationReference)},true,true,'edifact','unencrypted',
+        ${literal(registry.source.wire.address)},${literal(registry.source.wire.address)},${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},
+        'PRODAT','Z01','Z01','selected_metering_point_grid_owner','smtp',${literal(registry.source.wire.subaddress)},jsonb_build_object('platform_actor_route_id',${literal(registry.source.routeId)})),
       (${literal(ackRouteProfileId)},${literal(f.companyId)},${literal(ackRouteId)},'Synthetic Z01 reply generic ACK profile','test','edifact',
         ${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'edifact','unencrypted',
-        'recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},NULL,NULL);`)
+        'recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},NULL,NULL,NULL,NULL,'smtp',NULL,'{}');`)
+  const dispatchSource = await requireRegistryDispatchSource({companyId: f.companyId, communicationRouteId: z01RouteId,
+    routeProfileId: z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT'})
+  expect(dispatchSource).toMatchObject({...registry.source, companyId: f.companyId, communicationRouteId: z01RouteId,
+    routeProfileId: z01RouteProfileId, selectedApplicationReference: '23-DDQ-PRODAT'})
+  const environmentResolution = await resolveCustomerInfoOperationEnvironment({companyId: f.companyId,
+    explicitEnvironment: 'test', messageFamily: 'PRODAT', messageCode: 'Z01'})
+  expect(environmentResolution).toMatchObject({status: 'resolved', environment: 'test', routeProfileId: z01RouteProfileId, blocker: null})
   const process = await resolveCustomerSiteProcessContext({companyId: f.companyId, customerId: f.customerId, siteId: f.siteId})
   expect(process.processType, JSON.stringify(process)).toBe(processType)
   return {...f, variant, provider, z01RouteId, z01RouteProfileId, ackRouteId, ackRouteProfileId,
-    customerAddress, customerMasterdataSource, installationAddress}
+    customerAddress, customerMasterdataSource, installationAddress, registry: {...registry, dispatchSource, environmentResolution}}
 }
 
 function knownAreaSourceRows(f: Z01SupplierNativeFixture) {
@@ -181,7 +235,16 @@ export async function originateZ01SupplierRequest(f: Z01SupplierNativeFixture) {
   const requestId = String(requests[0].id)
   const originalZ01 = await getEdielMessageById(String(requests[0].ediel_message_id), {companyId: f.companyId})
   if (!originalZ01?.raw_payload) phaseFailure('original_unavailable', {worker, job, requests})
+  expect(originalZ01.communication_route_id).toBe(f.z01RouteId)
+  expect(originalZ01.route_profile_id).toBe(f.z01RouteProfileId)
+  expect(originalZ01).toMatchObject({environment: 'test', message_family: 'PRODAT', transport_type: 'smtp',
+    receiver_ediel_id: f.registry.source.wire.interchangePartyId, receiver_sub_address: f.registry.source.wire.subaddress,
+    receiver_email: f.registry.source.wire.address, application_reference: f.registry.source.wire.applicationReference})
   const wire = observeSentZ01Wire({rawPayload: originalZ01.raw_payload, point: f.external})
+  expect(wire.parties.transport.receiverComponents[0]).toBe(f.registry.source.wire.interchangePartyId)
+  expect(wire.parties.transport.receiverComponents[2] || null).toBe(f.registry.source.wire.subaddress)
+  expect(wire.parties.legalReceiver).toMatchObject({id: f.registry.source.legalEdielId, country: f.registry.source.countryCode})
+  expect(wire.parties.applicationReference).toBe(f.registry.source.wire.applicationReference)
   expect(wire.subtype).toBe(f.variant)
   expect(wire.gridAreaCode).toBe(f.gridAreaCode)
   expect(wire.customerIdentity).toEqual(f.customerIdentity)

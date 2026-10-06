@@ -399,6 +399,13 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
   it('public authorization-document archive and linked POA revocation refuse a fresh information request', async () => {
     const f = await createZ01SupplierNativeFixture(variant, provider)
     const operator = await createBilateralSourceOperator(f.companyId, ['customers.read', 'customers.write', 'operations.read', 'operations.write'])
+    // Declare this disposable caller's actual company write role. Permission
+    // keys alone do not satisfy the existing restrictive document-update RLS.
+    expect(sql(`WITH changed AS (UPDATE public.company_memberships SET membership_role='operations'
+      WHERE company_id=${literal(f.companyId)} AND user_id=${literal(operator.id)}
+      AND status='active' AND is_active RETURNING user_id) SELECT to_jsonb(count(*)) FROM changed`)).toBe(1)
+    const writeContext = await operator.client.rpc('gridex_can_write_company', {p_company_id: f.companyId})
+    expect(writeContext.error).toBeNull(); expect(writeContext.data).toBe(true)
     const revoked = await archiveCustomerAuthorizationDocument(operator.client, {documentId: f.authorizationDocumentId,
       reason: 'Synthetic current-authority refusal control', revokeLinkedPowerOfAttorney: true})
     expect(revoked.documentAfter.status).toBe('archived'); expect(revoked.revokedPowerOfAttorney?.status).toBe('revoked')
