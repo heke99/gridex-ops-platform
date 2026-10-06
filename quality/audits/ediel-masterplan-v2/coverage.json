@@ -2974,9 +2974,10 @@
     },
     {
       "id": "AT-P-01",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts"
       ]
     },
     {
