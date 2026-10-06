@@ -10,7 +10,7 @@ const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const raw='DECLARED exact generic original',hash=createHash('sha256').update(raw).digest('hex')
 const forward=new URL('../supabase/migrations/20261006205800_ediel_generic_requested_change_current_bridge.sql',import.meta.url)
 const signature='gridex_customer_life_events.require_current_v1(uuid,uuid,uuid,text)'
-const baseline={source:'declared_current_generic',revision:1}
+const baseline={source:'declared_current_generic',variant:'E',revision:1}
 async function setup(){
  const db=new PGlite()
  await db.exec(`CREATE ROLE declared_owner;CREATE ROLE declared_reader;
@@ -66,7 +66,10 @@ it.each([[4,'prepare'],[5,'send']] as const)('actual wrapper recognizes bound ge
  const db=await setup();try{const before=await state(db);expect((await db.query(call(actor,phase))).rows).toEqual([{result:null}]);expect(await state(db)).toEqual(before)}finally{await db.close()}
 },20000)
 it.each([['write-only sender',4,'send'],['foreign actor',9,'send'],['read phase',5,'read'],['unknown phase',5,'unexpected'],['null phase',5,null]] as const)('actual wrapper refuses %s without certification fallback',async(_label,actor,phase)=>{
- const db=await setup();try{const before=await state(db);await expect(db.query(call(actor,phase))).rejects.toMatchObject({code:'P0001'});expect(await state(db)).toEqual(before)}finally{await db.close()}
+ const db=await setup();try{
+  await db.exec(`UPDATE public.ediel_messages SET execution_context_snapshot='{"sourceQualifiedPositiveFixtureWitnessId":"DECLARED"}'`)
+  const before=await state(db);await expect(db.query(call(actor,phase))).rejects.toThrow(phase==='send'?'requested_change_original_current_source_required':'requested_change_execution_phase_required');expect(await state(db)).toEqual(before)
+ }finally{await db.close()}
 },20000)
 it.each([
  ['revoked or drifted current source',"UPDATE public.declared_current_source SET basis='{}'"],
@@ -75,6 +78,10 @@ it.each([
  ['foreign event company',`UPDATE gridex_requested_changes.events SET company_id='${id(9)}'`],
  ['different intent',`UPDATE gridex_requested_changes.origins SET intent_id='${id(9)}'`],
  ['different message',`UPDATE gridex_requested_changes.origins SET message_id='${id(9)}'`],
+ ['missing event','DELETE FROM gridex_requested_changes.events'],
+ ['different event kind',"UPDATE gridex_requested_changes.events SET event_kind='quarter_contract'"],
+ ['different event variant',"UPDATE gridex_requested_changes.events SET variant='F',event_kind='quarter_contract'"],
+ ['different event origin',`UPDATE gridex_requested_changes.origins SET event_id='${id(9)}'`],
  ['different event alias',`UPDATE public.ediel_messages SET source_operation_id='${id(9)}'`],
  ['changed raw',"UPDATE public.ediel_messages SET raw_payload='changed'"],
  ['changed origin hash',"UPDATE gridex_requested_changes.origins SET payload_hash=repeat('f',64)"],
@@ -104,7 +111,7 @@ it.each(['positive','negative'] as const)('unlinked declared %s certification re
 },20000)
 it.each(['E64','E32'])('non-E original %s retains existing delegation',async(reason)=>{
  const db=await setup();try{
-  await db.exec(`UPDATE gridex_requested_changes.events SET variant='${reason==='E64'?'F':'G'}',event_kind='${reason==='E64'?'quarter_contract':'method_contract'}';UPDATE public.ediel_messages SET raw_payload='DECLARED ${reason}'`)
+  await db.exec(`UPDATE gridex_requested_changes.events SET variant='${reason==='E64'?'F':'G'}',event_kind='${reason==='E64'?'quarter_contract':'method_contract'}';UPDATE gridex_requested_changes.origins SET basis=jsonb_set(basis,'{variant}','"${reason==='E64'?'F':'G'}"');UPDATE public.ediel_messages SET raw_payload='DECLARED ${reason}'`)
   expect((await db.query(call(4,'read'))).rows).toEqual([{result:{legacy:'other',phase:'read'}}])
  }finally{await db.close()}
 },20000)
