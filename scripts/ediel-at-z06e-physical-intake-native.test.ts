@@ -21,6 +21,8 @@ import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {requireEdielInboundLegalContext} from '@/lib/ediel/tenant/sourceLegalContext'
+import {supabaseService} from '@/lib/supabase/service'
 type Fixture=Awaited<ReturnType<typeof createBilateralCustomerSourceFixture>>
 function business(f:Fixture){return sql(`SELECT jsonb_build_object('customer',(SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}),'supply',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(f.period)}),'point',(SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(f.pointId)}),'site',(SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(f.siteId)}))`)}
 function durable(f:Fixture){return sql(`SELECT jsonb_build_object('versions',(SELECT count(*) FROM gridex_customer_life_events.customer_versions WHERE source_message_id=${literal(f.sourceMessageId)}),'primary',(SELECT count(*) FROM gridex_received_sources.customer_primary_response_receipts WHERE source_message_id=${literal(f.sourceMessageId)}),'transitions',(SELECT count(*) FROM gridex_customer_life_events.transitions WHERE source_message_id=${literal(f.sourceMessageId)}),'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'raw',raw_payload,'family',message_family,'outcome',ack_outcome) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(f.sourceMessageId)} AND direction='outbound'),'outboxes',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id IN(SELECT id FROM public.ediel_messages WHERE related_message_id=${literal(f.sourceMessageId)})))`)}
@@ -65,6 +67,40 @@ it.each(['bankruptcy','customer_change'] as const)('prospective original %s reac
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceMessageId})
  expect(await createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:f.sourceMessageId})).toEqual(ids)
  expect(durable(f)).toEqual(stable);expect(business(f)).toEqual(before)
+},120000)
+
+it('prospectively expired supplier role holds fresh physical original before canonical processing, effects and ACKs',async()=>{
+ for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)
+ // Complete accepted control first; only the actual public supplier role then
+ // expires BEFORE the separate original's mail reception and first persistence.
+ const f=await createBilateralCustomerSourceFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}),{physicalBirth:true,repeatRegister:false})
+ const sentBefore=delivery.smtp.mock.calls.length
+ const legal=await requireEdielInboundLegalContext(f.companyId,f.sourceMessageId)
+ expect(legal).toMatchObject({actorRole:'electricity_supplier',direction:'inbound',environment:'test'})
+ const before=business(f),e=EdifactEnvelopeCodec.decode(f.wire),reference=randomUUID().replaceAll('-','').slice(0,14).toUpperCase()
+ const body=e.segments.filter(s=>!['UNB','UNH','UNT','UNZ'].includes(s.tag)).map(s=>s.tag==='BGM'?'BGM+Z06+'+reference+'+9+AB':s.tag==='RFF'&&segmentComposite(s,1,e.una)[0]==='LI'?'RFF+LI:LI'+reference:s.raw)
+ const wire=EdifactEnvelopeCodec.encode({sender:e.sender!,receiver:e.receiver!,senderQualifier:e.senderQualifier,receiverQualifier:e.receiverQualifier,senderSubAddress:e.senderSubAddress,receiverSubAddress:e.receiverSubAddress,applicationReference:e.applicationReference,acknowledgementRequest:true,environment:'test',interchangeReference:reference,una:e.una,messages:[{messageReference:reference,messageTypeToken:e.segments.find(s=>s.tag==='UNH')!.elements[2],businessSegments:body}]})
+ expect(sql(`WITH expired AS(UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp()-interval '1 second' WHERE company_id=${literal(f.companyId)} AND environment='test' AND actor_id=${literal(legal.legalActorId)} AND role_code='electricity_supplier' AND valid_from<=clock_timestamp() AND (valid_to IS NULL OR clock_timestamp()<valid_to) RETURNING id) SELECT to_jsonb(count(*)) FROM expired`)).toBe(1)
+ expect(sql(`SELECT jsonb_build_object('write',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.write'),'send',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.send'))`)).toEqual({write:true,send:true})
+ const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:assertEdielSmtpReadiness().from})
+ const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed})
+ expect(id).toBeTruthy();if(!id)throw Error('actual_expired_role_physical_birth_required')
+ const message=await getEdielMessageById(id);expect(message).not.toBeNull();if(!message)throw Error('actual_expired_role_original_required')
+ const custody=()=>sql(`SELECT jsonb_build_object('raw',m.raw_payload,'company',m.company_id,'direction',m.direction,'received',m.message_received_at,'mail',m.inbound_email_message_id,'legal',(SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE r.source_message_id=m.id),'receptions',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM gridex_ediel_inbound_receptions.receptions r WHERE r.source_message_id=m.id)) FROM public.ediel_messages m WHERE m.id=${literal(id)}`)
+ const original=custody()
+ expect(original).toMatchObject({raw:wire,company:f.companyId,direction:'inbound',mail:mail.inboundEmailMessageId,legal:{status:'held',reason:'ediel_inbound_legal_context_required',payload_sha256:createHash('sha256').update(wire).digest('hex')}})
+ const context=await supabaseService.rpc('ediel_require_inbound_legal_context_v1',{p_company_id:f.companyId,p_message_id:id})
+ expect(context.error).toMatchObject({code:'P0001',message:'ediel_inbound_legal_context_required'})
+ await expect(requireEdielInboundLegalContext(f.companyId,id)).rejects.toThrow('ediel_inbound_legal_context_required')
+ const none=()=>sql(`SELECT jsonb_build_object('assessments',(SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(id)}),'ruleBasis',(SELECT count(*) FROM gridex_ediel_source_rules.receipts WHERE source_message_id=${literal(id)}),'tasks',(SELECT count(*) FROM gridex_customer_life_events.tasks WHERE source_message_id=${literal(id)}),'facets',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE source_message_id=${literal(id)}),'availability',(SELECT count(*) FROM gridex_requested_changes.customer_version_availability WHERE source_message_id=${literal(id)}))`)
+ const source={...f,sourceMessageId:id,message,wire}
+ for(let attempt=0;attempt<2;attempt++){
+  expect(await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:id})).toMatchObject({tenant_resolution_status:'tenant_ambiguous',business_match_status:'business_blocked',processing_status:'routing_unresolved'})
+  expect(none()).toEqual({assessments:0,ruleBasis:0,tasks:0,facets:0,availability:0})
+  expect(durable(source)).toEqual({versions:0,primary:0,transitions:0,acks:[],outboxes:0})
+  expect(custody()).toEqual(original);expect(business(f)).toEqual(before)
+ }
+ expect(delivery.smtp).toHaveBeenCalledTimes(sentBefore)
 },120000)
 
 it.each(['216','251'] as const)('fresh physical original missing own field %s has its actual diagnostic and no customer effect or positive APERAK',async field=>{
