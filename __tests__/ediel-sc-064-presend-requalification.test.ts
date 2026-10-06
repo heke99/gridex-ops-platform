@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
+import { assertRegistryRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
+import { createUtiltsFinalValidationIo as registryFixture } from './helpers/utiltsFinalValidationFixture'
 import { source } from './fixtures/prodat-identity'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
@@ -7,7 +10,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 // This file does not prove native decisions or authorize whole-ID approval.
 const io = vi.hoisted(() => ({
   get: vi.fn(), from: vi.fn(), runtime: vi.fn(), rpc: vi.fn(), send: vi.fn(),
-  readiness: vi.fn(), project: vi.fn(),
+  readiness: vi.fn(), project: vi.fn(), provider: vi.fn(), realTransport: false,
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get }))
@@ -16,7 +19,12 @@ vi.mock('@/lib/ediel/config', async importOriginal => ({
   getEdielRouteRuntimeByCommunicationRouteId: io.runtime,
 }))
 vi.mock('@/lib/ediel/outbox/readinessGuard', () => ({ getEdielOutboundReadinessBlocker: io.readiness }))
-vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: io.send }))
+vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: async (...args: Parameters<typeof import('@/lib/ediel/transport')['sendEdielMessageViaSmtp']>) => {
+  if (io.realTransport) return (await import('@/lib/ediel/transport/index.part-2')).sendEdielMessageViaSmtp(...args)
+  return io.send(...args)
+} }))
+vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: io.provider }))
+vi.mock('@/lib/ediel/core/versionRegistry', () => ({ resolveCanonicalOutboundVersion: async () => 'E5SE5A' }))
 vi.mock('@/lib/ediel/transport/acceptedProjection', () => ({ readAcceptedEdielTransportProjection: async () => null }))
 vi.mock('@/lib/ediel/outbox/projectSentSources', () => ({ projectSentEdielSourceState: io.project }))
 import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
@@ -33,6 +41,7 @@ const send = () => sendOutboxItem({ actorUserId: 'own-worker', outboxItemId: 'ow
 
 beforeEach(() => {
   vi.clearAllMocks()
+  io.realTransport = false
   vi.useFakeTimers({ toFake: ['Date'] }).setSystemTime(new Date(at))
   message = { ...source("UNB+immutable-original'", 'Z03'), id: 'own-message', company_id: 'own-company', environment: 'test', direction: 'outbound', status: 'queued',
     communication_route_id: 'own-route', message_family: 'PRODAT', message_code: 'Z03', application_reference: '23-DDQ-PRODAT',
@@ -117,6 +126,48 @@ describe('SC-064 current queue reconsideration at the actual worker boundary', (
       route_contract_snapshot: { route_id: 'own-route', receiver_email: 'old@example.invalid', evaluated_at: at } })
     expect(queued.route_contract_fingerprint).not.toBe('old-route')
     expectNoDispatch(original)
+  })
+
+
+  it('the actual transport rejects a complete old protected basis after real current registry requalification', async () => {
+    vi.setSystemTime(new Date('2026-09-30T10:00:00Z'))
+    const draft = await buildUtiltsOutboundDraft({ code: 'E73', environment: 'test', senderEdielId: '11111', receiverEdielId: '22222',
+      applicationReference: '23-DDQ-E66-S', externalReference: 'SC064-DOC', transactionReference: 'SC064-TX',
+      payload: { legalSenderEdielId: '33333', legalReceiverEdielId: '44444', meterPointId: '735999100001686670', gridAreaId: 'TES',
+        periodStart: '2026-09-30T00:00:00+01:00', periodEnd: '2026-10-01T00:00:00+01:00', registrationTime: '2026-10-01T10:00:00+01:00', siteType: 'Consumption' } })
+    message = { ...message, message_family: 'UTILTS', message_code: 'E73', message_version: 'E5SE5A', message_standard: 'edifact',
+      raw_payload: draft.rawPayload, parsed_payload: {}, application_reference: draft.applicationReference,
+      sender_ediel_id: '11111', receiver_ediel_id: '22222', created_at: '2026-09-30T10:00:00Z', message_sent_at: null }
+    const registry = registryFixture(), tenantRpc = io.rpc.getMockImplementation()!
+    let protectedBasis: Record<string, unknown> | undefined
+    io.rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+      if (name === 'ediel_capture_source_rule_pack_basis_v1') {
+        expect(args).toEqual({ p_company_id: message.company_id, p_message_id: message.id })
+        expect(protectedBasis).toBeDefined()
+        return Promise.resolve({ data: structuredClone(protectedBasis), error: null })
+      }
+      if (name === 'gridex_ediel_negative_fixture_read_v1') return Promise.resolve({ data: null, error: null })
+      const result = registry(name, args)
+      if (result) return result
+      return tenantRpc(name, args)
+    })
+    const previous = await assertRegistryRulebookAllowsSend(message)
+    expect(previous?.canonicalPolicy?.guide.guideRevision).toBe('25-A-3')
+    const old = previous!.rulePackSnapshot!
+    protectedBasis = { rulePackId: '33333333-3333-4333-8333-333333333333', messageProfileId: old.profileVersionId,
+      profileKey: old.profileKey, version: old.version, sourceHash: old.checksum,
+      snapshot: { profileKey: old.profileKey, profileVersionId: old.profileVersionId, version: old.version, checksum: old.checksum } }
+    message.validation_report = { priorAdmissionDecision: { version: old.version, profileKey: old.profileKey } }
+    const original = structuredClone(message)
+    vi.setSystemTime(new Date(at))
+    const current = await assertRegistryRulebookAllowsSend(message)
+    expect(current?.canonicalPolicy?.guide.guideRevision).toBe('25-A-4')
+    Object.assign(route, { message_family: 'UTILTS', business_code: 'E73', application_reference: '23-DDQ-E66-S' })
+    io.realTransport = true
+    expect(await send()).toEqual({ status: 'failed', messageId: null, error: 'ediel_send_original_rule_pack_mismatch' })
+    expect(queued).toMatchObject({ status: 'failed', last_error: 'ediel_send_original_rule_pack_mismatch' })
+    expect(io.rpc.mock.calls.filter(([name]) => name === 'ediel_capture_source_rule_pack_basis_v1')).toHaveLength(1)
+    expect(io.provider).not.toHaveBeenCalled(); expectNoDispatch(original)
   })
 
   it('an unchanged allowed route reaches transport once with a fresh trace and the same bytes', async () => {

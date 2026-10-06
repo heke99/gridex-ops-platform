@@ -108,6 +108,8 @@ describe('AT-Z08LK protected closure flow and actual queue gateway', () => {
   it.each([
     ['tenant', { companyId: id(99) }], ['environment', { environment: 'production' }],
     ['legal receiver', { receiverEdielId: 'OTHER' }], ['application', { applicationReference: '23-DGI-PRODAT' }],
+    ['legal actor', { actor: { tenantIdentity: { legalActorId: id(99) }, legalActorEdielId: '12345', marketRoles: ['electricity_supplier'] } }],
+    ['legal sender', { actor: { tenantIdentity: { legalActorId: id(10) }, legalActorEdielId: 'OTHER', marketRoles: ['electricity_supplier'] } }],
     ['role', { actor: { tenantIdentity: { legalActorId: id(10) }, legalActorEdielId: '12345', marketRoles: ['electricity_esco'] } }],
   ])('refuses changed %s on the real legal route guard before any new intent', async (_label, patch) => {
     Object.assign(route, patch)
@@ -194,6 +196,21 @@ describe('AT-Z08LK protected closure flow and actual queue gateway', () => {
     io.finalize.mockRejectedValue(Error('current_native_original_refused'))
     await expect(gateway()).rejects.toThrow('current_native_original_refused')
     expectNoQueue()
+  })
+
+
+  it.each(['intent_id', 'source_operation_id', 'outbound_request_id', 'environment'])('rejects changed existing-original %s without a queue replay', async key => {
+    intent.edielMessageId = original.id; original.status = 'sent'
+    Object.assign(original, { [key]: key === 'environment' ? 'production' : id(99) })
+    await expect(gateway()).rejects.toThrow('bilateral_closure_existing_original_scope_mismatch')
+    expect(io.rpc).not.toHaveBeenCalled(); expect(io.render).not.toHaveBeenCalled(); expect(io.finalize).not.toHaveBeenCalled(); expectNoQueue()
+  })
+
+  it('public sent status cannot bypass the protected original qualification', async () => {
+    intent.edielMessageId = original.id; original.status = 'sent'
+    io.rpc.mockResolvedValue({ data: null, error: null })
+    await expect(gateway()).rejects.toThrow('bilateral_closure_existing_original_unqualified')
+    expect(io.render).not.toHaveBeenCalled(); expect(io.finalize).not.toHaveBeenCalled(); expectNoQueue()
   })
 
   it('a qualified already sent original is reused without render, queue or lifecycle replay', async () => {
