@@ -941,3 +941,19 @@ Mainactual290 distinct. Same12reservations/frozenhead/no role/nextpair.
 Next95bc collect finalcurrentexecution reviews andallmandatorycurrenthead
 terminalSUCCESS, refreshmain/claims/preview thenfreeatomicmerge role and
 expectedheadnormalmerge, actualmainreceipt beforematchedrole releasefirst.
+
+## Both FINAL_CURRENT_EXECUTION_WHOLE_APPROVE exactc726
+
+Both sc064 andz08lk independently approve bothfrozenZ05 codecontracts on
+currentexecutedc726. Both independently recomputedALL9284Gitinputhashes/
+ZIPdigestCRC/39originalJUnit0failerror skip/actualexit0/primaryfinalhistory
+andreplaytails; bytes product/unit/native/helper/workflow exactwhole9a.
+z08lk independently liveAPI run/job/artifact/head; sc064 proxytransportcurl7
+prevented ownliveAPIrefetch, inspectedroot successfulauthenticatedqualification
+andfreshrawsnapshot instead; localoriginalproof/Git checks fullyindependent.
+No source/whole gap, no findings. Normalmergepreview all350foreignrows
+preserved/onlyown2/292confirmed. Authenticcurrentreceipt5306026510804,
+PR6366026511213. Upgrade nowSUCCESS; clean/quality/certificate stillpending.
+Next95bc recordbothfinalreviews onPR and530, continueexactfrozenc726/current
+mandatoryallSUCCESS thenfreshroles/main/resources/expectedmerge receipt.
+NoCI_GREEN/MERGED/external/newpair/role.
