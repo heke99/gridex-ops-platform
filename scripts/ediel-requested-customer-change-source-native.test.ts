@@ -59,6 +59,8 @@ it('genuine generic death archive and separate review reach the actual Z09 gatew
  expect(sql(`SELECT jsonb_build_object('write',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.write'),'send',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.send'))`)).toEqual({write:true,send:true})
  const scope={companyId:f.companyId,eventId:reviewed.eventId,actorUserId:f.actorUserId,preferredRouteId:f.customerRouteId}
  expect(await readRequestedChangeSource(scope)).toMatchObject({status:'authorized',eventId:reviewed.eventId,eventKind:'death'})
+ let stage='gateway'
+ try{
  const result=await prepareAndQueueProdatRequestedChange(scope)
  expect(result.status).toBe('queued');if(result.status==='held')throw Error('actual_death_original_gateway_required')
  const message=result.message,e=EdifactEnvelopeCodec.decode(message.raw_payload)
@@ -69,17 +71,26 @@ it('genuine generic death archive and separate review reach the actual Z09 gatew
  expect(segmentComposite(e.segments.find(s=>s.tag==='NAD'&&segmentComposite(s,1,e.una)[0]==='UD')!,2,e.una)).toEqual([f.customerIdentity.id,'SE2','260'])
  expect(segmentComposite(e.segments.find(s=>s.tag==='DTM'&&segmentComposite(s,1,e.una)[0]==='157')!,1,e.una)).toEqual(['157',f.marketMinute,'203'])
  expect(e.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,e.una)[0]==='LI')).toHaveLength(1)
+ stage='gateway_retry'
  expect(await prepareAndQueueProdatRequestedChange(scope)).toMatchObject({status:'existing',message:{id:message.id,raw_payload:message.raw_payload}})
  expect(deathBusiness(f)).toEqual(before)
  const calls=delivery.smtp.mock.calls.length
  // This successful-send oracle deliberately exposes any genuine current
  // consumer incompatibility; no historical-source refusal is suppressed.
+ stage='fresh_send'
  expect(await sendEdielMessageViaSmtp(message,{actorUserId:f.actorUserId})).toMatchObject({accepted:['recipient@example.invalid'],rejected:[],messageId:expect.any(String)})
  expect(delivery.smtp).toHaveBeenCalledTimes(calls+1)
  const sent=await supabaseService.from('ediel_messages').select('raw_payload,message_sent_at').eq('id',message.id).single();expect(sent.error).toBeNull()
  expect(sent.data?.raw_payload).toBe(message.raw_payload);expect(sent.data?.message_sent_at).toBeTruthy()
  expect(sql(`SELECT jsonb_build_object('primary',(SELECT count(*) FROM gridex_customer_life_events.customer_versions WHERE company_id=${literal(f.companyId)}),'desired',(SELECT count(*) FROM gridex_customer_life_events.desired_changes WHERE company_id=${literal(f.companyId)}),'confirmed',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE company_id=${literal(f.companyId)}),'automaticZ06',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_code='Z06'))`)).toEqual({primary:0,desired:0,confirmed:0,automaticZ06:0})
  expect(deathBusiness(f)).toEqual(before)
+ }catch(error){
+  try{
+   const diagnostic=sql(`SELECT jsonb_build_object('status',current_basis->>'status','missing',current_basis->'missing','basisEqual',current_basis=o.basis,'differentKeys',(SELECT jsonb_agg(k ORDER BY k) FROM (SELECT jsonb_object_keys(current_basis||o.basis) k) keys WHERE current_basis->k IS DISTINCT FROM o.basis->k),'originalCount',(SELECT count(*) FROM public.ediel_messages m WHERE m.company_id=o.company_id AND m.intent_id=o.intent_id),'timezone',current_setting('TimeZone')) FROM gridex_requested_changes.origins o CROSS JOIN LATERAL (SELECT gridex_requested_changes.context_v1(o.company_id,o.event_id,${literal(f.actorUserId)},'communication.send') AS current_basis) current_source WHERE o.company_id=${literal(f.companyId)} AND o.event_id=${literal(reviewed.eventId)}`)
+   console.warn('generic_death_native_failure',JSON.stringify({stage,diagnostic}))
+  }catch{console.warn('generic_death_native_failure',JSON.stringify({stage,diagnostic:'unavailable'}))}
+  throw error
+ }
 },120000)
 
 it('genuine reviewed death event qualifies only its own physical Z06 confirmed facet and committed history; orphan and retry have no primary customer effect',async()=>{

@@ -6,6 +6,7 @@ import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveAssignedSupplyBirthProfile } from '@/lib/inbound-mail/assignedSupplyBirthProfile'
+import { resolveNormalSwitchBirthProfile } from '@/lib/inbound-mail/normalSwitchBirthProfile'
 import { resolveCustomerSourceBirthProfile } from '@/lib/inbound-mail/customerSourceBirthProfile'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
@@ -420,6 +421,7 @@ export async function createInboundEdielMessage(input: {
   insertPayload.message_received_at=new Date(mailSource.received_at).toISOString()
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z04') {
     const birthProfile = await resolveAssignedSupplyBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+      ?? await resolveNormalSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z06') {

@@ -563,3 +563,6 @@ CORRECTION to6024730721 / normal intake authoring — same93e/30refs. I reported
 
 
 Corrected meaningful normal intake RED against unchanged updater:8cases2PASS6FAIL/EXIT1, log /tmp/gridex-e-normal-intake-corrected-red.log. Actual duplicate no-reselection controlsPASS; expected catalog resolver nevercalled and catalog/association errors absent before new source birth. Earlier initial8FAIL is test-port authoring error preserved, superseded by this actualRED. Next minimum existing Z04 integration only; byteexact released module/tests unchanged.
+
+
+Meaningful corrected normal intake GREEN: exact8 newcaller casesPASS, unchanged reused35normalmodulecasesPASS, all9affectedfiles166PASS/EXIT0/3.46s. Minimal common composition is assigned-first, normal onlyonnull, afterrealmailreceipt clock and immutable duplicatecheck, beforefirstINSERT. Byteexact released4dd2 remainsunaltered; actual positive catalog witness only, no productionreadyclassificationseed. Types/lintcurrentlyrunning. Nativegenericfailure-only stage diagnostics nowauthored fromapprovedplan6024730721; originalsuccessoracles/errorpreserved, no IDs/rawvalues logged. Nextthisowner exactsourcecommit +independentnormal/caller/diagnosticreview thenpublishgenuine21 native/currentCI. Supportedfull8f12091PASS distinct; freshfullafterfinalnormal source needed.
