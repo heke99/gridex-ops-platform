@@ -17,7 +17,7 @@ export async function resolveAssignedSupplyBirthProfile(input: { rawPayload: str
   const scopes = prodatRegisterRuleScopes('223', segments, una, 'Z04') ?? []
   // Later-register and header occurrences are physical too, even when the
   // normative common-field projection selects only an object's first register.
-  const physicalQualifiers = segments.filter(token => token.tag === 'CCI' && segmentComposite(token, 2, una)[0] === 'Z13')
+  const physicalQualifiers = segments.filter(token => token.tag === 'CCI' && (segmentComposite(token, 2, una)[0] ?? '').trim().toUpperCase() === 'Z13')
   if (physicalQualifiers.length !== scopes.length) return null
   const physicalReasons = prodatCharacteristicValues('223', segments, una)
   const reason = physicalReasons[0]
