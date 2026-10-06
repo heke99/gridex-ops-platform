@@ -1113,7 +1113,7 @@ fail andfirstfakepsqlfailure; exactbytes/modes/inventory andownCLItrace,
 zeroDB/Docker/network. Temporarybuffersalwaysremoved; don'trewritehistorical
 manifesthashes. Proposedunique __tests__/gridex-aud-003-clean-replay-cleanup.test.ts
 plusexistingunclaimedcanonicalscript requirefreshcreate-onlyexactlocks BEFORE
-authoring, after636actualcloseout. Existing94? immutableoldnative/failures
+authoring, after636actualcloseout. Historical immutable native/failure receipts
 unchanged, allmandatorypositivecanonicalreplay required afterfix.
 Next95bc remains current39/fullclean/allgates/currentexecutionpeers then
 actualmerge/role-firstmemory/12release; no nextpacket or roles taken.
