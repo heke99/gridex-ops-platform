@@ -8,6 +8,8 @@ vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrel
 import {createRequestedCustomerChangeNativeFixture} from './helpers/ediel-requested-customer-change-native-fixture'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {archiveRequestedCustomerChangeSource,readRequestedCustomerChangeSourceArtifact,readRequestedCustomerChangeSourceBytes,reviewRequestedCustomerChangeSourceArtifact} from '@/lib/ediel/production/requestedCustomerChangeSource'
+import {readRequestedCustomerChangeFacts,requestedCustomerChangeRegisterFacts} from '@/lib/ediel/production/requestedCustomerChangeFacts'
+import {readCustomerLifeEventSource} from '@/lib/ediel/production/lifeEventSource'
 import {prepareAndQueueRequestedCustomerChange} from '@/lib/ediel/flows/prodatRequestedCustomerChange'
 import {resolveCanonicalActorContext} from '@/lib/ediel/core/actorRegistry'
 import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
@@ -29,8 +31,17 @@ it('actual independent outgoing review publishes exact immutable non-death event
  await expect(reviewRequestedCustomerChangeSourceArtifact({artifactId:artifact.artifactId,sourceHash:artifact.sourceHash,claimsHash:artifact.claimsHash,...scope,decision:'approve',reason:'Synthetic self approval',clause:f.clause})).rejects.toMatchObject({message:'requested_customer_change_separate_reviewer_required'})
  const reviewed=await reviewRequestedCustomerChangeSourceArtifact({artifactId:artifact.artifactId,sourceHash:artifact.sourceHash,claimsHash:artifact.claimsHash,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic separate whole original review',clause:f.clause});expect(reviewed.status).toBe('authorized');if(reviewed.status!=='authorized')throw Error('genuine_outgoing_review_required')
  expect(sql(`SELECT jsonb_build_object('classification',classification,'payload',approved_raw_payload,'death',allowed_customer_fields@>ARRAY['310'])FROM gridex_customer_life_events.events WHERE id=${literal(reviewed.eventId)}`)).toEqual({classification:'other_masterdata',payload:f.rawPayload,death:false})
+ const basis=await readCustomerLifeEventSource({...scope,eventId:reviewed.eventId});expect(basis.status).toBe('authorized');if(basis.status!=='authorized')throw Error('genuine_selection_event_basis_required')
+ const selectedScope={...scope,eventId:reviewed.eventId,basis},selection=await readRequestedCustomerChangeFacts(selectedScope)
+ expect(selection?.status).toBe('qualified');if(selection?.status!=='qualified')throw Error('genuine_signed_selection_required')
+ const selectedFacts=requestedCustomerChangeRegisterFacts(selection,selectedScope)
+ expect(selectedFacts.endUserAddressObjects).toEqual([expect.objectContaining({meteringPointId:basis.pointId,availability:'available',source:expect.objectContaining({kind:'caller_selection',companyId:f.companyId})})])
+ expect(selectedFacts.invoiceeObjects).toHaveLength(1)
+ expect(()=>requestedCustomerChangeRegisterFacts({...selection},selectedScope)).toThrow('selected_facts_invalid')
+ await expect(readRequestedCustomerChangeFacts({...selectedScope,basis:{...basis,sourceDigest:'f'.repeat(64)}})).rejects.toThrow('selected_facts_invalid')
  const again=await reviewRequestedCustomerChangeSourceArtifact({artifactId:artifact.artifactId,sourceHash:artifact.sourceHash,claimsHash:artifact.claimsHash,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic current idempotent review',clause:f.clause});expect(again).toMatchObject({eventId:reviewed.eventId})
  sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from,valid_to)VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},'ediel.source.review','deny',true,now()-interval '1 day',now()+interval '1 day')`)
+ expect(await readRequestedCustomerChangeFacts(selectedScope)).toMatchObject({status:'held'})
  expect((await readRequestedCustomerChangeSourceArtifact({...scope,artifactId:artifact.artifactId})).status).toBe('held');expect(await prepareAndQueueRequestedCustomerChange({...scope,artifactId:artifact.artifactId})).toMatchObject({status:'held'})
 })
 it('actual qualified outgoing source reaches the existing atomic original/intent/outbox gateway and immutable retry',async()=>{
