@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p tr09-current-native-working
-          native_tests=(scripts/ediel-at-tr09-current-native.test.ts scripts/ediel-at-z04d-production-native.test.ts)
+          native_tests=(scripts/ediel-transport-exception-native.test.ts scripts/ediel-tr-09-reserve-source-native.test.ts)
           export TR09_CURRENT_NATIVE_TEST_SCOPE
           TR09_CURRENT_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
           python3 - <<'PY'
@@ -131,7 +131,7 @@ jobs:
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
           native_exit=0
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
-            --config scripts/ediel-at-tr09-current-native.config.ts \
+            --config scripts/ediel-tr09-current-native.config.ts \
             "${native_tests[@]}" \
             --reporter=default --reporter=junit \
             --outputFile=tr09-current-native-working/native-junit.xml \
