@@ -338,3 +338,21 @@ clean/certificate, acquire merge role only current-head green, expected-head
 merge and document actualmain. Retarget626 main afteractual625merge. Meanwhile
 implement only own Z08LK missing R/D real-finalizer consumer proof through
 existing source seams and review; no next pair or coverage approval yet.
+
+## R/D extension before code / actual CI started
+
+Own additional file__tests__/ediel-at-z08lk-real-finalizer-rd.test.ts POST+GET-confirmed
+ata6cdc559c4eba5d69569e2bd0ae560a5b54b9ba2, samepacket, resourcefile-1f128f7989ede052ce1b679c1178e070a62bb9fdbc55878242b01fd45caa03e0.
+Branchcodex/ediel-z08lk-rd-95bc00df11da; independent real-finalizer consumer cases
+will execute actual kernel, policy validator and protected decoders through
+declared finite DB/authorization/duplicate ports. Malformed candidate is bound
+after mutation to actual decoded customer projection, avoiding stale-binding
+only proof. Exact field262/activatedIV omission must refuse before protected
+original create RPC, legacy persistence, queue or lifecycle effects. No native
+source/profile/DB permission or whole LK approval claim. Next: CLAIM530 then
+implement isolated owned file, verify/review and publish small follow-up.
+
+626 initially had no workflows on source-branch base. Retargeted via REST to
+main and reopened own draft; actual runs37484780579 native and37484780167OPS
+plus ordinary Ediel/browser/full queued.625 source/checks unchanged. Current
+main6e2e8df4 includes actual619/623 component deliveries, no own merge yet.
