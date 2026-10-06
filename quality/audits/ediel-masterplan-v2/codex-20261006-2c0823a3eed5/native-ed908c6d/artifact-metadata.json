@@ -1,0 +1,19 @@
+{
+  "id": 11430763164,
+  "name": "ediel-z15c-z18v-native-ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
+  "size_in_bytes": 3954,
+  "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11430763164",
+  "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11430763164/zip",
+  "expired": false,
+  "created_at": "2026-10-06T17:31:27Z",
+  "expires_at": "2026-10-20T17:31:26Z",
+  "updated_at": "2026-10-06T17:31:27Z",
+  "digest": "sha256:c94f93e90a004432286c31c94c6fb40e7a30ee3c0888d789d5cf1be67bb7c22d",
+  "workflow_run": {
+    "id": 37503523124,
+    "repository_id": 1190539955,
+    "head_repository_id": 1190539955,
+    "head_branch": "codex/ediel-codex-20261006-2c0823a3eed5",
+    "head_sha": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6"
+  }
+}

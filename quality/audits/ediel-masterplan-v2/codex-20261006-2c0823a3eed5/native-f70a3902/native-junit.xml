@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="11" failures="1" errors="0" time="108.541651032">
+    <testsuite name="scripts/ediel-at-z15c-z18v-esco-native.test.ts" timestamp="2026-10-06T16:49:39.279Z" hostname="runnervm8df0l" tests="11" failures="1" errors="0" skipped="0" time="108.541651032">
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="unsolicited received Z15 then exact Z15C restores only its market permission, with genuine own ACKs and a still-revoked grant" time="7.261868724">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign LI cannot restore the real ended permission or emit positive APERAK" time="5.132970785">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign Z09 cannot restore the real ended permission or emit positive APERAK" time="4.430306858">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign object cannot restore the real ended permission or emit positive APERAK" time="4.224287133">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign DTM164 cannot restore the real ended permission or emit positive APERAK" time="4.583982939">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="every required common/own/UD Z15C omission reaches its actual syntax/guide/field barrier without market, grant or positive APERAK effects" time="48.666535036">
+            <failure message="expected [ …(2) ] to deeply equal []" type="AssertionError">
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   &quot;required Z15C field 209: prodat_canonical_source_validation_unconfirmed&quot;,
++   &quot;required Z15C field 223: {\&quot;code\&quot;:\&quot;P0001\&quot;,\&quot;details\&quot;:null,\&quot;hint\&quot;:null,\&quot;message\&quot;:\&quot;ediel_historical_rule_pack_basis_unavailable\&quot;}&quot;,
++ ]
+
+ ❯ scripts/ediel-at-z15c-z18v-esco-native.test.ts:262:29
+            </failure>
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual Z15C consumer refuses foreign tenant/actor selectors and native source raw/direction mutation before restoring the unchanged qualified original" time="6.030401591">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual current legal role prevents Z15C restoration and positive APERAK after a genuine prior received ending" time="4.978488871">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual ESCO terminate command protects a shared active mission then sends its source-qualified Z18 and consumes physical ACKs and matching Z15" time="13.70960819">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual Z18 origination rejects a foreign tenant actor and a missing current legal ESCO role before any wire or provider effect" time="3.330663017">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="every required common/own/UD Z18V omission is rejected by the actual registry and send consumer without modifying the queued original or entering SMTP" time="6.191041772">
+        </testcase>
+    </testsuite>
+</testsuites>
