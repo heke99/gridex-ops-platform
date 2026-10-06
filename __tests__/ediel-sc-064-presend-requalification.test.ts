@@ -135,11 +135,11 @@ describe('SC-064 current queue reconsideration at the actual worker boundary', (
       applicationReference: '23-DDQ-E66-S', externalReference: 'SC064-DOC', transactionReference: 'SC064-TX',
       payload: { legalSenderEdielId: '33333', legalReceiverEdielId: '44444', meterPointId: '735999100001686670', gridAreaId: 'TES',
         periodStart: '2026-09-30T00:00:00+01:00', periodEnd: '2026-10-01T00:00:00+01:00', registrationTime: '2026-10-01T10:00:00+01:00', siteType: 'Consumption' } })
+    if (!draft.rawPayload || !draft.applicationReference) throw Error('sc064_complete_draft_required')
     message = { ...message, message_family: 'UTILTS', message_code: 'E73', message_version: 'E5SE5A', message_standard: 'edifact',
       raw_payload: draft.rawPayload, parsed_payload: {}, application_reference: draft.applicationReference,
       sender_ediel_id: '11111', receiver_ediel_id: '22222', created_at: '2026-09-30T10:00:00Z', message_sent_at: null }
     const registry = registryFixture(), tenantRpc = io.rpc.getMockImplementation()!
-    let protectedBasis: Record<string, unknown> | undefined
     io.rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
       if (name === 'ediel_capture_source_rule_pack_basis_v1') {
         expect(args).toEqual({ p_company_id: message.company_id, p_message_id: message.id })
@@ -154,7 +154,7 @@ describe('SC-064 current queue reconsideration at the actual worker boundary', (
     const previous = await assertRegistryRulebookAllowsSend(message)
     expect(previous?.canonicalPolicy?.guide.guideRevision).toBe('25-A-3')
     const old = previous!.rulePackSnapshot!
-    protectedBasis = { rulePackId: '33333333-3333-4333-8333-333333333333', messageProfileId: old.profileVersionId,
+    const protectedBasis = { rulePackId: '33333333-3333-4333-8333-333333333333', messageProfileId: old.profileVersionId,
       profileKey: old.profileKey, version: old.version, sourceHash: old.checksum,
       snapshot: { profileKey: old.profileKey, profileVersionId: old.profileVersionId, version: old.version, checksum: old.checksum } }
     message.validation_report = { priorAdmissionDecision: { version: old.version, profileKey: old.profileKey } }
