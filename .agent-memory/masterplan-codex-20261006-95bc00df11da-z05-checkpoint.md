@@ -731,3 +731,13 @@ diffPASS; qualified5ed12043 product/unitbytes unchanged. Both exactfinalsource
 reviews requested; native9aNOT_RUN/wholeNOT_APPROVED/authentic8936/3retained.
 Next95bc actualsource-review findings ifany→READY/docs/10refs→normalpublish9a
 →authenticfresh39/all9280Gitinputhashes/currentmandatory, entirepositive replay.
+
+## Exact9a final two-peer SOURCE_APPROVED / READY before normal publication
+
+Both mandatory exact9a9775a0d77f20fb5853e8dee3dea45fdc27c7b7 SOURCE_AUTHORING_APPROVE/
+no blockers; fullglobalgraphs/exactscopedowncontract/event/task/time/replay and
+ALLnegative equality/currentSQL/defaults independently verified. scriptsTS/
+lint/diffPASS; unchangedqualified5edproduct/unit12043. Current9a nativeNOT_RUN.
+Next95bc confirmALL10refs andREADY530 thennormalpublish9a/ref+PRreadback/body+
+reviewreceipts/fresh39+ALL9280originalGitinputs/currentmandatory. Sourcefreeze
+untilauthenticterminal; whole/owncoverage/CI_GREEN/merge/externalNOTCLAIMED.
