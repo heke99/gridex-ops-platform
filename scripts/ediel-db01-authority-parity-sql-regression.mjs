@@ -4,14 +4,25 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { pathToFileURL } from 'node:url'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const { PGlite } = process.env.EDIEL_PGLITE_MODULE
   ? await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href)
   : await import('@electric-sql/pglite')
-const schemaPath = new URL('../supabase/schema.sql', import.meta.url)
+const schemaCommit = '56e58b95518ec4d5eef210ba16ba46228afb40ac'
+const schemaSha256 = '8dc63eaab63bae12a267e3e2a45c16c6bdb8d729b26e8e454791b66fcd08f38f'
+const repositoryPath = fileURLToPath(new URL('../', import.meta.url))
 const forwardPath = new URL('../supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql', import.meta.url)
-const schema = readFileSync(schemaPath, 'utf8')
+let schema
+try {
+  schema = execFileSync('git', ['show', `${schemaCommit}:supabase/schema.sql`], {
+    cwd: repositoryPath, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+} catch {
+  throw new Error(`Historical schema unavailable; fetch commit ${schemaCommit} before running this regression`)
+}
+assert.equal(createHash('sha256').update(schema).digest('hex'), schemaSha256, 'pinned historical schema SHA256')
 const forward = existsSync(forwardPath) ? readFileSync(forwardPath, 'utf8') : null
 const archive = 'gridex_ediel_legacy_archive'
 const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -132,6 +143,9 @@ try {
   await db.exec('ALTER TABLE public.ediel_party_addresses ENABLE ROW LEVEL SECURITY')
   for (const sql of capturedPolicies) await db.exec(sql)
   for (const sql of schema.match(/^GRANT [^\n]* ON TABLE public\.ediel_party_addresses [^\n]*;$/gm) ?? []) await db.exec(sql)
+  const apiGrants = schema.match(/^GRANT (?:USAGE ON SCHEMA public|ALL ON TABLE public\.(?:ediel_messages|ediel_route_profiles)) TO (?:authenticated|service_role);$/gm) ?? []
+  assert.equal(apiGrants.length, 6, 'captured public schema and operational table grants')
+  for (const sql of apiGrants) await db.exec(sql)
   for (const name of creators) {
     await db.exec(fn(name))
     const grants = schema.split('\n').filter(line => /^(GRANT|REVOKE) /.test(line) && line.includes(`FUNCTION public.${name}(`))
@@ -239,6 +253,30 @@ try {
       assert.deepEqual(await originals(), baseline.originals)
     })
   }
+  for (const name of ['ediel_messages', 'ediel_route_profiles']) {
+    await test(`SET ROLE service_role fresh ${name} refuses a legacy address reference and rolls back`, async () => {
+      let failure
+      await transaction(async () => {
+        await db.exec('SET LOCAL ROLE service_role')
+        const columns = name === 'ediel_messages' ? 'id,direction,message_family,party_address_id' : 'id,party_address_id'
+        const values = name === 'ediel_messages' ? `${q(uid(81))},'outbound','PRODAT',${q(uid(21))}` : `${q(uid(82))},${q(uid(21))}`
+        try { await db.exec(`INSERT INTO public.${name}(${columns}) VALUES(${values})`) } catch (error) { failure = error }
+      })
+      assert.deepEqual(await originals(), baseline.originals)
+      assert.equal(failure?.code, '23514')
+      assert.equal(failure?.message, 'ediel_legacy_party_address_hint_retired')
+    })
+    await test(`SET ROLE service_role fresh ${name} accepts NULL without touching historical tuples`, async () => {
+      await transaction(async () => {
+        await db.exec('SET LOCAL ROLE service_role')
+        const columns = name === 'ediel_messages' ? 'id,direction,message_family,party_address_id' : 'id,party_address_id'
+        const values = name === 'ediel_messages' ? `${q(uid(83))},'outbound','PRODAT',NULL` : `${q(uid(84))},NULL`
+        await db.exec(`INSERT INTO public.${name}(${columns}) VALUES(${values})`)
+        assert.equal((await one(`SELECT party_address_id IS NULL cleared FROM public.${name} WHERE id=${q(name === 'ediel_messages' ? uid(83) : uid(84))}`)).cleared, true)
+      })
+      assert.deepEqual(await originals(), baseline.originals)
+    })
+  }
   await test('containment preserves fixture-owner updates, parent CASCADE and certificate SET NULL', async () => {
     assert.deepEqual(await lifecycle(), baseline.lifecycle)
     assert.deepEqual(await originals(), baseline.originals)
@@ -254,7 +292,7 @@ try {
   const passed = results.filter(result => result.status === 'PASS').length
   const failed = results.length - passed
   console.log(JSON.stringify({ scope: 'DB01 captured relation containment only', forwardApplied: Boolean(forward),
-    total: results.length, passed, failed, results,
+    schemaCommit, schemaSha256, total: results.length, passed, failed, results,
     notExecuted: ['genuine protected creator positive/source/native upgrade', ...(forward ? [] : ['actual forward conflict rollback'])] }))
   if (failed) process.exitCode = 1
 } catch (error) {
