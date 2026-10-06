@@ -79,13 +79,67 @@ const immutable=(id:string)=>sql(`SELECT jsonb_build_object('raw',raw_payload,
  FROM public.ediel_messages m WHERE id=${literal(id)}`)
 // Full durable business rows across all tenants. The sole permitted end period
 // and this received source's review/final-value cases are inspected separately.
-const unrelated=(periodId:string,sourceId:string)=>sql(`SELECT jsonb_build_object(
+type DurableRow=Record<string,unknown>&{id:string}
+type DurableGraph=Record<string,unknown>&{contracts:DurableRow[];contractEvents:DurableRow[];contractDomainEvents:DurableRow[];operationTasks:DurableRow[]}
+const unrelated=(periodId:string,sourceId:string)=>sql<DurableGraph>(`SELECT jsonb_build_object(
  'periods',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.customer_supply_periods p WHERE id<>${literal(periodId)}::uuid),
  'customers',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.customers c),
  'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.customer_contracts c),
+ 'contractEvents',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM public.customer_contract_events e),
+ 'contractDomainEvents',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM public.domain_events e WHERE event_type='contract.event.recorded'),
+ 'operationTasks',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.customer_operation_tasks t),
+ 'invoices',(SELECT coalesce(jsonb_agg(to_jsonb(i) ORDER BY id),'[]') FROM public.customer_invoices i),
+ 'billingUnderlays',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY id),'[]') FROM public.billing_underlays b),
+ 'billingItems',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY id),'[]') FROM public.billing_underlay_items b),
  'sites',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY id),'[]') FROM public.customer_sites s),
  'points',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_points p),
  'tasks',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.customer_cases c WHERE metadata->>'source_ediel_message_id' IS DISTINCT FROM ${literal(sourceId)}))`)
+const processingClock=()=>sql<string>('SELECT to_jsonb(clock_timestamp())')
+const newRows=(before:DurableRow[],after:DurableRow[])=>after.filter(row=>!before.some(prior=>prior.id===row.id))
+const ordered=(rows:DurableRow[])=>[...rows].sort((a,b)=>a.id.localeCompare(b.id))
+function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;period:Record<string,unknown>;
+ f:Awaited<ReturnType<typeof receivedEnd>>;startedAt:string;finishedAt:string}):DurableGraph{
+ const {before,after,period,f,startedAt,finishedAt}=input
+ const contractId=period.customer_contract_id??period.contract_id
+ expect(contractId).toBe(f.contractId)
+ const contract=before.contracts.find(row=>row.id===contractId)!
+ expect(contract).toMatchObject({id:f.contractId,company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,status:'signed'})
+ // This declared variable-price fixture has no binding-fee obligation.
+ expect(Number(contract.binding_months??0)).toBe(0)
+ const events=newRows(before.contractEvents,after.contractEvents)
+ expect(events).toHaveLength(1)
+ const event=events[0],endKey=`source-end:${f.periodId}:2026-10-16`
+ const eventKey=`supply-end:${f.contractId}:${endKey}`,happenedAt=String(event.happened_at)
+ expect(Number.isFinite(Date.parse(happenedAt))).toBe(true)
+ expect(Date.parse(happenedAt)).toBeGreaterThanOrEqual(Date.parse(startedAt))
+ expect(Date.parse(happenedAt)).toBeLessThanOrEqual(Date.parse(finishedAt))
+ expect(event).toMatchObject({company_id:f.companyId,customer_id:f.customerId,customer_contract_id:f.contractId,
+  event_type:'terminated',actor_user_id:null})
+ // The delivered trigger records the retained period basis here. The received
+ // end's exact source link is separately asserted on the period and receipts.
+ expect(event.metadata).toEqual({ends_at:'2026-10-16',termination_notice_date:happenedAt,
+  termination_reason:'supply_end',reason_code:'supply_end',source_message_id:f.startSourceId,idempotency_key:eventKey})
+ const expectedContract={...contract,status:'terminated',ended_at:'2026-10-16T00:00:00+00:00',
+  termination_notice_date:happenedAt.slice(0,10),termination_reason:'supply_end',status_reason_code:'supply_end',
+  metadata:{...(contract.metadata as Record<string,unknown>),status_reason_code:'supply_end'},updated_at:happenedAt,updated_by:null}
+ expect(after.contracts.find(row=>row.id===contractId)).toEqual(expectedContract)
+ const domainEvents=newRows(before.contractDomainEvents,after.contractDomainEvents)
+ expect(domainEvents).toHaveLength(1)
+ expect(domainEvents[0]).toMatchObject({company_id:f.companyId,event_type:'contract.event.recorded',aggregate_type:'customer_contract',
+  aggregate_id:f.contractId,actor_user_id:null,source:'gridex_record_customer_contract_event_v1',idempotency_key:`customer-contract-event:${eventKey}`})
+ expect(domainEvents[0].payload).toEqual({customer_contract_event_id:event.id,customer_id:f.customerId,
+  event_type:'terminated',previous_status:'signed',new_status:'terminated'})
+ const tasks=newRows(before.operationTasks,after.operationTasks)
+ expect(tasks).toHaveLength(1)
+ expect(tasks[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,
+  task_type:'final_invoice_pending',status:'open',priority:'high',resolved_at:null})
+ expect(tasks[0].metadata).toEqual({supply_end_date:'2026-10-16',end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
+ // Preserve every other contract field, old event/task row, tenant and billing
+ // row. Only these exact, independently scoped committed effects may differ.
+ return{...before,contracts:before.contracts.map(row=>row.id===contractId?expectedContract:row),
+  contractEvents:ordered([...before.contractEvents,event]),contractDomainEvents:ordered([...before.contractDomainEvents,...domainEvents]),
+  operationTasks:ordered([...before.operationTasks,...tasks])}
+}
 const acknowledgements=(sourceId:string)=>sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY message_family),'[]')
  FROM public.ediel_messages m WHERE related_message_id=${literal(sourceId)} AND direction='outbound'`)
 async function ackDiagnostics(f:{sourceId:string;companyId:string;actorUserId:string}){
@@ -142,7 +196,9 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
  const sourceBefore=immutable(f.sourceId),originalBefore=immutable(f.original.id),startBefore=immutable(f.startSourceId),unrelatedBefore=unrelated(f.periodId,f.sourceId)
  const businessBefore=sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='PRODAT'`)
  expect(before.period).toMatchObject({id:f.periodId,source_end_message_id:null})
+ const startedAt=processingClock()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ const finishedAt=processingClock()
  const after=f.effects()
  expect(after).toMatchObject({period:{id:f.periodId,company_id:f.companyId,customer_id:f.customerId,
   metering_point_id:f.pointId,source_message_id:f.startSourceId,start_date:before.period.start_date,
@@ -200,12 +256,13 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
    case_id:tasks[0].id,customer_id:f.customerId,metering_point_id:f.pointId,supply_period_id:f.periodId})
  }
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='PRODAT'`)).toBe(businessBefore)
- expect(unrelated(f.periodId,f.sourceId)).toEqual(unrelatedBefore)
+ const expectedGraph=expectedContractFollowup({before:unrelatedBefore,after:unrelated(f.periodId,f.sourceId),period:before.period,f,startedAt,finishedAt})
+ expect(unrelated(f.periodId,f.sourceId)).toEqual(expectedGraph)
  expect(immutable(f.original.id)).toEqual(originalBefore);expect(immutable(f.startSourceId)).toEqual(startBefore);expect(immutable(f.sourceId)).toEqual(sourceBefore)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  expect(f.effects()).toEqual(after);expect(acknowledgements(f.sourceId)).toEqual(acks)
  expect(sql(`SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM public.customer_cases c WHERE company_id=${literal(f.companyId)} AND reason_category='final_metering_and_billing' AND metadata->>'source_ediel_message_id'=${literal(f.sourceId)}`)).toEqual(tasks)
- expect(unrelated(f.periodId,f.sourceId)).toEqual(unrelatedBefore)
+ expect(unrelated(f.periodId,f.sourceId)).toEqual(expectedGraph)
  expect(immutable(f.original.id)).toEqual(originalBefore);expect(immutable(f.startSourceId)).toEqual(startBefore);expect(immutable(f.sourceId)).toEqual(sourceBefore)
  if(!linked)expect(ordinaryReceiptState()).toEqual(ordinaryAfter)
 },120000)
