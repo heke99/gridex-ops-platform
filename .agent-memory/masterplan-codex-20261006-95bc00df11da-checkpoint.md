@@ -524,3 +524,31 @@ whole native chain with specific durable effects are mapped distinctly.
 Next responsible this agent: publish626fa, exact supplemental native/ordinary
 CI, review literal complete card and approve only own rows after actualgreen.
 Authentic market/agreement/counterparty activation remains separate.
+
+## Actual SC064 success and exact evidence scope
+
+Native run37489501741/job112358195372/artifact11425166586 independently
+retrieved redacted receipt/JUnit/log: exact checkout9a9ca889, tree
+d4bc2f179df205d039a239c7f91bf5b1ecc0ef1d, exit0, tests4/failures0/errors0.
+All policy-retirement/effective-route/tenant-denial/unchanged-positive cases
+actually PASS19.4677s. Previous3f2FAIL remain retained. LatestfaSC native
+adds only formal tag; all assertion bytes otherwise unchanged, fresh latest
+head selected/ordinary CI pending. Peer wholeSC literal scope APPROVE
+conditional actual4/4+currentgates; bounded LK finalfa APPROVE and peer39/39.
+Author current39/39 and fullscriptsTS PASS; full11858 priorunchangedcomponents.
+
+Evidence path exact resource acquired POST+GET before writing:
+quality/audits/ediel-masterplan-v2/sc064-z08lk-95bc00df11da/contract-proof.json
+Receipt a8a5992893f8dd0b5e513fd073351a3fcc1eb0ad; resource file-1f7473ed674956c7d0ec53049eafb611aaad931cb3c2a00184dc2753048a48a0
+Same existing packet. This is concise structured current-head proof/receipt
+mapping, not a repeated audit narrative. ID locks alone authorize own
+coverage rows; foreign rows are preserved. Next owner this agent: CLAIM530
+this exact evidence extension, prepare mapping; inspect actualfa LK/SC
+results before any approval/push. Currentmain c05625c7.
+
+Fresh530 reports foreign TEN09/GOV04 owner pin repair for mandatory sharp
+GHSA-wq5f-xc86-pv6w (0.35.4 -> firstpatched0.35.5), package/lock paths
+atomically held b912fab. Do not duplicate foreign package work or weaken audit.
+Own mandatory verify actual outcome not yet inspected; if same failure,
+reconcile repaired actualmain dependency and rerun affected currenthead CI.
+Foreign role-memory6f0a remains held. No newpair while own proof pending.
