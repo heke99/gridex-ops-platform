@@ -115,6 +115,26 @@ function coreApplications(f: Fixture, requestId: string) {
   return sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.z02_core_applications
     WHERE company_id=${literal(f.companyId)} AND request_id=${literal(requestId)}`)
 }
+function observeCorrelationCause(f: Fixture, original: Original,
+  received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>, contrast: string) {
+  const events = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('type',e.event_type,
+    'status',e.event_status,'message',e.message,'payload',e.payload) ORDER BY e.created_at,e.id),'[]'::jsonb)
+    FROM public.ediel_message_events e JOIN public.ediel_messages m ON m.id=e.ediel_message_id
+    WHERE m.id=${literal(received.id)} AND m.company_id=${literal(f.companyId)} AND e.company_id=${literal(f.companyId)}`)
+  const observation = {contrast, variant: f.variant, companyId: f.companyId,
+    originalId: original.originalZ01.id, originalRawHash: sha(original.originalZ01.raw_payload!),
+    requestId: original.requestId, operationId: original.operationId,
+    originalObject: {point: original.wire.point, agency: original.wire.identityAgency,
+      reason: original.wire.reason, gridArea: original.wire.gridAreaCode, lineReference: original.wire.lineReference},
+    receivedId: received.id, receivedHash: sha(received.message.raw_payload!),
+    processingStatus: received.message.processing_status, tenant: received.tenant,
+    validationReport: received.message.validation_report, events,
+    responseJobsBefore: received.inboundResponseJobsBefore, responseJobsAfter: received.inboundResponseJobsAfter,
+    requestAfter: ownRequest(f, original), coreApplications: coreApplications(f, original.requestId)}
+  // Actual observations only: whole review must attribute the refusal to the
+  // selected contrast. Zero effects or a different hold cannot prove it.
+  console.info('Z01_NATIVE_CORRELATION_OBSERVATION', JSON.stringify(observation))
+}
 async function assertPhysicalZ02Application(f: Fixture, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>,
   expected: {point: string; identityAgency: string; reason: string; gridAreaCode: string}) {
   // This actual invocation proves application guidance only. Correlation and
@@ -260,12 +280,16 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     ['legal receiver', {legalReceiver: '99999'}],
     ['transport sender', {transportSender: '99999'}],
     ['transport receiver', {transportReceiver: '99999'}],
-    ['customer identity', {customerIdentity: {id: '198001011234', qualifier: 'SE2', agency: '260'}}],
+    // Declared synthetic counterparty identity, not another local authority.
+    ['customer identity', {customerIdentity: {id: '199001010017', qualifier: 'SE2', agency: '260'}}],
   ] as const)('actual Z02 with wrong %s cannot borrow the sent source, alter customer state or activate supply', async (_label, override) => {
     const {f, original} = await sent(variant), before = customerState(f), sealed = sealedSource(original.originalZ01.id)
     // Every candidate starts from a genuinely sent original. A failed producer
     // stops this test; unrelated earlier refusal never counts as target proof.
-    await receiveZ01SupplierReply(f, z02(f, original, override))
+    const actualOverride: ExternalZ02Overrides = override
+    if (_label === 'customer identity') expect(actualOverride.customerIdentity).not.toEqual(original.wire.customerIdentity)
+    const received = await receiveZ01SupplierReply(f, z02(f, original, actualOverride))
+    observeCorrelationCause(f, original, received, _label)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
@@ -276,6 +300,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const before = customerState(f), otherBefore = customerState(other), sealed = sealedSource(original.originalZ01.id)
     expect(other.external).not.toBe(original.wire.point)
     const received = await receiveZ01SupplierReply(f, z02(f, original, {point: other.external}))
+    observeCorrelationCause(f, original, received, 'existing GS1 object')
     await assertPhysicalZ02Application(f, received, {...original.wire, point: other.external})
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
@@ -289,6 +314,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     expect(['9', '89']).toContain(original.wire.identityAgency)
     expect(identityAgency).not.toBe(original.wire.identityAgency)
     const received = await receiveZ01SupplierReply(f, z02(f, original, {identityAgency}))
+    observeCorrelationCause(f, original, received, 'lawful identity agency')
     await assertPhysicalZ02Application(f, received, {...original.wire, identityAgency})
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
@@ -300,6 +326,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const reason = variant === 'L' ? 'Z23' : 'Z22'
     expect(reason).not.toBe(original.wire.reason)
     const received = await receiveZ01SupplierReply(f, z02(f, original, {reason}))
+    observeCorrelationCause(f, original, received, 'opposite legal subtype')
     await assertPhysicalZ02Application(f, received, {...original.wire, reason})
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
@@ -312,6 +339,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     expect(wrong.gridAreaCode).not.toBe(original.wire.gridAreaCode)
     expect(wrong.after).toEqual(wrong.before)
     const received = await receiveZ01SupplierReply(f, z02(f, original, {gridAreaCode: wrong.gridAreaCode}))
+    observeCorrelationCause(f, original, received, 'known same-price original area')
     await assertPhysicalZ02Application(f, received, {...original.wire, gridAreaCode: wrong.gridAreaCode})
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
