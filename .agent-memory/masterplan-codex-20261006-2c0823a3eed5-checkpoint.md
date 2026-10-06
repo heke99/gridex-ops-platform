@@ -333,3 +333,8 @@ Next owner=thissession authenticate fullclean unchangedF-3/currentcert, publish 
 ## Bounded live-log observation — 2026-10-06 20:19 UTC
 
 Current clean112456656446 remains IN_PROGRESS. Connector log fetch returns only early replay through19:37:17/clean_replay_start, not a final F-3 result; repeated partial log is not evidence of a stuck producer. Optional direct GH job-log download403/exit1, no test or gate result inferred. No temporary redirect URL/credentials retained in memory. Official final redacted artifact plus terminal job and dependent certificate remain the authoritative next verification. Corrected the earlier own review-section mistyped future20:13 header to actuallyobserved20:07; frozen099source unchanged. Next owner=thissession awaitactualterminal clean/cert, authenticate real invariant notice/CRC/digest/currenthead/types/fingerprint/JUnit, then unchanged merge gates.
+
+
+## Unchanged mandatory gates confirmed — 2026-10-06 20:29 UTC
+
+Read-only diff exit0 verifies all5mandatory paths byte-identical actualmain ed3d and frozen099: scripts/sql/tenant-isolation-invariants.sql24734350, scripts/run-tenant-sql.mjs3fce5256, .github/workflows/ops-hardening.yml0f04e48e, .github/workflows/full-e2e.yml42a35bb8, scripts/gridex-aud-003-clean-replay.shfd28ec70. Existing historicalc32 complete joblog authentically ends F-3 failure; currentearlypartial connectorlog cannot establish progress/stall. Currentclean within unchanged90minute limit remainsIN_PROGRESS; certificate waits. Ownsourcefix only freshparentcompany/environment custody, no invariant exception/fixture deletion/positiveauthority change. Next=thissession waitactualterminal proof, then unchanged expected-head merge process; noCI_GREEN/MERGED/newpair.
