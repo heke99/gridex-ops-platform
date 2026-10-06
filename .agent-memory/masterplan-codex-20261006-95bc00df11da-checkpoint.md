@@ -244,3 +244,27 @@ actions before another full qualification; other mapped74-row dependencies/
 ownership remain. No eligible independent complete next pair established.
 Preserve this worktree and both source/metadata branches. Next delivery/source/
 platform/role actions and responsible owners are the explicit handover above.
+
+## User-authorized original delivery resumed — 2026-10-06
+
+Same agentcodex-20261006-95bc00df11da, fresh packet6c0f6bee-1d98-4bec-a2f8-b8ff3889d009, receiptb57d220ab689fcbb245dd82bd4961265e50935ce.
+Old packet release remains actual; new POST+GET lock confirmation owns again
+SC064/AT-Z08LK and the same exact two test paths. PR625 source75f25e9f and
+base main9cd95408 unchanged, latest own checkpoint6976b58b read. Latest530
+6018616234/6018678760 confirms original publisher corrected618 delivery and
+released both roles404; historical role blockers resolved. No foreign ref taken.
+Current seven required gates SUCCESS; clean-replay/certificate running. Existing
+full unit11856/884 PASS and independent scoped approvals apply to unchanged
+source, not whole IDs. Existing criterion/native/environment gaps retained.
+
+Read actualmain AGENTS/ordered memory/workflow/reservations/current ledger,
+legacy/current PRs and fresh530/live refs. Same skill routing as startup: native
+Supabase/verification, spec-to-code and requesting review apply; independent
+read-only reviewers now assess minimal reusable native seams. No new native
+source/config path owned or edited yet. bde0638 remains native config/service
+fixture owner. This scope resumes only own pair and existing PR, not another
+author's HOLD/native producer. Main approvals278/352 remain unchanged.
+Next this session: concrete native-fixture/reusable current proof assessment,
+remaining exact-head clean+certificate, then own green expected-head merge with
+free atomic role. Before native additions reserve every added exact path and
+document extension. No coverage promotion absent all literal effects.
