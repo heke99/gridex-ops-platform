@@ -13,6 +13,7 @@ import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from 
 import { archiveRegulatedSupplyGround, reviewRegulatedSupplyGround } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
+import { buildReceivedSourceValidationEvidence } from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { supabaseService } from '@/lib/supabase/service'
@@ -114,7 +115,7 @@ function preserves(f: Awaited<ReturnType<typeof ground>>) {
   expect(provider).not.toHaveBeenCalled()
 }
 
-it('actual unmatched mail adapter must admit physical A with genuine custody and no own sent Z03', async () => {
+async function adapterSource() {
   const f = await ground()
   const id = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test',
     inboundEmailMessageId: f.mail.inboundEmailMessageId, parseResultId: f.mail.parseResultId, parsed: f.mail.parsed,
@@ -127,12 +128,50 @@ it('actual unmatched mail adapter must admit physical A with genuine custody and
   expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const row = sql<{ raw: string; mail: string; mailbox: string; profile: string }>(`SELECT jsonb_build_object('raw',raw_payload,'mail',inbound_email_message_id,'mailbox',mailbox_message_id,'profile',rule_profile_key) FROM public.ediel_messages WHERE id=${literal(id)}`)
   expect(row).toEqual({ raw: f.wire, mail: f.mail.inboundEmailMessageId, mailbox: f.mail.inboundEmailMessageId, profile: 'PRODAT:Z04:A:26.A:r3' })
-  await assertAssignedEffects({ ...f, sourceId: id! })
+  return { ...f, sourceId: id! }
+}
+
+it('actual unmatched mail adapter must admit physical A with genuine custody and no own sent Z03', async () => {
+  await assertAssignedEffects(await adapterSource())
 }, 120000)
+
+async function diagnoseSourceValidation(f: Awaited<ReturnType<typeof source>>) {
+  const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', f.sourceId).single()
+  if (error || !data) throw error ?? Error('actual_original_diagnostic_read_required')
+  const original = data as EdielMessageRow
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(original)
+  const evidence = buildReceivedSourceValidationEvidence({ original, validated: original, resolvedCompanyId: f.companyId, decision })
+  console.info('ASSIGNED_SOURCE_DIAGNOSTIC', JSON.stringify({
+    decisions: [decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision],
+    issues: decision.issues.map(issue => issue.code), registerValidation: decision.prodatRegisterValidation,
+    evidenceBuilt: evidence !== null,
+  }))
+  if (!evidence) return
+  // Explicit diagnostic recording through the existing public owner, using
+  // only fresh genuine facets. This never continues business processing.
+  const result = await supabaseService.rpc('gridex_record_prodat_source_validation_v6', {
+    p_company_id: evidence.companyId, p_environment: evidence.environment, p_source_message_id: evidence.sourceMessageId,
+    p_source_payload_hash: evidence.sourcePayloadHash, p_facts_text: evidence.factsText,
+    p_source_function_facts_text: evidence.prodatSourceFunctionValidation ? JSON.stringify(evidence.prodatSourceFunctionValidation) : null,
+    p_object_facts_text: evidence.prodatObjectValidation ? JSON.stringify(evidence.prodatObjectValidation) : null,
+    p_application_facts_text: evidence.prodatApplicationValidation ? JSON.stringify(evidence.prodatApplicationValidation) : null,
+    p_ignored_fields_text: evidence.prodatIgnoredFields ? JSON.stringify(evidence.prodatIgnoredFields) : null,
+    p_response_facts_text: evidence.prodatResponseValidation ? JSON.stringify(evidence.prodatResponseValidation) : null,
+  }).abortSignal(AbortSignal.timeout(2000))
+  console.info('ASSIGNED_SOURCE_OWNER_DIAGNOSTIC', JSON.stringify({
+    error: result.error ? { code: result.error.code, message: result.error.message } : null,
+    receiptPresent: result.data !== null, response: evidence.prodatResponseValidation,
+  }))
+}
 
 async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
   const input = { actorUserId: f.actorUserId, edielMessageId: f.sourceId }
-  await processInboundEdielMessage(input)
+  try { await processInboundEdielMessage(input) }
+  catch (error) {
+    try { await diagnoseSourceValidation(f) }
+    catch (diagnosticError) { console.info('ASSIGNED_SOURCE_DIAGNOSTIC_FAILURE', diagnosticError instanceof Error ? diagnosticError.message : typeof diagnosticError) }
+    throw error // Preserve the original failed oracle, regardless of diagnostics.
+  }
   const first = state(f)
   expect(first).toMatchObject({ raw: f.wire, effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
@@ -154,6 +193,19 @@ async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
 
 it('approved ground and genuine reception commit assigned start, own effects and routed ACKs, retry-stable without normal switch activation', async () => {
   await assertAssignedEffects(await source())
+}, 120000)
+
+it.each(['raw', 'direction', 'clock'] as const)('actual A original rejects %s mutation without new effects or custody changes', async kind => {
+  const f = await adapterSource(), before = sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(f.sourceId)}`)
+  const patch: Partial<EdielMessageRow> = kind === 'raw' ? { raw_payload: f.wire.replace('BGM+Z04', 'BGM+Z06') }
+    : kind === 'direction' ? { direction: 'outbound' } : { message_received_at: '2026-10-01T00:00:00Z' }
+  const expected = kind === 'raw' ? 'immutable_ediel_payload_cannot_change'
+    : kind === 'direction' ? 'immutable_ediel_received_context_cannot_change' : 'immutable_ediel_receipt_time_cannot_change'
+  const { error } = await supabaseService.from('ediel_messages').update(patch).eq('id', f.sourceId)
+  expect(error).toMatchObject({ code: '23514', message: expected })
+  expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(f.sourceId)}`)).toEqual(before)
+  expect(state(f)).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0, acks: [], outbox: [] })
+  preserves(f)
 }, 120000)
 
 it('revoked separate reviewer permission holds current ground with no source effect or positive own APERAK', async () => {
