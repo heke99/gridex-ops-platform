@@ -899,3 +899,20 @@ addressactualfailures withoutweakenedguards; freshmain/resources/role after
 ALLGREEN thenexpectedheadnormalmerge, actualPR/mainreceipt, merge-role release
 first, sharedmemoryrole reconcile, all12ownmatchedGETDELETE404/release, fresh
 main/coverage/claims/retainedregister andnexteligiblepair. No externalclaim.
+
+## Current final CI progressing / actual637 main290 preserved
+
+Actualfinal c7267a5ce8bde33b792072bd4cdd49f943d79238 remains CLEAN/open readyPR636;
+22:17UTC six checks SUCCESS inclretainedLK, ownnative/coverage/clean/upgrade
+running andquality/certificate pending. Currentnative run37537559580 has
+no terminal artifact yet; no oldnative result borrowed for currenthead.
+Actualforeign637 MERGED mainfd4a6a06f0cb462cfa15c3ee4a038d557dd559e0;
+#5306026417007 actualreceipt and6026450858 alltenresources/mergerole release.
+Fetchedactualmain; difference vs56 is eight ownforeign native/tests/CP/coverage
+files, NO production Z05 closure changes. Actual ledger290/352,62remain;
+sourcecandidate288 basedon56 is NOTmain deliverycount. Preserveallforeign
+637 rows during normalmerge reconciliation. Foreignmemoryrole/#641 respected.
+Same95bc12resources/sourcefreeze/no nextpair/newrole/CI_GREEN/MERGED/external.
+Next95bc qualify currentfinal39/ALL9284Gitinputs and ALL mandatory terminal
+checks, request final execution receipt review, then freshfreeatomicmerge role
+and expectedheadnormalmerge/actualmain/tree/covreceipt before release.
