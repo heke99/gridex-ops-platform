@@ -1,3 +1,9 @@
+## Current existing-work closeout — 2026-10-06T06:41:53.421430+00:00
+
+STOP new Masterplan rules, pairs, phases and scouts per latest user. Existing qualified source deliveries are integrated; only this original final metadata admission and actual-main verification remain in the closeout.
+
+Qualified source #614 is actually admitted at `16d8a682a5a0aa7dfb5617b3c794985d0041afbe` (tree `fa67aaad749ecb6367074e130862986163b2ab03`). Actual stored coverage: 278/352; the exact rule/contract statuses and retained legacy HOLD/PAUSED vehicles are in `quality/audits/ediel-masterplan-v2/final-existing-work-integration-20261006/final-baseline.json`. This metadata completion is pending actual normal merge at publication; its final actual main and CI outcome are recorded at https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685. Read that receipt before resuming. All earlier entries below remain historical; their next actions do not override this STOP.
+
 ## Current root503 integration — 2026-10-05T17:14:00Z
 
 Active work: finish existing PR #503 and the coordinated reviewed PR merge wave, then qualify one shared main baseline. The user's instruction supersedes the old blanket merge freeze for necessary existing PR fixes. GitHub #530 remains the reservation board; each retained author owns its files and each PR has one CI reader/serial merger.

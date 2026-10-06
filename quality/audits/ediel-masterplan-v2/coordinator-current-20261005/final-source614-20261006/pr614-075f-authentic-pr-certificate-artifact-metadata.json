@@ -1,0 +1,23 @@
+{
+  "artifacts": [
+    {
+      "id": 11393239312,
+      "name": "gridex-pr-release-certificate-37418994423",
+      "size_in_bytes": 2369,
+      "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11393239312",
+      "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11393239312/zip",
+      "expired": false,
+      "created_at": "2026-10-06T06:21:42Z",
+      "expires_at": "2026-11-05T06:21:42Z",
+      "updated_at": "2026-10-06T06:21:42Z",
+      "digest": "sha256:28fa9f239ef09d144802e2cf051c829cec0bcaf17c66949dd146820c2d6bbcdd",
+      "workflow_run": {
+        "id": 37418994423,
+        "repository_id": 1190539955,
+        "head_repository_id": 1190539955,
+        "head_branch": "codex/ediel-combined-source-capture-20261005",
+        "head_sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+      }
+    }
+  ]
+}

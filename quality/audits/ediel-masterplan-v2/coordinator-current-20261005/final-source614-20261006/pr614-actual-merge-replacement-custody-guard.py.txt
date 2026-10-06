@@ -1,0 +1,27 @@
+import sys,json,subprocess,hashlib,datetime
+from pathlib import Path
+root=Path('/workspace/gridex-combined-source-capture');git=lambda *a:subprocess.check_output(['git',*a],cwd=root);sha=lambda b:hashlib.sha256(b).hexdigest();compact=lambda v:json.dumps(v,separators=(',',':'),ensure_ascii=False).encode();actual,expected_head,base,seal_path=sys.argv[1:5];seal=json.loads(Path(seal_path).read_bytes())
+assert seal['source']['head']==expected_head
+assert seal['counts']['SUCCESS']==12 and seal['counts']['FAILURE']==0 and seal['all_twelve_terminal_success'] is True
+assert len(seal['five_typed_identity_guards'])==5 and all(v is True for v in seal['five_typed_identity_guards'].values())
+assert git('rev-list','--parents','-n','1',actual).decode().strip().split()==[actual,base,expected_head]
+assert git('rev-parse',actual+'^{tree}')==git('rev-parse',expected_head+'^{tree}')
+def tree(ref):
+ out={}
+ for row in git('ls-tree','-rz','--full-tree',ref).split(b'\0'):
+  if row:
+   t,p=row.split(b'\t',1);out[p.decode()]=t.decode().split()
+ return out
+current=tree(actual);qualified=tree(expected_head);assert current==qualified
+p=Path('/workspace/agent-review-checkpoints/pr614-d44-original533535578-replacement-closeout-refreshed-ready-after-main.json');assert sha(p.read_bytes())=='afc9c46eb68ece4b1036a6acbe3e52fd7fa02956c56d8dfd969837321db93935';prior=json.loads(p.read_bytes());packets=[]
+for packet in prior['packets']:
+ old=tree(packet['original_head']);paths=sorted(git('diff','--name-only',packet['original_comparison_base'],packet['original_head']).decode().splitlines());assert len(paths)==packet['original_packet_count'];assert sha(compact([[x,*old[x]]for x in paths]))==packet['original_full_packet_pinset_sha256']
+ changed={x for x in paths if current.get(x)!=old[x]};subs={s['path']:s for s in packet['preapproved_substitutions']};assert changed==set(subs)
+ for x,s in subs.items():assert current[x]==s['candidate_tuple'],x
+ assert all(x in current for x in paths)
+ subprocess.run(['git','merge-base','--is-ancestor',packet['original_head'],actual],cwd=root,check=True)
+ assert sha(compact([[x,*current[x]]for x in paths]))==packet['current_full_packet_pinset_sha256']
+ docs=[x for x in paths if (x.startswith('.agent-memory/')or x.startswith('quality/'))and x not in subs];assert len(docs)==packet['original_own_docs_count'];assert all(current[x]==old[x]for x in docs)
+ packets.append({'pr':packet['pr'],'original_head':packet['original_head'],'original_packet_count':len(paths),'exact_original':len(paths)-len(changed),'preapproved_substitutions':len(changed),'all_OWN_docs_exact':len(docs),'entire_original_packet_tuple_pinset_actual':sha(compact([[x,*current[x]]for x in paths])),'qualified_actual_main_custody':True,'closure':'READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity'})
+result={'scope':'Actual source normal merge whole-tree postcheck and original three replacement packet custody only; not final main CI or formal/live approval','recorded_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'actual_main':actual,'ordered_parents':[base,expected_head],'tree':git('rev-parse',actual+'^{tree}').decode().strip(),'entire_qualified_tree_mode_type_blob_exact':len(current),'current_source_ALL12_seal':{'path':seal_path,'sha256':sha(Path(seal_path).read_bytes()),'all12SUCCESS':True,'five_guards':True},'prior_replacement_custody':{'path':str(p),'sha256':sha(p.read_bytes())},'packets':packets,'new_Masterplan':False,'ACTUAL_marker614':'Requires separate sole ROOT CPP publication','final_minimal_DOC_memory_and_genuine_main_baseline':'PENDING_ORIGINAL_RESERVED_OWNER'}
+p=Path('/workspace/agent-review-checkpoints/pr614-actual-source-merge-and-three-replacement-custody.json');p.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'file':str(p),'sha256':sha(p.read_bytes()),'actual_main':actual,'packets':packets}))

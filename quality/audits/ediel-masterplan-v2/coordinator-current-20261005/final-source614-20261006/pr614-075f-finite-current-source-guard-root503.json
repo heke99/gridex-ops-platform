@@ -1,0 +1,46 @@
+{
+  "scope": "One finite original source admission guard; independent original source/fixture/security reviews retained, no test/native/capture repeat or new Masterplan work",
+  "recorded_at_utc": "2026-10-06T05:31:56.524863+00:00",
+  "head": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+  "base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "source_tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "expected_merge_tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "expected_ordered_merge_parents": [
+    "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+  ],
+  "changed_paths_count": 390,
+  "foreign_main_mode_type_blob_exact_count": 8801,
+  "whole_source_path_count": 9191,
+  "original160_doc_postimages_preserved": true,
+  "whole_352_changed_rows": {
+    "rules": [
+      "DB-02",
+      "GOV-08"
+    ],
+    "acceptance_contracts": [
+      "AT-DB-02",
+      "AT-GOV-08",
+      "SC-010"
+    ]
+  },
+  "other347_rows_exact": true,
+  "coverage_counts": {
+    "rules": {
+      "VERIFIED": 111,
+      "NOT_VERIFIED": 7,
+      "PARTIAL": 3
+    },
+    "acceptance_contracts": {
+      "PASSED": 167,
+      "NOT_EXECUTED": 50,
+      "PARTIAL": 14
+    }
+  },
+  "coverage_sha256": "f496e7b127075c982ed857db07d52d99ee2ae94d91692e06713b497135c5167c",
+  "all44_prior_actual_markers_unique_preserved": true,
+  "production_certificate_consumer_unchanged": true,
+  "one_original_capture_raw3_preserved": true,
+  "sql_count": 1079,
+  "applicable_current_head_gate_qualification": "Requires separate final original observer ALL12 seal and fresh public identity guard"
+}

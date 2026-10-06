@@ -1,3 +1,9 @@
+## Final existing-work source admission and documentation snapshot — 2026-10-06T06:41:53.421430+00:00
+
+Qualified source #614 is actually admitted at `16d8a682a5a0aa7dfb5617b3c794985d0041afbe` (tree `fa67aaad749ecb6367074e130862986163b2ab03`). Actual stored coverage: 278/352; the exact rule/contract statuses and retained legacy HOLD/PAUSED vehicles are in `quality/audits/ediel-masterplan-v2/final-existing-work-integration-20261006/final-baseline.json`. This metadata completion is pending actual normal merge at publication; its final actual main and CI outcome are recorded at https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685. Read that receipt before resuming. All earlier entries below remain historical; their next actions do not override this STOP.
+
+Original #613 is actually delivered; this final metadata completion does not repeat its160-path intake. Current checkpoint/current-task/current-state point to the authentic source baseline and user STOP. Final postmerge evidence remains public to avoid another documentation-only vehicle.
+
 # Existing-work integration checkpoint
 
 User scope: finish already-started agent deliveries and merge qualified work to main; stop before a new Masterplan rule, pair or phase. Original final integration allocation: issue #530 comments 5998471335/5998550376 (same ROOT592→606).

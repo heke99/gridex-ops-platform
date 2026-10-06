@@ -1,0 +1,294 @@
+{
+  "scope": "Authentic current ordinary PR GREEN certificate; frozen consumer truthfully retains separate NOT_VERIFIED full-card status. No formal/live/whole-Masterplan approval.",
+  "recorded_at_utc": "2026-10-06T06:23:57.400902+00:00",
+  "verdict": "PASS_CURRENT_AUTHENTIC_PR_GREEN_CERTIFICATE_WITH_SEPARATE_NOT_VERIFIED_FULLCARD",
+  "source": {
+    "head": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+    "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+    "parent": "18f9325942ad8fa36f077b65a1ba0be319034736",
+    "branch": "codex/ediel-combined-source-capture-20261005",
+    "producer_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "observed_pr_base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "pr_state": "open",
+    "pr_draft": false
+  },
+  "job": {
+    "job_id": 112125739352,
+    "run_id": 37418994423,
+    "run_attempt": 1,
+    "runner_id": 1000044058,
+    "started_at": "2026-10-06T05:39:09Z",
+    "completed_at": "2026-10-06T06:21:44Z"
+  },
+  "artifact_metadata": {
+    "id": 11393239312,
+    "name": "gridex-pr-release-certificate-37418994423",
+    "size_in_bytes": 2369,
+    "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11393239312",
+    "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11393239312/zip",
+    "expired": false,
+    "created_at": "2026-10-06T06:21:42Z",
+    "expires_at": "2026-11-05T06:21:42Z",
+    "updated_at": "2026-10-06T06:21:42Z",
+    "digest": "sha256:28fa9f239ef09d144802e2cf051c829cec0bcaf17c66949dd146820c2d6bbcdd",
+    "workflow_run": {
+      "id": 37418994423,
+      "repository_id": 1190539955,
+      "head_repository_id": 1190539955,
+      "head_branch": "codex/ediel-combined-source-capture-20261005",
+      "head_sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+    }
+  },
+  "artifact_metadata_receipt_sha256": "72634dbf6e0aa9b34142b85e9cab8a9ba762118fb5a2aa63daf413bccbd25ecf",
+  "zip_bytes": 2369,
+  "zip_sha256": "28fa9f239ef09d144802e2cf051c829cec0bcaf17c66949dd146820c2d6bbcdd",
+  "certificate_member_sha256": "39c7cb55a586872a49c92e7e9280459c0e7369afa8abdfa4b14d13c262a1680c",
+  "certificate": {
+    "schema_version": 1,
+    "smoke": "success",
+    "coverage": "success",
+    "verdict": "GREEN",
+    "edielReleaseEvidence": {
+      "candidateSha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+      "candidateTree": "fa67aaad749ecb6367074e130862986163b2ab03",
+      "checkoutClean": true,
+      "eventSha": "024d4980340fa78b077397b22cff1c645b107508",
+      "runId": "37418994423",
+      "runAttempt": "1",
+      "sourceAuthentication": "github_run_job_artifact_and_immutable_tree",
+      "codeEvidence": "incomplete",
+      "fullCardVerification": "NOT_VERIFIED",
+      "formalEdielApproval": false,
+      "liveCounterpartyVerified": false,
+      "levels": {
+        "document": {
+          "status": "missing",
+          "qualification": "not_established_by_runner_step_results"
+        },
+        "unit": {
+          "status": "missing",
+          "qualification": "not_established_by_runner_step_results"
+        },
+        "integration": {
+          "status": "missing",
+          "qualification": "not_established_by_runner_step_results"
+        },
+        "tenant_e2e": {
+          "status": "missing",
+          "qualification": "not_established_by_runner_step_results"
+        },
+        "transport": {
+          "status": "missing",
+          "qualification": "not_established_by_runner_step_results"
+        },
+        "TGT": {
+          "status": "missing",
+          "qualification": "not_established_by_runner_step_results"
+        }
+      },
+      "activationGates": {
+        "liveTransport": "NOT_OBSERVED",
+        "formalTGT": "NOT_OBSERVED"
+      },
+      "scopeMatrix": {
+        "tenantIds": [],
+        "DDQ": false,
+        "DGI": false,
+        "crossTenantAssignments": false
+      },
+      "executions": [
+        {
+          "mode": "smoke",
+          "status": "qualified",
+          "qualification": "runner_step_exit_status",
+          "sourceReference": "e2e-artifacts/inputs/smoke/gridex-executed-evidence.json",
+          "payloadSha256": "2d908d6e6bd44e70e9ddcf38e93016ae612ceac5bf3ab925bdd295aa78a33b5f",
+          "files": [
+            {
+              "path": "gridex-e2e-report.json",
+              "sha256": "65550784f086decad86388ad2f50a3939eca958967fa34046e721962ea7fceac"
+            },
+            {
+              "path": "gridex-e2e-junit.xml",
+              "sha256": "7b14d91c67e9355d77fdbb82455628844425075b41fdb1d34ef9b9592f494c3c"
+            },
+            {
+              "path": "logs/01-whole-project-coverage.log",
+              "sha256": "0d3813247300ca36db6613793ec271ffb3f58a2135d94e2f0db6cdb4ebaa27f9"
+            },
+            {
+              "path": "logs/02-tenant-platform-contract.log",
+              "sha256": "e4758e7794122c6d5c5b597f46b8e5174f3e1f3b8a1c8a7bd41d4bc4fba6284f"
+            },
+            {
+              "path": "logs/03-migrations.log",
+              "sha256": "0fd9707c3519ad7bd69c14d9340afcbec426c1e074a4ea07531efb4a695dee9d"
+            },
+            {
+              "path": "logs/04-tenant-model.log",
+              "sha256": "1934cee894cd1babed9f8e9f1dc34ef39a686dc968b5ff421890b5788bfeb2ed"
+            },
+            {
+              "path": "logs/05-tenant-source-of-truth.log",
+              "sha256": "baa717b08fb84273401a5dbfefbeca636e585bf6def855c4bebb9d75015e51d9"
+            },
+            {
+              "path": "logs/06-test-production-separation.log",
+              "sha256": "73f0d419443857ac66306591fb0471582c5373d1d783d1f9afe73c350cf59683"
+            },
+            {
+              "path": "logs/07-website-intake.log",
+              "sha256": "355f032afd021a27eed0eaf7d25a2b22d1b33d30fd11931f381152c744289602"
+            },
+            {
+              "path": "logs/08-route-readiness.log",
+              "sha256": "a55acb5e62f0f7f3d022edc09bc97c6f5d15017782c233fa16e441ed3caf9357"
+            },
+            {
+              "path": "logs/09-edifact-customer-flow.log",
+              "sha256": "cc2695b9b6af4084810edd27febd344b2198a84a5aead5c85dd11b1d27cdf88c"
+            },
+            {
+              "path": "logs/10-metering.log",
+              "sha256": "befaaddc10b4b90706ac49fffbf85f37ca4b0685831d7b6eba26405e743e55a1"
+            },
+            {
+              "path": "logs/11-billing.log",
+              "sha256": "5768ee641946a3966c7e1069bf13f765d9cd9703c143927c2124118f69a0ee96"
+            },
+            {
+              "path": "logs/12-portal-api.log",
+              "sha256": "6cbcca9cb44a5f68aa73fed554d652bccf92ef2a68484a8fe03e9ec554a19b28"
+            },
+            {
+              "path": "logs/13-rbac.log",
+              "sha256": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d"
+            },
+            {
+              "path": "logs/14-api-boundaries.log",
+              "sha256": "786d2f7986a62464c6fdaddedc6b976ee89188225b0b6aef8f107d7ba13e3046"
+            },
+            {
+              "path": "logs/15-typecheck.log",
+              "sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc"
+            }
+          ],
+          "stepCount": 15,
+          "steps": [
+            {
+              "id": "whole-project-coverage",
+              "kind": "node",
+              "command": "scripts/gridex-whole-project-e2e-coverage.cjs",
+              "status": "passed"
+            },
+            {
+              "id": "tenant-platform-contract",
+              "kind": "node",
+              "command": "scripts/gridex-tenant-platform-e2e-contract-regression.cjs",
+              "status": "passed"
+            },
+            {
+              "id": "migrations",
+              "kind": "npm",
+              "command": "db:migrations:check",
+              "status": "passed"
+            },
+            {
+              "id": "tenant-model",
+              "kind": "npm",
+              "command": "tenant:multitenant:static",
+              "status": "passed"
+            },
+            {
+              "id": "tenant-source-of-truth",
+              "kind": "npm",
+              "command": "gridex:tenant-source-of-truth-regression",
+              "status": "passed"
+            },
+            {
+              "id": "test-production-separation",
+              "kind": "npm",
+              "command": "gridex:test-production-separation-regression",
+              "status": "passed"
+            },
+            {
+              "id": "website-intake",
+              "kind": "npm",
+              "command": "gridex:multitenant-website-application-flow-regression",
+              "status": "passed"
+            },
+            {
+              "id": "route-readiness",
+              "kind": "npm",
+              "command": "gridex:production-route-readiness-regression",
+              "status": "passed"
+            },
+            {
+              "id": "edifact-customer-flow",
+              "kind": "npm",
+              "command": "gridex:tenant-customer-edifact-completion-regression",
+              "status": "passed"
+            },
+            {
+              "id": "metering",
+              "kind": "npm",
+              "command": "gridex:multi-metering-values-regression",
+              "status": "passed"
+            },
+            {
+              "id": "billing",
+              "kind": "npm",
+              "command": "gridex:multi-site-billing-underlay-regression",
+              "status": "passed"
+            },
+            {
+              "id": "portal-api",
+              "kind": "npm",
+              "command": "gridex:customer-portal-multi-site-api-regression",
+              "status": "passed"
+            },
+            {
+              "id": "rbac",
+              "kind": "npm",
+              "command": "security:rbac",
+              "status": "passed"
+            },
+            {
+              "id": "api-boundaries",
+              "kind": "npm",
+              "command": "api:error-boundaries",
+              "status": "passed"
+            },
+            {
+              "id": "typecheck",
+              "kind": "npm",
+              "command": "typecheck",
+              "status": "passed"
+            }
+          ],
+          "limits": [
+            "JUnit records orchestrator steps, not individual test cases.",
+            "Successful commands do not qualify test ports, tenant roles, DDQ/DGI assignments, transport or TGT."
+          ]
+        }
+      ],
+      "caseEvidence": [],
+      "blockers": [
+        "case_source_missing_or_unqualified",
+        "authenticated_ci_not_passed",
+        "evidence_level_missing_or_unqualified:document",
+        "evidence_level_missing_or_unqualified:unit",
+        "evidence_level_missing_or_unqualified:integration",
+        "evidence_level_missing_or_unqualified:tenant_e2e",
+        "evidence_level_missing_or_unqualified:transport",
+        "evidence_level_missing_or_unqualified:TGT",
+        "scope_matrix_incomplete"
+      ]
+    }
+  },
+  "unchanged_production_consumer_sha256": "03e1c8338ab6e58f52e9a1ae7c9eb44ef813aa3f70976b6e13325193d637bd39",
+  "all12_source_seal_sha256": "aca8dee9be69c7c72837d6e3311d61016e72c5000b076c9fcccce92e74571904",
+  "skip_credit_as_pass": false,
+  "new_Masterplan_or_manual_controls": false,
+  "actual_main_and_final_baseline": "REQUIRE_SEPARATE_QUALIFICATION"
+}

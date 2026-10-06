@@ -1,0 +1,59 @@
+{
+  "scope": "Actual source normal merge whole-tree postcheck and original three replacement packet custody only; not final main CI or formal/live approval",
+  "recorded_at_utc": "2026-10-06T06:26:53.550926+00:00",
+  "actual_main": "16d8a682a5a0aa7dfb5617b3c794985d0041afbe",
+  "ordered_parents": [
+    "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+  ],
+  "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "entire_qualified_tree_mode_type_blob_exact": 9191,
+  "current_source_ALL12_seal": {
+    "path": "/workspace/agent-review-checkpoints/pr614-075-all12-success-stop-20261006062311.json",
+    "sha256": "aca8dee9be69c7c72837d6e3311d61016e72c5000b076c9fcccce92e74571904",
+    "all12SUCCESS": true,
+    "five_guards": true
+  },
+  "prior_replacement_custody": {
+    "path": "/workspace/agent-review-checkpoints/pr614-d44-original533535578-replacement-closeout-refreshed-ready-after-main.json",
+    "sha256": "afc9c46eb68ece4b1036a6acbe3e52fd7fa02956c56d8dfd969837321db93935"
+  },
+  "packets": [
+    {
+      "pr": 533,
+      "original_head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+      "original_packet_count": 20,
+      "exact_original": 16,
+      "preapproved_substitutions": 4,
+      "all_OWN_docs_exact": 8,
+      "entire_original_packet_tuple_pinset_actual": "3f053ca9b62fcb318a9fabf02d61c1b14d149a69ef55cf8110a14db6a4641340",
+      "qualified_actual_main_custody": true,
+      "closure": "READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity"
+    },
+    {
+      "pr": 535,
+      "original_head": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+      "original_packet_count": 15,
+      "exact_original": 11,
+      "preapproved_substitutions": 4,
+      "all_OWN_docs_exact": 8,
+      "entire_original_packet_tuple_pinset_actual": "04cc7b011de60e0b04b21312107fd358fc947a0583bd96fd1034756b065fbf7a",
+      "qualified_actual_main_custody": true,
+      "closure": "READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity"
+    },
+    {
+      "pr": 578,
+      "original_head": "ebf380da2528b6a32a17f94ca245835726babca4",
+      "original_packet_count": 225,
+      "exact_original": 220,
+      "preapproved_substitutions": 5,
+      "all_OWN_docs_exact": 156,
+      "entire_original_packet_tuple_pinset_actual": "fe06c3ebfceb1be6dd751e3c1bd3cb7158ff308a8abf5bd823774a142726bf17",
+      "qualified_actual_main_custody": true,
+      "closure": "READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity"
+    }
+  ],
+  "new_Masterplan": false,
+  "ACTUAL_marker614": "Requires separate sole ROOT CPP publication",
+  "final_minimal_DOC_memory_and_genuine_main_baseline": "PENDING_ORIGINAL_RESERVED_OWNER"
+}

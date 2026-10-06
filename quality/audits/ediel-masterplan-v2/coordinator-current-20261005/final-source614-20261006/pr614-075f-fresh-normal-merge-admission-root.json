@@ -1,0 +1,3873 @@
+{
+  "scope": "Fresh ordinary current PR614 normal-merge admission; prior complete exact-source guard bound to immutable current tree plus genuine current ALL12 and independently authentic artifacts",
+  "recorded_at_utc": "2026-10-06T06:25:28.325829+00:00",
+  "verdict": "READY_NORMAL_EXPECTED_HEAD_MERGE",
+  "head": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+  "base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+  "ordered_expected_merge_parents": [
+    "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+  ],
+  "authentic_fresh_public_identity": {
+    "recorded_at_utc": "2026-10-06 06:24:54 UTC",
+    "repository": "heke99/gridex-ops-platform",
+    "pr": 614,
+    "PR": {
+      "state": "open",
+      "draft": false,
+      "merged": false,
+      "head_sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+      "head_ref": "codex/ediel-combined-source-capture-20261005",
+      "head_repo": "heke99/gridex-ops-platform",
+      "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+      "base_ref": "main",
+      "base_repo": "heke99/gridex-ops-platform",
+      "mergeable": true,
+      "mergeable_state": "clean"
+    },
+    "main_ref": {
+      "ref": "refs/heads/main",
+      "sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+    },
+    "source_ref": {
+      "ref": "refs/heads/codex/ediel-combined-source-capture-20261005",
+      "sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+    },
+    "source_commit": {
+      "sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+      "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+      "parents": [
+        "18f9325942ad8fa36f077b65a1ba0be319034736"
+      ]
+    },
+    "protection": "UNKNOWN_403_ADMIN_PERMISSION_UNAVAILABLE; normal server merge enforces policy; no bypass"
+  },
+  "authentic_identity_receipt_sha256": "7f69484ed44f8511f7ed98360c2b9dd80d4ff676fde451dd7f85bf069b437f84",
+  "all9191source_tuples": 9191,
+  "all8801foreign_main_tuples_exact": 8801,
+  "original390delta": [
+    {
+      "path": ".agent-memory/handover.md",
+      "before": [
+        "100644",
+        "blob",
+        "c4044b792b3eac866e5f439d28e825fb8a118b9d"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "6166b7a89251c65c7dc88590142e717d4e1c062b"
+      ]
+    },
+    {
+      "path": ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8b268bae71b5c70691cc1fa1adf2756d40419acb"
+      ]
+    },
+    {
+      "path": ".agent-memory/masterplan-db02-checkpoint.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9abaa609ed7a8bacb88ff4cd5c2c91c9d8bc0a8a"
+      ]
+    },
+    {
+      "path": ".agent-memory/masterplan-gov08-checkpoint.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6aee465699868de7396e4271585aabd82285be6f"
+      ]
+    },
+    {
+      "path": ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+      "before": [
+        "100644",
+        "blob",
+        "d282a5fc05c2ba048a37d22ae1b7464ab553bd98"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "a25f2df21821001525b4c6c2a605fe02f0f5a753"
+      ]
+    },
+    {
+      "path": ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+      "before": [
+        "100644",
+        "blob",
+        "99c739a25e849e4e823b3ceb70c4d27b6689b21c"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "8af8f2ed733a7dfa633bac31a9929430a4d9e549"
+      ]
+    },
+    {
+      "path": ".agent-memory/support-portal-checkpoint.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0b72ac5596e81ba52b1616724dac5c8f2ff662af"
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-sc071-native.yml",
+      "before": [
+        "100644",
+        "blob",
+        "8d41459c510b50ae1a1eb96341261bfb404f8ab7"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "cf13108872dbada7b6e89c669e9a8fdfc6be9b8b"
+      ]
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "before": [
+        "100644",
+        "blob",
+        "3062a6a4631ff6bf4fe24272124c4a08f5a2594f"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "fa659684be59fe38950c85c687c53670c0fd018d"
+      ]
+    },
+    {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "before": [
+        "100644",
+        "blob",
+        "1980d8d3d79b652e1a98cee9fc30621bdf432a32"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "54d21d8d8a0688695a65846012822a5dd1757b9b"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-db02-profile-periods.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6ab96c9713fddb2500c57a01531112de493eccec"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a011262e28438fc7f27ea8e0af6b98ebf81955d0"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "b6b348b4775d40cb9b5f02cd6c542677c4ecaae5"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-negative-fixture-authority.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "5624fa36323cc281f50c93aefccefec0b8f5d3b2"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "dcc70bd74fbf22394ff1a5732de0a3312a6ad00e"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-negative-fixture-send-guard.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "78cedb9aa6205146ada8d01e6581c2fa9149d7c2"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "ff4583e42c2665e288dc086bd36a8cd00f92bd0f"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "784d682a7986eeedce953d68d06d35094439eb81"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "33f1f0d9b1d8293587973ad3a231cda0a0ad43be"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-positive-fixture-authority.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "579e6f1b7caab0242a513fc04308900bdb3b6b69"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "d042834e4d88dd0e6320d3336a4f09b88da2973d"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-recipient-address-binding.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "30e391460e905c6158a88b9876d3858ff0d5f6ee"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "d456447c3810c0ba5359f5ca4adf18735441e3ab"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-recipient-readiness.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "2a0f430219415eb75798b6283874f581f521795c"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "b3b7466d3ad7879180ed579437d87739513549b0"
+      ]
+    },
+    {
+      "path": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "7508a8a91e721751b9b72dbe5a76d373b1de505c"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "fd4434c5f8e7808d4bd1b165cb2b6d362d092fdb"
+      ]
+    },
+    {
+      "path": "__tests__/external-staff-enrollment-admin.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "fe57d1ddfd6e9f9a8c74086af605f0a059cba2fc"
+      ]
+    },
+    {
+      "path": "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "72f6c5912cf2c60f91c5735e006e7ee067b41f4c"
+      ]
+    },
+    {
+      "path": "__tests__/fixtures/staff-captured-identity-authority.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "35c83ba8eebe0de98cfecbb2a5172e8368229fde"
+      ]
+    },
+    {
+      "path": "__tests__/staff-api-context.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "eafa79e44dd93b861c0c9840d110e7436ade9f1d"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "82ddc8ae700926f6dc820ed07f47597bccf77204"
+      ]
+    },
+    {
+      "path": "__tests__/staff-api-openapi.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "c72afb09e24c7aaa66ae94d41b20b16c84c5aee9"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "378984abc0ff1da6c459e04efea1282d08b8ee4e"
+      ]
+    },
+    {
+      "path": "__tests__/staff-api-storage-service-binding.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "44d1478bf247ba67404ef2ab6b362cf27b3d7ef6"
+      ]
+    },
+    {
+      "path": "__tests__/staff-api-storage-target.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4cc4943205404ef02c44d6cdf2b1c282cf90a40a"
+      ]
+    },
+    {
+      "path": "__tests__/staff-external-identity-classification-sql.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7c5c02b37ff11aea2ae34f85bfb21af6535e0efe"
+      ]
+    },
+    {
+      "path": "__tests__/staff-external-identity-sql.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "304f2a5d8171dee558e5f6496d57b9476b76fc97"
+      ]
+    },
+    {
+      "path": "__tests__/staff-identity-resolution-machine-auth.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e154e75cb36a9f5b25ae6148ff40ec2ce2c4caf1"
+      ]
+    },
+    {
+      "path": "__tests__/staff-identity-resolution.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a90f0f9daeb5b66c14621dd6bd13afe5423302ab"
+      ]
+    },
+    {
+      "path": "__tests__/staff-identity-version-conflict-sql.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "233b899cd405285a34530bf74ae3b6060975709e"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "60ae198e48ac5b31f1dd3303fedb82180f4b9fd2"
+      ]
+    },
+    {
+      "path": "__tests__/staff-invitation-domain-columns.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "b042146d52f468b8d2c7ed696f914b726c548f20"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "a0367e993fd432aabc5afd0e7a7c7591d8daf13e"
+      ]
+    },
+    {
+      "path": "__tests__/staff-invitation-routing.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "854440365607a6baf19bd270b0eb7476f6b7485f"
+      ]
+    },
+    {
+      "path": "__tests__/staff-onboarding-acceptance.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "00d96e8cae3ef777ddf98672961ad930ec38af72"
+      ]
+    },
+    {
+      "path": "__tests__/staff-onboarding-contract.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "25284a9c12458bf5a1786a5869e474f05691a9ca"
+      ]
+    },
+    {
+      "path": "__tests__/staff-onboarding-machine-auth.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "52759c5def74a2a8d01bf4b7d2986198b64f1c90"
+      ]
+    },
+    {
+      "path": "__tests__/staff-onboarding-sql.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "b79517140b5a9e46190192843f90f7caede9fefa"
+      ]
+    },
+    {
+      "path": "__tests__/staff-tenant-auth.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "00e24dfeec7ba6844b497e0ce531fa73d910e141"
+      ]
+    },
+    {
+      "path": "__tests__/staff-user-role-id-nullability.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "3dd496d7333d0f6c4d36f447ee80eb54059004cf"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "c4c4dbc29d104600e902a2d2e21367f71fe83da0"
+      ]
+    },
+    {
+      "path": "__tests__/support-case-page-access.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "329dfe0d5aeb1361afca3d9cc1c500c3fbef6922"
+      ]
+    },
+    {
+      "path": "__tests__/support-detail-openapi-schema.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "58cf45e7b2cfecf128dfc8d798698bd035a4d31c"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "a2e2afafd74bd1df9f698f2d0983fa9f96ccc087"
+      ]
+    },
+    {
+      "path": "__tests__/tenant-staff-delivery.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "eaf7862f69bb056df277fe0123122abc2388d7a2"
+      ]
+    },
+    {
+      "path": "__tests__/utilts-native-bound-parties.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "23014a5880bf3600b198763b001280794be6b98b"
+      ]
+    },
+    {
+      "path": "app/admin/companies/[id]/staff-enrollment-actions.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8b09b476e8d6a0d1f6dd7e62709ffcce6af9dbfd"
+      ]
+    },
+    {
+      "path": "app/admin/companies/[id]/users/page.tsx",
+      "before": [
+        "100644",
+        "blob",
+        "18a7042746f9514e0061358e6dbb5dde3f7f65fe"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "2eb46c69631c01a38c69d572b7ec11d5da273937"
+      ]
+    },
+    {
+      "path": "app/admin/customer-cases/[caseId]/attachments/[reference]/route.ts",
+      "before": [
+        "100644",
+        "blob",
+        "bd40f5fd1369f73b995a75d34c261d7bf1a06950"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "1ac885d9f27f0983df3efe92dea362dc25f627ac"
+      ]
+    },
+    {
+      "path": "app/admin/customer-cases/[caseId]/page.tsx",
+      "before": [
+        "100644",
+        "blob",
+        "568b2fbcd683f49db1f53eee5c21cc62445d7a72"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "14cf40237824ea3633cc8c70a238c99a3e60d285"
+      ]
+    },
+    {
+      "path": "app/admin/customer-cases/page.tsx",
+      "before": [
+        "100644",
+        "blob",
+        "4b0151f8012aa2acf6571c910a1e85f4912a3841"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "385c17f1dccd98017b3d95bbd32d1cc0e1f05aa8"
+      ]
+    },
+    {
+      "path": "app/api/v1/openapi/staff-onboarding-v1.json/route.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "42e9637a651164f0a5a075f4f7786e6a422d0034"
+      ]
+    },
+    {
+      "path": "app/api/v1/staff-onboarding/identity/resolve/route.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a0314d89ac3735e3aa66d625a3afd6dcf8b49d35"
+      ]
+    },
+    {
+      "path": "app/api/v1/staff-onboarding/invitations/accept/route.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8e2278bae4982a87f5387fccfd6afc7424452daf"
+      ]
+    },
+    {
+      "path": "components/admin/companies/ExternalStaffEnrollmentForm.tsx",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6bb8a01f4223295fd6a1ca060694f5cca0b19ec6"
+      ]
+    },
+    {
+      "path": "docs/openapi/prototypes/2026-10-05.1/staff-onboarding-v1.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "fdaa34280a935265cb2124acea0a1c56b06fd0be"
+      ]
+    },
+    {
+      "path": "docs/openapi/staff-onboarding-v1.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "80bc6ab9cd0752872bc6afa3f35d11fe212896f7"
+      ]
+    },
+    {
+      "path": "docs/staff-api/independent-onboarding.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a57c87ca61049b9b7f2e6b90f6e4665a5d9a20d5"
+      ]
+    },
+    {
+      "path": "lib/admin/accessModel.ts",
+      "before": [
+        "100644",
+        "blob",
+        "dea5cc05de3edd35e55287e882d6fe974026a0bf"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "7db177a8aaf1754f3160b37ba16fc0865b5cd772"
+      ]
+    },
+    {
+      "path": "lib/admin/navigation.ts",
+      "before": [
+        "100644",
+        "blob",
+        "a93ac3395570e8074c14343aa5ff62ace3d8b328"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "bf663496f638f3c2281419e21a4d77a87fa86a32"
+      ]
+    },
+    {
+      "path": "lib/api/publicRouteRegistry.ts",
+      "before": [
+        "100644",
+        "blob",
+        "ab408af867a3e87a27060a4349691a7a01f49377"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "907899501010217cc281d5d5250244e0dd7613c7"
+      ]
+    },
+    {
+      "path": "lib/auth/companyInvitationFlow.ts",
+      "before": [
+        "100644",
+        "blob",
+        "ed728b9003a4b9de817d16081413bec7b84e3595"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "b36901c24718f70591106bca6152623948fe7c79"
+      ]
+    },
+    {
+      "path": "lib/auth/externalStaffEnrollmentAdmin.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "03625e6e2cbc9d112287f4c664b86369a166dfaf"
+      ]
+    },
+    {
+      "path": "lib/auth/staffInvitationRouting.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "fc28e9dce7961ab24e1acc4c3f4a7ccaf80a52d3"
+      ]
+    },
+    {
+      "path": "lib/auth/tenantStaffDelivery.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ed4f1b7c94b8a4a147833b63ee16045d2bd27f96"
+      ]
+    },
+    {
+      "path": "lib/customer-service/supportConversation.ts",
+      "before": [
+        "100644",
+        "blob",
+        "458ff2788000b6138f97000b5ad14fb4e0f8f575"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "8f20a440b6870737053a08d83afc8d66b7648fad"
+      ]
+    },
+    {
+      "path": "lib/staff-api/context.ts",
+      "before": [
+        "100644",
+        "blob",
+        "a205269d6819588adf76021feef19f93efceb370"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "b7a75e4bf2c2c093effce7ad527b7a72253ad173"
+      ]
+    },
+    {
+      "path": "lib/staff-api/http.ts",
+      "before": [
+        "100644",
+        "blob",
+        "d0adf7e7e109b4759ebed00998394c3b9090c160"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "150a773765f1d52a6b6d13e315db59415f466e2e"
+      ]
+    },
+    {
+      "path": "lib/staff-api/identityAuthority.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2ffe7c8e0ced831b4877c39639bf4f89c2926551"
+      ]
+    },
+    {
+      "path": "lib/staff-api/identityResolution.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d97dc7a59d1a41985e328257681ddb713d2e3d1b"
+      ]
+    },
+    {
+      "path": "lib/staff-api/onboarding.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "3fe60be624ee5a8415ac2e49843464afd762349c"
+      ]
+    },
+    {
+      "path": "lib/staff-api/onboardingContract.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a8fd8e3f1b56265dbae253d79599b68c3ce1c32c"
+      ]
+    },
+    {
+      "path": "lib/staff-api/storageTarget.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1385acc75eaa3070f8734d44068e15c7fafe13ef"
+      ]
+    },
+    {
+      "path": "lib/staff-api/tenantAuth.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "00243c91ac1c41cd69b1fbaa0ceb0fda4df5e330"
+      ]
+    },
+    {
+      "path": "lib/supabase/service.ts",
+      "before": [
+        "100644",
+        "blob",
+        "73e323d85201e0f4d5b87b91a3a4a0cd25acaeab"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "a335d1b282407446382702287610ab32ecf0924f"
+      ]
+    },
+    {
+      "path": "lib/tenant/provisioningWorker.ts",
+      "before": [
+        "100644",
+        "blob",
+        "247a912f860b0a36b54e6e77902027ab1d241e97"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "6977f6c0cd9c1a1c9e47b928aa4e08b5d06891ee"
+      ]
+    },
+    {
+      "path": "package-lock.json",
+      "before": [
+        "100644",
+        "blob",
+        "b247061206a317aeb7302f50d469117555d0b62f"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "94b62ba333a731cd5fcb2a73b2d56f9153305d4a"
+      ]
+    },
+    {
+      "path": "package.json",
+      "before": [
+        "100644",
+        "blob",
+        "7e8140606986b98e6acfe71415ce8fa38bad3784"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "5af1a358bd46fe57efbe6184e68c279588470eb8"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic-capture-receipt-11975e05.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "313e58ffe9f6cb3486d73bcd820f520465a4caf0"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/authentic119-final1079-raw3-import-custody.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "38bcb80222931754826b52b9814cf4aff487e8e3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-8f851-sc010-composition-publication-independent-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a330ddf21ae6dfeb52668c981169fca9724ce0ce"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-be2-originalTWO7232-current53-bounded-delta-source-only-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "24c07282df26637c123f7271666b9513824b6637"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-c021-mainb83-source-only-preservation-independent-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "621dc997038d9b937abaa3464f70c62800a07849"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined-fd9710f9-original-two-oracle-one-intake-receipt.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "08fbce8f0cacb8ddda6580ec6d98ec6ed21d0104"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined066-main3251-public533-source-only-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2e11ebee0c3120957e0f9fabb9ac68f533d22e78"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined119-authentic-raw3-origin-fixtureIO-import-custody-independent-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c3d4a269b303baaa3e1b96ac1dbd773246a0bb67"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined119-import-final-publication-precondition-source-only-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "da86c8123311656f3b4fc9cf41e9390a68d9e6a3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined24b-provisional1079-migration-registration.stderr.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined24b-provisional1079-migration-registration.stdout.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7a1995c4cb205eb3bf6dc0e43bbd94f8f85c3b4c"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined24b-provisionald020-input-delta-capture-guard-source-only-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "90fd99e7553524e572425a4625d64cdb285a2ef3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-migration-registration-integrity.stderr.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-migration-registration-integrity.stdout.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "77f6b25d9d556dfdfb5224d92a432d31ac5b73c4"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-released-Staff-mechanical-source-composition-independent-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e9406851e1f2da329b46cb31d15e54ff6c731e0a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-source-only-publication-receipt.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "96037b86e0d8b9820e5b2e2aa3330411ee7ca17b"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined477-staff-cff-imp05-public-preimage-identity-only.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9ab254980438b400c1bf58776bf0e718ce361fcd"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined932-main4a-public533535-source-only-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "70447cb322e7c2e901807c4c9e2647a2527e1d78"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combineda2-main38-public533535-source-only-carry.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "70533986c2aa19943d9e003ee41bf7b701187bfb"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-main296-gov-db-source-only-carry.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "763e0f15f6e7feb58d9e04f2173976b7582387b7"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-main4b-gov533-source-only-carry.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7600fff74ace10a6a3a2e1c4d3df78023bdb0349"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/current-mainb83-gov-db-sc010-source-only-carry.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "01418ebaba2850cde2244d353230f99c400043cd"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/final1079-provisional-source-capture-producer-input-freeze.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4127e03cc908f930d4d5a93d094e40b96b2a381d"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/final1079-provisional-source-migration-vector.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "44e416c777616c02dde8c3fb30591e47df8a889f"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/incoming-staff-ebf-complete-types-manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "363a5888558cee6357bc627a34a76d12dd2dbaaa"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/original-released-staff-two-oracle-hunks.patch",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "344c5f69602baa6583ca5d380600c8c6521276e7"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-additional-unit-coverage-failures-20261006-0016.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "67f834642440f9bd962a7fa042bf09647a24230e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-first-genuine-targeted-failure-20261006-0011.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "db7c54f1b7680c5c95c60ee858c10e6453df6b1f"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-119-historical-superseded-observer-lease-seal-20261006-0031.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "16caa599479ea2d4fd58125a3f67f4e215b5a11b"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-actual-reception-actor-authority-diagnostic.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e2bec331e231680c40dadb3f561bf3b5d02ddb19"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-actual-reception-functions.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f4b9a1b75d44961814a87b8f7466c7092d7be454"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-authentic-clean-native-terminal-diagnosis.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "67ab08c761895579efba4916606b573cfece107a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-reception-actor-authority-diagnostic.cjs.txt",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1c2bf2bc6e523141949bd984874117a3342b0790"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-residual-peer-local-source-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5a690bf8f01a3efbf2d84cad57761758f4caebeb"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-terminal-disposition-stop-20261006051919.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f167532300df5fd8cd5d08b4be6c21c472225bc3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-18f-z04-finite-source-preservation.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "010d022cbab28387121a70534da13be2da0fc894"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-authentic-clean-native-terminal-diagnosis.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "02ee334df9d05c50bac4518ec239e3747999b123"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixture-independent-peer-and-root-checks.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7b724bcb6bfcb90d4ec9a0e8e2e32f031e9e8523"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixture-successor-publication-source-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "30cc40e3ed62962cea95aeb551f1f597250d15c9"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-existing-native-fixtures-guardian-final.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "3521bc74944ff32ad14481822870fba3206f0bf2"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-first-genuine-clean-certificate-terminal-failures-20261006-0311.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c65273b8baa6ff1f615782ec6a5d234287f3585c"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-20819-terminal-observer-lease-stop-seal-20261006032941.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a82d7b3f352d4bde5517453a075481931c83faff"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-authentic-final-optional-capture-skip-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f07cdab4ee3576aea7ed6d372a6b1a57c0f59384"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-authentic-sc071-ten-case-artifact-root-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "58b533d9a19276bb86ac9a7269b63c2a29e3f997"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-authentic-upgrade-artifact-root-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "dda4d2e69d38f8b64ed414c5b8ce4c55d187a1cf"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-historical-superseded-stop-20261006040909.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4bc77dba7218f44ec1dcfb08101f426b7cd4d7c2"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.cjs.txt",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "776015aeddd742fdce3bf0a3536336c51e0ae71e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receive-helper-smtp-config-diagnostic.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d699257e975fff098298aff6c108bb65be1865ea"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receiving-config-cause-peer-local-source-disposition.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f5def6efe538dae6b8fd2c7268bd9aeb8d381b58"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-2864-receiving-config-necessary-child-source-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5606ac604888d4a0e2899cd916485dc7445d9c40"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-actual-sc071-base-package-failure-diagnosis-and-fix.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "99aa0e19957cc39b5d6822fba418ebf6b00f6ba1"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-first-genuine-sc071-failure-20261006-0201.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a6b0de24ca62b9a4fdea9d0f159e180bfcbe9de2"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-historical-superseded-observer-lease-seal-20261006-0211.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7256163fcc4d102ae06ed5196b40ed74e5f4d289"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-sc071-exact-dependency-guard-controls.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d495b92437b8816d9129c4f4a2e9dc03794a41f2"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-sc071-exact-security-dependency-workflow-peer-approve.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d6f8e170ee7d44e5316df79dbabe79333aa903bf"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-sc071-necessary-successor-publication-root-source-only-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ff5aae39d40bb78782e2c1ad8b5c54fd734664ff"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5d9d-final-SC014-DOC613-CPP44-publication-source-only-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "3d4d2ffd59b30f7c770ad45a33b6767367ceedaf"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-actual-duplicate-capture-skip-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4f306794e7955514182d091898db1cb0b51421cf"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-first-genuine-targeted-failure-20261006-0042.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "3ea0b73941a80e7712a237802aef6d1986dcba90"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-genuine-coverage-failure-20261006-0044.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "aef97af62f7a8e9b7ab7075a6b29c4f7a441df86"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-historical-superseded-observer-lease-seal-20261006-0056.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "cb0d17ee7d1828ea10e4b4bf91997d55d926be38"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-imp05-fixture-boundary-12-component-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "45c03285979ca8c6ccf9cda00c9c0948a80c4538"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-imp05-fixture-targeted-local.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c6074df7ea6baf8e72f7b93d7c2f4b35d6c1910c"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-imp05-portable-precursor-fixture-cross-review-approve.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "739d8bd2bd4a6b5758f76f7acdd801bf0db310c8"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-ops03-fixture-cause-minimal-fix-targeted110-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "14b58fb86d2276d1c916a59f7a60a85daca046cc"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-ops03-minimal-reviewed-producer-fixture-correction.patch",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0ab883dbe82e71181089965b6bfa0b53af896aff"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-actual-whole-eslint-zero-errors.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "04e5953ca4821ef0cf5be9a46e71f63c337c5584"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-diagnostic-format-peer-full-lint-source-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ac9672179a2741b45c6d52f897a294f57910186e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-first-genuine-lint-step-failure-20261006-0414.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e14ee7281e261411a3015e302f2e920d192c983d"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-bdf-historical-superseded-stop-20261006041627.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c0808f5eb19355befdcf2c66c1ff310c239fd5f3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-actual-duplicate-capture-skip-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a8038c4d88c956fa4a588c157d83a5b0e7278eb1"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-actual-ordinary-sc014-fixture-failure-diagnosis.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "efef65d2ed7f7910cb5575ac64bc8a566a1e41b3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-first-genuine-coverage-failure-20261006-0107.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "775049a0ccc03c8b9141360b8874b8e8b4808ac1"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-genuine-quality-step-failure-20261006-0110.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "24240ea33892d9d5d9f2ba4937cac8162f6d9d21"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-historical-superseded-observer-lease-seal-20261006-0130.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "edf08a22284b3afcd39cfb1fc1d3104d01ccd845"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-current-reception-dependency-fixture-fix.patch",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f81f315d42028ba7ff01da59835a430b80a20394"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixed-full-ordinary-local-11819-pass.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2b11d993314188eb72fc46a5ac29905f6c4d2e9c"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixed-full-ordinary-local-report.json.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "cc18aa0e34303c5e2bf5eb6668000f5a2feb954f"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixture-cause-current-dependencies-targeted11-ready.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f2ba52b1bb4aec149877b99c8153b6326e4f7045"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixture-independent-root-cross-review-approve.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "25a3be8c72a05f99d556ffeca9f23715254fb860"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-terminal-quality-failure-20261006-0112.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "b2dd2b1bf0d2612f347a7bcc1ce66ce058bed313"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-duplicate-capture-skip-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "bcb6ae7575d63eb40ad172e887fc8cb4abb88fae"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-security-audit-failure-diagnosis.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ec8a5208035cd63dce473166ece8b1c3bbc23318"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-authentic-production-npm-audit-before-source-map-fix.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "944552406b00900910b0b83c1aa9998af59960c3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-first-genuine-security-audit-failure-20261006-0141.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1a7f26aa5cf59a2810b4cc1820ea0a050077fa45"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-historical-superseded-observer-lease-seal-20261006-0153.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0231abae91f5a84e7af70648a393e1477ff849ea"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-minimal-fix-independent-root-approve.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "fd48ef834f3af0f15a7ce5a18c54b62471463429"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-security-dependency-fix-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8a51a4296dc3a4d483d19f6c5ff1bab582cd3f7e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44-first-genuine-targeted-failure-20261006-0337.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d53c4bd870d6fc754e9cbd366ab54b740239035e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44-historical-observer-lease-stop-seal-20261006034627.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "bf764e9b3e96a17694fe9d1bdf1155e073feb49a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44-original533535578-replacement-closeout-refreshed-ready-after-main.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "252a0d70db47c1bf2a2cccbef71634663a707f9a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-authentic-final-optional-capture-skip-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "327cdfece44cd81873597559ec9b389cd752f049"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-authentic-quality-coverage-same15-case-terminal-disposition.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2117b5a7f0a8bad0bc5eb70b6a033de6d4e2bd51"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-exact-ddq-model-corrected-110.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "73153dbca92c7eab4feb37135812fe3a0f0129c4"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-exact-ddq-model-proposal.patch",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "314fad4a77f3059c189d9b2d71914dadde09210e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-genuine-cause-exact-model-fix-peer-and-local110.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5787d212d512a275825f9e285fd62ac3f52a2be1"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-ops03-necessary-successor-publication-source-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f7c52108f7a3e1942bb28e968873d8f4a9181685"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-d44d-warranted-ops03-actual-local-failure.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f2ca38f4f679c8b9db706956112fba75edc9e624"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-final1079-authentic-capture-complete-types-manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "caea705230be7c9ff53d6514c1910ce8bf21d52a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pre-staff-complete-combined-types-manifest-mainfc.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1b660e691e624415279c2afaf5ee94cd6f9b6b5a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/provisional-public-d020-corrective-source-candidate-intake.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c4cbdd0e378395e9c337bf9622d0ca341603d1c3"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/sc010-public-row-only-composition-source-guard.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6dc474f0fe7344c3ec464376d236bc99395986db"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/staff578-a249-vs-e081-main296-protected-input-freeze.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c0755a814f6a4e6527e20196ba6a344ed8018fc0"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/staff578-e081-sc068-main38-env07-canonical610-drift.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e63f2c210dbf1ff1d96dd8864da4e8df88cc84ea"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/staff578-e081-vs-d0-cff-main38-source-capture-input-receipt.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f44086550a13b2d90394cffcd1e819c8b3095b61"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-53b3bfd0-to-2c11a510.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a303c9d967df2a2531b17a788fd49f56c72fd772"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr613-edb-fresh-current-source-guard-root503.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "10517865e553932f61682a8252034f4afd155bd6"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "before": [
+        "100644",
+        "blob",
+        "88b7be952b109b556fd1da6e8d3e26fa11394ef6"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "0445cbe2d08985d4ed681306191e0958d26c6d4e"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/capture-receipt-20261004.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "372ed17efda643e386036417787a6bdd4552b967"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/capture-receipt-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "cea63ec79fe881853c3c59cc95fe60691f3c317a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/capture-receipt-6a14022e-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e0c15e5fabc7e74eef5c750974166c6eb509cc73"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "901e11290412c5f2a934f0345db95a54d576c376"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/native-receipt-994563-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "58df8f97a2a273ff453fe7fb77b397d2ee98bbe5"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e59451662911295709839eb2c9e0baca07a4b964"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "96d88e5dc8b03219cf68946325e3f424aae13d61"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261004.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6bab530da8d164337dd9d6fd457794a7bcacf298"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261005-43f.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "53448aebdf30b34dda94713c3034cd332ceda804"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ba5aa8c91899d348a886f64c3b765ec5152d185d"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "15e6e26fc1d0e2eae330de039fdd0f27c4f1b73a"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f0fc26ee0a535d89cdf6656dd925f5983535c793"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "61a9d29722ad62202f6dfc9a1ae4a6914e837f33"
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gov08-step-alias-qualification-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "03c58af48215352b09998eed051a1e37a2b8cc7b"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/diagnosis.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4615bdba0191c6182e0ef8f73d634831a7ab1338"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/diff-check.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/ediel-env07-sc068-fixture-prerequisites-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1503f7163cc284f5f506c72377f27ec59121680b"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/green-two-files.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "3c229193780cf3c1e243d117d5e05f1d0c6b1688"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/historical-d0-failed-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2f0d01771fbd8a75ca71bfecb322b9e431d57917"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/lint.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f84abfebbecaf7040daf764ccbf28caad0506eaa"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/preload-two-files.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "cc0f10f3ff0377b10ce105a509f232b69de67dda"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "cc5699cca38a4054848b14f0a979255937b76c0d"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/red-two-files.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c0c574a5232bca8940deb84fd6dd4dd41edc589a"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/tenant-composition-final-d0-upgrade-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9b8e8a6ec7392fcfe51b22535f5de63a52951f02"
+      ]
+    },
+    {
+      "path": "quality/staff-api/ediel-test-prerequisites-evidence-20261005/typecheck-tests.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/gridex-prod-prerequisite-map-20261005.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "44191fe2f668ab0cbf26041aecb78bd3db4bb63b"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-20261005.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "118a06d378ceef37df674a94ae6f52874a196e47"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/acceptance-after-typing-correction.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ad4be1ea1a837ff0ab4bd7c9c9daf2eba6b8c0ff"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/aggregate-migrations-import.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8919231b34bd8a38b7864486d6366686d6bedab8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/app-types-after-import.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9b2cf920508d503009448f60837815c22f79b60f"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/combined-main-test-types.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "488ec242dad671649a873a5e839385c2a718b9f8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/full-test-types-after-correction.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/gridex-support-api-docs-final.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "fda357eb3cd5954980df2d926cfe8713f556a4b5"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/gridex-support-migrations-final.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "96242eb21d5628959fb0da633fb2c79eff72c92c"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5f0c49efcb3e38fe8b618c48ce56c254a20dfed4"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/native-capture-import-binding.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a5b01e0f6780932002a61a76edf2eccece9a85df"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/native-capture-receipt.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "155c81ef4280aba1bbd2e7325ddeaeec242f1bbd"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-independent-onboarding-final-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "bd9f4938f4d11468f5feadb8d2cdbd99f0f9fad6"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-independent-onboarding-initial-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "43b77b81e56c3ad739dbc87f0183668c09744f4e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-independent-onboarding-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5cd540a701e477d1bc11eb1526402d24a434b93e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-independent-onboarding-test-typing-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b07b17110b253596e3e3f2b57218bd7d3d4963"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-onboarding-final-tests.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "cbe996d07830e0a795f9326af1e28719570bb6f7"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-onboarding-lint.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-onboarding-native-capture-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "888edff8bd54812eb38e6e783011f697a865925a"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-onboarding-openapi-parity.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4e6e0ae427a816a858ff3bf1791c460148d30364"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-onboarding-tenant-ratchet.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "090a4cfa1c2c7113cef1a9be8ed4f4ea9e7ed3a1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/staff-onboarding-types.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      ]
+    },
+    {
+      "path": "quality/staff-api/independent-onboarding-evidence-20261005/support-onboarding-password-first-green.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "59580f825cc4f35235777a4aa796035e6afb0f04"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/authentic-capture-receipt-cff.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "46cd5ecdc875413a2969fcbe0bd2072a4e904295"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/authentic-union-import-manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d7f70349a1ecf69556d22c301888a4da6b67f8bf"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/composition-source-witness.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7f039c3bfdc52f3a021016b18584835243c81bc1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/f88-union-capture-artifact-metadata.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "119fe7670798a32272a32666dbbdd05ce5807212"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/f88-union-capture-pilot-ci-cancellation.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "3451f161c7daf853f6d73e9bd6c4080d0d51d356"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/f88-union-capture-pilot-source-witness.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "338849ca8f058a70437e0ada5ddee8f72af79f02"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/f88-union-capture-run-metadata.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ae86950dc45df0146bb146555041069867e6bc68"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/final-tenant-code-qualification-dc2-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ba943d21ea1f625bc2a4069ba703b2a3a283ce48"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/import-main-f88-union-capture.py",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e3cb5e44a8e728f66d4d1eb6a1048a95b46f9ad8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-complete-types-manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e64eaf5b82f41b24bd12c240172ff8224ea9d030"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-capture-import-applied.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "db99b28b9959bb7d18336ca3c5bd5b1ce2e1d11d"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-capture-import-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "05d313834f9aa846e4d4e1cced35d2d27e2240f8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-capture-importer-independent-static-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "fa1acb34aa13728adb8811abad10990046e6491a"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-capture-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ba5c3e4807663eaa6030dd98a4526efdd4e44c3e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-local-app-typecheck.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "bbaabc7b380768836212264cac34c47e1bcf471c"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-local-db-check.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0c606366933214359bccfbf68b8ea905b97ecba4"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-local-scripts-typecheck.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "bca8a2165240b40f1f1fb5aaa9887c684a7e6bf4"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/main-f88-union-local-tests-typecheck.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9967dcbb2a39e93584f9f03f2e9714a10e867c9b"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/preflight-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9dff53fc1ea14d950ae2c453dd1892517a9f64fc"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/preimport-complete-types-manifest-cff.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5caa1d86e758b944dc25d1223f8362dbba7111ff"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/previous-complete-dc2-types-manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d6c42eea7a64764de183413cf81f9e8ea2a2e597"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/tenant-classification-final-dc2-superseded-native-status.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "91cf6994058d1b23357d12273a84793e59a884e8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/main-f88-composition-20261005/tenant-classification-final-dc2-upgrade-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1f0ee7093873b2b60b6480cc96b1be28256877e0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/actual-relocated-red-helper.ts.txt",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d9daed34f316ed2f8e894de7c4207430f1078469"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/diff-check.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/green.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ea1a591bf0b5073d903ba51ec1a1738d07c2a34a"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/independent-source-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "16c5527902f83e0fe94471b90058e585eebba8eb"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/lint.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f0b1aa14e7f109e329248063e50a27d8cab9874f"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/owner-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d12e0c023c754a52b8ff41b09329165a64ee1e37"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/previous-111dd-native-upgrade-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "38320aa8b3f621e03489c645c9a58b04a3fb0f5b"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/previous-111dd-upgrade-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "29163a81c4a0e6dfd4ca7862ca3d85bfc4700862"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/previous-complete-111dd-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4f3616cace1a1a7d4ed1e80bfd3556b1437db2ab"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/red.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "b0aad60fb57980aa7ab7ba968e388f2d58989af8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/typecheck-scripts.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/native-fixture-evidence-20261005/typecheck-tests.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/storage-target-evidence-20261005/durable-capture-binding.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8752c85f6946834b44c8be7fca8abd51fd20bdec"
+      ]
+    },
+    {
+      "path": "quality/staff-api/storage-target-evidence-20261005/final-focused.log",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6e87601e1ae855ff7f7cbb333338682901eabba1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/storage-target-evidence-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "46d5287f64f7cd4e91fa2db6b18bcb3e2a238d90"
+      ]
+    },
+    {
+      "path": "quality/staff-api/storage-target-evidence-20261005/portal-baseline-independent-source-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "daf4105e9b4c3c630dbec78ee831a8e7918a99f8"
+      ]
+    },
+    {
+      "path": "quality/staff-api/storage-target-evidence-20261005/prod-prerequisite-map-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "47e426671074ea764d1db8e87ff32548dc8ed9de"
+      ]
+    },
+    {
+      "path": "quality/staff-api/storage-target-evidence-20261005/support-case-permission-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6aa9f68cb0ce6315503ae1a3fb78fac062da566d"
+      ]
+    },
+    {
+      "path": "quality/staff-api/support-storage-target-20261005.md",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1f81a812928a5bd22393b95cda965a57bb20d952"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/authentic-capture-import-manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "266041d0e6c88f69935673f14c0f63add5cbeceb"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/authentic-capture-receipt-a315.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1c10a5139830be9b60a9c1bf6a5f8036ffb408b4"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/capture-import-helper.py",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8508018b0fa23b6884c08d671fdac419897998ae"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "4a35e7282a0534d0c0a2d9fce9c5acac3af686c1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "63a0bfc92e06f3db184ae40ae623e38fdc22deb0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/previous-complete-migration-manifest-0cf.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d7f64a860d67ad41100d2617ba9637501af56456"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/previous-complete-types-manifest-0cf.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0379e398825dcbc035156f45fcd4465a699a80e7"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-combined-native-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "21f16c4da79f42b024b36b90fe743fdf39a40ae3"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-combined-native.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "39629be9d137188f8c4747daa9ffc75d5f0fcad3"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-green.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "03d449ddc46ab65700ad21e5b6e668537ad8802f"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-independent-source-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2b7953e1bd7d4cd41290a16ef1a31dda67d90d26"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-lint-frozen.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e9b944078e3f8bfe7fcc22e6191093513f601463"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "81e938af62c29becde3084c2f622a744b15f2eea"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-red.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c1ea97166f034ff451619e277ba8663bebfae58e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/staff-external-identity-classification-test-types-final.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "2ecf747e4f85db1133f3b4b73886d2d970dcbb36"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/tenant-classification-a315-capture-importer-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "dc62239e424259763d28531f463eb69afda16d8e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/tenant-classification-capture-import-applied.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a79328606a5bf976c5de73d7626b3ab15b55bc91"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/tenant-classification-capture-pilot-source-witness.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e5b999acc10740760d34d6fb757bc4e0f33443e1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/tenant-classification-capture-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c5ae732171dccc6650140fb1ae581a41602e17be"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/tenant-split-final-0cf-native-upgrade-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6538ad67d8d5dd13301177f3f6a072928c62154d"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-classification-evidence-20261005/tenant-staff-classification-unique-equivalence-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "726e94614e285e6484c5c6555900a6998e8b76f3"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/finalhead-capture-byte-match-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c797cc5cb9db79bdada5a70d6b3b7b4bfb940aaf"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/gridex-support-public-channel-green.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "533812fb70c5470336c8b0e9525b64a6ef108a9a"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/gridex-support-public-channel-lint.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/gridex-support-public-channel-red.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ddc30a706fe0aa285c60b817c032cd43eadbc216"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/gridex-support-public-channel-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "af460317bc6f4b6438a33c0a11a56ccfde46b367"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-captured-fixture-coverage-ratchet.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "61166c5142bb5a925fbfd1617bb95640cddefe0d"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-captured-fixture-full-coverage.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6031a57c15aea48e39af7b5be541b417715c984e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-captured-identity-authority-fixture-independent-review-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9f98bf02d50d8347670403483ca0fe98cbf49ec9"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-external-identity-enqueue-fixture-green.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f57cdf02b1f46c72d4db97fd400129907aff30a1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-external-identity-enqueue-fixture-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "326dabec1d8e996ff14ac043a0862d0324fd13b5"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-external-identity-enqueue-fixture-red.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ca8b6a001bc6bc4932fe6cad92442b7e4ee81eb4"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-external-identity-native-fixture-closure-independent-source-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "89e5110bb03e84e0676d7ed6f1081e91e3101d2b"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-external-identity-native-fixture-closure-qualified-independent-supplement.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "659df6d9cda1473af536aec14963431f5a1e5ef4"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/staff-finite-captured-identity-fixture-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "8558bdefc7250a97448f7e90132106519b6d62c1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/support-customer-channel-final-independent-review-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ffbe75587347a0465714174fe5d8b19b5ab7353a"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/support-public-channel-contract-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "587222701847a6257a20e214b53ef700f7864b5f"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/tenant-final-channel-api-parity.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f707bbfbee5ee610fb4b00c271bd86b80127eac0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/tenant-final-channel-app-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "bbaabc7b380768836212264cac34c47e1bcf471c"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/tenant-split-capture-import-independent-review-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "09573659a86b6cf023e6a42800ef50270be3f893"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/tenant-split-e545-native-upgrade-independent-review.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "5e8835753343a69e6c0c2e79ebebec337cc4f56c"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-handoff-final-source-20261005/tenant-split-upgrade-e545-artifact-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0351494aa24b6743b4dbed8680005b30d6bf4298"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/corrected-ops-api-docs.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d856c20a0c22cb76822ca3d2801db04eaaa6c986"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/corrected-ops-tenant-ratchet.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "0977b42030cc5972c2c7969b459a7078fc78943e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/manifest.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a0c9993c9c1eb8b5d6e846131efe980fc892c0f9"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/native-capture-artifact-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "104a5c1ab5d08e50182d0815f1be4f000f398c69"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/native-capture-import-binding.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ad7ee72bacb489bf47feaf0e8c755a2b41c65dcb"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/native-capture-receipt.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "823a4489093ef701e00ab50c0159befd0c2ecb26"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/postcapture-composition-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "39895c773ee65e10d84406443fa040436c738d01"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-external-identity-binding-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c4ae54ee833178e02a0f480a4a680dbd2061614e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-external-identity-green.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a7b1ceea866787a137084c6c978bf683d927bb98"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-external-identity-lint.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-external-identity-resolver-qualification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "a2b7473769d554888b1fc9ab58e7df4c4b863aa7"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-external-identity-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-identity-final-app-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-identity-final-lint.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-identity-final-parity.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f707bbfbee5ee610fb4b00c271bd86b80127eac0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-identity-final-test-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/staff-identity-final-tests.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d29382d87b7551ec4a6473a9ebb2793368a48fee"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/support-split-delivery-native-independent-review-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "b7a02cd80d1ff600529c36e3aaf046a7a2ca349f"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/support-split-identity-client-independent-review-20261005.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "092cce891b85b76fef13006059d76a72f36cb1cf"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-independent-bridge-synthetic-fixture-supplement.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "17e8ad75e92689c9cbf3a6ed1fe2bc702c300cd1"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-independent-onboarding-lint.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-independent-onboarding-qualified-source.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "565089b172970f179526a99104caa38ab3108072"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-independent-onboarding-test-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-independent-onboarding-tests.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7ba499b38878e7018c9ae9daacda8d93b134ce5e"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-capture-artifacts.raw-metadata.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "05b6c541a7fd98e1e7335707dcac412092d06362"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-capture-jobs.raw-metadata.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "de5372bfcbcd87604a337035ab07ca6ccb9304f3"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-capture-run.raw-metadata.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d04b5b6890ca6fee5bef39f90c3864b19a2a95f3"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-main-composition-proof.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "f4e4e5f3c792ce56649dfbcdba800164765b6187"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-postcapture-api-docs.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d856c20a0c22cb76822ca3d2801db04eaaa6c986"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-postcapture-app-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-postcapture-db-check.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "b9abc0ad277999c27fd05316d1d733b42c2544bd"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-postcapture-test-types.log.gz",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-web-browser-ci-verification.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ed4075b0ad137f724a2b087f8e962d2fbcd76e88"
+      ]
+    },
+    {
+      "path": "quality/staff-api/tenant-split-evidence-20261005/tenant-split-web-required-checks.raw.json",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "9eadc1d3c73b36266db771c12f3118a5a8130814"
+      ]
+    },
+    {
+      "path": "scripts/canonical-runtime-consistency-regression.cjs",
+      "before": [
+        "100644",
+        "blob",
+        "92a75dd0b62b6a64623fef4dcfe018cc93ea05f7"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "fcae2fd344b5686b6b0c6b64976c319de8456ecd"
+      ]
+    },
+    {
+      "path": "scripts/check-openapi-runtime-parity.cjs",
+      "before": [
+        "100644",
+        "blob",
+        "26f029c9b2d6ab2120e689babc6df245f0dde25e"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "7c0bc65a91e3748be030da5173c0c6dc24b67603"
+      ]
+    },
+    {
+      "path": "scripts/ediel-ack-first-reception-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "90485bfc33d13cc926c04900f73ef0db91220f9a"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "4dbdaade997c8c58f047ca9b4ae3c23ac8a7e0f3"
+      ]
+    },
+    {
+      "path": "scripts/ediel-correction-context-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "3915f281bb6fb0741fb575e8c54667c5e9dfea4a"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "fccd499525f3cf3aa7a52b0dfa81f04b02512ebc"
+      ]
+    },
+    {
+      "path": "scripts/ediel-db02-profile-periods-native.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "e495876e43e68352d24087b34aeaa2e1c4d33e1a"
+      ]
+    },
+    {
+      "path": "scripts/ediel-inbound-reception-actual-columns-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "6996c63259f464f05945f4d4450309ee19f99697"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "4d3843ab9a743813a7a98ec97a6a4b5831763a2e"
+      ]
+    },
+    {
+      "path": "scripts/ediel-negative-fixture-sql-regression.mjs",
+      "before": [
+        "100644",
+        "blob",
+        "f0f6073e1362310c4be1180cb3d1a091a19f6cb5"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "4c2bb90d5d13473dea5a22e329a9ee8af4c817ce"
+      ]
+    },
+    {
+      "path": "scripts/ediel-outbound-ack-replay-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "4eeafc2c4c5c57a76b019dc214aff495a5d08bf4"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "bdb2a3043649338a8117bf180325c4e54e1da194"
+      ]
+    },
+    {
+      "path": "scripts/ediel-positive-fixture-sql-regression.mjs",
+      "before": [
+        "100644",
+        "blob",
+        "361355ef893618529c7b0179a21ae06d5319167f"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "50b506a8a3d5b18257670ef514ce2b6ef05073e5"
+      ]
+    },
+    {
+      "path": "scripts/ediel-prodat-mixed-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "e9ffb128da4dc9f55c3ea712484af66b658ee9f7"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "aad1acb7a89655001688b6b600e7763477efa466"
+      ]
+    },
+    {
+      "path": "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "before": [
+        "100644",
+        "blob",
+        "192cceebef5a81cbb69d69a99a3f1a839ea2cf89"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "8b8723b3fc40aca1e50a47cf85b799caaace4dbe"
+      ]
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "before": [
+        "100644",
+        "blob",
+        "0f669757764a1983fd2e4f0feedb04c5c66b3b9a"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "a12d487d1fc777587e055c819b02b95bc7ca079d"
+      ]
+    },
+    {
+      "path": "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+      "before": [
+        "100644",
+        "blob",
+        "e5635cc5cbd85ef7c4c345e307cf9b511fe31db0"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "7bd6d17893d95748f1965cdb7a2a03d24d585020"
+      ]
+    },
+    {
+      "path": "scripts/ediel-test-original-outcome-native.test.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "731d4aa5051eff6c93ac563a5b3d3eb2cf3aee3f"
+      ]
+    },
+    {
+      "path": "scripts/ediel-utilts-consumption-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "3fea9bff6ce3ba221ae73d8167cfb4ed583608c6"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "b75f48439f79188c2deaf5cfe992da976f65c2c1"
+      ]
+    },
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "9ce0ed9c35cd0f34edae9296a71def5f3ba4a9ce"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "6292160a16e725178646023a1e8d9c411ea836fb"
+      ]
+    },
+    {
+      "path": "scripts/ediel-utilts-s02-required-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "4b5619efa240c13fc757d043284d326a0cdb4de4"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "9d97a1272df855be2fc7485db317a73ce82b8140"
+      ]
+    },
+    {
+      "path": "scripts/ediel-z04-ack-native.test.ts",
+      "before": [
+        "100644",
+        "blob",
+        "e539c6a34d4845568b70cfae3f1ef1fc09cb999d"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "ae483202246fc45c78221cd0f534dd9c5849be54"
+      ]
+    },
+    {
+      "path": "scripts/helpers/originalMailboxNative.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "6475301f1c907ae4874b54e10b58b81714cd5000"
+      ]
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionBoundParties.ts",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "c3e64040079e8d5af9371ed00e5ccdaeb014f8d5"
+      ]
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "before": [
+        "100644",
+        "blob",
+        "b15f49466f94adebcdf42db6ab9149a6f5cb4661"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "2747395a3d014f0b3535bf9f7d649465e60103a5"
+      ]
+    },
+    {
+      "path": "scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "7d8c87168c79204c03ce3bdce5cfbba13a96c2f3"
+      ]
+    },
+    {
+      "path": "scripts/lib/staff-onboarding-sql-fixture.cjs",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ef1158a43e99f88d6364f6d2c1b9582ddbf089c9"
+      ]
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "before": [
+        "100644",
+        "blob",
+        "01d7e2eee0ec052bbcc497a157a699403c86fc12"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49"
+      ]
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "before": [
+        "100644",
+        "blob",
+        "25a27c9aeff30fdc9adf418be2891556c38e07da"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "4d3aa296fb3d3f2a7e15bdb3ddd6a9b8d8e96f1e"
+      ]
+    },
+    {
+      "path": "scripts/staff-external-identity-binding-regression.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "102b24c93029292434d3f500c4a3baf2136e67a4"
+      ]
+    },
+    {
+      "path": "scripts/staff-onboarding-acceptance-regression.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "10b6f4ab05cea744984648e93df3c0c2326cc3e4"
+      ]
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "before": [
+        "100644",
+        "blob",
+        "e64eaf5b82f41b24bd12c240172ff8224ea9d030"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "0a5a0add2e80cb698635f1584136e55c2193ea1b"
+      ]
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "before": [
+        "100644",
+        "blob",
+        "690a4d29b4ae26debb5ee77aff9b01b168a49d9d"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "a03032ffba09768fdf9dcdd11f9af96738d0b74e"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "14cead09ae5d5a7d9b1d21351a0ad724e6d39664"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "1980d56b10aa1d26cd5b67929002b119b3d5559a"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "85ed00249ceda5e6591e78aa89df36602fe7c244"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "012f25a0b4d519c60b26aef7495869354f3d71f7"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "ad15e659e02001cacc591e65fc37956f9bdf7baa"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+      "before": null,
+      "after": [
+        "100644",
+        "blob",
+        "82e160f5318e241e373092cc63d2067379cebc6e"
+      ]
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "before": [
+        "100644",
+        "blob",
+        "b85719fc6fd221fdc87b53d1e17e0fdd4fa011f2"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "8c9785d9e8cb7b0aa4fa84e235fb607fbb5853ea"
+      ]
+    },
+    {
+      "path": "supabase/schema.sql",
+      "before": [
+        "100644",
+        "blob",
+        "97ffcf058e81345584b9c53fcb102a6fa24ae1d4"
+      ],
+      "after": [
+        "100644",
+        "blob",
+        "3aaad18f3a3f2f16959c817ec570208995c80368"
+      ]
+    }
+  ],
+  "qualified_source_receipts": {
+    "pr614-075f-finite-current-source-guard-root503.json": {
+      "sha256": "a8d8760bacfd9e3d1dec68944c436a3db1d20c11fbcf5db68711c83363518ddd"
+    },
+    "pr614-075-all12-success-stop-20261006062311.json": {
+      "sha256": "aca8dee9be69c7c72837d6e3311d61016e72c5000b076c9fcccce92e74571904"
+    },
+    "pr614-current-authentic-clean-native-artifact-root-qualification.json": {
+      "sha256": "bb06c3f4e09dcbe7f1ec38cc4d1051391c4e3080994784ec3c4ff1609df0749b"
+    },
+    "pr614-current-authentic-pr-certificate-artifact-root-qualification.json": {
+      "sha256": "971bdff133a1c2b16a96e183a4d6da8e9bb0bd1112765b3ef466620d55f229f6"
+    },
+    "pr614-075f-authentic-sc071-ten-case-artifact-root-qualification.json": {
+      "sha256": "023427005f767bebacfb847b7b64c0c4eb24a871d4b2a005be9c7df1163b5cc9"
+    },
+    "pr614-075f-authentic-upgrade-artifact-root-qualification.json": {
+      "sha256": "fd4bcc46573bcb83b4ec682d1e883d516767790c4ae50437554e8cc61089dfd1"
+    },
+    "pr614-075f-authentic-final-optional-capture-skip-guard.json": {
+      "sha256": "4c921336d63ed15551506c373866c21d908affd524d372a7c066d3a8ff7bca79"
+    }
+  },
+  "source_guard_source_and_semantic_scope": {
+    "scope": "One finite original source admission guard; independent original source/fixture/security reviews retained, no test/native/capture repeat or new Masterplan work",
+    "recorded_at_utc": "2026-10-06T05:31:56.524863+00:00",
+    "head": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+    "base": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "source_tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+    "expected_merge_tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+    "expected_ordered_merge_parents": [
+      "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+      "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+    ],
+    "changed_paths_count": 390,
+    "foreign_main_mode_type_blob_exact_count": 8801,
+    "whole_source_path_count": 9191,
+    "original160_doc_postimages_preserved": true,
+    "whole_352_changed_rows": {
+      "rules": [
+        "DB-02",
+        "GOV-08"
+      ],
+      "acceptance_contracts": [
+        "AT-DB-02",
+        "AT-GOV-08",
+        "SC-010"
+      ]
+    },
+    "other347_rows_exact": true,
+    "coverage_counts": {
+      "rules": {
+        "VERIFIED": 111,
+        "NOT_VERIFIED": 7,
+        "PARTIAL": 3
+      },
+      "acceptance_contracts": {
+        "PASSED": 167,
+        "NOT_EXECUTED": 50,
+        "PARTIAL": 14
+      }
+    },
+    "coverage_sha256": "f496e7b127075c982ed857db07d52d99ee2ae94d91692e06713b497135c5167c",
+    "all44_prior_actual_markers_unique_preserved": true,
+    "production_certificate_consumer_unchanged": true,
+    "one_original_capture_raw3_preserved": true,
+    "sql_count": 1079,
+    "applicable_current_head_gate_qualification": "Requires separate final original observer ALL12 seal and fresh public identity guard"
+  },
+  "all12_current_source_seal": {
+    "sha256": "aca8dee9be69c7c72837d6e3311d61016e72c5000b076c9fcccce92e74571904",
+    "all12SUCCESS": true,
+    "five_guards": true
+  },
+  "certificate_fullcard_separate": "NOT_VERIFIED with exact authentic blockers retained; ordinary current PR GREEN is qualified",
+  "formalEdielApproval": false,
+  "liveCounterpartyVerified": false,
+  "new_Masterplan": false,
+  "merge_policy": "Normal GitHub expected-head merge only; no force/admin/waiver",
+  "actual_main": "NOT_YET_MERGED"
+}
