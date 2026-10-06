@@ -72,6 +72,18 @@ on:
       - 'lib/ediel/prodat/prodatRegisterEvidence.ts'
       - 'lib/ediel/rulebook/prodatInvoiceePolicy.ts'
       - 'lib/ediel/rulebook/prodatOptionalInstallationPolicy.ts'
+      - 'lib/ediel/core/messageBuilder/payloadPreflight.ts'
+      - 'lib/ediel/core/messageBuilder/segmentSchema.ts'
+      - 'lib/ediel/core/outboundOwnerWitness.ts'
+      - 'lib/ediel/prodat/compatAdapter.ts'
+      - 'lib/ediel/prodat/prodatRegisterInput.ts'
+      - 'lib/ediel/rulebook/fieldMatrix.ts'
+      - 'lib/ediel/prodat/prodatRegisterFields.ts'
+      - 'lib/ediel/prodat/prodatPartyFields.ts'
+      - 'lib/ediel/prodat/prodatDocumentFields.ts'
+      - 'lib/ediel/core/receivedProdatResponseValidation.ts'
+      - 'lib/ediel/core/receivedRegisterValidationBinding.ts'
+      - 'lib/ediel/prodat/prodatApplicationObjectValidation.ts'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.scripts.json'
@@ -215,6 +227,19 @@ jobs:
               'lib/ediel/prodat/prodatRegisterEvidence.ts',
               'lib/ediel/rulebook/prodatInvoiceePolicy.ts',
               'lib/ediel/rulebook/prodatOptionalInstallationPolicy.ts',
+              'lib/ediel/core/messageBuilder/payloadPreflight.ts',
+              'lib/ediel/core/messageBuilder/segmentSchema.ts',
+              'lib/ediel/core/outboundOwnerWitness.ts',
+              'supabase/migrations/20260930200633_ediel_outbound_witness_ack_scope_and_time_guards.sql',
+              'lib/ediel/prodat/compatAdapter.ts',
+              'lib/ediel/prodat/prodatRegisterInput.ts',
+              'lib/ediel/rulebook/fieldMatrix.ts',
+              'lib/ediel/prodat/prodatRegisterFields.ts',
+              'lib/ediel/prodat/prodatPartyFields.ts',
+              'lib/ediel/prodat/prodatDocumentFields.ts',
+              'lib/ediel/core/receivedProdatResponseValidation.ts',
+              'lib/ediel/core/receivedRegisterValidationBinding.ts',
+              'lib/ediel/prodat/prodatApplicationObjectValidation.ts',
               'package.json', 'package-lock.json', 'tsconfig.scripts.json',
           ]
           hashes = {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}

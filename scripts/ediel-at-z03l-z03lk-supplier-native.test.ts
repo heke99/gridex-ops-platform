@@ -22,6 +22,7 @@ import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger'
 import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
+import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
@@ -256,14 +257,44 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
   const unh=wire.segments.findIndex(s=>s.tag==='UNH'),unt=wire.segments.findIndex(s=>s.tag==='UNT')
   expect(segmentComposite(wire.segments[unt],1,wire.una)[0],field+' unchanged envelope framing').toBe(String(unt-unh+1))
   expect(segmentComposite(wire.segments.find(s=>s.tag==='UNZ'),1,wire.una)[0]).toBe('1')
-  // Use the actual current selected registry policy, retaining the genuine
-  // producer's typed condition facts. No constructed field-rule/policy override.
-  const issues=validateCanonicalPolicyFields({ policy,rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una })
-  const diagnostic=issues.find(issue=>issue.severity==='error' && (issue.prodatDiagnostic?.kind==='field'
-    ? issue.prodatDiagnostic.fieldNumber===field : issue.fieldPath===descriptor.segmentPath))
-  expect(diagnostic,field+': '+JSON.stringify(issues)).toBeTruthy()
-  if (diagnostic!.prodatDiagnostic?.kind==='field') expect(diagnostic!.prodatDiagnostic.errorKind).toBe('missing')
+  if (field==='311') {
+    const originalContext=await loadCustomerMasterdataValidationContext(f.original,f.actorUserId)
+    expect(originalContext).toBeTruthy()
+    const positive=preflightEdielPayload({rawPayload:f.original.raw_payload,mimeType:f.original.mime_type,messageStandard:'edifact',mode:'send',
+      companyId:f.companyId,parsedPayload:f.original.parsed_payload,dateEventRow:f.original,customerMasterdataRow:f.original,
+      customerMasterdataContext:originalContext,validationPurpose:'outbound_original'})
+    expect(positive.blocking,JSON.stringify(positive.issues)).toBe(false)
+    expect(segmentComposite(wire.segments.find(s=>s.tag==='UNB'),7,wire.una)[0]).toBe('')
+  } else {
+    // Use the actual current selected registry policy, retaining the genuine
+    // producer's typed condition facts. No constructed field-rule/policy override.
+    const issues=validateCanonicalPolicyFields({ policy,rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una })
+    const diagnostic=issues.find(issue=>issue.severity==='error' && (field.endsWith('_GROUP')
+      ? issue.fieldPath===descriptor.segmentPath : issue.prodatDiagnostic?.kind==='field' && issue.prodatDiagnostic.fieldNumber===field))
+    expect(diagnostic,field+': '+JSON.stringify(issues)).toBeTruthy()
+    if (!field.endsWith('_GROUP')) {
+      expect(diagnostic!.prodatDiagnostic).toMatchObject({kind:'field',fieldNumber:field,
+        errorKind:['207','208','209','227','233','250','262'].includes(field)?'invalid':'missing'})
+    }
+  }
   const input=draft(f,raw),context=await sourceContext(f,raw),before=effects(f)
+  if (field==='311') {
+    // The physical preflight owns this diagnostic. The matrix consumes policy
+    // metadata; the public kernel separately refuses the physical UNB in its
+    // pre-INSERT native legal-context owner. Keep original metadata unchanged.
+    const preflight=preflightEdielPayload({rawPayload:raw,mimeType:f.original.mime_type,messageStandard:'edifact',mode:'send',
+      companyId:f.companyId,parsedPayload:input.parsedPayload,dateEventRow:f.original,
+      customerMasterdataContext:context,customerMasterdataRow:masterdataRow(f,raw),validationPurpose:'outbound_original'})
+    expect(preflight.blocking,JSON.stringify(preflight.issues)).toBe(true)
+    expect(preflight.issues).toEqual(expect.arrayContaining([expect.objectContaining({
+      code:'PROFILE_APPLICATION_REFERENCE_MISSING',severity:'error',segment:wire.segments.find(s=>s.tag==='UNB')!.raw,
+    })]))
+    expect(input.applicationReference).toBe(f.original.application_reference)
+    await expect(createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'supplier_switch',baseInput:input,customerMasterdataContext:context}))
+      .rejects.toMatchObject({message:'ediel_outbound_owner_witness_required',cause:{code:'P0001',message:'ediel_inbound_legal_context_required'}})
+    expect(effects(f),field+' no durable/provider effects').toEqual(before)
+    return
+  }
   // UD omissions can be refused by the authentic source comparison before
   // registry field selection. The numeric oracle above and this native public
   // persistence boundary intentionally assert different owners.
@@ -281,8 +312,26 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
 
 describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',variant=>{
   it('queues the signed own original and keeps physical ACKs distinct from the causal business confirmation',async()=>{
-    const started=Date.now(),f=await seed(variant),finished=Date.now()
+    const staged=await stage(variant)
+    // Establish the caller facts before production; rendered absence is not
+    // evidence that the invoicee condition is inactive or annual basis absent.
+    const snapshot=sql<{ portalData: { dependentConditionFacts: { invoiceeObjects: ProdatInvoiceeObject[] }; [key:string]:unknown }; [key:string]:unknown }>(`SELECT to_jsonb(validation_snapshot) FROM public.supplier_switch_requests WHERE id=${literal(staged.switchId)} AND company_id=${literal(staged.companyId)};`)
+    const selected=snapshot.portalData.dependentConditionFacts.invoiceeObjects
+    expect(selected).toHaveLength(1)
+    expect(selected[0]).toMatchObject({meteringPointId:staged.external,invoicee:{availability:'available'},event:{state:'none'},source:{kind:'caller_selection',companyId:staged.companyId}})
+    expect(selected[0].endUser.identity).toEqual(staged.customerIdentity)
+    expect(selected[0].invoicee.identity).toEqual(selected[0].endUser.identity)
+    expect(selected[0].invoicee.address).toEqual(selected[0].endUser.address)
+    for (const input of [snapshot,snapshot.portalData]) {
+      expect(input.registers).toBeUndefined()
+      expect(input.annualConsumption).toBeUndefined()
+      expect(input.annualEnergyKwh).toBeUndefined()
+    }
+    expect(sql(`SELECT jsonb_build_object('point',(SELECT to_jsonb(p.estimated_annual_consumption_kwh) FROM public.metering_points p WHERE id=${literal(staged.pointId)} AND company_id=${literal(staged.companyId)}),'site',(SELECT to_jsonb(s.annual_consumption_kwh) FROM public.customer_sites s WHERE id=${literal(staged.siteId)} AND company_id=${literal(staged.companyId)}));`)).toEqual({point:null,site:null})
+    const started=Date.now(),f=await originate(staged),finished=Date.now()
     const original=f.original,wire=tokenizeEdifact(original.raw_payload!),history=originalHistory(f)
+    expect(wire.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,wire.una)[0]==='IV')).toEqual([])
+    expect(wire.segments.filter(s=>s.tag==='QTY'&&segmentComposite(s,1,wire.una)[0]==='31')).toEqual([])
     expect(EdifactEnvelopeCodec.decode(original.raw_payload!)).toMatchObject({ sender:f.sender,receiver:f.receiver,applicationReference:'23-DDQ-PRODAT',environment:'test',acknowledgementRequest:'1' })
     expect(wire.segments.find(s=>s.tag==='BGM')?.elements.slice(1,5)).toEqual(['Z03',original.external_reference,'9','AB'])
     const reason=wire.segments.findIndex(s=>s.tag==='CCI'&&segmentComposite(s,2,wire.una)[0]==='Z13')
