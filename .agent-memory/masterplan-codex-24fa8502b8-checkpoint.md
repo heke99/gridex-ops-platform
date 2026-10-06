@@ -675,3 +675,8 @@ Nextroot integrateONLYownednative/header afterhelpersfinish; independentfinalrev
 ## BEFORE native budget repair — 2026-10-06T21:54:35.788665+00:00
 
 BEFORE ownnativeintegration: actualwc native514 exceedsunchangednewsource500 budget (helper491). Earlierassumptionnativeunderbudget WITHDRAWN. Nativeproofsource locallyTS/lintgreen didNOTmeanmandatoryallgatesgreen; currentf26 wholeRED stillunapproved. Relocate existingOWN assertOnlyOwnUdFieldOmitted+map byte-equivalent into alreadyreserved field-refusal helper, import/exportexactassertions; ifnecessarysameexactZ03preparationassertion relocateintoalreadyreservedobservationshelper withsame actualrowinputs, nooracleweaken/budgetconfigchange. ThisisroutineboundedOWNstructure under samec853/e576 withpriorCP530; docsBEFOREedit. Newhelpers<500 andnative<500 mustactualbudgetEXIT0 beforefinalpublication. Allstrictloops/effects/current94 retained. Nextroot authorizednativeintegration/relocation, finalindependentreview/checks/currentnative.
+
+
+## Actual source-budget check / correction — 2026-10-06T21:55:11.755900+00:00
+
+CORRECTION of1d49ce1b2 budget claim: actual executed node scripts/check-large-source-file-budget.cjs EXIT0 reports unchangeddefault1800 lines, not500. Native514 is WITHINactualmandatorybudget; no actualbudget failure. The inferred500 requirement was erroneous and WITHDRAWN before any unnecessaryrelocation. Existingnativeassertions stayinline, no budgetfile edit/waiver. Newhelpers remainboundedbychoice/exactlocks, originalstrictoracles retained. Rootnotifiedbothauthorscancelunnecessaryrelocation. Nextsameauthorizeddiagnostic/namedcausalrefusal/publicnetworkinput/roleproof integration thenfreshallactualchecks/independentreview/current94; no newpair.
