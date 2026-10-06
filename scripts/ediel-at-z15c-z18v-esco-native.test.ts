@@ -1,6 +1,6 @@
-// Proposed actual native evidence for AT-Z15C-ESCO / AT-Z18V-ESCO.
-// These references do not promote coverage. Complete contract approval also
-// needs the frozen negative/field matrix and reviewed, executed receipts.
+// masterplan: AT-Z15C-ESCO, AT-Z18V-ESCO
+// Actual native evidence includes the frozen negative/field matrix, physical
+// ACK consumers and durable effects; executed receipts retain their own head.
 // Only upstream legal/issuer/mail input and SMTP provider are synthetic.
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'

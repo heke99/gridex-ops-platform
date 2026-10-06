@@ -1,5 +1,6 @@
-// Profile/correlation component for AT-Z15C-ESCO and AT-Z18V-ESCO.
-// Whole-contract promotion requires native source, ACK and durable-effect proof.
+// masterplan: AT-Z15C-ESCO, AT-Z18V-ESCO
+// Profile/correlation components accompany the actual native source, ACK and
+// durable-effect proof in scripts/ediel-at-z15c-z18v-esco-native.test.ts.
 import { beforeEach, expect, it, vi } from 'vitest'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { assessPriorPermissionFlow, assertPriorPermissionContext, priorPermissionWire } from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
