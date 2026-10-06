@@ -1,5 +1,7 @@
 // Whole-contract candidates remain unapproved until authentic native evidence
-// and independent literal review. No private accepted facts are fixture inputs.
+// and independent literal review. Inherited synthetic signed-source declarations
+// are GIVEN; received assessments, responses, watches and effects use real
+// consumers. These cases do not approve source intake, issuers or whole P-01.
 // SMTP and counterparties are explicitly synthetic external ports.
 // masterplan: AT-Z01L-SUPPLIER, AT-Z01LK-SUPPLIER
 import {createHash, randomUUID} from 'node:crypto'
@@ -21,6 +23,7 @@ import {originalAckLegalNadSegment} from '@/lib/ediel/core/originalAckPartyIdent
 import {nativeSql as sql, literal, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply, exerciseZ01SupplierOutboundField, ensureZ01SupplierKnownWrongGridArea} from './helpers/ediel-z01-info-request-native-fixture'
 import {externalZ01Aperak, externalZ01Contrl, externalZ02Reply, type ExternalZ02Overrides} from './helpers/ediel-z01-info-request-native-wire'
+import {assertZ01RolePreparationOnly, prepareZ01OptionalLkNetworkSuccessor} from './helpers/ediel-z01-proof-observations-native'
 import {createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
 
 const external = vi.hoisted(() => ({send: vi.fn()}))
@@ -391,9 +394,12 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const f = await createZ01SupplierNativeFixture(variant, provider), before = customerState(f)
     vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', f.actorUserId)
     sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND environment='test' AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier'`)
+    const startedAt = new Date().toISOString()
     await expect(originateZ01SupplierRequest(f)).rejects.toThrow(/tenant_market_roles_missing/)
+    const finishedAt = new Date().toISOString()
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)).toBe(0)
-    expect(external.send).not.toHaveBeenCalled(); expect(customerState(f)).toEqual(before)
+    expect(external.send).not.toHaveBeenCalled()
+    assertZ01RolePreparationOnly(f, before, customerState(f), {startedAt, finishedAt})
   })
 
   it('public authorization-document archive and linked POA revocation refuse a fresh information request', async () => {
@@ -468,7 +474,9 @@ it('already-correct supplier data can actually originate Z03 without any Z01 or 
 })
 
 it('already-correct move-in data can actually originate Z03LK without any Z01 or positive APERAK gate', async () => {
-  const f = await createZ01SupplierNativeFixture('LK', provider), before = activation(f)
+  const f = await createZ01SupplierNativeFixture('LK', provider)
+  await prepareZ01OptionalLkNetworkSuccessor(f)
+  const before = activation(f)
   const requestBefore = switchRequest(f), activatedBefore = customerActivation(f)
   expect(requestBefore.status).toBe('draft')
   const original = await prepareAndQueueEdielZ03({actorUserId: f.actorUserId, switchRequestId: f.switchId,
@@ -494,8 +502,14 @@ describe.each(['L', 'LK'] as const)('actual outbound Z01%s R/D refusal', variant
         expect(Object.hasOwn(protectedUdSlots, field)).toBe(true)
         assertOnlyOwnUdFieldOmitted(result.rawOriginal, result.rawOmitted, field)
         expect(result.finalizerError).toContain('PRODAT_CUSTOMER_MASTERDATA_SOURCE_UNQUALIFIED')
+      } else if (result.phase === 'causal_field_refused') {
+        expect(['202', 'END_USER_GROUP', '229', '234']).toContain(field)
+        expect(result.causalRefusal?.proof).toMatchObject({field, objectId: f.external, identityAgency: '9',
+          positiveValidationAccepted: true, sameBoundSource: true, noOriginal: true, noBusinessEffects: true,
+          numeric202DiagnosticProved: false, positiveFinalizationProved: false})
+        expect(result.finalizerError).toContain(result.causalRefusal!.proof.causeCode)
       } else {
-        // Other source/evidence/duplicate precedence remains honest RED.
+        // Unqualified source/evidence/duplicate precedence remains honest RED.
         expect(result.phase, JSON.stringify(result)).toBe('target_field_rejected')
       }
       expect(result.positiveValidation?.ok).toBe(true)

@@ -34,6 +34,8 @@ import type {CreateEdielMessageInput} from '@/lib/ediel/types'
 import {seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal, type NormalSwitchStageNativeFixture} from './ediel-normal-switch-native-fixture'
 import {seedOriginalMailboxNative} from './originalMailboxNative'
 import {observeSentZ01Wire, type ExternalZ02Address} from './ediel-z01-info-request-native-wire'
+import {diagnoseZ01FailedWorker} from './ediel-z01-proof-observations-native'
+import {classifyZ01CausalFieldRefusal} from './ediel-z01-field-refusal-native'
 
 type Row = Record<string, unknown>
 export type Z01SupplierNativeFixture = NormalSwitchStageNativeFixture & {
@@ -231,7 +233,10 @@ export async function originateZ01SupplierRequest(f: Z01SupplierNativeFixture) {
   const job = sql<Row | null>(`SELECT to_jsonb(j) FROM public.customer_operation_jobs j WHERE id=${literal(queued.id)} AND company_id=${literal(f.companyId)}`)
   const requests = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_info_requests r
     WHERE company_id=${literal(f.companyId)} AND operation_id=${literal(queued.operationId)} AND customer_id=${literal(f.customerId)} AND site_id=${literal(f.siteId)}`)
-  if (requests.length !== 1 || typeof requests[0].ediel_message_id !== 'string') phaseFailure('worker_no_own_z01', {worker, job, requests})
+  if (requests.length !== 1 || typeof requests[0].ediel_message_id !== 'string') {
+    const diagnostic = await diagnoseZ01FailedWorker(f, queued.operationId, job?.status === 'queued' && typeof job.last_error_code === 'string')
+    phaseFailure('worker_no_own_z01', {worker, job, requests, diagnostic})
+  }
   const requestId = String(requests[0].id)
   const originalZ01 = await getEdielMessageById(String(requests[0].ediel_message_id), {companyId: f.companyId})
   if (!originalZ01?.raw_payload) phaseFailure('original_unavailable', {worker, job, requests})
@@ -482,10 +487,13 @@ export async function exerciseZ01SupplierOutboundField(f: Z01SupplierNativeFixtu
     && negativeContext.intentId === positiveContext.intentId && negativeContext.routeId === positiveContext.routeId
   const sourceBoundRefusal = sourceBoundFields.includes(field) && sameBoundSource && !negativeValidation.ok
     && Boolean(sourceIssue && finalizerError?.includes(`${sourceIssue.code} - ${sourceIssue.description}`))
+  const causalRefusal = classifyZ01CausalFieldRefusal({field, rawOriginal, rawOmitted, positiveValidation, negativeValidation,
+    diagnostics, finalizerError, sameBoundSource, noOriginal, noBusinessEffects})
   const phase = !positiveValidation.ok ? 'positive_control_held' : field === 'INSTALLATION_GROUP' && negativeValidation.ok
     ? 'optional_parent_accepted' : originalId ? 'unexpected_original' : finalizerTarget && noOriginal && noBusinessEffects
-      ? 'target_field_rejected' : sourceBoundRefusal && noOriginal && noBusinessEffects ? 'source_bound_field_refused' : 'precedence_hold'
-  return {field, phase, positiveValidation, negativeValidation, diagnostics, finalizerError, originalId,
+      ? 'target_field_rejected' : sourceBoundRefusal && noOriginal && noBusinessEffects ? 'source_bound_field_refused'
+        : causalRefusal?.phase ?? 'precedence_hold'
+  return {field, phase, causalRefusal, positiveValidation, negativeValidation, diagnostics, finalizerError, originalId,
     before, after, noOriginal, noBusinessEffects, sameBoundSource, rawOriginal, rawOmitted, operationId: queued.operationId,
     jobId: queued.id, requestId: request.id, dataRequestId: dataRequest.id, outboundId: outbound.id, intentId: intent.id}
 }
