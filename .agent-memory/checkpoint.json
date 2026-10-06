@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-06T11:44:10.912279+00:00",
+  "updated_at": "2026-10-06T13:00:25.023661+00:00",
   "status": "PARTIAL",
   "paused": true,
   "branch": "main",
   "active_pr": null,
-  "base_head_sha": "6e49c4f6ea8c2f31ccb68dc21d5b26582a7d171f",
+  "base_head_sha": "c19610cbbdd468467d0a5173c175d5100e1cbd0f",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 616,
+  "last_merged_pr": 617,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Administrative legacy closeout complete; coordination documentation publication and baseline report",
+  "active_item": "Publish owner clarification: autonomous two-ID selection and atomic reservations",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Report this baseline, then await next-wave dispatch; assess retained work and confirm two-ID ownership on #530 before implementation.",
+  "next_action": "Publish this clarification; agents receiving the shared prompt self-select, atomically reserve, finish, document and merge eligible packets, then repeat without user assignment.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1352,7 +1352,7 @@
       "Ediel/counterparty/TGT/AGT traffic"
     ]
   },
-  "current_subtask": "Final metadata publication snapshot; actual merge/main CI disposition is recorded by original owner6003553685",
+  "current_subtask": "Documentation-only protocol verification and publication; no rule claimed",
   "restoration_20261001": {
     "public_source_head": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
     "lost_unpublished_work": true,
@@ -1627,5 +1627,22 @@
     "criteriaPromoted": 0,
     "sharedMemoryWriter": "One designated coordinator per wave; technical agents update their own checkpoints",
     "finalMainVerificationReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685"
+  },
+  "autonomous_dispatch_20261006": {
+    "previousSnapshot": {
+      "updated_at": "2026-10-06T11:44:10.912279+00:00",
+      "active_item": "Administrative legacy closeout complete; coordination documentation publication and baseline report",
+      "current_subtask": "Final metadata publication snapshot; actual merge/main CI disposition is recorded by original owner6003553685",
+      "next_action": "Report this baseline, then await next-wave dispatch; assess retained work and confirm two-ID ownership on #530 before implementation.",
+      "base_head_sha": "6e49c4f6ea8c2f31ccb68dc21d5b26582a7d171f",
+      "last_merged_pr": 616
+    },
+    "workflow": ".agent-memory/masterplan-reservations.md",
+    "assignment": "agent self-selection; atomic remote ID/file locks; no coordinator acknowledgement",
+    "sharedMemoryWriter": "atomic role-memory holder; per-agent checkpoints and #530 receipts first",
+    "launchState": "No agent launched by this update; shared prompt dispatches receiving agents",
+    "previousDocsMerge": 617,
+    "previousDocsMergeSha": "c19610cbbdd468467d0a5173c175d5100e1cbd0f",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6016670441"
   }
 }
