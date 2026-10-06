@@ -3,6 +3,8 @@
 import {createHash, randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {queueCustomerInfoRequestForDispatch} from '@/lib/onboarding/infoRequests'
+import {requireEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {verifyAuthorizationScopeCoverage} from '@/lib/legal/authorizationChain'
 import {archiveNetworkRegistrySource, readNetworkRegistrySourceArtifact, readNetworkRegistrySourceBytes,
   reviewNetworkRegistrySource} from '@/lib/ediel/production/networkRegistrySource'
 import {attachNetworkRegistrySourceFixture} from './ediel-network-registry-native-fixture'
@@ -10,7 +12,8 @@ import {nativeSql as sql, literal, normalSwitchNetworkRegistry} from './ediel-no
 import type {Z01SupplierNativeFixture} from './ediel-z01-info-request-native-fixture'
 
 type Row = Record<string, unknown>
-type Scope = Pick<Z01SupplierNativeFixture, 'companyId' | 'actorUserId' | 'customerId' | 'siteId' | 'pointId' | 'gridId' | 'external' | 'gridAreaCode'>
+type Scope = Pick<Z01SupplierNativeFixture, 'companyId' | 'actorUserId' | 'customerId' | 'siteId' | 'pointId' | 'gridId' | 'external' | 'gridAreaCode'
+  | 'authorizationDocumentId' | 'powerOfAttorneyId' | 'contractId'>
 type Graph = {observedAt: string; requests: Row[]; dataRequests: Row[]; outbounds: Row[]; intents: Row[]; messages: Row[]; outbox: Row[]; constraints: Row[]}
 const record = (value: unknown): Row => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('z01_observation_object_required')
@@ -18,6 +21,130 @@ const record = (value: unknown): Row => {
 }
 const projection = (alias: string, keys: string[]) => `jsonb_build_object(${keys.map(key => `${literal(key)},to_jsonb(${alias})->${literal(key)}`).join(',')})`
 const rows = (alias: string, keys: string[]) => `(SELECT coalesce(jsonb_agg(${projection(alias, keys)} ORDER BY id),'[]') FROM ${alias})`
+const signedScopeObservation = (alias: string) => `jsonb_build_object('signedScopeSnapshotType',jsonb_typeof(${alias}.signed_scope_snapshot),
+  'signedScopeSnapshotHash',encode(sha256(convert_to(coalesce(${alias}.signed_scope_snapshot,'null')::text,'UTF8')),'hex'),
+  'signedScopeSnapshotKeys',(SELECT coalesce(jsonb_agg(key ORDER BY key),'[]') FROM jsonb_object_keys(
+    CASE WHEN jsonb_typeof(${alias}.signed_scope_snapshot)='object' THEN ${alias}.signed_scope_snapshot ELSE '{}' END) key),
+  'signedScopeFlags',jsonb_build_object(${['grid_owner_data', 'supplier_switch', 'facility_information_lookup', 'current_supplier_contract', 'metering_data']
+    .map(scope => `${literal(scope)},CASE WHEN jsonb_typeof(${alias}.signed_scope_snapshot)='array' THEN ${alias}.signed_scope_snapshot ? ${literal(scope)} ELSE false END`).join(',')}))`
+function boundedError(error: unknown) {
+  const value = error && typeof error === 'object' ? record(error) : {}
+  const cause = value.cause && typeof value.cause === 'object' ? record(value.cause) : {}
+  const stderr = typeof value.stderr === 'string' ? value.stderr : Buffer.isBuffer(value.stderr) ? value.stderr.toString('utf8') : null
+  const sqlMessage = stderr?.split('\n').find(line => line.startsWith('ERROR:'))
+  return {code: typeof value.code === 'string' ? value.code.slice(0, 80) : typeof cause.code === 'string' ? cause.code.slice(0, 80) : null,
+    message: stderr !== null ? (sqlMessage ?? 'z01_observation_sql_failed').slice(0, 1000) : typeof value.message === 'string' ? value.message.slice(0, 1000)
+      : typeof error === 'string' ? error.slice(0, 1000) : 'z01_observation_failed'}
+}
+
+/** Full rows stay inside PostgreSQL. Digests cover every field, including raw
+ * wire and public audit rows, without exporting those values. */
+export function observeZ01PublicState(f: Scope) {
+  const tables = ['customers', 'customer_sites', 'metering_points', 'customer_contracts', 'customer_supply_periods',
+    'supplier_switch_requests', 'customer_info_requests', 'grid_owner_data_requests', 'outbound_requests', 'ediel_message_intents',
+    'ediel_messages', 'ediel_outbox', 'authorization_scopes', 'customer_authorization_documents', 'powers_of_attorney',
+    'power_of_attorney_scopes', 'customer_info_request_events', 'customer_operation_events', 'customer_operation_jobs',
+    'customer_operation_request_snapshots', 'ediel_business_expectations', 'audit_logs']
+  return sql<Record<string, {count: number; sha256: string}>>(`SELECT jsonb_build_object(${tables.map(table => `${literal(table)},
+    (SELECT jsonb_build_object('count',count(*),'sha256',encode(sha256(convert_to(
+      coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]')::text,'UTF8')),'hex')) FROM public.${table} t
+      WHERE company_id=${literal(f.companyId)})`).join(',')})`)
+}
+
+/** All grants and all sites for the own customer are retained. This is lineage
+ * evidence, not an eligibility decision or an alternate authority fallback. */
+export function observeZ01AuthorizationLineage(f: Scope) {
+  const common = ['id', 'company_id', 'customer_id', 'site_id', 'metering_point_id', 'status', 'created_at', 'updated_at']
+  return sql<Row>(`WITH
+    s AS (SELECT * FROM public.authorization_scopes WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)}),
+    d AS (SELECT * FROM public.customer_authorization_documents WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)}),
+    p AS (SELECT * FROM public.powers_of_attorney WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)}),
+    c AS (SELECT * FROM public.customer_contracts WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)}),
+    q AS (SELECT * FROM public.power_of_attorney_scopes WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)})
+    SELECT jsonb_build_object('observedAt',clock_timestamp(),'databaseDate',current_date,
+      'selected',jsonb_build_object('companyId',${literal(f.companyId)},'customerId',${literal(f.customerId)},'siteId',${literal(f.siteId)},
+        'authorizationDocumentId',${literal(f.authorizationDocumentId)},'powerOfAttorneyId',${literal(f.powerOfAttorneyId)},'contractId',${literal(f.contractId)}),
+      'scopes',(SELECT coalesce(jsonb_agg(${projection('s', [...common, 'authorization_document_id', 'scope_type', 'revoked_at',
+        'valid_from', 'valid_to', 'covers_grid_owner_data', 'covers_current_supplier_contract', 'covers_metering_data',
+        'legal_snapshot_id'])}||${signedScopeObservation('s')}||jsonb_build_object('powerOfAttorneyId',s.metadata->'powerOfAttorneyId',
+          'source',s.metadata->'source','updatedFrom',s.metadata->'updatedFrom') ORDER BY id),'[]') FROM s),
+      'documents',${rows('d', [...common, 'document_type', 'power_of_attorney_id', 'customer_contract_id', 'replaced_document_id',
+        'signed_at', 'accepted_at', 'approved_at', 'archived_at', 'revoked_at', 'valid_from', 'valid_to', 'expires_at'])},
+      'powersOfAttorney',(SELECT coalesce(jsonb_agg(${projection('p', [...common, 'customer_site_id', 'document_id', 'customer_contract_id', 'contract_id', 'scope', 'source',
+        'revoked_at', 'valid_from', 'valid_to', 'valid_until', 'expires_at', 'signed_at', 'accepted_at', 'legal_snapshot_id'])}||${signedScopeObservation('p')} ORDER BY id),'[]') FROM p),
+      'contracts',${rows('c', [...common, 'signed_at', 'signed_version', 'starts_at', 'ends_at', 'requested_start_date',
+        'document_sha256', 'signature_snapshot_sha256', 'contract_publication_version_id', 'legal_bundle_version_id'])},
+      'powerOfAttorneyScopes',${rows('q', [...common, 'power_of_attorney_id', 'customer_contract_id', 'scope_type', 'is_active', 'valid_from', 'valid_to'])})`)
+}
+
+/** The actual public table is probed in nested exception subtransactions. Even
+ * an accepted UPDATE is rolled back by the sentinel; the outer transaction
+ * also rolls back all temporary results. No error DETAIL is selected. */
+export function probeZ01CustomerInfoStatuses(f: Scope, operationId: string, requestId: string) {
+  if (![f.companyId, f.customerId, f.siteId, operationId, requestId].every(value => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value))) {
+    throw Error('z01_status_probe_uuid_scope_required')
+  }
+  const graphBefore = observeZ01DispatchGraph(f, operationId), publicBefore = observeZ01PublicState(f)
+  const results = sql<Array<{status: string; accepted: boolean; sqlstate: string | null; constraint: string | null; message: string | null; affectedRows: number}>>(`BEGIN;
+    CREATE TEMP TABLE z01_status_probe_results(status text,accepted boolean,sqlstate text,constraint_name text,message text,affected_rows integer) ON COMMIT DROP;
+    DO $z01_probe$ DECLARE next_status text; accepted boolean; error_code text; error_constraint text; error_message text; affected integer;
+    BEGIN
+      PERFORM id FROM public.customer_info_requests WHERE id=${literal(requestId)} AND company_id=${literal(f.companyId)}
+        AND customer_id=${literal(f.customerId)} AND site_id=${literal(f.siteId)} AND operation_id=${literal(operationId)} FOR UPDATE;
+      IF NOT FOUND THEN RAISE EXCEPTION 'z01_status_probe_own_request_required'; END IF;
+      FOREACH next_status IN ARRAY ARRAY['z01_prepared','route_missing','missing_authorization'] LOOP
+        accepted:=false; error_code:=NULL; error_constraint:=NULL; error_message:=NULL; affected:=0;
+        BEGIN
+          UPDATE public.customer_info_requests SET status=next_status WHERE id=${literal(requestId)} AND company_id=${literal(f.companyId)}
+            AND customer_id=${literal(f.customerId)} AND site_id=${literal(f.siteId)} AND operation_id=${literal(operationId)};
+          GET DIAGNOSTICS affected=ROW_COUNT;
+          IF affected<>1 THEN RAISE EXCEPTION 'z01_status_probe_single_own_row_required'; END IF;
+          RAISE EXCEPTION USING ERRCODE='ZQ001',MESSAGE='z01_status_probe_accepted_rollback';
+        EXCEPTION WHEN SQLSTATE 'ZQ001' THEN
+          GET STACKED DIAGNOSTICS error_code=RETURNED_SQLSTATE,error_message=MESSAGE_TEXT;
+          IF affected=1 AND error_message='z01_status_probe_accepted_rollback' THEN
+            accepted:=true; error_code:=NULL; error_message:=NULL;
+          END IF;
+          WHEN OTHERS THEN GET STACKED DIAGNOSTICS error_code=RETURNED_SQLSTATE,error_constraint=CONSTRAINT_NAME,error_message=MESSAGE_TEXT;
+        END;
+        INSERT INTO pg_temp.z01_status_probe_results VALUES(next_status,accepted,error_code,error_constraint,left(error_message,1000),affected);
+      END LOOP;
+    END $z01_probe$;
+    SELECT jsonb_agg(jsonb_build_object('status',status,'accepted',accepted,'sqlstate',sqlstate,
+      'constraint',nullif(constraint_name,''),'message',message,'affectedRows',affected_rows) ORDER BY status) FROM pg_temp.z01_status_probe_results;
+    ROLLBACK;`)
+  const graphAfter = observeZ01DispatchGraph(f, operationId), publicAfter = observeZ01PublicState(f)
+  const {observedAt: beforeTime, ...beforeRows} = graphBefore, {observedAt: afterTime, ...afterRows} = graphAfter
+  const noPersistedMutation = JSON.stringify(beforeRows) === JSON.stringify(afterRows) && JSON.stringify(publicBefore) === JSON.stringify(publicAfter)
+  if (!noPersistedMutation) throw Error('z01_status_probe_persisted_mutation')
+  return {results, noPersistedMutation, graphBefore, graphAfter, publicBefore, publicAfter, beforeTime, afterTime}
+}
+
+/** The read port requires the original's receipt. It never captures, chooses a
+ * current pack, changes an original or grants permission to send. */
+export async function observeZ01OriginalRulePackEvidence(f: Scope, graph: Graph) {
+  const originals = []
+  for (const message of graph.messages.filter(row => row.direction === 'outbound' && row.message_family === 'PRODAT' && row.message_code === 'Z01')) {
+    if (typeof message.id !== 'string') throw Error('z01_original_observation_id_required')
+    const original = sql<Row>(`SELECT ${projection('m', ['id', 'company_id', 'intent_id', 'status', 'canonical_rule_pack_id', 'rule_profile_key',
+      'rule_profile_version_id', 'rule_profile_version', 'rule_pack_checksum', 'immutable_payload_hash', 'immutable_rendered_at', 'message_sent_at'])}
+      ||jsonb_build_object('rulePackSnapshotKeys',(SELECT coalesce(jsonb_agg(key ORDER BY key),'[]') FROM jsonb_object_keys(
+        CASE WHEN jsonb_typeof(rule_pack_snapshot)='object' THEN rule_pack_snapshot ELSE '{}' END) key),
+        'rulePackSnapshotHash',encode(sha256(convert_to(coalesce(rule_pack_snapshot,'{}')::text,'UTF8')),'hex'),
+        'rulePackSnapshotBytes',octet_length(coalesce(rule_pack_snapshot,'{}')::text),
+        'outboundOwnerWitnessPresent',nullif(execution_context_snapshot->>'outboundOwnerWitnessId','') IS NOT NULL)
+      FROM public.ediel_messages m WHERE id=${literal(message.id)} AND company_id=${literal(f.companyId)}`)
+    let required
+    try {
+      const evidence = await requireEdielSourceRulePackEvidence(f.companyId, message.id)
+      required = {ok: true, rulePackId: evidence.rulePackId, messageProfileId: evidence.messageProfileId,
+        profileKey: evidence.profileKey, version: evidence.version, sourceHash: evidence.sourceHash,
+        snapshotKeys: Object.keys(evidence.snapshot).sort(), snapshotHash: createHash('sha256').update(JSON.stringify(evidence.snapshot)).digest('hex')}
+    } catch (error) {required = {ok: false, ...boundedError(error)}}
+    originals.push({original, required})
+  }
+  return originals
+}
 
 /** SELECT only; the graph does not infer absence from a missing CIR link. Raw
  * wire, payloads, issuer material and database error details are not exported. */
@@ -56,22 +183,29 @@ export function observeZ01DispatchGraph(f: Scope, operationId: string): Graph {
  * worker failure; no result here certifies worker completion or native PASS. */
 export async function diagnoseZ01FailedWorker(f: Scope, operationId: string, failedQueuedWorker: boolean) {
   const before = observeZ01DispatchGraph(f, operationId)
+  const authorizationBefore = observeZ01AuthorizationLineage(f)
+  const originalRulePack = await observeZ01OriginalRulePackEvidence(f, before)
+  let statusProbe: Awaited<ReturnType<typeof probeZ01CustomerInfoStatuses>> | {error: ReturnType<typeof boundedError>} | null = null
+  let exactSiteCoverage: Awaited<ReturnType<typeof verifyAuthorizationScopeCoverage>> | {error: ReturnType<typeof boundedError>}
+  try {exactSiteCoverage = await verifyAuthorizationScopeCoverage({companyId: f.companyId, customerId: f.customerId, siteId: f.siteId,
+    powerOfAttorneyId: f.powerOfAttorneyId, required: ['grid_owner_data'], healFromPowerOfAttorney: false})}
+  catch (error) {exactSiteCoverage = {error: boundedError(error)}}
   let retry: {attempted: boolean; code: string | null; message: string | null; result?: {status: string; requestId: string}} =
     {attempted: false, code: null, message: null}
   if (failedQueuedWorker && before.requests.length === 1 && typeof before.requests[0].id === 'string') {
+    try {statusProbe = probeZ01CustomerInfoStatuses(f, operationId, before.requests[0].id)}
+    catch (error) {statusProbe = {error: boundedError(error)}}
     retry = {...retry, attempted: true}
     try {
       const result = await queueCustomerInfoRequestForDispatch({companyId: f.companyId, actorUserId: f.actorUserId,
         requestId: before.requests[0].id})
       retry.result = {status: String(result.status), requestId: before.requests[0].id}
     } catch (error) {
-      const value = error && typeof error === 'object' ? record(error) : {}
-      retry.code = typeof value.code === 'string' ? value.code.slice(0, 80) : null
-      retry.message = typeof value.message === 'string' ? value.message.slice(0, 1000)
-        : typeof error === 'string' ? error.slice(0, 1000) : 'z01_public_dispatch_retry_failed'
+      retry = {...retry, ...boundedError(error)}
     }
   }
-  return {before, retry, after: observeZ01DispatchGraph(f, operationId)}
+  return {before, statusProbe, originalRulePack, authorizationBefore, exactSiteCoverage, retry,
+    after: observeZ01DispatchGraph(f, operationId), authorizationAfter: observeZ01AuthorizationLineage(f)}
 }
 
 function ownRow(value: unknown, id: string, companyId: string): Row {
