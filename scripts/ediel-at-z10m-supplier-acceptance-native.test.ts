@@ -8,6 +8,8 @@ import {supabaseService} from '@/lib/supabase/service'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {resolveTenantForInboundEdiel} from '@/lib/inbound-mail/inboundTenantResolver'
+import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
@@ -95,7 +97,14 @@ async function receive(f:Fixture,wire:string){
   expect(error).toBeNull();expect(data).toMatchObject({company_id:f.companyId,direction:'inbound',raw_payload:wire,
     inbound_email_message_id:mail.inboundEmailMessageId,mailbox_message_id:mail.inboundEmailMessageId})
   await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
-  return {sourceId:sourceId!,mail,wire}
+  const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceId!).eq('company_id',f.companyId).single()
+  expect(saved.error).toBeNull()
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(saved.data as EdielMessageRow)
+  // Diagnostic projection only: retained source, no flags/profile/clock patch.
+  const diagnostic={syntax:decision.syntaxDecision,application:decision.applicationDecision,functional:decision.functionalDecision,
+    disposition:decision.prodatProcessingDisposition,issues:decision.issues,trace:decision.decisionTrace,
+    objects:decision.prodatApplicationValidation,registers:decision.prodatRegisterValidation}
+  return {sourceId:sourceId!,mail,wire,diagnostic}
 }
 
 function effects(f:Fixture,source:string){
@@ -115,7 +124,7 @@ it('first genuine two-register Z10 is staged, reviewed, applied and physically a
   expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceId,rawPayload:change.wire})).toBeNull()
   const reviewed=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
     reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
-  expect(reviewed).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+  expect(reviewed,JSON.stringify({reviewed,canonical:source.diagnostic})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
   const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(source.sourceId)}`)
   expect(cases).toHaveLength(1)
   const approve=()=>approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})
@@ -145,8 +154,9 @@ it('first genuine two-register Z10 is staged, reviewed, applied and physically a
 
 it('a contradictory prior meter obtains no positive first effect or final ACK authority',async()=>{
   const f=await fixture(),change=changeWire(f,'UNRELATED-OLD-METER'),source=await receive(f,change.wire)
-  await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
+  const reviewed=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
     reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
+  expect(reviewed,JSON.stringify({reviewed,canonical:source.diagnostic})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
   const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(source.sourceId)}`)
   expect(cases).toHaveLength(1)
   // Hypothesis probe: no existing precommit old-meter refusal code was found.
