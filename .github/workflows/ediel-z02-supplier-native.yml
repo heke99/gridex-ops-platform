@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/ediel-at-z02-supplier-native.test.ts'
+      - '__tests__/ediel-supplier-data-birth-profile.test.ts'
       - 'scripts/ediel-at-z02-supplier-native.config.ts'
       - '.github/workflows/ediel-z02-supplier-native.yml'
       - 'scripts/ediel-source-owner-native.config.ts'
