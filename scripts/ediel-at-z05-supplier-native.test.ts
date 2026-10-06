@@ -23,17 +23,30 @@ import {validateAckPreflight} from '@/lib/ediel/core/ackPreflight'
 import {resolveInboundTenantFromIdentifiers} from '@/lib/ediel/tenant/resolveInboundTenant'
 import {parseRulebookMessage} from '@/lib/ediel/rulebook/messageParser'
 import {type EdielMessageRow} from '@/lib/ediel/types'
+import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {type Parts} from '../__tests__/fixtures/prodat-register'
 const {receivedHStart,nationalRescissionOperation}=nationalRescissionNativeChain({provider,sourceSession})
 const {receivedNationalRescissionEnd,nationalEndEffects}=nationalEndNativeChain({nationalRescissionOperation,provider})
 const {receivedLkEnd,lkEffects}=bilateralClosureNativeChain({receivedHStart,provider})
 const variants=['L','LK'] as const
+async function configureAckProfile(companyId:string){
+ // Configure this suite's existing disposable transport route, before its
+ // first ACK. This supplies no syntax/business decision or private witness.
+ const {from,host,port}=edielSmtpConfig()
+ expect(sql(`WITH configured AS(UPDATE public.ediel_route_profiles p
+  SET mailbox=${literal(from)},smtp_host=${literal(host)},smtp_port=${literal(port)}
+  FROM public.communication_routes r WHERE r.id=p.communication_route_id AND r.company_id=p.company_id
+  AND r.company_id=${literal(companyId)} AND r.route_scope='ediel_ack' AND p.environment='test'
+  RETURNING p.id) SELECT to_jsonb(count(*)) FROM configured`)).toBe(1)
+}
 async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={}){
  if(variant==='L'){
   const f=await receivedNationalRescissionEnd(true,false,candidate)
+  await configureAckProfile(f.companyId)
   return{...f,sourceId:f.endSourceId,wire:f.endWire,startSourceId:f.sourceId,effects:()=>nationalEndEffects(f)}
  }
  const f=await receivedLkEnd(true,candidate)
+ await configureAckProfile(f.companyId)
  return{...f,effects:()=>lkEffects(f)}
 }
 const immutable=(id:string)=>sql(`SELECT jsonb_build_object('raw',raw_payload,
@@ -52,11 +65,15 @@ const unrelated=(periodId:string,sourceId:string)=>sql(`SELECT jsonb_build_objec
  'tasks',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.customer_cases c WHERE metadata->>'source_ediel_message_id' IS DISTINCT FROM ${literal(sourceId)}))`)
 const acknowledgements=(sourceId:string)=>sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY message_family),'[]')
  FROM public.ediel_messages m WHERE related_message_id=${literal(sourceId)} AND direction='outbound'`)
+const ackDiagnostics=(sourceId:string)=>sql(`SELECT jsonb_build_object(
+ 'technical',(SELECT jsonb_build_object('status',status,'reason',reason) FROM gridex_ediel_technical_ack.sources WHERE source_message_id=${literal(sourceId)}),
+ 'blocked',(SELECT jsonb_agg(jsonb_build_object('family',payload->>'ackFamily','reason',payload->>'reason') ORDER BY id)
+ FROM public.ediel_message_events WHERE ediel_message_id=${literal(sourceId)} AND payload->>'blockedBy'='canonical_inbound_ack_guard'))`)
 const invoicee=(name:string):Parts=>['NAD','IV',['SYNTHETIC-BILL','','89'],'',name,'Invoice Street','Town','','12345','SE']
 const withInvoicee=(name:string)=>(parts:Parts[]):Parts[]=>[...parts,invoicee(name)]
 async function missingFieldAcknowledgements(f:Awaited<ReturnType<typeof receivedEnd>>,field:'211'|'251'){
  const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
- expect(acks.map(m=>[m.message_family,m.ack_outcome])).toEqual([['APERAK','negative'],['CONTRL','positive']])
+ expect(acks.map(m=>[m.message_family,m.ack_outcome]),JSON.stringify(ackDiagnostics(f.sourceId))).toEqual([['APERAK','negative'],['CONTRL','positive']])
  const original=tokenizeEdifact(f.wire),unb=original.segments.find(s=>s.tag==='UNB')
  const li=segmentComposite(original.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,original.una)[0]==='LI'),1,original.una)[1]
  for(const ack of acks){
@@ -84,8 +101,9 @@ async function missingFieldAcknowledgements(f:Awaited<ReturnType<typeof received
 }
 afterEach(()=>{sourceSession.client=null;vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-it.each(variants)('actual Z05%s commits its own end, physical acknowledgements and scoped final-value task while preserving history and every unrelated graph',async variant=>{
- const f=await receivedEnd(variant),before=f.effects() as {period:Record<string,unknown>}
+it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linked:false}] as const)(
+ 'actual Z05$variant (request linkage $linked) commits its own end, physical acknowledgements and scoped final-value task while preserving history and every unrelated graph',async({variant,linked})=>{
+ const f=await receivedEnd(variant,linked?{}:{lineItemReference:'L-INDEPENDENT-OWN-NOTICE'}),before=f.effects() as {period:Record<string,unknown>;watches?:unknown}
  const sourceBefore=immutable(f.sourceId),originalBefore=immutable(f.original.id),startBefore=immutable(f.startSourceId),unrelatedBefore=unrelated(f.periodId,f.sourceId)
  const businessBefore=sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='PRODAT'`)
  expect(before.period).toMatchObject({id:f.periodId,source_end_message_id:null})
@@ -95,9 +113,24 @@ it.each(variants)('actual Z05%s commits its own end, physical acknowledgements a
   metering_point_id:f.pointId,source_message_id:f.startSourceId,start_date:before.period.start_date,
   market_start_at:before.period.market_start_at,market_state_version:Number(before.period.market_state_version)+1,
   end_date:'2026-10-16',market_end_at:'2026-10-16T12:30:00+00:00',source_end_message_id:f.sourceId,status:'ending'},
-  ends:1,transitions:1,positive:1,followups:1,audits:1})
+  ends:linked?1:0,transitions:1,positive:1,followups:1,audits:linked?1:0})
+ const ordinaryReceiptState=()=>sql(`SELECT jsonb_build_object(
+  'effects',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM gridex_received_sources.supply_object_effect_receipts r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}),
+  'followups',(SELECT jsonb_agg(to_jsonb(r) ORDER BY effect_receipt_id) FROM gridex_received_sources.supply_end_followups r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}))`)
+ const ordinaryAfter=linked?null:ordinaryReceiptState()
+ if(!linked){
+  expect(before.watches).toMatchObject([{source:f.original.id,code:'Z05',subtype:'L',status:'pending',fulfilledBy:null,dueAt:null}])
+  expect(after).toMatchObject({watches:before.watches})
+  const receipts=sql<Record<string,unknown>[]>(`SELECT jsonb_agg(jsonb_build_object('id',r.id,'company',r.company_id,'environment',r.environment,'source',r.source_message_id,
+   'hashesValid',r.payload_hash=encode(sha256(convert_to(${literal(f.wire)},'UTF8')),'hex') AND r.effect_hash=encode(sha256(convert_to(r.effect_text,'UTF8')),'hex'),
+   'effect',r.effect_text::jsonb)) FROM gridex_received_sources.supply_object_effect_receipts r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}`)
+  expect(receipts).toHaveLength(1);expect(receipts[0]).toMatchObject({company:f.companyId,environment:'test',source:f.sourceId,hashesValid:true,
+   effect:{owner:'inbound-supply-object-v1',sourceMessageId:f.sourceId,companyId:f.companyId,environment:'test',
+    wire:{reason:'Z22',li:'L-INDEPENDENT-OWN-NOTICE',point:f.external,customerIdentity:f.customerIdentity.id,end:'202610161330'},
+    plan:{kind:'end',periodId:f.periodId},resultingStates:[{id:f.periodId,source_end_message_id:f.sourceId}]}})
+ }
  const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
- expect(acks.map(m=>[m.message_family,m.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
+ expect(acks.map(m=>[m.message_family,m.ack_outcome]),JSON.stringify(ackDiagnostics(f.sourceId))).toEqual([['APERAK','positive'],['CONTRL','positive']])
  const sourceWire=tokenizeEdifact(f.wire),sourceUnb=sourceWire.segments.find(s=>s.tag==='UNB')
  const li=segmentComposite(sourceWire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,sourceWire.una)[0]==='LI'),1,sourceWire.una)[1]
  for(const ack of acks){
@@ -124,6 +157,13 @@ it.each(variants)('actual Z05%s commits its own end, physical acknowledgements a
   WHERE company_id=${literal(f.companyId)} AND reason_category='final_metering_and_billing' AND metadata->>'source_ediel_message_id'=${literal(f.sourceId)}`)
  expect(tasks).toHaveLength(1);expect(tasks[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,
   metering_point_id:f.pointId,reason_category:'final_metering_and_billing',status:'open',metadata:{source_ediel_message_id:f.sourceId,review_intent:'final_metering_and_billing'}})
+ if(!linked){
+  expect(tasks[0]).toMatchObject({source:'ediel_supply_end_effect',source_ediel_message_id:f.sourceId,
+   metadata:{supply_period_id:f.periodId}})
+  const projected=sql<Record<string,unknown>[]>(`SELECT jsonb_agg(to_jsonb(r)) FROM gridex_received_sources.supply_end_followups r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}`)
+  expect(projected).toHaveLength(1);expect(projected[0]).toMatchObject({company_id:f.companyId,source_message_id:f.sourceId,
+   case_id:tasks[0].id,customer_id:f.customerId,metering_point_id:f.pointId,supply_period_id:f.periodId})
+ }
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='PRODAT'`)).toBe(businessBefore)
  expect(unrelated(f.periodId,f.sourceId)).toEqual(unrelatedBefore)
  expect(immutable(f.original.id)).toEqual(originalBefore);expect(immutable(f.startSourceId)).toEqual(startBefore);expect(immutable(f.sourceId)).toEqual(sourceBefore)
@@ -131,6 +171,7 @@ it.each(variants)('actual Z05%s commits its own end, physical acknowledgements a
  expect(f.effects()).toEqual(after);expect(acknowledgements(f.sourceId)).toEqual(acks)
  expect(sql(`SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM public.customer_cases c WHERE company_id=${literal(f.companyId)} AND reason_category='final_metering_and_billing' AND metadata->>'source_ediel_message_id'=${literal(f.sourceId)}`)).toEqual(tasks)
  expect(unrelated(f.periodId,f.sourceId)).toEqual(unrelatedBefore)
+ if(!linked)expect(ordinaryReceiptState()).toEqual(ordinaryAfter)
 },120000)
 
 // IV is physically present in both candidates. Absence of the ordinary optional
@@ -183,14 +224,19 @@ it.each(variants)('actual Z05%s current receiving supplier role withdrawal holds
 },120000)
 
 it.each([
- ['LI',{lineItemReference:'L-UNMATCHED-OWN-REFERENCE'}],['end minute',{endDate:'202610161331'}],
+ ['customer',{qualification:'observe',transformParts:(parts:Parts[])=>parts.map(p=>p[0]==='NAD'&&p[1]==='UD'
+  ?['NAD','UD',['198001011234','SE2','260'],'','Synthetic Other','Street','City','','12345','SE']:p)}],
+ ['end minute',{endDate:'202610161331'}],
 ] as const)('actual national L wrong %s cannot execute any end, positive ACK or final-value task',async(_label,candidate)=>{
  const f=await receivedEnd('L',candidate),before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId),original=immutable(f.original.id)
+ expect([f.decision.syntaxDecision,f.decision.applicationDecision,f.decision.functionalDecision],JSON.stringify(f.decision.issues)).toEqual(['accepted','accepted','accepted'])
+ expect(sql(`SELECT to_jsonb(gridex_supply_rescission.has_end_selector_v1(m,w.wire->'objects'->0) AND gridex_supply_rescission.matched_end_v1(m,w.wire,w.wire->'objects'->0) IS NULL)
+  FROM public.ediel_messages m CROSS JOIN LATERAL(SELECT gridex_received_sources.normal_switch_wire_v1(m.raw_payload) wire) w WHERE m.id=${literal(f.sourceId)}`)).toBe(true)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph)
- // Only the unchanged LI+point selector chooses the exact national branch.
- // A wrong LI may fall through another real matcher, never an assumed exception.
- if(_label==='end minute')expect(()=>sql(`SELECT public.ediel_apply_supply_source_v1(${literal(f.companyId)},${literal(f.sourceId)},${literal(f.actorUserId)})`)).toThrow('supply_rescission_exact_sent_original_required')
+ // These candidates retain the actual H LI+point+agency selector. Independent
+ // Z05L can use its own LI; only the corresponding H end owes that reference.
+ expect(()=>sql(`SELECT public.ediel_apply_supply_source_v1(${literal(f.companyId)},${literal(f.sourceId)},${literal(f.actorUserId)})`)).toThrow('supply_rescission_exact_sent_original_required')
  expect(immutable(f.sourceId)).toEqual(raw);expect(immutable(f.original.id)).toEqual(original)
 },120000)
 
@@ -198,7 +244,7 @@ it.each(['outbound H request','inbound L end'] as const)('actual sealed %s rejec
  const f=await receivedEnd('L'),id=lane==='outbound H request'?f.original.id:f.sourceId,before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId),original=immutable(f.original.id)
  const wire=lane==='outbound H request'?f.original.raw_payload!:f.wire,mutated=wire.replace('202610161330','202610161331')
  expect(mutated).not.toBe(wire)
- expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=${literal(mutated)} WHERE id=${literal(id)}`)).toThrow(lane==='outbound H request'?'supply_rescission_atomic_original_required':'immutable_ediel_payload_cannot_change')
+ expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=${literal(mutated)} WHERE id=${literal(id)}`)).toThrow('immutable_ediel_payload_cannot_change')
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw);expect(immutable(f.original.id)).toEqual(original)
 },120000)
 
