@@ -155,8 +155,25 @@ JSONsuccess true; fresh nonincremental testsTS EXIT0, scopedlint EXIT0, diff0.
 All3UNA actualmetadata and all frozenliteral effects qualified locally, no
 persisted send/native/external certificate implied. After those receipts
 onlyownedAT-P01 row changesPARTIAL→PASSED+uniquecomposition evidence; all
-other120rules/230contracts unchanged. Candidate291/352 is not mergedmain290.
+all121rules/230othercontracts unchanged. Candidate291/352 is not mergedmain290.
 Final3pathdiff (test, ownCP, ownedcoverage) still needs exactcurrenthead peer
 review, taggedapprovalscanner/currentmandatoryCI then normalguardedmerge.
 Nextthissession publishsmallPR, execute required taggedscanner under22,
 recordattributable finalpeerreview and authenticate allcurrentchecks.
+
+## Independent packet checkpoint / final local scanner
+
+Canonical AT-P01 checkpoint is now this uniquely named atp01 file; initial
+immutable66c5reservationreceipt records originalstartupCP, retained through
+775/b484history and metadata645. Before rename #530 records real add/add
+conflict between our645 and646ownCP. Test/coverage/foreignfiles unchanged;
+rename allows either normal guardeddeliveryorder. Old metadataCP stays645.
+Whole775/finalb484 APPROVE5435424081 and exact868/0/0pending/testsTS0/lint0
+remain attheiroriginalsource; no previousheadCI success borrowed. Supported22
+required taggedapproval --check EXIT0:352IDs291approved324taggedgreen0failing
+28untagged. Taggedgreen is notwholeapproval for remaining33candidateIDs.
+New checkpoint-only successor requires independent exactheadreview/new
+mandatorysourceCI; testblob/ownedcoverage identicalapprovedb484. Nextthis
+session normalpush646 successor, updateclaimcanonicalCPpointer/PRbody and
+peerreview; waitqualifiedcurrent645/646 thenactualmerge or concreteblocker.
+No newID/role/sharededit/coveragechange/native/externalclaim.
