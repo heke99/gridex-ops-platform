@@ -18,6 +18,9 @@ import {getEdielMessageById} from '@/lib/ediel/db'
 import {buildContrlDraft,buildAperakDraft} from '@/lib/ediel/ack'
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck'
 import {prodatDate203} from '@/lib/ediel/prodat/render/dates'
+import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {executeEdielServiceAdministration} from '@/lib/ediel/services/administration'
+import {omitPermissionField,permissionRequiredFields} from './helpers/ediel-permission-field-omissions'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
@@ -134,6 +137,30 @@ it.each([
  expect(z18Count(f)).toBe(0)
 })
 
+it('every required common/own/UD Z15C omission reaches its actual syntax/guide/field barrier without market, grant or positive APERAK effects',async()=>{
+ const f=await seed(),a=await qualify(f);ackRoute(f)
+ const ended=await receive(f,z15(f,a,false),'PRODAT','Z15','PRODAT:Z15:V:26.A:r3');await process(f,ended)
+ const before=market(f,a.permissionId);expect(before.permission.status).toBe('ended')
+ for(const field of permissionRequiredFields){
+  const source=await receive(f,omitPermissionField(z15(f,a,true),field),'PRODAT','Z15','PRODAT:Z15:C:26.A:r3')
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  if(['207','208','227'].includes(field)){
+   expect(decision.syntaxDecision,field).toBe('rejected')
+   expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UNSM_MANDATORY_ELEMENT_MISSING'})]))
+  }else if(field==='311'){
+   expect(decision.applicationDecision).toBe('manual_review')
+   expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'CANONICAL_POLICY_RESOLUTION_FAILED'})]))
+  }else{
+   expect(decision.applicationDecision,field).toBe('rejected')
+   expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:field,errorKind:'missing'})})]))
+  }
+  await process(f,source)
+  expect(market(f,a.permissionId),field).toEqual(before)
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
+ }
+ expect(z18Count(f)).toBe(0)
+})
+
 async function secondMission(f:Fixture){
  const beneficiary=randomUUID(),key=randomUUID()
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(beneficiary)},'Synthetic independent shared-permission beneficiary','active')`)
@@ -187,4 +214,17 @@ it('actual ESCO terminate command protects a shared active mission then sends it
  expect(completed.grants).toEqual(beforeAck.grants)
  expect(sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('status',status,'fulfilled',fulfilled_by_message_id)),'[]') FROM public.ediel_business_expectations WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(sent.id)} AND expected_family='PRODAT' AND expected_code='Z15'`)).toContainEqual({status:'fulfilled',fulfilled:received.id})
  await process(f,received);expect(market(f,a.permissionId)).toEqual(completed);expect(z18Count(f)).toBe(1)
+})
+
+it('actual Z18 origination rejects a foreign tenant actor and a missing current legal ESCO role before any wire or provider effect',async()=>{
+ const f=await seed(),a=await qualify(f,undefined,{reason:'B79',at:end})
+ expect(await f.command({action:'end_assignment',assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'market_termination_required'})
+ const before=market(f,a.permissionId),effects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
+ const command={action:'terminate_permission',assignmentId:f.assignment,expectedVersion:f.current().version,permissionId:a.permissionId,preferredRouteId:f.ids.route}
+ await expect(executeEdielServiceAdministration({companyId:f.ids.beneficiary,actorUserId:f.ids.actor,command})).rejects.toThrow(/ediel_tenant_actor_forbidden/)
+ expect(market(f,a.permissionId)).toEqual(before);expect(f.effects()).toEqual(effects)
+ sql(`UPDATE public.tenant_actor_roles SET role_code='supplier' WHERE company_id=${lit(f.ids.company)} AND actor_id=${lit(f.ids.legal)} AND environment='test'`)
+ expect(await f.command(command)).toMatchObject({status:'held',missing:['current_provider_electricity_profile_and_esco_role']})
+ expect(market(f,a.permissionId)).toEqual(before);expect(f.effects()).toEqual(effects)
+ expect(z18Count(f)).toBe(0);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
 })

@@ -5,7 +5,7 @@ import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} 
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
-import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
@@ -83,6 +83,16 @@ export function validateCanonicalPolicyFields(input: {
     // Inbound extra information is ignored (§2.2); outbound must not carry it.
     return input.policy.direction === 'outbound' ? [{ ...rule, requirement: 'forbidden' }] : []
   })
+  let observedApplicationReference=input.policy.applicationReference
+  if(input.policy.family==='PRODAT'){
+    const una=input.una??DEFAULT_UNA
+    const wire=tokenizeEdifact(input.rawPayload??serializeUna(una)+(input.rawSegments??[]).join(una.segmentTerminator)+una.segmentTerminator)
+    const headers=wire.segments.filter(segment=>segment.tag==='UNB')
+    // A pre-envelope builder still uses its resolved route. Once UNB exists,
+    // field311 must observe the physical source, including an absent value;
+    // the policy's expected reference cannot manufacture a wire observation.
+    if(headers.length)observedApplicationReference=headers.length===1?(segmentComposite(headers[0],7,wire.una)[0]||null):null
+  }
   const matrixInput: FieldMatrixEvaluationInput = {
     una: input.una,
     direction: input.policy.direction as 'inbound' | 'outbound',
@@ -90,7 +100,7 @@ export function validateCanonicalPolicyFields(input: {
     family: input.policy.family,
     code: input.policy.code,
     rawSegments: input.rawSegments ?? null,
-    applicationReference: input.policy.applicationReference,
+    applicationReference: observedApplicationReference,
     expectedApplicationReference: input.policy.applicationReference,
     // Do not let the legacy `send => dependent required` fallback execute.
     mode: 'parse',
