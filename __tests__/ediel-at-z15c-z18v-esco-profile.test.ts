@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { assessPriorPermissionFlow, assertPriorPermissionContext, priorPermissionWire } from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
 import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { alphabets, msg, object, prior, scopeRecords } from './fixtures/prodat-prior-flow'
 
 const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn() }))
@@ -75,9 +76,24 @@ it('the permission effect adapter refuses outward Z15C before any native write',
   expect(io.rpc).not.toHaveBeenCalled()
 })
 
+it('complete outward Z18V has matching physical ESCO parties and the S17 profile', () => {
+  const message = prior('Z18'), wire = EdifactEnvelopeCodec.decode(message.raw_payload!)
+  expect(wire).toMatchObject({ sender: message.sender_ediel_id, receiver: message.receiver_ediel_id, applicationReference: '23-DGI-PRODAT' })
+  const decision = resolveCanonicalRuntimeDecision(message)
+  expect([decision.syntaxDecision, decision.applicationDecision]).toEqual(['accepted', 'accepted'])
+  expect(decision.policy).toMatchObject({ code: 'Z18', subtype: 'V', direction: 'outbound', transactionReasonCode: 'S17' })
+})
+
 for (const field of ['327', '324', '325'] as const) it(`Z18V refuses missing required termination field ${field}`, () => {
   const message = prior('Z18')
-  message.raw_payload = msg('Z18', 'S17', 'CASE-ALPHA', omitField('Z18', field)).raw_payload
+  // Apply the same physical party reversal as prior(), retaining an outgoing
+  // ESCO source while removing only the field under test.
+  const [component, element] = alphabets[0]
+  message.raw_payload = msg('Z18', 'S17', 'CASE-ALPHA', omitField('Z18', field)).raw_payload!
+    .replaceAll(element + '12345' + component, element + 'TMPID' + component)
+    .replaceAll(element + '54321' + component, element + '12345' + component)
+    .replaceAll(element + 'TMPID' + component, element + '54321' + component)
+  expect(EdifactEnvelopeCodec.decode(message.raw_payload)).toMatchObject({ sender: message.sender_ediel_id, receiver: message.receiver_ediel_id })
   const decision = resolveCanonicalRuntimeDecision(message)
   expect(decision.applicationDecision).toBe('rejected')
   expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({ prodatDiagnostic: expect.objectContaining({ fieldNumber: field, errorKind: 'missing' }) })]))

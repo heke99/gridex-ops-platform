@@ -1,6 +1,6 @@
 # Masterplan checkpoint — codex-20261006-2c0823a3eed5
 
-Status: LOCKS_CONFIRMED_CLAIM_PENDING.
+Status: DRAFT_PROPOSAL_NATIVE_NOT_RUN; confirmed active reservation; no coverage approval.
 
 {
   "protocol": "masterplan-reservation-v1",
@@ -38,3 +38,13 @@ CLAIM confirmed https://github.com/heke99/gridex-ops-platform/issues/530#issueco
 Additional file resource file-921c4b770da0215885e90bdec366bc37d8b25f65c81280a708c9c91c11032d0f GET-confirmed at bde063869adc816e4ed359f60c84f83389bba72e: scripts/fixtures/ediel-service-evidence-native.ts. Scope: optional authenticated termination terms in the exported fixture; existing defaults and actual command/producer remain unchanged.
 
 Meaningful transition: Node22.23.3 new profile/correlation component passes22/22, zero failures/skips; /tmp/gridex-profile-first.log. Independent frozen-contract reviews confirm existing market restoration/shared mission effects already delivered; remaining proof is actual Z15C/Z18 command→source→ACK→effect/replay, including revoked-grant non-restoration. No coverage edit or full acceptance claim. Dependencies installed with --cache /tmp; apt system write unavailable, using an isolated extracted PostgreSQL client. Next owner codex-20261006-2c0823a3eed5: add optional signed termination fixture inputs and genuine native test chains, then independently review.
+
+2026-10-06 16:07 Europe/Stockholm — source transition (commit recorded on #530 after publication): updated to actual main9cd954080a2b65d0b73f1662c4bd3f92adb3b122 through merge1a5d0681f246e970512f03a7fbfaf137e89a77c8; #618 only publishes autonomous protocol, no coverage changes. All own locks re-read at receiptbde063; foreign role-memory4d184dd remains occupied. Scope-extension receipt: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6017802042.
+
+Implemented reviewable proposal: optional source mailbox custody at original INSERT, optional signed/reviewed termination terms, six native tests registered in the existing mandatory native configuration. Actual paths are Z15 ending→Z15C restoration→immutable permission/effect receipts→own physical ACK/outbox→replay/revoked-grant denial; four genuine new-source tuple negatives; shared mission→held Z18→last mission ended→qualified rendered/sent Z18→physical received CONTRL/APERAK committed reads→matching Z15/expectation completion. Only upstream legal/issuer/email inputs and SMTP provider are synthetic. No production SQL or authority changes.
+
+Independent read-only contract reviewers requested changes: corrected outgoing omission wire parties with positive baseline; exact revoked-grant denial; synthetic DSO view only for pure ACK wire rendering; actual committed ACK/receipt/source status checks; precise source-signed Z18 tuple and revoked grants; APERAK source-document/effect hash/outbox assertions. Native is still a proposal, not approved proof. Remaining whole clauses: complete common/UD field matrix, native role/direction/tenant/source-mutation negatives and intended hold diagnostics; actual executed native receipt and final independent current-head review.
+
+Verification: Node22.23.3 component23/23 PASS zero skips (/tmp/gridex-profile-reviewed.log); app TypeScript noEmit PASS (/tmp/gridex-pair-tsc.log); isolated changed-test/fixture TypeScript PASS (/tmp/gridex-pair-scoped-tsc.log); git diff --check PASS. Native NOT_RUN: the existing clean replay pinned to ghcr.io/supabase/postgres:17.6.1.155 failed layer registration twice with `no space left on device` on 32GB filesystem. Inodes35%; after failed-layer cleanup16GB available. Stopped only own Supabase start PID2809; existing EXIT cleanup restored all migrations/seed, no containers/volumes existed before setup. No substitute image, gate weakening, global Docker cleanup or hosted project. Sanitized failure text retained here; raw local replay/status files are never published.
+
+Next action / owner: this session publishes draftPR with exact source SHA, inspects mandatory native CI and independent current-head review, then resolves actual findings. Both IDs remain NOT_EXECUTED/PARTIAL according to existing coverage. A successful native proposal alone is insufficient for whole-contract promotion. Shared campaign memory awaits foreign role-memory release; #530 and this checkpoint remain authoritative packet receipts.
