@@ -67,7 +67,7 @@ const acknowledgements=(sourceId:string)=>sql<EdielMessageRow[]>(`SELECT coalesc
  FROM public.ediel_messages m WHERE related_message_id=${literal(sourceId)} AND direction='outbound'`)
 const ackDiagnostics=(sourceId:string)=>sql(`SELECT jsonb_build_object(
  'technical',(SELECT jsonb_build_object('status',status,'reason',reason) FROM gridex_ediel_technical_ack.sources WHERE source_message_id=${literal(sourceId)}),
- 'blocked',(SELECT jsonb_agg(jsonb_build_object('family',payload->>'ackFamily','reason',payload->>'reason') ORDER BY id)
+ 'blocked',(SELECT jsonb_agg(jsonb_build_object('family',payload->>'ackFamily','message',message) ORDER BY id)
  FROM public.ediel_message_events WHERE ediel_message_id=${literal(sourceId)} AND payload->>'blockedBy'='canonical_inbound_ack_guard'))`)
 const invoicee=(name:string):Parts=>['NAD','IV',['SYNTHETIC-BILL','','89'],'',name,'Invoice Street','Town','','12345','SE']
 const withInvoicee=(name:string)=>(parts:Parts[]):Parts[]=>[...parts,invoicee(name)]

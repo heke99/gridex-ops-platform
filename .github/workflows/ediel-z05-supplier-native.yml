@@ -12,6 +12,21 @@ on:
       - 'lib/ediel/flows/prodatBilateralClosure.ts'
       - 'lib/ediel/flows/inboundProcessing.ts'
       - 'lib/ediel/production/bilateralProdatClosureOperation.ts'
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/helpers/**'
+      - 'scripts/lib/**'
+      - 'scripts/sql/**'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - '__tests__/fixtures/**'
+      - '__tests__/helpers/**'
+      - '__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts'
+      - 'docs/ediel/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
       - '.github/workflows/ediel-z05-supplier-native.yml'
 
 permissions:
@@ -84,12 +99,27 @@ jobs:
                    'scripts/migration-history-manifest.json',
                    'scripts/migration-history-manifest.additions.json',
                    'scripts/migration-history-manifest.runtime.additions.json']
+          # Preserve every declared historical input as a required subset, then
+          # capture the complete tracked checkout, including transitive imports,
+          # replay SQL, shared helpers, manifests and runtime configuration.
+          required_paths = paths
+          tracked_paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          paths = sorted(set(p for p in tracked_paths if p))
+          assert set(required_paths).issubset(paths)
+          input_hashes = {}
+          for p in paths:
+              original = subprocess.check_output(['git','show','HEAD:'+p])
+              checkout = os.readlink(p).encode() if pathlib.Path(p).is_symlink() else pathlib.Path(p).read_bytes()
+              assert checkout == original, 'modified checkout input: '+p
+              input_hashes[p] = hashlib.sha256(original).hexdigest()
           receipt = {
               'purpose': 'supplemental_actual_native_feedback',
               'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
               'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
-              'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
+              'input_scope': 'ALL_TRACKED_CHECKOUT_INPUTS_BEFORE_REPLAY',
+              'required_input_paths': required_paths,
+              'input_sha256': input_hashes,
               'test_scope': ['scripts/ediel-bilateral-prodat-h-original-native.test.ts',
                              'scripts/ediel-at-z08lk-supplier-native.test.ts',
                              'scripts/ediel-at-z05-supplier-native.test.ts'],
