@@ -8,6 +8,7 @@ on:
       - 'lib/**'
       - 'supabase/**'
       - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
       - 'e2e/production/helpers/**'
       - 'package.json'
       - 'package-lock.json'
@@ -62,7 +63,7 @@ jobs:
           scope = os.environ['Z06E_Z09E_NATIVE_TEST_SCOPE'].splitlines()
           paths = subprocess.check_output([
               'git', 'ls-files', '-z', '--', 'lib', 'scripts', 'supabase',
-              '__tests__/helpers', 'e2e/production/helpers', 'package.json',
+              '__tests__/helpers', '__tests__/fixtures', 'e2e/production/helpers', 'package.json',
               'package-lock.json', 'tsconfig.json', 'tsconfig.scripts.json',
               '.github/workflows/ediel-z06e-z09e-native.yml',
           ]).decode().split('\0')
