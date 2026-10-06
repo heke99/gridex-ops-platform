@@ -251,9 +251,37 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    expect(replies()).toEqual(actual);expect(ownerReplies()).toEqual(qualification);expect(replayEffects).toEqual(afterEffects)
    expect(market(f,a.permissionId)).toEqual(before);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
   }else{
+   if(field==='209'){
+    // Diagnose the real protected recorder; a source error remains a failure,
+    // never an accepted negative outcome or a substituted JSON receipt.
+    const evidence=buildReceivedSourceValidationEvidence({original:source,validated:source,resolvedCompanyId:f.ids.company,decision})
+    expect(evidence).not.toBeNull()
+    const protectedEffects=f.effects(),assessments=sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`)
+    const recorded=await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
+     p_company_id:evidence!.companyId,p_environment:evidence!.environment,p_source_message_id:evidence!.sourceMessageId,
+     p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:evidence!.factsText,
+     p_ignored_fields_text:evidence!.prodatIgnoredFields?JSON.stringify(evidence!.prodatIgnoredFields):null,
+     p_object_facts_text:evidence!.prodatObjectValidation?JSON.stringify(evidence!.prodatObjectValidation):null,
+     p_response_facts_text:evidence!.prodatResponseValidation?JSON.stringify(evidence!.prodatResponseValidation):null,
+     p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
+     p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
+    })
+    if(recorded.error){
+     processingFailures.push(`required Z15C field 209 native recorder: ${JSON.stringify(recorded.error)}; facts=${JSON.stringify({globalReasons:JSON.parse(evidence!.factsText).reasonCodes,registerReasons:JSON.parse(evidence!.factsText).registerValidation.objects[0].reasons,ownReasons:evidence!.prodatObjectValidation?.objects[0].reasons,objects:!!evidence!.prodatObjectValidation,response:!!evidence!.prodatResponseValidation,application:!!evidence!.prodatApplicationValidation,sourceFunction:!!evidence!.prodatSourceFunctionValidation})}`)
+     expect(recorded.data).toBeNull();expect(f.effects()).toEqual(protectedEffects)
+     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`)).toBe(assessments)
+    }
+   }
    // Preserve failure for every ordinary processing path, while exercising
    // each independent omission before reporting the complete failing set.
-   await process(f,source).catch(error=>{processingFailures.push(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`)})
+   if(field==='223'){
+    // Vitest's default spy calls the actual RPC unchanged. Observe names only;
+    // no return value, builder, request or error is substituted or awaited twice.
+    const trace=vi.spyOn(supabaseService,'rpc')
+    try{await process(f,source)}
+    catch(error){processingFailures.push(`required Z15C field 223: ${error instanceof Error?error.message+'; stack='+error.stack:JSON.stringify(error)}; actual RPC names=${JSON.stringify(trace.mock.calls.map(([name])=>name))}`)}
+    finally{trace.mockRestore()}
+   }else await process(f,source).catch(error=>{processingFailures.push(`required Z15C field ${field}: ${error instanceof Error?error.message+'; stack='+error.stack:JSON.stringify(error)}`)})
   }
   expect(market(f,a.permissionId),field).toEqual(before)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
