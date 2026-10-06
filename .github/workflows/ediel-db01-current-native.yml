@@ -1,0 +1,225 @@
+name: Ediel DB01 supplemental historical containment native
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - 'docs/ediel/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - '*.config.*'
+      - '.nvmrc'
+      - '.npmrc'
+      - '.github/workflows/ediel-db01-current-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-db01-current-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# BASE56 clean + two exact owned forwards is supplemental composition only.
+# Current canonical clean/capture/upgrade and all ordinary OPS gates remain.
+jobs:
+  db01-historical-upgrade-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute exact BASE public births, owned SQL forwards and fresh current public owners
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          command -v psql
+          export CURRENT_ROOT="$PWD"
+          export DB01_BASE_SHA=56e58b95518ec4d5eef210ba16ba46228afb40ac
+          export DB01_PRIVATE="$RUNNER_TEMP/db01-historical-upgrade"
+          mkdir -m 700 "$DB01_PRIVATE"
+          export GRIDEX_DB01_NATIVE_RECEIPT="$DB01_PRIVATE/evidence/receipt.json"
+          export GRIDEX_DB01_NATIVE_HANDOFF="$DB01_PRIVATE/handoff.json"
+          export GRIDEX_NATIVE_STATUS="$DB01_PRIVATE/status.json"
+          export DB01_BASE_ROOT="$DB01_PRIVATE/base"
+          mkdir -p "$DB01_BASE_ROOT" "$DB01_PRIVATE/evidence"
+          # Freeze both complete Git trees before the unchanged BASE replay
+          # temporarily substitutes its own SQL/ledger marker files.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, sys
+          root = pathlib.Path(os.environ['CURRENT_ROOT']).resolve()
+          base_sha = os.environ['DB01_BASE_SHA']
+          head = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          subprocess.run(['git','merge-base','--is-ancestor',base_sha,head],check=True)
+          forwards = ['supabase/migrations/20261006205324_ediel_production_all_family_smime.sql',
+                      'supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql']
+          required = forwards + ['scripts/ediel-db01-legacy-address-containment-native.test.ts',
+            'scripts/ediel-db01-current-native.config.ts', '.github/workflows/ediel-db01-current-native.yml',
+            'lib/ediel/db.ts','lib/ediel/testing/agtEngine.ts',
+            'lib/ediel/testing/agtRegistry.ts','lib/ediel/testing/agtRuntime.ts','lib/ediel/systemTestSettings.ts',
+            'lib/ediel/mailReadiness.ts','lib/ediel/inbound/receptions.ts',
+            'lib/ediel/production/bilateralProdatOutboundDraft.ts',
+            'lib/ediel/production/bilateralProdatProfileIntake.ts',
+            'lib/ediel/production/supplyRescissionIntake.ts',
+            'lib/ediel/core/kernel.ts','lib/ediel/core/atomicAckPersistence.ts',
+            'scripts/helpers/nationalRescissionNative.ts',
+            'scripts/helpers/ediel-normal-switch-native-fixture.ts',
+            'scripts/helpers/ediel-bilateral-prodat-profile-native-fixture.ts',
+            'scripts/helpers/originalMailboxNative.ts',
+            '__tests__/helpers/closureWireFixtures.ts','__tests__/helpers/utiltsNativeSourceFixture.ts',
+            'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+            'scripts/gridex-aud-003-clean-replay.sh','scripts/gridex-redact-native-evidence.py',
+            'supabase/config.toml','package.json','package-lock.json']
+          def inventory(revision):
+              result = {}
+              entries = subprocess.check_output(['git','ls-tree','-r','-z','--full-tree',revision]).split(b'\0')
+              with subprocess.Popen(['git','cat-file','--batch'],stdin=subprocess.PIPE,stdout=subprocess.PIPE) as reader:
+                  for entry in filter(None,entries):
+                      metadata,name = entry.split(b'\t',1)
+                      mode,kind,oid = metadata.decode('ascii').split()
+                      path = name.decode('utf-8')
+                      if kind != 'blob' or mode not in {'100644','100755'} or path in result:
+                          raise RuntimeError('unsupported/duplicate Git source entry: '+path)
+                      reader.stdin.write((oid+'\n').encode()); reader.stdin.flush()
+                      actual,typ,size = reader.stdout.readline().decode().strip().split()
+                      content = reader.stdout.read(int(size))
+                      if actual != oid or typ != 'blob' or len(content) != int(size) or reader.stdout.read(1) != b'\n':
+                          raise RuntimeError('Git blob identity failed: '+path)
+                      result[path] = {'mode':mode,'git_blob_oid':oid,'sha256':hashlib.sha256(content).hexdigest()}
+                  reader.stdin.close()
+                  if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
+              return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
+          current, baseline = inventory(head), inventory(base_sha)
+          if len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+              raise RuntimeError('required input missing or duplicated')
+          for path in required:
+              if hashlib.sha256((root/path).read_bytes()).hexdigest() != current['blobs'][path]['sha256']:
+                  raise RuntimeError('checked-out input differs from Git HEAD: '+path)
+          for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
+              if current['blobs'].get(path) != baseline['blobs'].get(path):
+                  raise RuntimeError('BASE/current dependency inputs differ: '+path)
+          if current['blobs'][forwards[0]]['sha256'] != 'de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36':
+              raise RuntimeError('first owned forward identity changed')
+          receipt = {'purpose':'supplemental_BASE56_plus_two_owned_forwards_actual_native',
+            'root_path':str(root),'base_path':str(pathlib.Path(os.environ['DB01_BASE_ROOT']).resolve()),
+            'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
+            'workflow_run_id':os.environ['GITHUB_RUN_ID'], 'input_authority':'complete_Git_objects_before_BASE_replay_substitution',
+            'root_source':current,'base_source':baseline,'required_input_paths':required,
+            'composition':[{'path':p,**current['blobs'][p]} for p in forwards],
+            'phases':{'baseline_clean':{'status':'NOT_RUN','exit_code':None},
+              'historical':{'status':'NOT_RUN','exit_code':None},'forwards':{'status':'NOT_RUN','exit_code':None},
+              'current':{'status':'NOT_RUN','exit_code':None}},
+            'test_scope':['scripts/ediel-db01-legacy-address-containment-native.test.ts'],
+            'ordinary_required_gates':'NOT_REPLACED','canonical_current_clean':'NOT_RUN',
+            'canonical_current_schema_capture':'NOT_RUN','canonical_upgrade_parity':'NOT_RUN',
+            'authentic_market_or_external_issuer_evidence':'NOT_PROVIDED',
+            'tool_versions':{'python':sys.version.split()[0],
+              'node':subprocess.check_output(['node','--version'],text=True).strip(),
+              'git':subprocess.check_output(['git','--version'],text=True).strip(),
+              'supabase':subprocess.check_output(['supabase','--version'],text=True).strip(),
+              'psql':subprocess.check_output(['psql','--version'],text=True).strip()}}
+          pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          git archive "$DB01_BASE_SHA" | tar -x -C "$DB01_BASE_ROOT"
+          # Identical recorded package/lock/config inputs qualify this shared
+          # installation; all project source aliases resolve to the phase root.
+          ln -s "$CURRENT_ROOT/node_modules" "$DB01_BASE_ROOT/node_modules"
+          update_phase() {
+            DB01_PHASE="$1" DB01_EXIT="$2" python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT'])
+          receipt=json.loads(path.read_text()); code=int(os.environ['DB01_EXIT'])
+          receipt['phases'][os.environ['DB01_PHASE']]={'status':'PASS' if code==0 else 'FAIL','exit_code':code}
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          }
+          # Capture a real failing shell exit without placing the subshell in
+          # an OR-list (which would disable errexit inside the sourced owner).
+          set +e
+          (
+            set -euo pipefail
+            # The BASE owner's genuine EXIT cleanup remains installed until
+            # both native phases finish. Never exclude unregistered forwards
+            # from a current replay or forge migration history.
+            cd "$DB01_BASE_ROOT"
+            source scripts/gridex-aud-003-clean-replay.sh > "$DB01_PRIVATE/baseline-clean.log" 2>&1
+            trap 'cd "$DB01_BASE_ROOT"; cleanup' EXIT
+            update_phase baseline_clean 0
+            supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+            cd "$CURRENT_ROOT"
+            export GRIDEX_DB01_NATIVE_PHASE=historical GRIDEX_DB01_SOURCE_ROOT="$DB01_BASE_ROOT"
+            historical_exit=0
+            npx vitest run --config scripts/ediel-db01-current-native.config.ts \
+              --reporter=default --reporter=junit --outputFile="$DB01_PRIVATE/evidence/historical-junit.xml" \
+              > "$DB01_PRIVATE/evidence/historical-native.log" 2>&1 || historical_exit=$?
+            update_phase historical "$historical_exit"
+            if [[ "$historical_exit" != 0 ]]; then exit "$historical_exit"; fi
+            # Exact checked-out SQL files; no ledger/history writes are added.
+            forward_exit=0
+            for forward in supabase/migrations/20261006205324_ediel_production_all_family_smime.sql \
+              supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql; do
+              psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+                -f "$CURRENT_ROOT/$forward" >> "$DB01_PRIVATE/forward-sql.log" 2>&1 || { forward_exit=$?; break; }
+            done
+            update_phase forwards "$forward_exit"
+            if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            export GRIDEX_DB01_NATIVE_PHASE=current GRIDEX_DB01_SOURCE_ROOT="$CURRENT_ROOT"
+            current_exit=0
+            npx vitest run --config scripts/ediel-db01-current-native.config.ts \
+              --reporter=default --reporter=junit --outputFile="$DB01_PRIVATE/evidence/current-junit.xml" \
+              > "$DB01_PRIVATE/evidence/current-native.log" 2>&1 || current_exit=$?
+            update_phase current "$current_exit"
+            exit "$current_exit"
+          ) > "$DB01_PRIVATE/driver.log" 2>&1
+          driver_exit=$?
+          set -e
+          # Source cleanup stops its own stack from BASE even though native
+          # imports ran at ROOT. Private status, fixture handoff and replay/SQL
+          # logs never enter the artifact directory.
+          export DB01_DRIVER_EXIT="$driver_exit"
+          python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']); receipt=json.loads(path.read_text())
+          receipt['driver_exit_code']=int(os.environ['DB01_DRIVER_EXIT'])
+          if receipt['phases']['baseline_clean']['status']=='NOT_RUN':
+              receipt['phases']['baseline_clean']={'status':'FAIL','exit_code':receipt['driver_exit_code']}
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          if [[ -f "$GRIDEX_NATIVE_STATUS" ]]; then
+            python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$DB01_PRIVATE/evidence"
+          else
+            # A failed BASE clean has no native log or status to authenticate.
+            # Publish only the hash/exit receipt after ordinary JWT redaction.
+            test ! -f "$DB01_PRIVATE/evidence/historical-native.log"
+            test ! -f "$DB01_PRIVATE/evidence/current-native.log"
+            python3 scripts/gridex-redact-native-evidence.py --root "$DB01_PRIVATE/evidence"
+          fi
+          mv "$DB01_PRIVATE/evidence" db01-current-native-evidence
+          rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_DB01_NATIVE_HANDOFF"
+          exit "$driver_exit"
+      - name: Upload only redacted supplemental evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-db01-current-native-${{ github.event.pull_request.head.sha }}
+          path: db01-current-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
