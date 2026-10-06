@@ -1,3 +1,13 @@
+## RELEASE NARROW SELECTOR FILE HANDOFF — 2026-10-06 20:16 UTC
+
+Same AT-Z03L-SUPPLIER/AT-Z03LK-SUPPLIER onlypair. Explicit RELEASE ONLY two8bbc normal-selector file resources to93e integration owner; exact source4dd2d47f681a2cf48b426fdf562772dec1383b03 publicly containedinPR635f88/tree24f2. Ownnormalmodule2c5/unitfed3 independentlyboundedAUTHORING APPROVE; actual35TDDRED→GREEN+187regressions/types/lint. API resolveNormalSwitchBirthProfile({rawPayload,receivedAt}) returns sixcatalogwitness fields ornull; actualcatalog/clock/association errors propagate. No native/admission/business/whole approval from standalonecode.
+
+Resources torelease after thisdocument+#530: file-67abbf78b95dc3d3dd90d298c84d58818a30b7321f496c3fea67c9557d798be5 and file-e5d473189a43a6981de8cf818246127139be39e91e43c66ca5f1f1d7a18ad3c5, exactreceipt8bbc544d28c895def1eb782c8e9bf338eae4269e. Remainingroot12resources INCLUDINGbothIDs remainheld. Next93e: freshlyclaim exacttwo paths ifcopying source intoownbranch beforecode; reuse4dd2 byteexact, compose normalselector onlyafter realmailboxclock/assignedresolver andbeforeINSERT under own35c0commonlock. Qualify publicnormalpositive/negativebirth and unchanged E/A-D refusal/currentpack, fixACKprojection via actualTDD. If broaderEwhole blocked, deliver smallboundedshared-ingressfix after currentreview/mandatorygreen; wholeEandnormalIDs stay unapproved until their completeproofs. Root nevereditscommon/copiedmodule after handoffwithoutfreshreservation.
+
+Rootsourcef88 frozen whilefullordinary/currentnative pending. No newpair/merge/memoryrole. Nextroot qualify terminal f88 official artifact/ALL3365inputs/JUnit/actualremainingclauses andcurrentCI. Sharedmodulecopy remains validated source reuse, not blankethandoff of otherowners/IDs. RefDELETE/404 notclaimeduntilactualverified.
+
+---
+
 ## READY EXACT SUCCESSOR / EXECUTION PENDING — 2026-10-06 20:14 UTC
 
 PR635 actualAPI/normalpush/refGET binds f88eda3f394a2f09992a184dae1c24aaaa346b56/tree24f2afa7ef61aafb81086088deca853826b85b78. Immediatepostpush firstPRGET stillfbe, laterPRGET ANDbranchrefGET confirmedf88; no oldhead approval borrowed. All14ownrefs freshGETmatch corresponding4645/1daa/87ba/7f41/8bbc receipts. Standalone selector+unit exact reusable commit4dd2d47f681a2cf48b426fdf562772dec1383b03 (twofiles170lines); native/setup/workflow f88 (+100/-10twofiles) after normalmained3adoption25132. Same sourcehashes independently reviewed in previousreceipt. Completepre-replay immutableinventory3365files; ALLactualgitshowf88hashes match and actual716repositorymodules/3538edges0missing0uncovered. Original121historic scope retained. Currentexpandedsource native32 NOT_RUN; normal35componentGREEN+187scope/types/lint distinct.
