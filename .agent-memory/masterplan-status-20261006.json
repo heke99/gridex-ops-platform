@@ -108,8 +108,13 @@
   "approvedRowPercent": 78.98,
   "percentageScope": "Equal-weight stored code-approval rows; not time/effort remaining, market/formal acceptance or deployment",
   "baselineCi": {
-    "status": "CURRENT_MAIN_FULL_ACCEPTANCE_NOT_CLAIMED",
-    "scope": "Source-head gate receipts are recorded individually; no new resulting-main or metadata-candidate CI approval"
+    "status": "FAILURE",
+    "run": 37488209223,
+    "verifyJob": 112353832515,
+    "head": "c05625c71ada1023ef73749c51fbebf2af0673fb",
+    "cause": "unchanged production dependency audit high=2 critical=0",
+    "scope": "Authenticated exact-main verify failure only; not complete workflow, new metadata-head or external qualification",
+    "repairOwner": "PR620; source39a0 candidate unmerged at snapshot"
   },
   "legacyCloseout": "COMPLETE_CLOSED_UNMERGED_BRANCHES_AND_REQUIREMENTS_RETAINED",
   "ruleExecutionPaused": false,

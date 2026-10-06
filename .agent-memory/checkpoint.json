@@ -1916,6 +1916,16 @@
     "former_memory_role": "OWNER_RELEASED_GET404_6020417244",
     "current_memory_receipt": "fde4a57d3c52db64cea6cf1cae3c8c6ab4a4712f",
     "memory_candidate_main_delivery": "PENDING_OWN_CURRENT_HEAD_GATES",
-    "external_market": "NOT_CLAIMED"
+    "external_market": "NOT_CLAIMED",
+    "main_delivery_blocker": {
+      "head": "c05625c71ada1023ef73749c51fbebf2af0673fb",
+      "run": 37488209223,
+      "verify_job": 112353832515,
+      "result": "FAILURE",
+      "production_audit_high": 2,
+      "production_audit_critical": 0,
+      "repair_owner_pr": 620,
+      "required_gate_waiver": false
+    }
   }
 }
