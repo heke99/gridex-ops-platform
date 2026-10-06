@@ -1,3 +1,15 @@
+## QUALIFIED RUNTIME TDD RED / BEFORE PRODUCTION GREEN — 2026-10-06 19:23 UTC
+
+New24realruntime cases: actualscheduler directpositivecontrols2PASS, existingbothconsumers22FAIL/0skip/exit1, /tmp/gridex-c3ae-z03-window-red-qualified.log. Meaningfulfailures are persisteddateNULL/callerdateoverride, missingLK/reason/status propagation, absentexactscope filter/refusal; bothactualschedulerpositivecontrols PASS, no import/setupfailure. First attempt had missingmockOPENconstant/noexecutedtests, correctedreadonlyactualpartialmock; thatattempt isnotbehaviorRED. ALLproductionfiles untouchedbeforethisreceipt. Strictoriginalnativee7/12PASS20FAIL preserved. No wholeapproval.
+
+Independentboundedplan review confirms exactID/company/customer/site query BEFORE authorizationhealing; stored date/meteringpoint/status/variant-or-reason/requesttype authority; duplicateopenprobe cannot supplysubtype. Sourceclarification: missingexplicit canonicalsubtypereturnsNULL and requestType=move_in alone DOESresolveLK; bothconsumers currentlyomitBOTHinputs. Optionalvariant/reasonfields preserveexistingproducer/startgate semantics; Cstatusprecedence unchanged.
+
+Fifthadditionalpath __tests__/switch-readiness.test.ts receipt87ba5f3d5e158f46fd9bdfc65b0e8b2032dbc2cc/resourcefile-cd1d84868494956365ef1a754cf9b97904a36415cde41f04bcf4c8d9b13334ca sortedPOST+TWOGET confirmedbeforeedit. Existing2selectedrequest doubles needgenuine scopedrow support afterfailclosedquery; existingassertions preserved. Total10ownresources:original5+extension4+this1, samepair/packet/no sharedrole. Ownednativeinput/statuscorrection candidate8ac1d534 SHA scriptsTSC/scopedlint/diffPASS, nativeNOT_RUN.
+
+Nextthisowner minimalGREEN only3ownedproductionpaths plusownedexistingmockfixture; run24new+existingreadiness+scheduler/cancellation regressions, currenttype/lint, independentactualsource review. No selectedrouteenvironment changes yet; unchangedproductionreadiness stillmustblockcurrenttest route; foreignZ04birth remainsactualintegrationrequest6023685861. WholeIDsremainNOT_APPROVED, no row/merge/externalclaims.
+
+---
+
 ## CLAIM SOURCE EXTENSION BEFORE CODE — 2026-10-06 19:15 UTC
 
 Samepair/samepacket4d60a957; additional receipt1daa427d3c37fbdcb48d1dc908a757965c5c1782 currentactualmainb155 exacttree/singleparent. Four sortedcreateonly refs andTWOfullGETpasses confirmed: file-261a244500f47e95c672099f3746a2912a7362b85b665288155a9f602cc871e6, file-7af0834476d1950295594da9674f868349641282a0bde2d47dc4a88795e83fc3, file-eeb21400f3daa67dc0ea82435a08b88e77afe04c4fe59f5f06d74b1804dc83ef, file-fcda285af25fd5bfee7f7cc55b3e346967bde435b611ce0514362fe87e83f425. Exactpaths lib/operations/edielAutomation.ts, lib/customer-operations/switchReadiness.ts, lib/operations/types.ts, __tests__/ediel-z03-dispatch-window.test.ts. Originalfive4645 refs retained; now9ownedresources, no secondpair/sharedrole/foreignlocktakeover. Qualifiedfailure32/12/20/history5306023685861 retained. Sourcegap confirmedbyactualnativeLKtodayindependentOPEN versusTWOexpiredLblockers andcallgraphbothdrops. Read currentSupabase changelog+officialeq/maybeSingle docs before query implementation; no selectedAPIbreakingchanges.
