@@ -50,12 +50,18 @@ async function setup(){
  const start=source.indexOf('CREATE FUNCTION gridex_customer_life_events.require_current_v1('),end=source.indexOf('END$$;',start)
  if(start<0||end<start)throw Error('actual_private_current_wrapper_required')
  await db.exec(source.slice(start,end+7))
+ const publicSource=readFileSync(new URL('../supabase/migrations/20260930233247_ediel_customer_life_event_source_authority.sql',import.meta.url),'utf8')
+ const publicStart=publicSource.indexOf('CREATE FUNCTION public.ediel_customer_life_event_message_basis_v1('),publicEnd=publicSource.indexOf('END $$;',publicStart)
+ if(publicStart<0||publicEnd<publicStart)throw Error('actual_public_current_wrapper_required')
+ await db.exec(publicSource.slice(publicStart,publicEnd+7))
+ const publicBefore=(await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid='public.ediel_customer_life_event_message_basis_v1(uuid,uuid,uuid)'::regprocedure`)).rows
  await db.exec(`ALTER FUNCTION ${signature} OWNER TO declared_owner;REVOKE ALL ON FUNCTION ${signature} FROM PUBLIC;GRANT EXECUTE ON FUNCTION ${signature} TO declared_reader;
  GRANT USAGE ON SCHEMA public,gridex_customer_life_events,gridex_requested_changes,gridex_received_sources,gridex_negative_fixtures,gridex_ediel_transport TO declared_owner;
  GRANT SELECT,UPDATE ON ALL TABLES IN SCHEMA public,gridex_customer_life_events,gridex_requested_changes,gridex_received_sources TO declared_owner;`)
  const before=(await db.query(`SELECT to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid='${signature}'::regprocedure`)).rows
  const legacy=(await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid='gridex_customer_life_events.require_before_certification_v1(uuid,uuid,uuid,text)'::regprocedure`)).rows
  if(existsSync(forward))await db.exec(readFileSync(forward,'utf8'))
+ expect((await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid='public.ediel_customer_life_event_message_basis_v1(uuid,uuid,uuid)'::regprocedure`)).rows).toEqual(publicBefore)
  expect((await db.query(`SELECT to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid='${signature}'::regprocedure`)).rows).toEqual(before)
  expect((await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid='gridex_customer_life_events.require_before_certification_v1(uuid,uuid,uuid,text)'::regprocedure`)).rows).toEqual(legacy)
  return db

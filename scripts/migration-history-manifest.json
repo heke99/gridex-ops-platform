@@ -846,6 +846,7 @@
     "20261006173100_ediel_customer_wire_partition_headers_arrays.sql": "c55df843fa1275d2ee2899e57866c85520f36d8ace1ac65da671b118bd79b7d3",
     "20261006184000_ediel_requested_customer_selected_facts.sql": "ecfbbc7581d6093f456e2989922e0d0d4c4c19c13616a15d72f814bc013c416f",
     "20261006195500_ediel_requested_change_life_event_current_guard.sql": "2d14450d6e87a894e6c8c6c0296e2839f4952d96aaf51cb365fcccdeb7c1d12d",
+    "20261006205800_ediel_generic_requested_change_current_bridge.sql": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
