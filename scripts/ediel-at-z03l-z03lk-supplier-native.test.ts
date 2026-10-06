@@ -2,14 +2,19 @@
 // Existing #595 finite assertions are retained unchanged. Public synthetic
 // agreement/mail inputs and one external SMTP double; all owners and consumers
 // are production code. Future activation and market certification are separate.
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
-import { seedNormalSwitchNativeFixture, nativeSql as sql, literal, type NormalSwitchStageNativeFixture } from './helpers/ediel-normal-switch-native-fixture'
+import { seedNormalSwitchNativeFixture, nativeSql as sql, literal, type NormalSwitchStageNativeFixture, type NormalSwitchNativeRequestInput } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { supabaseService } from '@/lib/supabase/service'
+import { saveElectricitySupplier, saveCustomerSite } from '@/lib/masterdata/db'
+import { setOwnElectricitySupplier } from '@/lib/masterdata/selfSupplier'
+import { electricitySupplierInputSchema, customerSiteInputSchema } from '@/lib/masterdata/validators'
+import { createSupplierSwitchRequest, findCustomerSiteById, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, updateSupplierSwitchValidationSnapshot } from '@/lib/operations/db'
+import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { importActorRegistryXml } from '@/lib/actor-registry/importActorRegistry'
 import { readRegistryRouteSource, verifyElRegistryActor } from '@/lib/actor-registry/registryMarketSource'
 import { getCompanyGridOwnerRouteReadiness } from '@/lib/ediel/companyRouteReadiness'
@@ -18,6 +23,7 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
+import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
@@ -55,10 +61,68 @@ function months(date: string, offset: number) {
   const value=new Date(date+'T12:00:00Z'),day=value.getUTCDate(); value.setUTCDate(1); value.setUTCMonth(value.getUTCMonth()+offset)
   const last=new Date(Date.UTC(value.getUTCFullYear(),value.getUTCMonth()+1,0)).getUTCDate(); value.setUTCDate(Math.min(day,last)); return value.toISOString().slice(0,10)
 }
-async function stage(variant: Variant, date=days(today(),14), invoicee=false) {
+async function createPublicCase(input: NormalSwitchNativeRequestInput,variant: Variant) {
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.supplier_switch_requests WHERE company_id=${literal(input.companyId)};`)).toBe(0)
+  const supplier=await saveElectricitySupplier(supabaseService,electricitySupplierInputSchema.parse({
+    name:'Synthetic own supplier '+input.companyId,ediel_id:input.sender,is_active:true,
+  }))
+  const ownSupplierId=await setOwnElectricitySupplier(supabaseService,input.companyId,supplier.id)
+  expect(ownSupplierId).not.toBe(supplier.id)
+  expect(sql(`SELECT jsonb_build_object('company',company_id,'own',is_own_supplier,'edielId',ediel_id) FROM public.electricity_suppliers WHERE id=${literal(ownSupplierId)};`))
+    .toEqual({company:input.companyId,own:true,edielId:input.sender})
+  const existingSite=await findCustomerSiteById(supabaseService,input.siteId)
+  expect(existingSite).toMatchObject({id:input.siteId,company_id:input.companyId,customer_id:input.customerId})
+  // Prospective site facts pass through the existing public master-data writer.
+  // The explicit command type, rather than a patched subtype, selects L or LK.
+  const site=await saveCustomerSite(supabaseService,customerSiteInputSchema.parse({...existingSite,
+    id:input.siteId,company_id:input.companyId,customer_id:input.customerId,
+    move_in_date:input.requestedStartDate,current_supplier_name:'Synthetic prior supplier '+input.companyId,
+  }))
+  const points=await listMeteringPointsForSite(supabaseService,input.siteId)
+  const point=points.find(row=>row.id===input.pointId)!
+  expect(point).toMatchObject({id:input.pointId,company_id:input.companyId,customer_id:input.customerId})
+  const powers=await listPowersOfAttorneyByCustomerId(supabaseService,input.customerId,{companyId:input.companyId})
+  const readiness=evaluateSiteSwitchReadiness({site,meteringPoints:[point],powersOfAttorney:powers})
+  expect(readiness,JSON.stringify(readiness.issues)).toMatchObject({isReady:true,issues:[],latestPowerOfAttorneyId:input.powerOfAttorneyId,candidateMeteringPointId:input.pointId})
+  const created=await createSupplierSwitchRequest(supabaseService,{readiness,site,meteringPoint:point,
+    companyId:input.companyId,contractId:input.contractId,authorizationDocumentId:input.authorizationDocumentId,
+    requestType:variant==='L'?'switch':'move_in',requestedStartDate:input.requestedStartDate,
+    automationOrigin:'native_z03_literal_case',automationKey:'native_z03_literal_case:'+input.companyId,
+    businessBlockers:readiness.issues.map(issue=>({code:issue.code,message:issue.title})),
+  })
+  // The real service-role command is authorized by the installed writer guard.
+  // Its auth.getUser() has no user session; do not invent actor attribution.
+  expect(created).toMatchObject({company_id:input.companyId,customer_id:input.customerId,site_id:input.siteId,
+    metering_point_id:input.pointId,customer_contract_id:input.contractId,contract_id:input.contractId,
+    power_of_attorney_id:input.powerOfAttorneyId,authorization_document_id:input.authorizationDocumentId,
+    request_type:variant==='L'?'switch':'move_in',prodat_variant:variant,prodat_reason:variant==='L'?'Z22':'Z23',
+    requested_start_date:input.requestedStartDate,status:'queued',created_by:null})
+  expect(created.validation_snapshot.portalData).toMatchObject({reasonForTransaction:variant==='L'?'Z22':'Z23'})
+  const selectedPortal=input.invoiceeSnapshot.portalData as Record<string,unknown>
+  // Preserve the actual creator/trigger projection, including its own reason.
+  // Add only the prospective caller's POA reference and invoicee selection.
+  const validationSnapshot={...created.validation_snapshot,portalData:{
+    ...created.validation_snapshot.portalData as Record<string,unknown>,
+    powerOfAttorneyReference:selectedPortal.powerOfAttorneyReference,
+    dependentConditionFacts:selectedPortal.dependentConditionFacts,
+  }}
+  const updated=await updateSupplierSwitchValidationSnapshot(supabaseService,{requestId:created.id,
+    validationSnapshot})
+  expect(updated.validation_snapshot).toEqual(validationSnapshot)
+  expect(sql(`SELECT jsonb_build_object('requests',(SELECT count(*) FROM public.supplier_switch_requests WHERE company_id=${literal(input.companyId)}),
+    'createdEvents',(SELECT count(*) FROM public.supplier_switch_events WHERE switch_request_id=${literal(created.id)} AND company_id=${literal(input.companyId)} AND event_type='created' AND event_status='success' AND created_by IS NULL),
+    'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(input.companyId)}),
+    'originals',(SELECT count(*) FROM gridex_received_sources.switch_originals WHERE company_id=${literal(input.companyId)}),
+    'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(input.companyId)}));`))
+    .toEqual({requests:1,createdEvents:1,messages:0,originals:0,periods:0})
+  return created.id
+}
+async function stage(variant: Variant, date=days(today(),14), invoicee=false,publicCase=false) {
   configureSmtp()
-  const f=await seedNormalSwitchNativeFixture({ deferOriginal:true,requestedStartDate:date })
-  if (variant==='LK') sql(`UPDATE public.supplier_switch_requests SET request_type='move_in',prodat_variant='LK',prodat_reason='Z23' WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
+  const f=await seedNormalSwitchNativeFixture({ deferOriginal:true,requestedStartDate:date,
+    ...(publicCase?{createSwitchRequest:(input:NormalSwitchNativeRequestInput)=>createPublicCase(input,variant)}:{}),
+  })
+  if (variant==='LK'&&!publicCase) sql(`UPDATE public.supplier_switch_requests SET request_type='move_in',prodat_variant='LK',prodat_reason='Z23' WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
   if (invoicee) {
     // Typed caller selection is prospective protocol input, not an accepted
     // decision. Preserve the producer's UD source and qualify a distinct IV.
@@ -385,9 +449,9 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
   }
   const input=draft(f,raw),context=await sourceContext(f,raw),before=effects(f)
   if (field==='311') {
-    // The physical preflight owns this diagnostic. The matrix consumes policy
-    // metadata; the public kernel separately refuses the physical UNB in its
-    // pre-INSERT native legal-context owner. Keep original metadata unchanged.
+    // Keep the physical preflight and its exact owner diagnostic. The current
+    // selected policy also observes UNB7 before any original witness is issued;
+    // retained route metadata must not manufacture the missing physical value.
     const preflight=preflightEdielPayload({rawPayload:raw,mimeType:f.original.mime_type,messageStandard:'edifact',mode:'send',
       companyId:f.companyId,parsedPayload:input.parsedPayload,dateEventRow:f.original,
       customerMasterdataContext:context,customerMasterdataRow:masterdataRow(f,raw),validationPurpose:'outbound_original'})
@@ -396,8 +460,18 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
       code:'PROFILE_APPLICATION_REFERENCE_MISSING',severity:'error',segment:wire.segments.find(s=>s.tag==='UNB')!.raw,
     })]))
     expect(input.applicationReference).toBe(f.original.application_reference)
+    const validation=await validateRulebookMessageWithRegistry({family:'PRODAT',code:'Z03',applicationReference:input.applicationReference,
+      rawPayload:raw,mode:'send',roleCode:'DDQ',direction:'outbound',environment:'test',companyId:f.companyId,
+      parsedPayload:input.parsedPayload,customerMasterdataContext:context,customerMasterdataRow:masterdataRow(f,raw),validationPurpose:'outbound_original',
+      version:input.messageVersion,processGroup:input.processType})
+    expect(validation.blocking).toBe(true)
+    expect(validation.issues.filter(issue=>issue.severity==='error' || issue.blocking)).toEqual([
+      expect.objectContaining({code:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',fieldPath:'UNB/S005/0026',
+        description:'UNB/S005/0026 krävs för PRODAT Z03.',
+        prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'311',errorKind:'missing'})}),
+    ])
     await expect(createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'supplier_switch',baseInput:input,customerMasterdataContext:context}))
-      .rejects.toMatchObject({message:'ediel_outbound_owner_witness_required',cause:{code:'P0001',message:'ediel_inbound_legal_context_required'}})
+      .rejects.toThrow('Outbound PRODAT Z03 blockerades av canonical Ediel-policy: FIELD_MATRIX_REQUIRED_FIELD_MISSING - UNB/S005/0026 krävs för PRODAT Z03.')
     expect(effects(f),field+' no durable/provider effects').toEqual(before)
     return
   }
@@ -418,7 +492,7 @@ async function assertMissingField(f:Fixture,field:string,policy:NonNullable<Awai
 
 describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',variant=>{
   it('queues the signed own original and keeps physical ACKs distinct from the causal business confirmation',async()=>{
-    const staged=await stage(variant)
+    const staged=await stage(variant,days(today(),14),false,true)
     // Establish the caller facts before production; rendered absence is not
     // evidence that the invoicee condition is inactive or annual basis absent.
     const snapshot=sql<{ portalData: { dependentConditionFacts: { invoiceeObjects: ProdatInvoiceeObject[] }; [key:string]:unknown }; [key:string]:unknown }>(`SELECT to_jsonb(validation_snapshot) FROM public.supplier_switch_requests WHERE id=${literal(staged.switchId)} AND company_id=${literal(staged.companyId)};`)
@@ -454,6 +528,21 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     const queued=effects(f),replay=await prepareAndQueueEdielZ03({actorUserId:f.actorUserId,switchRequestId:f.switchId,communicationRouteId:f.routeId,environment:'test'})
     expect(replay.id).toBe(original.id); expect(effects(f)).toEqual(queued)
     await send(f); noActivation(f)
+    const accepted=await readAcceptedEdielTransportProjection({companyId:f.companyId,environment:'test',actorUserId:f.actorUserId,messageId:original.id})
+    expect(accepted).toMatchObject({status:'accepted_projection',companyId:f.companyId,environment:'test',messageId:original.id,
+      lane:'generic_journal',originalHash:createHash('sha256').update(original.raw_payload!,'utf8').digest('hex'),businessExpectationPlan:null,authorizesProviderEntry:false,deliveryProven:false})
+    const observation=Date.parse(accepted!.observedAt)
+    expect(Number.isFinite(observation)).toBe(true)
+    expect(Date.parse(f.original.message_sent_at!)).toBe(observation)
+    expect(Date.parse(f.original.ack_due_at!)).toBe(observation+30*60*1000)
+    expect(Date.parse(f.original.contrl_due_at!)).toBe(observation+30*60*1000)
+    const frozen=sql<{plan:Record<string,unknown>;policy:Record<string,unknown>}>(`SELECT jsonb_build_object('plan',binding->'technicalExpectationPlan',
+      'policy',jsonb_build_object('guideRevision',binding#>'{admissionDecision,guide,guideRevision}','referenceDate',binding#>'{admissionDecision,referenceDate}',
+        'profileKey',binding#>'{admissionDecision,profileKey}','sourceTrace',binding#>'{admissionDecision,sourceTrace}'))
+      FROM gridex_ediel_transport.attempts WHERE id=${literal(accepted!.attemptId)} AND company_id=${literal(f.companyId)} AND environment='test' AND message_id=${literal(original.id)} AND classification='accepted' AND observed_at=${literal(accepted!.observedAt)}::timestamptz;`)
+    expect(frozen.plan).toEqual({version:1,ruleId:'TM-CONTRL',offset:30,unit:'minutes',anchor:'actual_accepted_smtp_observed_at',timerKind:'internal_sender_watch',remoteReceiptKnown:false,policy:frozen.policy})
+    expect(frozen.policy).toMatchObject({guideRevision:expect.any(String),referenceDate:expect.any(String),profileKey:expect.any(String),sourceTrace:expect.any(Array)})
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_business_expectations WHERE company_id=${literal(f.companyId)} AND environment='test' AND source_message_id=${literal(original.id)};`)).toBe(0)
     await physicalAck(f,'CONTRL'); noActivation(f)
     await physicalAck(f,'APERAK'); noActivation(f)
     expect(await getEdielMessageById(original.id)).toMatchObject({contrl_status:'received',aperak_status:'received'})
@@ -474,9 +563,9 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       expect(await getEdielMessageById(reply.id)).toMatchObject({status:'sent',related_message_id:source.id})
       expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(reply.id)}`)).toBe(true)
     }
-    const confirmed=business(f),replyIds=replies(f,source.id).map(m=>m.id),providerCalls=smtp.mock.calls.length
+    const confirmed=effects(f),replyIds=replies(f,source.id).map(m=>m.id),providerCalls=smtp.mock.calls.length
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
-    expect(business(f)).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
+    expect(effects(f)).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
     expect(smtp.mock.calls.length).toBe(providerCalls); expect(originalHistory(f)).toEqual(history)
   })
 
