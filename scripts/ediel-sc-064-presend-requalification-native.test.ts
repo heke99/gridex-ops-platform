@@ -68,7 +68,7 @@ it('saved qualified intention cannot use its earlier policy after the actual act
   try {
     const result = await run(f, outboxId)
     expect(['blocked', 'failed']).toContain(result.status)
-    expect(result.error).toMatch(/rule|guide|activation|retired|source/i)
+    expect(result.error).toContain('CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')
     expect(state(outboxId)).toMatchObject({ status: result.status, last_error: result.error, locked_at: null, locked_by: null })
     expectPreserved(f, original); expectNoEntry(f)
   } finally {
