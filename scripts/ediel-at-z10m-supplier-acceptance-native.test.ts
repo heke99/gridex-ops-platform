@@ -9,6 +9,7 @@ import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater
 import {matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {resolveTenantForInboundEdiel} from '@/lib/inbound-mail/inboundTenantResolver'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
@@ -97,7 +98,33 @@ async function receive(f:Fixture,wire:string){
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',sourceId!).single()
   expect(error).toBeNull();expect(data).toMatchObject({company_id:f.companyId,direction:'inbound',raw_payload:wire,
     inbound_email_message_id:mail.inboundEmailMessageId,mailbox_message_id:mail.inboundEmailMessageId})
-  await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
+  try{
+    await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
+  }catch(error){
+    let diagnostic:unknown
+    try{
+      // Separate fresh canonical invocation after the failed normal processor.
+      // The real recorder may write canonical evidence; it never repairs the
+      // original failure, fabricates an owner, or continues to business apply.
+      const original=data as EdielMessageRow
+      const decision=await resolveCanonicalRuntimeDecisionWithRegistry(original)
+      const evidence=buildReceivedSourceValidationEvidence({original,validated:original,resolvedCompanyId:f.companyId,decision})
+      const recording=evidence?await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
+        p_company_id:evidence.companyId,p_environment:evidence.environment,p_source_message_id:evidence.sourceMessageId,
+        p_source_payload_hash:evidence.sourcePayloadHash,p_facts_text:evidence.factsText,
+        p_source_function_facts_text:evidence.prodatSourceFunctionValidation?JSON.stringify(evidence.prodatSourceFunctionValidation):null,
+        p_object_facts_text:evidence.prodatObjectValidation?JSON.stringify(evidence.prodatObjectValidation):null,
+        p_application_facts_text:evidence.prodatApplicationValidation?JSON.stringify(evidence.prodatApplicationValidation):null,
+        p_ignored_fields_text:evidence.prodatIgnoredFields?JSON.stringify(evidence.prodatIgnoredFields):null,
+        p_response_facts_text:evidence.prodatResponseValidation?JSON.stringify(evidence.prodatResponseValidation):null,
+      }).abortSignal(AbortSignal.timeout(2000)):null
+      diagnostic={syntax:decision.syntaxDecision,application:decision.applicationDecision,functional:decision.functionalDecision,
+        issues:decision.issues,objects:decision.prodatApplicationValidation,registers:decision.prodatRegisterValidation,
+        evidenceBuilt:evidence!==null,recording:recording?{error:recording.error?{code:recording.error.code,message:recording.error.message}:null,
+          dataVersion:(recording.data as {version?:unknown}|null)?.version}:null}
+    }catch(diagnosticError){diagnostic={diagnosticFailure:diagnosticError instanceof Error?diagnosticError.message:String(diagnosticError)}}
+    throw new Error(JSON.stringify({normalProcessFailure:error instanceof Error?error.message:String(error),diagnostic}),{cause:error})
+  }
   const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceId!).eq('company_id',f.companyId).single()
   expect(saved.error).toBeNull()
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(saved.data as EdielMessageRow)
