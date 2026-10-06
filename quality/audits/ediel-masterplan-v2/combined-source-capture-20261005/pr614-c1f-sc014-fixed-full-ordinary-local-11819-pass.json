@@ -1,0 +1,22 @@
+{
+  "kind": "One supported Node22 full ordinary local suite after faithful SC014 integration fixture correction",
+  "source_head": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+  "changed_tracked_path": "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+  "changed_file_sha256": "5a20cd0feec360fec1b1ad01d4881b8e738366ce0698886ac71e48e57a56a86d",
+  "Node": "22.23.3",
+  "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs node22 node_modules/vitest/vitest.mjs run --maxWorkers=3 --reporter=json --outputFile=OWN_REPORT",
+  "actual_exit_code": 0,
+  "test_files_passed": 882,
+  "test_files_failed": 0,
+  "tests_passed": 11819,
+  "tests_failed": 0,
+  "tests_skipped": 0,
+  "raw_json_bytes": 4257669,
+  "raw_json_sha256": "ff1d8e3122c8f8d0fdc33409a9eb25322ec68588a5e6d106f55144f81d10603f",
+  "public_gzip_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c1f-sc014-fixed-full-ordinary-local-report.json.gz",
+  "public_gzip_bytes": 458218,
+  "public_gzip_sha256": "12697c9733b63ec0185a3b1afc200805e0605b58d2d6042007944fc699ac6a9f",
+  "captured_schema_sha256": "bf4c68456bc08adddf03cc9f8f143c19b43a230d7139d584edebd6627374fd98",
+  "why_needed": "Actual current CI revealed a new collateral selected-SQL fixture after authentic raw-schema import; full ordinary execution now catches any other selected-fixture dependency in this unchanged source union before one successor publication.",
+  "scope": "Ordinary unit/component source + ONE test working-tree fix at c1f. Not new public-head CI/native/SQL clean-upgrade/browser/schema/CODE/main/wholeplan qualification. No skipped tests or native case rerun. A subsequent real DOC-only main carry retains source; actual resulting public head mandatory gates remain required."
+}

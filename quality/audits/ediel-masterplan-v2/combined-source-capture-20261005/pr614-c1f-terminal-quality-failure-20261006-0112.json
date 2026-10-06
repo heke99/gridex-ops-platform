@@ -1,0 +1,275 @@
+{
+  "schema": "ordinary-native-feedback-terminal-quality-failure-receipt/v1",
+  "observed_at_utc": "2026-10-06 01:12:23 UTC",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "lease_status": "ACTIVE_SAME_SOLE_OBSERVER",
+  "gate_status": "HOLD_CURRENT_HEAD_GENUINE_FAILURE",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+  "tree_sha": "12362cb677a33e43c09fc36f9e1a24e98f5811f5",
+  "parent_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "identity_guards": {
+    "exact_head_tree_parent": true,
+    "exact_pr_head_branch_base": true,
+    "exact_run_job_event_attempt": true,
+    "exact_check_job_identity": true,
+    "real_runner_genuine_failed_step": true,
+    "genuine_terminal_job_and_check": true
+  },
+  "quality_failed_step": {
+    "run_id": 37396741310,
+    "workflow_id": 298519857,
+    "workflow_path": ".github/workflows/ops-hardening.yml",
+    "event": "pull_request",
+    "run_attempt": 1,
+    "run_status": "in_progress",
+    "run_conclusion": null,
+    "job_id": 112054512648,
+    "job_name": "quality-release-gates",
+    "job_head_sha": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+    "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+    "job_status": "completed",
+    "job_conclusion": "failure",
+    "job_started_at": "2026-10-06T00:58:36Z",
+    "job_completed_at": "2026-10-06T01:11:37Z",
+    "runner_id": 1000043934,
+    "runner_name": "GitHub Actions 1000043934",
+    "check_run_id": 112054512648,
+    "check_head_sha": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+    "check_status": "completed",
+    "check_conclusion": "failure",
+    "check_started_at": "2026-10-06T00:58:36Z",
+    "check_completed_at": "2026-10-06T01:11:37Z",
+    "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37396741310/job/112054512648",
+    "annotation_count": 13,
+    "failed_steps": [
+      {
+        "number": 10,
+        "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-06T01:02:23Z",
+        "completed_at": "2026-10-06T01:08:00Z"
+      }
+    ],
+    "diagnostic_cause": "UNKNOWN_FOR_CURRENT_C1F; ROOT_EXCLUSIVELY_DIAGNOSES"
+  },
+  "previous_current_coverage_failure_receipt": {
+    "path": "/workspace/agent-review-checkpoints/pr614-c1f-first-genuine-coverage-failure-20261006-0107.json",
+    "sha256": "627a4234bee3da53408e47de12d478621f9926fdf5b8e76395379cb2f9c85da3",
+    "unchanged": true
+  },
+  "applicable_job_states": [
+    {
+      "id": 112054512397,
+      "name": "upgrade-migration-replay",
+      "run_id": 37396741310,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:29Z",
+      "completed_at": "2026-10-06T01:07:17Z",
+      "runner_id": 1000043933,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112054512648,
+      "name": "quality-release-gates",
+      "run_id": 37396741310,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T00:58:36Z",
+      "completed_at": "2026-10-06T01:11:37Z",
+      "runner_id": 1000043934,
+      "failed_steps": [
+        {
+          "number": 10,
+          "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T01:02:23Z",
+          "completed_at": "2026-10-06T01:08:00Z"
+        }
+      ],
+      "active_steps": []
+    },
+    {
+      "id": 112054512715,
+      "name": "clean-migration-replay",
+      "run_id": 37396741310,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T00:58:29Z",
+      "completed_at": null,
+      "runner_id": 1000043935,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types"
+        }
+      ]
+    },
+    {
+      "id": 112054512777,
+      "name": "verify",
+      "run_id": 37396741310,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:29Z",
+      "completed_at": "2026-10-06T01:00:21Z",
+      "runner_id": 1000043936,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112054561035,
+      "name": "coverage",
+      "run_id": 37396741183,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T00:58:40Z",
+      "completed_at": "2026-10-06T01:06:04Z",
+      "runner_id": 1000043937,
+      "failed_steps": [
+        {
+          "number": 5,
+          "name": "Run Vitest V8 coverage",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T00:59:05Z",
+          "completed_at": "2026-10-06T01:06:02Z"
+        }
+      ],
+      "active_steps": []
+    },
+    {
+      "id": 112054561270,
+      "name": "smoke",
+      "run_id": 37396741183,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:40Z",
+      "completed_at": "2026-10-06T01:00:27Z",
+      "runner_id": 1000043938,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112056645542,
+      "name": "pr-certificate",
+      "run_id": 37396741183,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:06:08Z",
+      "completed_at": null,
+      "runner_id": 1000043939,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 6,
+          "name": "Await the existing native producer at this exact checkout"
+        }
+      ]
+    },
+    {
+      "id": 112054415490,
+      "name": "browser-public",
+      "run_id": 37396741004,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:07Z",
+      "completed_at": "2026-10-06T00:59:20Z",
+      "runner_id": 1000043929,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112054415165,
+      "name": "targeted-regressions",
+      "run_id": 37396740940,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:07Z",
+      "completed_at": "2026-10-06T01:01:24Z",
+      "runner_id": 1000043927,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112054417220,
+      "name": "sc003-sc005-native",
+      "run_id": 37396741284,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:08Z",
+      "completed_at": "2026-10-06T01:01:42Z",
+      "runner_id": 1000043932,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112054415551,
+      "name": "sc071-native",
+      "run_id": 37396741062,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:43Z",
+      "completed_at": "2026-10-06T01:02:42Z",
+      "runner_id": 1000043928,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112054416245,
+      "name": "tenant-integrity-regression",
+      "run_id": 37396741333,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T00:58:08Z",
+      "completed_at": "2026-10-06T00:58:15Z",
+      "runner_id": 1000043930,
+      "failed_steps": [],
+      "active_steps": []
+    }
+  ],
+  "counts": {
+    "applicable": 12,
+    "success": 8,
+    "terminal_failure": 2,
+    "in_progress": 2,
+    "cancelled": 0
+  },
+  "historical675_seal_preserved": {
+    "file": "pr614-675-historical-superseded-observer-lease-seal-20261006-0056.json",
+    "sha256": "458782921b6e4acfcf2e90d669992572015e22c294a2517ff9fd3d41616b42de",
+    "prior_success_transferred": false,
+    "prior_diagnostic_cause_borrowed": false
+  },
+  "limits": [
+    "Quality job/check now genuinely terminal FAILURE, with step 10 failed. Clean and pr-certificate remain NOT_TERMINAL, not PASS.",
+    "No logs, artifacts, annotation causes, capture workflow, DOC613 or historical workflow rereads. Root owns exact current diagnosis.",
+    "Green job metadata alone does not establish CODE_VERIFIED, full source or native artifact evidence; original594 source owner retains that qualification.",
+    "Configured protection UNKNOWN403. No retry, cancellation, dispatch, source/ref mutation or merge."
+  ],
+  "previous_quality_step_failure_receipt": {
+    "path": "/workspace/agent-review-checkpoints/pr614-c1f-genuine-quality-step-failure-20261006-0110.json",
+    "sha256": "9b514385c691b00db873f8c84d68d89789f1d99f1e35cbcef7a0016ca6107229",
+    "unchanged": true
+  }
+}

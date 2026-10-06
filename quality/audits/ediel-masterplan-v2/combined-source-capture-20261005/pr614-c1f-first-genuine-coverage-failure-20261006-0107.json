@@ -1,0 +1,80 @@
+{
+  "schema": "gridex-pr-ci-metadata-first-failure/v2",
+  "observed_at_utc": "2026-10-06 01:07:24 UTC",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "lease_started_at_utc": "2026-10-06 00:58:53 UTC",
+  "lease_status": "ACTIVE",
+  "gate_status": "HOLD_GENUINE_CURRENT_C1F_COVERAGE_FAILURE",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+  "tree_sha": "12362cb677a33e43c09fc36f9e1a24e98f5811f5",
+  "parent_sha": "675fe9c5fc5cd9d015652673861c68500378687b",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "identity_guards": {
+    "exact_head_tree_parent": true,
+    "exact_current_run_job_event_base_attempt": true,
+    "exact_current_failed_check_job": true,
+    "genuine_failed_step": true,
+    "real_runner_execution_and_completed_timestamps": true
+  },
+  "first_current_head_failure": {
+    "run_id": 37396741183,
+    "workflow_id": 336204822,
+    "workflow_path": ".github/workflows/full-e2e.yml",
+    "event": "pull_request",
+    "run_attempt": 1,
+    "run_status_at_snapshot": "in_progress",
+    "run_conclusion_at_snapshot": null,
+    "job_id": 112054561035,
+    "job_name": "coverage",
+    "job_head_sha": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+    "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+    "job_status": "completed",
+    "job_conclusion": "failure",
+    "job_started_at": "2026-10-06T00:58:40Z",
+    "job_completed_at": "2026-10-06T01:06:04Z",
+    "runner_id": 1000043937,
+    "runner_name": "GitHub Actions 1000043937",
+    "check_run_id": 112054561035,
+    "check_head_sha": "c1f50ad9d02ff2636357a0cd41f42bd498d00897",
+    "check_status": "completed",
+    "check_conclusion": "failure",
+    "check_started_at": "2026-10-06T00:58:40Z",
+    "check_completed_at": "2026-10-06T01:06:04Z",
+    "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37396741183/job/112054561035",
+    "annotation_count": 3,
+    "failed_steps": [
+      {
+        "number": 5,
+        "name": "Run Vitest V8 coverage",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-06T00:59:05Z",
+        "completed_at": "2026-10-06T01:06:02Z"
+      }
+    ],
+    "diagnostic_cause": "UNKNOWN_FOR_CURRENT_C1F_NO_LOG_ARTIFACT_OR_ANNOTATION_CAUSE_READ"
+  },
+  "counts_at_latest_poll": {
+    "applicable": 12,
+    "genuine_success": 7,
+    "terminal_failure": 1,
+    "in_progress": 4,
+    "pending_not_created": 0
+  },
+  "historical675_seal_preserved": {
+    "file": "pr614-675-historical-superseded-observer-lease-seal-20261006-0056.json",
+    "sha256": "458782921b6e4acfcf2e90d669992572015e22c294a2517ff9fd3d41616b42de",
+    "prior_success_transferred": false,
+    "prior_diagnostic_cause_borrowed": false
+  },
+  "limits": [
+    "This exact c1f coverage job/check has genuinely failed. The containing fullE2E workflow and other jobs may remain in progress and are not automatically relabeled terminal.",
+    "The current targeted/native feedback successes do not negate coverage RED or certify CODE_VERIFIED/full source/native evidence.",
+    "Root exclusively owns precise current diagnostic/native artifact reads; observer excludes capture, DOC613, logs, artifacts and annotation/cause detail.",
+    "Configured protection remains403-unverified, not asserted from twelve observed applicable contexts.",
+    "No source review/mutation, local/native execution, workflow retry/cancel/dispatch or merge."
+  ]
+}
