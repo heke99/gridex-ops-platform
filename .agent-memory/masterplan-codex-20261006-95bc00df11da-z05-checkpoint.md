@@ -427,3 +427,26 @@ no GitHub-artifact/currentCI/external authority borrowed. No source mutation
 while canonical temporary staging/test runs. If image/daemon access fails,
 preserve exact infrastructure failure and continue official current proof.
 No external or hosted project; no foreign stack/lock/role edit.
+
+## Local native infrastructure failure / exact source restoration
+
+Actual local driver EXIT1 BEFORE replay/database/native, both driver and replay
+logs empty. CLI npm Bun wrapper also tried read-only/home/agent/.supabase;
+shipped dedicated supabase-go counterpart actual --version2.101.0 succeeds,
+standard SUPABASE_CLI_BINARY_OVERRIDE used without modifying HOME.
+
+Confirmed start blocker: missing psql, command-v return1. Existing canonical
+script installs EXITcleanup before checking prerequisites or copying migrations
+into HOLD. On this preflight failure cleanup removes all local SQL and restores
+an empty HOLD/seed backup. This was a real cleanup sequencing defect, not native
+contract result. Initial pre-replay receipt51025 authenticates ALL9255 checkout
+bytes==GitHEAD BEFORE attempt. Verified currentHEAD51025 and changed-pathset
+ONLY1080 migration/seed files, restored those exact paths from51025. Actual
+tracked worktree now CLEAN; branch/remote/source bytes unchanged, no native
+test invocation/database/accepted effect or localPASS claimed.
+
+Next95bc preserves failure/receipt, reports shared replay owner next action
+(provision prerequisites before destructive cleanup; cleanup conditional on
+actual staged backup). No unreserved common script edit. Continue official
+39/currentCI qualification and custody621 onlyactualmain. Local optional native
+remains infrastructureBLOCKED on psql; whole/coverage stillunapproved.
