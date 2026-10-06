@@ -1,0 +1,840 @@
+{
+  "kind": "Finite fresh current-source guard for ONE user-authorized existing DOC PR613 normal merge, reusing original intake/source review and completed CI",
+  "recorded_at_utc": "2026-10-06T01:26:29.804717+00:00",
+  "base": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "head": "edb0bcb39f86fc795c3518083831c84b3ff76c77",
+  "source_tree": "5735c9606b33d7c0fb9f97f9088ec5bbe71b138d",
+  "expected_merge_tree": "5735c9606b33d7c0fb9f97f9088ec5bbe71b138d",
+  "expected_ordered_merge_parents": [
+    "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+    "edb0bcb39f86fc795c3518083831c84b3ff76c77"
+  ],
+  "original_released_intake_manifest_sha256": "b6e213c4de6860d359deb313f4c33e0d34b36f58162de0b66ea498f588a2f2ae",
+  "original_source_only_review_reference": "cf2ab204 original retained approval under 530#issuecomment-6003553685; no native/source reexecution",
+  "original_all9_observer_seal_sha256": "8a755c1101c03cc2e1ebde5c54b5ae2d6749fd72341e5f3dd729e447de4d6ffd",
+  "packet_postimages": {
+    ".agent-memory/handover.md": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob c4044b792b3eac866e5f439d28e825fb8a118b9d"
+    },
+    ".agent-memory/masterplan-root503-publication-receipt-20261005.md": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 99c739a25e849e4e823b3ceb70c4d27b6689b21c"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-1a1a2e45-to-8c18fe64.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob c52992ba68d317e1ef87aa39997b95a91bdac569"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-2964415a-to-b83b2844.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 55b0cf60ce6f5f9e7ee0fe0183293c80d5f2b633"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-37b06fd3-to-8451f013.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob af5cb74ae481995c68d72749da0aa885dd7883ba"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-38aa7345-to-5cde8094.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob d1c45f616b3528727bb81442b143350349e41999"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-4b179ee4-to-97b3f81c.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob c2fc541870ac279098ebfe47c5cb9544ac35cf81"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-5cde8094-to-2964415a.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 6e09a93e624aafa2525e374d238ee14e1411901e"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-8451f013-to-99676683.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob f304dab312db64f6e71415ec17f2dddf4bcea383"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-8c18fe64-to-fc560ddf.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 15eb10cae32e955a137dbeede760d43f28d39375"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-9538c481-to-1a1a2e45.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob feabbe350682eb6c3b1d32b68ab39e5bdf77aad3"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-97b3f81c-to-38aa7345.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 7bf5119f1e8a88c8237a6496a1caa5c83329f05f"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-99676683-to-8a072448.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 0a528e530ff5b5b3caaecff00d6b228a784e9be0"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-b83b2844-to-9538c481.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 42cf0e12e646de559e0287927315e109e99f5d4b"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-f88e88fb-to-4b179ee4.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob b4ada1d678fe6edf2c97b702549628add885891a"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-fc560ddf-to-53b3bfd0.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 1c6f87068cbfd88d6dd035ad55413e81b0e43678"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/actual-main-deliveries-through-37b06fd3.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 3634132f9e27e41e401d5492eb915cad7ef7f22a"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/combined4aa-staff578-a249-prospective-conflicts-only.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob c506c6b23b8257bd4acd65695b363e2cc3b6232d"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/imp05-d020-public-corrective-source-only-followup-20261005.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob eaa20fc78aafdbd8eeb035218a0bbc3fe1b15701"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/next7d-actual296-public-preparation-source-only-guard.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 265d3a1fbed7d6041913a02d74656d70ba38e032"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr612-6d-all9-success-final-observer-lease-seal-20261005-2318.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob a880f9220dfd3a5e7b20d0b8f8bb4c976021b56e"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr612-6d-freshmain1a-two-documentation-delta-source-only-ready.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 89ebeca7bdf16355270bb33f1047128fc5075396"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr612-6d-freshmain9538-prospective-source-only-ready.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 05c770687861e59d5eb1f3f31e8dc34a4f2287a1"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr612-final-fresh-premerge-api-guard-20261005.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 23a35577873c0c3ffa3183e6aebbd4b1308dac0f"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/pr612-public773-terminal-after-fixed-source-cutover.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 8dcdfc7595f5f29acb55af61a498ddcc753793d4"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913-current-ci-progress-1736.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 3ea7b2d014fcbb85a658963888d3a9196812f364"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913-publication-receipt.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 6b310d4169eeb624a92c380dcbd960ae74b248f0"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913-publication-receipt.zip": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob dd4cb79264c759565050c91e023120f3f4db681e"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913845-final-source-composed-control.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob eee3889d0f0207ca9cdd67c0710fca32c5ccaf0d"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913845-final-source-composed-control.zip": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob e7266e30cde86c233f046dd1286815320ea2447f"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913996-narrow-final-main-guard.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob c9a6c066b3257b37e4f73522392651a10855cc77"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-913996-narrow-final-main-guard.zip": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob f484ded6981a10bd5c1b636ac3c76646477be142"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-actual-delivery-f88e88fb.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob a1ce9e5008542ab52367835128a92d606b9c7fed"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-final-qualified-actual-delivery.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 57412fc6d4155a9e895e02711df0671ec07591a4"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-final-qualified-actual-delivery.zip": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 43cd366ff2cff72852148ae588fc87eea50aeb3f"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-pr570-actual-source-delivery.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 907978eb6e6012f9dc2a91943c21fd886b39efda"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root503-pr570-selected-source-inclusion.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 13deb7144d80810e6b6a14bfbab504cc9b7c4edc"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root913-pr532-pr534-pr599-capture-intake-supplement.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 41884d8d437e52a6722544d8a319eebe49806bac"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/root913-pr533-pr535-forward-capture-intake.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 8916d53618a68b17440da773167620a15d4b4538"
+    },
+    "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/staff578-cff-root-f88-main3251-source-capture-intake.json": {
+      "packet": "coordinator",
+      "released_head": "455aa52eef6bbfa980830121cc2073c78dbd3fd9",
+      "tuple": "100644 blob 432b230a559e8acca81646571ef08276a8daa193"
+    },
+    ".agent-memory/masterplan-codex-main-merge-window-20261005.md": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob afd222db4532f5f679773f023cf95952ea7a19f1"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/README.md": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 5dd6b7d0717763f2a8e0ebbf68a3a43b73600bb7"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/continuation-proof.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob ab30615604505fab923ed2207caaaa194c92fb17"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/b6fcf2e4/README.md": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 4b76a784fe6f68721bd5e4eec0014c6d61df7864"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/b6fcf2e4/continuation-proof.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 159fcc4ec6fab9671526ffa4f5b7b2cb690d8fd0"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/b6fcf2e4/sha256-index.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 0ff5fddaab85ed9532b763460b52e6ba864b3b65"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/prepared-564-main296/README.md": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob f0234e22df221dd1fc380c2cfa6e6399715c5cc1"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/prepared-564-main296/continuation-proof.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 027151d8305b2088f72cb8ed79c4f49e8418738a"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/history/prepared-564-main296/sha256-index.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 93fa63cea97860109cb842ab1d0681f7ac8264c3"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge211-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 0db678419e283759b5412cfaf71e01af2143fece"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge211-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 9c6bcf6d147a79804e9990181ed878545034f21d"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge515-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 10deae28549024c6150ba23e162dc7669e7fde4c"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge515-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 61c7c34acedcf4bc9b59bf0229c74bbabbccd852"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge517-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 08cfa37fd31af2e4fddcc7c4cc3ae33d2f19c759"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge517-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob c1adc4fc8db3f22dce0955f318e2d14bac5470eb"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge520-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 554720276d289a288ef93120e1771fc49ae4a210"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge520-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob bd450928a9685649fa68562be3ef460cf9127380"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge531-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 6333d27b0dad5f4bad8f5010e0a0bd4e59324089"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge531-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 497ebf8957362ea1fb175b1f8618b4f6c4858eb5"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge541-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 0127791af7dd9ab043b39f8df2560a486f79d906"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge541-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob e28e92f1c338a3e81bdc8a197e1534196b1c2f0c"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge547-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 37549b52f5208331e995913f0fa0263e4a950904"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge547-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 07573ed2e2004a816a3669422e782e665d977244"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge564-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 21a604d2568b29b926657e3b55e49302a4099225"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge564-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 919ea32506463200e39fbf4e516539e0a502e505"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge594-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob d553210978bf5f859c6bdaf530a4f4400d7de3ad"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge594-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 8644adf74645572a74020cc79d09389a7e64ed8e"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge603-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 5f3fb79f61acfedcc95e3a0dd36b429b190b06fe"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge603-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 733070952672a31045c8241253635ca32fe2f0e3"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge607-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 707778db1bf37183b309f7a174fe468ce574272d"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge607-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 3460bb714b03cb7cd05d02dbc8a9b8e02e8b2a78"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge609-final-delivery-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 96ecc953b22cb5a34eadd0a931817455f345620b"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge609-final-gate-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob b8f287a2454e164a2b927fb9040a988007f7050c"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/sha256-index.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 9326577599c0734554c35f9b6f71cca2d981d766"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-github-actions-service-status-20261005.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob be9d9a735be3d4f91febefcee5410e37ab3ad58b"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-pr520-main296-publication-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 0a5b2566103d442247874f7f369118f476052945"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-retired-ci-terminal-postcheck-20261005T203616Z.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 6fe2ea634d2f3b7f37ef6a2c0bdfdadbe6dd7528"
+    },
+    "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/status-custody/gridex-root-retired-ci-cancellation-receipt.json": {
+      "packet": "continuation",
+      "released_head": "d398acd95556f48ef37edfde6dc64e2f1cf4ac8f",
+      "tuple": "100644 blob 51635a179aaa30015877c00cc5067fa2af56791a"
+    },
+    ".agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md": {
+      "packet": "611",
+      "released_head": "25227f0c6e07cba9054ab2c09f06a6d5fe6c6e6b",
+      "tuple": "100644 blob e154bc7a90d36cb760fd10f1bd3b45d0c1a0e66c"
+    },
+    "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr611-20261005/README.md": {
+      "packet": "611",
+      "released_head": "25227f0c6e07cba9054ab2c09f06a6d5fe6c6e6b",
+      "tuple": "100644 blob 564891301546b59e6ff5cbc14717c7b7ba0606b8"
+    },
+    "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr611-20261005/actual-delivery.json": {
+      "packet": "611",
+      "released_head": "25227f0c6e07cba9054ab2c09f06a6d5fe6c6e6b",
+      "tuple": "100644 blob b0de0bab48f44fb0d251f62ee1eaed24fdaf2e35"
+    },
+    ".agent-memory/masterplan-sc010-sc071-checkpoint.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 13556c48acf4ce43b2612d95f9455a9e5b4e66b8"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/current-main-component-handoff.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 7176645a647bcc538dfeb6e0990b1b6da172ee4f"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/current-main-dependency-impact.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 902a6d563f2154a9fdd4fa72f4000f01da073b1b"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-3ded-smoke-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 8cc9e2382c0843ead23c8bf29924089bcc2648a0"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-3ded-targeted-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 8b0d794eac60b0c099726c7d5a734efe127770ff"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-clean-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob a2b0b4505b9625b47b10548611d369d028ae46cf"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-smoke-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 3c2fa2eaea5de6a74e6cc225d3cf20fe0f866ec4"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-targeted-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 6a3511d4a699f0767146efc14e9e33a5a88ffb54"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-upgrade-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 77e63e17eaf11631588c90c1292a9b8e653a9ec8"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-verify-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 49ed368482463561386a1e80ef9688d435df7d30"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-role-timeouts.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob d4cada96a624386d1e2c6d214e152c84a3057872"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-rpc-readiness.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 776af6e37f9dad0efc48d0b0ca706b536ada6c62"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-success-junit.xml": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 3f200528321192a3e33af4513a29884f875e6b41"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-success-receipt.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob dc4a5f4ae73b17d88dccb018d66a943ca7599c20"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-success.log.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 6f52fd394c85023bafe3547fbfb70c992246d04a"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-integration-plan.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 447e231cf6976d1271904d9685a7f2ab69900d27"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-integration-request.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 510c6a838da3d166fdfc84c22d408b975e9b6a52"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-native-rerun-qualification.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 31a04b91177ed94775f99bd5b78643be9791712a"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-publication-status.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 50063bbc4f0cb3ce8a0cd094f8205f1efd0b4b30"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/implementation-review.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 883f44fdc9543a9564be7f960fb8002b5787f5f0"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/native-feedback-inputs.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 14f3c82fdf5be8cea49337a21044225fc91080a8"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-interfaces/sc021-observation-owner-handoff.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 7ce797e2fde0ad1fc3c37210c800e5c9b1537e87"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-20261005.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 285a42e6a044fe46af132dc4ba910971b5582df7"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board491-comments-20261005.json.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 066946ab0048a64864917d8424e172c11d7cb045"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board491-comments-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 2a3a40519952fbf3def600e6e9bc2f5b94841f3a"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board491-issue-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob dbd3f7aef860aa4dc20e80b725d6eb28e63c7037"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-comments-20261005.json.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob bb4951dd9faeb1901a546dd528475a034dcac5fe"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-comments-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 8da86178c5c787f1ece5324b3f0038005b5f84e6"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-comments-refresh-20261005.json.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 38c161c3627507961c6994239b0c81e73632272b"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-issue-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 5e85783184300468dbc9efb9d1ea39463208e75e"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-filelists-final-20261005.json.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 7b34466ee05db17019444a9c4dd9e0e299298cd9"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-inventory-receipt-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 900ff2e80da9d5a01690b12ebf5a51df91d70849"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-literals-fff486f8.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob bc2477e69bf08754903bfc746bb250ae591cbca8"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-main-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 33c4177c6e13ee8ef15505505f9567a439cc8188"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-main-coverage-498ebd1c.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 2f6711799730a4144eff951aa82a2bf4dc57ddc9"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-main-coverage-fff486f8.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-pr-files-20261005.json.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 0f7dcc1b0182c47a3927849ac4285069a0e8e0e4"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-pr-inventory-final-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob a06303ca25383917767cc0b72d8129a11ebed9b5"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 295d044452d0dd3d48390f3a841b43a1b5f491bc"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-final-after-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob eb617568256ca557077fcca5954aaddab1364773"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-final-before-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 06ee9857ab8ce6f8c5f69b6b3af02c0afc18c696"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-refresh-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 06ee9857ab8ce6f8c5f69b6b3af02c0afc18c696"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-board530-comments-20261005.json.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob bebcf49f591071a4ae71064d5e11967614ab8a2c"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-main-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob dab1ced5f8d22a226f82fde13e8807ffd62b69c5"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-open-prs-after-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 45c5f7374bf51f9c63606fce7b613c17c247af9d"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-open-prs-before-20261005.raw.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob cb635016ca9f91813aecf8ddfa3a72b199c1a674"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-qualification-20261005.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob d4f4473bccbd8722cb349ac8a2096a0e7f14a0a1"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-source-pins-fff486f8.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 1edc5451af55c293e9d83dc2ddbd02625eb51f96"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-authentic-import-qualification.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 2fd62c60b820ded112c4e0eaa2ede48760aa3903"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-c351-carry-publication-receipt.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob da787723732d9cfe34ae4341fadb45b68d56a7d5"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-artifact-custody.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 6c021d903049f3dd0692f5e94bacc0988f5d230b"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-authentic-receipt.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 7799b3cd282190ba1f6370703bf5c2c51eeae0aa"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-independent-review.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 3b8d0f31d970754a1722c2f39a7f2034ac282ff7"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-checkpoint-carry-qualification.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 87ed94be85fe7b56fe1c9e325f6e329332fd4c83"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-current-native-qualification.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob abd43e74acd782d138104e7b072d207a9d5620f1"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-documentation-validation.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob afd37fdaa668701133687d7f1c28b12ee4a435d7"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-import-carry-independent-review.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob f17b27fb5fd03d22a6433bb36732ca56878d4cbb"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native-native-junit.xml": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 9e0932ae708c5c85803c399ab085f664c8f0b830"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native-receipt.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob ba54c214b029d240725ef4174687bd78ee3a88a3"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native-rpc-readiness.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob ac6f003aaad414ffb9265c5241b17a47e6d502dd"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native.log.gz": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 16a18ee73975300c3d06648c8def49830e9bf5ac"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-published-producer-import-review.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob e53a93eaaa18dad423642f368872d0695fa40ba9"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-quality-export-and-failure-excerpt.log": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob c268c4d6b5eab798a1c67f47721ba9302db05b5a"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-final-row-review-input.json": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob fc1109b05551c9e5bedd4cae8635f3c0a117aede"
+    },
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-whole-card-integration-review-input.md": {
+      "packet": "SC010",
+      "released_head": "2eefa6f0a8adbb35fb82a82f5dc416a54290d2d9",
+      "tuple": "100644 blob 4bd977acea23abb4b1dad7e2fb63956b53bbb718"
+    },
+    ".agent-memory/masterplan-pr602-postmerge-documentation-20261005.md": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob efb1277a6a6fedf5f232d028fc118933dfc6047b"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/actual-api-projection.json": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob 616355a6c9cbb626d16b0ac9601fc88cd7190bc1"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/actual-merge-proof.json": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob fb90a861206b2d34c525a8170cb5a6006ed503f7"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/exact-head-ci-projection.json": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob 6f62ece413ed0bb6b4a3fdc92fe716dc0c982813"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/main-union-1aeccc7c.json": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob 1ab5267c05748d54bd0e83f1d2b9d8cc0deb7b8d"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/main-union-8451.json": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob 21fc25305495806b8cce1318c6b0adb582029c82"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/manifest.json": {
+      "packet": "602",
+      "released_head": "a1aa415a344d53bf9383196d303fc49ca1a63b8e",
+      "tuple": "100644 blob 1f31cdedeac1efe929893ce686b21bdc6bee8044"
+    },
+    ".agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob ae13db3105281f19de705ba047ed9fa39b0aa6e5"
+    },
+    "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/SHA256SUMS": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob 49fb42ea72479ce479001c798811b1f27a8a2741"
+    },
+    "quality/audits/ediel-masterplan-v2/advisor-next-intake-source-guard-20261005/README.md": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob 1fbd0d1c908c1eff7c874b51f51f68c8ecedf34b"
+    },
+    "quality/audits/ediel-masterplan-v2/advisor-next-intake-source-guard-20261005/SHA256SUMS": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob f01c375ebea9ab468bd7fca5ed638d015f524399"
+    },
+    "quality/audits/ediel-masterplan-v2/advisor-next-intake-source-guard-20261005/actual-main-b83-input-reuse.json": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob 8f39d8cd1a13b74f256c167bb1be1436dde055fa"
+    },
+    "quality/audits/ediel-masterplan-v2/advisor-next-intake-source-guard-20261005/independent-review.json": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob 7829a3a1c630b7158b037586193e3ad46060f93f"
+    },
+    "quality/audits/ediel-masterplan-v2/advisor-next-intake-source-guard-20261005/prospective-source-guard-v2.json": {
+      "packet": "advisor",
+      "released_head": "9bb12cb83e103c96d4a8f0ca994cbeb74f9b1cc6",
+      "tuple": "100644 blob f8f9d374fc1d461d37ca508f7f142e24f115b12d"
+    }
+  },
+  "two_original_operator_metadata_paths": [
+    ".agent-memory/final-existing-work-integration-checkpoint-20261006.md",
+    "quality/audits/ediel-masterplan-v2/final-existing-work-integration-20261006/documentation-intake.json"
+  ],
+  "delta_count": 162,
+  "foreign_main_mode_type_blob_exact_count": 8697,
+  "whole_coverage_tuple": "100644 blob 88b7be952b109b556fd1da6e8d3e26fa11394ef6",
+  "preserved_unique_prior_ACTUAL_markers": 43,
+  "guards": {
+    "exact160_released_postimages_once": true,
+    "only_originaltwo_metadata_extras": true,
+    "all_foreign_main_tuples_exact": true,
+    "whole_coverage_source_SQL_generated_workflows_exact": true,
+    "all43_priorACTUALmarkers_unique_preserved": true,
+    "sole_actualmain_parent": true,
+    "expected_entire_merge_tree_exact": true
+  },
+  "limits": [
+    "Reuses original author source/custody approval and completed all9 executions.",
+    "One finite metadata/main/source merge guard, not a second CI/native/artifact observer.",
+    "No new Masterplan rule, documentation intake, source variant, test/native/capture/rerun/force/admin/waiver.",
+    "Finalbaseline retains original DOC operator; root common serial coordinator records one actual delivery only after real merge postcheck."
+  ]
+}
