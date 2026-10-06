@@ -1,3 +1,4 @@
+import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
 import { admitUnattributedTechnicalSource, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
@@ -70,13 +71,15 @@ function isNegativeContrL(parsed: ParsedEdifactEnvelope): boolean {
 }
 
 function isNegativeAperak(parsed: ParsedEdifactEnvelope): boolean {
-  if (parsed.messageFamily !== 'APERAK') return false
-  if (parsed.messageCode === '313') return true
-  return parsed.segments.some((segment) => segment.startsWith('ERC+') || segment.includes('+AAO+'))
+  return parsed.messageFamily === 'APERAK' && classifyCanonicalInboundAck(parsed).outcome === 'negative'
 }
 
 function isPositiveAperak(parsed: ParsedEdifactEnvelope): boolean {
-  return parsed.messageFamily === 'APERAK' && !isNegativeAperak(parsed)
+  return parsed.messageFamily === 'APERAK' && classifyCanonicalInboundAck(parsed).outcome === 'positive'
+}
+
+function isInvalidAperak(parsed: ParsedEdifactEnvelope): boolean {
+  return parsed.messageFamily === 'APERAK' && classifyCanonicalInboundAck(parsed).outcome === 'invalid'
 }
 
 function productionDecisionForParsed(parsed: ParsedEdifactEnvelope) {
@@ -97,7 +100,7 @@ function isRejectedZ14(parsed: ParsedEdifactEnvelope): boolean {
 
 function eventMessageForParsed(parsed: ParsedEdifactEnvelope): string {
   if (parsed.messageFamily === 'CONTRL') return isNegativeContrL(parsed) ? 'Negativ CONTRL mottagen.' : 'Positiv CONTRL mottagen.'
-  if (parsed.messageFamily === 'APERAK') return isNegativeAperak(parsed) ? 'Negativ APERAK mottagen.' : 'Positiv APERAK mottagen.'
+  if (parsed.messageFamily === 'APERAK') return isInvalidAperak(parsed) ? 'Ogiltig APERAK mottagen.' : isNegativeAperak(parsed) ? 'Negativ APERAK mottagen.' : 'Positiv APERAK mottagen.'
   if (parsed.messageFamily === 'UTILTS_ERR') return 'UTILTS_ERR mottagen.'
   if (parsed.messageFamily === 'PRODAT') return `PRODAT ${parsed.messageCode ?? ''} mottagen.`.trim()
   if (parsed.messageFamily === 'UTILTS') return `UTILTS ${parsed.messageCode ?? ''} mottagen.`.trim()
@@ -105,7 +108,7 @@ function eventMessageForParsed(parsed: ParsedEdifactEnvelope): string {
 }
 
 function statusForInboundEdielMessage(parsed: ParsedEdifactEnvelope): string {
-  if (isNegativeContrL(parsed) || isNegativeAperak(parsed) || parsed.messageFamily === 'UTILTS_ERR') return 'failed'
+  if (isNegativeContrL(parsed) || isNegativeAperak(parsed) || isInvalidAperak(parsed) || parsed.messageFamily === 'UTILTS_ERR') return 'failed'
   return 'received'
 }
 
@@ -122,13 +125,15 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   }
 
   if (parsed.messageFamily === 'APERAK') {
+    const classification = classifyCanonicalInboundAck(parsed)
+    const positive = classification.outcome === 'positive'
     return {
-      aperak_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
-      functional_check_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
-      ack_outcome: isNegativeAperak(parsed) ? 'negative' : 'positive',
-      failed_at: isNegativeAperak(parsed) ? nowIso() : null,
-      acknowledged_at: isNegativeAperak(parsed) ? null : nowIso(),
-      failure_reason: isNegativeAperak(parsed) ? 'Negativ APERAK mottagen via inbound mail engine.' : null,
+      aperak_status: positive ? 'accepted' : 'rejected',
+      functional_check_status: positive ? 'accepted' : 'rejected',
+      ack_outcome: classification.outcome === 'invalid' ? null : classification.outcome,
+      failed_at: positive ? null : nowIso(),
+      acknowledged_at: positive ? nowIso() : null,
+      failure_reason: classification.outcome === 'invalid' ? classification.reason : positive ? null : 'Negativ APERAK mottagen via inbound mail engine.',
     }
   }
 
@@ -479,7 +484,7 @@ export async function createInboundEdielMessage(input: {
       company_id: input.companyId,
       ediel_message_id: edielMessageId,
       event_type: 'inbound_mail_processed',
-      event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
+      event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
       message: eventMessageForParsed(input.parsed),
       payload,
     })
@@ -616,7 +621,7 @@ async function updateOutboundEdielAckState(input: {
     company_id: input.companyId,
     ediel_message_id: id,
     event_type: 'ack_received_via_inbound_mail',
-    event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
+    event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
     message: eventMessageForParsed(input.parsed),
     payload: input.responsePayload,
   })))
@@ -950,6 +955,7 @@ export async function applySafeInboundStatusUpdate(input: {
   tenantResolution?: InboundTenantResolution | null
 }): Promise<void> {
   if (input.outboundMatch.status !== 'matched' || !input.outboundMatch.entityId) return
+  if (isInvalidAperak(input.parsed)) throw new Error(`ediel_inbound_aperak_invalid:${classifyCanonicalInboundAck(input.parsed).reason}`)
 
   const inboundEdielMessageId = await createInboundEdielMessage({
     companyId: input.companyId,
