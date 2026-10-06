@@ -347,3 +347,25 @@ closure review, all3types/affected+fullunit, successor frozen peer review and
 publication. No coverage/second pair/foreign code or shared role edits.
 Shared role-memory now foreign307/896 reserved by631 owner for exact historical
 JSON preservation+actual633/634 handover. Respect owner; original634 rolesfree.
+
+## Frozen successor source authoring approved / publication next
+
+Exact51025be860549c6f01b2c99022a93f006b8de91d (product/native2bef
+byte-identical) closes both peer trigger findings with ONLY scripts/** + exact
+synthetic e2e helper filter. Both mandatory peers SOURCE_AUTHORING_APPROVE
+exact51025, including ee6 production. LK independently actual42PASS/exit0.
+Node22 app/scripts/tests TSC PASS. YAML/Bash/twoPython PASS; actual workflow
+receipt locally ran at2bef: ALL9255 tracked checkout bytes equal immutableHEAD,
+all32 historical required inputs retained; full tracked scope includes all
+imports and replay/config files. Actual event diagnostic reads message.
+Fullunit runs unchanged production/native/unit bytes at2bef; pending, no local
+full green/native39 or whole claim. Supplemental artifact qualifier retains
+historical38/32 defaults but supports explicit39 and complete trackedHEAD set
+equality at successors. Authentic94 RED remains32PASS6FAIL.
+
+Next95bc publish frozen51025 reviewable draft636 for genuine39 and mandatory
+CI, qualify current-head results; adopt621 repair only actual-main then rerun
+affected final proof. Coverage unchanged284/352 on actualed3; ownpair10refs
+maintained, no second pair/shared role. Failed lock reconfirm query used wrong
+heads prefix and got404; corrected exact tags protocol before publication,
+no ownership absence/takeover inferred.
