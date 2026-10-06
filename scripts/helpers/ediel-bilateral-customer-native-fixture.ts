@@ -45,7 +45,18 @@ export function customerChangeMinute(requestedStartDate:string){
 export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string;physicalBirth?:boolean;sourceWire?:string}={}){
  const {physicalBirth,sourceWire,...wireOptions}=options
  let sourceMessageId:string=randomUUID()
- const wire=sourceWire??bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...wireOptions})
+ let wire=sourceWire??bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...wireOptions})
+ if(physicalBirth&&sourceWire===undefined){
+  // A new physical interchange must not share the baseline Z04's UNB5=I.
+  // Construct the original before custody; explicit caller originals stay exact.
+  const original=EdifactEnvelopeCodec.decode(wire),unh=original.segments.findIndex(s=>s.tag==='UNH'),unt=original.segments.findIndex(s=>s.tag==='UNT')
+  expect(original.messageCount).toBe(1);expect(unh).toBeGreaterThan(-1);expect(unt).toBeGreaterThan(unh)
+  const message=original.segments[unh]
+  wire=EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,senderQualifier:original.senderQualifier,receiverQualifier:original.receiverQualifier,
+   senderSubAddress:original.senderSubAddress,receiverSubAddress:original.receiverSubAddress,applicationReference:original.applicationReference,
+   interchangeReference:randomUUID().replaceAll('-','').slice(0,14).toUpperCase(),acknowledgementRequest:original.acknowledgementRequest==='1',environment:original.environment,
+   una:original.una,messages:[{messageReference:message.elements[1],messageTypeToken:message.elements[2],businessSegments:original.segments.slice(unh+1,unt).map(s=>s.raw)}]})
+ }
  if(physicalBirth){
   // Prospective custody: the actual parser/intake owns the source birth. No
   // graph matches, frozen profile or mailbox selector is patched afterward.

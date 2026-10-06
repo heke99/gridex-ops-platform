@@ -25,6 +25,7 @@ import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
+import {readCustomerLifeEventExportProjection} from '@/lib/ediel/production/customerLifeEventExport'
 
 type Fixture=Awaited<ReturnType<typeof createBilateralCustomerSourceFixture>>
 type Snapshot={customer:Record<string,unknown>;supply:unknown;point:unknown;site:unknown}
@@ -132,6 +133,16 @@ it.each(['bankruptcy','customer_change'] as const)('native %s classification com
   const projected=version.resulting.metadata as {edielEndUserMasterdata:Record<string,unknown>}
   expect(projected.edielEndUserMasterdata).not.toHaveProperty('deathStatus')
   expect(projected.edielEndUserMasterdata).not.toHaveProperty('invoicee')
+  const exportScope={companyId:f.companyId,customerId:f.customerId,actorUserId:f.reviewer.id}
+  const beforeEffective=new Date(effectiveMs-1).toISOString()
+  const held=await supabaseService.rpc('ediel_customer_life_event_export_at_v1',{p_company_id:f.companyId,p_customer_id:f.customerId,p_actor_user_id:f.reviewer.id,p_as_of:beforeEffective})
+  expect(held.error).toBeNull();expect(held.data).toEqual({status:'held',missing:['source_qualified_customer_masterdata_at_requested_time']})
+  await expect(readCustomerLifeEventExportProjection({...exportScope,asOf:beforeEffective})).rejects.toThrow('customer_life_event_export_source_held')
+  const dated=await readCustomerLifeEventExportProjection({...exportScope,asOf:new Date(effectiveMs).toISOString()})
+  expect(dated).toMatchObject({status:'authorized',sourceMessageId:f.sourceMessageId,customerVersion:1,effectiveVersionCount:1})
+  expect(dated?.customerFields).toEqual({personal_number:f.customerIdentity.id,name:'SYNTHETIC DATED CUSTOMER',full_name:'SYNTHETIC DATED CUSTOMER'})
+  expect(dated?.endUserMasterdata).toEqual({name:['SYNTHETIC DATED CUSTOMER'],street:['TEST ROAD 1'],postCode:'12345',city:'TEST',country:'SE'})
+  expect(snapshot(f)).toEqual(before)
   for(const[key,value]of Object.entries(before.customer).filter(([key])=>key.startsWith('billing_')))expect(version.resulting[key]).toEqual(value)
   expect(sql(`SELECT jsonb_build_object('canonical',p.canonical_assessment_id,'object',p.object_assessment_id,'customer',p.customer_id,'version',p.customer_version,'effectiveMs',extract(epoch FROM p.effective_at)*1000,'witnesses',(SELECT count(*) FROM gridex_received_sources.object_availability_witnesses w WHERE w.assessment_id=p.object_assessment_id)) FROM gridex_received_sources.customer_primary_response_receipts p WHERE p.company_id=${literal(f.companyId)} AND p.source_message_id=${literal(f.sourceMessageId)}`)).toEqual({canonical:receipt.assessmentId,object:owner.assessmentId,customer:f.customerId,version:1,effectiveMs,witnesses:1})
   expect(sql(`SELECT jsonb_build_object('transitionCanonical',t.canonical_assessment_id,'partitionCanonical',p.canonical_assessment_id) FROM gridex_customer_life_events.transitions t JOIN gridex_customer_life_events.partition_receipts p USING(source_message_id,company_id) WHERE t.company_id=${literal(f.companyId)} AND t.source_message_id=${literal(f.sourceMessageId)}`)).toEqual({transitionCanonical:receipt.assessmentId,partitionCanonical:receipt.assessmentId})
