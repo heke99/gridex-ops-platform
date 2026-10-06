@@ -81917,7 +81917,36 @@ BEGIN
   -- The canonical LIN number independently binds the full-guide owner to
   -- the stored original. Parser indexes are never caller supplied offsets.
   SELECT t INTO lin FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='LIN' AND t#>>'{elements,1,0}'=scope#>>'{registers,0,lineNumber}';
-  IF lin IS NULL OR lin#>>'{elements,3,0}' IS DISTINCT FROM own->>'objectId' OR lin#>>'{elements,3,3}' IS DISTINCT FROM own->>'identityAgency' THEN RAISE EXCEPTION 'prodat_full_object_physical_scope_required';END IF;
+  physical:=NULL;
+  -- A rejected single-LIN original has no accepted fallback. Bind its actual
+  -- position twice, independently of the missing sequence or object scalar.
+  IF c.facts_text::jsonb->>'applicationDecision'='rejected' AND own->>'disposition'='unavailable'
+   AND own->'reasons' ? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING'
+   AND own->'negativeFields' ?| ARRAY['314','209']
+   AND jsonb_array_length(scope->'registers')=1 AND own->'firstLineIndex'=scope#>'{registers,0,lineIndex}'
+   AND scope->'messageIndex'='0'::jsonb
+   AND (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN')=1
+   AND (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH')=1 THEN
+   SELECT t INTO physical FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN'
+    AND t->'index'=scope#>'{registers,0,segmentIndex}'
+    AND (SELECT count(*) FROM jsonb_array_elements(tokens)prior WHERE prior->>'tag'='LIN' AND (prior->>'index')::int<(t->>'index')::int)=(scope#>>'{registers,0,lineIndex}')::int
+    AND EXISTS(SELECT FROM jsonb_array_elements(tokens)header WHERE header->>'tag'='UNH' AND header#>>'{elements,1,0}'=scope->>'messageReference' AND coalesce(header#>>'{elements,1,0}','')<>'');
+  END IF;
+  IF lin IS NULL AND physical IS NOT NULL AND own->'negativeFields' ? '314'
+   AND facts->'sharedAccepted'='false'::jsonb AND scope->>'disposition'='rejected'
+   AND scope->'reasons' ? 'PRODAT_REGISTER_STRUCTURE_INVALID'
+   AND scope#>'{registers,0,lineNumber}'='null'::jsonb AND nullif(physical#>>'{elements,1,0}','') IS NULL THEN
+   lin:=physical;
+  END IF;
+  IF lin IS NULL OR ((lin#>>'{elements,3,0}' IS DISTINCT FROM own->>'objectId' OR lin#>>'{elements,3,3}' IS DISTINCT FROM own->>'identityAgency') AND NOT (
+   physical IS NOT NULL AND lin->'index'=physical->'index' AND own->'negativeFields' ? '209'
+   AND scope->>'disposition'='unavailable' AND scope->'reasons' ? 'REGISTER_SCOPE_UNAVAILABLE'
+   AND own->'objectId'='null'::jsonb AND own->'identityAgency'='null'::jsonb
+   AND scope->'objectId'='null'::jsonb AND scope->'identityAgency'='null'::jsonb
+   AND jsonb_typeof(physical#>'{elements,3}')='array'
+   AND NOT EXISTS(SELECT FROM jsonb_array_elements_text(physical#>'{elements,3}')part WHERE part<>''))) THEN
+   RAISE EXCEPTION 'prodat_full_object_physical_scope_required';
+  END IF;
  END LOOP;
  IF (SELECT count(DISTINCT (o->>'objectId',o->>'identityAgency',o->>'firstLineIndex')) FROM jsonb_array_elements(facts->'objects') o)<>jsonb_array_length(facts->'objects') THEN RAISE EXCEPTION 'prodat_full_object_duplicate_scope';END IF;
  hash:=encode(sha256(convert_to(p_facts_text,'UTF8')),'hex');SELECT * INTO existing FROM gridex_received_sources.prodat_object_validation_facets WHERE assessment_id=c.id;

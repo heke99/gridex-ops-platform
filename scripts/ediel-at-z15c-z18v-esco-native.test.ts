@@ -175,6 +175,8 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
   }
   if(field==='314'){
    const protectedEffects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
+   const ownerReplies=()=>sql<{witness:Record<string,unknown>;consumption:Record<string,unknown>;ack:EdielMessageRow}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('witness',to_jsonb(w),'consumption',to_jsonb(c),'ack',to_jsonb(m)) ORDER BY w.id),'[]') FROM gridex_ediel_outbound_owner.witnesses w LEFT JOIN gridex_ediel_outbound_owner.consumptions c ON c.witness_id=w.id LEFT JOIN public.ediel_messages m ON m.id=c.source_message_id WHERE w.company_id=${lit(f.ids.company)} AND w.related_message_id=${lit(source.id)}`)
+   expect(ownerReplies()).toEqual([])
    const wire=tokenizeEdifact(source.raw_payload!)
    expect(segmentComposite(wire.segments.find(s=>s.tag==='LIN'),1,wire.una)[0]).toBe('')
    const evidence=buildReceivedSourceValidationEvidence({original:source,validated:source,resolvedCompanyId:f.ids.company,decision})
@@ -202,6 +204,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
     expect(refused.data,alteration).toBeNull();expect(refused.error,alteration).not.toBeNull()
     expect(assessments(),alteration).toBe(originalAssessments)
     expect(f.effects(),alteration).toEqual(protectedEffects)
+    expect(ownerReplies(),alteration).toEqual([])
     expect(market(f,a.permissionId),alteration).toEqual(before)
    }
    await process(f,source)
@@ -226,15 +229,26 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
     const entries=actual.outbox.filter(x=>x.ediel_message_id===ack.id);expect(entries).toHaveLength(1)
     expect(entries[0]).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,message_family:ack.message_family,ack_outcome:ack.ack_outcome})
    }
+   // The negative APERAK alone consumes one real outbound-owner witness.
+   // This receipt qualifies the ACK bytes; it grants no positive service scope.
+   const negative=actual.acks.find(ack=>ack.message_family==='APERAK')!,qualification=ownerReplies()
+   expect(qualification).toHaveLength(1)
+   const {witness,consumption,ack:qualifiedAck}=qualification[0]
+   const ackHash=createHash('sha256').update(negative.raw_payload!,'utf8').digest('hex')
+   expect(witness).toMatchObject({company_id:f.ids.company,actor_user_id:f.ids.actor,environment:'test',family:'APERAK',code:negative.message_code,related_message_id:source.id,payload_sha256:ackHash,context:expect.objectContaining({basisKind:'prescribed_outbound_ack',direction:'outbound',wireFamily:'APERAK',originalSourceMessageId:source.id,originalSourceHash:createHash('sha256').update(source.raw_payload!,'utf8').digest('hex')})})
+   expect(consumption).toMatchObject({witness_id:witness.id,source_message_id:negative.id,company_id:f.ids.company,environment:'test',payload_sha256:ackHash})
+   expect(qualifiedAck).toEqual(negative)
+   expect(qualifiedAck.execution_context_snapshot).toMatchObject({outboundOwnerWitnessId:witness.id})
+   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_ediel_ack_replay.positive_service_scope_receipts WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}`)).toBe(0)
    expect(market(f,a.permissionId)).toEqual(before)
    expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
    expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
    const {events:diagnosticEvents,...afterEffects}=f.effects();void diagnosticEvents
    const {events:initialDiagnosticEvents,...beforeEffects}=protectedEffects;void initialDiagnosticEvents
-   expect(afterEffects).toEqual({...beforeEffects,messages:beforeEffects.messages+2,acks:beforeEffects.acks+2,creationReceipts:beforeEffects.creationReceipts+2,namespace:beforeEffects.namespace+2,outbox:beforeEffects.outbox+2})
+   expect(afterEffects).toEqual({...beforeEffects,messages:beforeEffects.messages+2,acks:beforeEffects.acks+2,creationReceipts:beforeEffects.creationReceipts+2,namespace:beforeEffects.namespace+2,outbox:beforeEffects.outbox+2,witnesses:beforeEffects.witnesses+1,consumptions:beforeEffects.consumptions+1})
    await process(f,source)
    const {events:replayEvents,...replayEffects}=f.effects();void replayEvents
-   expect(replies()).toEqual(actual);expect(replayEffects).toEqual(afterEffects)
+   expect(replies()).toEqual(actual);expect(ownerReplies()).toEqual(qualification);expect(replayEffects).toEqual(afterEffects)
    expect(market(f,a.permissionId)).toEqual(before);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
   }else{
    // Preserve failure for every ordinary processing path, while exercising
