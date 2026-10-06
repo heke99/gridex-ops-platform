@@ -3,26 +3,29 @@
 Owner instruction: each agent completes a two-rule packet, checks the affected
 system path, reviews its work and merges only when the required gates are green.
 Every agent records ownership, completed work and the exact next action before
-starting another task. This workflow prepares the next wave; it does not start
-rule execution or clear existing external approval boundaries.
+starting another task. Owner clarification: agents choose and atomically reserve
+their own pairs, then continue after delivery without new assignments. Read
+`masterplan-reservations.md`. Receiving the shared prompt starts that agent's
+wave; this documentation update does not launch agents or clear external gates.
 
 ## Mandatory startup and packet selection
 
 1. Read `AGENTS.md`, this memory's `README.md` and its ordered current-state,
    current-task, checkpoint, handover, blocker and work-plan files. Read your
    own checkpoint, relevant domain memory, decisions and known failures.
-2. Read this workflow and `masterplan-legacy-pr-register.json`. Read the latest
+2. Read this workflow, `masterplan-reservations.md` and the legacy PR register. Read the latest
    ownership comments on GitHub issue #530, current main, open PRs and relevant
    retained closed PRs. Local memory is not a live cross-agent ownership lock.
 3. Finish your existing reservation first. Compare its branch and original PR
    requirements against current implementation and coverage before changing
    anything. Already delivered work must not be implemented or approved twice.
-4. The wave coordinator assigns two distinct unowned rule IDs and their related
-   acceptance contracts, or a bounded pair of remaining contract/scenario IDs.
-   Record `CLAIM <IDs> — <agent> — branch <branch>` on #530 with file boundaries,
-   dependencies and next action. The allocation must be acknowledged by the
-   coordinator before code changes. A three-minute delay is not a reservation.
-   Conflicting claims stay unresolved until the coordinator assigns one owner.
+4. Choose two eligible unowned rule IDs and related acceptance contracts yourself,
+   or two remaining contract/scenario IDs when work is acceptance-only. A final
+   single eligible ID is allowed. Follow current priority and dependencies;
+   reserve IDs and exact file scope using the atomic protocol. Record the receipt,
+   dependencies and next action in your checkpoint and CLAIM on #530 before code.
+   On conflict, release your partial attempt and select other free work.
+   No user assignment, coordinator acknowledgement or launch delay is needed.
 5. Use a unique branch and isolated worktree/checkout. Preserve other agents'
    files, original commits and unrelated changes. Coordinate shared-file edits
    with their owners; never take over because an owner has not replied.
@@ -47,11 +50,12 @@ Chat-only documentation does not satisfy this gate. Keep concise checkpoints
 and real test/coverage evidence; preserve failed observations and avoid writing
 duplicate audit narratives. Never store secrets or production customer data.
 
-All agents own their checkpoints. One nominated campaign-memory writer updates
-shared `current-state.md`, `current-task.md`, `checkpoint.json`, `work-plan.md`
-and shared summaries from their handovers. Send concise CLAIM/READY/BLOCKED/
-MERGED/RELEASE receipts to #530; the writer mirrors ownership and one unique
-handover line per actual merge. Side tracks retain their separate memory owners.
+All agents own their checkpoints. Agents acquire the atomic `role-memory` lock
+for shared current-state/current-task/checkpoint/work-plan and summaries, refresh
+the latest receipts, and reconcile changes without overwriting foreign evidence.
+Send concise CLAIM/READY/BLOCKED/MERGED/RELEASE receipts to #530 and record one
+unique handover line per actual merge. No permanent campaign coordinator is
+required. Side tracks retain their separate memory owners.
 
 ## Completion and merge gate
 
@@ -64,15 +68,16 @@ Self-review the final diff and full affected path, address findings, and satisfy
 the repository's required review. Update only claimed coverage rows when the
 whole ID is proved. Local green, an open PR and market acceptance are distinct.
 
-Keep PRs small. The coordinator orders dependent/shared-file merges; each agent
-may merge its own packet in that order after required review and all mandatory
-checks are green for the current PR head. Changed code or conflict resolution
-requires relevant fresh verification. Never weaken gates or borrow old success.
+Keep PRs small. Each agent acquires `role-merge`, refreshes main/dependencies and
+merges its own packet after required review and all mandatory checks are green
+for the current PR head. Scope locks prevent conflicting source edits; the merge
+role serializes delivery. Changed code or conflict resolution requires relevant
+fresh verification. Never weaken gates or borrow old success.
 
 `READY` means reviewable and `CI_GREEN` means the current PR gates passed.
 Neither releases the reservation or permits taking a new pair. `MERGED` requires
 the actual main commit and PR receipt. Only then read current ownership again
-and request the next pair. A blocked packet can be relinquished only through
+and select/reserve the next pair yourself. A blocked packet can be relinquished only through
 explicit RELEASE/handover, retaining completed work and remaining requirements.
 
 ## Retained old PR work is checked before new work
@@ -87,7 +92,7 @@ record already delivered, reusable/unverified, obsolete with evidence, blocked,
 or still requiring implementation/verification. Do not infer a current product
 defect merely from an old missing file or import an entire historic stack.
 
-Resume only the genuinely remaining, explicitly assigned scope. Reopen an old PR
+Resume only genuinely remaining scope you have reserved yourself. Reopen an old PR
 when its scope and branch are still suitable and ownership is confirmed;
 otherwise reuse the necessary unique changes in a small PR from current main,
 linking the original PR and preserving its history. No automatic mass reopening
@@ -96,4 +101,6 @@ reconstruction and external/legal/market gates retain their recorded boundaries.
 
 Totals come from current main's coverage ledger; never sum overlapping branches.
 Report approved rule/contract counts separately from effort, external acceptance
-and deployment. Await the user's next-wave dispatch before starting rule work.
+and deployment. The shared prompt is the next-wave dispatch; after receiving it,
+continue through eligible packets without requesting another assignment. When
+none are eligible, report actual completion, occupied work and blockers.
