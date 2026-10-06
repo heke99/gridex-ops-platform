@@ -59,7 +59,7 @@ it('executes the actual queue and overdue readers with tenant, order, limit and 
   await measure(port.calls.at(-1)!, queue.length)
   const overdue = await listOverdueAckMessages({ companyId: fixture.first, limit: 100 })
   expect(overdue.map(row => row.id)).toEqual(fixture.expected.sla)
-  expect(overdue.every(row => row.company_id === fixture.first)).toBe(true)
+  expect(overdue).toMatchObject(fixture.expected.sla.map(id => ({ id, company_id: fixture.first })))
   await measure(port.calls.at(-1)!, overdue.length)
   expect((await db.query<{ id: string }>(fixture.slaMonitorSql)).rows.map(row => row.id).sort()).toEqual([...fixture.expected.sla].sort())
   await measure(fixture.slaMonitorSql, 2)

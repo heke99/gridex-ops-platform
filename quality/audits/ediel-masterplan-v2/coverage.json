@@ -391,8 +391,24 @@
     {
       "id": "IMP-05",
       "acceptance_id": "AT-IMP-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/ack/technicalSyntaxRoute.ts",
+        "lib/ediel/ack/technicalSyntaxAuthority.ts",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "supabase/schema.sql",
+        "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+        "scripts/ediel-scoped-readiness-sql-regression.mjs",
+        "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+        "__tests__/ediel-recipient-address-binding.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+        "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+        "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql"
+      ]
     },
     {
       "id": "ENV-01",
@@ -2789,8 +2805,24 @@
     },
     {
       "id": "AT-IMP-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/ack/technicalSyntaxRoute.ts",
+        "lib/ediel/ack/technicalSyntaxAuthority.ts",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "supabase/schema.sql",
+        "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+        "scripts/ediel-scoped-readiness-sql-regression.mjs",
+        "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+        "__tests__/ediel-recipient-address-binding.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+        "__tests__/ediel-imp-05-unattributed-mailbox-route.test.ts",
+        "__tests__/fixtures/ediel-imp05-pre-forward-source-functions.sql"
+      ]
     },
     {
       "id": "AT-ENV-01",
