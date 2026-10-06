@@ -288,7 +288,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "Prospective fresh-origin owned-site forward requires a new authentic complete-tail capture. Original 3094 raw3 and capture-only flags are unchanged and cover the previous 2058 tail only.",
+  "composition_capture_pending_scope": "Fresh214250 site forward plus authorized immutable205324 allproductionS/MIME and210116 legacy address containment producers require a new authentic complete1089-file tail capture. Original3094 raw3 and NOT_RUN flags preserved. aec3 predecessor native/capture covers only preceding1087-file tail; cannot cover newly adopted two forwards.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -3685,5 +3685,35 @@
         ]
       }
     }
+  },
+  "pending_shared_producer_forward_capture": {
+    "status": "EXACT_AUTHORIZED_PRODUCER_ADOPTION_NEW_CAPTURE_PENDING",
+    "producer_files": [
+      {
+        "path": "supabase/migrations/20261006205324_ediel_production_all_family_smime.sql",
+        "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+        "gitBlob": "48a3eb587869fecf7cdb23cba97b6d376ac0bc95",
+        "sha256": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+        "bytes": 4744
+      },
+      {
+        "path": "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+        "gitBlob": "c3c0d6983cf0be7b6d92ee01142c8390a3a0411e",
+        "sha256": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+        "bytes": 9403
+      },
+      {
+        "path": "supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql",
+        "source": "6f2bd2c9663b62f46e27f2623f9b54bc8b421a38",
+        "gitBlob": "c5ff03633279491dffcc478ef9678e03a1d66727",
+        "sha256": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
+        "bytes": 878
+      }
+    ],
+    "prior_runtime_entries_preserved": 135,
+    "current_runtime_entries": 138,
+    "foreign_whole_ids": "NOT_APPROVED_OWNER_RETAINED",
+    "related_consumer_dependency": "Root2f retains admin actor page removing retired public address query; explicit reuse or delivery remains required before merge. New complete-tail capture must include all three handed producer forwards and own214250/221015; original3094 raw3/flags remain historical."
   }
 }

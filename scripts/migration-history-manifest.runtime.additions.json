@@ -134,6 +134,9 @@
     "20261006173100_ediel_customer_wire_partition_headers_arrays.sql": "c55df843fa1275d2ee2899e57866c85520f36d8ace1ac65da671b118bd79b7d3",
     "20261006184000_ediel_requested_customer_selected_facts.sql": "ecfbbc7581d6093f456e2989922e0d0d4c4c19c13616a15d72f814bc013c416f",
     "20261006195500_ediel_requested_change_life_event_current_guard.sql": "2d14450d6e87a894e6c8c6c0296e2839f4952d96aaf51cb365fcccdeb7c1d12d",
-    "20261006205800_ediel_generic_requested_change_current_bridge.sql": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa"
+    "20261006205800_ediel_generic_requested_change_current_bridge.sql": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
+    "20261006205324_ediel_production_all_family_smime.sql": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+    "20261006210116_ediel_db01_legacy_address_containment.sql": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+    "20261006213222_ediel_public_supplier_route_column_contract.sql": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5"
   }
 }
