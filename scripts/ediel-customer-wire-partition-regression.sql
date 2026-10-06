@@ -12,19 +12,25 @@ DECLARE
  single_result jsonb;
  repeat_result jsonb;
  held_result jsonb;
+ outgoing_result jsonb;
  failures text[] := ARRAY[]::text[];
 BEGIN
  single_wire := header || first_register || 'UNT+12+MESSAGE-19''UNZ+1+INTERCHANGE-17''';
  repeat_wire := header || first_register || repeat_register || 'UNT+15+MESSAGE-19''UNZ+1+INTERCHANGE-17''';
  single_result := gridex_customer_life_events.wire_partition_v1(single_wire);
  repeat_result := gridex_customer_life_events.wire_partition_v1(repeat_wire);
+ outgoing_result := gridex_customer_life_events.wire_v1(replace(repeat_wire,'BGM+Z06+','BGM+Z09+'));
  IF single_result->>'interchange' IS DISTINCT FROM 'INTERCHANGE-17'
  OR single_result->>'messageReference' IS DISTINCT FROM 'MESSAGE-19'
  OR single_result->>'unh' IS DISTINCT FROM 'MESSAGE-19'
  OR single_result->>'bgmId' IS DISTINCT FROM 'BGM-23'
  OR single_result->>'code' IS DISTINCT FROM 'Z06'
  OR single_result->>'legalSender' IS DISTINCT FROM '11111'
- OR single_result->>'legalReceiver' IS DISTINCT FROM '22222' THEN
+ OR single_result->>'legalReceiver' IS DISTINCT FROM '22222'
+ OR outgoing_result->>'code' IS DISTINCT FROM 'Z09'
+ OR outgoing_result->>'interchange' IS DISTINCT FROM 'INTERCHANGE-17'
+ OR outgoing_result->>'messageReference' IS DISTINCT FROM 'MESSAGE-19'
+ OR outgoing_result->>'bgmId' IS DISTINCT FROM 'BGM-23' THEN
   failures := array_append(failures, 'physical_header_projection');
  END IF;
  IF jsonb_typeof(single_result#>'{objects,0,lineIndexes}') IS DISTINCT FROM 'array'

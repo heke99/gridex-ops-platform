@@ -22,6 +22,9 @@ import {supabaseService} from '@/lib/supabase/service'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent'
 import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
+import {validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
 
 type Fixture=Awaited<ReturnType<typeof createBilateralCustomerSourceFixture>>
 type Snapshot={customer:Record<string,unknown>;supply:unknown;point:unknown;site:unknown}
@@ -203,12 +206,30 @@ it.each([
   expect(counts(f)).toEqual(noEffects)
   expect(snapshot(f)).toEqual(before)
 },120000)
-it('actual supplier outbound kernel refuses fresh Z06E direction before creating an original or owner witness',async()=>{
+it('modern catalog rejects outbound Z06E semantics; the actual kernel separately refuses unqualified source with no original or witness',async()=>{
   const f=await negativeFixture(),before=snapshot(f)
   const outboundState=()=>sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),'witnesses',(SELECT count(*) FROM gridex_ediel_outbound_owner.witnesses WHERE company_id=${literal(f.companyId)}))`)
   const prior=outboundState(),providerCalls=delivery.smtp.mock.calls.length
+  // Obtain genuine business facts from the independent review of THIS
+  // original. The pure catalog policy below is not outbound source authority.
+  const archive=await archiveBilateralCustomerSource({...f.submission('SYNTHETIC direction catalog control',f.pdf('direction control')),companyId:f.companyId,actorUserId:f.uploader.id})
+  expect(archive.missing).toEqual([])
+  expect(await reviewBilateralCustomerSourceArtifact({...archive,companyId:f.companyId,actorUserId:f.reviewer.id,decision:'approve',reason:'Synthetic separate direction control',clause:f.clause})).toMatchObject({status:'authorized'})
+  const context=await loadCustomerLifeEventValidationContext(f.message,f.reviewer.id)
+  expect(context).toMatchObject({direction:'inbound',code:'Z06',businessContext:'other_masterdata',bilateralCapabilityVerified:true})
+  const businessDate=new Date(f.message.message_received_at!).toISOString().slice(0,10)
+  const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z06',subtypeOrReasonCode:'E',direction:'outbound',referenceDate:businessDate,applicationReference:'23-DDQ-PRODAT',businessContext:context!.businessContext,bilateralCapabilityVerified:context!.bilateralCapabilityVerified,mode:'catalog_evidence'})
+  await expect(resolveCanonicalRulePack({family:'PRODAT',messageCode:'Z06',transactionSubtype:'E',applicationReference:'23-DDQ-PRODAT',direction:'outbound',businessDate,canonicalPolicy:policy})).rejects.toThrow('canonical_source_direction_not_allowed:Z06:outbound:inbound')
   const raw=bilateralCustomerNativeWire({sender:f.sender,receiver:f.receiver,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),repeatRegister:true,invoicee:true})
-  await expect(createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'customer_masterdata',baseInput:{actorUserId:f.actorUserId,companyId:f.companyId,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z06',applicationReference:'23-DDQ-PRODAT',senderEdielId:f.sender,receiverEdielId:f.receiver,sourceOperationId:randomUUID(),rawPayload:raw}})).rejects.toThrow('PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED')
+  // The real unqualified draft stops at the modern source boundary before
+  // registry lookup. Assert that boundary and its actual first diagnostic;
+  // do not relabel this refusal as proof of reaching the direction guard.
+  const dateEventRow={company_id:f.companyId,environment:'test' as const,direction:'outbound' as const,message_code:'Z06',sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,sender_sub_address:null,receiver_sub_address:null,application_reference:'23-DDQ-PRODAT',transport_type:'smtp' as const,receiver_email:null,communication_route_id:null,route_profile_id:null,mailbox:null}
+  const validation=await validateRulebookMessageWithRegistry({family:'PRODAT',code:'Z06',rawPayload:raw,applicationReference:'23-DDQ-PRODAT',mode:'send',direction:'outbound',environment:'test',companyId:f.companyId,dateEventRow})
+  expect(validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})]))
+  const first=validation.issues.find(issue=>issue.severity==='error'||issue.blocking)
+  expect(first).toBeDefined()
+  await expect(createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'customer_masterdata',baseInput:{actorUserId:f.actorUserId,companyId:f.companyId,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z06',applicationReference:'23-DDQ-PRODAT',senderEdielId:f.sender,receiverEdielId:f.receiver,sourceOperationId:randomUUID(),rawPayload:raw}})).rejects.toThrow(`${first!.code} - ${first!.description}`)
   expect(outboundState()).toEqual(prior)
   expect(delivery.smtp).toHaveBeenCalledTimes(providerCalls)
   expect(counts(f)).toEqual(noEffects)
