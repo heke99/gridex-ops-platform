@@ -1,0 +1,267 @@
+// masterplan: DB-01, AT-DB-01
+// Bounded consumer proof, not native migration or whole-contract approval.
+// Only the Supabase I/O port is replaced. Real creators, tenant/AGT validators,
+// renderers, preflight, business-reference publication and event writers run.
+// Rows below are declared unit inputs, never private custody/accepted receipts.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CreateEdielMessageInput } from '@/lib/ediel/types'
+
+type Row = Record<string, unknown>
+type Filter = { column: string; values: unknown[] }
+type Read = { table: string; columns: string; filters: Filter[] }
+type Write = { table: string; rows: Row[] }
+const port = vi.hoisted(() => ({ from: null as null | ((table: string) => unknown) }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
+  from: (table: string) => {
+    if (!port.from) throw new Error('DB01 declared database input port not initialized')
+    return port.from(table)
+  },
+  rpc: () => { throw new Error('DB01 unit inputs do not mint private authority or emulate RPC approval') },
+} }))
+
+import { createEdielMessage, getEdielMessageById } from '@/lib/ediel/db'
+import * as messageDb from '@/lib/ediel/db'
+import { createEdielSupplierAgtOutboundCommand } from '@/lib/ediel/testing/agtEngine'
+import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
+
+const COMPANY = '10000000-0000-4000-8000-000000000001'
+const FOREIGN_COMPANY = '10000000-0000-4000-8000-000000000002'
+const USER = '20000000-0000-4000-8000-000000000001'
+const PARTY = '30000000-0000-4000-8000-000000000001'
+const ROUTE = '40000000-0000-4000-8000-000000000001'
+const PROFILE = '50000000-0000-4000-8000-000000000001'
+const RUN = '60000000-0000-4000-8000-000000000001'
+const CERTIFICATE = '70000000-0000-4000-8000-000000000001'
+const LEGACY_ADDRESS = '80000000-0000-4000-8000-000000000001'
+const FOREIGN_ADDRESS = '80000000-0000-4000-8000-000000000002'
+const STALE_ADDRESS = '80000000-0000-4000-8000-000000000003'
+const NOW = '2026-10-06T20:00:00.000Z'
+let tables: Record<string, Row[]>
+let reads: Read[]
+let writes: Write[]
+let nextId: number
+
+/** Finite database adapter: applies actual tenant/id predicates and projection;
+ * it does not repair a payload, validate a role, or choose a route for the code. */
+function query(table: string) {
+  if (!(table in tables)) throw new Error(`DB01 undeclared database table: ${table}`)
+  const filters: Filter[] = []
+  let columns = '*'
+  let limit = Infinity
+  let pending: Row[] | null = null
+  let written: Row[] | null = null
+  function result(single: boolean, optional = false) {
+    if (pending && !written) {
+      written = pending.map(row => ({ id: `unit-${++nextId}`, created_at: NOW, ...structuredClone(row) }))
+      writes.push({ table, rows: structuredClone(written) })
+      tables[table].push(...written)
+    }
+    const rows = (written ?? tables[table]).filter(row => filters.every(filter => filter.values.includes(row[filter.column]))).slice(0, limit)
+    reads.push({ table, columns, filters: structuredClone(filters) })
+    const projected = rows.map(row => columns === '*' ? structuredClone(row) : Object.fromEntries(columns.split(',').map(column => [column, row[column]])))
+    if (single && (rows.length > 1 || !optional && rows.length !== 1)) {
+      return { data: null, error: { code: 'PGRST116', message: 'Declared unit DB expected one row' } }
+    }
+    return { data: single ? projected[0] ?? null : projected, error: null }
+  }
+  const chain = {
+    select(value = '*') { columns = value; return chain },
+    eq(column: string, value: unknown) { filters.push({ column, values: [value] }); return chain },
+    in(column: string, values: unknown[]) { filters.push({ column, values }); return chain },
+    order() { return chain },
+    limit(value: number) { limit = value; return chain },
+    insert(value: Row | Row[]) { pending = Array.isArray(value) ? value : [value]; return chain },
+    upsert(value: Row | Row[]) { pending = Array.isArray(value) ? value : [value]; return chain },
+    single: async () => result(true),
+    maybeSingle: async () => result(true, true),
+    then(resolve: (value: ReturnType<typeof result>) => unknown) { return Promise.resolve(result(false)).then(resolve) },
+  }
+  return chain
+}
+
+function profile() { return tables.ediel_route_profiles[0] }
+function actor() { return tables.ediel_actor_settings[0] }
+function seed(hint: string | null = LEGACY_ADDRESS, testCaseCode = 'L7') {
+  tables = {
+    ediel_messages: [], ediel_message_events: [], ediel_business_references: [],
+    ediel_test_run_messages: [], ediel_test_artifacts: [],
+    ediel_parties: [{ id: PARTY, ediel_id: '24200', roles: ['supplier'], status: 'verified' }],
+    // Contradictory and stale legacy facts are deliberately tempting, but no
+    // current producer should consult them to choose an address or certificate.
+    ediel_party_addresses: [
+      { id: LEGACY_ADDRESS, party_id: PARTY, company_id: COMPANY, smtp_address: 'wrong@example.invalid', receiver_certificate_id: 'wrong-cert', environment: 'production' },
+      { id: FOREIGN_ADDRESS, party_id: PARTY, company_id: FOREIGN_COMPANY, smtp_address: 'foreign@example.invalid', environment: 'test' },
+      { id: STALE_ADDRESS, party_id: PARTY, company_id: COMPANY, status: 'expired', valid_to: '2020-01-01', smtp_address: 'stale@example.invalid' },
+    ],
+    ediel_actor_settings: [{ id: 'actor-setting', company_id: COMPANY, environment: 'test', is_active: true,
+      actor_role: 'supplier', actor_ediel_id: '24200', ediel_id: '24200', actor_name: 'Declared supplier', sender_name: 'Declared supplier',
+      sender_sub_address: 'SUPPLIER', mailbox: 'actor-mailbox', smtp_from_email: 'sender@example.invalid', brp_ediel_id: '24201' }],
+    tenant_ediel_profiles: [{ id: 'tenant-profile', company_id: COMPANY, environment: 'test', market: 'electricity', is_enabled: true,
+      valid_from: '2026-01-01T00:00:00Z', valid_to: null }],
+    tenant_actor_identifiers: [{ id: 'tenant-id', company_id: COMPANY, environment: 'test', actor_id: 'own-legal-actor',
+      identifier_type: 'EdielId', identifier_value: '24200', valid_from: '2026-01-01T00:00:00Z', valid_to: null }],
+    tenant_actor_roles: [{ id: 'tenant-role', company_id: COMPANY, environment: 'test', actor_id: 'own-legal-actor',
+      role_code: 'electricity_supplier', valid_from: '2026-01-01T00:00:00Z', valid_to: null }],
+    tenant_counterparty_relations: [],
+    communication_routes: [{ id: ROUTE, company_id: COMPANY, route_name: 'AGT 2026A PRODAT Edielportalen',
+      is_active: true, route_scope: 'company', route_type: 'ediel_partner', target_email: 'portal@example.invalid' }],
+    ediel_route_profiles: [{ id: PROFILE, company_id: COMPANY, communication_route_id: ROUTE, environment: 'test',
+      message_family: 'PRODAT', is_enabled: true, default_test_flag: 1, sender_ediel_id: '24200', receiver_ediel_id: '91100',
+      sender_sub_address: 'SUPPLIER', receiver_sub_address: 'PRODAT', application_reference: '23-DDQ-PRODAT',
+      mailbox: 'locked-mailbox', party_id: PARTY, party_address_id: hint, encryption_mode: 'smime',
+      transport_security_mode: 'required_encrypted', certificate_id: 'fallback-cert', receiver_certificate_id: CERTIFICATE }],
+    ediel_system_test_settings: [{ id: 'system-test-input', company_id: COMPANY, environment: 'test', test_suite: 'AGT', is_active: true,
+      actor_role: 'supplier', message_family: 'PRODAT', setup_package: 'agt_ddq_prodat_l', environment_type: 'agt_test',
+      test_portal_counterparty_id: 'portal', default_receiver_subaddress: 'PRODAT' }],
+    ediel_counterparties: [{ id: 'portal', counterparty_ediel_id: '91100', counterparty_name: 'Declared test portal', email: 'portal@example.invalid' }],
+    ediel_test_runs: [{ id: RUN, company_id: COMPANY, status: 'running', test_suite: 'PRODAT', test_case_code: testCaseCode,
+      role_code: 'supplier', approval_version: '2026A', encryption_mode: 'smime', route_profile_id: PROFILE, started_at: '2026-10-06T19:00:00Z' }],
+  }
+}
+
+function freshInput(hint?: string | null): CreateEdielMessageInput {
+  return { actorUserId: USER, companyId: COMPANY, direction: 'outbound', messageStandard: 'edifact', messageFamily: 'PRODAT',
+    messageCode: 'Z03', messageVersion: '26A', environment: 'production', testFlag: 0, status: 'prepared',
+    transportType: 'smtp', mailbox: 'canonical-mailbox', senderEdielId: '24200', receiverEdielId: '11900',
+    receiverEmail: 'canonical@example.invalid', receiverSubAddress: 'PRODAT', applicationReference: '23-DDQ-PRODAT',
+    communicationRouteId: ROUTE, routeProfileId: PROFILE, partyId: PARTY, partyAddressId: hint,
+    transportSecurityMode: 'required_encrypted', routeTransportSecurityMode: 'required_encrypted', expectedReceiverCertificateId: CERTIFICATE,
+    outboundRequestId: 'own-outbound-request', customerId: 'own-customer', siteId: 'own-site', meteringPointId: 'own-point',
+    interchangeReference: 'OWN-UNB', externalReference: 'OWN-BGM', transactionReference: 'OWN-LI',
+    rawPayload: "UNB+UNOC:3+24200:SVK+11900:SVK+261006:2000+OWN-UNB++++1'UNH+1+PRODAT:D:97A:UN:E2SE6A'BGM+Z03+OWN-BGM'LIN+1++735999000000242003:9'RFF+LI:OWN-LI'UNT+5+1'UNZ+1+OWN-UNB'" }
+}
+function createdRows() { return writes.filter(write => write.table === 'ediel_messages').flatMap(write => write.rows) }
+function assertNoEffects() { expect(writes).toEqual([]) }
+async function createAgt(testCaseCode = 'L7', companyId = COMPANY) {
+  return createEdielSupplierAgtOutboundCommand({ actorUserId: USER, companyId, testRunId: RUN, testCaseCode })
+}
+
+beforeEach(() => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date(NOW))
+  reads = []; writes = []; nextId = 0; seed(); port.from = query
+})
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); port.from = null })
+
+describe('DB01 fresh message address retirement preserves current authority', () => {
+  it.each([
+    ['absent', undefined], ['explicit null', null], ['contradictory', LEGACY_ADDRESS],
+    ['foreign', FOREIGN_ADDRESS], ['stale', STALE_ADDRESS],
+  ] as const)('%s legacy hint stores NULL and preserves canonical IDs, references and created event', async (_label, hint) => {
+    const row = await createEdielMessage(freshInput(hint))
+    expect(row).toMatchObject({ company_id: COMPANY, communication_route_id: ROUTE, route_profile_id: PROFILE,
+      mailbox: 'canonical-mailbox', party_id: PARTY, receiver_email: 'canonical@example.invalid', receiver_ediel_id: '11900',
+      transport_security_mode: 'required_encrypted', route_transport_security_mode: 'required_encrypted', expected_receiver_certificate_id: CERTIFICATE })
+    expect(createdRows()).toHaveLength(1)
+    expect(tables.ediel_business_references).toEqual(expect.arrayContaining([
+      expect.objectContaining({ company_id: COMPANY, source_message_id: row.id, reference_type: 'UNB_REF', reference_value: 'OWN-UNB', business_object_id: 'own-outbound-request', customer_id: 'own-customer', customer_site_id: 'own-site', metering_point_id: 'own-point' }),
+      expect.objectContaining({ company_id: COMPANY, source_message_id: row.id, reference_type: 'BGM_REF', reference_value: 'OWN-BGM' }),
+      expect.objectContaining({ company_id: COMPANY, source_message_id: row.id, reference_type: 'RFF_LI', reference_value: 'OWN-LI' }),
+    ]))
+    expect(tables.ediel_message_events).toEqual([expect.objectContaining({ company_id: COMPANY, ediel_message_id: row.id, event_type: 'created',
+      payload: { status: 'prepared', direction: 'outbound', externalReference: 'OWN-BGM', communicationRouteId: ROUTE } })])
+    expect(reads.some(read => ['ediel_parties', 'ediel_party_addresses'].includes(read.table))).toBe(false)
+    // All preceding assertions establish real creation and preserved effects;
+    // the prospective failure is the actual persisted legacy ID, not setup.
+    expect(row).toHaveProperty('party_address_id', null)
+    expect(createdRows()[0].party_address_id).toBeNull()
+  })
+
+  it('the scoped historical reader retains an original legacy address without writing history', async () => {
+    const original = { id: 'historical-message', company_id: COMPANY, party_address_id: LEGACY_ADDRESS, raw_payload: 'historical-original', immutable_payload_hash: 'historical-hash' }
+    tables.ediel_messages.push(structuredClone(original))
+    expect(await getEdielMessageById(original.id, { companyId: COMPANY })).toEqual(original)
+    expect(await getEdielMessageById(original.id, { companyId: FOREIGN_COMPANY })).toBeNull()
+    expect(tables.ediel_messages).toEqual([original]); assertNoEffects()
+  })
+
+  it.each([
+    { receiverEmail: 'portal@ediel.se', diagnostic: 'ediel_portal_email_in_production' },
+    { receiverEdielId: '91100', diagnostic: 'Produktionsruntime innehåller TGT-adressering' },
+  ])('legacy hint cannot rescue the real production guard: $diagnostic', async ({ diagnostic, ...bad }) => {
+    await expect(createEdielMessage({ ...freshInput(LEGACY_ADDRESS), ...bad })).rejects.toThrow(diagnostic)
+    assertNoEffects()
+  })
+})
+
+describe('DB01 actual AGT producer uses current runtime while ignoring retired hints', () => {
+  it.each([
+    ['absent', null], ['contradictory', LEGACY_ADDRESS], ['foreign', FOREIGN_ADDRESS], ['stale', STALE_ADDRESS],
+  ] as const)('%s profile hint leaves the rendered L7 canonical context intact and stores NULL', async (_label, hint) => {
+    seed(hint)
+    // Observation only: the spy retains the actual implementation and all
+    // persistence/reference/event effects; no creator is stubbed or replaced.
+    const messageCreation = vi.spyOn(messageDb, 'createEdielMessage')
+    const row = await createAgt()
+    expect(row).toMatchObject({ company_id: COMPANY, environment: 'test', test_flag: 1, message_family: 'PRODAT', message_code: 'Z09',
+      communication_route_id: ROUTE, route_profile_id: null, mailbox: 'locked-mailbox', party_id: PARTY,
+      sender_ediel_id: '24200', receiver_ediel_id: '91100', receiver_email: 'portal@example.invalid', application_reference: '23-DDQ-PRODAT',
+      transport_security_mode: 'required_encrypted', route_transport_security_mode: 'required_encrypted' })
+    expect(row.raw_payload).toContain("CCI++Z13'CAV+E32'")
+    expect(row.raw_payload).toContain("CCI++Z04'CAV+Z03'")
+    expect(row.validation_report?.lockedSendContext).toEqual({ source: 'ediel_test_runs', testRunId: RUN, testSuite: 'PRODAT', testCaseCode: 'L7',
+      roleCode: 'supplier', encryptionMode: 'smime', routeProfileId: PROFILE, communicationRouteId: ROUTE,
+      transportSecurityMode: 'required_encrypted', routeTransportSecurityMode: 'required_encrypted', routeEncryptionMode: 'smime', certificateId: CERTIFICATE })
+    expect(tables.ediel_test_run_messages).toEqual([expect.objectContaining({ company_id: COMPANY, test_run_id: RUN, ediel_message_id: row.id, expected_code: 'Z09', expected_direction: 'outbound' })])
+    expect(tables.ediel_message_events.map(event => event.event_type)).toEqual(['created', 'prepared'])
+    expect(tables.ediel_test_artifacts).toHaveLength(1)
+    expect(createdRows()).toHaveLength(1)
+    expect(messageCreation.mock.calls).toHaveLength(1)
+    expect(row).toHaveProperty('party_address_id', null)
+    // Keep the AGT caller check independent of the lower persistence fix:
+    // merely ignoring the hint in db.ts must not hide continued forwarding.
+    expect(messageCreation.mock.calls[0][0].partyAddressId).toBeUndefined()
+  })
+
+  it('the real L1 preflight retains its independent address/invoicee hold despite a legacy hint', async () => {
+    seed(LEGACY_ADDRESS, 'L1')
+    await expect(createAgt('L1')).rejects.toThrow('PRODAT_DEPENDENT_CONDITION_UNDETERMINED: Z03:229')
+    await expect(createAgt('L1')).rejects.toThrow('PRODAT_DEPENDENT_CONDITION_UNDETERMINED: Z03:INVOICEE_GROUP')
+    expect(reads.some(read => read.table === 'ediel_route_profiles' && read.filters.some(filter => filter.column === 'id'))).toBe(false)
+    assertNoEffects()
+  })
+
+  it('the locked-profile read stops requesting the retired column even when its stored value is null', async () => {
+    seed(null)
+    await createAgt()
+    const lockedReads = reads.filter(read => read.table === 'ediel_route_profiles' && read.filters.some(filter => filter.column === 'id'))
+    expect(lockedReads).toHaveLength(1)
+    expect(lockedReads[0].filters).toEqual(expect.arrayContaining([{ column: 'id', values: [PROFILE] }, { column: 'company_id', values: [COMPANY] }]))
+    expect(lockedReads[0].columns.split(',')).not.toContain('party_address_id')
+  })
+
+  it.each([
+    ['wrong SMTP', () => { tables.communication_routes[0].target_email = 'wrong@example.invalid' }, 'DB-konfigurerade testportaladressen'],
+    ['foreign profile', () => { profile().company_id = FOREIGN_COMPANY }, 'runtimeprofil saknas'],
+    ['wrong sender identity', () => { profile().sender_ediel_id = '11900' }, 'matchar inte tenantens aktörs-Ediel-id'],
+    ['wrong APP', () => { profile().application_reference = 'WRONG-PRODAT' }, '23-DDQ-PRODAT'],
+    ['disabled route', () => { tables.communication_routes[0].is_active = false }, 'Aktivera communication route'],
+    ['missing tenant market role', () => { tables.tenant_actor_roles = [] }, 'tenant_market_roles_missing'],
+    ['missing locked run role', () => { tables.ediel_test_runs[0].role_code = null }, 'agt_run_role_code_required'],
+  ] as const)('a legacy hint cannot rescue %s in the actual AGT/tenant gates', async (_label, breakCurrent, diagnostic) => {
+    breakCurrent()
+    await expect(createAgt()).rejects.toThrow(diagnostic)
+    assertNoEffects()
+  })
+
+  it('a foreign company cannot borrow the own actor/profile through a legacy hint', async () => {
+    await expect(createAgt('L1', FOREIGN_COMPANY)).rejects.toThrow('Ingen aktiv ediel_actor_settings')
+    assertNoEffects()
+  })
+
+  it.each([
+    ['plaintext', 'none', 'unencrypted', CERTIFICATE, 'production_prodat_smime_required'],
+    ['missing certificate', 'smime', 'required_encrypted', null, 'certificate_missing'],
+    ['unverified security', 'none', 'needs_verification', CERTIFICATE, 'transport_security_needs_verification'],
+  ] as const)('%s stays blocked by the real production security evaluator despite legacy claims', (_label, encryptionMode, security, certificate, diagnostic) => {
+    // This is the real security evaluator's boundary, not an assertion that
+    // the AGT test command itself performs production certificate activation.
+    const current = { ...profile(), environment: 'production' as const, message_standard: 'edifact' as const, message_family: 'PRODAT',
+      encryption_mode: encryptionMode, transport_security_mode: security, certificate_id: certificate,
+      allow_unencrypted_production: true, allow_unencrypted_production_expires_at: '2099-01-01T00:00:00Z', allow_unencrypted_production_reason: 'manual legacy verification' }
+    const decision = evaluateProductionTransportSecurity({ runtime: current })
+    expect(decision.ok).toBe(false)
+    expect(decision.overrideActive).toBe(false)
+    expect(decision.issues.map(issue => issue.key)).toContain(diagnostic)
+    expect(actor().actor_ediel_id).toBe('24200'); assertNoEffects()
+  })
+})
