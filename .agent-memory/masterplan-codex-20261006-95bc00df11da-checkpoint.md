@@ -268,3 +268,33 @@ Next this session: concrete native-fixture/reusable current proof assessment,
 remaining exact-head clean+certificate, then own green expected-head merge with
 free atomic role. Before native additions reserve every added exact path and
 document extension. No coverage promotion absent all literal effects.
+
+## Extended own native proof scope — before code
+
+New three exact paths POST+GET-confirmed at extension receipt266aa5f781329a153a84ad1aa8f1c37fcbf33c69,
+same packet6c0f6bee-1d98-4bec-a2f8-b8ff3889d009:
+- scripts/ediel-sc-064-presend-requalification-native.test.ts
+- scripts/ediel-sc-064-native.config.ts
+- .github/workflows/ediel-sc064-native.yml
+
+Independent sc064 reviewer confirms frozen scenario permits actual post-intent
+policy/route/right change; September DB rollover is not required. Existing
+exported normal-switch fixture creates genuine signed/archived/qualified Z03
+and queue without provider. Implement four bounded real native cases: policy
+activation withdrawn/restored, current route target drift, current tenant
+capability withdrawal, unchanged positive worker control. Assert real durable
+queue decision/block, no provider entry, unchanged original/source/history.
+Reuse owner native config as wrapper and original clean replay/redactor as
+supplemental feedback; all ordinary mandatory gates remain. Shared owner
+config/helpers are unchanged. Native new cases NOT_RUN before publication.
+
+Z08LK reviewer identifies minimal retained LK helper export of private
+lkOperation/receivedLkEnd/lkEffects into side-effect-free factory; new asserts
+can reuse source helpers without importing the .test.ts or duplicating setup.
+Request retained owner extraction with defaults byte/effect preserved. Current
+SC and Z roles/component work remain owned; old source/registration ownership
+is not taken. Native negative cases: valid wrong LI/time with unchanged period
+and zero receipt/transition/ERC100/audit/final task; actual required/dependent
+field boundary and immutable-byte refusal. Whole Z08LK stays unapproved.
+Next own action: extension CLAIM/request530, then implement only new owned
+SC native/config/workflow files, type/lint/review, publish actual selected CI.
