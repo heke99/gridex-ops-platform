@@ -10,10 +10,11 @@ import { characteristic, line, qty, type Parts } from '../__tests__/fixtures/pro
 import { createRegulatedSupplyGroundNativeFixture } from './helpers/ediel-regulated-supply-ground-native-fixture'
 import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './helpers/originalMailboxNative'
-import { archiveRegulatedSupplyGround, reviewRegulatedSupplyGround } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
+import { archiveRegulatedSupplyGround, reviewRegulatedSupplyGround, readRegulatedSupplyGroundScope } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { buildReceivedSourceValidationEvidence } from '@/lib/ediel/core/receivedSourceValidationEvidence'
+import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { supabaseService } from '@/lib/supabase/service'
@@ -23,11 +24,12 @@ const provider = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: provider }) } }))
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks() })
 type Ground = Awaited<ReturnType<typeof createRegulatedSupplyGroundNativeFixture>>
+type WireOptions = { omitStart?: boolean; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
 
-function assignedWire(f: Ground, reference: string) {
+function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
   // Independent literal P26.A wire facts, not the production renderer. Field
   // 223 is Z26 and 210 is the archived ground's exact Swedish standard time.
-  const start = new Date(Date.parse(f.submission.startAt) + 3600000).toISOString().slice(0, 16).replace(/[-T:]/g, '')
+  const start = new Date(Date.parse(f.submission.startAt) + 3600000 + (options.startOffsetMinutes ?? 0) * 60000).toISOString().slice(0, 16).replace(/[-T:]/g, '')
   const body: Parts[] = [
     ['NAD', 'FR', [f.receiver, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
     ['NAD', 'DO', [f.sender, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
@@ -39,6 +41,9 @@ function assignedWire(f: Ground, reference: string) {
     ['NAD', 'IT', [f.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
     ['NAD', 'Z02', [f.sender, '160', 'SVK']],
   ]
+  if (options.omitStart) body.splice(body.findIndex(part => part[0] === 'DTM' && Array.isArray(part[1]) && part[1][0] === '92'), 1)
+  if (options.invoiceeIdentity !== undefined) body.push(['NAD', 'IV', [options.invoiceeIdentity, f.customerIdentity.qualifier, f.customerIdentity.agency],
+    '', 'Synthetic Own Invoicee', 'Street', 'City', '', '12345', 'SE'])
   return guideOrderedFixtureRaw(body, 'Z04')
     .replace('+S+R+', `+${f.receiver}:14+${f.sender}:14+`)
     .replace("+23-DDQ-PRODAT'", "+23-DDQ-PRODAT++1++1'")
@@ -47,7 +52,7 @@ function assignedWire(f: Ground, reference: string) {
     .replace('BGM+Z04+D+', `BGM+Z04+${reference}+`)
 }
 
-async function ground() {
+async function ground(options: WireOptions = {}) {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false',
     EDIEL_SMTP_FROM: 'synthetic@example.invalid', EDIEL_SMTP_USER: 'synthetic@example.invalid', EDIEL_SMTP_PASS: 'synthetic-only', EDIEL_EMAIL_PROVIDER: 'strato' })) vi.stubEnv(key, value)
   provider.mockReset()
@@ -61,7 +66,9 @@ async function ground() {
   expect(provider).not.toHaveBeenCalled()
   const reference = `A${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
   expect(reference).not.toBe(f.caseReference)
-  const wire = assignedWire(f, reference), smtp = assertEdielSmtpReadiness(), receivedAt = new Date().toISOString()
+  if (options.revokeSupplierRole) sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp()-interval '1 second'
+    WHERE company_id=${literal(f.companyId)} AND environment='test' AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier'`)
+  const wire = assignedWire(f, reference, options), smtp = assertEdielSmtpReadiness(), receivedAt = new Date().toISOString()
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire, receivedAt, smtpFrom: smtp.from })
   const ackRoute = randomUUID(), ackProfile = randomUUID()
   sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
@@ -75,8 +82,8 @@ async function ground() {
     beforeCustomer: sql(`SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}`) }
 }
 
-async function source() {
-  const f = await ground()
+async function source(options: WireOptions = {}) {
+  const f = await ground(options)
   const sourceId: string = randomUUID()
   // Explicit narrower source path: prospective public INSERT chooses the real
   // canonical A profile. Private source/context/reception/validation/effects
@@ -115,8 +122,8 @@ function preserves(f: Awaited<ReturnType<typeof ground>>) {
   expect(provider).not.toHaveBeenCalled()
 }
 
-async function adapterSource() {
-  const f = await ground()
+async function adapterSource(options: WireOptions = {}) {
+  const f = await ground(options)
   const id = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test',
     inboundEmailMessageId: f.mail.inboundEmailMessageId, parseResultId: f.mail.parseResultId, parsed: f.mail.parsed,
     meteringPointMatch: { status: 'matched', entityType: 'metering_point', entityId: f.pointId, confidence: 1, reasons: ['Synthetic exact own physical point'],
@@ -164,14 +171,18 @@ async function diagnoseSourceValidation(f: Awaited<ReturnType<typeof source>>) {
   }))
 }
 
-async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
-  const input = { actorUserId: f.actorUserId, edielMessageId: f.sourceId }
-  try { await processInboundEdielMessage(input) }
+async function processWithDiagnostics(f: Awaited<ReturnType<typeof source>>) {
+  try { await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: f.sourceId }) }
   catch (error) {
     try { await diagnoseSourceValidation(f) }
     catch (diagnosticError) { console.info('ASSIGNED_SOURCE_DIAGNOSTIC_FAILURE', diagnosticError instanceof Error ? diagnosticError.message : typeof diagnosticError) }
     throw error // Preserve the original failed oracle, regardless of diagnostics.
   }
+}
+
+async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
+  const input = { actorUserId: f.actorUserId, edielMessageId: f.sourceId }
+  await processWithDiagnostics(f)
   const first = state(f)
   expect(first).toMatchObject({ raw: f.wire, effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
@@ -205,6 +216,86 @@ it.each(['raw', 'direction', 'clock'] as const)('actual A original rejects %s mu
   expect(error).toMatchObject({ code: '23514', message: expected })
   expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(f.sourceId)}`)).toEqual(before)
   expect(state(f)).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0, acks: [], outbox: [] })
+  preserves(f)
+}, 120000)
+
+function holds(f: Awaited<ReturnType<typeof source>>) {
+  const result = state(f)
+  expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
+  expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
+  preserves(f)
+}
+
+it.each([
+  { name: 'missing own required start field210', options: { omitStart: true }, field: '210' },
+  { name: 'missing identity field250 activated by physical invoicee', options: { invoiceeIdentity: '' }, field: '250' },
+])('actual adapter/processor holds $name without an invented dependency fact', async ({ options, field }) => {
+  const f = await adapterSource(options)
+  const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', f.sourceId).single()
+  expect(error).toBeNull()
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(data as EdielMessageRow)
+  expect(decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === field), JSON.stringify(decision.issues)).toBe(true)
+  expect(decision.applicationDecision).not.toBe('accepted')
+  await processWithDiagnostics(f)
+  holds(f)
+  const first = state(f)
+  expect(first.acks.some(a => a.family === 'APERAK' && /ERC\+(?:41|42)::260/.test(a.wire)
+    && a.wire.includes(`RFF+LI:${f.reference}`) && a.wire.includes(`RFF+Z07:${f.external}`))).toBe(true)
+  expect(first.acks.every(a => a.company === f.companyId && a.route === f.ackRoute && a.profile === f.ackProfile)).toBe(true)
+  await processWithDiagnostics(f)
+  expect(state(f)).toEqual(first)
+}, 120000)
+
+it('physically complete invoicee is accepted by the declared prospective-source control, without billing/customer mutation', async () => {
+  // The existing control's explicitly declared readings=false port remains
+  // narrower than actual parser intake; never credit this as adapter success.
+  await assertAssignedEffects(await source({ invoiceeIdentity: '199001011234' }))
+}, 120000)
+
+it('actual A source cannot borrow the archived ground start one minute away', async () => {
+  const f = await adapterSource({ startOffsetMinutes: 1 })
+  const actualStart = sql<string>(`SELECT to_jsonb(gridex_received_sources.permission_time_v1(
+    gridex_received_sources.normal_switch_wire_v1(raw_payload)#>>'{objects,0,start}')) FROM public.ediel_messages WHERE id=${literal(f.sourceId)}`)
+  expect(Date.parse(actualStart)).toBe(Date.parse(f.submission.startAt) + 60000)
+  expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(f.submission.startAt)}))`)).toBe(true)
+  expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(actualStart)}))`)).toBe(false)
+  await processWithDiagnostics(f)
+  const { data, error } = await supabaseService.rpc('ediel_apply_supply_source_v1', {
+    p_company_id: f.companyId, p_source_message_id: f.sourceId, p_actor_user_id: f.actorUserId,
+  })
+  expect(error).toBeNull()
+  expect(data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
+  holds(f)
+}, 120000)
+
+it('dated supplier role loss before actual source birth holds the original legal scope without removing user permission', async () => {
+  const f = await adapterSource({ revokeSupplierRole: true })
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier' AND (valid_to IS NULL OR clock_timestamp()<valid_to)`)).toBe(0)
+  const scope = await readRegulatedSupplyGroundScope({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test', kind: 'assigned_supply',
+    contractId: f.contractId, meteringPointId: f.pointId, identityAgency: '9', bilateralAgreementId: f.agreement, startAt: f.submission.startAt })
+  expect(scope).toMatchObject({ status: 'held', missing: ['actual_current_own_contract_point_legal_registry_and_bilateral_scope'] })
+  await processWithDiagnostics(f)
+  holds(f)
+}, 120000)
+
+it('real public outbound owner rejects supplier-originated physical A before any draft, outbox or source effects', async () => {
+  const f = await ground()
+  const raw = assignedWire({ ...f, sender: f.receiver, receiver: f.sender }, f.reference)
+    .replace(`NAD+Z02+${f.receiver}:160:SVK`, `NAD+Z02+${f.sender}:160:SVK`)
+  const counts = () => sql(`SELECT jsonb_build_object(
+    'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),
+    'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),
+    'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}),
+    'effects',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE company_id=${literal(f.companyId)}),
+    'partitions',(SELECT count(*) FROM gridex_received_sources.supply_object_partitions WHERE company_id=${literal(f.companyId)}),
+    'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)}))`)
+  const before = counts()
+  await expect(createCanonicalOutboundMessage({ actorUserId: f.actorUserId, requestType: 'supplier_switch', baseInput: {
+    actorUserId: f.actorUserId, companyId: f.companyId, environment: 'test', direction: 'outbound', messageStandard: 'edifact',
+    messageFamily: 'PRODAT', messageCode: 'Z04', messageVersion: 'E2SE6A', applicationReference: '23-DDQ-PRODAT', rawPayload: raw,
+    senderEdielId: f.sender, receiverEdielId: f.receiver, communicationRouteId: f.routeId, routeProfileId: f.routeProfileId,
+  } })).rejects.toThrow('PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED')
+  expect(counts()).toEqual(before)
   preserves(f)
 }, 120000)
 
