@@ -353,3 +353,16 @@ Completed independent reviewed17 source publication7fe1af33/6022634316, actualru
 
 Next thisowner: mandatory independent plan/API + REDconsumer test beforeminimalproducer/hook, focusedregressions/types/lint, exact-headreviews, actualphysicalnative/currentCI/capture. GEN remainsforeign621; no canonicaloutputwrite/coverageapproval/merge/newpair. Commonmemory ownerc3 canmirroractualhandoff/claim. Sourceowner2f independentlyreview resultingcombinedscope; theirA/Dnative remains theirresponsibility.
 Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6022681768
+
+## Physical catalog producer TDD — before edit
+
+BEFORE physical TDD — 93e sameE/629,19 ownrefs/35c0c07 sourcehandoff confirmed. Adopted actualmain8f388b04 (#626) normally into exactlocalce5d3f991ecef3e3f7f635d757028afc8accf93b; no E source conflicts/dependencychange, actualmain284 approvals. Published17 remains7fe/run37510141187 awaitingauthenticresults.
+
+Independent Z06 source/API plan APPROVE. New bounded catalog-only customerSourceBirthProfile: actualwirehomogeneousZ06/E34/ownLIN + validactualretained Swedishmaildate -> existing public native original-witnessRPC; no business/death/bilateral facts. Six returnedregistry fields ONLY beforefirstINSERT. Preserve duplicate branch, exactreceivedcompany/environment/receipt/immutable/reception/SQL/authorityguards and reviewedf9 threeA/Dsourceblobs.
+
+Sourcecompatibility confirmed: strict allphysical223 vsfirst-register scope selector mustnotborrowlaterreasons. ONLYtwoalready-owned physicaltestpositiveinputs nowprospectively singleLIN through new helper repeatRegister?:boolean option (defaulttrue; physicaltwofalse). CompleteZ06UD/IV/BRP/Z12/IT/157/LI retained. Existingprimary/legacy/SQLrepeated-registerstress unchanged. Allphysicalprocessor/primaryACK/version/graph/retry oracles preserved. No weakenedguard/profileconstant/pinbackpatch.
+
+Next=thisowner write actual intake six-field/retainedclock chronology regression, executeRED before production, then minimal own dedicatedproducer/hook +focusedrealwireunitcases, Node22affectedregressions/types/lint and mandatoryindependentexactHEADreviews/native/currentcapture. Foreign621GENstillheld; no coverage/newpair/merge.
+Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6022711440
+
+Physical TDD RED on actual current pre-hook intake: Node22 vitest ediel-customer-source-birth-intake3cases=1PASS2FAIL/exit1. Fresh canonical witness call absent (0 calls); catalogue failure wrongly never reached so source inserted. Existing duplicate preservation control PASS. Log /tmp/gridex-e-birth-intake-red.log. This finite DB-port test proves missing caller chronology only; nativephysical2 strict23514 predecessor preserved. Commit this focused RED before any production edit; next minimal reviewedhandoffcarry+dedicatedEproducer/hook then exactnative.
