@@ -23,6 +23,8 @@ import {executeEdielServiceAdministration} from '@/lib/ediel/services/administra
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition'
 import {omitPermissionField,permissionRequiredFields} from './helpers/ediel-permission-field-omissions'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
+import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 beforeEach(resetNativeEscoFixture)
@@ -170,7 +172,37 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    expect(decision.applicationDecision,field).toBe('rejected')
    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:field,errorKind:'missing'})})]))
   }
-  await process(f,source).catch(error=>{throw new Error(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`,{cause:error})})
+  if(field==='314'){
+   // Native feedback rejects the missing LIN sequence at the protected v6
+   // source ledger. This proves the prohibited execution stays blocked; it
+   // does not claim successful processing or a negative APERAK response.
+   const {events:diagnosticEvents,...protectedEffects}=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
+   void diagnosticEvents
+   const wire=tokenizeEdifact(source.raw_payload!)
+   expect(segmentComposite(wire.segments.find(s=>s.tag==='LIN'),1,wire.una)[0]).toBe('')
+   const evidence=buildReceivedSourceValidationEvidence({original:source,validated:source,resolvedCompanyId:f.ids.company,decision})
+   expect(evidence).not.toBeNull()
+   // Expose the actual native refusal hidden by the normal adapter; these
+   // are solely this fresh canonical invocation's facts, never approvals.
+   const refused=await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
+    p_company_id:evidence!.companyId,p_environment:evidence!.environment,p_source_message_id:evidence!.sourceMessageId,
+    p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:evidence!.factsText,
+    p_ignored_fields_text:evidence!.prodatIgnoredFields?JSON.stringify(evidence!.prodatIgnoredFields):null,
+    p_object_facts_text:evidence!.prodatObjectValidation?JSON.stringify(evidence!.prodatObjectValidation):null,
+    p_response_facts_text:evidence!.prodatResponseValidation?JSON.stringify(evidence!.prodatResponseValidation):null,
+    p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
+    p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
+   })
+   expect(refused.data).toBeNull()
+   expect(refused.error?.message).toBe('prodat_full_object_physical_scope_required')
+   await expect(process(f,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
+   const {events:updatedDiagnosticEvents,...actualEffects}=f.effects();void updatedDiagnosticEvents
+   expect(actualEffects).toEqual(protectedEffects)
+   expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
+   expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+  }else{
+   await process(f,source).catch(error=>{throw new Error(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`,{cause:error})})
+  }
   expect(market(f,a.permissionId),field).toEqual(before)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
  }
@@ -237,7 +269,12 @@ it('actual ESCO terminate command protects a shared active mission then sends it
  const queuedOriginal=(await getEdielMessageById(outgoing.id))!
  expect(queuedOriginal).toMatchObject({status:'queued',direction:'outbound',raw_payload:outgoing.raw_payload})
  const queuedEffects=f.effects(),queuedMarket=market(f,a.permissionId),queuedSends=nativeEscoExternal.send.mock.calls.length
- for(const attempted of [{...queuedOriginal,direction:'inbound' as const},{...queuedOriginal,raw_payload:queuedOriginal.raw_payload!.replace('RFF+LI:','RFF+LI:MUTATED-')}]){
+ const originalLi=String(protectedState.permission.rff_li_reference),foreignLi=(originalLi.startsWith('X')?'Y':'X')+originalLi.slice(1)
+ expect(foreignLi.length).toBe(originalLi.length)
+ const foreignLiPayload=queuedOriginal.raw_payload!.replace(`RFF+LI:${originalLi}`,`RFF+LI:${foreignLi}`)
+ expect(foreignLiPayload).not.toBe(queuedOriginal.raw_payload)
+ expect(validateEdifactEnvelope(foreignLiPayload).syntaxOk).toBe(true)
+ for(const attempted of [{...queuedOriginal,direction:'inbound' as const},{...queuedOriginal,raw_payload:foreignLiPayload}]){
   await expect(sendEdielMessageViaSmtp(attempted,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'})).rejects.toBeTruthy()
   expect(await getEdielMessageById(outgoing.id)).toEqual(queuedOriginal)
   expect(f.effects()).toEqual(queuedEffects);expect(market(f,a.permissionId)).toEqual(queuedMarket)
