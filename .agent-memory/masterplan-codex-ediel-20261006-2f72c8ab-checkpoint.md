@@ -496,3 +496,26 @@ Own A/D pair c824e20f / receipt3c883 / 7 exact refs unchanged. Published630 HEAD
 Before further edit: own Dhelper may install missing production operation REFERENCE catalog keys (disposable loopback only, same established native setup method), explicitly grant/check own-company contracts.create/contracts.publish/pricing.write/pricing.publish. Independently approved unchanged-public-API recipe: new production v2 draft offer available today; actual required production legal materialization → actual internal-version publication → actual production price option/SE3 row → actual channel publication → returned published/locked product/legal bindings → new draft/sign/PDF/archive/separateDground. No legacy manual binding, platformadmin, fabricated approved/locked rows, foreign shared helper or SQL changes. Failures remain strict. Add actual called source migration pins in ownedworkflow before publication.
 Independent frozenP69 input review approves prospective A source242L639Q/217Z04/254Z32/306Z12/physical15, omit unused506, actualBRPf.brpEdielId; retained registryhourly is not incoming quarter-hour qualification. Preserve all14 strict oracles; remove obsolete outbound506/BRP substitutions only. No production/source change from this correction.
 Actualmain advanced docs-only632 to24720181a5a0c27644d2d31fe39bd843299000ea;113/121+171/231=284/352,68remain. Memory role95bc holds common reconciliation. Eowner93e continuing exact source3handoff and reviewed physicalZ13 ambiguity strengthening; root MUST NOT edit those files. Scout reconciling genuine continuing physical259 ownership vs completed614/mere historic authorship, no assumed approval requirement. Next=root bounded input fixes with Ddelegate exacthelper-only, readonly independent review+TSC/ESLint/currentnative; retain historical red evidence/no coverage or merge claim.
+
+## CLAIM same A/D physical259 producer extension BEFORE CODE
+{
+  "protocol": "masterplan-reservation-v1",
+  "packet": "2cc34113-e534-4843-b0f3-f51b8795ffc7",
+  "agent": "codex-ediel-20261006-2f72c8ab",
+  "branch": "codex/ediel-z04a-native-2f72c8ab",
+  "checkpoint": ".agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+  "ids": [
+    "AT-Z04A-SUPPLIER",
+    "AT-Z04D-SUPPLIER"
+  ],
+  "files": [
+    "lib/ediel/core/messagePolicy.ts",
+    "lib/ediel/core/prodatBilateralSourceCapability.ts",
+    "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts",
+    "__tests__/ediel-prodat-source-register-reading-declarations.test.ts"
+  ],
+  "base": "24720181a5a0c27644d2d31fe39bd843299000ea",
+  "createdAt": "2026-10-06T18:39:56.948197+00:00",
+  "nextAction": "Same A/D pair extension: new incoming own-source physical259 TRUE producer. Independent original483/342 MERGED +614 COMPLETE/STOP and954comments/live80ref receipts prove no continuing specific producer owner; old handoff-pending assumption superseded. TDD new typed source declaration/complete object unknown isolation/opaque capability and clock-guide binding; compose only messagePolicy, no foreign621 validator/inboundProcessing,93e birthsource or24fa response edits; no inventory/absence-to-false/accepted authority manufacture."
+}
+Receipt 1cc111e0c23794e10e3dfd83867b7263549bf2d8; all4sortedPOSTcreated/everyGETmatched; prior7GETmatched3c883. No second pair/role. Historical producer-owner assumption superseded by independent explicit ownership receipts:483/342MERGED,614COMPLETE/STOP6014759009;6021930339 was our request only. Current main 24720181a5a0c27644d2d31fe39bd843299000ea;284approved/68remain. Next root TDD ownsource259TRUE producer +strong privatecap clock/version/appref binding +messagePolicy composition; read-only semantic review before sourcecode, strict A/D negatives remain, no absence false/inventory or foreign edits.
