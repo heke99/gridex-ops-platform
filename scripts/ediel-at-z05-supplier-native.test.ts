@@ -20,6 +20,7 @@ import {getEdielMessageById} from '@/lib/ediel/db'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {validateUnsmGrammar} from '@/lib/ediel/core/unsmGrammar'
 import {validateAckPreflight} from '@/lib/ediel/core/ackPreflight'
+import {resolveInboundTenantFromIdentifiers} from '@/lib/ediel/tenant/resolveInboundTenant'
 import {parseRulebookMessage} from '@/lib/ediel/rulebook/messageParser'
 import {type EdielMessageRow} from '@/lib/ediel/types'
 import {type Parts} from '../__tests__/fixtures/prodat-register'
@@ -36,7 +37,7 @@ async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEnd
  return{...f,effects:()=>lkEffects(f)}
 }
 const immutable=(id:string)=>sql(`SELECT jsonb_build_object('raw',raw_payload,
- 'hash',immutable_payload_hash,'renderedAt',immutable_rendered_at,'receivedAt',message_received_at,
+ 'direction',direction,'company',company_id,'hash',immutable_payload_hash,'renderedAt',immutable_rendered_at,'receivedAt',message_received_at,
  'context',execution_context_snapshot,'captured',(SELECT to_jsonb(s)
  FROM gridex_received_sources.sources s WHERE s.source_message_id=m.id))
  FROM public.ediel_messages m WHERE id=${literal(id)}`)
@@ -122,15 +123,22 @@ it.each(variants)('actual Z05%s missing mandatory end date is rejected with fiel
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)
 
-it.each(variants)('actual Z05%s cannot execute when the real receiving tenant supplier role is withdrawn before source birth',async variant=>{
- const f=await receivedEnd(variant,{qualification:'observe',beforeBirth:({companyId})=>{
-  sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp()-interval '1 second'
-   WHERE company_id=${literal(companyId)} AND environment='test' AND role_code='electricity_supplier'`)
-  expect(sql(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(companyId)} AND environment='test' AND role_code='electricity_supplier' AND(valid_to IS NULL OR valid_to>clock_timestamp())`)).toBe(0)
- }}),before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId)
- expect([f.decision.applicationDecision,f.decision.functionalDecision],JSON.stringify(f.decision.issues)).toContain('rejected')
- expect(f.decision.issues.some(i=>i.severity==='error'),JSON.stringify(f.decision.issues)).toBe(true)
- await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+it.each(variants)('actual Z05%s current receiving supplier role withdrawal holds before runtime and preserves its sealed original and every business graph',async variant=>{
+ const f=await receivedEnd(variant)
+ // Wire/profile qualification is favorable; current tenant role resolution is
+ // a separate real consumer. Preserve historical receive identity and clock.
+ expect([f.decision.syntaxDecision,f.decision.applicationDecision,f.decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
+ sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp()-interval '1 second'
+  WHERE company_id=${literal(f.companyId)} AND environment='test' AND role_code='electricity_supplier'`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)} AND environment='test' AND role_code='electricity_supplier' AND(valid_to IS NULL OR valid_to>clock_timestamp())`)).toBe(0)
+ const before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId)
+ const routing=await resolveInboundTenantFromIdentifiers({existingCompanyId:f.companyId,environment:'test',
+  senderEdielId:f.receiver,receiverEdielId:f.sender,marketActorEdielId:f.sender,
+  applicationReference:'23-DDQ-PRODAT',messageFamily:'PRODAT',messageCode:'Z05'})
+ expect(routing).toMatchObject({status:'ambiguous',companyId:null})
+ expect(routing.evidence.filter(e=>e.source==='verified_legal_identity')).toEqual([])
+ const held=await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ expect(held).toMatchObject({company_id:f.companyId,tenant_resolution_status:'tenant_ambiguous',business_match_status:'business_blocked',processing_status:'routing_unresolved'})
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)
 
@@ -150,6 +158,15 @@ it.each(['outbound H request','inbound L end'] as const)('actual sealed %s rejec
  const f=await receivedEnd('L'),id=lane==='outbound H request'?f.original.id:f.sourceId,before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId),original=immutable(f.original.id)
  const wire=lane==='outbound H request'?f.original.raw_payload!:f.wire,mutated=wire.replace('202610161330','202610161331')
  expect(mutated).not.toBe(wire)
- expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=${literal(mutated)} WHERE id=${literal(id)}`)).toThrow()
+ expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=${literal(mutated)} WHERE id=${literal(id)}`)).toThrow(lane==='outbound H request'?'supply_rescission_atomic_original_required':'immutable_ediel_payload_cannot_change')
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw);expect(immutable(f.original.id)).toEqual(original)
+},120000)
+
+// The retained finite facade cases also execute its outbound early return before
+// any RPC. Here the actual native source guard independently seals direction.
+it.each(variants)('actual received Z05%s direction cannot be changed into outbound to bypass the inbound consumer',async variant=>{
+ const f=await receivedEnd(variant),before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId)
+ expect(()=>sql(`UPDATE public.ediel_messages SET direction='outbound' WHERE id=${literal(f.sourceId)}`))
+  .toThrow('immutable_ediel_received_context_cannot_change')
+ expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)

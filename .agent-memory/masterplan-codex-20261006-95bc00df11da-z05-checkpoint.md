@@ -96,3 +96,20 @@ beforeanywholepromotion. No runtimeedits/foreignfiles/secondpair.
 Exactdae6c266 scriptsTSC exposed CanonicalDecisionIssue hasseverity ratherthan
 blocking; correctedthe typed assertion only, preservedrealrole/noeffectoracles.
 No nativeexecuted/no coveragepromotion. Next correctedTSC+independentreview.
+
+## Independent authoring finding / oracle correction before native
+
+Exactae45 correctedTSC PASS; bothmandatoryreviewers readsource. LKpeer found
+canonicalrawprofile doesnotperformtenantrole routing. Removed inventedcanonical
+rejection expectation andunnecessarybeforeBirth policyhook: genuineimmutable
+receivedsource iscreated while supplier role valid, thenrealcurrentrolewithdrawn
+beforeactualsharedresolver+processor. Assertactualtenant_ambiguous/routing_unresolved
+with companypreserved+noverifiedidentity/noend/positive/task/foreignmutations;
+wirefavorable qualification staysaccepted andhistoricalbirthclock untouched.
+Rolepolicy refinement isnotchangingproduct criterion. Added2actualnative sealed
+direction controls with exactimmutable_ediel_received_context_cannot_change,
+existingfinitefacade outboundearlyreturn retained; tightenedLrawmutation exact
+supply_rescission_atomic_original_required/immutable_ediel_payload_cannot_change.
+Now14new+24retained =38 strictnativeproposals, workflow29recordedinputs. No
+nativeexecuted/coverageapproval; next correctedtypes/lint/independentreview then
+strictauthenticfeedback publication.
