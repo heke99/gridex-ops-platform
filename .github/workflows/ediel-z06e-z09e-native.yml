@@ -1,0 +1,117 @@
+name: Ediel Z06E Z09E native source feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/ediel-z06e-z09e-native.yml'
+      - 'lib/**'
+      - 'supabase/**'
+      - '__tests__/helpers/**'
+      - 'e2e/production/helpers/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'tsconfig.scripts.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z06e-z09e-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental execution of preserved source proofs. Ordinary required gates
+# remain mandatory; these four cases do not approve either whole E contract.
+jobs:
+  z06e-z09e-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute preserved customer source pipelines after clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p z06e-z09e-native-working
+          native_tests=(
+            scripts/ediel-confirmed-customer-bilateral-native.test.ts
+            scripts/ediel-requested-customer-change-source-native.test.ts
+          )
+          export Z06E_Z09E_NATIVE_TEST_SCOPE
+          Z06E_Z09E_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          export Z06E_Z09E_NATIVE_INPUT_HASHES="$RUNNER_TEMP/z06e-z09e-input-hashes.json"
+          # Hash tracked source inputs before replay temporarily moves migrations.
+          # Only paths/digests are written; status and credentials stay in temp.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          scope = os.environ['Z06E_Z09E_NATIVE_TEST_SCOPE'].splitlines()
+          paths = subprocess.check_output([
+              'git', 'ls-files', '-z', '--', 'lib', 'scripts', 'supabase',
+              '__tests__/helpers', 'e2e/production/helpers', 'package.json',
+              'package-lock.json', 'tsconfig.json', 'tsconfig.scripts.json',
+              '.github/workflows/ediel-z06e-z09e-native.yml',
+          ]).decode().split('\0')
+          paths = sorted(set(scope + [p for p in paths if p]))
+          hashes = {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}
+          pathlib.Path(os.environ['Z06E_Z09E_NATIVE_INPUT_HASHES']).write_text(json.dumps(hashes)+'\n')
+          PY
+          # Preserve the canonical replay's EXIT cleanup trap. Replay/status
+          # output may contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z06e-z09e-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z06e-z09e-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-at-z06e-z09e-supplier-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=z06e-z09e-native-working/native-junit.xml \
+            > z06e-z09e-native-working/native.log 2>&1 || native_exit=$?
+          export Z06E_Z09E_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          receipt = {
+              'purpose': 'supplemental_preserved_customer_source_native_feedback',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['Z06E_Z09E_NATIVE_EXIT']),
+              'input_sha256': json.loads(pathlib.Path(os.environ['Z06E_Z09E_NATIVE_INPUT_HASHES']).read_text()),
+              'test_scope': os.environ['Z06E_Z09E_NATIVE_TEST_SCOPE'].splitlines(),
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'whole_contract_approval': 'NOT_PROVIDED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('z06e-z09e-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root z06e-z09e-native-working
+          # No artifact directory exists unless receipt and redaction succeed.
+          mv z06e-z09e-native-working z06e-z09e-native-evidence
+          cat z06e-z09e-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z06e-z09e-native-${{ github.event.pull_request.head.sha }}
+          path: z06e-z09e-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
