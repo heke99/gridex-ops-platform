@@ -81,15 +81,22 @@ it('actual sent Z09 receives same-original CONTRL then object APERAK, immutable 
   expect(business(f)).toEqual(before);acks.push(message)
  }
  expect(counts(f,original.id)).toEqual({desired:1,customerVersions:0,confirmedVersions:0,correlations:2,receipts:2,outboundZ06:0})
+ expect(original.outbound_request_id).toBeTruthy()
+ expect(sql(`SELECT to_jsonb(status) FROM public.outbound_requests WHERE id=${literal(original.outbound_request_id)}`)).toBe('acknowledged')
  const stable=counts(f,original.id)
+ const accepted=(await getEdielMessageById(original.id))!
  for(const message of acks){expect(await processInboundAckMessage({actorUserId:f.actorUserId,message})).toMatchObject({sourceMessage:{id:original.id},outcome:'positive'});expect(counts(f,original.id)).toEqual(stable)}
+ expect((await getEdielMessageById(original.id))!).toMatchObject({status:accepted.status,contrl_status:accepted.contrl_status,aperak_status:accepted.aperak_status,raw_payload:accepted.raw_payload})
+ expect(sql(`SELECT to_jsonb(status) FROM public.outbound_requests WHERE id=${literal(original.outbound_request_id)}`)).toBe('acknowledged')
  expect((await getEdielMessageById(original.id))!.raw_payload).toBe(f.rawPayload);expect(business(f)).toEqual(before)
 },120000)
 it('fresh received unknown UCI and wrong LI cannot correlate or accept the sent customer original',async()=>{
  const{f,before,original}=await sent(),stable=counts(f,original.id)
  for(const[family,defect]of [['CONTRL','unknown'],['APERAK','wrongLI']] as const){
   const{message,decision}=await intake(f,original,externalAck(original,family,defect))
-  await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision})
+  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','manual_review','manual_review'])
+  expect(decision.issues.map(issue=>issue.code)).toContain('CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE')
+  expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision})).toMatchObject({status:'recorded'})
   expect(await processInboundAckMessage({actorUserId:f.actorUserId,message})).toMatchObject({sourceMessage:null,sourceAccepted:false,finalAckReached:false})
   expect(await readCommittedInboundAck({actorUserId:f.actorUserId,message})).toBeNull()
   expect(counts(f,original.id)).toEqual(stable)
