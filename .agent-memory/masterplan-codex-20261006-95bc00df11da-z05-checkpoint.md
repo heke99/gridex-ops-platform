@@ -1041,3 +1041,24 @@ nonnull Z22 missing finaltask; narrow guard to source-consumer-owned ending
 path(s), GREEN retained40+nonnullZ05 controls+Z22. Both independent source
 review, then newcurrenthead genuine39 AND fullclean/allmandatory SUCCESS
 required. Do not waive/change existing Z22 oracle or borrow oldc726 approval.
+
+## Own Z22 TDD correction / exact successor9bc prepared
+
+RED tests2580540c:44=42PASS2FAIL onunchangedc726product; logSHA3febee84a47e2f7f605b6169648b40011dcde00c7138fefb2f65afb93f13ea66.
+Minimalguard5bd9ea7f878734bfa9b2920d41e6577d9a0db514:
+!sourceResult.idempotent && input.committedSupplyResult?.partition == null.
+Onlyactualupstreamcommittednonnull consumer delegates finaltask; directnative
+apply creates establishedscopedtask, idempotentreplaynone. Genuineprocessor
+ownedwhole paths unchanged, linkedL/LKNULL andordinaryLnonnull retain existing
+actual39proof. No Z22oracle or native/gate/authority/schema changes.
+GREEN44 logSHA856a0fb8f8a6f596ceadc67b180fd16630a2acc0c050ac08f977cb53bcf24c9e; independent z08lk44PASS; both rootcause fpconfirmed.
+Finalsuccessor9bcf13a8b8a0304b5d997255537372a65566b094/tree
+1ae7c2bbbf30ccf947d95e33b1dc361bfe4a801e CLEAN. Fourpaths onlyvs c726:
+owned unit/product/compactproof/ownCP; ALLcoverage bytes/frozenZIP/native
+workflows and inputs unchanged. Historical approvals explicitlymarked, new
+currentnative39/mandatoryclean/allgates REQUIRED beforedelivery.
+Finalz08lk SOURCE_DELIVERY_APPROVE exact9bc nofindings; sc064finalsource seal
+pending, fullunit+threeTS running/lintEXIT0. TenoldcurrentchecksSUCCESS but
+clean/certFAIL retained6027210023, no currentCI_GREEN/MERGED/role/newpair.
+Next95bc finalsourcepeer/full/TS/12freshrefs→normalpublishsamePR→authentic
+new39+unchanged705clean fulltails/allgates/currentwhole reviews→serialmerge.
