@@ -574,3 +574,27 @@ Next95bc full/static terminal +independent sourceintegration review, then freeze
 and publish5ed afterconfirming10refs; current39/newactualGitinputhead/allmandatory
 gates, physical ACK/followup/history/replay and owncustody assertions allremainstrict.
 Native/whole/currentCI_GREEN/owncoverage/merge/externalNOTCLAIMED.
+
+## Authenticbbf39 RED retained / before source-derived route-input supplement
+
+Official run37527791618/job112489099309/art11444190036 terminalFAIL exactbbf
+treeb8766fcfa2be1f00d98b9813de28e954ce0672b4, ZIP452976B SHA256
+6857455c55ac18da5c19829eb63b6762100162d89b0b9b89393a0391b8202f47,
+APIartifact digest/size/run/head/tree+CRC+ALL9255trackedGit input hashes qualified.
+Actual39=30PASS9FAIL0skip/error exit1: new15=6/9, retained20+4PASS.
+/tmp/gridex-z05-bbf192d5-qualification.json and original redacted ZIP retained.
+SevenactualmissingCONTRLwrappedroute_unavailable persist despite genuine
+originalmail+firstreception. Positive/nativeR211D251 trailingtask/history/replay
+NOT_REACHED; custody2beforeactual621 remain separately, nowactualmainadopted.
+No guessedunderlyingRPCcause/wholequalification.
+
+Sourceconfirmed configured_reply_route_v2 requiresp.is_active TRUE, but inherited
+publicACKprofileINSERT omitsnullableNO-defaultis_active(schema107709), own
+configure onlymailbox/SMTP. Both mandatory peers requested source/default/trigger
+confirmation BEFOREcode. Prospective OWNnative-onlyplan: configureis_active=true
+beforeFIRSTACK, assertordinarypublicrow; diagnostic read exactpublic routeRPC
+for missingCONTRL returningonlyboundedcode/message toprove actualcause ifstillfails.
+No privateauthority/readiness/certseed/sourcebackpatch/guardchange; default24kept.
+FullfrozenLOCAL5ed stillrunning; MUSTwaitterminal beforeany sourceedit. All3TSC/
+scopedlint/diff PASS5ed. Next95bc fullterminal+peerplan review, only ownednative
+supplement ifsourceconfirmed, currentreview/strict39/allGitinputs/gates.
