@@ -261,3 +261,31 @@ and literalLcorrelation; record exactminimalprospectiveownedhelper/testscope
 BEFORE any correction. No production/SQL/guard weakening/coverageedit. Foreign
 621099native11PASS butcurrentordinarypending/unmerged. Memory63459fstillclean/
 certpending, samebe6role; no whole/gates/merge/externalclaim.
+
+## BEFORE correction / samepair Legacy extension confirmed
+
+Source94 authentic32/6/all32hashRED preserved. Bothpeers normativeconvergence:
+unknownLIwithoutindependentHassociation isnotprovenprohibited (Pfield226eventual
+Z08H/TMZ05LalsoZ03L); replaceambiguousnegative withHLI+point+agency retained and
+validdifferentUDidentity, actualselectortrue/matchednull/exactguard+zeroeffects.
+AddindependentordinaryunsolicitedLpositive actualownreceipt/noHreceipt/audit/
+watchfulfillment/realACKs/exactperiod/history/tasks/fullgraphs/replay. Missing
+CONTRL isunqualified fixtureACKprofileNULLmailbox/host/port; setonlyexisting
+disposableprofile toactualnonsecretSMTPowner valuesinownsuite, preservedshared
+helperdefaults/CONTRLoracles andblocked-eventdiagnostic. Hbyte mutation actual
+genericsealguard first; expectedimmutable_ediel_payload_cannot_changeonly, all
+unchanged snapshots. No productionoriginal/routing/SQLguard weakening.
+
+ActualordinaryL made2samepurpose finaltasks: processorreceiptprojection THEN
+Legacyprojection. Atomicextensiona09bb33190d0f89619737937e1299f5a746b32d4/packet35df85c9-ef8a-4216-ad19-b4299e40dace
+POSTcreate-if-absent+doubleGET confirmedexactfile-80d9ef496bb9258f0b01fb57ddeab508e6f990833503a99a1a9cde949e7e8044 for
+lib/ediel/flows/inboundBusinessStateMachineLegacy.ts atactualmained3d0731261cba73440a52a0dd2e57af128a7b13.
+SameoneZ05pair now10resources, original9GETreconfirmed; no role/foreignedits.
+Next95bc postCLAIM530 BEFORE CODE thenownedunit40 add2nonnullproperpartition
+realadapter finitecases→actualTDDRED beforeminimalLegacyconditionpartitionNULL
+forlegacytaskprojection; nativeownprojector keepsnonNULLreceipt responsibility
+andretry. Keepnullpartitionallold40/defaults; mandatoryplanreviews requested.
+Source523negativeACKreviewedunpublished; mergeactual634metadataed3 only after
+refresh compatibility; foreign621099custodyrepair stilladoptonlyactualmain.
+PR634actuallyMERGEDed3/tree0c3e/MERGED6024231854/rolesGETDELETE4046024234061;
+metadataCPseparate/currentqueued631historic/633+634mirror role-free, no wholeclaim.
