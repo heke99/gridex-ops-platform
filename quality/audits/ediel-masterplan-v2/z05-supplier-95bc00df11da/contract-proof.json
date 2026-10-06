@@ -12,7 +12,7 @@
   "original_delivered_component_pr": 597,
   "frozen_acceptance_register_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
   "technical_contract_review": {
-    "status": "BOTH_INDEPENDENT_WHOLE_APPROVE",
+    "status": "HISTORICAL_WHOLE_APPROVE; SUCCESSOR_CURRENT_REVIEW_AND_EXECUTION_PENDING",
     "independent_reviewers": [
       "sc064_spec_review",
       "z08lk_spec_review"
@@ -76,7 +76,8 @@
     "schema_capture": "NOT_RUN",
     "browser_tests": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
-    "authentic_market_evidence": "NOT_PROVIDED"
+    "authentic_market_evidence": "NOT_PROVIDED",
+    "status": "HISTORICAL_AUTHENTIC_EXECUTION_RETAINED"
   },
   "criteria": {
     "wire_and_association": "Actual paired DDQ/BGMZ05/Z22-Z23 policy/parser/canonical consumers; linkedL/LK and unsolicitedL. H linkage is optional; Z05LK is not a Z09E response.",
@@ -90,7 +91,7 @@
   "regressions": {
     "retained_native_controls": 24,
     "paired_components": 42,
-    "legacy_duplicate_fix": "Validated own nonnull receipt partition remains owned by public receipt projector; null-partition Legacy behavior retained. Real unit TDD40PASS2FAIL before fix then42PASS.",
+    "legacy_duplicate_fix": "Historical broad partition guard caused c726 mandatory Z22 direct-facade regression. Successor suppresses the Legacy task only for an upstream committed nonnull result; direct native applies retain scoped task and idempotent replay adds none.",
     "full_unit": {
       "source": "5ed40878d37b539862dd3e096e06c6d879400388",
       "files": 895,
@@ -115,5 +116,22 @@
   },
   "boundaries": "Disposable actual public/canonical/SQL consumers and durable effects. External SMTP and synthetic legal issuer are declared fixture ports; no private ready/accepted/effect facts are seeded. Native clean replay does not replace ordinary clean/upgrade/parity/browser/current mandatory gates.",
   "delivery_gate": "Final PR head still requires independent review and all applicable mandatory checks before merge; this execution receipt does not assert CI_GREEN or resulting-main/external acceptance.",
-  "actual_metadata_base": "56e58b95518ec4d5eef210ba16ba46228afb40ac"
+  "actual_metadata_base": "56e58b95518ec4d5eef210ba16ba46228afb40ac",
+  "current_successor_verification": {
+    "scope": "Direct native closure final-value followup; existing received-source projector ownership preserved.",
+    "red_source": "2580540c",
+    "red": "44 tests: 42 PASS, two direct-native closure FAIL before product correction",
+    "green_product_source": "5bd9ea7f",
+    "green": "44 PASS; includes explicit upstream committed-result delegation and direct nonnull closure task with immutable periods/foreign scopes and replay",
+    "prior_current_head": "c7267a5ce8bde33b792072bd4cdd49f943d79238",
+    "prior_mandatory_clean": {
+      "run": 37537559386,
+      "job": 112522818452,
+      "artifact": 11450251310,
+      "sha256": "21ac258f3453a59de4dfc31c2917223d4606053104520fb2d12034a870d02b5a",
+      "result": "705: 703 PASS, one Z22 final-task FAIL, one explicit SKIP; mandatory clean and dependent certificate FAILURE"
+    },
+    "required_current_execution": "New final-head native39, mandatory clean including unchanged Z22 oracle, all applicable gates and independent reviews before merge. Prior execution does not assert current CI_GREEN.",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6027210023"
+  }
 }

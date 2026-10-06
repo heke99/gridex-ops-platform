@@ -1,3 +1,25 @@
+## Current mandatory-clean remediation — own direct Z22 regression
+
+Prior finalc726 mandatory clean112522818452 FAILURE: native705=703PASS/
+1FAIL/1explicitSKIP; unchanged Z22 direct facade lacked final-value task.
+Certificate dependency FAIL; tenother gates SUCCESS. Actual main356/290,
+PR636 remains OPEN/unmerged, no CI_GREEN/external claim. Original failure
+artifact11450251310/digest21ac258f retained; generatedtypes exactc726.
+Same12refs freshly GETMATCH and documented6027210023 before code.
+Owned unit RED2580540c: 42PASS2FAIL/44; minimal product correction5bd9ea7f
+GREEN44. Only an upstream committed nonnull result delegates finaltask to
+the preceding reception projector; direct native apply retains scoped Legacy
+task, null results retain old behavior, replay adds none. Existing Z22
+native oracle and all gates unchanged. Both original39PASS9a/c726 receipts
+remain historical; final successor source review/native39/mandatory fullclean
+allcurrentgates required before serial guarded merge. Own2 candidate rows
+retain their previous literal whole proofs; no new approvals are added here.
+Next95bc final exact-source independent reviews, new39 and clean/allgates;
+actual receipt/memory/release before deferred owncleanup maintenance/newpair.
+Detailed next action and all original history remain on own receipt branch.
+
+## Historical previous candidate proof
+
 # CURRENT Z05 supplier code-contract proof — final candidate preparation
 
 Agent `codex-20261006-95bc00df11da`; sole packet `f290cb52-9d29-4656-a392-9d4feb5bfc23`;
