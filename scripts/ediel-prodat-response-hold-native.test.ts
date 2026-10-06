@@ -8,6 +8,10 @@ import {matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {resolveTenantForInboundEdiel} from '@/lib/inbound-mail/inboundTenantResolver'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
 import {createRequestedChangeSupplyFixture} from './helpers/ediel-requested-change-native-fixture'
@@ -26,11 +30,11 @@ beforeEach(()=>{
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-async function fixture(){
+async function fixture(extraPermissions:string[]=[]){
  const f=await createRequestedChangeSupplyFixture(email=>external.send.mockResolvedValue({
   accepted:[email],rejected:[],messageId:'synthetic-own-Z03',response:'250 explicitly synthetic acceptance',
  }),{requestedStartDate:futureNativeSupplyDate()})
- const reviewer=await createBilateralSourceOperator(f.companyId,[...bilateralSourceOperatorPermissions,'communication.send'])
+ const reviewer=await createBilateralSourceOperator(f.companyId,[...bilateralSourceOperatorPermissions,'communication.send',...extraPermissions])
  return {...f,reviewer}
 }
 type Fixture=Awaited<ReturnType<typeof fixture>>
@@ -121,4 +125,59 @@ it('records the genuine two-register held source through v6 without granting own
   .toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
  expect(counts()).toEqual(before)
  expect(createHash('sha256').update(original.raw_payload!).digest('hex')).toBe(mail.sourcePayloadHash)
+})
+
+it('normal processing records held M but preserves the exact own-application guard and technical ACK on retry',async()=>{
+ const f=await fixture(['metering.read','metering.write','ediel_testing.write']),{wire,reference}=changeWire(f)
+ // Public disposable transport inputs only; no private readiness or readings facts.
+ const route=randomUUID(),profile=randomUUID(),smtp=edielSmtpConfig()
+ sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+ VALUES(${literal(route)},${literal(f.companyId)},'Synthetic held M ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+ INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,payload_format,transport_security_mode,smtp_to,receiver_email,mailbox,smtp_host,smtp_port)
+ VALUES(${literal(profile)},${literal(f.companyId)},${literal(route)},'Synthetic held M ACK profile','test','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'edifact','unencrypted','recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});`)
+ const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:'synthetic@example.invalid'})
+ const match=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed,
+  inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const tenant=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mail.mailboxId,environment:'test',parsed:mail.parsed})
+ expect(tenant.companyId).toBe(f.companyId)
+ const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
+  inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
+ expect(id).toMatch(/^[a-f0-9-]{36}$/)
+ const process=()=>processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:id!})
+ // A different error, including the former canonical recording failure, is RED.
+ await expect(process()).rejects.toThrow(/^structural_apply_complete_own_application_required$/)
+ const {data:stored,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id!).eq('company_id',f.companyId).single()
+ expect(error).toBeNull();expect(stored).toMatchObject({status:'validated',raw_payload:wire,mailbox_message_id:mail.inboundEmailMessageId,
+  validation_report:{receivedSourceValidationEvidence:{status:'recorded',sourceDisposition:'not_established'}}})
+ const original=stored as EdielMessageRow,receipt=original.validation_report!.receivedSourceValidationEvidence as {assessmentId:string;factsHash:string}
+ const first=()=>sql(`SELECT to_jsonb(a) FROM gridex_received_sources.validation_assessments a WHERE id=${literal(receipt.assessmentId)} AND source_message_id=${literal(id!)} AND company_id=${literal(f.companyId)} AND environment='test' AND source_payload_hash=${literal(mail.sourcePayloadHash)}`)
+ const immutableAssessment=first();expect(immutableAssessment).toBeTruthy()
+ const facets=sql(`SELECT jsonb_build_object('app',p.application_facts_text::jsonb,'response',r.response_facts_text::jsonb)
+ FROM gridex_received_sources.prodat_application_facets p JOIN gridex_received_sources.prodat_response_facets r
+ ON r.assessment_id=p.assessment_id AND r.company_id=p.company_id AND r.environment=p.environment AND r.source_message_id=p.source_message_id AND r.source_payload_hash=p.source_payload_hash
+ WHERE p.assessment_id=${literal(receipt.assessmentId)} AND p.company_id=${literal(f.companyId)} AND p.environment='test' AND p.source_message_id=${literal(id!)} AND p.source_payload_hash=${literal(mail.sourcePayloadHash)}`)
+ expect(facets).toMatchObject({app:{headerDecision:'held'},response:{objects:[{outcome:'held'}],responses:[]}})
+ type State={cases:number;whole:number;partial:number;batches:number;acceptedObjects:number;acks:{id:string;family:string;outcome:string;wire:string}[];outbox:{id:string;message:string;hash:string}[]}
+ const state=()=>sql<State>(`SELECT jsonb_build_object(
+ 'cases',(SELECT count(*) FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(id!)}),
+ 'whole',(SELECT count(*) FROM gridex_received_sources.structural_apply_receipts WHERE source_message_id=${literal(id!)}),
+ 'partial',(SELECT count(*) FROM gridex_received_sources.structural_object_apply_receipts WHERE source_message_id=${literal(id!)}),
+ 'batches',(SELECT count(*) FROM gridex_received_sources.structural_apply_batches WHERE source_message_id=${literal(id!)}),
+ 'acceptedObjects',(SELECT count(*) FROM gridex_received_sources.object_assessments a CROSS JOIN LATERAL jsonb_array_elements(a.facts_text::jsonb->'objects') o WHERE a.source_message_id=${literal(id!)} AND o->>'disposition'='accepted'),
+ 'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'outcome',ack_outcome,'wire',raw_payload) ORDER BY id),'[]') FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(id!)} AND direction='outbound'),
+ 'outbox',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',o.id,'message',o.ediel_message_id,'hash',o.immutable_payload_hash) ORDER BY o.id),'[]') FROM public.ediel_outbox o JOIN public.ediel_messages m ON m.id=o.ediel_message_id WHERE m.related_message_id=${literal(id!)} OR o.source_message_id=${literal(id!)}));`)
+ const before=state()
+ expect(before).toMatchObject({cases:0,whole:0,partial:0,batches:0,acceptedObjects:0})
+ expect(before.acks).toHaveLength(1)
+ const ack=before.acks[0];expect(ack).toMatchObject({family:'CONTRL',outcome:'positive'})
+ expect(validateEdifactEnvelope(ack.wire).ok).toBe(true)
+ expect(readPhysicalAckSourceCorrelation({id:ack.id,company_id:f.companyId,environment:'test',direction:'outbound',message_family:'CONTRL',raw_payload:ack.wire},
+  {id:id!,company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',raw_payload:wire}))
+  .toMatchObject({classification:{family:'CONTRL',outcome:'positive'},scope:'interchange',acknowledgedReferences:[reference]})
+ for(const queued of before.outbox)expect(queued).toMatchObject({message:ack.id,hash:createHash('sha256').update(ack.wire).digest('hex')})
+ await expect(process()).rejects.toThrow(/^structural_apply_complete_own_application_required$/)
+ expect(first()).toEqual(immutableAssessment);expect(state()).toEqual(before)
+ const saved=await supabaseService.from('ediel_messages').select('raw_payload,mailbox_message_id,message_received_at').eq('id',id!).eq('company_id',f.companyId).single()
+ expect(saved.error).toBeNull();expect(saved.data).toMatchObject({raw_payload:wire,mailbox_message_id:original.mailbox_message_id,message_received_at:original.message_received_at})
+ expect(createHash('sha256').update(saved.data!.raw_payload!).digest('hex')).toBe(mail.sourcePayloadHash)
 })
