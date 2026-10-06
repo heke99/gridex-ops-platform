@@ -1117,3 +1117,20 @@ authoring, after636actualcloseout. Historical immutable native/failure receipts
 unchanged, allmandatorypositivecanonicalreplay required afterfix.
 Next95bc remains current39/fullclean/allgates/currentexecutionpeers then
 actualmerge/role-firstmemory/12release; no nextpacket or roles taken.
+
+## Authentic successor upgrade PASS / bounded artifact qualification
+
+Current9bc upgrade112550877861/run37546257732 SUCCESS; originalartifact
+11451163606 ZIP8231242 SHAbac8c36de95b6a7e520d4d216ec9a46a4baf76314d1948fb2ecdda3ea14626cd
+API/head/tree/digest-size/CRC25members/bothactualinputreceipts qualified.
+AllTHREE clean/ordinary-upgrade/applied-TXT-upgrade typesBYTEEXACTcommitted9bc
+SHAaa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a;
+schemafingerprints threeBYTEEQUAL SHA63bbfebda49b875e1fbea0d70cc6b8b7277444b4f611e845d0ddc4395d8d2c93.
+Both retainedbefore/after exactJSON. EachcatalogJUnit1PASS140explicitpattern
+SKIP0FAILERROR, NOTfull141nativecredit. Report/tmp/gridex-z05-9bc-upgrade-
+artifact-qualified.json; original ZIPpreserved inattachments. Fivecurrent
+mandatorySUCCESS, LK/quality/targeted/certRUNNING, native39/clean/verifyqueued.
+Source9bcCLEAN/frozen, same12refs/no roles/CI_GREEN/mainmerge/newpair/external.
+Next95bc currentstrict39/fullcleanunchangedZ22tails/allgates/finalwhole reviews
+thenfreshmain/refs/freeatomicrole/expectednormalmerge/actualreceipt/role-first
+sharedreconcile/12release/deferredowncleanupmaintenance underfreshscope.
