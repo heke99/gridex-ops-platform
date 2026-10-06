@@ -86,8 +86,32 @@ jobs:
           )
           git fetch --no-tags origin "$feedback_base" "$feedback_producer" "$feedback_native"
           git worktree add --detach "$SC071_BASE_ROOT" "$feedback_base"
-          cmp package.json "$SC071_BASE_ROOT/package.json"
-          cmp package-lock.json "$SC071_BASE_ROOT/package-lock.json"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          candidate=pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'])
+          base=pathlib.Path(os.environ['SC071_BASE_ROOT'])
+          paths=('package.json','package-lock.json')
+          original=('48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878',
+                    '93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627')
+          source_map_fix=('51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de',
+                          'de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b')
+          def hashes(root):return tuple(hashlib.sha256((root/p).read_bytes()).hexdigest() for p in paths)
+          # Keep immutable BASE packages. Permit only its exact original pair
+          # or the independently reviewed source-map-js 1.2.2 security repair.
+          # Mixed pairs and every other dependency change remain fail-closed.
+          base_pair,candidate_pair=hashes(base),hashes(candidate)
+          assert base_pair==original,'sc071_base_dependency_inputs_changed'
+          assert candidate_pair in (original,source_map_fix),'sc071_candidate_dependency_inputs_unqualified'
+          expected='1.2.2' if candidate_pair==source_map_fix else '1.2.1'
+          installed=subprocess.check_output(['node','-p',"require('source-map-js/package.json').version"],cwd=candidate,text=True).strip()
+          assert installed==expected,'sc071_installed_source_map_version_mismatch'
+          receipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed source-map-js security compatibility',
+                   'base_package_sha256':dict(zip(paths,base_pair)),
+                   'candidate_package_sha256':dict(zip(paths,candidate_pair)),
+                   'compatibility':'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL',
+                   'actual_installed_source_map_js':installed,'base_packages_modified':False}
+          (pathlib.Path(os.environ['SC071_EVIDENCE'])/'dependency-inputs.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
           ln -s "$SC071_CANDIDATE_ROOT/node_modules" "$SC071_BASE_ROOT/node_modules"
           cd "$SC071_BASE_ROOT"
           python3 - <<'PY'
@@ -100,7 +124,8 @@ jobs:
           hashes={p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths if pathlib.Path(p).is_file()}
           out=pathlib.Path(os.environ['SC071_EVIDENCE'])
           (out/'base-input-sha256.json').write_text(json.dumps(hashes,indent=2)+'\n')
-          (out/'base-checkout.json').write_text(json.dumps({'sha':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),'dependency_install':'candidate npm ci; BASE package.json and lock byte-identical'},indent=2)+'\n')
+          dependencies=json.loads((out/'dependency-inputs.json').read_text())
+          (out/'base-checkout.json').write_text(json.dumps({'sha':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),**dependencies},indent=2)+'\n')
           PY
           printf replay > "$RUNNER_TEMP/sc071-stage"
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/sc071-replay.log" 2>&1

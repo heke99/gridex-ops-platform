@@ -1,0 +1,110 @@
+{
+  "scope": "Actual5098SC071 failure before native execution; exact dependency compatibility fix only",
+  "head": "5098fb8b07938c948ec654e7165594b294a80f26",
+  "run": 37401931832,
+  "attempt": 1,
+  "job": 112070841467,
+  "artifact": 11384904585,
+  "zip_bytes": 2205,
+  "zip_sha256": "77584215797f60c895941f2d426a837c8a9af2501de9bc26dabb05245d9714a5",
+  "artifact_members": {
+    "receipt.json": {
+      "bytes": 3391,
+      "sha256": "d61075b1809bcd4cb39209e67bad643d2ae6dfcb8b8cb1a42fe503a01746a2fb"
+    },
+    "session.log": {
+      "bytes": 530,
+      "sha256": "54bab3e6f387721f7eb7cff02a9d3c0a162c531d3cb06478734e4f004cc136dc"
+    }
+  },
+  "authentic_redacted_session_log": "From https://github.com/heke99/gridex-ops-platform\n * branch              7b9218da2c7f71f4373bcc9189715c0043a8cb31 -> FETCH_HEAD\n * branch              9b50b1b9a5aae19e9cabead09c92af4e0443c44c -> FETCH_HEAD\n * branch              9b50b1b9a5aae19e9cabead09c92af4e0443c44c -> FETCH_HEAD\nPreparing worktree (detached HEAD 7b9218da)\nHEAD is now at 7b9218da Merge pull request #574 from heke99/codex/ediel-sc010-sc071-revocation-20261005\npackage.json /home/runner/work/_temp/sc071-native-base/package.json differ: byte 40470, line 336\n",
+  "authentic_original_failure_receipt": {
+    "scope": "bounded BASE-then-forward native feedback; not candidate canonical replay",
+    "workflow_checkout_sha": "5098fb8b07938c948ec654e7165594b294a80f26",
+    "workflow_checkout_tree": "7ee7410fa6ee294dca8b5e3162e0d4ec5cee7dd1",
+    "workflow_run_id": "37401931832",
+    "base_checkout": null,
+    "base_replay": null,
+    "producer_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "sc010_native_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+    "declared_producer_overlays": {
+      "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+    },
+    "forward_source": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+    "forward_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "forward_execution": "NOT_COMPLETED",
+    "effective_runtime_inputs": null,
+    "post_native_inputs": null,
+    "registered_sc071_source": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0",
+    "effective_sc071_source": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "invoked_config": "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts",
+    "sc010_selected_config": "HASHED_OVERLAY; NOT_INVOKED",
+    "own_candidate_input_sha256": {
+      ".github/workflows/ediel-sc071-native.yml": "6e30b3f00f9ab6660eaf61327d881c6336e9e7b6d45e487cd3b888e143640f0b",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json": "ed96171e58321ca8623bb1b5b30a11a3f506739ca5811d21939a3d6cb0c124a3",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/export-races.patch": "a45ee4b477f23fee35446132c9cf93a3fd00d4de673a4c00b68eac100eb71948",
+      "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c",
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4"
+    },
+    "component_exit_code": 1,
+    "last_stage": "checkout",
+    "native_exit_code": null,
+    "native_execution": "NOT_RUN",
+    "expected_files": {
+      "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6,
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4
+    },
+    "actual_files": {},
+    "expected_cases": 10,
+    "actual_cases": 0,
+    "unique_file_names": false,
+    "junit_counts": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    "junit_parse_error": null,
+    "optional_evidence_parse_errors": {},
+    "official_ledger_unchanged": false,
+    "complete_ten_case_pass": false,
+    "post_forward_schema": "UNQUALIFIED_FOR_FINAL_CAPTURE",
+    "candidate_clean_upgrade_parity": "NOT_CLAIMED",
+    "ordinary_required_gates": "NOT_REPLACED",
+    "producer_admission_capture": "PENDING_COORDINATOR",
+    "whole_sc071": "UNAPPROVED",
+    "whole_sc010": "UNAPPROVED",
+    "leased_export_consumer": "NOT_QUALIFIED",
+    "external_issuer_smtp_and_route_session_ports": "FINITE_SYNTHETIC_FIXTURE",
+    "authentic_market_evidence": "NOT_PROVIDED"
+  },
+  "confirmed_cause": "Original byte-identical package comparison rejects current source-map-js1.2.2 security repair against pinned BASE7b9218; fails before native, no test outcome inferred.",
+  "remediation": "BASE source/package bytes remain immutable. Candidate packages must equal the exact original whole pair or the exact independently reviewed minimal source-map-js1.2.2 pair. Real installed version must match; mixed/unqualified/base-changed/incorrect-runtime cases fail. Actual dependency pair/compatibility recorded in dependency-inputs and base-checkout evidence. Existing native/overlay/ledger/replay/redaction assertions preserved.",
+  "actual_guard_controls": {
+    "passed": 10,
+    "failed": 0,
+    "receipt": "pr614-5098-sc071-exact-dependency-guard-controls.json",
+    "sha256": "00bda47e87cf27d54e93874b4d3a3a04b3be114d76a4ffc55557420eaaa4f4b7"
+  },
+  "current_resulting_native_CI_schema_parity_main": "PENDING",
+  "new_masterplan_work": false,
+  "recapture": false,
+  "production_audit_gate_or_exception_modified": false,
+  "production_consumer_modified": false,
+  "independent_workflow_peer": {
+    "verdict": "APPROVE",
+    "path": "pr614-5098-sc071-exact-security-dependency-workflow-peer-approve.json",
+    "sha256": "1bfa4d857a37a5b4c9dee4b1e7fda3332abefb40094fc100de74ea340b95f67a",
+    "workflow_sha256": "4c0715fe2910f37253ae085deb068a0d07d77dcb3484aadbf1f7c85359f8ebc9"
+  },
+  "yaml_and_bash_syntax": {
+    "yaml": "PASS",
+    "bash_run_blocks": 3,
+    "result": "PASS",
+    "tool": "existing js-yaml parser and bash -n on extracted files"
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "schema": "gridex-pr614-sc071-exact-security-dependency-compatibility-peer/v1",
+  "recorded_at_utc": "2026-10-06T02:08:46.443523+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "verdict": "APPROVE_SOURCE_ONLY_EXACT_DEPENDENCY_COMPATIBILITY_NATIVE_AND_CURRENT_HEAD_GATES_PENDING",
+  "scope": {
+    "pr": 614,
+    "root_public_claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6007818619",
+    "author_publisher_native_CI_owner": "/root",
+    "existing_work_only": true,
+    "base_public_candidate_head": "5098fb8b07938c948ec654e7165594b294a80f26",
+    "base_public_candidate_tree": "7ee7410fa6ee294dca8b5e3162e0d4ec5cee7dd1",
+    "only_reviewed_uncommitted_source_path": ".github/workflows/ediel-sc071-native.yml",
+    "source_edits_by_peer": false,
+    "concurrent_root_metadata_excluded_from_source_review": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-actual-sc071-base-package-failure-diagnosis-and-fix.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-first-genuine-sc071-failure-20261006-0201.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-5098-sc071-exact-dependency-guard-controls.json"
+    ]
+  },
+  "frozen_workflow": {
+    "path": ".github/workflows/ediel-sc071-native.yml",
+    "old_tuple": [
+      "100644",
+      "blob",
+      "8d41459c510b50ae1a1eb96341261bfb404f8ab7"
+    ],
+    "old_sha256": "6e30b3f00f9ab6660eaf61327d881c6336e9e7b6d45e487cd3b888e143640f0b",
+    "new_blob_sha1_computed_without_object_write": "cf13108872dbada7b6e89c669e9a8fdfc6be9b8b",
+    "new_sha256": "4c0715fe2910f37253ae085deb068a0d07d77dcb3484aadbf1f7c85359f8ebc9",
+    "new_bytes": 24257,
+    "only_two_authorized_replacements": "Old package-pair cmp replaced by exact whole-pair/version guard; base-checkout provenance changed from byte-identical runtime claim to actual dependency custody.",
+    "all_remaining_workflow_bytes_exact_old_after_two_replacements_reversed": true,
+    "git_diff_check_exit": 0,
+    "guard_source_sha256": "82c956bd3cdba6f893f35bd79acf2d1c7ee53f94d364b2324e96af730741d2a4"
+  },
+  "authenticated_failure_reused": {
+    "artifact_id": 11384904585,
+    "already_downloaded_redacted_zip": "/workspace/attachments/d9cedf57-3527-4b8d-b4fe-b07cadbce50e/pr614-5098-sc071-authentic-redacted-failure.zip",
+    "zip_bytes": 2205,
+    "zip_sha256": "77584215797f60c895941f2d426a837c8a9af2501de9bc26dabb05245d9714a5",
+    "members": [
+      {
+        "path": "receipt.json",
+        "bytes": 3391,
+        "sha256": "d61075b1809bcd4cb39209e67bad643d2ae6dfcb8b8cb1a42fe503a01746a2fb"
+      },
+      {
+        "path": "session.log",
+        "bytes": 530,
+        "sha256": "54bab3e6f387721f7eb7cff02a9d3c0a162c531d3cb06478734e4f004cc136dc"
+      }
+    ],
+    "actual_fault": "package.json cmp differs at byte 40470, line 336 on pinned BASE worktree, before replay/native.",
+    "base_checkout_and_base_replay_receipts": null,
+    "historical_RED_preserved": true,
+    "artifact_download_by_peer": false
+  },
+  "dependency_guard_review": {
+    "immutable_base_sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "immutable_base_tree": "f03ec10bec420c9013848be526595c5fbb0242b7",
+    "base_original_pair": {
+      "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    },
+    "accepted_candidate_whole_pairs": {
+      "original": {
+        "package.json": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+        "package-lock.json": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+      },
+      "fixed": {
+        "package.json": "51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de",
+        "package-lock.json": "de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b"
+      }
+    },
+    "base_pair_authenticated_exact_old_c3c7": true,
+    "candidate_fixed_pair_authenticated_exact_public5098": true,
+    "allowed_installed_version_by_pair": {
+      "original": "1.2.1",
+      "fixed": "1.2.2"
+    },
+    "checks": [
+      "BASE whole pair must remain exact original; no base package write.",
+      "Candidate whole pair must exactly equal original or reviewed security repair; mixed pairs and arbitrary changes rejected.",
+      "Actual installed source-map-js version read by Node in candidate CWD must equal selected whole-pair version.",
+      "Existing actual candidate npm ci and candidate node_modules symlink retained; no old dependency reinstall.",
+      "Dependency receipt records both SHA pairs, selected compatibility, actual installed version and base_packages_modified=false.",
+      "Same receipt fields carried into base-checkout instead of claiming byte-identical candidate/runtime."
+    ],
+    "original_mode_preserved": true,
+    "fix_mode_exact_reviewed_security_lane_only": true
+  },
+  "unchanged_replay_native_evidence_guards": {
+    "job_checkout_Node22_npm_ci_permissions_concurrency": true,
+    "pinned_BASE_head_tree_complete_file_hashes_canonical_replay_same_CWD_cleanup": true,
+    "official_48_unique_BASE_ledger_and_post_forward_byte_exact_ledger_cmp": true,
+    "exact_producer_overlays_absence_preconditions_and_SHA_pins": true,
+    "exact_single_own_patch_target_check_apply_pre_post_hashes_and_config_forward_hashes": true,
+    "actual_forward_direct_execution_schema_rpc_readiness_fail_closed": true,
+    "exact_expected_10_unique_native_cases_files_zero_failure_error_skip_and_actual_exit": true,
+    "post_native_effective_runtime_input_hash_equality": true,
+    "candidate_replay_clean_upgrade_parity_not_claimed_and_wholeSC071_SC010_unapproved": true,
+    "canonical_redaction_extra_sb_secret_scrub_remaining_secret_refusal_no_artifact_before_redaction": true
+  },
+  "root_actual_controls_reused": {
+    "path": "/workspace/agent-review-checkpoints/pr614-5098-sc071-exact-dependency-guard-controls.json",
+    "bytes": 6143,
+    "sha256": "00bda47e87cf27d54e93874b4d3a3a04b3be114d76a4ffc55557420eaaa4f4b7",
+    "portable_source_exact_frozen_workflow_guard": true,
+    "passed": 10,
+    "failed": 0,
+    "actual_controls": [
+      {
+        "case": "original_pair_real_original_runtime",
+        "actual_exit": 0,
+        "expected_pass": true,
+        "result": "PASS"
+      },
+      {
+        "case": "fixed_pair_real_fixed_runtime",
+        "actual_exit": 0,
+        "expected_pass": true,
+        "result": "PASS"
+      },
+      {
+        "case": "mixed_manifest_fixed",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "mixed_lock_fixed",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "unqualified_manifest_byte",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "unqualified_lock_byte",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "modified_base_manifest",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "modified_base_lock",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "fixed_pair_old_installed_runtime",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      },
+      {
+        "case": "original_pair_fixed_installed_runtime",
+        "actual_exit": 1,
+        "expected_pass": false,
+        "result": "PASS"
+      }
+    ],
+    "real_original_and_fixed_installed_runtime": true,
+    "mocked_version": false,
+    "native_execution": false,
+    "peer_rerun": false
+  },
+  "dependency_source_qualifications_reused": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-security-dependency-fix-verification.json",
+      "bytes": 21092,
+      "sha256": "f20b1e82850e7eaaa9766b97f595d73224904748c7fdf8e1520e44b3970ceedd",
+      "scope": "Existing exact dependency pair / parser22 + PostCSS / maintained audit qualification, reused without rerun."
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-minimal-fix-independent-root-approve.json",
+      "bytes": 3584,
+      "sha256": "acc8e26692546de100900f1b28c39f0f119c83993c0d21cae63212418ac2c7ab",
+      "scope": "Existing exact dependency pair / parser22 + PostCSS / maintained audit qualification, reused without rerun."
+    }
+  ],
+  "blocking_findings": [],
+  "pending": {
+    "actual_successor_SC071_native": "PENDING_GENUINE_ROOT_OWNED_EXECUTION",
+    "actual_successor_mandatory_current_head_gates_and_main": "PENDING",
+    "new_capture": "NOT_REQUESTED_OR_RUN",
+    "whole_rule_or_Masterplan_completion": "NOT_CLAIMED"
+  },
+  "actions": {
+    "review": "One finite source/diff/receipt custody review; only already-downloaded redacted failure members and root control report read.",
+    "worktree_index_CP_ref_or_GitHub_edits": false,
+    "tests_native_CI_logs_artifact_download_capture_or_duplicate_observer": false,
+    "output": "One immutable sanitary outside-Git peer receipt only"
+  }
+}
