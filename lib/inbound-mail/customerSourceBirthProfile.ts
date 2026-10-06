@@ -1,5 +1,5 @@
 import {parseCanonicalEdielPayload} from '@/lib/ediel/core/canonicalMessage'
-import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {stockholmBusinessDate} from '@/lib/ediel/core/executionContext'
 import {prodatCharacteristicValues} from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import {prodatRegisterRuleScopes} from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -15,6 +15,8 @@ export async function resolveCustomerSourceBirthProfile(input:{rawPayload:string
  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z06'||!canonical.applicationReference)return null
  const {segments,una}=tokenizeEdifact(input.rawPayload)
  const scopes=prodatRegisterRuleScopes('223',segments,una,'Z06')??[]
+ const physicalQualifiers=segments.filter(token=>token.tag==='CCI'&&segmentComposite(token,2,una)[0]==='Z13')
+ if(physicalQualifiers.length!==scopes.length)return null
  const reasons=prodatCharacteristicValues('223',segments,una)
  if(!scopes.length||reasons.length!==scopes.length||reasons.some(reason=>reason!=='E34'))return null
  if(!scopes.every(scope=>scope.some(token=>token.tag==='LIN')&&prodatCharacteristicValues('223',scope,una).length===1&&prodatCharacteristicValues('223',scope,una)[0]==='E34'))return null

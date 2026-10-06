@@ -1,5 +1,5 @@
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
 import { prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { prodatRegisterRuleScopes } from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -17,6 +17,8 @@ export async function resolveAssignedSupplyBirthProfile(input: { rawPayload: str
   const scopes = prodatRegisterRuleScopes('223', segments, una, 'Z04') ?? []
   // Later-register and header occurrences are physical too, even when the
   // normative common-field projection selects only an object's first register.
+  const physicalQualifiers = segments.filter(token => token.tag === 'CCI' && segmentComposite(token, 2, una)[0] === 'Z13')
+  if (physicalQualifiers.length !== scopes.length) return null
   const physicalReasons = prodatCharacteristicValues('223', segments, una)
   const reason = physicalReasons[0]
   if (reason !== 'Z26' && reason !== 'Z70') return null
