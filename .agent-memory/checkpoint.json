@@ -1,13 +1,13 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-06T15:03:56.565977+00:00",
+  "updated_at": "2026-10-06T15:31:42.051412+00:00",
   "status": "PARTIAL",
   "paused": false,
   "branch": "main",
   "active_pr": null,
-  "base_head_sha": "c52782efc3875c7622d30669a0ce21283697d2fd",
+  "base_head_sha": "d73f87dd5449e747b86d0f1b814ceb799603819b",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 622,
+  "last_merged_pr": 624,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
   "active_item": "Autonomous packets; PR623 C components delivered, same-pair native proof continues",
@@ -1648,7 +1648,7 @@
   "main_full_acceptance": "NOT_CLAIMED",
   "campaign_complete": false,
   "autonomous_delivery_20261006": {
-    "current_main_observed": "c52782efc3875c7622d30669a0ce21283697d2fd",
+    "current_main_observed": "d73f87dd5449e747b86d0f1b814ceb799603819b",
     "coverage": {
       "verified_rules": 111,
       "passed_contracts": 167,
@@ -1676,9 +1676,18 @@
       "agent": "codex-20261006T134154Z-c3ae376b9893",
       "packet": "65719a9c-8cc9-408d-ba6b-124794988ec2",
       "branch": "codex/ediel-codex-20261006T134154Z-c3ae376b9893-native",
-      "status": "PROPOSED_NOT_EXECUTED",
+      "status": "ACTUAL_8_PASS_2_FAIL; SUCCESSOR_PROPOSALS_NOT_EXECUTED",
       "ordinary_gates_replaced": false,
-      "coverage_promoted": false
+      "coverage_promoted": false,
+      "pr": 627,
+      "executed_source_head": "a5574547a2310314667ec039566a2402a7f06ea7",
+      "run": 37485616931,
+      "artifact": 11423856095,
+      "artifact_sha256": "6817baf2cb69e8b3c6932f59fb047789cb7aacfe314f5c7b2ce7d88aaa658064",
+      "input_hashes_verified": 67,
+      "mandatory_verify": "FAIL_SHARP_GHSA-wq5f-xc86-pv6w",
+      "atomic_release": "AUTH_BLOCKED_OWN_REFS_REMAIN",
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019580520"
     },
     "pr622": {
       "source_head": "2507d3932cc39f33d724422c845331f078671380",
@@ -1687,6 +1696,14 @@
       "scope": "component_tests_only",
       "whole_contract_approval": false,
       "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019175642"
+    },
+    "pr624": {
+      "source_head": "444a2a23dacb6eb21793cd498860deca81f59804",
+      "merge_commit": "d73f87dd5449e747b86d0f1b814ceb799603819b",
+      "source_required_checks": "9_SUCCESS",
+      "scope": "component_tests_only",
+      "whole_contract_approval": false,
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019353505"
     }
   }
 }
