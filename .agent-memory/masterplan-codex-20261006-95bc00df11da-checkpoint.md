@@ -783,3 +783,31 @@ wording atadoption so67dreceipts remainbounded, fresh ownruntime/install/
 audit/GOV04/40/native/currentrequiredCI; finalintegrationreview/merge.
 No unnecessary metadata-only native republication afterfreshproof; current
 headreceipts go inthischeckpoint+530, stillallcurrentgatesmustpass.
+
+## Actual620 main dependency / common-role RELEASE before code delivery
+
+Fresh fetchedactualmainc0385ee4ee8340eb9e68029c2bd09d05bdf37f40 /
+PR620closedmergedtrue / treef56cc25ae1c4564adb0e64856a6c3698c7cfb2ce /
+orderedparentsc05625+39a0 qualified. OwnerMERGED5306021215200 confirms
+all10applicableSUCCESS(actual9ordinary+SCnative),113rules+169contracts
+=282/352,70remaining, no externalclaim. Twelvepathdelta reviewed, noSQL
+change; currentAGENTSpriority/reservation rules unchanged.
+
+RELEASE/HANDOVER memoryrole8e60 ONLY, before owncodefinalmergeoperation.
+Concrete reviewed/pushed6sharedproposal7a6a95a764ba2664d7ff3fa3e2ae4e9e62d351a9
+oncodex/ediel-memory-95bc00df11da reusesreleased631 andactual625unique
+handover. It is NOT main/CIgreen; snapshotbefore620 remainshistorical.
+Nextlegitimate memorywriter (thissession onfreshrole iffree, ornewclaimant)
+rebaseontoactualmain, record actual620main/282counts andafter own626
+actualdelivery exact626main/uniquehandover; preservealloldfailures/foreign
+/HOLD, obtainownrequiredcurrentheadchecks. Explicit sixfileproposalhandover
+allowsvalidreuse; no foreign checkpoint/PR or ownSC/LKID responsibility
+transfer. Own13pairrefs remainheld. DELETE/GET404 physicalrelease follows
+thischeckpoint/530record; no newcommonedits withoutfreshrole.
+
+Next thisSC/LKowner beforecode: confirmcurrent13locks, mergeactualmain
+intoown916branch withoutforeignrowloss, make67dproofrecordtimebounded
+historical/no obsolete currentauditclaim, freshNode22 install/audit and
+GOV04+40consumers/scripts/testsTS/lint/diff, publishonecombinedadoption
+thenactualSC4/LK24/currentallmandatorygates+finalintegrationreview.
+Currentowncandidateafteradoption284 is NOT actualmain282. No nextpair.
