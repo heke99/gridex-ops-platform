@@ -1,3 +1,4 @@
+// masterplan: SC-064
 import { randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 

@@ -1,3 +1,4 @@
+// masterplan: AT-Z08LK-SUPPLIER
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import type { EdielMessageIntent } from '@/lib/ediel/intent/types'
