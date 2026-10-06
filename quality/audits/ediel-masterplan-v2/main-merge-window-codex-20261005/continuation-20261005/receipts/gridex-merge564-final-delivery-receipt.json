@@ -1,0 +1,148 @@
+{
+  "at": "2026-10-05T20:06:38.145404+00:00",
+  "pr": 564,
+  "head": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+  "actual_main_before": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "expected_merge_tree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+  "source_guard": "/tmp/gridex-root-final-main-guards-20261005/receipts/run-20261005T200638543023Z-38aa7345/summary-38aa7345.json",
+  "source_carry_approval": "5646002020802",
+  "original_comment_review": 5419774587,
+  "applicable_eight_current_success": {
+    "browser-public": {
+      "job_id": 111685612304,
+      "run_id": 37286212098,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612304",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/browser-quality-e2e.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "smoke": {
+      "job_id": 111685612580,
+      "run_id": 37286212067,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612580",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/full-e2e.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "verify": {
+      "job_id": 111685612444,
+      "run_id": 37286212059,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612444",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/ops-hardening.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "coverage": {
+      "job_id": 111685612295,
+      "run_id": 37286212067,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612295",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/full-e2e.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "pr-certificate": {
+      "job_id": 111687605769,
+      "run_id": 37286212067,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111687605769",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/full-e2e.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "quality-release-gates": {
+      "job_id": 111685612715,
+      "run_id": 37286212059,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612715",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/ops-hardening.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "upgrade-migration-replay": {
+      "job_id": 111685612723,
+      "run_id": 37286212059,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612723",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/ops-hardening.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    },
+    "clean-migration-replay": {
+      "job_id": 111685612510,
+      "run_id": 37286212059,
+      "run_attempt": 1,
+      "check_run_url": "https://api.github.com/repos/heke99/gridex-ops-platform/check-runs/111685612510",
+      "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_identity": {
+        "path": ".github/workflows/ops-hardening.yml",
+        "event": "pull_request",
+        "head_sha": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+        "head_branch": "codex/ediel-tr06-merge-handover-20261004",
+        "run_attempt": 1
+      }
+    }
+  },
+  "targeted_excluded_by_reviewed_source_filters": true,
+  "skipped_is_not_pass": true,
+  "normal_GitHub_context_enforcement_no_admin": true,
+  "actual_merge_sha": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "actual_tree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+  "actual_parents_verified": true,
+  "merged_at": "2026-10-05T20:06:46Z",
+  "actual_main_after": "5cde80940ee213612fde3ba6b3461429dd615a7f"
+}

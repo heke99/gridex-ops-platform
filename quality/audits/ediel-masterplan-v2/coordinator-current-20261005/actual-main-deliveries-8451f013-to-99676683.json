@@ -1,0 +1,40 @@
+{
+  "scope": "Two authenticated actual main documentation deliveries; unique common handover entries",
+  "previous_actual_main": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "actual_main": "99676683338e11e60666345782609a822de9181e",
+  "actual_tree": "0b1d98ccac00c4cb84e2385bcfc44c09d693fc42",
+  "deliveries": [
+    {
+      "pr": 601,
+      "actual_merge": "1aeccc7cc92c10c8e6781026e42e834d25023802",
+      "tree": "ff36e85baf79d62ea81fb9abf85517264515bfa3",
+      "parents": [
+        "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+        "3ced652fbe3e7e13f2411a0bec4a5754c7c53d9f"
+      ],
+      "merged_at": "2026-10-05T17:53:05Z",
+      "published_head": "3ced652fbe3e7e13f2411a0bec4a5754c7c53d9f",
+      "scope": "Documentation only; no rule status promotion; current-main green baseline not claimed"
+    },
+    {
+      "pr": 602,
+      "actual_merge": "99676683338e11e60666345782609a822de9181e",
+      "tree": "0b1d98ccac00c4cb84e2385bcfc44c09d693fc42",
+      "parents": [
+        "1aeccc7cc92c10c8e6781026e42e834d25023802",
+        "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076"
+      ],
+      "merged_at": "2026-10-05T18:00:57Z",
+      "published_head": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+      "scope": "Documentation only; no rule status promotion; current-main green baseline not claimed"
+    }
+  ],
+  "common_writer_requests": [
+    "5306000092590",
+    "5306000168488"
+  ],
+  "root503_source": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "root503_actual_merge": "NOT_YET",
+  "current_main_green_baseline": "NOT_CLAIMED",
+  "known_current_main_failure": "Existing SC068 copied-diagnostic fixture, author-exclusive correction a7eb3a1; actual admission pending"
+}

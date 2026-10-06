@@ -1,0 +1,132 @@
+{
+  "observed_at_utc": "2026-10-05 23:19:21 UTC",
+  "pr_number": 612,
+  "head": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+  "main": "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+  "api_base_sha": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "base_ref": "main",
+  "mergeable": true,
+  "mergeable_state": "clean",
+  "source_paths": 68,
+  "required": [
+    {
+      "name": "verify",
+      "id": 112008255095,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:30:11Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008255095"
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 112008254744,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:39:39Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008254744"
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 112008255064,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T23:16:36Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008255064"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 112008255108,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:38:07Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008255108"
+    },
+    {
+      "name": "smoke",
+      "id": 112008116985,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:29:10Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624233/job/112008116985"
+    },
+    {
+      "name": "coverage",
+      "id": 112008116958,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:33:14Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624233/job/112008116958"
+    },
+    {
+      "name": "browser-public",
+      "id": 112008118151,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:29:04Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624415/job/112008118151"
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 112008117311,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:32:46Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624365/job/112008117311"
+    },
+    {
+      "name": "pr-certificate",
+      "id": 112010046261,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-10-05T22:33:28Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624233/job/112010046261"
+    }
+  ],
+  "producers": [
+    {
+      "id": 37382624242,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T23:16:37Z"
+    },
+    {
+      "id": 37382624233,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T22:33:28Z"
+    },
+    {
+      "id": 37382624415,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T22:29:04Z"
+    },
+    {
+      "id": 37382624365,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T22:32:47Z"
+    }
+  ],
+  "expected_tree": "5f61a80b764ff3c389c3f9d7df3b05be64c9504c",
+  "serial_before_comment": 6005251283,
+  "source_guard_sha256": "a3a43aef9b357723f81d60e428b34db7ab2831260d9496b80dd8c5b6fe2b45b3",
+  "observer_seal_sha256": "b71dd21a3193716d6724329a313011213e4a49f79f7c6727d7e4e2ad5f985169"
+}

@@ -1,0 +1,26 @@
+{
+  "recorded_at": "2026-10-05T13:40:14.252251+00:00",
+  "producer_PR": 570,
+  "immutable_source": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "last_checkpoint": "e6e6c3dafe10426ecb364921ce0311d057a94270",
+  "native_caller_PR": 586,
+  "caller_merged": true,
+  "caller_source": "f7fc20f7b5adc784bdd6ed01bd56ac56e53d2763",
+  "caller_main_merge": "683b3e60b67f71293cd44c14d591f877474f0f88",
+  "native_qualified_run": 37310521982,
+  "actual_cases": {
+    "SC071": 6,
+    "SC010": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "artifact_sha256": "90787405c69fa0ab78e6682834968ca9b7dbe2943a16ccb101c768f86023d991",
+  "retained_owner_ACK": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5995575147",
+  "owner_reported_local_main_adoption": "13735ed3",
+  "owner_reported_local_export_adoption": "daac5e58",
+  "local_adoption_custody": "Owner ACK only; not publicly reachable via GitHub commit API422 or ownlocalgitobject. Do not infer actual candidate capture/replay/native success.",
+  "candidate_outputs": "PENDING retained503solechecksumd0e4/native6+4registration/authentic schema-types-fingerprint/clean-upgrade-currentintegration",
+  "whole_SC010": "UNAPPROVED",
+  "independent_AT_P_04": "PR591headbbf89 test-only, CIrunning; no duplicate/sharedtakeover"
+}

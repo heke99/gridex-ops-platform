@@ -1,0 +1,27 @@
+{
+  "scope": "Actual original #608 delivery, recorded once by the existing common handover writer.",
+  "actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "actual_tree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+  "deliveries": [
+    {
+      "pr": 608,
+      "actual_merge": "2964415adec9e36932583e95f8506437d262c507",
+      "tree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+      "parents": [
+        "5cde80940ee213612fde3ba6b3461429dd615a7f"
+      ],
+      "actual_parent_shape": "ONE parent authenticated directly; actual squash delivery, no invented second parent",
+      "merged_at": "2026-10-05T20:17:37Z",
+      "published_head": "537fd71d79cf36d0780705e56167ffd660fe6cce",
+      "github_pr": "https://github.com/heke99/gridex-ops-platform/pull/608",
+      "pr_api": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/608",
+      "git_commit_api": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/2964415adec9e36932583e95f8506437d262c507"
+    }
+  ],
+  "canonical_ENV07": "First actually delivered #608 postimage; preserve it instead of later byte-different #610/Staff variants.",
+  "SQL_generator_inputs": "All historical SQL and eight generator input files unchanged from prior main5cde; independently compared as source only.",
+  "rule_coverage_promotion": "NONE",
+  "current_main_full_green": "NOT_CLAIMED",
+  "whole_masterplan": "NOT_COMPLETE",
+  "final_baseline_tag": "Existing exclusive writer only"
+}

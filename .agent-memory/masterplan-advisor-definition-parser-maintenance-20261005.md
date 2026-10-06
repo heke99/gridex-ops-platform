@@ -77,3 +77,34 @@ the resulting current inputs, qualifies ordinary CI and performs main merge.
 Current main-green and CI qualification are NOT_CERTIFIED here; no full/native/
 capture run occurs here. Final stable main8 and the shared next-phase baseline
 remain with their retained coordinator/observer/capture/baseline writers.
+
+## Current publication and next-intake handoff — 2026-10-05T21:44:39.320498+00:00
+
+The prior future-publication paragraph is historical. Actual immutable source
+packet15a1580834dbae28bc50661c34c4936e81962127 was normally published21:10UTC,
+with public #5306002074021 CURRENT and AFTER/RELEASE6002987926. Original19
+assertions,20OK after and28 controls remain qualified by appliedpeer126ddeb4;
+no source or checker execution follows that result.
+
+Bounded next-step claim5306003281607 and same-reader boundary update now
+complete. Prospective7d6+15a tree6706 is conflict-free with one existing CJS
+and12 original owned metadata paths,8669 foreign tuples exact. This is an old
+preparation on296, not actualb83 intake. Actual #606 merged21:33:59UTC into
+mainb83b284467c8e0fcaa277706a708706e0a705068/treeeea46, parents296+9a2df.
+Separate8fixed/1073SQL+1manifest input comparison is exact, allowing retained
+finite advisor outcomes to be reused. First unsealed directory-count mismatch
+and its correction are recorded honestly; no test/receipt written on failure.
+Independent peer79d292e2 APPROVES both precisely bounded receipts. See
+quality/audits/ediel-masterplan-v2/advisor-next-intake-source-guard-20261005/.
+
+All finite writer/reader/reviewer lanes are released. This own metadata-only
+continuation announced5306003600471 preserves original15a SOURCE INPUT and
+its immutable original evidence; latest branch documentation head is not a
+new source packet. No source/product/SQL/generated/coverage/workflow/test or
+foreign checkpoint edit, new PR/ordinary CI, native/capture or checker run.
+
+Next: root503/#612 consumes source15a ONCE, obtains retained explicit Staff7232
+release/input freeze, qualifies actual current-main union and required gates,
+then normal serial merge. Staff/native/schema/common baseline owners retain
+remaining scopes. Current-main-green, actual advisor admission and final
+new-phase baseline remain NOT_CERTIFIED here. No rule/status promotion.

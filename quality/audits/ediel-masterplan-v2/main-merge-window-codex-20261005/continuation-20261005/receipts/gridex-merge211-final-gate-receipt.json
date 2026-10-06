@@ -1,0 +1,68 @@
+{
+  "at": "2026-10-05T23:35:56.498727+00:00",
+  "pr": 211,
+  "head": "37eba257f7af69777cea624241e06ae78c809fea",
+  "actual_main_before": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
+  "expected_tree": "d23cb52b5cb40d966d7b5c8e2caf04a75984285e",
+  "source_guard_sha256": "6f37696f9e405b3460fd98279ae3f44f430a016bf1ddb71629874709a537f186",
+  "targeted_regressions_excluded_by_reviewed_source_filters": true,
+  "excluded_is_not_pass": true,
+  "applicable_eight_success": {
+    "pr-certificate": {
+      "check_id": 112010095720,
+      "run_id": 37382714980,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "verify": {
+      "check_id": 112008425176,
+      "run_id": 37382714964,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "clean-migration-replay": {
+      "check_id": 112008424945,
+      "run_id": 37382714964,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "upgrade-migration-replay": {
+      "check_id": 112008424748,
+      "run_id": 37382714964,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "quality-release-gates": {
+      "check_id": 112008424496,
+      "run_id": 37382714964,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "smoke": {
+      "check_id": 112008424123,
+      "run_id": 37382714980,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "browser-public": {
+      "check_id": 112008423882,
+      "run_id": 37382715019,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/browser-quality-e2e.yml"
+    },
+    "coverage": {
+      "check_id": 112008423829,
+      "run_id": 37382714980,
+      "head_sha": "37eba257f7af69777cea624241e06ae78c809fea",
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "at": "2026-10-05T18:48:37.703738+00:00",
+  "pr": 607,
+  "head": "b39dc1d0f133ee56a8d1c2eccade44e461ef1bc9",
+  "actual_main_before": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "expected_merge_tree": "c1bfe1f0de4cbab8df06cd0fbb85dc6d177e3044",
+  "review": "6076000133595",
+  "qualified_nine_current_head_jobs": {
+    "pr-certificate": {
+      "job": 111907338244,
+      "run": 37351218849,
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "coverage": {
+      "job": 111902259299,
+      "run": 37351218849,
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "smoke": {
+      "job": 111902259079,
+      "run": 37351218849,
+      "conclusion": "success",
+      "workflow": ".github/workflows/full-e2e.yml"
+    },
+    "browser-public": {
+      "job": 111902249753,
+      "run": 37351218934,
+      "conclusion": "success",
+      "workflow": ".github/workflows/browser-quality-e2e.yml"
+    },
+    "upgrade-migration-replay": {
+      "job": 111902246267,
+      "run": 37351218127,
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "verify": {
+      "job": 111902246237,
+      "run": 37351218127,
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "quality-release-gates": {
+      "job": 111902246133,
+      "run": 37351218127,
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "clean-migration-replay": {
+      "job": 111902245871,
+      "run": 37351218127,
+      "conclusion": "success",
+      "workflow": ".github/workflows/ops-hardening.yml"
+    },
+    "targeted-regressions": {
+      "job": 111902245290,
+      "run": 37351218278,
+      "conclusion": "success",
+      "workflow": ".github/workflows/ediel-masterplan-v2.yml"
+    }
+  },
+  "source_guard": "/tmp/gridex-root-final-main-guards-20261005/receipts/run-20261005T184812494345Z-f88e88fb/summary-f88e88fb.json",
+  "actual_merge_sha": "3251d20a8b9fe0294367977dca49de65aabe7513",
+  "actual_tree": "c1bfe1f0de4cbab8df06cd0fbb85dc6d177e3044",
+  "parents_exact": true,
+  "actual_main_after": "3251d20a8b9fe0294367977dca49de65aabe7513"
+}

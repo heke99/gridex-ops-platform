@@ -1,0 +1,5 @@
+2026-10-05T11:48:46.7372725Z   ref: 3ded2c09e12e81777f7b5d4c37f4d9c411e9660e
+2026-10-05T11:48:50.8733610Z HEAD is now at 3ded2c0 docs(ediel): preserve current-main export proof and native handoff
+2026-10-05T11:48:50.8811193Z 3ded2c09e12e81777f7b5d4c37f4d9c411e9660e
+2026-10-05T11:51:10.8245143Z Masterplan IDs: 352; approved 213; tagged green 232; tagged failing 0; untagged 120
+2026-10-05T11:51:10.8246387Z Tagged green, not yet approved (review every expected/prohibited effect before approving):

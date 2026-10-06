@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-05T19:37:10.303921+00:00",
+  "pr": 547,
+  "head": "da2f27f9f889622fb037e9c3965a7078232585c1",
+  "actual_main_before": "3658404d21e76bdabc5b61d91cf43a5c6683b93a",
+  "expected_merge_tree": "64c93f935436a0c30db27fb86b5451d414984116",
+  "source_guard": "/tmp/gridex-root-final-main-guards-20261005/receipts/run-20261005T193710763486Z-3658404d/summary-3658404d.json",
+  "observer_snapshot_at": "2026-10-05T19:35:06.565553+00:00",
+  "ordinary_nine_success": {
+    "pr-certificate": {
+      "job": 111926184634,
+      "run": 37356628513,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "verify": {
+      "job": 111920558383,
+      "run": 37356628592,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "smoke": {
+      "job": 111920558100,
+      "run": 37356628513,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "quality-release-gates": {
+      "job": 111920558031,
+      "run": 37356628592,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "clean-migration-replay": {
+      "job": 111920557982,
+      "run": 37356628592,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "coverage": {
+      "job": 111920557828,
+      "run": 37356628513,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "browser-public": {
+      "job": 111920557809,
+      "run": 37356628498,
+      "workflow": ".github/workflows/browser-quality-e2e.yml",
+      "conclusion": "success"
+    },
+    "upgrade-migration-replay": {
+      "job": 111920557801,
+      "run": 37356628592,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "targeted-regressions": {
+      "job": 111920557388,
+      "run": 37356628554,
+      "workflow": ".github/workflows/ediel-masterplan-v2.yml",
+      "conclusion": "success"
+    }
+  },
+  "actual_merge_sha": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "actual_tree": "64c93f935436a0c30db27fb86b5451d414984116",
+  "actual_parents_verified": true,
+  "merged_at": "2026-10-05T19:37:16Z",
+  "actual_main_after": "38aa73454b724040f6aaf4339e7feab226ce3ecd"
+}

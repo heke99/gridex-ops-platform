@@ -1,0 +1,5 @@
+2026-10-05T12:20:18.3994248Z 9b50b1b9a5aae19e9cabead09c92af4e0443c44c
+2026-10-05T12:20:19.0292431Z HEAD is now at 9b50b1b9a test(ediel): bound real export lease waits before RPC cancellation
+2026-10-05T12:20:19.0416785Z 9b50b1b9a5aae19e9cabead09c92af4e0443c44c
+2026-10-05T12:24:10.7376849Z migration source is not checksum-pinned: 20261005101500_ediel_beneficiary_export_jobs.sql
+2026-10-05T12:24:13.5000174Z ##[error]Process completed with exit code 1.

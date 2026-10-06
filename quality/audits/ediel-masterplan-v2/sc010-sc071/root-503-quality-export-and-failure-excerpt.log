@@ -1,0 +1,24 @@
+2026-10-05T14:01:15.0414902Z  Test Files  2 passed (2)
+2026-10-05T14:01:15.0415741Z       Tests  45 passed (45)
+2026-10-05T14:01:15.0417462Z    Duration  957ms (transform 738ms, setup 32ms, import 1.12s, tests 166ms, environment 0ms)
+2026-10-05T14:02:36.0922263Z  ✓ __tests__/ediel-sc-010-071-grant-revalidation.test.ts (10 tests) 27ms
+2026-10-05T14:02:48.5269545Z  ✓ __tests__/ediel-sc-010-beneficiary-export.test.ts (12 tests) 3758ms
+2026-10-05T14:03:03.5705045Z  ✓ __tests__/ediel-beneficiary-projection-api.test.ts (18 tests) 30ms
+2026-10-05T14:03:25.6909836Z  ✓ __tests__/ediel-beneficiary-projection-provenance.test.ts (10 tests) 12ms
+2026-10-05T14:03:56.9360268Z  ✓ __tests__/ediel-sc-010-071-current-grant.test.ts (1 test) 3740ms
+2026-10-05T14:04:08.7878377Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+2026-10-05T14:04:08.7880951Z  FAIL  __tests__/ediel-tr-04-attributed-dsn.test.ts > quarantines valid attributed raw_email through actual parser/candidate/source/status owners
+2026-10-05T14:04:08.7882395Z  FAIL  __tests__/ediel-tr-04-attributed-dsn.test.ts > quarantines valid attributed body_text through actual parser/candidate/source/status owners
+2026-10-05T14:04:08.7883728Z  FAIL  __tests__/ediel-tr-04-attributed-dsn.test.ts > quarantines valid attributed attachment through actual parser/candidate/source/status owners
+2026-10-05T14:04:08.7886737Z Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1
+2026-10-05T14:04:08.7922049Z  FAIL  __tests__/ediel-tr-04-attributed-dsn.test.ts > keeps transport quarantine when the candidate port fails
+2026-10-05T14:04:08.7923163Z  FAIL  __tests__/ediel-tr-04-attributed-dsn.test.ts > keeps transport quarantine when the observation port fails
+2026-10-05T14:04:08.7924567Z Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1
+2026-10-05T14:04:08.7944781Z  Test Files  1 failed | 829 passed (830)
+2026-10-05T14:04:08.8004607Z       Tests  5 failed | 10624 passed (10629)
+2026-10-05T14:04:08.8013306Z    Duration  173.26s (transform 23.98s, setup 4.00s, import 181.28s, tests 219.58s, environment 69ms)
+2026-10-05T14:04:08.8133958Z ##[error]Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1
+2026-10-05T14:04:08.8138593Z ##[error]Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1
+2026-10-05T14:04:08.8142899Z ##[error]Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1
+2026-10-05T14:04:08.8146565Z ##[error]Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1
+2026-10-05T14:04:08.8150575Z ##[error]Error: Unexpected business/ACK/AI RPC: ediel_read_unattributed_technical_intake_v1

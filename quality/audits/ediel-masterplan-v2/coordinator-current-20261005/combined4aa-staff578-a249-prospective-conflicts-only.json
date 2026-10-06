@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "kind": "PROSPECTIVE_CONFLICT_PREVIEW_ONLY",
+  "owner": "/root/sc004_sc006_integrate",
+  "original_staff_author_freeze_release_and_final_source_qualification": "PENDING; no admission, technical ownership release or whole approval",
+  "supplied_inputs": {
+    "combined": {
+      "head": "4aa69216f0e37ba53ec78ee5c733a8a839f2696b",
+      "tree": "8bc3351d9dc3cf2684ef7a234e0e235e4d44e93d",
+      "parents": [
+        "8f851413f483afce172e6d672213e94b5ffd3eb3"
+      ]
+    },
+    "staff": {
+      "head": "a2499e47b69f7afdc64282cb24b5c2c2af861ba7",
+      "tree": "387eebd3eb2726051639943ac67a4801fcb29f6a",
+      "parents": [
+        "e081fc42e32270e0c2081970ec07c341c6e0a34b",
+        "38aa73454b724040f6aaf4339e7feab226ce3ecd"
+      ]
+    },
+    "freeze_basis": "Root supplied immutable public heads for this finite preview; no fresh API ownership/release inference."
+  },
+  "merge_bases": [
+    "38aa73454b724040f6aaf4339e7feab226ce3ecd"
+  ],
+  "merge_base_tree": "64c93f935436a0c30db27fb86b5451d414984116",
+  "preview": {
+    "command": "git merge-tree --write-tree 4aa69216f0e37ba53ec78ee5c733a8a839f2696b a2499e47b69f7afdc64282cb24b5c2c2af861ba7",
+    "cwd": "/workspace/gridex-coordinator-checkpoints",
+    "invocations": 1,
+    "actual_exit": 1,
+    "tool_chunk": "9da2ff",
+    "wall_seconds": 0.000019136,
+    "tree": "e331ea94ca8b343659bba54847012133f23f9c18",
+    "tree_status": "PROVISIONAL_CONFLICT_MARKED_OBJECT_ONLY; not resolved, admitted or a working tree"
+  },
+  "conflicts": [
+    {
+      "path": "__tests__/ediel-env07-outbox-separation.test.ts",
+      "stages": [
+        {
+          "stage": 1,
+          "mode": "100644",
+          "blob": "adf6e734a7cefeec3dc3cbe5d7928fc42681fd36"
+        },
+        {
+          "stage": 2,
+          "mode": "100644",
+          "blob": "45437dfbf60867dd70d96c28f38874a63bd3c374"
+        },
+        {
+          "stage": 3,
+          "mode": "100644",
+          "blob": "f1f29c3295fe5c103c9c61887e028102f360e0cd"
+        }
+      ],
+      "owners": "Actual first-admitted608 ENV07 fixture + existing578 Staff author canonical reconciliation;610 alternative excluded.",
+      "action": "Retain canonical combined stage2 blob45437dfb. Staff author must reconcile against actual608, not supply a third fixture or relabel old610/e081 proof."
+    },
+    {
+      "path": "app/admin/customer-cases/page.tsx",
+      "stages": [
+        {
+          "stage": 1,
+          "mode": "100644",
+          "blob": "bbecab0864b8725996b6cc73e4b8975a536e950c"
+        },
+        {
+          "stage": 2,
+          "mode": "100644",
+          "blob": "4b0151f8012aa2acf6571c910a1e85f4912a3841"
+        },
+        {
+          "stage": 3,
+          "mode": "100644",
+          "blob": "f72618d1a29472bb88cf0987e022d993a532c87a"
+        }
+      ],
+      "owners": "Actual608 UI presentation and578 Staff permission/authority source.",
+      "action": "Original author must combine actual608 AdminDisclosurePanel/status selector with support.cases access, cases.write canWrite, customer loader gating and both form predicates."
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "stages": [
+        {
+          "stage": 1,
+          "mode": "100644",
+          "blob": "e64eaf5b82f41b24bd12c240172ff8224ea9d030"
+        },
+        {
+          "stage": 2,
+          "mode": "100644",
+          "blob": "1b660e691e624415279c2afaf5ee94cd6f9b6b5a"
+        },
+        {
+          "stage": 3,
+          "mode": "100644",
+          "blob": "363a5888558cee6357bc627a34a76d12dd2dbaaa"
+        }
+      ],
+      "owners": "Root combined source/capture/provenance writer + original578 retained Staff historical capture origins.",
+      "action": "Preserve complete Gov/DB/main and Staff origin manifests. Resolve current pending scope explicitly; neither historical producer certifies prospective1078. No flattening or blanket side selection."
+    }
+  ],
+  "selected_clean_protected_paths": [
+    {
+      "path": "supabase/database.types.ts",
+      "combined_blob": "690a4d29b4ae26debb5ee77aff9b01b168a49d9d",
+      "staff_blob": "a03032ffba09768fdf9dcdd11f9af96738d0b74e",
+      "preview_blob": "a03032ffba09768fdf9dcdd11f9af96738d0b74e",
+      "disposition": "Staff historical cff raw output selected; prospective1078 producer not yet qualified."
+    },
+    {
+      "path": "supabase/schema.sql",
+      "combined_blob": "97ffcf058e81345584b9c53fcb102a6fa24ae1d4",
+      "staff_blob": "d41b3ebde294d03ef50088c7ec803b4e4e937eed",
+      "preview_blob": "d41b3ebde294d03ef50088c7ec803b4e4e937eed",
+      "disposition": "Staff historical cff raw output selected; not current1078 schema parity."
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "combined_blob": "b85719fc6fd221fdc87b53d1e17e0fdd4fa011f2",
+      "staff_blob": "f5296fefb9fd6b39105f3ac4e40ecaa94b500249",
+      "preview_blob": "f5296fefb9fd6b39105f3ac4e40ecaa94b500249",
+      "disposition": "Staff historical cff raw output selected; fresh union source/capture remains root-owned."
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "combined_blob": "9f6dae9fa96c31d64d31c457754bbb51f2723a8f",
+      "staff_blob": "54808407b1e375e62eb893aa0ea1fe04f3994b7a",
+      "preview_blob": "4d3aa296fb3d3f2a7e15bdb3ddd6a9b8d8e96f1e",
+      "disposition": "Clean textual auto-merge; eventual union registration/source qualification still required."
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "combined_blob": "28cdd1f47207a1e5c811b2b43611a676264a9ede",
+      "staff_blob": "01d7e2eee0ec052bbcc497a157a699403c86fc12",
+      "preview_blob": "28cdd1f47207a1e5c811b2b43611a676264a9ede",
+      "disposition": "Exact combined registration metadata retained."
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "combined_blob": "a12d487d1fc777587e055c819b02b95bc7ca079d",
+      "staff_blob": "0f669757764a1983fd2e4f0feedb04c5c66b3b9a",
+      "preview_blob": "a12d487d1fc777587e055c819b02b95bc7ca079d",
+      "disposition": "Exact combined config retained, including original-outcome and DB02 native registrations omitted by old Staff config."
+    },
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "combined_blob": "2f32623b0d7161b40ce2fe4ddde2b18081deb470",
+      "staff_blob": "dd94839db4bf10fe743f08d51eb86210efdd449c",
+      "preview_blob": "dd94839db4bf10fe743f08d51eb86210efdd449c",
+      "disposition": "Staff changes timeAnchors extraction/assertion; canonical fixture owner qualification remains pending despite clean merge."
+    }
+  ],
+  "types_manifest_conflict_regions": {
+    "preview_line_ranges": [
+      [
+        3,
+        17
+      ],
+      [
+        120,
+        124
+      ],
+      [
+        360,
+        364
+      ],
+      [
+        836,
+        2590
+      ]
+    ],
+    "boundary": "Capture header/pending flag, composition notes/scope and complete nested prior Gov/DB/main versus Staff origins conflict. Preserve both full provenance histories."
+  },
+  "prospective_SQL_union": {
+    "count_if_original_three_forwards_are_qualified": 1078,
+    "basis": "Reused combined1075 input guard plus three retained original Staff forwards; no1073/23/8 inventory rerun.",
+    "staff_forwards": [
+      {
+        "path": "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+        "preview_blob": "85ed00249ceda5e6591e78aa89df36602fe7c244",
+        "exact_retained_staff_blob": true
+      },
+      {
+        "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+        "preview_blob": "012f25a0b4d519c60b26aef7495869354f3d71f7",
+        "exact_retained_staff_blob": true
+      },
+      {
+        "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+        "preview_blob": "82e160f5318e241e373092cc63d2067379cebc6e",
+        "exact_retained_staff_blob": true
+      }
+    ],
+    "qualification": "COUNT_PROJECTION_ONLY; source acceptance and fresh union capture remain pending"
+  },
+  "retained_historical_provenance": {
+    "five_complete_staff_manifest_snapshots": "All five selected snapshot blobs exact Staff in preview; paths/expected hashes reused from182b freeze.",
+    "staff_generated_origin": "Historical cff34a54982f6b5269c340511c933c5af76ec8e8 / tree20a7dc9d75b5db20a32f918fe638a11ca928fbf3, capture-only1076 producer; never relabeled as1078."
+  },
+  "reused_qualified_records": [
+    {
+      "path": "/workspace/agent-review-checkpoints/staff578-a249-vs-e081-main296-protected-input-freeze.json",
+      "sha256": "182b3f918207f8783f798e03c547053bf68236efcec6c587af65ca5878d578e8"
+    },
+    {
+      "path": "/workspace/agent-review-checkpoints/combined-8f851-sc010-composition-publication-independent-ready.json",
+      "sha256": "d26a0dcec7f9eb2cec14ad313c18ea71fb4b63c05d7da9e50b2a3293c99704d1"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combineda2-main38-public533535-source-only-carry.json",
+      "sha256": "e4de81f4e59d1bd5a1be2b68b36472daa7e50af525fb87962c3d2c947dd4d041"
+    }
+  ],
+  "limits": {
+    "checkout_index_commit_ref_fetch_source_sharedfile_changes": 0,
+    "tests_CI_native_artifact_rawlog_capture_runs": 0,
+    "merged_working_tree_created": false,
+    "third_Staff_fixture_or_source_variant": false,
+    "inventory_exports": 0,
+    "own_output": "One concise sanitized prospective JSON only"
+  },
+  "next": "Root routes three textual conflicts and clean SC068/generated-source/native-registration boundaries to original578 author; root retains combined writer/publication/capture. No preview resolution applied."
+}

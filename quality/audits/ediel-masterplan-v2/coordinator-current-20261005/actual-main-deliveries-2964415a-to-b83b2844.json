@@ -1,0 +1,42 @@
+{
+  "schema": "root-authenticated-actual-main-delivery",
+  "actual_main": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "tree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+  "deliveries": [
+    {
+      "pr": 606,
+      "source": "9a2df8728a3d4dc9cc53145ba6c1e5398efb401b",
+      "merged_at": "2026-10-05T21:33:59Z",
+      "actual_commit": "b83b284467c8e0fcaa277706a708706e0a705068",
+      "actual_tree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+      "actual_ordered_parents": [
+        "2964415adec9e36932583e95f8506437d262c507",
+        "9a2df8728a3d4dc9cc53145ba6c1e5398efb401b"
+      ],
+      "source_whole_tree_equal_actual_delivery": true,
+      "ordinary_all9": {
+        "qualification": "Original coordinated all-nine authenticated before delivery; root reuses public immutable owner receipt, no rerun",
+        "before_receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003420459",
+        "actual_delivery_receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685"
+      },
+      "coverage_promotions": [],
+      "source_change_scope": "Original11 website-facility/primary-client paths; entire frozen352-row ledger and SQL/gen/canonical fixtures unchanged"
+    }
+  ],
+  "historical_closures": [
+    {
+      "pr": 225,
+      "state": "closed",
+      "merged": false,
+      "closed_at": "2026-10-05T21:38:17Z",
+      "retained_source": "0da02472501602e9b266506d301129a06153218d",
+      "replacement_pr": 606,
+      "owner_replacement_proof": "https://github.com/heke99/gridex-ops-platform/pull/225#issuecomment-6003496645",
+      "not_an_actual_main_merge_marker": true
+    }
+  ],
+  "root_verification": "GitHub actual PR/commit/parents/state plus genuine Git objects/tree equality and new current-main adoption",
+  "prior_actual_markers_preserved": 37,
+  "new_unique_actual_marker_count": 38,
+  "full_plan_or_full_main_baseline_green": "NOT_CLAIMED"
+}

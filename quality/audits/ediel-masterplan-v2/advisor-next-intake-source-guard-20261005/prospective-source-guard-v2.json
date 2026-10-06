@@ -1,0 +1,278 @@
+{
+  "status": "PROSPECTIVE_ONLY_COMPATIBLE_SOURCE_AND_TREE_GUARD_NO_ACTUAL_INTAKE",
+  "allocation": "#5306003281607",
+  "reviewer": "/root/merge_queue_middle_review NONWRITER",
+  "prepared": {
+    "head": "7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4",
+    "tree": "3850062dcfe445b89c4d8df72e5b83c75254c6b1",
+    "entries": 8670
+  },
+  "advisor_publication": {
+    "head": "15a1580834dbae28bc50661c34c4936e81962127",
+    "tree": "afdc1af8360ddc3c9e121df4de8965a35df4e3d3",
+    "source_path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+    "source_tuple": {
+      "mode": "100644",
+      "type": "blob",
+      "object": "4eddbb25fb01d415aa058b2c8b7edd50d15a55ba"
+    },
+    "source_sha256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654",
+    "applied_peer_sha256": "126ddeb4f27df3dfc183e5de2d14bbbba1923fa450d6d4ec5aeed5e6168e6167"
+  },
+  "prospective_merge": {
+    "command": [
+      "git",
+      "merge-tree",
+      "--write-tree",
+      "7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4",
+      "15a1580834dbae28bc50661c34c4936e81962127"
+    ],
+    "invocations": 1,
+    "exit": 0,
+    "tree": "6706bfdd7486a2b91897e6d8610c2709405710da",
+    "actual_intake_executed": false,
+    "raw_path": "/workspace/ediel-session-inventory-20261005/advisor-next-intake-7d6-15a-merge-tree.raw.json",
+    "raw_sha256": "215cc1d4c52d028532c0339f7bf4b532d41c1e81858036c16c728147b384525b",
+    "conflicts": []
+  },
+  "delta": {
+    "changed_existing_paths": [
+      "scripts/gridex-supabase-advisors-hardening-regression.cjs"
+    ],
+    "new_owned_paths": [
+      {
+        "path": ".agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md",
+        "mode": "100644",
+        "type": "blob",
+        "object": "c3a5c05b8a70ac691df71f33dffb3bbfcea53068"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/README.md",
+        "mode": "100644",
+        "type": "blob",
+        "object": "0b46aad38c6a52332ef383a75a8871fa7836464b"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/SHA256SUMS",
+        "mode": "100644",
+        "type": "blob",
+        "object": "02bfe25a8fa8307f71f9c35199017e6e169037ad"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/after.stderr.log",
+        "mode": "100644",
+        "type": "blob",
+        "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/after.stdout.log",
+        "mode": "100644",
+        "type": "blob",
+        "object": "666ed62e994b98bcd0e88e09bb8acd2ce6ef9208"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/applied-review.json",
+        "mode": "100644",
+        "type": "blob",
+        "object": "678e8a5a02d2ef23fedd5da39f7c49e086fd3158"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/baseline.stderr.log",
+        "mode": "100644",
+        "type": "blob",
+        "object": "9c0aa9a19fb9a70f16b8f610d06cc2a4637c9a45"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/baseline.stdout.log",
+        "mode": "100644",
+        "type": "blob",
+        "object": "934fad27a3ccb252805931c64ce4d88537cc4966"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/controls.json",
+        "mode": "100644",
+        "type": "blob",
+        "object": "18d140fff4c0dab729ae1a32a5e28dbb0355a32f"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/input-guard.json",
+        "mode": "100644",
+        "type": "blob",
+        "object": "51090380be1d2f880d171c62bca06b73e65867d8"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/proposal-review.json",
+        "mode": "100644",
+        "type": "blob",
+        "object": "6e1ebbd1eaf210a90c84840a5d7d7578ea5c422e"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/verification.json",
+        "mode": "100644",
+        "type": "blob",
+        "object": "f470824bb771c3cbfc7dd91ab6096e91db9c8dc4"
+      }
+    ],
+    "new_owned_count": 12,
+    "deleted_paths": [],
+    "all_owned_tuples_exact_publication": true,
+    "sole_existing_changed_tuple_exact4eddbb25": true
+  },
+  "foreign_preservation": {
+    "count": 8669,
+    "all_preparation_foreign_mode_type_object_tuples_exact": true,
+    "tuple_digest_method": "SHA256 of Python JSON sorted keys with separators comma/colon for path->mode,type,object mapping",
+    "preparation_foreign_digest": "dc2c02c2258c5ead9c5b11d63edf2e98a051271fb09c266c205a2144c4a6e712",
+    "prospective_foreign_digest": "dc2c02c2258c5ead9c5b11d63edf2e98a051271fb09c266c205a2144c4a6e712",
+    "coverage_tuple_exact": {
+      "mode": "100644",
+      "type": "blob",
+      "object": "875b60dcc320dcd329e4c57a8a04a761a414cea1"
+    },
+    "entire_coverage_generated_sql_workflow_test_product_tree_exact": "Follows from every preparation tuple preserved except the one explicitly owned existing CJS; all added paths are the12 own metadata entries."
+  },
+  "advisor_read_inputs": {
+    "frozen_tested_commit": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+    "fixed_reads": [
+      {
+        "path": "supabase/migrations/20260709160000_advisor_function_search_path.sql",
+        "blob": "6b79ec448eb2b41b8e06447b140346d4e5c6cb09",
+        "sha256": "4a2f3730c57980b7bd4613362e1c767aef171d827cc1224a7cea11ac14ffa20f",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "supabase/migrations/20260709161000_advisor_function_execute_revokes.sql",
+        "blob": "45d1fccf17d862b31b758768fc76648ebe2bc74f",
+        "sha256": "12ccd6d475d7d528763b47fa188b8310da7e907141b82d9ce5751bb7ec39e253",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "supabase/migrations/20260709162000_advisor_security_invoker_views.sql",
+        "blob": "507f7d7552b2d5ef74eed14c183a7dcb06ff10b3",
+        "sha256": "58a0f64c84a26ad8a299f0afb8ee0a91298a6f9b5b2fd66c55423341835eaa6c",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "supabase/migrations/20260709163000_advisor_rls_no_policy_hardening.sql",
+        "blob": "06979ba00f1b59f1bb5ce982ff452409438140b9",
+        "sha256": "6e7ae6ae680084526b7ca141b69e96c17dc458ece3b95ed05563c80bdf1f7047",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "supabase/migrations/20260811080000_remaining_masterpoint_convergence.sql",
+        "blob": "ba0a9a22090a6b8d6809494efcef1a1f4604a107",
+        "sha256": "915f097ae92cfc56423b4047e1b31433bb293bb2d56f505b7584c563a89a33a2",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "docs/security/supabase-advisors-hardening.md",
+        "blob": "d595ea11ecdf0756d3608e9747b30fe767a8fabe",
+        "sha256": "0b6d2fcabafeae511a51a140db2ea77d644172a6cc0ab309a8329a97423aa04e",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "docs/env-production-checklist.md",
+        "blob": "14de2711178427602dc49118963240b8267c10de",
+        "sha256": "c54ab43260560fbfff335ae4112cf0dcde994704693b0f883ce6423b99662d62",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      },
+      {
+        "path": "docs/go-live-cutover-plan.md",
+        "blob": "d6354f5bd0a89af2ddd8d2f1506e1d7a5150e237",
+        "sha256": "0285a77c2a9e1aac18b55d065beeab443b6ebde10951d98132100c6896152aa3",
+        "mode": "100644",
+        "type": "blob",
+        "all_four_snapshots_exact": true
+      }
+    ],
+    "fixed_read_count": 8,
+    "all_migration_count": 1073,
+    "selected_new_migration_count": 827,
+    "all_four_snapshot_migration_collections_exact_mode_type_object": true,
+    "all_migration_tuple_digest": "855ee85e315a167d0fe1c97fd47cef979f9893221f5437c608f3fb50c870bfe5",
+    "reused_original_ordered_path_blob_manifest_sha256": "9cdb13415b9cd84ddf0fc0dab1ec17de2cc5d27b6cb34f3f1c872a33547ccff9",
+    "selected_paths_exact_original_inventory": true,
+    "published_input_guard_path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/input-guard.json",
+    "published_input_guard_blob": "51090380be1d2f880d171c62bca06b73e65867d8",
+    "published_input_guard_sha256": "ebb164267f2e86cb051ac8bdfbaefaf0ef9a89887c2f96aadb7715a625ddd3dc",
+    "selected_input_inventory_sha256": "1fb70844ad970b078998ba7a93cc196ab098673ef253f8594d36a3349d61eb30"
+  },
+  "reused_execution": {
+    "before": "One actual existing checker run19OK/1FAIL",
+    "after": "One actual existing checker run20OK/0FAIL exit0",
+    "memory_controls": "28/28 planned overlays:24 expected negative failures+4 positive passes; baseline not duplicated; total30 checker invocations",
+    "new_executions": 0,
+    "applied_peer_path": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/applied-review.json",
+    "applied_peer_sha256": "126ddeb4f27df3dfc183e5de2d14bbbba1923fa450d6d4ec5aeed5e6168e6167",
+    "no_static_proposal_or_source_chain_repeat": true
+  },
+  "worktree_custody": {
+    "head_before_and_after": "15a1580834dbae28bc50661c34c4936e81962127",
+    "symbolic_head_before_and_after": "refs/heads/codex/ediel-advisor-definition-parser-maintenance-20261005",
+    "index_sha256_before_and_after": "6f2401ea1127cc50da84f902c1984a5d695a7b537043f2750a4a409c9a27508d",
+    "clean_before_and_after": true,
+    "git_optional_locks": "0",
+    "checkout_index_ref_source_mutations": false,
+    "only_git_object_computation": "The one expressly authorized merge-tree writes prospective Git objects, not any worktree/index/ref or integration commit."
+  },
+  "limits": {
+    "source_only": true,
+    "live_catalog_native_capture_tests_CI_rerun": false,
+    "actual_intake_publication_CI_merge": "NOT_EXECUTED; reserved root503/#612 writer and CI observer retain ownership.",
+    "official_GitHub_Actions_major_outage": "Parent context only; no status read/retry/bypass by this reviewer. Existing612c34 notgreen.",
+    "prior_four_component_scope": "Reuse prior152a12d2 guard and prepared publication evidence, with all original paths/readset preserved by exact foreign tuple identity. No repeat60-input analysis.",
+    "provider_release_and_staff_intake": "Retained exact owner holds/dispositions unaffected."
+  },
+  "prior_four_component_reuse": {
+    "publication_guard_sha256_prefix": "152a12d2",
+    "guard_provenance": "Exact original public coordinator metadata read once from fetched fa432 Git object and hash/size verified. Guard is not present in preparation7d6; prior qualification reused without source/60-input analysis.",
+    "prepared_published_index_path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/current-main296-component-readset.json",
+    "prepared_published_index_sha256": "3e103f935de9e75a72c80433cc1954ffec513c54ce2092129d4652b9f05c2286",
+    "prepared_published_index_blob": "6ab5a9299fa8602714ad9d4ba8e63dba64fb29d0",
+    "original_component_paths": 38,
+    "original_unique_direct_inputs": 60,
+    "preservation_method": "All8670 prepared entries inventoried; every8669 foreign tuple exact. Sole change is owned advisor CJS;12added metadata paths. Therefore all original component paths/readset/index bytes stay exact. Original component60-source content/semantics analysis not repeated.",
+    "original_index_advisor_status": "Historical preparation index says advisor pending/not included. This receipt computes prospective composition only and does not edit or relabel that immutable history.",
+    "publication_guard_commit": "fa4323938028ab801e542b4aa961412d21ed4327",
+    "publication_guard_path": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/next7d-actual296-public-preparation-source-only-guard.json",
+    "publication_guard_sha256": "152a12d269900c94c77ed5547fad6ee81738582d01020445acf5dac89500d884",
+    "publication_guard_bytes": 9757,
+    "publication_guard_blob": "265d3a1fbed7d6041913a02d74656d70ba38e032",
+    "publication_guard_schema": "gridex-next7d-actual296-public-preparation-source-only-guard/v1",
+    "publication_guard_verdict": "READY_EXACT_PUBLIC_PREPARATION_REF_ONLY_CURRENT_CI_AND_MAIN_DELIVERY_PENDING",
+    "publication_guard_scope": "7d6/tree385006 against actual296;38component+9rootdocs=47changes,60unique readinputs exact,8623foreign main tuples exact, prior checker receipts reused. Metadata qualification only; advisor-pending historical sentence superseded by public15a release."
+  },
+  "owner_duplicate_guard_check": {
+    "claim": "5306003281607",
+    "after_claim_snapshot_path": "/workspace/ediel-session-inventory-20261005/advisor-next-intake-7d6-15a-after-claim-owner-snapshot.json",
+    "after_claim_snapshot_sha256": "ff08e4fff7a49f6e9fb4e32ec4f346db5d20615bb100767d5df02fdc7d70800e",
+    "observed_later_comment_ids": [
+      6003312786
+    ],
+    "identical_fifth_component_guard_announced": false,
+    "scope": "Single before-compute post-claim observation; retained503/#612 actual integration/CI/publication ownership intact."
+  },
+  "sealed_utc": "2026-10-05T21:34:08.284254+00:00",
+  "revision_provenance": {
+    "preserved_initial_receipt_path": "/workspace/ediel-session-inventory-20261005/advisor-next-intake-7d6-15a-prospective-source-guard.json",
+    "preserved_initial_receipt_sha256": "b9bd42aaeaeb4590668a919db578a88b05c28919a57f7f9007a076d6c210902f",
+    "reason": "Exact prior guard public path arrived after initial seal; new immutable revision adds hash-verified original-guard provenance only. Prospective result/delta/foreign/input proofs unchanged.",
+    "additional_merge_tree_calls": 0,
+    "additional_checker_or_test_calls": 0,
+    "additional_source_analysis": false
+  }
+}

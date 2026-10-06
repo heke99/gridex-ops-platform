@@ -1,0 +1,27 @@
+{
+  "scope": "Actual original #564 documentation delivery, recorded once by the existing common handover writer.",
+  "actual_main": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+  "actual_tree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+  "deliveries": [
+    {
+      "pr": 564,
+      "actual_merge": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+      "tree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+      "parents": [
+        "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+        "d057d3e76427a0407dc8b6670be9f91c41067bc0"
+      ],
+      "merged_at": "2026-10-05T20:06:46Z",
+      "published_head": "d057d3e76427a0407dc8b6670be9f91c41067bc0",
+      "github_pr": "https://github.com/heke99/gridex-ops-platform/pull/564",
+      "pr_api": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/564",
+      "git_commit_api": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/5cde80940ee213612fde3ba6b3461429dd615a7f"
+    }
+  ],
+  "qualification": "Original retained serial owner qualified eight actually applicable ordinary checks; targeted path exclusion was source-qualified and never relabelled PASS.",
+  "delta": "Two original historical SC014 checkpoint documentation paths; no source/SQL/generated/runtime/coverage change.",
+  "whole_sc014": "Original historical/native/source limitations retained.",
+  "current_main_full_green": "NOT_CLAIMED",
+  "whole_masterplan": "NOT_COMPLETE",
+  "final_baseline_tag": "Existing exclusive writer only"
+}

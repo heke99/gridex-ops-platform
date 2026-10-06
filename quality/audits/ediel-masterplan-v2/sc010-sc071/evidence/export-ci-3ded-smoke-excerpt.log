@@ -1,0 +1,6 @@
+2026-10-05T11:50:41.7973069Z HEAD is now at 3ded2c09e docs(ediel): preserve current-main export proof and native handoff
+2026-10-05T11:51:01.2031981Z FAILED migrations (0.4s) [database_or_migration_drift]
+2026-10-05T11:51:01.2036865Z Migration integrity check failed (1 issue(s)):
+2026-10-05T11:51:01.2037785Z - Migration is missing from checksum manifest: 20261005101500_ediel_beneficiary_export_jobs.sql (sha256=d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596)
+2026-10-05T11:52:10.0517087Z Gridex E2E failed: 14/15 passed, 1 failed.
+2026-10-05T11:52:10.0563809Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,32 @@
+{
+  "exact_root503_head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "scope": "Bounded current-head progress, not a terminal certificate",
+  "observer": "/root/sc015_sc016_gate_failure",
+  "observed_at_UTC": "2026-10-05T17:36:00Z",
+  "mandatory_success_count": 5,
+  "mandatory_total": 9,
+  "success": [
+    "targeted-regressions",
+    "browser-public",
+    "smoke",
+    "verify",
+    "coverage"
+  ],
+  "in_progress": [
+    "quality-release-gates",
+    "clean-migration-replay",
+    "upgrade-migration-replay"
+  ],
+  "queued": [
+    "pr-certificate"
+  ],
+  "ops_run": 37347049406,
+  "clean_job": 111888126963,
+  "upgrade_job": 111888126938,
+  "quality_job": 111888126969,
+  "certificate_job": 111896469328,
+  "genuine_new_F3_native_schema_type_upgrade_final_result": "PENDING",
+  "CodeRabbit": "SUCCESS status with explicit manual-review-skipped description; no substantive code review inferred",
+  "prior_c5_19_individual_row_identity": "UNKNOWN; finite58 does not supply native identities",
+  "action": "Keep source913 frozen; consume single observer terminal receipt before merge. Combined-prefix qualification only after actual new forwards are admitted/stable."
+}

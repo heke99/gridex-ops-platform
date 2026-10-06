@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-05T20:34:18.670782+00:00",
+  "source_packet": "2026-10-05T20:33:09.719946+00:00",
+  "runs": [
+    {
+      "pr": 610,
+      "head": "a08c8f5442e5ada39b359e8fb2afb57fdc3997b5",
+      "run": 37363759922,
+      "attempt": 2,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "completed_jobs_preserved": {
+        "111960809781": "success",
+        "111960811057": "success"
+      },
+      "status_before": "queued",
+      "action": "ORDINARY_CANCEL_ACCEPTED",
+      "status_after": "queued",
+      "conclusion_after": null,
+      "completed_job_outcomes_verified": true
+    },
+    {
+      "pr": 520,
+      "head": "38fbe47f0c1ecba02b8e464bfaa560c30179efa0",
+      "run": 37365848355,
+      "attempt": 1,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "completed_jobs_preserved": {
+        "111950683018": "cancelled",
+        "111950683237": "cancelled",
+        "111950684543": "skipped",
+        "111950684629": "skipped",
+        "111950684638": "skipped",
+        "111950685184": "skipped"
+      },
+      "status_before": "queued",
+      "action": "ORDINARY_CANCEL_ACCEPTED",
+      "status_after": "queued",
+      "conclusion_after": null,
+      "completed_job_outcomes_verified": true
+    }
+  ],
+  "scope": "Only two retired exact-head ordinary pull_request runs; no rerun, branch change, source edit or deletion."
+}
