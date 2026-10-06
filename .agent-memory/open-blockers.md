@@ -1,3 +1,30 @@
+## Current autonomous campaign receipts — 2026-10-06T16:46:50.603954+00:00
+
+Observed main `c05625c71ada1023ef73749c51fbebf2af0673fb` (tree `ea9687a43318e874ab2c16e15ad0f3a61a577b18`). Stored coverage is 111/121 rules +167/231 contracts =278/352; 74 remain. The four-row 282/352 candidate in #620 is unmerged and is not counted on main. No resulting-main full acceptance, deployment or external market acceptance is claimed.
+
+| Delivered PR | Actual main commit | Exact source head | Source-head required checks |
+|---|---|---|---|
+| #618 | `9cd954080a2b65d0b73f1662c4bd3f92adb3b122` | `93eed89ec80152f8cf32dd60ad303dccf82dae5a` | 8_APPLICABLE_SUCCESS |
+| #623 | `c6f2223f8900c9f3946678f45c596637b2ff1aba` | `ddbf4a523c7d5c704095aeec882efe11a73ad8d9` | 9_SUCCESS |
+| #619 | `6e2e8df4f8545775e0ed4d7176ba6cd13202f39b` | `d4c31a54472b371da09ee5f6f8d29e4917c7e4a5` | 9_SUCCESS |
+| #622 | `c52782efc3875c7622d30669a0ce21283697d2fd` | `2507d3932cc39f33d724422c845331f078671380` | 9_SUCCESS |
+| #624 | `d73f87dd5449e747b86d0f1b814ceb799603819b` | `444a2a23dacb6eb21793cd498860deca81f59804` | 9_SUCCESS |
+| #625 | `c05625c71ada1023ef73749c51fbebf2af0673fb` | `75f25e9ff93f11a68c2cbaf163319827fb85f042` | 9_SUCCESS |
+
+#618 delivered autonomous reservation instructions; #619/#622/#623/#624/#625 delivered bounded component tests/checkpoints. Their whole acceptance rows remain unapproved. Actual merge/head/check-run receipts were refreshed through GitHub; original bounded independent reviews remain credited to their authors. Source-head successes do not certify this metadata candidate or resulting-main full acceptance.
+
+Active, unmerged snapshot: #620 (open, `39a0e472`), #621 (draft, `f70a3902`), #626 (open, `916bd681`), #627 (open, `28cd5212`), #628 (draft, `fe84419f`), #629 (draft, `1d0278c2`), #630 (draft, `3ed8896f`), #631 (draft, `e82ae6d0`). Source/native/remediation work stays with each current claimant. #620 owns the Sharp advisory repair and four candidate approvals; its final required CI/main delivery remains pending. #627 retains its original six-file common-memory proposal as an undelivered historical candidate; valid merge receipts are reused here, while its old authentication/role-hold claims are superseded by owner restoration/release #530 comment6020417244. It must reconcile that overlap before any later delivery.
+
+#626 is OPEN at `916bd681714deb4e5ab6a97a8a9fa5bd74ef9959`. Independent whole-code reviews approve SC-064 and AT-Z08LK-SUPPLIER on executed source `67d5cedc375b31aae92db1e6a22a794e04da0780`: actual SC4/4 and LK24/24 PASS, authenticated artifacts11426928665/11426628365 and all12/18 input hashes; supported Node22 consumer40/40 and coverage check zero failing tagged IDs. Only its two owned candidate rows are PASSED (280/352 on that branch); actual main remains278. Its earlier LK22/2 sequencing failure remains recorded. Required audit/main adoption and fresh affected native/current-head CI still precede merge; no external acceptance is claimed.
+
+#624 is actually merged at `d73f87dd5449e747b86d0f1b814ceb799603819b`. Its same-session #628 successor is BLOCKED at `fe84419f374c4f19660cae7364834ce1baeacbff`: authentic native37492544314/job112368704488 0PASS/2FAIL/0SKIP; artifact11425908508 digest3f25fd3633bc0bd7a301144d4d82ea0e5b19eef4f7ade7a3c08f0eb6835a6e95, exact head/tree/all27 input hashes/JUnit independently qualified. Normal intake fails source validation; the separate fresh real v6 call returns `prodat_response_same_owner_required` with accepted protocol and held/unavailable register application facts. No first application, physical positive ACK or wrong-old-meter assertion was reached. Whole C/M remain NOT_EXECUTED; all seven own ID/file resources were owner-released with GET404 after explicit handover6020460863.
+
+Current-main delivery blocker: the exact c05625 verify run37488209223/job112353832515 FAILED at the unchanged production dependency audit (high=2, critical=0), as read from authenticated GitHub logs. The repair belongs to #620; it is not yet main. This metadata proposal must preserve that audit gate and obtain its own current-head success after the dependency is delivered.
+
+Original canonical PRODAT/core owners (#487/#483) and current protected validator owner resolve the source-bound register/application/response recording mismatch without weakening SQL parity or planting caller facts. Retained SC039/#503/#579 owner supplies controlled executed-C compensation and reverse-order causal/ACK evidence. Governed UTILTS issuer/history, settled post-ledger SUPPLIER E66 storage and DSO event/send/calendar witnesses remain separate requirements. Exact next actions are in the own checkpoint and #530 handover6020460863. The fifteen legacy CLOSED_UNMERGED/HOLD entries still preserve their original branches and requirements.
+
+Former memory roles6f0a and24fa/fde4a were owner-released with GET404 (6020417244/6020927719). This snapshot uses memory role `8e60d8978a5462a477793922a3eece5d4d84b10a`, packetd6c71709-d963-4175-a133-98282215575f, CLAIM6021006085 before edits. Reused valid released631 six-file proposal; no foreign unique checkpoint or PR resumed. Future role availability requires a fresh remote query. No new rule pair started; existing claimants retain their source responsibility. Earlier sections below are historical snapshots.
+
 ## Current autonomous dispatch contract — 2026-10-06T13:00:25.023661+00:00
 
 Owner clarification supersedes coordinator-assigned packets: every agent receives

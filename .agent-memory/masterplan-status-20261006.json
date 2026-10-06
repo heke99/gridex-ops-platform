@@ -1,7 +1,7 @@
 {
-  "recordedAt": "2026-10-06T11:44:10.912279+00:00",
-  "baselineMain": "6e49c4f6ea8c2f31ccb68dc21d5b26582a7d171f",
-  "baselineTree": "371065377156039198b8a65c344bebe46ec41090",
+  "recordedAt": "2026-10-06T16:46:50.603954+00:00",
+  "baselineMain": "c05625c71ada1023ef73749c51fbebf2af0673fb",
+  "baselineTree": "ea9687a43318e874ab2c16e15ad0f3a61a577b18",
   "coveragePath": "quality/audits/ediel-masterplan-v2/coverage.json",
   "coverageSha256": "f496e7b127075c982ed857db07d52d99ee2ae94d91692e06713b497135c5167c",
   "rules": {
@@ -108,12 +108,160 @@
   "approvedRowPercent": 78.98,
   "percentageScope": "Equal-weight stored code-approval rows; not time/effort remaining, market/formal acceptance or deployment",
   "baselineCi": {
-    "status": "SUCCESS",
-    "requiredCheckCount": 8,
-    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685",
-    "scope": "Original final owner receipt for baselineMain; not a new documentation PR CI claim"
+    "status": "FAILURE",
+    "run": 37488209223,
+    "verifyJob": 112353832515,
+    "head": "c05625c71ada1023ef73749c51fbebf2af0673fb",
+    "cause": "unchanged production dependency audit high=2 critical=0",
+    "scope": "Authenticated exact-main verify failure only; not complete workflow, new metadata-head or external qualification",
+    "repairOwner": "PR620; source39a0 candidate unmerged at snapshot"
   },
   "legacyCloseout": "COMPLETE_CLOSED_UNMERGED_BRANCHES_AND_REQUIREMENTS_RETAINED",
-  "ruleExecutionPaused": true,
-  "nextAction": "Report this baseline, then await next-wave dispatch; assess retained work and confirm two-ID ownership on #530 before implementation."
+  "ruleExecutionPaused": false,
+  "nextAction": "Autonomous current claimants complete native/source dependencies and mandatory exact-head gates, document actual merge or BLOCKED/RELEASE, then reserve only eligible free pairs; old closed/HOLD requirements remain.",
+  "previousQualifiedBaseline": {
+    "recordedAt": "2026-10-06T11:44:10.912279+00:00",
+    "baselineMain": "6e49c4f6ea8c2f31ccb68dc21d5b26582a7d171f",
+    "baselineTree": "371065377156039198b8a65c344bebe46ec41090",
+    "baselineCi": {
+      "status": "SUCCESS",
+      "requiredCheckCount": 8,
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685",
+      "scope": "Original final owner receipt for baselineMain; not a new documentation PR CI claim"
+    },
+    "ruleExecutionPaused": true,
+    "nextAction": "Report this baseline, then await next-wave dispatch; assess retained work and confirm two-ID ownership on #530 before implementation."
+  },
+  "autonomousReceipts": {
+    "merged": [
+      {
+        "pr": 618,
+        "main": "9cd954080a2b65d0b73f1662c4bd3f92adb3b122",
+        "head": "93eed89ec80152f8cf32dd60ad303dccf82dae5a",
+        "checks": "8_APPLICABLE_SUCCESS"
+      },
+      {
+        "pr": 623,
+        "main": "c6f2223f8900c9f3946678f45c596637b2ff1aba",
+        "head": "ddbf4a523c7d5c704095aeec882efe11a73ad8d9",
+        "checks": "9_SUCCESS"
+      },
+      {
+        "pr": 619,
+        "main": "6e2e8df4f8545775e0ed4d7176ba6cd13202f39b",
+        "head": "d4c31a54472b371da09ee5f6f8d29e4917c7e4a5",
+        "checks": "9_SUCCESS"
+      },
+      {
+        "pr": 622,
+        "main": "c52782efc3875c7622d30669a0ce21283697d2fd",
+        "head": "2507d3932cc39f33d724422c845331f078671380",
+        "checks": "9_SUCCESS"
+      },
+      {
+        "pr": 624,
+        "main": "d73f87dd5449e747b86d0f1b814ceb799603819b",
+        "head": "444a2a23dacb6eb21793cd498860deca81f59804",
+        "checks": "9_SUCCESS"
+      },
+      {
+        "pr": 625,
+        "main": "c05625c71ada1023ef73749c51fbebf2af0673fb",
+        "head": "75f25e9ff93f11a68c2cbaf163319827fb85f042",
+        "checks": "9_SUCCESS"
+      }
+    ],
+    "openSnapshot": [
+      {
+        "pr": 620,
+        "head": "39a0e472a99ce06c436e136f4ccd3465ae05ab68",
+        "draft": false
+      },
+      {
+        "pr": 621,
+        "head": "f70a3902955a60f1d6930ef8936412d5b9c9c716",
+        "draft": true
+      },
+      {
+        "pr": 626,
+        "head": "916bd681714deb4e5ab6a97a8a9fa5bd74ef9959",
+        "draft": false
+      },
+      {
+        "pr": 627,
+        "head": "28cd521294e68e183ce9000d2ab6ed513882a5a8",
+        "draft": false
+      },
+      {
+        "pr": 628,
+        "head": "fe84419f374c4f19660cae7364834ce1baeacbff",
+        "draft": true
+      },
+      {
+        "pr": 629,
+        "head": "1d0278c2efd3ef235f5818670e76ee62a86a97fc",
+        "draft": true
+      },
+      {
+        "pr": 630,
+        "head": "3ed8896fe8ce3b1f88ee453e542c78ab35e08821",
+        "draft": true
+      },
+      {
+        "pr": 631,
+        "head": "e82ae6d09fcb9576051fea826dd2b7dc64d2cdd9",
+        "draft": true
+      }
+    ],
+    "unmergedCandidateApprovals": {
+      "pr": 620,
+      "approved": 282,
+      "includedInMainCount": false
+    },
+    "cMRelease": {
+      "comment": 6020460863,
+      "draftPr": 628,
+      "nativeRun": 37492544314,
+      "result": "0PASS2FAIL0SKIP",
+      "wholeApproval": false,
+      "allSevenOwnResourcesConfirmedAbsent": true
+    },
+    "sharedMemoryProposal": "OWN_CURRENT_HEAD_REVIEW_CI_DELIVERY_PENDING",
+    "sc064LkCandidate": {
+      "pr": 626,
+      "head": "916bd681714deb4e5ab6a97a8a9fa5bd74ef9959",
+      "executed_source": "67d5cedc375b31aae92db1e6a22a794e04da0780",
+      "contracts": [
+        "SC-064",
+        "AT-Z08LK-SUPPLIER"
+      ],
+      "whole_code_review": "APPROVE",
+      "sc_native": {
+        "run": 37493991484,
+        "artifact": 11426928665,
+        "passed": 4,
+        "failed": 0
+      },
+      "lk_native": {
+        "run": 37493991168,
+        "artifact": 11426628365,
+        "passed": 24,
+        "failed": 0
+      },
+      "consumer_node": "22.23.3",
+      "consumer_passed": 40,
+      "coverage_check": "EXIT0_315_TAGGED_GREEN_0_FAILING",
+      "candidate_approved": 280,
+      "included_in_main_count": false,
+      "merge_readiness": "PENDING_QUALIFIED_MAIN_AUDIT_REPAIR_AND_FRESH_GATES",
+      "external_acceptance": "NOT_CLAIMED",
+      "receipt_comment": 6020896949
+    },
+    "memoryRoleAtSnapshot": {
+      "receipt": "8e60d8978a5462a477793922a3eece5d4d84b10a",
+      "claim": 6021006085,
+      "formerOwnerReleased": 6020927719
+    },
+    "reusedProposal": "PR631_e82ae6d9_RELEASED"
+  }
 }
