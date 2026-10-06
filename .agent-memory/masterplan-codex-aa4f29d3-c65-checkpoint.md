@@ -22,3 +22,11 @@ Verification: authenticated fetch confirmed main; gh matching-refs and exact-res
 Remaining: complete TEN09 condition/pass/failure with true resolver/coordinator/durable state; GOV04 actual send-time re-evaluation, retained payload/decisions, no relabelled queue and qualified exception handling. Native stack and mandatory PR checks not run.
 
 Next: this agent publishes checkpoint and CLAIM before tests/code, reads the actual fixture/send chain, reuses retained tests, closes assertion gaps, and obtains independent final whole-card review. Additional paths require additional atomic locks. Actual merge only after current-head required checks and role-merge.
+
+## Implementation checkpoint 2026-10-06
+
+Reused seven GOV04/AT cases byte-for-byte from withdrawn #528 and preserved its original assertions. Added actual SMTP-chain tests with strict finite registry/archive/journal ports. Extended the existing native SC003/005 fixture with TEN09 protected resolver/coordinator rejects and shared/last termination assertions; all original assertions preserved. No coverage or production change.
+
+Verification: reused GOV04 + main version-time anchors 16/16 PASS. Initial actual-send run proves old-source/current-guide mismatch refuses provider entry (1 PASS); positive and boundary cases currently fail because the finite postacceptance projection adapter returns null. Those two failures are not yet evidence of a production defect. TEN09 finite SQL wrapper exits 1 without child stdout/stderr; native suite not run (no local Supabase/psql). Final typechecks/CI/review still pending.
+
+Independent spec review confirms existing send admission and immutable source mismatch behavior but identifies a possible guide rollover between validation and provider callback. Original guide exceptions for source-bound ACK must remain intact. Next: this agent completes the strict finite projection adapter, confirms a valid runtime failure before production edits, then acquires additional file locks if needed. Exact commit is recorded in #530 immediately after committing this checkpoint.
