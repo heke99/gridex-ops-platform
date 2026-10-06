@@ -233,5 +233,14 @@
       "nextAction": "Report this baseline, then await next-wave dispatch; assess retained work and confirm two-ID ownership on #530 before implementation."
     }
   ],
-  "campaignComplete": false
+  "campaignComplete": false,
+  "historicalSnapshotRefs": [
+    {
+      "status": "HISTORICAL_SUPERSEDED",
+      "recordedAt": "2026-10-06T16:19:08.597444+00:00",
+      "archivePath": "quality/audits/ediel-masterplan-v2/retained-memory-631-20261006/masterplan-status-20261006.json",
+      "sourceSha256": "919fd864d129b0bae5f24b3acb1549548d4eb025af584b71e8a97cc2b8e1c679",
+      "originPath": "quality/audits/ediel-masterplan-v2/retained-memory-631-20261006/origin.json"
+    }
+  ]
 }
