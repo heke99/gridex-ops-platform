@@ -1,3 +1,5 @@
+// masterplan: GOV-04, AT-GOV-04
+import {stockholmBusinessDate} from '@/lib/ediel/core/executionContext'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielBusinessExpectationPlan, EdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
@@ -30,6 +32,14 @@ export type GenericEdielDispatchContext = {
   transportException?: TransportExceptionAuthorization | null
 }
 
+/** A date change requires the full send admission to run again. Never relabel
+ * the sealed source/ACK guide or replace a historical accepted observation. */
+export function assertEdielAdmissionDateCurrent(decision: Readonly<Record<string, unknown>> | null | undefined): void {
+  if (decision && decision.referenceDate !== stockholmBusinessDate()) {
+    throw new Error('ediel_transport_admission_changed_retry_required')
+  }
+}
+
 /** One attempt gate can receive an already archived binding without recompiling MIME. */
 export function createGenericEdielAttemptGate(input: SendEdielEmailInput, context: GenericEdielDispatchContext) {
   const { message } = context
@@ -47,6 +57,7 @@ export function createGenericEdielAttemptGate(input: SendEdielEmailInput, contex
     beforeProviderCall: async (actual: Record<string, unknown>) => {
       if (callbackUsed) throw new Error('ediel_transport_callback_reused')
       callbackUsed = true
+      assertEdielAdmissionDateCurrent(context.admissionDecision)
       const binding = {
         ...actual, originalHash: createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'), routeId: message.communication_route_id,
         mimeMode: context.mimeMode, encoding: context.encoding, payloadHash: createHash('sha256').update(context.payload).digest('hex'), payloadLength: context.payload.length,
@@ -69,10 +80,12 @@ export function createGenericEdielAttemptGate(input: SendEdielEmailInput, contex
         throw new SmtpDeliveryUncertainError(new Error('ediel_transport_resend_suppressed'))
       }
       prepared = true
+      assertEdielAdmissionDateCurrent(context.admissionDecision)
       // Set before awaiting RPC. A lost response may follow committed entry.
       entered = true
       const authorization = await call('enter')
       if (authorization.proceed !== true) throw new Error('ediel_transport_entry_denied')
+      assertEdielAdmissionDateCurrent(context.admissionDecision)
     },
   }
   const capture = async (result: ProviderResult): Promise<ProviderResult> => {
