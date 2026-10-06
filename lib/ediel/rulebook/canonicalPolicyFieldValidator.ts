@@ -5,7 +5,7 @@ import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} 
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
-import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
@@ -83,6 +83,16 @@ export function validateCanonicalPolicyFields(input: {
     // Inbound extra information is ignored (§2.2); outbound must not carry it.
     return input.policy.direction === 'outbound' ? [{ ...rule, requirement: 'forbidden' }] : []
   })
+  let observedApplicationReference=input.policy.applicationReference
+  if(input.policy.family==='PRODAT'){
+    const una=input.una??DEFAULT_UNA
+    const wire=tokenizeEdifact(input.rawPayload??serializeUna(una)+(input.rawSegments??[]).join(una.segmentTerminator)+una.segmentTerminator)
+    const headers=wire.segments.filter(segment=>segment.tag==='UNB')
+    // A pre-envelope builder still uses its resolved route. Once UNB exists,
+    // field311 must observe the physical source, including an absent value;
+    // the policy's expected reference cannot manufacture a wire observation.
+    if(headers.length)observedApplicationReference=headers.length===1?(segmentComposite(headers[0],7,wire.una)[0]||null):null
+  }
   const matrixInput: FieldMatrixEvaluationInput = {
     una: input.una,
     direction: input.policy.direction as 'inbound' | 'outbound',
@@ -112,11 +122,17 @@ export function validateCanonicalPolicyFields(input: {
     }
     return !prodatSourceSubtypeRule(input.policy.code, field)
   }) : rules
+  // Physical field311 observations belong to its selected base rule. Other
+  // consumers use the already selected process/guide reference, including
+  // partial field validations that do not own the interchange header.
+  const baseInput = baseRules.some(rule => rule.fieldNumber === '311')
+    ? {...matrixInput, applicationReference: observedApplicationReference}
+    : matrixInput
   const issues = input.scope === 'dependent_only'
     ? input.policy.family === 'PRODAT'
-      ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
+      ? validateFieldMatrixPayload(baseInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
-    : validateFieldMatrixPayload(matrixInput, baseRules)
+    : validateFieldMatrixPayload(baseInput, baseRules)
   if (input.scope !== 'dependent_only') issues.push(...validateEdifactHeaderGuide({
     direction: input.policy.direction as 'inbound' | 'outbound', rawPayload: input.rawPayload, rawSegments: input.rawSegments, una: input.una,
   }))

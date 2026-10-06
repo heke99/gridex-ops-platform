@@ -23,6 +23,7 @@ import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receive
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
 import {tokenizeEdifact} from "@/lib/ediel/core/edifactTokenizer";
+import {prodatCharacteristicValues} from "@/lib/ediel/prodat/prodatCharacteristicFields";
 
 import {
   createEdielMessageEvent,
@@ -468,14 +469,19 @@ async function createAutomaticPositiveAcks(params: {
   deferProdatPositive?:boolean;
 }) {
   const createdIds: string[] = [];
-  // A bilateral capability that is no longer current (e.g. a revoked reviewer
-  // on replay) leaves no qualified policy: record the block, create nothing.
+  // A bilateral capability that is no longer current, or a source missing
+  // the physical process reference, leaves no qualified policy. Retain the
+  // source for review without manufacturing a guide, ACK or domain effect.
   let policy: Awaited<ReturnType<typeof getAutomaticAckPolicy>>;
   try{policy = await getAutomaticAckPolicy(params.sourceMessage);}
   catch(error){
-    if(!/^prodat_bilateral_capability_required:/.test(error instanceof Error?error.message:''))throw error;
+    const code=error instanceof Error?error.message:'';
+    const wire=params.sourceMessage.message_family==='PRODAT'&&params.sourceMessage.direction==='inbound'&&params.sourceMessage.raw_payload
+      ?tokenizeEdifact(params.sourceMessage.raw_payload):null;
+    const missingSubtype=code==='prodat_subtype_unknown:missing'&&wire!==null&&prodatCharacteristicValues('223',wire.segments,wire.una).length===0;
+    if(!missingSubtype&&!/^(?:prodat_bilateral_capability_required:|canonical_ediel_application_reference_required:PRODAT:)/.test(code))throw error;
     await createAckBlockedEvent({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:"APERAK",
-      reason:formatErrorMessage(error,"Bilateral förmåga är inte längre aktuell.")});
+      reason:formatErrorMessage(error,"Källbunden kvittenspolicy saknas.")});
     return createdIds;
   }
 
@@ -982,6 +988,30 @@ export async function processInboundEdielMessage(params: {
       sourceMessage: runtimeMessage,
     });
     return runtimeMessage;
+  }
+
+  // A genuinely missing subtype has no business policy or source-rule basis.
+  // Stop before legacy projections and business ACK readers; the independently
+  // qualified technical CONTRL above remains a response to the actual syntax.
+  const missing223=runtimeMessage.message_family==='PRODAT' && runtimeMessage.direction==='inbound'
+    && runtimeMessage.raw_payload && canonicalRuntime.decision.policy===null
+    && canonicalRuntime.decision.syntaxDecision==='accepted'
+    && canonicalRuntime.decision.applicationDecision==='rejected'
+    && canonicalRuntime.decision.functionalDecision==='not_applicable'
+    && !canonicalRuntime.authorizedPartialOwner && canonicalRuntime.domainObjectCount===0
+    && canonicalRuntime.decision.issues.some(issue=>issue.code==='CANONICAL_POLICY_RESOLUTION_FAILED')
+    && canonicalRuntime.decision.issues.some(issue=>issue.code==='PRODAT_TRANSACTION_REASON_INVALID'
+      && issue.prodatDiagnostic?.kind==='field' && issue.prodatDiagnostic.fieldNumber==='223'
+      && issue.prodatDiagnostic.errorKind==='missing');
+  if(missing223){
+    const wire=tokenizeEdifact(runtimeMessage.raw_payload!);
+    if(prodatCharacteristicValues('223',wire.segments,wire.una).length===0){
+      try{
+        await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',
+          reason:'prodat_subtype_unknown:missing; fysisk undertyp saknas och ingen källbunden applikationspolicy kan väljas.'});
+      }finally{await canonicalRuntime.sourceOwnerSession?.finish();}
+      return runtimeMessage;
+    }
   }
 
   // Missing/unlisted BGM/C002/1001 is checked against the physical header
