@@ -1,3 +1,13 @@
+## ACTUAL FULL GREEN BEFORE WORKFLOW CORRECTION — 2026-10-06 22:44:53 UTC
+
+Frozenac091694edc8bd124506083aa66ee17c8bd43a66 actualsupportedNode22+unchangedloopbackguard+permittednetwork full897files/12094testsALLPASS0FAIL/EXIT0/445.58s wrapper (Vitest444.67s), start22:37:08. Log/tmp/gridex-c3ae-z02-ac091-full-unit.log SHAcc963389170b6404b4f62a7b3e5b6e645dd2c787349e6265c1ebea6d99fb1232, fullresultJSON preserved; PTY62018 terminal0. All3freshNONincrementalTS0/lint0/147targeted andpeer6436026710498 remainqualified. No currentofficialwhole/native/currentmandatoryCI_GREEN ormerge inferred; ordinaryrequiredchecks pending.
+
+Independent followup confirms sourceworkflow's manuallyhashed newunit path absentfromon.pull_request.paths: a futureentireunit-only PR wouldskip supplementalcatalog5. Current643 cumulativefiles triggeralready; no previouslyexecutedproof loss inferred. Root now freshGETmatchesremaining5ownrefs thenaddsONLYexactunitpath underexistingownedworkflowlock, YAML/bash/closure verification andfreshheadreview/actualofficial5 required; do notborrowac091headartifact forchangedworkflow. Producer2released/sourcee7/unitf564 unchanged/no edits/commonforeignlocks respected. Wholeexpected/prohibited and actual63854/40 normalCIR CHECK dependency remainunproved. Sharedmemory963b6occupied andnoted6026791495; source/statusmirrors viaowner, no role takeover.
+
+Nextroot terminaloldnative5/officialartifactqualification ifavailable; narrowworkflowfix/sourcecommit+publication+exactpeer/newcurrent5gates, preservepreviousresults distinctly. Commonowner93e fresh2fileclaim/integration/negativeguards pending; Z01owner24fa freshactualCHECK diagnosis/newproducerforward/GEN5 handoff pending. Ifonlyforeignwholeproducer/integration dependenciesremainafterallowedwork, documentfull/currentproof/blockers/nextowners and explicitwholeRELEASE5GETDELETE404, thenfreshH03/H04selection/claims. Hread-onlyscoutconfirmseligiblefreeIDs/new5files andrealpublicbilateralnormal_start_h chain; no Hclaim/code started.
+
+---
+
 ## ACTUAL TWO-FILE RELEASE / ALL THREE TYPES GREEN — 2026-10-06 22:38 UTC
 
 Producer-only intent6026735815/CP4bc805fc followed actualmatchingreceipt956 ownerGET→DELETE→GET404 for BOTH exact computed paths614633... andbc5e2c.... Actualconfirmed/tmp/gridex-c3ae-z02-session.json releasedResources2; rootretains5refs/native/config/workflow/bothIDs andsolepair. No furtherrootedits tosourcee7be/unitf564; immutablebytehandoff93e remainsauthorized AFTERfreshownerclaim. CurrentGitindependentapproval6436026710498/ac091/tree245502 andactual50/147/scopedcontrols preserved. No wholehandedIDs or foreignrefs/roles edited.
