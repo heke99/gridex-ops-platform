@@ -519,3 +519,27 @@ rows stillNOT_EXECUTED and main284. No whole/currentCI_GREEN/merge/external
 claim, secondpair/sharedrole. Localoptionalnative infrastructureBLOCKEDpsql
 with exactrestoration4450/5306024804505; commoncleanupmaintenance separately
 recorded, no sharedsourceedit.
+
+## Actual mailbox successor publication / isolated cleanup repro retained
+
+RemotePR636/sourcebranch APIconfirmedbbf192d5a6e950d37f122391e5e725b3e7a4155b,
+normalpush6024983004; finaltwopeer source-review PRreceipt6025016399. Body
+reconciledactual11971unitPASS and bothhistoricalnativeRED separately. Current
+native39run37527791618/OPS37527791546/full37527791652/retainedLK37527791553/
+browser37527791631/hold37527791661/targeted37527791720 pending. No new source
+mutation afterpublish. Actual621099clean/cert within90min; sourcecustodydepends
+actualmain, not owner silence. Whole/owncoverage remainunapproved.
+
+Readonly supplemental cleanup reproduction used exactsharedscript SHA256
+fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18 inisolated
+/tmp clone with2disposable sentinels and no-opCLI (no Docker/DB/network).
+Actualexit1 missingpsql, BOTHmigration/seedfailedpreservation, stdout/stderr0.
+/tmp/gridex-z05-replay-preflight-qualification.json records sourcebbf/exact
+script/declaredboundary; this ispre-native directbehavior evidence, NOTcontract
+or realCLI/native authority. Sourceworktree remainsCLEAN. Sharedfile651f0b
+unclaimed atread; nextlawfulmaintenance owner should gate restore on actual
+completedbackup and checkprereqs beforedestructive trap.95bc records this as
+separate deferredmaintenance while user-priority existingZ05responsibility
+finishes; no falseforeignlock/blocker invented and no unreserved sourceedit.
+Next95bc authenticate currentbbf39/mandatorygates, actual621mainadoption/
+affectedproof/wholeclause review beforeonlyownrows/normalgreenlockedmerge.
