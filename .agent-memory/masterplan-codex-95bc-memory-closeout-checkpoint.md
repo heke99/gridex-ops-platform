@@ -52,3 +52,20 @@ OwnZ05PR636 publishedfrozen28da currentnative/CIstarted; 38strictcases incl
 realcustody dependencyowner621/2c, no wholecoveragepromotion. Nextthisowner
 current634allgreen+freshrole/base/preview→expectedheadnormalmerge/immediate
 actualPR/main/tree receiptandownerrolescleanup, thenqueuedactualcommonmirror.
+
+## Current delivery role order clarified / frozen source preserved
+
+Exactreservationsprotocol permits retainingownrolememory until delivery and
+acquiringrolemerge ONLYwhenimmediatelyfree for thismemorydelivery; ifoccupied
+explicitlyreleasememory/refreshretry. EarlierCP's unconditionalrelease-before-
+merge wordingwasoverstrict. Neverwaitforone roleholdingother. Actualmemorybe6
+stillours; PR63459f all6applicablechecksSUCCESS andclean/certpending, no merge
+role. Actualmainb155/284ledger unchanged; preview0c3e/productcoveragepreserved.
+95bc nextall8currentgreen→freshrole/head/base/review/preview→immediatelyfree
+merge reservation andnormalexpected59delivery→authenticateactualPR/main/tree/
+parents→CP/#530→matchedGETDELETE404merge thenmemory. Foreignbusymeansexplicit
+memoryrole-onlyrelease/handover preservingPR634/checkpoint, refreshlater.
+Queued631exacte82JSON6439B/SHA919fd864 originalpreserved/tmp andactual633+634
+uniquehandover await nextsmallcommonmirror AFTERactual634delivery; no frozen
+sourcepush/resetCI. OwntechnicalZ05remote94/native38pending, retained24current94
+authenticPASS; local523negativeACKproofbothpeersAUTHORINGAPPROVE/unpublished.
