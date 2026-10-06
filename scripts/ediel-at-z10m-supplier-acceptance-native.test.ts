@@ -60,7 +60,8 @@ function changeWire(f:Fixture,oldMeter='METER-1'){
   // Independent full supplied wire: new meter with two distinct register rows.
   // No caller MeterChangeSelection declares inbound conditional facts.
   const body:Parts[]=[
-    ['NAD','FR',[f.receiver,'160','SVK']],['NAD','DO',[f.sender,'160','SVK']],
+    ['NAD','FR',[f.receiver,'160','SVK'],'','','','','','','SE'],
+    ['NAD','DO',[f.sender,'160','SVK'],'','','','','','','SE'],
     line('1',f.external,'1','9'),['DTM',['157',minute,'203']],['DTM',['354','15','806']],
     ...characteristic('Z13','E58'),...characteristic('Z04','Z04'),
     ...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
