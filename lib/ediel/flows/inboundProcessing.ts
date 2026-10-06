@@ -990,6 +990,30 @@ export async function processInboundEdielMessage(params: {
     return runtimeMessage;
   }
 
+  // A genuinely missing subtype has no business policy or source-rule basis.
+  // Stop before legacy projections and business ACK readers; the independently
+  // qualified technical CONTRL above remains a response to the actual syntax.
+  const missing223=runtimeMessage.message_family==='PRODAT' && runtimeMessage.direction==='inbound'
+    && runtimeMessage.raw_payload && canonicalRuntime.decision.policy===null
+    && canonicalRuntime.decision.syntaxDecision==='accepted'
+    && canonicalRuntime.decision.applicationDecision==='rejected'
+    && canonicalRuntime.decision.functionalDecision==='not_applicable'
+    && !canonicalRuntime.authorizedPartialOwner && canonicalRuntime.domainObjectCount===0
+    && canonicalRuntime.decision.issues.some(issue=>issue.code==='CANONICAL_POLICY_RESOLUTION_FAILED')
+    && canonicalRuntime.decision.issues.some(issue=>issue.code==='PRODAT_TRANSACTION_REASON_INVALID'
+      && issue.prodatDiagnostic?.kind==='field' && issue.prodatDiagnostic.fieldNumber==='223'
+      && issue.prodatDiagnostic.errorKind==='missing');
+  if(missing223){
+    const wire=tokenizeEdifact(runtimeMessage.raw_payload!);
+    if(prodatCharacteristicValues('223',wire.segments,wire.una).length===0){
+      try{
+        await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',
+          reason:'prodat_subtype_unknown:missing; fysisk undertyp saknas och ingen källbunden applikationspolicy kan väljas.'});
+      }finally{await canonicalRuntime.sourceOwnerSession?.finish();}
+      return runtimeMessage;
+    }
+  }
+
   // Missing/unlisted BGM/C002/1001 is checked against the physical header
   // before code-specific policy exists. A typed field 202 finding can qualify
   // the draft; the canonical ACK gateway still requires the persisted code

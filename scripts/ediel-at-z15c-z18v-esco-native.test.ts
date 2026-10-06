@@ -257,19 +257,53 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
     const evidence=buildReceivedSourceValidationEvidence({original:source,validated:source,resolvedCompanyId:f.ids.company,decision})
     expect(evidence).not.toBeNull()
     const protectedEffects=f.effects(),assessments=sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`)
-    const recorded=await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
+    const record=(facts:Record<string,unknown>,objects:NonNullable<typeof evidence>['prodatObjectValidation'])=>supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
      p_company_id:evidence!.companyId,p_environment:evidence!.environment,p_source_message_id:evidence!.sourceMessageId,
-     p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:evidence!.factsText,
+     p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:JSON.stringify(facts),
      p_ignored_fields_text:evidence!.prodatIgnoredFields?JSON.stringify(evidence!.prodatIgnoredFields):null,
-     p_object_facts_text:evidence!.prodatObjectValidation?JSON.stringify(evidence!.prodatObjectValidation):null,
+     p_object_facts_text:objects?JSON.stringify(objects):null,
      p_response_facts_text:evidence!.prodatResponseValidation?JSON.stringify(evidence!.prodatResponseValidation):null,
      p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
      p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
     })
+    for(const alteration of ['reason','shared','accepted','segmentIndex','lineIndex','reference','identity'] as const){
+     const facts=JSON.parse(evidence!.factsText),objects=structuredClone(evidence!.prodatObjectValidation!),scope=facts.registerValidation.objects[0],own=objects.objects[0]
+     if(alteration==='reason'){scope.reasons.push('ARBITRARY_REGISTER_REASON');own.reasons.push('ARBITRARY_REGISTER_REASON')}
+     else if(alteration==='shared')objects.sharedAccepted=false
+     else if(alteration==='accepted'){scope.disposition='accepted';own.disposition='accepted';own.reasons=[];own.negativeFields=[]}
+     else if(alteration==='segmentIndex')scope.registers[0].segmentIndex++
+     else if(alteration==='lineIndex'){scope.registers[0].lineIndex++;own.firstLineIndex++}
+     else if(alteration==='reference'){scope.messageReference='FOREIGN';own.messageReference='FOREIGN'}
+     else{scope.objectId='FOREIGN';scope.identityAgency='9';own.objectId='FOREIGN';own.identityAgency='9'}
+     const refused=await record(facts,objects)
+     expect(refused.data,alteration).toBeNull();expect(refused.error,alteration).not.toBeNull()
+     expect(f.effects(),alteration).toEqual(protectedEffects)
+     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`),alteration).toBe(assessments)
+     expect(market(f,a.permissionId),alteration).toEqual(before)
+    }
+    const recorded=await record(JSON.parse(evidence!.factsText),evidence!.prodatObjectValidation)
     if(recorded.error){
      processingFailures.push(`required Z15C field 209 native recorder: ${JSON.stringify(recorded.error)}; facts=${JSON.stringify({globalReasons:JSON.parse(evidence!.factsText).reasonCodes,registerReasons:JSON.parse(evidence!.factsText).registerValidation.objects[0].reasons,ownReasons:evidence!.prodatObjectValidation?.objects[0].reasons,objects:!!evidence!.prodatObjectValidation,response:!!evidence!.prodatResponseValidation,application:!!evidence!.prodatApplicationValidation,sourceFunction:!!evidence!.prodatSourceFunctionValidation})}`)
      expect(recorded.data).toBeNull();expect(f.effects()).toEqual(protectedEffects)
      expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`)).toBe(assessments)
+    }else{
+     expect(recorded.data).not.toBeNull();expect(f.effects()).toEqual(protectedEffects)
+     const facets=()=>sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.assessment_id),'[]') FROM gridex_received_sources.prodat_object_validation_facets o WHERE source_message_id=${lit(source.id)}`)
+     const initialFacets=facets();expect(initialFacets).toHaveLength(1)
+     const replay=await record(JSON.parse(evidence!.factsText),evidence!.prodatObjectValidation)
+     expect(replay.error).toBeNull();expect(replay.data).not.toBeNull()
+     // Each real validation appends its own immutable assessment; replay must
+     // preserve the previous facet and the same rejection without business effects.
+     const {assessmentId:firstAssessment,...firstScope}=recorded.data as Record<string,unknown>
+     const {assessmentId:secondAssessment,...secondScope}=replay.data as Record<string,unknown>
+     expect(firstAssessment).toEqual(expect.any(String));expect(secondAssessment).toEqual(expect.any(String))
+     expect(secondAssessment).not.toBe(firstAssessment);expect(secondScope).toEqual(firstScope)
+     const repeatedFacets=facets();expect(repeatedFacets).toHaveLength(2)
+     expect(repeatedFacets.find(row=>row.assessment_id===firstAssessment)).toEqual(initialFacets[0])
+     expect(repeatedFacets.map(row=>row.facts_text)).toEqual([initialFacets[0].facts_text,initialFacets[0].facts_text])
+     expect(sql<string>(`SELECT to_jsonb(previous_assessment_id) FROM gridex_received_sources.validation_assessments WHERE id=${lit(String(secondAssessment))}`)).toBe(firstAssessment)
+     expect(f.effects()).toEqual(protectedEffects)
+     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.prodat_application_facets WHERE source_message_id=${lit(source.id)}`)).toBe(0)
     }
    }
    // Preserve failure for every ordinary processing path, while exercising
@@ -277,8 +311,28 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    if(field==='223'){
     // Vitest's default spy calls the actual RPC unchanged. Observe names only;
     // no return value, builder, request or error is substituted or awaited twice.
+    const protectedEffects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
     const trace=vi.spyOn(supabaseService,'rpc')
-    try{await process(f,source)}
+    try{
+     await process(f,source)
+     expect(trace.mock.calls.map(([name])=>name)).not.toContain('ediel_list_business_acks_for_source_v1')
+     expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
+     const acks=()=>sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)}`)
+     const actual=acks();expect(actual).toHaveLength(1);expect(actual[0]).toMatchObject({message_family:'CONTRL',ack_outcome:'positive',direction:'outbound'})
+     expect(readPhysicalAckSourceCorrelation(actual[0],source).acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(source.raw_payload!).interchangeReference])
+     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_ediel_source_rules.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_inbound_cases WHERE ediel_message_id=${lit(source.id)}`)).toBe(0)
+     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_cases WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+     const {events:diagnostics,...after}=f.effects();void diagnostics
+     const {events:oldDiagnostics,...initial}=protectedEffects;void oldDiagnostics
+     expect(after).toEqual({...initial,messages:initial.messages+1,acks:initial.acks+1,creationReceipts:initial.creationReceipts+1,namespace:initial.namespace+1,outbox:initial.outbox+1})
+     expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+     trace.mockClear();await process(f,source)
+     expect(trace.mock.calls.map(([name])=>name)).not.toContain('ediel_list_business_acks_for_source_v1')
+     const {events:replayDiagnostics,...replay}=f.effects();void replayDiagnostics
+     expect(acks()).toEqual(actual);expect(replay).toEqual(after)
+     expect(market(f,a.permissionId)).toEqual(before);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+    }
     catch(error){processingFailures.push(`required Z15C field 223: ${error instanceof Error?error.message+'; stack='+error.stack:JSON.stringify(error)}; actual RPC names=${JSON.stringify(trace.mock.calls.map(([name])=>name))}`)}
     finally{trace.mockRestore()}
    }else await process(f,source).catch(error=>{processingFailures.push(`required Z15C field ${field}: ${error instanceof Error?error.message+'; stack='+error.stack:JSON.stringify(error)}`)})
