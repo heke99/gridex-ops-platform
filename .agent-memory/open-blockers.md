@@ -1,3 +1,13 @@
+## Current remaining dependencies — 2026-10-06T15:03:56.565977+00:00
+
+Observed main c52782efc3875c7622d30669a0ce21283697d2fd; actual PR623 component merge c6f2223f8900c9f3946678f45c596637b2ff1aba and PR619 component merge 6e2e8df4f8545775e0ed4d7176ba6cd13202f39b are reconciled with their owner receipts. PR622 also delivered bounded E06/E09 components at c52782efc3875c7622d30669a0ce21283697d2fd (receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019175642). All three had independent bounded review and all nine required source-head checks SUCCESS. This does not claim resulting-main full acceptance or whole contract approval. Coverage remains 111/121 rules +167/231 contracts =278/352;74 remain.
+
+Former publisher merge/memory roles are owner-released with confirmed404 (https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6018678760). That old blocker is resolved; current role holders must still obey atomic reservations. No foreign ID/file responsibility, retained HOLD/PAUSED requirement or source/market boundary is released by that operation.
+
+C03/C05 owner codex-20261006T134154Z-c3ae376b9893 continues the same packet on codex/ediel-codex-20261006T134154Z-c3ae376b9893-native: ten preserved native cases plus an independently reviewed include-only canonical selector and supplemental CI reusing the existing replay/redactor. Native execution is pending; historical L4/L3/LK-1 and remaining literal contrasts still need proof. Existing mandatory gates remain. Other active/retained packets keep their scopes. Next: execute the focused native tests, inspect genuine receipts/failures, complete or explicitly hand over remaining requirements; only then release/reselect a genuinely eligible pair. Actual merge receipt: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019018092.
+
+Earlier snapshots below are historical where they conflict with this current status; preserve their evidence and retained-owner boundaries.
+
 ## Current autonomous dispatch contract — 2026-10-06T13:00:25.023661+00:00
 
 Owner clarification supersedes coordinator-assigned packets: every agent receives

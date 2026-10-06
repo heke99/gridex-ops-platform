@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-06T13:00:25.023661+00:00",
+  "updated_at": "2026-10-06T15:03:56.565977+00:00",
   "status": "PARTIAL",
-  "paused": true,
+  "paused": false,
   "branch": "main",
   "active_pr": null,
-  "base_head_sha": "c19610cbbdd468467d0a5173c175d5100e1cbd0f",
+  "base_head_sha": "c52782efc3875c7622d30669a0ce21283697d2fd",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 617,
+  "last_merged_pr": 622,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Publish owner clarification: autonomous two-ID selection and atomic reservations",
+  "active_item": "Autonomous packets; PR623 C components delivered, same-pair native proof continues",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -1491,7 +1491,7 @@
   "undecided": [
     "U-1 TEN-04 mandate",
     "U-2 end_assignment LIMIT 1",
-    "TR-09/E6 needs source T §3.1"
+    "TR-09/E6 needs source T \u00a73.1"
   ],
   "ediel_masterplan_v2_env03_imp04": {
     "date": "2026-10-04",
@@ -1644,5 +1644,49 @@
     "previousDocsMerge": 617,
     "previousDocsMergeSha": "c19610cbbdd468467d0a5173c175d5100e1cbd0f",
     "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6016670441"
+  },
+  "main_full_acceptance": "NOT_CLAIMED",
+  "campaign_complete": false,
+  "autonomous_delivery_20261006": {
+    "current_main_observed": "c52782efc3875c7622d30669a0ce21283697d2fd",
+    "coverage": {
+      "verified_rules": 111,
+      "passed_contracts": 167,
+      "approved": 278,
+      "total": 352
+    },
+    "former_publisher_roles": "OWNER_RELEASED_CONFIRMED_404",
+    "role_release_receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6018678760",
+    "pr623": {
+      "source_head": "ddbf4a523c7d5c704095aeec882efe11a73ad8d9",
+      "merge_commit": "c6f2223f8900c9f3946678f45c596637b2ff1aba",
+      "source_required_checks": "9_SUCCESS",
+      "scope": "component_tests_only",
+      "whole_contract_approval": false,
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019018092"
+    },
+    "pr619": {
+      "source_head": "d4c31a54472b371da09ee5f6f8d29e4917c7e4a5",
+      "merge_commit": "6e2e8df4f8545775e0ed4d7176ba6cd13202f39b",
+      "scope": "component_tests_only",
+      "whole_contract_approval": false,
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019057663"
+    },
+    "native_c03_c05": {
+      "agent": "codex-20261006T134154Z-c3ae376b9893",
+      "packet": "65719a9c-8cc9-408d-ba6b-124794988ec2",
+      "branch": "codex/ediel-codex-20261006T134154Z-c3ae376b9893-native",
+      "status": "PROPOSED_NOT_EXECUTED",
+      "ordinary_gates_replaced": false,
+      "coverage_promoted": false
+    },
+    "pr622": {
+      "source_head": "2507d3932cc39f33d724422c845331f078671380",
+      "merge_commit": "c52782efc3875c7622d30669a0ce21283697d2fd",
+      "source_required_checks": "9_SUCCESS",
+      "scope": "component_tests_only",
+      "whole_contract_approval": false,
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019175642"
+    }
   }
 }
