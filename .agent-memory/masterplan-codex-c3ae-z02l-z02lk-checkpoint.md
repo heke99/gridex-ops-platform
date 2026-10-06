@@ -1,3 +1,23 @@
+## TRUE RUNTIME RED — 2026-10-06 22:28:09 UTC
+
+Corrected setup actual50cases (earlier51estimate withdrawn):36PASS14FAIL0errors/skips/815ms/EXIT1 supportedNode22. All14 genuine assertion failures against executableNULLselector beforeproduction implementation; realparser/tokenizer/physicalwire/date unit composition, onlydeclaredcatalogport. Stubec69eb1f85b1ce9c6d1652805bba9596ac7b79d0b9f2530fd1fb993f3e45bbfd/testf5642b6426fd8af6e03e117353f75c6a886edfd96adee59ca506d95bbc8ed9c8 preserved in /tmp/gridex-c3ae-z02-birth-red-source.ts and red-test.ts; log /tmp/gridex-c3ae-z02-birth-red.log SHA668db86744a4d1854adc7de8cdeb8def25ddc69873833e8ac8e0f1d5caa02a5f. No missing-module/setupfailure credit. Failures cover realexpectedtuple/escapedwire/datetimeandcatalogfailure behavior. Product/whole/native/coverage approval absent; all7held andsolepairunchanged.
+
+Nextcomponentagent implementclaimedpurephysicalselector then unchanged50GREEN/typinglint; root independentreview+actualcatalog5source proposals thenpublication/handoffonlyreviewedexactbytes. WholeZ01/commonconsumer dependencies unchanged6026580276; nativeordinary/allCI/currentmergepending. Root upcomingcommit records CP only; RED productsource intentionallypreservedseparately.
+
+---
+
+## PRELIMINARY AUTHORING / EXPLICIT COMMON-OWNER DEPENDENCY — 2026-10-06 22:28 UTC
+
+Pre-codeCLAIM6026560628/CP6bb57295; all7 reservations confirmed. Two selector/unit files being authored by componentagent; initial executable minimal-null51proposal could not run because root supplied wrong node_modules symlink. MODULE_NOT_FOUND is SETUP_FAILURE, NOT meaningful RED; corrected to installed originalc3ae deps and actualvitest path verified before rerun. No GREEN claimed yet. Root authored only owned isolated config/workflow and five unmocked native catalog component proposals using actual RPC/read-only profile/pack witnesses; no whole tags, privateacceptedseed, publicingress/ownZ01/ACK/effect credit. Workflow preserves ordinary gates, local-only replay/status, complete tracked roots before replay, sourcehead/tree/run/inputhashes/JUnit/actualexit/redacted failclosed artifact staging.
+
+Independent wholeliteral review: true positive must receive Z02 BEFORE any incomingCONTRL/APERAK (638 existingpositive receivesCONTRLfirst). Then actualatomicapplication, verifiedpayload/site/point provenance, responseworker completion, generated physicalACK, EXECUTE separatelyenqueued supplier-switchworker/readiness (lawfulblocked readiness is permitted by literal pröva), no activation and exactreplay. All23 R incl233/234 and applicableD229 mustfailcausally; no soleenqueue/nativecount approval. Retained593wholeabsence unchanged.
+
+Owner93e acknowledgment6026580276: commoningress35c0 remainsheld/frozenforownEfull01ec; no Z02change started. Root must publish exact independentlyreviewed producer+unit with trueRED/GREEN and explicitnarrowfileRELEASE/byte reuse beforeownerfreshclaim/integration+ownnegativeadmissioncontrols; ownerdoesnot takewholeZ02. Z01 owner24fa immutablefixture request6026568251 remainspending; actualpath discoveredbyfreshpublishedtree is scripts/helpers/ediel-z01-info-request-native-fixture.ts (+wirehelpers), notmisrememberedfixtures/supplier path; READONLY inspection only/no foreigncopy. Current94 remainsnotqualified; old43/51notpositiveoriginalcredit.
+
+Nextroot: qualify actual51RED/GREEN/componenttypeslint/review and unmocked5catalog source proposals beforepublication. Then smallexactproducerhandoff93e, immutablepublishedfixtureauthorization/dependencies and genuinefullnativecomposition ifavailable. Otherwise preserve executablecomponent proof/source+remainingwhole requirements with exactowner nextactions/BLOCKED/RELEASE; no wholecoverage/currentCIgreen/merge untilqualified. No otherpair/role.
+
+---
+
 # Z02L/Z02LK implementation plan and checkpoint
 
 Agent/session: codex-20261006T134154Z-c3ae376b9893; packet bebe25f4-d2a5-4c59-b6b5-35e5d08192e3; branch codex/ediel-z02l-z02lk-c3ae376b9893; worktree /workspace/gridex-c3ae-z02l-z02lk. Status CLAIMED_BEFORE_CODE. Exact base main fd4a6a06f0cb462cfa15c3ee4a038d557dd559e0 (#637 actual merge; 115 rules+175 contracts=290/352,62remaining). Receipt 9560238a89cd4e107502878e417d3d32094689f2; all seven sorted create-only refs twice GET-confirmed. Own ID rows remain NOT_EXECUTED; dependencies TEN-05/P-01/ENV-06 already VERIFIED.
