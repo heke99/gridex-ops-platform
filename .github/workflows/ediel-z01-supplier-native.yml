@@ -12,6 +12,8 @@ on:
       - 'scripts/migration-history-manifest*.json'
       - 'scripts/sql/**'
       - '__tests__/fixtures/**'
+      - '__tests__/helpers/**'
+      - 'e2e/production/helpers/**'
       - 'lib/**'
       - 'types/**'
       - 'supabase/**'
@@ -87,6 +89,8 @@ jobs:
               'scripts/migration-history-manifest.additions.json',
               'scripts/migration-history-manifest.runtime.additions.json',
               '__tests__/fixtures/prodat-register.ts',
+              '__tests__/helpers/sourceOwnerFixtures.ts',
+              'e2e/production/helpers/swedish-organization-number.mjs',
               'docs/ediel/masterplan-v2/registers/rules.json',
               'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
               'quality/audits/ediel-masterplan-v2/coverage.json',
@@ -100,7 +104,7 @@ jobs:
           assert set(required) <= tracked, 'required_input_missing_from_head'
           def consumed(path):
               return (
-                  path.startswith(('lib/', 'types/')) and path.endswith(('.ts', '.tsx', '.json'))
+                  path.startswith(('lib/', 'types/', 'e2e/production/helpers/', '__tests__/helpers/'))
                   or path.startswith('scripts/helpers/')
                   or path.startswith('supabase/') and path.endswith(('.sql', '.ts', '.tsx', '.toml'))
                   or path.startswith('scripts/sql/') and path.endswith('.sql')
