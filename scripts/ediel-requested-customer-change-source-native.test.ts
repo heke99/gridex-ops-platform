@@ -145,7 +145,8 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  expect(final.plans).toHaveLength(1)
  const plan=final.plans[0]
  expect(plan).toMatchObject({effectKind:'confirmed_customer_version',objectAssessmentId:null,effectReceiptId:source.sourceMessageId,effectFactsHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
- const ids=await createReceivedProdatCommittedEffectAcks({actorUserId:f.reviewer.id,companyId:f.companyId,sourceMessageId:source.sourceMessageId})
+ expect(sql(`SELECT jsonb_build_object('reviewerSend',public.gridex_actor_has_company_permission(${literal(f.reviewer.id)},${literal(f.companyId)},'communication.send'),'dispatcherSend',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.send'))`)).toEqual({reviewerSend:false,dispatcherSend:true})
+ const ids=await createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId})
  expect(ids).toHaveLength(1)
  const ack=await getEdielMessageById(ids[0])
  expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'APERAK',related_message_id:source.sourceMessageId,ack_outcome:'positive',application_reference:'23-DDQ-PRODAT'})
@@ -159,7 +160,7 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  expect(await applyConfirmedCustomerSource(input)).toMatchObject({applied:true,sourceMessageId:source.sourceMessageId,eventId:reviewed.eventId,payloadHash})
  expect(state()).toEqual(stable);expect(deathBusiness(f)).toEqual(before)
  expect((await supabaseService.from('ediel_messages').select('raw_payload').eq('id',source.sourceMessageId).single()).data?.raw_payload).toBe(wire)
- expect(await createReceivedProdatCommittedEffectAcks({actorUserId:f.reviewer.id,companyId:f.companyId,sourceMessageId:source.sourceMessageId})).toEqual(ids)
+ expect(await createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId})).toEqual(ids)
  expect(sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m WHERE related_message_id=${literal(source.sourceMessageId)} AND direction='outbound'),'outboxes',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM public.ediel_outbox o WHERE ediel_message_id=${literal(ids[0])}))`)).toEqual(fixedReplies)
 },120000)
 it('actual independent outgoing review publishes exact immutable non-death event; current issuer/reviewer revocation blocks every fresh consumer',async()=>{
