@@ -13,6 +13,7 @@ import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from 
 import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { closureFixture, CLOSURE_OBJECT } from '../__tests__/helpers/closureWireFixtures'
 import { supabaseService } from '@/lib/supabase/service'
+import { createMeteringPermissionDraft } from '@/lib/onboarding/infoRequests'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitchCancellation'
@@ -104,6 +105,20 @@ async function process(f: Fixture, source: EdielMessageRow) {
 const periods = (f: Fixture) => sql<Period[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.customer_supply_periods p WHERE company_id=${literal(f.companyId)};`)
 const switchState = (f: Fixture) => sql<{ status: string; original: string; li: string; inbound: string | null; completed: string | null }>(`SELECT jsonb_build_object('status',status,'original',outbound_z03_message_id,'li',rff_li_reference,'inbound',inbound_z04_message_id,'completed',completed_at) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
 const permissions = (f: Fixture) => sql(`SELECT jsonb_build_object('permissions',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}),'sites',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.metering_permission_sites p WHERE company_id=${literal(f.companyId)}));`)
+async function createOwnPermissionDraft(f: Fixture) {
+  const draft = await createMeteringPermissionDraft({ companyId:f.companyId,actorUserId:f.actorUserId,
+    customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,gridOwnerId:f.gridId,
+    requestedStartDate:f.requestedStartDate,requestedEndDate:futureNativeSupplyDate(28),
+    caseReference:'C-PRESERVE-'+randomUUID(),lastBlocker:null })
+  expect(draft).toMatchObject({ status:'draft',company_id:f.companyId,customer_id:f.customerId,
+    site_id:f.siteId,metering_point_id:f.pointId,grid_owner_id:f.gridId,created_by:f.actorUserId })
+  const before = permissions(f)
+  expect(before).toEqual(expect.objectContaining({ permissions:expect.arrayContaining([expect.objectContaining({
+    id:draft.id,status:'draft',company_id:f.companyId,customer_id:f.customerId,
+    site_id:f.siteId,metering_point_id:f.pointId,grid_owner_id:f.gridId,case_reference:draft.case_reference })]) }))
+  // This public writer creates a DRAFT parent, not an active grant or child sites.
+  return before
+}
 function original(f: Fixture) {
   return sql(`SELECT jsonb_build_object('raw',raw_payload,'hash',immutable_payload_hash,'rendered',immutable_rendered_at,
     'archives',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.ediel_message_payloads p WHERE p.ediel_message_id=m.id))
@@ -213,6 +228,48 @@ describe('actual native supplier cancellation chains', () => {
     expect(ownedEffects(f,continuation.id)).toEqual(settled)
     expect(original(f)).toEqual(beforeOriginal); expect(permissions(f)).toEqual(beforePermission)
     expect(original(decoy)).toEqual(decoyOriginal); expect(switchState(decoy)).toEqual(decoySwitch); expect(periods(decoy)).toEqual([])
+  }, 180000)
+
+  it('restoration, physical replies and replay preserve a real nonempty same-tenant permission draft', async () => {
+    const f = await seed(), permissionBefore = await createOwnPermissionDraft(f), beforeOriginal = original(f)
+    const confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const [baseline] = periods(f); expect(permissions(f)).toEqual(permissionBefore)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const [endingPeriod] = periods(f)
+    expect(endingPeriod).toMatchObject({id:baseline.id,status:'ending',source_end_message_id:ending.id})
+    expect(permissions(f)).toEqual(permissionBefore)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'); await process(f,continuation)
+    expect(periods(f)).toHaveLength(1)
+    expect(periods(f)[0]).toMatchObject({id:baseline.id,status:baseline.status,source_message_id:baseline.source_message_id,
+      source_end_message_id:baseline.source_end_message_id,end_date:baseline.end_date,market_end_at:baseline.market_end_at,
+      market_state_version:endingPeriod.market_state_version+1,metadata:{...baseline.metadata,endCancellationSource:continuation.id}})
+    expect(permissions(f)).toEqual(permissionBefore); expect(original(f)).toEqual(beforeOriginal)
+    await sendOwnAcks(f,continuation.id)
+    expect(permissions(f)).toEqual(permissionBefore)
+    const settled = ownedEffects(f,continuation.id)
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
+    expect(ownedEffects(f,continuation.id)).toEqual(settled)
+    expect(positiveAperakCount(f,continuation.id)).toBe(1)
+    expect(permissions(f)).toEqual(permissionBefore); expect(original(f)).toEqual(beforeOriginal)
+  }, 180000)
+
+  it('final partition failure preserves the real nonempty permission draft and rolls back all supply business state', async () => {
+    const f = await seed(), permissionBefore = await createOwnPermissionDraft(f)
+    const confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    expect(permissions(f)).toEqual(permissionBefore)
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'), before = supplyBusinessState(f)
+    const constraint = 'z05c_draft_final_partition_'+randomUUID().replaceAll('-','')
+    sql(`ALTER TABLE gridex_received_sources.supply_object_partitions ADD CONSTRAINT ${constraint} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND source_message_id=${literal(continuation.id)}::uuid)) NOT VALID;`)
+    try {
+      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
+      const warnings = sql(`SELECT coalesce(jsonb_agg(payload ORDER BY id),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)} AND event_type='manual_note' AND event_status='warning' AND payload->>'supplySourceApply'='rolled_back';`)
+      expect(warnings).toEqual(expect.arrayContaining([expect.objectContaining({supplySourceApply:'rolled_back',reason:expect.stringContaining(constraint)})]))
+      expect(supplyBusinessState(f)).toEqual(before); expect(permissions(f)).toEqual(permissionBefore)
+      expect(positiveAperakCount(f,continuation.id)).toBe(0)
+    } finally {
+      sql(`ALTER TABLE gridex_received_sources.supply_object_partitions DROP CONSTRAINT ${constraint};`)
+    }
   }, 180000)
 
   it('a stale cancellation of restored end A cannot restore the current distinct end B', async () => {

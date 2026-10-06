@@ -44,6 +44,10 @@ on:
       - 'lib/customer-contracts/documents.ts'
       - 'lib/customer-contracts/agreementPdf.ts'
       - 'lib/legal/authorizationChain.ts'
+      - 'lib/onboarding/infoRequests.ts'
+      - 'lib/tenant/governance.ts'
+      - 'lib/performance/mapWithConcurrency.ts'
+      - 'lib/validation/uuid.ts'
       - 'lib/operations/db.ts'
       - 'lib/operations/powerOfAttorneyWorkflow.ts'
       - 'lib/supabase/service.ts'
@@ -152,6 +156,10 @@ jobs:
               'lib/customer-contracts/documents.ts',
               'lib/customer-contracts/agreementPdf.ts',
               'lib/legal/authorizationChain.ts',
+              'lib/onboarding/infoRequests.ts',
+              'lib/tenant/governance.ts',
+              'lib/performance/mapWithConcurrency.ts',
+              'lib/validation/uuid.ts',
               'supabase/config.toml',
               'supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql',
               'supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql',
