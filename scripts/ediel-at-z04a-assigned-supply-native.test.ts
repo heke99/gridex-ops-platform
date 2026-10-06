@@ -163,6 +163,10 @@ it('actual final partition failure rolls back assigned period/effect/audit befor
   sql(`ALTER TABLE gridex_received_sources.supply_object_partitions ADD CONSTRAINT ${constraint} CHECK(source_message_id<>${literal(f.sourceId)}::uuid) NOT VALID`)
   try {
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: f.sourceId })
+    const rollbacks = sql<{ reason: string }[]>(`SELECT coalesce(jsonb_agg(payload),'[]') FROM public.ediel_message_events
+      WHERE ediel_message_id=${literal(f.sourceId)} AND payload->>'supplySourceApply'='rolled_back'`)
+    expect(rollbacks).toHaveLength(1)
+    expect(rollbacks[0].reason).toContain(constraint)
     const result = state(f)
     expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
     expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)

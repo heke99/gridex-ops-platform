@@ -78,7 +78,10 @@ jobs:
               'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
               'native_exit_code': int(os.environ['Z04A_ASSIGNED_SUPPLY_NATIVE_EXIT']),
-              'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
+              # Replay temporarily substitutes SQL ledger markers until its
+              # EXIT trap. Hash original checked-out inputs, not those markers.
+              'input_authority': 'git_HEAD_source_before_replay_substitution',
+              'input_sha256': {p: hashlib.sha256(subprocess.check_output(['git','show','HEAD:'+p])).hexdigest() for p in paths},
               'test_scope': test_scope,
               'ordinary_required_gates': 'NOT_REPLACED',
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
