@@ -1,3 +1,13 @@
+## Actual delivered ledger — observed 2026-10-06T22:38:25.221028+00:00
+
+Observed main `356e153b64d83b84379791a4b4bda1e47ca464a0` (tree `75c93f2f8128c1a76166c62b50eb2fe3745220ac`), coverage SHA256 `9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1`: **115/121 VERIFIED rules + 175/231 PASSED contracts = 290/352; 62 remain**. Counts derive from main, excluding open-PR candidates. Source-head checks and merge receipts do not establish resulting-main full/native, external acceptance or deployment. Earlier dated snapshots remain historical.
+
+Actual #637 receipt [6026417007](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026417007); #641 receipt [6026666590](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026666590).
+
+Current original owners retain #638 Z01 (24fa), #629 E (93e), #640 TR09/DB01 (2f72), #642 N/OPS04 (2c0823), Z02 (c3ae) and SC014/Z14V (c65). #635 L/LK has explicit owner RELEASE6026519492; missing atomic refs alone never release a retained whole-contract/source responsibility. #636 Z05 remains a candidate pending its owner's final current-head delivery. Claims, successor heads and execution results must be refreshed from #530 before implementation.
+
+Owners finish their current whole effects, authentic proof, review and mandatory checks, then merge under role-merge or explicitly release with exact remaining scope. Free acceptance scope may be selected independently after the original-source/legacy assessment and confirmed ID/file reservations; no coordinator allocation is required.
+
 ## Current delivered ledger — observed 2026-10-06T21:25:05.808507+00:00
 
 Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and

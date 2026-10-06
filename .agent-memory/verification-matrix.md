@@ -1,3 +1,9 @@
+## Current main ledger observation — 2026-10-06T22:38:25.221028+00:00
+
+Observed main `356e153b64d83b84379791a4b4bda1e47ca464a0` (tree `75c93f2f8128c1a76166c62b50eb2fe3745220ac`), coverage SHA256 `9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1`: **115/121 VERIFIED rules + 175/231 PASSED contracts = 290/352; 62 remain**. Counts derive from main, excluding open-PR candidates. Source-head checks and merge receipts do not establish resulting-main full/native, external acceptance or deployment. Earlier dated snapshots remain historical.
+
+Executed authenticated git fetch/ls-remote, GitHub PR637/641 readback, current source-head check-run reads, complete1315-comment board snapshot and remote matching-ref/receipt reads. No new product/native/full-suite verification is claimed. Shared memory scope is locked by `963c97aae5c0e8b7c79d401dcd2fad707a6dca0f`; current documentation checks/review/CI still precede delivery.
+
 ## Current Git ledger and genuine observation qualification — 2026-10-06T21:25:05.808507+00:00
 
 Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and

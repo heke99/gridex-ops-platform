@@ -1,3 +1,8 @@
+## Actual deliveries reconciled — observed 2026-10-06T22:38:25.221028+00:00
+
+- ACTUAL MERGED #637: IMP-05/AT-IMP-05/DB-04/AT-DB-04 at `fd4a6a06f0cb462cfa15c3ee4a038d557dd559e0` on2026-10-06T22:11:58Z from `23b940e4ce4a95464e0ed1383a2d5dc9d79141d4`; original whole-review/native2/focused59/current mandatory10SUCCESS receipt6026417007. Main ledger115+175=290/352; all348 foreign rows preserved; no resulting-main full/external acceptance.
+- ACTUAL MERGED #641: bounded dated memory at `356e153b64d83b84379791a4b4bda1e47ca464a0` on2026-10-06T22:30:55Z from `74c3100b7126ca4bfff1b9359b27287f993708b1`; original independent reviews/eight applicable current source-head checks SUCCESS receipt6026666590. Coverage290 unchanged; archived919fd snapshot remains historical.
+
 ## Current actual handover — observed 2026-10-06T21:25:05.808507+00:00
 
 - ACTUAL MERGED PR #621: AT-Z15C-ESCO and AT-Z18V-ESCO delivered at `141339d78f0b058a18ced03da7af02a41712a378` on2026-10-06T20:45:09Z from09944ec7, with all16 applicable source-head gates, strictF3 and independently authenticated11 native cases green; stored113+173=286/352, all350 foreign rows preserved, receipt6025141806, all37 technical refs and merge role released6025238276; this does not certify resulting-main full CI or external acceptance.

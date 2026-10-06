@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-06T21:25:05.808507+00:00",
+  "updated_at": "2026-10-06T22:38:25.221028+00:00",
   "status": "PARTIAL",
   "paused": false,
   "branch": "codex/ediel-current-memory-24fa8502b8",
   "active_pr": null,
-  "base_head_sha": "56e58b95518ec4d5eef210ba16ba46228afb40ac",
+  "base_head_sha": "356e153b64d83b84379791a4b4bda1e47ca464a0",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 639,
+  "last_merged_pr": 641,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Reconcile delivered286/352 and continue current reserved whole-contract packets",
+  "active_item": "Autonomous retained-owner completion and independently screened eligible acceptance proof",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Continue the existing claimed packets through actual current native and whole-literal review, preserve each failure's true stopping phase, and promote only fully proved owned rows. Require current-head mandatory green checks and serial expected-head merge; record actual delivery and owner-only resource release before selecting eligible next work. Shared reconciliation acquires its own fresh role/nine-file claims; source/coverage/foreign checkpoints stay untouched.",
+  "next_action": "Owners finish their current whole effects, authentic proof, review and mandatory checks, then merge under role-merge or explicitly release with exact remaining scope. Free acceptance scope may be selected independently after the original-source/legacy assessment and confirmed ID/file reservations; no coordinator allocation is required.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1491,7 +1491,7 @@
   "undecided": [
     "U-1 TEN-04 mandate",
     "U-2 end_assignment LIMIT 1",
-    "TR-09/E6 needs source T \u00a73.1"
+    "TR-09/E6 needs source T §3.1"
   ],
   "ediel_masterplan_v2_env03_imp04": {
     "date": "2026-10-04",
@@ -2446,5 +2446,23 @@
       "nativeObservation": "FAIL",
       "wholeAcceptance": "NOT_APPROVED"
     }
+  },
+  "memory_observation_history_b6d3": {
+    "updated_at": "2026-10-06T21:25:05.808507+00:00",
+    "base_head_sha": "56e58b95518ec4d5eef210ba16ba46228afb40ac",
+    "last_merged_pr": 639,
+    "next_action": "Continue the existing claimed packets through actual current native and whole-literal review, preserve each failure's true stopping phase, and promote only fully proved owned rows. Require current-head mandatory green checks and serial expected-head merge; record actual delivery and owner-only resource release before selecting eligible next work. Shared reconciliation acquires its own fresh role/nine-file claims; source/coverage/foreign checkpoints stay untouched.",
+    "active_item": "Reconcile delivered286/352 and continue current reserved whole-contract packets"
+  },
+  "current_main_ledger_observation": {
+    "main": "356e153b64d83b84379791a4b4bda1e47ca464a0",
+    "tree": "75c93f2f8128c1a76166c62b50eb2fe3745220ac",
+    "coverage_sha256": "9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1",
+    "verified_rules": 115,
+    "passed_contracts": 175,
+    "remaining": 62,
+    "resulting_main_full": "NOT_VERIFIED",
+    "memory_owner": "codex-20261006T223328Z-b6d3a0172885",
+    "memory_claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026723437"
   }
 }

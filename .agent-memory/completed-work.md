@@ -1,3 +1,9 @@
+## Authenticated actual deliveries — observed 2026-10-06T22:38:25.221028+00:00
+
+Observed main `356e153b64d83b84379791a4b4bda1e47ca464a0` (tree `75c93f2f8128c1a76166c62b50eb2fe3745220ac`), coverage SHA256 `9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1`: **115/121 VERIFIED rules + 175/231 PASSED contracts = 290/352; 62 remain**. Counts derive from main, excluding open-PR candidates. Source-head checks and merge receipts do not establish resulting-main full/native, external acceptance or deployment. Earlier dated snapshots remain historical.
+
+#637 delivered IMP05/DB04 and their AT rows at `fd4a6a06f0cb462cfa15c3ee4a038d557dd559e0`; #641 delivered only the dated memory snapshot at `356e153b64d83b84379791a4b4bda1e47ca464a0`. Actual #637 receipt [6026417007](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026417007); #641 receipt [6026666590](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026666590).
+
 ## Delivered source and archive qualification — observed 2026-10-06T21:25:05.808507+00:00
 
 Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and
