@@ -66,6 +66,15 @@ on:
       - 'lib/operations/edielAutomation.ts'
       - 'lib/operations/supplierSwitchScheduler.ts'
       - 'lib/customer-operations/switchReadiness.ts'
+      - 'lib/customer-operations/customerProcessRouteReadiness.ts'
+      - 'lib/ediel/gridOwnerBusinessApproval.ts'
+      - 'lib/ediel/companyRouteReadiness.ts'
+      - 'lib/ediel/routeProfileProductionReadiness.ts'
+      - 'lib/operations/types.ts'
+      - 'lib/operations/db.part-1.ts'
+      - 'lib/operations/db.part-2.ts'
+      - 'lib/operations/readiness.ts'
+      - 'lib/operations/switchLifecycleBlocks.ts'
       - 'lib/ediel/orchestrator.ts'
       - 'lib/ediel/rulebook/canonicalPolicyFieldValidator.ts'
       - 'lib/ediel/prodat/prodat26AFieldMatrix.ts'
@@ -221,6 +230,15 @@ jobs:
               'lib/operations/edielAutomation.ts',
               'lib/operations/supplierSwitchScheduler.ts',
               'lib/customer-operations/switchReadiness.ts',
+              'lib/customer-operations/customerProcessRouteReadiness.ts',
+              'lib/ediel/gridOwnerBusinessApproval.ts',
+              'lib/ediel/companyRouteReadiness.ts',
+              'lib/ediel/routeProfileProductionReadiness.ts',
+              'lib/operations/types.ts',
+              'lib/operations/db.part-1.ts',
+              'lib/operations/db.part-2.ts',
+              'lib/operations/readiness.ts',
+              'lib/operations/switchLifecycleBlocks.ts',
               'lib/ediel/orchestrator.ts',
               'lib/ediel/rulebook/canonicalPolicyFieldValidator.ts',
               'lib/ediel/prodat/prodat26AFieldMatrix.ts',

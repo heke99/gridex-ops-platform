@@ -12,6 +12,7 @@ import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations
 import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 import { verifyAuthorizationScopeCoverage } from '@/lib/legal/authorizationChain'
 import type { SupplierSwitchRequestRow, SwitchReadinessResult } from '@/lib/operations/types'
+import type { EdielEnvironment } from '@/lib/ediel/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 
 /**
@@ -56,6 +57,8 @@ export type SupplierSwitchReadinessInput = {
   /** Existing switch request when re-validating before dispatch. */
   switchRequestId?: string | null
   requestedStartDate?: string | null
+  /** Explicit dispatch environment; ordinary customer readiness defaults to production. */
+  environment?: EdielEnvironment | null
   /**
    * When true (default) low-priority site issues (missing current supplier,
    * missing move-in date) block the switch, matching the historical behavior
@@ -380,6 +383,7 @@ export async function checkSupplierSwitchReadiness(
       siteId: input.siteId,
       gridOwnerId,
       process: 'supplier_switch',
+      environment: input.environment,
       emitEvents: false,
     })
     routeReadinessSnapshot = {
@@ -439,6 +443,7 @@ export async function checkSupplierSwitchReadiness(
       status: selectedSwitch.status,
       requestType: selectedSwitch.request_type,
       transactionSubtype: selectedSwitch.prodat_variant ?? selectedSwitch.prodat_reason ?? null,
+      environment: input.environment ?? undefined,
       siteId: input.siteId,
       meteringPointId: selectedSwitch.metering_point_id ?? null,
       now: input.now,

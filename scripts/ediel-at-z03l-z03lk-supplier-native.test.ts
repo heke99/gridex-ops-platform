@@ -467,7 +467,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       const schedule=await evaluateSupplierSwitchSchedule({ switchRequestId:f.switchId,companyId:f.companyId,requestedStartDate:date,
         transactionSubtype:variant,requestType:variant==='L'?'supplier_switch':'move_in',siteId:f.siteId,meteringPointId:f.pointId })
       expect(schedule.window).toMatchObject({reason:expected,windowOpen:expected==='open',transactionSubtype:variant})
-      const result=await ensureInitialSwitchEdielAutomation({actorUserId:f.actorUserId,switchRequestId:f.switchId,communicationRouteId:f.routeId})
+      const result=await ensureInitialSwitchEdielAutomation({actorUserId:f.actorUserId,switchRequestId:f.switchId,communicationRouteId:f.routeId,environment:'test'})
       if (expected==='open') {
         expect(result.blocked,JSON.stringify(result)).not.toBe(true); expect(result.message).toBeTruthy()
         expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.switch_originals WHERE company_id=${literal(f.companyId)} AND switch_id=${literal(f.switchId)}`)).toBe(1)
