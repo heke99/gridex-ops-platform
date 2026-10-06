@@ -8546,6 +8546,33 @@ CREATE FUNCTION gridex_customer_life_events.require_current_v1(c uuid, mid uuid,
     AS $$DECLARE m public.ediel_messages%rowtype;q jsonb;b jsonb;BEGIN
  SELECT * INTO m FROM public.ediel_messages WHERE id=mid AND company_id=c FOR SHARE;IF m.id IS NULL THEN RAISE EXCEPTION 'customer_life_event_message_scope_required';END IF;
  IF m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z09' OR EXISTS(SELECT FROM gridex_customer_life_events.originals WHERE message_id=mid AND company_id=c) OR EXISTS(SELECT FROM gridex_received_sources.prodat_recovery_messages WHERE message_id=mid) THEN RETURN gridex_customer_life_events.require_before_certification_v1(c,mid,actor,phase);END IF;
+
+ IF EXISTS(SELECT FROM gridex_requested_changes.origins generic_origin
+   LEFT JOIN gridex_requested_changes.events generic_event ON generic_event.id=generic_origin.event_id
+   WHERE (generic_origin.message_id=m.id OR generic_origin.intent_id=m.intent_id)
+   AND (generic_event.variant='E' OR generic_origin.basis->>'variant'='E')) THEN
+  IF phase IS NULL OR phase NOT IN('prepare','send') THEN
+   RAISE EXCEPTION 'requested_change_execution_phase_required';
+  END IF;
+  IF (SELECT count(*) FROM gridex_requested_changes.origins generic_origin
+    JOIN gridex_requested_changes.events generic_event ON generic_event.id=generic_origin.event_id
+    WHERE generic_origin.company_id=c AND generic_origin.message_id=m.id AND generic_origin.intent_id=m.intent_id
+    AND generic_event.company_id=c AND generic_event.id::text=m.source_operation_id::text
+    AND generic_event.variant='E' AND generic_event.event_kind='death') IS DISTINCT FROM 1 THEN
+   RAISE EXCEPTION 'requested_change_original_generic_binding_required';
+  END IF;
+  PERFORM gridex_requested_changes.require_message_v1(m,actor,
+    CASE phase WHEN 'send' THEN 'communication.send' ELSE 'communication.write' END);
+  IF m.immutable_rendered_at IS NULL
+   OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+   OR (SELECT generic_origin.payload_hash FROM gridex_requested_changes.origins generic_origin
+     WHERE generic_origin.company_id=c AND generic_origin.message_id=m.id AND generic_origin.intent_id=m.intent_id)
+     IS DISTINCT FROM m.immutable_payload_hash THEN
+   RAISE EXCEPTION 'requested_change_original_generic_payload_required';
+  END IF;
+  PERFORM gridex_ediel_transport.require_message_intent_v1(m);
+  RETURN NULL;
+ END IF;
  IF m.environment='test' AND m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS NOT NULL AND m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS NULL THEN q:=gridex_negative_fixtures.require_positive_message_v1(c,mid,'Z09');
  ELSIF m.environment='test' AND m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS NOT NULL AND m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS NULL THEN q:=gridex_negative_fixtures.require_negative_message_v1(c,mid,'Z09');END IF;
  IF q IS NOT NULL THEN
@@ -8669,8 +8696,9 @@ CREATE FUNCTION gridex_customer_life_events.wire_partition_v1(raw text) RETURNS 
 DECLARE w jsonb:='{}';tokens jsonb:=gridex_received_sources.closure_wire_tokens_v2(raw);t jsonb;e jsonb;obj jsonb;objects jsonb:='[]';characteristic text;common boolean:=false;seen text[]:=ARRAY[]::text[];key text;physical jsonb:='[]';minute text;instant timestamptz;first_fragment jsonb;field text;BEGIN
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNH')<>1 OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='BGM')<>1 THEN RETURN NULL;END IF;
  FOR t IN SELECT x FROM jsonb_array_elements(tokens)x LOOP
-  IF t->>'tag'='UNH' THEN w:=w||jsonb_build_object('family',t#>>'{elements,2,0}','unh',t#>>'{elements,1,0}');END IF;
-  IF t->>'tag'='BGM' THEN w:=w||jsonb_build_object('code',t#>>'{elements,1,0}');END IF;
+  IF t->>'tag'='UNB' THEN w:=w||jsonb_build_object('interchange',t#>>'{elements,5,0}');END IF;
+  IF t->>'tag'='UNH' THEN w:=w||jsonb_build_object('family',t#>>'{elements,2,0}','unh',t#>>'{elements,1,0}','messageReference',t#>>'{elements,1,0}');END IF;
+  IF t->>'tag'='BGM' THEN w:=w||jsonb_build_object('code',t#>>'{elements,1,0}','bgmId',t#>>'{elements,2,0}');END IF;
   EXIT WHEN t->>'tag'='LIN';
   IF t->>'tag'='NAD' AND t#>>'{elements,1,0}' IN('FR','DO') THEN field:=CASE t#>>'{elements,1,0}' WHEN 'FR' THEN 'legalSender' ELSE 'legalReceiver' END;IF w ? field THEN RETURN NULL;END IF;w:=w||jsonb_build_object(field,t#>>'{elements,2,0}');END IF;
  END LOOP;
@@ -8713,7 +8741,7 @@ DECLARE w jsonb:='{}';tokens jsonb:=gridex_received_sources.closure_wire_tokens_
    FOREACH field IN ARRAY ARRAY['reason','customerStatus','li','gridArea','customerParty','name','street','city','postCode','country','effectiveAt','validityMinute'] LOOP
     IF obj ? field AND obj->field IS DISTINCT FROM first_fragment->field THEN first_fragment:=first_fragment||'{"projectionHeld":true}';END IF;
    END LOOP;
-   first_fragment:=first_fragment||jsonb_build_object('lineIndexes',first_fragment->'lineIndexes'||obj->'lineIndexes','body',first_fragment->'body'||obj->'body');
+   first_fragment:=first_fragment||jsonb_build_object('lineIndexes',(first_fragment->'lineIndexes')||(obj->'lineIndexes'),'body',(first_fragment->'body')||(obj->'body'));
    IF obj->>'projectionHeld'='true' THEN first_fragment:=first_fragment||'{"projectionHeld":true}';END IF;
    SELECT jsonb_agg(CASE WHEN item->>'firstLineIndex'=first_fragment->>'firstLineIndex' THEN first_fragment ELSE item END ORDER BY ord) INTO physical FROM jsonb_array_elements(physical) WITH ORDINALITY x(item,ord);
   ELSE seen:=array_append(seen,key);physical:=physical||jsonb_build_array(obj);END IF;
@@ -46281,6 +46309,39 @@ CREATE FUNCTION public.ediel_requested_customer_change_queue_basis_v1(p_company_
  RETURN coalesce(result,jsonb_build_object('status','held','artifactId',p_artifact_id,'missing',ARRAY['current_outgoing_customer_mandate_unavailable']));END$$;
 
 --
+-- Name: ediel_requested_customer_change_selected_facts_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_requested_customer_change_selected_facts_v1(p_company_id uuid, p_actor_user_id uuid, p_event_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE o gridex_requested_customer_changes.origins%rowtype;a gridex_requested_customer_changes.artifacts%rowtype;e gridex_customer_life_events.events%rowtype;current_source jsonb;
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'requested_customer_change_service_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_customer_life_events.require_actor_v1(p_company_id,p_actor_user_id,'prepare');
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ SELECT * INTO o FROM gridex_requested_customer_changes.origins WHERE company_id=p_company_id AND event_id=p_event_id;
+ IF o.artifact_id IS NULL THEN
+  PERFORM gridex_customer_life_events.require_actor_v1(p_company_id,p_actor_user_id,'prepare');
+  RETURN NULL;
+ END IF;
+ IF gridex_requested_customer_changes.actor_v1(p_company_id,p_actor_user_id,'archive','method_contract') IS NOT TRUE THEN RAISE EXCEPTION 'requested_customer_change_selected_facts_actor_forbidden' USING ERRCODE='42501';END IF;
+ current_source:=gridex_requested_customer_changes.current_v1(o.artifact_id,p_company_id);
+ SELECT * INTO a FROM gridex_requested_customer_changes.artifacts WHERE id=o.artifact_id AND company_id=p_company_id FOR SHARE;
+ SELECT * INTO e FROM gridex_customer_life_events.events WHERE id=p_event_id AND company_id=p_company_id FOR SHARE;
+ IF gridex_requested_customer_changes.actor_v1(p_company_id,p_actor_user_id,'archive','method_contract') IS NOT TRUE THEN RAISE EXCEPTION 'requested_customer_change_post_wait_selected_facts_actor_forbidden' USING ERRCODE='42501';END IF;
+ IF current_source IS NULL OR current_source->>'eventId' IS DISTINCT FROM p_event_id::text OR a.id IS NULL OR e.id IS NULL OR a.environment IS DISTINCT FROM e.environment OR a.claims->>'customerId' IS DISTINCT FROM e.customer_id::text OR a.source_reference IS DISTINCT FROM e.source_reference OR a.source_version IS DISTINCT FROM e.source_version OR a.source_hash IS DISTINCT FROM e.source_sha256 OR a.raw_payload IS DISTINCT FROM e.approved_raw_payload OR a.claims->>'payloadHash' IS DISTINCT FROM e.approved_payload_hash OR a.claims->'scope' IS DISTINCT FROM e.approved_scope OR EXISTS(SELECT FROM gridex_customer_life_events.revocations WHERE event_id=e.id) THEN
+  RETURN jsonb_build_object('status','held','missing',ARRAY['current_outgoing_customer_mandate_unavailable']);
+ END IF;
+ -- Recheck wall-clock authority after all source/event lock waits.
+ current_source:=gridex_requested_customer_changes.current_v1(a.id,p_company_id);
+ IF gridex_requested_customer_changes.actor_v1(p_company_id,p_actor_user_id,'archive','method_contract') IS NOT TRUE THEN RAISE EXCEPTION 'requested_customer_change_post_wait_selected_facts_actor_forbidden' USING ERRCODE='42501';END IF;
+ IF current_source IS NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_outgoing_customer_mandate_unavailable']);END IF;
+ RETURN jsonb_build_object('status','authorized','companyId',a.company_id,'environment',a.environment,'eventId',e.id,'artifactId',a.id,'customerId',e.customer_id,'sourceReference',a.source_reference,'sourceVersion',a.source_version,'sourceHash',a.source_hash,'claimsHash',a.claims_hash,'payloadHash',a.claims->>'payloadHash','effectiveAt',a.claims->>'effectiveAt','scope',a.claims->'scope','customerTokens',a.claims->'customerTokens');
+END$$;
+
+--
 -- Name: ediel_require_brp_change_source_current_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -46580,6 +46641,18 @@ BEGIN SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p_message_id AN
  IF NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='Z09') OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='CAV' AND t#>>'{elements,1,0}' IN('E34','E64','E32')) THEN RETURN;END IF;
  SELECT * INTO o FROM gridex_requested_changes.origins WHERE message_id=m.id AND company_id=p_company_id FOR SHARE;
  IF NOT FOUND THEN
+
+  IF EXISTS(SELECT FROM gridex_customer_life_events.originals life_original
+    WHERE life_original.company_id=p_company_id AND life_original.message_id=m.id) THEN
+   SELECT gridex_customer_life_events.require_current_v1(p_company_id,m.id,life_origin.actor_user_id,'prepare') INTO q
+    FROM gridex_customer_life_events.originals life_original
+    JOIN gridex_customer_life_events.origins life_origin ON life_origin.event_id=life_original.event_id AND life_origin.company_id=life_original.company_id
+    WHERE life_original.company_id=p_company_id AND life_original.message_id=m.id;
+   IF q#>>'{basis,status}' IS DISTINCT FROM 'authorized' THEN
+    RAISE EXCEPTION 'customer_life_event_current_original_scope_changed';
+   END IF;
+   RETURN;
+  END IF;
   IF m.environment='test' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.message_code='Z09' THEN
    -- The established fixture owner checks actual registered original/run/step/
    -- role and sole-consumed message. No live business approval is created.
@@ -189733,6 +189806,13 @@ GRANT ALL ON FUNCTION public.ediel_requested_change_source_v1(p_company_id uuid,
 
 REVOKE ALL ON FUNCTION public.ediel_requested_customer_change_queue_basis_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_requested_customer_change_queue_basis_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_requested_customer_change_selected_facts_v1(p_company_id uuid, p_actor_user_id uuid, p_event_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_requested_customer_change_selected_facts_v1(p_company_id uuid, p_actor_user_id uuid, p_event_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_requested_customer_change_selected_facts_v1(p_company_id uuid, p_actor_user_id uuid, p_event_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_require_brp_change_source_current_v1(p_company_id uuid, p_message_id uuid); Type: ACL; Schema: public; Owner: -

@@ -96145,6 +96145,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_requested_customer_change_selected_facts_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
       ediel_require_brp_change_source_current_v1: {
         Args: { p_company_id: string; p_message_id: string }
         Returns: undefined
