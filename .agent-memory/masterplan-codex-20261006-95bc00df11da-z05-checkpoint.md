@@ -615,3 +615,19 @@ custody, old24defaults. PublicRPCcause only ifmissingCONTRL; neverfallbackauthor
 Then exactsource2peer review/scriptsTSC/lint/diff, freezepublication/ALL10locks/
 authenticfresh39+ALLtrackedGitinputreceipt/currentmandatory gates. Full5ed stays
 qualifiedonlyunchangedproduct/unitbytes; forthcomingnative-onlydelta separate.
+
+## Owned public route-input supplement frozen for source review
+
+LOCAL89fc66df0d9753c0ee6b4f7bedc4da369637e6d4 CLEAN, ONLYownnative+37/-7 from5ed.
+Same1scopedpublicACKprofile prospectiveis_active=true; persistedrow asserts
+actualselector inputs inclactive/enabled/EDIFACT/reversedUNB/subaddress/APP/current
+SMTP/test-route/target/familyNULL/codeNULL/transportNULL. No privateauthorityfacts.
+Afteractualprocessor, missingCONTRL diagnostic calls unchanged publicreadRPC
+only, returnsboundederrorcode/message; no routeDTO/credential/fallback/effect.
+AllstrictACK/effects/history/replay/casecount39/old24default unchanged.
+ActualscriptsTSC/eslint/diffPASS. Exactsource twopeer finalreviews requested;
+whole/native89NOT_RUN. Priorfull5ed895/12043PASS unchanged product/unitbytes.
+Beforecodebothplans approved6151/#5306025264287/all10GETMATCH.
+Next95bc addressactualreview findings ifany, checkpointREADY/current10locks
+then normalpublish89and fresh39/all9280Gitinputs/mandatorygates. Nativebbf30/9
+remainsauthentic separateRED, no whole/owncoverage/CI_GREEN/merge/externalclaim.
