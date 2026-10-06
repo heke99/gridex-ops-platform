@@ -1,3 +1,11 @@
+## EXACT FIXTURE CORRECTION TARGETED GREEN / FORWARD TEST AUTHORING — 2026-10-06 21:35:18 UTC
+
+OnlyownedOPS03test changed23lines to exactknown72f50→b03 restoration; actualfileSHAfcc847c0e53916c8d85c97a5214d4ab7c794ec99d8c9ba52ebbe909efc0a2668. BothcompleteOPS03suites147/147PASS/2files20.95s; scopedlint/diffEXIT0. Productionconsumer pins/assertions/allfaultcontrols unchanged. TSstillRUNNING/sourcefinalindependentreview pending; no currentfullgreen/CI_GREEN/merge. Root normallyadopted actualmain56metadata-only into fcd23745ff5ad2c70c1ced54a710dea98fa02469 (fourarchive/memoryfiles), while preservinguncommittedownfixturepatch; no product/schema/coverage delta fromincomingmain. Current16refs/solepair/no roles.
+
+CLIgeneratedemptyown213222 copiedexactbyte intoreservedpath; SQLrepair NOTAUTHORED yet. Contract-reviewagent authorsONLYreservedSQLregression path under3856/6025868427; realSQLbeforeemptyforward→RED first. RootawaitactualSQLRED thenexact8columnrepair; source/pins/authenticatedforeignGEN5 unchanged. Ownerregistration/capture coordination6025823569 stillpending; rootwillprovideexactownsource/checksum, neverclaim unregisteredforwardgreen. Actualpublishedf9 native26/6/full12191/15 preserved; knownCI quality/coverage/targetedFAIL beingqualified separately, clean/certpending. WholeIDsNOT_APPROVED/actualmain286. Nextroot SQLRED→boundedrepair/currentSQLGREEN and independentfixTURE/forwardreviews→frozenchecks/sourcecommit/exactownerhandoff/currentgenuinecapture/native/gates.
+
+---
+
 ## CLAIM EIGHT-COLUMN FORWARD / BEFORE CODE — 2026-10-06 21:33:43 UTC
 
 SameonlyL/LK packet now16resources (14 plus2). Receipt7a45de1fac3bfcb832dad872fed48b8ca47f0504 exactfresh56e58tree/singleparent, sortedcreate-only/TWOALL16GETMATCH. Exactreservedpaths supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql (file-e269d5798ce3da29dde7e6e992ddcb330ae25f714be78bb234a380ad3fdd77bb) and __tests__/ediel-public-supplier-route-column-contract.test.ts (file-4504c8da5e507f7d5668acef27aee5b017fbbb87eceb69040e8922628324cb80). CLI supabase-go2.101.0 generated emptyunique213222 in/tmp/gridex-c3ae-forward-generator BEFORErepo code; currentforeign2058/210116 forward tails earlier, collisioncreate-onlyconfirmed. Nativef9 actualPGRST204/42703 genuineRED; independentreview/sourceexactBatch1/7A/enum-onlyreplay qualifies gap (6025812859).
