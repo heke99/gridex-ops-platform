@@ -40,8 +40,16 @@ it.each([
   ['header reason without an own LIN', () => wire().replace(/LIN[^']*'/, '')],
   ['two messages', () => wire().replace(/UNZ[^']*'/, wire().slice(wire().indexOf('UNH')))],
   ['another message code', () => wire().replace('BGM+Z04', 'BGM+Z06')],
+  ['missing actual application reference', () => wire().replace('+23-DDQ-PRODAT', '')],
 ] as const)('does not supply an A pin for %s', async (_name, original) => {
   expect(await resolveAssignedSupplyBirthProfile({ rawPayload: original(), receivedAt: receipt })).toBeNull()
+  expect(catalog).not.toHaveBeenCalled()
+})
+
+it.each(['Z70', 'Z26'])('refuses a later-register physical reason %s instead of borrowing the first register', async reason => {
+  const original = guideOrderedFixtureRaw([line('1', '735999000000001', '1', '9'), ...characteristic('Z13', 'Z26'),
+    ['RFF', ['LI', 'OWN']], line('2', '735999000000001', '2', '9'), ...characteristic('Z13', reason)], 'Z04')
+  expect(await resolveAssignedSupplyBirthProfile({ rawPayload: original, receivedAt: receipt })).toBeNull()
   expect(catalog).not.toHaveBeenCalled()
 })
 

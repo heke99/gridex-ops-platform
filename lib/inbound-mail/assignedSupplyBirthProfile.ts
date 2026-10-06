@@ -12,9 +12,13 @@ import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePack
  */
 export async function resolveAssignedSupplyBirthProfile(input: { rawPayload: string | null | undefined; receivedAt: string }) {
   const canonical = parseCanonicalEdielPayload({ rawPayload: input.rawPayload, direction: 'inbound', standardHint: 'edifact' })
-  if (canonical.family !== 'PRODAT' || canonical.messageCode !== 'Z04') return null
+  if (canonical.family !== 'PRODAT' || canonical.messageCode !== 'Z04' || !canonical.applicationReference) return null
   const { segments, una } = tokenizeEdifact(input.rawPayload)
   const scopes = prodatRegisterRuleScopes('223', segments, una, 'Z04') ?? []
+  // Later-register and header occurrences are physical too, even when the
+  // normative common-field projection selects only an object's first register.
+  const physicalReasons = prodatCharacteristicValues('223', segments, una)
+  if (physicalReasons.length !== scopes.length || physicalReasons.some(reason => reason !== 'Z26')) return null
   if (!scopes.length || !scopes.every(scope => scope.some(token => token.tag === 'LIN')
     && prodatCharacteristicValues('223', scope, una).length === 1
     && prodatCharacteristicValues('223', scope, una)[0] === 'Z26')) return null
