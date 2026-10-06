@@ -65,3 +65,8 @@ it('does not substitute now for an invalid retained receipt clock',async()=>{
  await expect(resolveCustomerSourceBirthProfile({rawPayload:wire(),receivedAt:'invalid'})).rejects.toThrow('receipt_clock_invalid')
  expect(catalog).not.toHaveBeenCalled()
 })
+
+it.each([['header empty',"CCI++Z13'CAV+'",true],['header missing',"CCI++Z13'",true],['later empty',"CCI++Z13'CAV+'",false],['later missing',"CCI++Z13'",false]] as const)('refuses extra physical reason qualifier with %s CAV',async(_name,extra,header)=>{
+ const base=header?wire():guideOrderedFixtureRaw([line('1','735999000000001','1','9'),...characteristic('Z13','E34'),['RFF',['LI','OWN']],line('2','735999000000001','2','9')],'Z06'),raw=header?base.replace('LIN+1',extra+'LIN+1'):base.replace(/UNT[^']*'/,extra+base.match(/UNT[^']*'/)![0])
+ expect(await resolveCustomerSourceBirthProfile({rawPayload:raw,receivedAt:receipt})).toBeNull();expect(catalog).not.toHaveBeenCalled()
+})
