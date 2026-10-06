@@ -670,3 +670,8 @@ Authorboundaries: wireagent owns existingfixture+NEWobservationshelper only ford
 
 Precision CORRECTION to0c8a6/#5306026124794: foundation17-statuslist DOESinclude missing_authorization. Only z01_prepared/route_missing absent; doNOTattributePOA23514 to missing_authorization status. POAexactcause remainsUNKNOWN pending actualscopedchecks/publicretryerror. Sourcequalification1056actualplannedSQL allauthenticGitinputMATCH, notschema.sql, old8digitrepairs unselected. Ownfield/diagnostic authoring nowauthorizedstrictpublishedboundaries; no source/oracle/guardwaiver.
 Nextroot integrateONLYownednative/header afterhelpersfinish; independentfinalreview/publish/current94.641clean/certremainIN_PROGRESS, mandatorypendingnotterminalblocker. No newpair.
+
+
+## BEFORE native budget repair — 2026-10-06T21:54:35.788665+00:00
+
+BEFORE ownnativeintegration: actualwc native514 exceedsunchangednewsource500 budget (helper491). Earlierassumptionnativeunderbudget WITHDRAWN. Nativeproofsource locallyTS/lintgreen didNOTmeanmandatoryallgatesgreen; currentf26 wholeRED stillunapproved. Relocate existingOWN assertOnlyOwnUdFieldOmitted+map byte-equivalent into alreadyreserved field-refusal helper, import/exportexactassertions; ifnecessarysameexactZ03preparationassertion relocateintoalreadyreservedobservationshelper withsame actualrowinputs, nooracleweaken/budgetconfigchange. ThisisroutineboundedOWNstructure under samec853/e576 withpriorCP530; docsBEFOREedit. Newhelpers<500 andnative<500 mustactualbudgetEXIT0 beforefinalpublication. Allstrictloops/effects/current94 retained. Nextroot authorizednativeintegration/relocation, finalindependentreview/checks/currentnative.
