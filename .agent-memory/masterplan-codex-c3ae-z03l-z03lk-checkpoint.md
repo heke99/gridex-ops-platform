@@ -1,3 +1,9 @@
+## ACTUAL MAIN ADOPTED / FROZEN SUCCESSOR VERIFICATION — 2026-10-06 20:50:08 UTC
+
+Normalmain621 adoption90806cfe0857dbecae271dc5ae1ad113e31c2644/tree927e6a78020322143035f121d7f58782f41fc69d, clean/no conflict. ALL352coverage rows exactlyactualmain141339d7 (113+173=286), ownL/LK NOT_EXECUTED remain. All8ownerreuse blobs match e4; nativef691 unchanged. Priorpremergeapp/tests/scriptsTS+lint terminalEXIT0/affected199PASS retained; afternewmain ALL3TS+13affected suites RUNNING, no borrowedoldgreen. Exactworkflowpre-replaycapture3372Gitinputs/closure719modules3564edges0missing/uncovered. Independentfinalcurrentheadsource andwholeliteralcompleteness reviewRUNNING. Newnative32NOT_RUN; f88 actual14/18 retained; fullsuccessor pendingstartaftertyping workers free. Same12refs/onlypair/no role/foreigncommon35c0/memory307 unchanged. Nextroot currenttypes/affected/review→normal635publish/readback+genuine32/requiredCI and frozenfull→officialall3372input/JUnit receipt qualification; anyactualfailure retained, no wholepromotion untilallliteralproof. No newpair/merge/externalclaim.
+
+---
+
 ## SOURCE QUALIFIED / BEFORE ACTUAL MAIN621 ADOPTION — 2026-10-06 20:48:15 UTC
 
 Samepair12rootrefs/no role. Local source0440334d immutable8ownerfiles ALLGitblobs/SHA match e4; separate nativeadmina15e150d7470f1abf786ba4a247834e2e3145ae9 (f691442efab36333a37d0a786abf54a68879fe395c086c4af39f18ee4c593795). Independent AUTHORING/SOURCE APPROVE: all15registryrelations currentSQL/schema, actualguard/signatures/42501/noeffects/separateauth and supplieridentity retained; remove onlydelta reproduces old32native byteexact. E closure353modules0missing; fullnativeclosure719/3563edges0missing/uncovered; actualworkflowcapture3367 inputs. No foreigncommon mutation/newauthority/SQL/generatedstack. Current11suites199PASS0skip/13.48s EXIT0, scripts/testsTSC andscopedESLint EXIT0; appTSC stillRUNNING. Newnative32NOT_RUN; authenticf88 14/18 separate, wholeNOT_APPROVED/coverageunchanged.
