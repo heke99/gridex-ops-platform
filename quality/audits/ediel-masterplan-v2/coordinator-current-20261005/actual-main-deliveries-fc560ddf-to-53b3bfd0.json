@@ -1,0 +1,75 @@
+{
+  "kind": "Authenticated actual PR211 ordinary merge; original source/eight applicable gates retained",
+  "pr_number": 211,
+  "actual_main": "53b3bfd009931a0e09ac64b94f3c8c95cfa10eb2",
+  "actual_main_tree": "d23cb52b5cb40d966d7b5c8e2caf04a75984285e",
+  "ordered_parents": [
+    "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
+    "37eba257f7af69777cea624241e06ae78c809fea"
+  ],
+  "source_head": "37eba257f7af69777cea624241e06ae78c809fea",
+  "merged_at_utc": "2026-10-05T23:35:59Z",
+  "method": "merge",
+  "original_actual_postcheck_release": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005564535",
+  "original_current_main_source_guard_sha256": "6f37696f9e405b3460fd98279ae3f44f430a016bf1ddb71629874709a537f186",
+  "original_eight_gate_receipt_sha256": "fb00c526088581e882c4e11446b8dffe3c6c5fea0e2b837ea68bc936b0358dbb",
+  "original_actual_delivery_receipt_sha256": "f1272af8ec820e45119bf9a7b6e39ca68d4ebbc49516551dc547a7cb3fc30803",
+  "complete_actual_delta": [
+    {
+      "path": "__tests__/energy-resolution-capabilities.test.ts",
+      "tuple": "100644 blob f09e668c899f6eeb5462344ced10ffc83bcef515"
+    },
+    {
+      "path": "__tests__/energy-resolution-rebinding.test.ts",
+      "tuple": "100644 blob a74e206fbb0838c0573c547d9f6542df509017c0"
+    },
+    {
+      "path": "__tests__/ops-papilite-geotorget-precision.test.ts",
+      "tuple": "100644 blob 7a6a9ba94564f39dd7693c774a4ad1a55f4e2e10"
+    },
+    {
+      "path": "__tests__/papilite-postal-centroid-hardening.test.ts",
+      "tuple": "100644 blob 9e781d29b7c4dd5568cba25495964d6ca89ebb12"
+    },
+    {
+      "path": "__tests__/svk-postal-grid-owner-hardening.test.ts",
+      "tuple": "100644 blob c14fd5ab5d74bdcbd6cd9302a56fd80dce640da2"
+    },
+    {
+      "path": "app/api/internal/customer-operations/cron/route.ts",
+      "tuple": "100644 blob bde5a3076b03fcccfa59c38548c114268848e04e"
+    },
+    {
+      "path": "lib/energy/opsPrecisionGridOwnerResolution.ts",
+      "tuple": "100644 blob dc135a9249de060b2dde6ff1b3fa288ed31820f8"
+    },
+    {
+      "path": "lib/energy/pendingExactAddressResolution.ts",
+      "tuple": "100644 blob bc897bc263a9264f8fcd4e1dec42727f68201d67"
+    },
+    {
+      "path": "lib/energy/resolutionBinding.ts",
+      "tuple": "100644 blob c5bc402a2121a238403c72c0966ce940b1ea7756"
+    },
+    {
+      "path": "lib/energy/resolver.ts",
+      "tuple": "100644 blob efcf7c985075329d7aebe83a4734e3bcd1033a85"
+    },
+    {
+      "path": "lib/energy/svkPostalGridOwnerVerification.ts",
+      "tuple": "100644 blob 0f2787669fa6b4134bc5839a2db66bc2506618de"
+    },
+    {
+      "path": "scripts/gridex-papilite-centroid-regression.cjs",
+      "tuple": "100644 blob 57755bdc58e8e70395d29f1ecf59b7167633a236"
+    }
+  ],
+  "whole_coverage_unchanged": true,
+  "stored_approvals": 273,
+  "qualification_limits": [
+    "Original eight applicable ordinary current-head checks/source approval; Ediel targeted EXCLUDED, not PASS.",
+    "Root actual Git parent/tree/12path custody only; no duplicate test/native/CI observer.",
+    "No rule/coverage promotion, legacy206/208 automatic closure or whole-main/native approval."
+  ],
+  "common_handover": "ONE new211 marker; all42 prior ACTUAL markers and earlier historic lines exact"
+}

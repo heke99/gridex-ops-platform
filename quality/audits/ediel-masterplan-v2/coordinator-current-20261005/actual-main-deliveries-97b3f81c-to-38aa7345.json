@@ -1,0 +1,66 @@
+{
+  "scope": "Four actual retained serial main deliveries, recorded once by the existing common handover writer. Source and CI owners retained.",
+  "actual_main": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "actual_tree": "64c93f935436a0c30db27fb86b5451d414984116",
+  "deliveries": [
+    {
+      "pr": 515,
+      "actual_merge": "6b3f3e6a2f319dafe8ba185db051e4eb6a37796d",
+      "tree": "3566a1a90599137ef5c6148cd19391f66af40c56",
+      "parents": [
+        "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+        "22cb4e12242c72b814aed412aefe3bc7753a31e5"
+      ],
+      "merged_at": "2026-10-05T19:24:01Z",
+      "published_head": "22cb4e12242c72b814aed412aefe3bc7753a31e5",
+      "github_pr": "https://github.com/heke99/gridex-ops-platform/pull/515",
+      "pr_api": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/515",
+      "git_commit_api": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/6b3f3e6a2f319dafe8ba185db051e4eb6a37796d"
+    },
+    {
+      "pr": 531,
+      "actual_merge": "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3",
+      "tree": "34dd078e71579cbf0220814a03139784e6f8b63d",
+      "parents": [
+        "6b3f3e6a2f319dafe8ba185db051e4eb6a37796d",
+        "2267a9660eb210acefef8caaaf5f958c4db5b4c4"
+      ],
+      "merged_at": "2026-10-05T19:28:07Z",
+      "published_head": "2267a9660eb210acefef8caaaf5f958c4db5b4c4",
+      "github_pr": "https://github.com/heke99/gridex-ops-platform/pull/531",
+      "pr_api": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/531",
+      "git_commit_api": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/4a0deb0eae2e09b398697d1e80d492e1ce32c6a3"
+    },
+    {
+      "pr": 517,
+      "actual_merge": "3658404d21e76bdabc5b61d91cf43a5c6683b93a",
+      "tree": "9be6b33c087e79d5da1ce325282880872fec45b9",
+      "parents": [
+        "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3",
+        "cd93fac133c240f56f208ad43dab1ec4075433fc"
+      ],
+      "merged_at": "2026-10-05T19:34:38Z",
+      "published_head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+      "github_pr": "https://github.com/heke99/gridex-ops-platform/pull/517",
+      "pr_api": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/517",
+      "git_commit_api": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3658404d21e76bdabc5b61d91cf43a5c6683b93a"
+    },
+    {
+      "pr": 547,
+      "actual_merge": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "tree": "64c93f935436a0c30db27fb86b5451d414984116",
+      "parents": [
+        "3658404d21e76bdabc5b61d91cf43a5c6683b93a",
+        "da2f27f9f889622fb037e9c3965a7078232585c1"
+      ],
+      "merged_at": "2026-10-05T19:37:16Z",
+      "published_head": "da2f27f9f889622fb037e9c3965a7078232585c1",
+      "github_pr": "https://github.com/heke99/gridex-ops-platform/pull/547",
+      "pr_api": "https://api.github.com/repos/heke99/gridex-ops-platform/pulls/547",
+      "git_commit_api": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/38aa73454b724040f6aaf4339e7feab226ce3ecd"
+    }
+  ],
+  "current_main_full_green": "NOT_CLAIMED",
+  "whole_masterplan": "NOT_COMPLETE",
+  "final_baseline_tag": "Existing exclusive writer only"
+}

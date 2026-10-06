@@ -1,0 +1,65 @@
+{
+  "at": "2026-10-05T19:03:17.328671+00:00",
+  "pr": 603,
+  "head": "0fe4b951fffb612e97ad0c62822381728be5fb04",
+  "actual_main_before": "3251d20a8b9fe0294367977dca49de65aabe7513",
+  "expected_merge_tree": "f6a0d76b8c58568c28b6c31835d7dcc335c5517a",
+  "source_guard": "/tmp/gridex-root-final-main-guards-20261005/receipts/run-20261005T190317916392Z-3251d20a/summary-3251d20a.json",
+  "observer_snapshot_at": "2026-10-05T19:01:34.152940+00:00",
+  "ordinary_nine_success": {
+    "pr-certificate": {
+      "job": 111919861983,
+      "run": 37354065885,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "upgrade-migration-replay": {
+      "job": 111912413445,
+      "run": 37354065786,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "verify": {
+      "job": 111912413402,
+      "run": 37354065786,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "quality-release-gates": {
+      "job": 111912413329,
+      "run": 37354065786,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "clean-migration-replay": {
+      "job": 111912413032,
+      "run": 37354065786,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "coverage": {
+      "job": 111911885077,
+      "run": 37354065885,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "smoke": {
+      "job": 111911884659,
+      "run": 37354065885,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "targeted-regressions": {
+      "job": 111911884408,
+      "run": 37354065895,
+      "workflow": ".github/workflows/ediel-masterplan-v2.yml",
+      "conclusion": "success"
+    },
+    "browser-public": {
+      "job": 111911884296,
+      "run": 37354065776,
+      "workflow": ".github/workflows/browser-quality-e2e.yml",
+      "conclusion": "success"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "verified_public_root503_head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "verified_public_tree": "44ce48b1e0aa47b68a273af1d92196670e01c663",
+  "public_coordination_comment": 5999430005,
+  "generated_types_static_check": "PASS exit0",
+  "large_source_file_budget": "PASS exit0",
+  "current_CI": "Pending sole exact-head observer; no native/parity/current-main baseline claim",
+  "archive_sha256": "5916373a4092c5d406cfc2c8acd6439b4484ae2ad7c4bd6afa940e6a49e6d33a",
+  "byte_exact_members": [
+    {
+      "name": "root503-913-publication-receipt.json",
+      "sha256": "85a610e24abfab38f1ebf3199d49d3dc86772bef516b1c7f04dd047e125fab65",
+      "bytes": 1329
+    },
+    {
+      "name": "root503-published-generated-types-20261005.log",
+      "sha256": "16189896edc4b2ede7ff1ef7dc4f2383592aea4a711c34fcfc928e522556bf97",
+      "bytes": 167
+    },
+    {
+      "name": "root503-published-large-file-budget-20261005.log",
+      "sha256": "c5b7be1855aed509b812437c2629bbdea81153965d977e7738bfece7e7e2a1a3",
+      "bytes": 114
+    }
+  ],
+  "private_IMP05_export": "Excluded; explicit user reply remains pending"
+}

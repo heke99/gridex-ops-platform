@@ -1,0 +1,55 @@
+{
+  "scope": "Only source/documentary actual main delivery custody",
+  "actual_main": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "actual_tree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+  "note": "Tree value verified below from actual Git; no typed-source mutation",
+  "deliveries": [
+    {
+      "pr": 600,
+      "actual_merge": "f7df744d58fb6677daa075f5613facb80c65db71",
+      "tree": "4050d46715dfc6699a71a298e1c42617e3823855",
+      "parents": [
+        "37b06fd31d91b23671c6f62fd459b6eb7635d605",
+        "52a0e77cbf4816d2f55cfea083b29888632c374c"
+      ],
+      "stored_approved": 248,
+      "acceptance": "Original scoped owner receipts retained; no current-main push-green inference"
+    },
+    {
+      "pr": 532,
+      "actual_merge": "117f02fae50bef27e50008058cdeee1a49993dde",
+      "tree": "8ce07f82dc1349bd64add6d14873291f93365df2",
+      "parents": [
+        "f7df744d58fb6677daa075f5613facb80c65db71",
+        "c89d003f20b48942130486387536df06880ab98e"
+      ],
+      "stored_approved": 250,
+      "acceptance": "Original scoped owner receipts retained; no current-main push-green inference"
+    },
+    {
+      "pr": 534,
+      "actual_merge": "258066a7ac85c7a346fb05b66675c861c5e4aa60",
+      "tree": "764a5d7a911b8e833e77c5e61445cdce34f566bd",
+      "parents": [
+        "117f02fae50bef27e50008058cdeee1a49993dde",
+        "b7bfb88dae9fc4f77807b618f953812a72412578"
+      ],
+      "stored_approved": 252,
+      "acceptance": "Original scoped owner receipts retained; no current-main push-green inference"
+    },
+    {
+      "pr": 521,
+      "actual_merge": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+      "tree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+      "parents": [
+        "258066a7ac85c7a346fb05b66675c861c5e4aa60",
+        "9f20a3c7cc33c41e1af639fb5cc6176134920872"
+      ],
+      "stored_approved": 254,
+      "acceptance": "Original scoped owner receipts retained; no current-main push-green inference"
+    }
+  ],
+  "root503_source": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "current_root_clean": "PENDING",
+  "current_main_green_baseline": "NOT_CLAIMED"
+}

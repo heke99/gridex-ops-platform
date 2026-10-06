@@ -1,0 +1,113 @@
+{
+  "schema": "gridex-advisor-actual606-input-reuse/v1",
+  "status": "READY_SAME_ADVISOR_READ_INPUTS_ONLY_ACTUAL_INTAKE_CURRENT_CI_MAIN_PENDING",
+  "sealed_utc": "2026-10-05T21:37:43.080396+00:00",
+  "allocation": "#5306003281607 boundary update",
+  "reader": "/root original advisor author NONWRITER",
+  "actual_main": {
+    "head": "b83b284467c8e0fcaa277706a708706e0a705068",
+    "tree": "eea46bab1cc77fd76a762fe48ecc3b639db03504",
+    "ordered_parents": [
+      "2964415adec9e36932583e95f8506437d262c507",
+      "9a2df8728a3d4dc9cc53145ba6c1e5398efb401b"
+    ],
+    "pr": 606,
+    "merged_at": "2026-10-05T21:33:59Z",
+    "public_git_identity_and_pr_metadata_independently_read": true
+  },
+  "prior_actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "source_packet": "15a1580834dbae28bc50661c34c4936e81962127",
+  "source_packet_adoption_into_current_main": false,
+  "fixed_inputs": {
+    "count": 8,
+    "all_mode_type_blob_tuples_exact_tested_scope": true,
+    "tuples": {
+      "docs/env-production-checklist.md": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "14de2711178427602dc49118963240b8267c10de"
+      },
+      "docs/go-live-cutover-plan.md": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "d6354f5bd0a89af2ddd8d2f1506e1d7a5150e237"
+      },
+      "docs/security/supabase-advisors-hardening.md": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "d595ea11ecdf0756d3608e9747b30fe767a8fabe"
+      },
+      "supabase/migrations/20260709160000_advisor_function_search_path.sql": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "6b79ec448eb2b41b8e06447b140346d4e5c6cb09"
+      },
+      "supabase/migrations/20260709161000_advisor_function_execute_revokes.sql": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "45d1fccf17d862b31b758768fc76648ebe2bc74f"
+      },
+      "supabase/migrations/20260709162000_advisor_security_invoker_views.sql": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "507f7d7552b2d5ef74eed14c183a7dcb06ff10b3"
+      },
+      "supabase/migrations/20260709163000_advisor_rls_no_policy_hardening.sql": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "06979ba00f1b59f1bb5ce982ff452409438140b9"
+      },
+      "supabase/migrations/20260811080000_remaining_masterpoint_convergence.sql": {
+        "mode": "100644",
+        "type": "blob",
+        "object": "ba0a9a22090a6b8d6809494efcef1a1f4604a107"
+      }
+    }
+  },
+  "migrations": {
+    "SQL_count": 1073,
+    "directory_entry_count": 1074,
+    "non_SQL_manifest_entry_count": 1,
+    "all_directory_mode_type_blob_tuples_exact_296_and_b83": true,
+    "SQL_tuple_digest": "855ee85e315a167d0fe1c97fd47cef979f9893221f5437c608f3fb50c870bfe5",
+    "directory_tuple_digest": "f9302eec06dae5608484a0c83d273196bc0a4cce73923e50807c65f5feebc460",
+    "selected_count_reused_from_qualified_frozen_inventory": 827,
+    "selection_inputs_and_source_selector_unchanged": true
+  },
+  "current_main_checker": {
+    "tuple": {
+      "mode": "100644",
+      "type": "blob",
+      "object": "f83b8fce6d9ce22cd5a270e099bb776f7cc77fed"
+    },
+    "unchanged_original_checker_not_new15a_postimage": true
+  },
+  "prior_prospective_preparation": {
+    "receipt_path": "/workspace/ediel-session-inventory-20261005/advisor-next-intake-7d6-15a-prospective-source-guard-v2.json",
+    "receipt_sha256": "b8b4704118748cdcef5d88e5c2dea0bf4a770750ca3e621d6f14787da02098a3",
+    "prepared_head": "7d6a45b7f0e3e2bbdc09b7e1aea7fb3702d101b4",
+    "prospective_tree": "6706bfdd7486a2b91897e6d8610c2709405710da",
+    "frozen_actual_main_scope": "2964415adec9e36932583e95f8506437d262c507",
+    "not_recomposed_or_relabeled_b83": true
+  },
+  "execution_reuse": {
+    "applied_peer_sha256": "126ddeb4f27df3dfc183e5de2d14bbbba1923fa450d6d4ec5aeed5e6168e6167",
+    "same_source_packet_and_exact_read_inputs_allow_retained_finite_results": true,
+    "old_after": "20OK exit0",
+    "old_memory_controls": "28 expected outcomes:24 negative failures and4 positive passes",
+    "new_executions": 0,
+    "live_catalog_native_whole_main_qualification": false
+  },
+  "metadata_reader_correction": {
+    "first_unsealed_check": "Counted full directory as1073; guard stopped before writing any receipt. Directory has1073 SQL and1 manifest JSON; all1074 tuples unchanged. Corrected count retains entire directory preservation. No checker/test run involved."
+  },
+  "limits": {
+    "new_merge_tree_runs": 0,
+    "source_checkout_index_ref_mutations": 0,
+    "broad_four_checker_60_input_reanalysis": 0,
+    "CI_observer_retry_dispatch_log_capture": 0,
+    "actual_next_intake_and_current_union_CI_owner": "existing root503/#612",
+    "staff_two_oracle_explicit_release_and_current_input_freeze": "retained original owners, pending",
+    "all_new_work_is_narrow_immutable_Git_input_compatibility": true
+  }
+}

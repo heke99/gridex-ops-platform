@@ -1,0 +1,21 @@
+{
+  "scope": "Actual retained541 delivery, recorded by the one common handover writer; original source/CI owners retained.",
+  "actual_main": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+  "actual_tree": "e5504cfea3f1006c8b2d578ea1ef47c646d48fa1",
+  "deliveries": [
+    {
+      "pr": 541,
+      "actual_merge": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+      "tree": "e5504cfea3f1006c8b2d578ea1ef47c646d48fa1",
+      "parents": [
+        "4b179ee45dce580142f0684e330675fe9e033d69",
+        "4f96cb99e11660ca8c8faa000b139ce2860be0aa"
+      ],
+      "merged_at": "2026-10-05T19:17:55Z",
+      "published_head": "4f96cb99e11660ca8c8faa000b139ce2860be0aa"
+    }
+  ],
+  "current_main_full_green": "NOT_CLAIMED",
+  "whole_masterplan": "NOT_COMPLETE",
+  "final_baseline_tag": "Existing exclusive writer only"
+}

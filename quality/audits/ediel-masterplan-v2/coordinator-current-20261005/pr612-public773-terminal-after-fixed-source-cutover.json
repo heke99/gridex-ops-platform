@@ -1,0 +1,152 @@
+{
+  "kind": "Actual old773 terminal ordinary CI after necessary same-PR fixed-source publication",
+  "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+  "replacement_head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+  "source_cutover_before_comment": 6004436949,
+  "source_cutover_after_comment": 6004450130,
+  "ordinary_runs": [
+    {
+      "id": 37379273849,
+      "name": "Gridex browser and quality E2E",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "event": "pull_request"
+    },
+    {
+      "id": 37379273838,
+      "name": "Gridex full E2E",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "event": "pull_request"
+    },
+    {
+      "id": 37379273848,
+      "name": "Ediel masterplan v2 regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "event": "pull_request"
+    },
+    {
+      "id": 37379273855,
+      "name": "OPS hardening",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "event": "pull_request"
+    }
+  ],
+  "required_contexts": [
+    {
+      "id": 111998382711,
+      "name": "pr-certificate",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T22:01:33Z",
+      "completed_at": "2026-10-05T22:01:43Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273838/job/111998382711",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685917,
+      "name": "smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T21:58:42Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273838/job/111996685917",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685808,
+      "name": "quality-release-gates",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T22:00:58Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685808",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685755,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T21:59:04Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685755",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685742,
+      "name": "clean-migration-replay",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T22:28:10Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685742",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685575,
+      "name": "coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:09Z",
+      "completed_at": "2026-10-05T22:01:30Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273838/job/111996685575",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685559,
+      "name": "upgrade-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T22:07:06Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685559",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685475,
+      "name": "browser-public",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:09Z",
+      "completed_at": "2026-10-05T21:58:24Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273849/job/111996685475",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    },
+    {
+      "id": 111996685282,
+      "name": "targeted-regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T22:02:09Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273848/job/111996685282",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9"
+    }
+  ],
+  "counts": {
+    "success": 7,
+    "failure": 1,
+    "cancelled": 1
+  },
+  "genuine_first_cause": {
+    "job_id": 111996685808,
+    "step": 5,
+    "rule": "@typescript-eslint/no-require-imports",
+    "errors": 5,
+    "raw_ci_log_exported": false
+  },
+  "cancellation_scope": "Clean job actually completed cancelled at22:28:10Z after normal necessary773→6d same-PR source publication. Existing OPS cancel-in-progress remains unchanged. No manual cancellation or retry was requested; no provider-cause inference.",
+  "qualification": "OLD_HEAD_HOLD_TERMINAL; no result or old certificate transferred to6d",
+  "new_head_scope": "Same original sole observer authenticates actual6d four ordinary attempt1 producers; current all9/source/main delivery remain pending"
+}

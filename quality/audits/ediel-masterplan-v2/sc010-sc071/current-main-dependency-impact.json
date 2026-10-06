@@ -1,0 +1,182 @@
+{
+  "recorded_utc": "2026-10-05T12:40:13.582446+00:00",
+  "scope": "read-only direct-dependency impact preflight; no source carry/qualification or ownership transfer",
+  "own_source": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "adopted_main": "505e20637d5b8e1bcffab5f1f1971154dec5622d",
+  "native_BASE": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+  "actual_main": "fff486f822001d35970f163507b10e17c3692f58",
+  "direct_paths": [
+    {
+      "path": "lib/admin/apiGuards.ts",
+      "sha256": {
+        "adopted": "3e837071036a8f2e6b22a665508ff6da141bfbf040b9151ab9cd45bf29daa43a",
+        "nativeBASE": "3e837071036a8f2e6b22a665508ff6da141bfbf040b9151ab9cd45bf29daa43a",
+        "actual_main": "3e837071036a8f2e6b22a665508ff6da141bfbf040b9151ab9cd45bf29daa43a"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "lib/ediel/services/administration.ts",
+      "sha256": {
+        "adopted": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "nativeBASE": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "actual_main": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "lib/ediel/services/projection.ts",
+      "sha256": {
+        "adopted": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "nativeBASE": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "actual_main": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "lib/ediel/services/projectionRequest.ts",
+      "sha256": {
+        "adopted": "0af66fe087f22a45e98317f46a645dc5c83876bf90a446d7b9dc47150f8ce4b0",
+        "nativeBASE": "0af66fe087f22a45e98317f46a645dc5c83876bf90a446d7b9dc47150f8ce4b0",
+        "actual_main": "0af66fe087f22a45e98317f46a645dc5c83876bf90a446d7b9dc47150f8ce4b0"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "lib/supabase/service.ts",
+      "sha256": {
+        "adopted": "0dcb62b49c731a2bb51cf088a922e8d731b6a21137222993da544faa3ee3cf1c",
+        "nativeBASE": "0dcb62b49c731a2bb51cf088a922e8d731b6a21137222993da544faa3ee3cf1c",
+        "actual_main": "0dcb62b49c731a2bb51cf088a922e8d731b6a21137222993da544faa3ee3cf1c"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": {
+        "adopted": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "nativeBASE": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "actual_main": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "scripts/helpers/native-lock-process.ts",
+      "sha256": {
+        "adopted": "3e7f373e4124570ba86f06831e85dd60aa4c995221b057244a7ac505c1426621",
+        "nativeBASE": "3e7f373e4124570ba86f06831e85dd60aa4c995221b057244a7ac505c1426621",
+        "actual_main": "3e7f373e4124570ba86f06831e85dd60aa4c995221b057244a7ac505c1426621"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "scripts/helpers/ediel-native-permission-catalog.setup.ts",
+      "sha256": {
+        "adopted": "a1d6dd98a4e10895b56b5a649a481a6f3e535df1395befc34dac312b5628c85f",
+        "nativeBASE": "a1d6dd98a4e10895b56b5a649a481a6f3e535df1395befc34dac312b5628c85f",
+        "actual_main": "a1d6dd98a4e10895b56b5a649a481a6f3e535df1395befc34dac312b5628c85f"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "sha256": {
+        "adopted": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+        "nativeBASE": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+        "actual_main": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "sha256": {
+        "adopted": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+        "nativeBASE": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+        "actual_main": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "package.json",
+      "sha256": {
+        "adopted": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+        "nativeBASE": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+        "actual_main": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": {
+        "adopted": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+        "nativeBASE": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+        "actual_main": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+      },
+      "adopted_equal_actual": true,
+      "nativeBASE_equal_actual": true
+    }
+  ],
+  "all_foreign_changes_from_adopted": [
+    "M\t.agent-memory/handover.md",
+    "A\t.agent-memory/masterplan-at-z09f-z09g-supplier-checkpoint.md",
+    "A\t.agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+    "A\t.agent-memory/masterplan-ops03-checkpoint.md",
+    "A\t.agent-memory/masterplan-ops03-independent-review-checkpoint.md",
+    "A\t.agent-memory/masterplan-sc037-sc052-review-checkpoint.md",
+    "M\t.github/workflows/full-e2e.yml",
+    "A\t__tests__/ediel-at-z09f-z09g-supplier-profile.test.ts",
+    "M\t__tests__/ediel-certificate-trust-crypto.test.ts",
+    "A\t__tests__/ediel-ops-03-release-evidence.test.ts",
+    "M\t__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+    "A\t__tests__/ediel-recipient-address-binding.test.ts",
+    "M\t__tests__/ediel-recipient-preparation.test.ts",
+    "M\t__tests__/ediel-recipient-readiness.test.ts",
+    "M\t__tests__/helpers/syntheticEdielRecipientFixture.ts",
+    "M\tlib/ediel/security/outboundRecipientCertificate.ts",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/baseline.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/ci-2870cdeb.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/final-review-2870cdeb.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/historical-ci-excerpts.json",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/implementation-plan.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/implementer-report.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/profile-clause-review.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/task-review-2870cdeb.md",
+    "A\tquality/audits/ediel-masterplan-v2/at-z09f-z09g-supplier/verification.json",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-037-refutation.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-037.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-052-refutation.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-052.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/baseline.json",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/main-ci-excerpts.json",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/verification.json",
+    "M\tscripts/ediel-correction-context-native.test.ts",
+    "M\tscripts/ediel-utilts-late-version-sql-regression.mjs",
+    "M\tscripts/gridex-full-production-e2e.cjs",
+    "M\tscripts/helpers/syntheticCertificateTrust.ts"
+  ],
+  "limitations": [
+    "Only listed direct paths are compared; transitive SQL/runtime/source and all release effects still require final source composition/current tests.",
+    "Native7b bounded feedback does not become currentmain candidate canonical capture.",
+    "Root503 retains manifest/schema/types/capture; no shared edit or new harness."
+  ],
+  "integration_preview": {
+    "scope": "git merge-tree read-only object preview; no checkout carry or source push",
+    "own_metadata_head": "5d0fff06f996828bc870f5d9acc768e432c3e1e7",
+    "main_head": "fff486f822001d35970f163507b10e17c3692f58",
+    "prospective_tree": "6c45914001f47033bb8cdfe33768bc1ce38da44a",
+    "conflicts": false,
+    "product_source_qualified": "9b50b1b9; direct-path equality does not establish current main transitive qualification",
+    "next": "Retained root composes admitted current source/captures canonical outputs; own source carries relevant main before final qualified current-head gates."
+  }
+}

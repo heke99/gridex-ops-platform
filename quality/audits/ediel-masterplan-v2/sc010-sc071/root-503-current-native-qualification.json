@@ -1,0 +1,173 @@
+{
+  "recorded_at": "2026-10-05T14:14:34.198743+00:00",
+  "workflow_run": 37319901423,
+  "job": 111796006235,
+  "workflow_head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "workflow_tree": "5c3e101cd3744b2479d9948c31183929755d83fb",
+  "artifact_id": 11350935305,
+  "artifact_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37319901423/artifacts/11350935305",
+  "artifact_zip_sha256": "e246071c54de663b0564e50ddec2c8b8088dcadf5201d45b21e44bf5be5bb302",
+  "remote_sha256": "e246071c54de663b0564e50ddec2c8b8088dcadf5201d45b21e44bf5be5bb302",
+  "artifact_size": 493793,
+  "crc_files": 16,
+  "crc_error": null,
+  "producer": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "scope": "bounded BASE-then-forward native feedback; not candidate canonical replay",
+  "BASE": {
+    "sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "tree": "f03ec10bec420c9013848be526595c5fbb0242b7",
+    "dependency_install": "candidate npm ci; BASE package.json and lock byte-identical"
+  },
+  "BASE_7559_hashes_byte_equal_previous_independently_qualified_f7_artifact": true,
+  "effective_postnative_inputs_exact_previous_qualified_f7": true,
+  "official48_ledger_byte_equal_before_after_and_previous": true,
+  "migration": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+  "migration_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+  "rpc_readiness": [
+    {
+      "rpc": "ediel_queue_beneficiary_export_v1",
+      "http_status": 403,
+      "code": "42501",
+      "message": "ediel_beneficiary_forbidden",
+      "attempt": 2
+    },
+    {
+      "rpc": "ediel_claim_beneficiary_exports_v1",
+      "http_status": 403,
+      "code": "42501",
+      "message": "ediel_beneficiary_forbidden",
+      "attempt": 1
+    },
+    {
+      "rpc": "ediel_execute_beneficiary_export_v1",
+      "http_status": 403,
+      "code": "42501",
+      "message": "ediel_export_not_found",
+      "attempt": 1
+    },
+    {
+      "rpc": "ediel_read_beneficiary_export_v1",
+      "http_status": 403,
+      "code": "42501",
+      "message": "ediel_export_not_found",
+      "attempt": 1
+    }
+  ],
+  "actual_cases": [
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload",
+      "time_seconds": 3.872074947,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values",
+      "time_seconds": 3.602084877,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 lease expires during a real 'results' write lock wait and rolls back result, completion and receipt together",
+      "time_seconds": 8.327976197,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "name": "SC010 lease expires during a real 'jobs' write lock wait and rolls back result, completion and receipt together",
+      "time_seconds": 8.360451725,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "writer-first real grant revocation COMMIT serializes before projection, including a retained page",
+      "time_seconds": 3.630390492,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "writer-first real grant revocation ROLLBACK serializes before projection, including a retained page",
+      "time_seconds": 3.203694842,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions",
+      "time_seconds": 3.07198615,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "SC071 actual leased export waits for grant writer COMMIT before its internal result commit",
+      "time_seconds": 3.036756376,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "SC071 actual leased export waits for grant writer ROLLBACK before its internal result commit",
+      "time_seconds": 3.12478582,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "file": "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+      "name": "SC071 actual export result transaction commits before waiting revoke; later reads cannot disclose its retained page",
+      "time_seconds": 3.211482647,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "source_pins": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+  },
+  "exit_codes": {
+    "component": 0,
+    "native": 0
+  },
+  "registered_source_metadata_note": "Receipt registered_sc071_source retains historical640 label; actual published candidate input/source and effective/postnative source are33b. Do not attribute this currenthead to unmodified640 source.",
+  "whole_SC010": "PENDING sole503authentic composed capture import, current canonical native/clean-upgrade and whole review; no coverage promotion from supplementalgreen alone.",
+  "whole_SC071": "Retained owner; no row takeover.",
+  "artifact_files_sha256": {
+    "base-checkout.json": "23eba82f3f53a460ff6178e02ad17ac659965620020ce31eba93de66fba2de93",
+    "base-ledger.json": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8",
+    "base-input-sha256.json": "9e2249afa68670b7ff560238c4743ab07e688108c1df9b377f3b6481e68878af",
+    "base-replay-complete.json": "9ca64a7b0f255d398433da61190f2a5d03040c6064eb446dad75c4b5d3a8701e",
+    "base-replay.log": "b4909b5985919af2260b6269d05e86f1ec67350a18c0b931716689c013b79fb0",
+    "forward-rpc-catalog.json": "9171abcc2d966320970c134e5a602c21ef67256d7efedc33d0bca0edea7d1aff",
+    "effective-runtime-inputs.json": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2",
+    "forward.log": "d42f23bf9de5b4a5078f24acacf0d8fa6e5c9ee4346f271c724101df87629543",
+    "native-junit.xml": "b3f38d840c590f6cc6bbdaf8845e99ab314c5f850d69fb1a57c355695b4c02f5",
+    "native.log": "1308a416c7166a578b2e0420e2467402371b3f70722e7eaf1d33106e45a98e52",
+    "post-forward-ledger.json": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8",
+    "post-native-inputs.json": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2",
+    "receipt.json": "a52b6b8653a0d36b47fc396f742a8126e7ba737091acb8ef00e0326884788639",
+    "role-statement-timeouts.json": "3d27895b3dfa3d6aaa33d6a36973654bd6b4932a55aa4cc99e601e965c14bfc2",
+    "rpc-readiness.json": "382aae317803982b70324935e4f659eb15dfff90f29dead9aec50a73c2c66bba",
+    "session.log": "fb5c13fa392f70fbecf7d768d82bfd85a8bacd39190ce8ffc5969fa2454a8fbc"
+  }
+}

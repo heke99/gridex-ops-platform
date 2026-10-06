@@ -1,0 +1,42 @@
+{
+  "scope": "UNAPPLIED future single-row review input; never current approval or substitute for execution.",
+  "recorded_at": "2026-10-05T14:36:14.195205+00:00",
+  "baseline_root_head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "source_producer": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "published_metadata_checkpoint": "3e104be14823e207c8f8f9b3aeb11c0912da9e6d",
+  "file": "quality/audits/ediel-masterplan-v2/coverage.json",
+  "current_row": {
+    "id": "SC-010",
+    "status": "NOT_EXECUTED",
+    "evidence": []
+  },
+  "future_reviewable_row": {
+    "id": "SC-010",
+    "status": "PASSED",
+    "evidence": [
+      "lib/ediel/services/beneficiaryExport.ts",
+      "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+      "__tests__/ediel-sc-010-beneficiary-export.test.ts",
+      "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-whole-card-integration-review-input.md",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-independent-review.md",
+      "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-current-native-qualification.json"
+    ]
+  },
+  "application_allowed_only_after": [
+    "Retained503 imports exact authenticated capture and truthful origin metadata; relevant producer/admission inputs still equal reviewed source.",
+    "Existing composed-candidate canonical native fully executes own4 cases with genuine final attributableJUnit/source custody and no relevantfailure/error/skip.",
+    "Whole independent current-source SC010 integration approval confirms literal/effect/capture/finiteport boundaries.",
+    "Existing mandatory supported tagged gate executes the genuine owned unit/SQL consumers; native proof remains the exact reviewed actual artifact/effect matrix. No dummy unit wrapper or new result reader is introduced.",
+    "Apply exactly this own single row on fresh final union; preserve all351foreign rows and spec/baseline metadata byte-exact.",
+    "Current final applicable requiredCI/clean/upgrade/type/schema/fingerprint/parity/tag gates pass before actualmain merge; recompute counts from realmergedledger."
+  ],
+  "not_authorized_by_this_record": [
+    "No application now",
+    "No wholeSC071/TEN10/TEN12 ownership change",
+    "No capture/native/SQL/workflow/schema/scanner edits",
+    "No simulated public authority or SMTP delivery claim"
+  ],
+  "candidate_row_only_check": "Compared current503rowNOT_EXECUTED; no coverage file edited, no fakepassedrowin actual ledger."
+}

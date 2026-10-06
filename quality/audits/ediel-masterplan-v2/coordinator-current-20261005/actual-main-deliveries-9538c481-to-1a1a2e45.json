@@ -1,0 +1,35 @@
+{
+  "kind": "Authenticated actual main PR520 ordinary merge; original owner qualification reused",
+  "pr_number": 520,
+  "actual_main": "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+  "actual_main_tree": "264b9568a361fe88fc3d9fe8db1047d1ce497ccf",
+  "ordered_parents": [
+    "9538c4818a5802e066cbae5639a5f07a28675560",
+    "17c37e1d3e11748a16d9f5ab15e76de7fd1962e6"
+  ],
+  "source_head": "17c37e1d3e11748a16d9f5ab15e76de7fd1962e6",
+  "merged_at_utc": "2026-10-05T22:54:07Z",
+  "method": "merge",
+  "source_base_api_field_historical": "2964415adec9e36932583e95f8506437d262c507",
+  "actual_first_parent_authoritative": "9538c4818a5802e066cbae5639a5f07a28675560",
+  "original_owner_all_nine_and_serial_turn": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6004846238",
+  "actual_delta_paths": [
+    {
+      "path": ".agent-memory/handover.md",
+      "status": "modified",
+      "git_blob": "ae23edd4fcbfdbd56d234ad8992fa34e23dee1d2"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md",
+      "status": "modified",
+      "git_blob": "6b1d1a0cce268c05ee86520267d941f1fddae3b8"
+    }
+  ],
+  "scope": "Exactly two incoming MD documentation paths; no source/checker/test/SQL/generated/native/workflow/coverage change",
+  "common_handover": "Retain all39 prior actual markers and the incoming historical DB finding byte-exact; add ONE520 actual marker",
+  "qualification_limits": [
+    "Root authenticates actual public PR/commit/two-path custody, without another CI observer or merge attempt.",
+    "Historical DB01/DB02 finding is preserved as delivered; prepared combined Gov/DB qualification and candidate coverage remain separate from actual main.",
+    "Existing612 source6d and its sole four-producer observer remain unchanged; final current-main guard is source-only, with all9 and actual merge pending."
+  ]
+}

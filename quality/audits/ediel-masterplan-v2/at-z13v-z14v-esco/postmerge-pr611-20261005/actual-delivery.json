@@ -1,0 +1,230 @@
+{
+  "receipt_kind": "ACTUAL_PR611_DELIVERY_AND_OWN_WORKING_BASE",
+  "actualPR": {
+    "number": 611,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/611",
+    "mergedAt": "2026-10-05T22:38:35Z",
+    "mergeSHA": "9538c4818a5802e066cbae5639a5f07a28675560",
+    "qualifiedSource": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+    "tree": "bad0f6ca5929572fe5bba65ac81b7440882a9ad4",
+    "orderedParents": [
+      "b83b284467c8e0fcaa277706a708706e0a705068",
+      "e6edca6cd4d71645425e29ea66d7546c46857f5f"
+    ],
+    "wholeTreeEqualsIndependentlyApprovedComposition": true
+  },
+  "sourceQualification": {
+    "mandatorySuccess": 9,
+    "mandatoryRequired": 9,
+    "mandatoryJobs": [
+      {
+        "name": "upgrade-migration-replay",
+        "id": 111986213206,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T21:01:47Z",
+        "completed_at": "2026-10-05T21:11:19Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527706/job/111986213206"
+      },
+      {
+        "name": "verify",
+        "id": 111986156602,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T20:39:17Z",
+        "completed_at": "2026-10-05T20:41:16Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527706/job/111986156602"
+      },
+      {
+        "name": "clean-migration-replay",
+        "id": 111986154244,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T21:31:06Z",
+        "completed_at": "2026-10-05T22:30:16Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527706/job/111986154244"
+      },
+      {
+        "name": "quality-release-gates",
+        "id": 111986153931,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T21:31:06Z",
+        "completed_at": "2026-10-05T21:40:19Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527706/job/111986153931"
+      },
+      {
+        "name": "coverage",
+        "id": 111980501184,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T20:49:06Z",
+        "completed_at": "2026-10-05T20:55:30Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527653/job/111980501184"
+      },
+      {
+        "name": "pr-certificate",
+        "id": 111980467927,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T21:21:07Z",
+        "completed_at": "2026-10-05T21:21:20Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527653/job/111980467927"
+      },
+      {
+        "name": "smoke",
+        "id": 111980467761,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T20:39:28Z",
+        "completed_at": "2026-10-05T20:41:16Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527653/job/111980467761"
+      },
+      {
+        "name": "targeted-regressions",
+        "id": 111975284327,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T21:10:45Z",
+        "completed_at": "2026-10-05T21:15:43Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527682/job/111975284327"
+      },
+      {
+        "name": "browser-public",
+        "id": 111966243748,
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-05T20:53:11Z",
+        "completed_at": "2026-10-05T20:54:29Z",
+        "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37370527668/job/111966243748"
+      }
+    ],
+    "ordinaryProducers": {
+      "OPS": {
+        "id": 37370527706,
+        "path": ".github/workflows/ops-hardening.yml",
+        "event": "pull_request",
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "run_attempt": 3,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "targeted": {
+        "id": 37370527682,
+        "path": ".github/workflows/ediel-masterplan-v2.yml",
+        "event": "pull_request",
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "run_attempt": 2,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "browser": {
+        "id": 37370527668,
+        "path": ".github/workflows/browser-quality-e2e.yml",
+        "event": "pull_request",
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "run_attempt": 1,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "fullE2E": {
+        "id": 37370527653,
+        "path": ".github/workflows/full-e2e.yml",
+        "event": "pull_request",
+        "head_sha": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+        "run_attempt": 2,
+        "status": "completed",
+        "conclusion": "success"
+      }
+    },
+    "githubReviewCount": 0,
+    "independentRelevantSourceCompositionReviewSHA256": "b459dd241f2fb49e06c6a8e78d4596f94dfc22d664471718b4afd193c6b29037",
+    "coderabbitSkippedReviewNotCredited": true
+  },
+  "stoppedExclusiveObserver": {
+    "manifestSHA256": "7f94d108a4644416a3c537a0f066c332bfa5c4e2839a0c33e339e6a938911d44",
+    "finalJSONSHA256": "ce922558b5657e51b048814335b3ef071321a20f206e21167ceb2bde6db67b9e",
+    "finalMDSHA256": "9903b522812f68800b402b41010ddf62b8e3753dfd9ebc899e111e6619aa9425",
+    "coveredEntries": 387,
+    "totalFiles": 388,
+    "noMismatch": true,
+    "carriedOriginalExecutionTimes": [
+      "verify",
+      "upgrade-migration-replay",
+      "smoke",
+      "coverage"
+    ]
+  },
+  "finalRootGuard": {
+    "command": "python3 guard-own-pr611-final-admission.py with archived actual metadata, exact composition peer and stopped observer manifest",
+    "result": "PASS",
+    "receiptSHA256": "87bcaba2126304be709b6c2bfd1fbafa16c2443d4823d6f9153608e7ce481f06",
+    "guardSourceSHA256": "31affb44d5145d26195a1f05e7064212f79bf76caa9e777f9ed636529ccbb666",
+    "independentGuardAdapterPeerSHA256": "fa0bc8fadf49285abbaad2d9e25d8ccd75bdf6aa355ae186bc0ae0aabeaa54ae"
+  },
+  "actualLocalPostcheck": {
+    "command": "python3 postcheck-own-pr611-actual-merge.py",
+    "result": "PASS",
+    "receiptSHA256": "4bc201ccaeab7ad732d5502ab7f4637d10d3acba4d34658dc08fdada7efdc35f",
+    "exactOriginal174Postimages": true,
+    "exactCurrent13Postimages": true,
+    "uniqueOwnedPaths": 187,
+    "entireOriginalCheckpointPrefixPreserved": true,
+    "exactForeignMainEntries": 8630,
+    "coverageUniqueIDs": 352,
+    "coverageBlob": "875b60dcc320dcd329e4c57a8a04a761a414cea1",
+    "ruleCounts": {
+      "VERIFIED": 108,
+      "NOT_VERIFIED": 10,
+      "PARTIAL": 3
+    },
+    "contractCounts": {
+      "PASSED": 163,
+      "NOT_EXECUTED": 54,
+      "PARTIAL": 14
+    }
+  },
+  "actualOwnTeamBaseline": {
+    "worktree": "/workspace/gridex-ediel-v-vh-main-integration-base-20261005",
+    "branch": "codex/ediel-v-vh-main-integration-base-20261005",
+    "previous": "2964415adec9e36932583e95f8506437d262c507",
+    "actual": "9538c4818a5802e066cbae5639a5f07a28675560",
+    "clean": true,
+    "command": "git merge --ff-only 9538c4818a5802e066cbae5639a5f07a28675560",
+    "receiptSHA256": "4b944295f9e5c254e07c905e7da713f7cf893fe55ac7226074590cc83878e1bc",
+    "otherAgentMessagesAreNotificationsNotPhysicalAdoptionProof": true
+  },
+  "retainedFailures": {
+    "originalSQLAndRunnerShutdownInitiator": "UNKNOWN; later success does not retroactively classify older incomplete log.",
+    "oldJobsAndTransport401Preserved": true,
+    "initialUnexecutedGuardHOLDAndAdapterLiteralFindingsPreserved": true,
+    "initialLocalPostcheckWrongCoveragePath": {
+      "result": "STOPPED before receipt/adoption",
+      "correction": "Use authoritative coverage path quality/audits/ediel-masterplan-v2/coverage.json; corrected finite postcheck PASS."
+    }
+  },
+  "remaining": {
+    "ownWholeVContracts": "AT-Z13V/Z14V/Z13VH/Z14VH-ESCO NOT_EXECUTED/evidence[].",
+    "commonActual611HandoverFulfillment": "FULFILLED exactly once in original common writer publication 83f179a16150b76e15025e807ad6fd955f1a5adb, .agent-memory/handover.md line 1398, actual merge 9538c4818a5802e066cbae5639a5f07a28675560. No second #611 or #600 row.",
+    "commonMetadataActualMainAdoption": "PENDING retained sole common MAIN documentation adopter; public handover publication is not actual metadata main admission.",
+    "quote": "Original 60758 unchanged in existing current PR #612 at 6d69; current-source CI/actual main admission retained root503.",
+    "finalPushMainAndCommonTag": "PENDING retained sole baseline owner.",
+    "otherExistingSourceNativeCaptureLegacyPrerequisites": "Retain original owners and exact HOLD criteria; no new rule or duplicate writer."
+  },
+  "publicationScope": "Only own additive checkpoint plus this receipt and README; selected source/publication facts, no raw logs/artifacts/private diagnostic exports or full terminal outputs.",
+  "originalSourceRefsRemainFrozen": [
+    "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+    "e1661702436793b575421b2d92a851ad267fed5f"
+  ],
+  "sharedMetadataIntake": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6001341283",
+  "actual611UniqueHandoverRequest": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6000071682"
+}

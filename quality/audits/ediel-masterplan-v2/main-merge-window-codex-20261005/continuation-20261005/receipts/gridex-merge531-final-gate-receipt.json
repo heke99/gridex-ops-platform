@@ -1,0 +1,65 @@
+{
+  "at": "2026-10-05T19:28:01.752244+00:00",
+  "pr": 531,
+  "head": "2267a9660eb210acefef8caaaf5f958c4db5b4c4",
+  "actual_main_before": "6b3f3e6a2f319dafe8ba185db051e4eb6a37796d",
+  "expected_merge_tree": "34dd078e71579cbf0220814a03139784e6f8b63d",
+  "source_guard": "/tmp/gridex-root-final-main-guards-20261005/receipts/run-20261005T192802195950Z-6b3f3e6a/summary-6b3f3e6a.json",
+  "observer_snapshot_at": "2026-10-05T19:25:02.696225+00:00",
+  "ordinary_nine_success": {
+    "pr-certificate": {
+      "job": 111919514117,
+      "run": 37355140863,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "coverage": {
+      "job": 111915545482,
+      "run": 37355140863,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "smoke": {
+      "job": 111915545276,
+      "run": 37355140863,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "browser-public": {
+      "job": 111915544812,
+      "run": 37355140895,
+      "workflow": ".github/workflows/browser-quality-e2e.yml",
+      "conclusion": "success"
+    },
+    "upgrade-migration-replay": {
+      "job": 111915544384,
+      "run": 37355140741,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "clean-migration-replay": {
+      "job": 111915544380,
+      "run": 37355140741,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "verify": {
+      "job": 111915544357,
+      "run": 37355140741,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "targeted-regressions": {
+      "job": 111915544011,
+      "run": 37355140804,
+      "workflow": ".github/workflows/ediel-masterplan-v2.yml",
+      "conclusion": "success"
+    },
+    "quality-release-gates": {
+      "job": 111915544001,
+      "run": 37355140741,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    }
+  }
+}

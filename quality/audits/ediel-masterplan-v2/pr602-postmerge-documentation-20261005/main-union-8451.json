@@ -1,0 +1,28 @@
+{
+  "observedAtUtc": "2026-10-05T17:59:45.752620+00:00",
+  "scope": "exact four-owned-documentation-path current-main union only",
+  "main": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "mainTree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+  "publicCandidateHead": "d51028b12c1a43184ef35da1f3ec0f7c1a8c9076",
+  "localCandidateTreeEquivalent": "decaf8fe9e5a129fe886399c09ca24269c23f4ac",
+  "candidateTree": "5a9360e003f76381abd839b1531bebe8d8f9cee7",
+  "paths": [
+    ".agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md",
+    ".agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/at-z15v-z15vh-esco/post-merge-receipt.json",
+    "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/postmerge-receipt.json"
+  ],
+  "ownBlobs": {
+    ".agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md": "6516f91c60fd885a04ebc141f90a46a38a600afb",
+    ".agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md": "9b83a9a66b39105d6d2ea3eea6bce03a9dab00f9",
+    "quality/audits/ediel-masterplan-v2/at-z15v-z15vh-esco/post-merge-receipt.json": "78fe2fa62ef5fbb28b3ecc1d9ab8cbdbf06ea826",
+    "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/postmerge-receipt.json": "2541e0661837f11c89c0726fde5bf0f81ae5306c"
+  },
+  "foreignEntriesPreserved": 8231,
+  "coverageBlob": "f992cc747f5e0511c282c136d6ea694775fb7073",
+  "expectedUnionTree": "31872a607882f216a919e9959052219a98838828",
+  "verdict": "PASS",
+  "CI": "Consume sole observer exactd510 gate receipt; no test execution or main green inference",
+  "review": 5417893534,
+  "limits": "Actual current main may advance before ordinary merge. Verify actual parent/tree after merge; no whole/native/human approval."
+}

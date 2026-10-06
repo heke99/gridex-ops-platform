@@ -1,0 +1,93 @@
+{
+  "kind": "Authenticated actual main PR611 ordinary merge; original owner qualification reused",
+  "pr_number": 611,
+  "actual_main": "9538c4818a5802e066cbae5639a5f07a28675560",
+  "actual_main_tree": "bad0f6ca5929572fe5bba65ac81b7440882a9ad4",
+  "ordered_parents": [
+    "b83b284467c8e0fcaa277706a708706e0a705068",
+    "e6edca6cd4d71645425e29ea66d7546c46857f5f"
+  ],
+  "source_head": "e6edca6cd4d71645425e29ea66d7546c46857f5f",
+  "merged_at_utc": "2026-10-05T22:38:35Z",
+  "method": "merge",
+  "source_base_api_field_historical": "2964415adec9e36932583e95f8506437d262c507",
+  "actual_first_parent_authoritative": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "original_owner_all_nine_and_final_guard": "https://github.com/heke99/gridex-ops-platform/pull/611#issuecomment-6000071682",
+  "original_owner_final_guard_sha256": "87bcaba2126304be709b6c2bfd1fbafa16c2443d4823d6f9153608e7ce481f06",
+  "original_owner_terminal_json_sha256": "ce922558b5657e51b048814335b3ef071321a20f206e21167ceb2bde6db67b9e",
+  "actual_tree_equals_original_qualified_predicted_tree": true,
+  "actual_delta_paths": [
+    {
+      "path": ".agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md",
+      "status": "modified",
+      "git_blob": "39a888c8bbd1607a7e4f69550da4ed3d979967bf"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/README.md",
+      "status": "added",
+      "git_blob": "d7733b69cf79a3503328135a4af80fcfe6269441"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/actual-merge-preservation.json",
+      "status": "added",
+      "git_blob": "054fbbc32b227452cb060a5ea630e86b55cc5357"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/actual-pr600-merged.raw.json",
+      "status": "added",
+      "git_blob": "8afa9d6cdb0f1e77f7b25672b291219f07e9e2be"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-premerge-guard.json",
+      "status": "added",
+      "git_blob": "c07dffcd6678a1bec7697dff4e782a30cea10449"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-receipt.json",
+      "status": "added",
+      "git_blob": "ca54ac48d41a96e098900b90c00960ea7f4fb99e"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-receipt.md",
+      "status": "added",
+      "git_blob": "0a0a06a186c75344fa1cd4f7753464d868db4907"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/publication-manifest.json",
+      "status": "added",
+      "git_blob": "ba455186b7cc3907f6696015457c3a6fec2d3c5d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-checks.raw.json",
+      "status": "added",
+      "git_blob": "813ae5591f3e95da8606b5485e60ea3c912d1734"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-commit-status.raw.json",
+      "status": "added",
+      "git_blob": "83844af97a6883a30dd7d78f7c2282c91593821f"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-pr.raw.json",
+      "status": "added",
+      "git_blob": "0f328fb4c5394b0c2466054cf069564d58055b01"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-runs.raw.json",
+      "status": "added",
+      "git_blob": "96f3866ec03b12d5b7afca5b427480311b34774c"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/working-main-adoption.json",
+      "status": "added",
+      "git_blob": "a53417fd5a560177443dd4603b37f87c119cfda1"
+    }
+  ],
+  "scope": "Exactly13 original owned MD/JSON checkpoint and postmergePR600 evidence entries; no source/test/SQL/generated/native/workflow/coverage change",
+  "common_handover": "Existing sole writer preserves38 prior actual markers and adds one611 marker; original600 remains once",
+  "qualification_limits": [
+    "Root performs actual parent/tree/publicdelta custody only; no original611 CI/log/artifact/control rerun or second merge.",
+    "Actual source611 all9 is not a claim of push-main/full73/native/final common baseline.",
+    "Existing612 retains actual6d same sole observer and fresh current-main source guard; no head/retry follows this metadata-only base advance."
+  ]
+}

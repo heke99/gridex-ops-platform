@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "createdAtUtc": "2026-10-05T18:10:25.778687+00:00",
+  "scope": "New own verified602 delivery metadata only",
+  "base": "99676683338e11e60666345782609a822de9181e",
+  "baseTree": "0b1d98ccac00c4cb84e2385bcfc44c09d693fc42",
+  "newBranch": "codex/ediel-pr602-postmerge-documentation-20261005",
+  "claimComment": 6000294674,
+  "uniqueActualHandoverComment": 6000168488,
+  "files": {
+    ".agent-memory/masterplan-pr602-postmerge-documentation-20261005.md": {
+      "bytes": 2030,
+      "sha256": "e7231757450f692157cc89f4a3e4f9cdc6be5d0d3495b26c5ffd895df5a08982"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/actual-api-projection.json": {
+      "bytes": 1244,
+      "sha256": "42f20941f755689446847c7f8b2d3cb8325093e23bb1fb5e63eeae24a8271ba3"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/actual-merge-proof.json": {
+      "bytes": 1522,
+      "sha256": "eeb1591bb3521dfb18b9668271dc12dad7206cb10e17066ba5af409eeffba169"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/exact-head-ci-projection.json": {
+      "bytes": 5355,
+      "sha256": "70c6a99285a40dfa6cdbb88d7ba808a0da4a65756e4794099206c029fae9b985"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/main-union-1aeccc7c.json": {
+      "bytes": 1726,
+      "sha256": "6d1433d1afc1243718faad716d1c37f4117a36dc7e56dd9ff0c9851289ca9d63"
+    },
+    "quality/audits/ediel-masterplan-v2/pr602-postmerge-documentation-20261005/main-union-8451.json": {
+      "bytes": 1726,
+      "sha256": "aa4c34d68245e9d7a2eeeaf3d1ce0e2d90ab9e8aaf7c2fe6577b7c527d67f711"
+    }
+  },
+  "exactCopies": {
+    "main-union-8451.json": {
+      "sourceFile": "pr602-final-main-union.json",
+      "sha256": "aa4c34d68245e9d7a2eeeaf3d1ce0e2d90ab9e8aaf7c2fe6577b7c527d67f711"
+    },
+    "main-union-1aeccc7c.json": {
+      "sourceFile": "pr602-final-main-union-1aeccc7c.json",
+      "sha256": "6d1433d1afc1243718faad716d1c37f4117a36dc7e56dd9ff0c9851289ca9d63"
+    },
+    "actual-merge-proof.json": {
+      "sourceFile": "pr602-actual-merge-proof.json",
+      "sha256": "eeb1591bb3521dfb18b9668271dc12dad7206cb10e17066ba5af409eeffba169"
+    }
+  },
+  "rawOriginalsPreserved": {
+    "CI": {
+      "file": "pr602-exact-head-ci.json",
+      "bytes": 284979,
+      "sha256": "7bd0628393643f6eabc3738e4110bc0e6034b426267ce16013fc91920a7e9feb",
+      "location": "Preserved original retained F/G worktree; this metadata ref publishes a selected projection only"
+    },
+    "API": {
+      "file": "pr602-actual-api-receipt.json",
+      "bytes": 25874,
+      "sha256": "d2e70739e8075e0774187167130810532793a8a2d056f6d89cc691c7cac8b2e9"
+    }
+  },
+  "noNewPR": true,
+  "noStableMainGreenClaim": true,
+  "noSharedMemorySourceNativeCoverageChanges": true,
+  "review": "Separate independent documentation receipt; required before ordinary new-ref publication",
+  "commitProvenance": "Local and API-generated remote commit metadata may differ; tree and parent must match exactly."
+}

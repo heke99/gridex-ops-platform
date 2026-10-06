@@ -1,0 +1,133 @@
+{
+  "scope": "bounded BASE-then-forward native feedback; not candidate canonical replay",
+  "workflow_checkout_sha": "f7fc20f7b5adc784bdd6ed01bd56ac56e53d2763",
+  "workflow_checkout_tree": "b2f39f25a3f788886f46304c0e592dc21df3b7b9",
+  "workflow_run_id": "37310521982",
+  "base_checkout": {
+    "sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "tree": "f03ec10bec420c9013848be526595c5fbb0242b7",
+    "dependency_install": "candidate npm ci; BASE package.json and lock byte-identical"
+  },
+  "base_replay": {
+    "canonical_replay": "COMPLETED",
+    "base_sha": "7b9218da2c7f71f4373bcc9189715c0043a8cb31",
+    "fingerprint": "9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b",
+    "official_ledger_count": 48,
+    "candidate_replay": "NOT_CLAIMED"
+  },
+  "producer_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "sc010_native_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "declared_producer_overlays": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+  },
+  "forward_source": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+  "forward_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+  "forward_execution": "COMPLETED",
+  "effective_runtime_inputs": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+  },
+  "post_native_inputs": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c"
+  },
+  "registered_sc071_source": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0",
+  "effective_sc071_source": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+  "invoked_config": "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts",
+  "sc010_selected_config": "HASHED_OVERLAY; NOT_INVOKED",
+  "own_candidate_input_sha256": {
+    ".github/workflows/ediel-sc071-native.yml": "6e30b3f00f9ab6660eaf61327d881c6336e9e7b6d45e487cd3b888e143640f0b",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json": "ed96171e58321ca8623bb1b5b30a11a3f506739ca5811d21939a3d6cb0c124a3",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/export-races.patch": "a45ee4b477f23fee35446132c9cf93a3fd00d4de673a4c00b68eac100eb71948",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "e18a61dbe1b6ac885db235dcd3a54fa5b01763e716d83a08c7846326c85b9d7c",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0"
+  },
+  "component_exit_code": 0,
+  "last_stage": "native_complete",
+  "native_exit_code": 0,
+  "native_execution": "ATTEMPTED",
+  "expected_files": {
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6,
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4
+  },
+  "actual_files": {
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": 4,
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": 6
+  },
+  "expected_cases": 10,
+  "actual_cases": 10,
+  "unique_file_names": true,
+  "junit_counts": {
+    "failure": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "junit_parse_error": null,
+  "optional_evidence_parse_errors": {},
+  "official_ledger_unchanged": true,
+  "complete_ten_case_pass": true,
+  "post_forward_schema": "UNQUALIFIED_FOR_FINAL_CAPTURE",
+  "candidate_clean_upgrade_parity": "NOT_CLAIMED",
+  "ordinary_required_gates": "NOT_REPLACED",
+  "producer_admission_capture": "PENDING_COORDINATOR",
+  "whole_sc071": "UNAPPROVED",
+  "whole_sc010": "UNAPPROVED",
+  "leased_export_consumer": "EXERCISED_SELECTED_CASES_PASS",
+  "external_issuer_smtp_and_route_session_ports": "FINITE_SYNTHETIC_FIXTURE",
+  "authentic_market_evidence": "NOT_PROVIDED",
+  "local_artifact_qualification": {
+    "qualified_utc": "2026-10-05T12:42:43.550498+00:00",
+    "artifact_id": 11345294346,
+    "ZIPsha256": "90787405c69fa0ab78e6682834968ca9b7dbe2943a16ccb101c768f86023d991",
+    "CRC_files": 16,
+    "artifact_link": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310521982/artifacts/11345294346",
+    "artifact_file_sha256": {
+      "base-checkout.json": "23eba82f3f53a460ff6178e02ad17ac659965620020ce31eba93de66fba2de93",
+      "base-ledger.json": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8",
+      "base-replay-complete.json": "9ca64a7b0f255d398433da61190f2a5d03040c6064eb446dad75c4b5d3a8701e",
+      "base-input-sha256.json": "9e2249afa68670b7ff560238c4743ab07e688108c1df9b377f3b6481e68878af",
+      "base-replay.log": "1fc46174f7752b97d4c225ebd7ee297367b138ec72728a3cad4fdc89a982bde6",
+      "effective-runtime-inputs.json": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2",
+      "forward-rpc-catalog.json": "9171abcc2d966320970c134e5a602c21ef67256d7efedc33d0bca0edea7d1aff",
+      "forward.log": "d42f23bf9de5b4a5078f24acacf0d8fa6e5c9ee4346f271c724101df87629543",
+      "native-junit.xml": "d75c9d2cfb816629b0693891747192adaf9b070ac2ef260c39648ef15605cede",
+      "native.log": "74d27a6755800843757e5a31d9426fac0a82c722502788b3f2ab2479475af112",
+      "post-forward-ledger.json": "5bedf3a5fbfed5bb33ace63693eee31c965ed57580080fe00a5fc48f265657c8",
+      "post-native-inputs.json": "3c7dab998ea7d78a38a808b996ffe95ed5592964002127602e77aa631471fac2",
+      "receipt.json": "83c3d966cbf246551d8e131354f41e8987c10fc9e7eb771ccc363e6ece9dc499",
+      "role-statement-timeouts.json": "3d27895b3dfa3d6aaa33d6a36973654bd6b4932a55aa4cc99e601e965c14bfc2",
+      "rpc-readiness.json": "1851934f61360e02f77b2ed05747c794dabef36a890b535a0750b3828f371331",
+      "session.log": "fb5c13fa392f70fbecf7d768d82bfd85a8bacd39190ce8ffc5969fa2454a8fbc"
+    },
+    "actual_all_7559_BASE_tracked_hashes_equal_local_git_archive": true,
+    "all_six_extracted_and_effective_postnative_hashes_match9b50": true,
+    "SC010_four_exact_cases": "PASS with0failure/error/skip; repaired146 source includes final real lease error and atomicity assertions",
+    "SC071_six_cases": "PASS within retained owner scope; no wholeSC071 approval here",
+    "own_case_durations_seconds": {
+      "SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload": 4.132220142,
+      "SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values": 3.61918586,
+      "SC010 lease expires during a real 'results' write lock wait and rolls back result, completion and receipt together": 8.516477672,
+      "SC010 lease expires during a real 'jobs' write lock wait and rolls back result, completion and receipt together": 8.410637557
+    },
+    "role_timeout_limits": "Read-only stored role defaults: anon3s, authenticated8s, authenticator8s. No measured effective per-RPC timeout claim.",
+    "historical_failed_artifact": "export-native-first-run-qualification.json /44992cdd8PASS2FAIL remains unchanged",
+    "boundary": "Genuine same-stack native BASE+forward feedback only. Candidate canonical admission/capture/clean-upgrade/current-source integration remain pending503; finite upstream/session/SMTP ports remain explicit; fullSC010 NOT_APPROVED."
+  }
+}

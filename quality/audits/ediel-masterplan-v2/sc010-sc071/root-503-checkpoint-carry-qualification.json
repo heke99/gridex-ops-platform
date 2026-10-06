@@ -1,0 +1,191 @@
+{
+  "recorded_at": "2026-10-05T14:51:32.002727+00:00",
+  "scope": "Read-only metadata carry preview; no actual shared merge/import/producer/code change.",
+  "root_candidate": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+  "own_checkpoint": "b564db4c5832ad7477bd388a3c0bb3ef08e1353d",
+  "merge_tree": "5510a694b51438727b441879f3d22af561858d76",
+  "merge_tree_exit": 0,
+  "changed_owned_paths": [
+    ".agent-memory/masterplan-sc010-sc071-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/current-main-component-handoff.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/current-main-dependency-impact.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-3ded-smoke-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-3ded-targeted-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-clean-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-smoke-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-targeted-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-upgrade-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-ci-9b50-verify-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-role-timeouts.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-rpc-readiness.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-success-junit.xml",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-success-receipt.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-native-f7fc20f7-success.log.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-integration-plan.md",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-integration-request.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-native-rerun-qualification.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/export-publication-status.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/implementation-review.md",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/native-feedback-inputs.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-20261005.md",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board491-comments-20261005.json.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board491-comments-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board491-issue-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-comments-20261005.json.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-comments-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-comments-refresh-20261005.json.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-board530-issue-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-filelists-final-20261005.json.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-inventory-receipt-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-literals-fff486f8.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-main-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-main-coverage-498ebd1c.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-main-coverage-fff486f8.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-pr-files-20261005.json.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-pr-inventory-final-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-final-after-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-final-before-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-open-prs-refresh-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-board530-comments-20261005.json.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-main-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-open-prs-after-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-open-prs-before-20261005.raw.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-p04-qualification-20261005.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/next-pair-scout-source-pins-fff486f8.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-artifact-custody.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-authentic-receipt.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-capture-independent-review.md",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-current-native-qualification.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-documentation-validation.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native-native-junit.xml",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native-receipt.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native-rpc-readiness.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-native.log.gz",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-published-producer-import-review.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/root-503-quality-export-and-failure-excerpt.log",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-final-row-review-input.json",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-whole-card-integration-review-input.md"
+  ],
+  "foreign_or_source_paths_changed": [],
+  "seven_export_pins": [
+    {
+      "path": "lib/ediel/services/beneficiaryExport.ts",
+      "sha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f"
+    },
+    {
+      "path": "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+      "sha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed"
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/process/route.ts",
+      "sha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49"
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+      "sha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af"
+    },
+    {
+      "path": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "sha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts",
+      "sha256": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+    },
+    {
+      "path": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+      "sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+    }
+  ],
+  "protected_root_files_byte_equal": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "46cdaa8813961560343ddb83711fecb848005b0449fe4a973aef2ccaa664644b"
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134"
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "sha256": "e2ed39c6fc2e9ddb125d83e4a6b8e6095a97055a751d576835649df11403304d"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "0d733d1ebe663805028817315f66e0e4f6c6740f832a988133c12596e2bd0857"
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "fee88a983a91dd6e222d14dec461332521ad99065c773412e701d8039c7912bc"
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "88cf7de264a01c68ba51d6b57f69aac451068cabc0f20f88362d748793ce7b5e"
+    }
+  ],
+  "remaining_gates": "Currentc5authentic import independentlybytequalified; root503 alone adopts documentation once and verifies composedcanonical/native/upgrade/finalheadgates. ActualSC010/071rows unchanged; rowreviewinput unapplied.",
+  "qualification_note": "The actual generated type path comes from the candidate manifest: supabase/database.types.ts. All six protected files and all seven export pins are byte-identical between current c5 and the unapplied metadata preview. The authentic capture is now imported by root503; original 5be capture provenance is retained.",
+  "prior_captured_candidate_preview": {
+    "head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "tree": "2d00331f4994473ccbf61ed47c025441897331bf",
+    "protected_files": [
+      {
+        "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+        "sha256": "4e0b17ad2168b83e7f685199d5159a5544a56ee3d18a2d5dd9d2f8be86a9795f"
+      },
+      {
+        "path": "scripts/migration-history-manifest.runtime.additions.json",
+        "sha256": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134"
+      },
+      {
+        "path": "scripts/supabase-types-manifest.json",
+        "sha256": "20d0cb061ae7d5eb834599e61a5d1d5f8cf695f00ddc9043613c8590deeb2d1a"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "sha256": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6"
+      },
+      {
+        "path": "supabase/schema.fingerprint.json",
+        "sha256": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44"
+      },
+      {
+        "path": "supabase/database.types.ts",
+        "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4"
+      }
+    ],
+    "qualification": "All six historical protected files are byte-equal between original 5be candidate and its original metadata preview. Their historical values differ from the later c5 generated import and ledger values."
+  },
+  "prepublication_correction": {
+    "recorded_at": "2026-10-05T14:58:07.611598+00:00",
+    "reason": "Refreshing the current protected-files list had also replaced the unpublished historical list through a shared in-memory list. Recomputed both original 5be and original preview directly from Git objects before publication; current c5 comparisons remain exact.",
+    "corrected_historical_rows": [
+      {
+        "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+        "incorrect_unpublished_copied_hash": "46cdaa8813961560343ddb83711fecb848005b0449fe4a973aef2ccaa664644b",
+        "actual_historical_hash": "4e0b17ad2168b83e7f685199d5159a5544a56ee3d18a2d5dd9d2f8be86a9795f"
+      },
+      {
+        "path": "scripts/supabase-types-manifest.json",
+        "incorrect_unpublished_copied_hash": "e2ed39c6fc2e9ddb125d83e4a6b8e6095a97055a751d576835649df11403304d",
+        "actual_historical_hash": "20d0cb061ae7d5eb834599e61a5d1d5f8cf695f00ddc9043613c8590deeb2d1a"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "incorrect_unpublished_copied_hash": "0d733d1ebe663805028817315f66e0e4f6c6740f832a988133c12596e2bd0857",
+        "actual_historical_hash": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6"
+      },
+      {
+        "path": "supabase/schema.fingerprint.json",
+        "incorrect_unpublished_copied_hash": "fee88a983a91dd6e222d14dec461332521ad99065c773412e701d8039c7912bc",
+        "actual_historical_hash": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44"
+      },
+      {
+        "path": "supabase/database.types.ts",
+        "incorrect_unpublished_copied_hash": "88cf7de264a01c68ba51d6b57f69aac451068cabc0f20f88362d748793ce7b5e",
+        "actual_historical_hash": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4"
+      }
+    ]
+  }
+}

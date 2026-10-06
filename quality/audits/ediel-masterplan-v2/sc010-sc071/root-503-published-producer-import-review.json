@@ -1,0 +1,70 @@
+{
+  "recorded_at": "2026-10-05T13:57:12.883957+00:00",
+  "root_PR": 503,
+  "root_candidate_head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+  "root_main_basis": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "immutable_producer_source": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "export_source_pins": [
+    {
+      "path": "lib/ediel/services/beneficiaryExport.ts",
+      "own_source_sha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "root_candidate_sha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "equal": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+      "own_source_sha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "root_candidate_sha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "equal": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/process/route.ts",
+      "own_source_sha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "root_candidate_sha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "equal": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+      "own_source_sha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "root_candidate_sha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "equal": true
+    },
+    {
+      "path": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "own_source_sha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "root_candidate_sha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "equal": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts",
+      "own_source_sha256": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "root_candidate_sha256": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "equal": true
+    },
+    {
+      "path": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+      "own_source_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "root_candidate_sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "equal": true
+    }
+  ],
+  "admission_stage": "Read candidate manifest entry; authentic capture/generatedtypes/native/current-CI NOT inferred",
+  "candidate_generated_files_changed": [
+    "supabase/schema.fingerprint.json"
+  ],
+  "wholeSC010": "PENDING actualretainedcandidateadmission+capture+currentnative/clean-upgrade/headCI; priornativef7tenPASS only finitefeedback",
+  "no_mutations": "Read-only candidate review; no sharedbranch/workflow/SQL/schema/types edit.",
+  "candidate_runtime_admissions_added": {
+    "20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+    "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+  },
+  "foreign_admission_rows_changed": [],
+  "effective_SC071_native_sha256": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+  "shared_fingerprint_metadata_keys": [
+    "algorithm",
+    "schemas",
+    "sections",
+    "sha256"
+  ],
+  "note": "Source+exact admission-review only; generatedschema/type/fingerprint authenticity aftercomposedcapture stillpending retained503. No copiedmanualcapturedfile inferred."
+}

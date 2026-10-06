@@ -1,0 +1,63 @@
+{
+  "scope": "Exact main845+frozen913 source/346-foreign-row/caller guard and one meaningful composed finite execution; not native acceptance",
+  "root503_head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "actual_main": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "expected_ordinary_merge_parents": [
+    "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+    "9132a6ed4649e8b17aba4270417c649939c3e0c4"
+  ],
+  "expected_tree": "e1a9f5d478dd7356b0d22b7a9ea4e1b31c29c2df",
+  "genuine_rehearsal_head": "9ecf42395120aa883073856995678c1cac643cc8",
+  "cases": 142,
+  "suites": 7,
+  "failed": 0,
+  "skipped": 0,
+  "one_run": true,
+  "foreign_full_rows_exact": 346,
+  "projected_stored_approved": 260,
+  "root_clean_native": "STILL_PENDING; all9 plus live-main/head required",
+  "archive_sha256": "39e05dc2898a6faaa673d51e7d2531a010c4bc8a71e6a656249c3ab30796462f",
+  "byte_exact_members": [
+    {
+      "name": "root503-frozen913-main845-current-carry.md",
+      "sha256": "d5e63362bf02fe35c73262603ee8d4b1d0f310e78874ddfb09d36f19209923da",
+      "bytes": 2508
+    },
+    {
+      "name": "root503-frozen913-main845-current-carry.json",
+      "sha256": "b2f7b76993bd1cdce81f30e91fe2860db2cbcd2a82c17a136bfba231fe82d816",
+      "bytes": 6416
+    },
+    {
+      "name": "root503-913845-caller-binding-and-composed-control.md",
+      "sha256": "42b7f5c82f2f9820b9b815f47bd22ae590045ce51b85487df1025ab94a5cc988",
+      "bytes": 2108
+    },
+    {
+      "name": "root503-913845-caller-binding-and-composed-control.json",
+      "sha256": "1a7403b88fbcec62bf9584c325b14e2710be1296345579da5e24e65b33933c2f",
+      "bytes": 7605
+    },
+    {
+      "name": "root503-845913-composed-verification.md",
+      "sha256": "e6c643d2e0a6a4e80c32f5c509a85c91662af6b96ec9cf5d84aec56f8d460a25",
+      "bytes": 1237
+    },
+    {
+      "name": "root503-845913-composed-verification.json",
+      "sha256": "bedb8a2974d5e863a2c308ed0c5b153c8ffc50d0947b1f65af47121a01318125",
+      "bytes": 9805
+    },
+    {
+      "name": "root503-845913-composed-targeted.log",
+      "sha256": "293110ad7575d552c1a59898d832b0b6cdaa113028d5b16afd7079be2414b3ce",
+      "bytes": 23196
+    },
+    {
+      "name": "root503-845913-composed-junit.xml",
+      "sha256": "8f2955fd48eb1ad2cd76cc11059c427337ee9a7bd665c9e5d8f03ae658e383a2",
+      "bytes": 34171
+    }
+  ],
+  "private_IMP05": "Excluded"
+}
