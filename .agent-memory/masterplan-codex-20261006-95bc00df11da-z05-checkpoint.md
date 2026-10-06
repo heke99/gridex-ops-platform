@@ -484,3 +484,21 @@ witness/readiness/cert seed orbackpatch, no productionguard relaxation.
 Then exactsource review/types/lint/current39 genuineexecution; foreign621
 adoptonlyactualmain. Same10resources/no roles/newpair. Localcommoncleanupissue
 reported separately4450e9ed, exactworktree restoredCLEAN/no local39result.
+
+## Mailbox authoring reviewed / positive replay snapshot gap before correction
+
+Exactf752135b25651f61cfa9c2ec938ace193e8a168a ONLY3ownedfiles+17/-3, scripts
+TSC/scopedlint/diff PASS; bothmandatory SOURCE_AUTHORING_APPROVE. Actualpublic
+mail/parser beforeFIRSTINSERT bothmailIDs+realinterchange, genuine immutable
+firstreception RPC beforecanonicaldecision. Helper unchanged, both default
+SQLtemplates independently byte-identical to51025. Snapshot nowretains real
+rawmail/MIME/timing/addresses/mailbox and immutable reception. Nativef752 NOT_RUN.
+
+LK reviewer scopefinding: positive afterfirstprocessing compares snapshots,
+postreplay tail lacked a second source/original/start comparison. Next95bc
+ONLYownnative append same3immutable comparisons afterpositive replay before
+claiming reception replay history; no changedcasecount/oracle/production. Then
+exactdelta finalreview/types/lint/publish genuine39. Full893/11971PASS remains
+valid product/unit bytes; only workflow/native scripts since2bef, no __tests__
+imports ownednative helpers. Foreign621 currentclean/cert within90min still
+pending, no stall/takeover assumption. Strict51025 30/9 preserved/coverageheld.
