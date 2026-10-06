@@ -1020,3 +1020,24 @@ readscope+dependencies afreshafter currentcloseout, no newpair now.
 Next95bc finalclean/cert ALLterminalgreen→freeatomicmergerole/expectedc726
 merge→actualmain/tree/covdoc→mergerole releaseFIRST→commonrole mirror/reconcile
 /own12release→deferredowncleanupmaintenance under fresh exactscope.
+
+## Current c726 mandatory clean FAIL / confirmed own Z22 regression
+
+Actual clean job112522818452/run37537559386 ended23:13:11Z FAILURE;
+prcert112529247391 dependency FAILURE. Ten other mandatory checks SUCCESS,
+no CI_GREEN/merge. Original artifact11450251310 ZIP16419756 bytes SHA
+21ac258f3453a59de4dfc31c2917223d4606053104520fb2d12034a870d02b5a
+authenticated currenthead/API digest-size/CRC57members. Original combined
+native705=703PASS/1FAIL/1explicitSKIP/0ERROR: existing Z22 closure fails
+expected updated customer_cases at scripts/ediel-source-owner-native.test.ts:1296.
+Generatedtypes byteexactc726. Own finalstrict39PASS and peerwhole remain
+historical currentexecution evidence; overall delivery blocked, not approved CI.
+Confirmed own Legacy guard excludes ALL nonnullpartitions, while Z22 still
+needs established Legacy final-value/billing task; inspect actual authoritative
+receipt consumer before minimal narrow correction. Same existing owned Legacy
++unit paths/12refs, no foreignnative oracle/gate edit, no newpacket/roles.
+Next95bc authenticate12refs and document on530 before ownedunit RED reproducing
+nonnull Z22 missing finaltask; narrow guard to source-consumer-owned ending
+path(s), GREEN retained40+nonnullZ05 controls+Z22. Both independent source
+review, then newcurrenthead genuine39 AND fullclean/allmandatory SUCCESS
+required. Do not waive/change existing Z22 oracle or borrow oldc726 approval.
