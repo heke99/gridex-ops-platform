@@ -70,7 +70,7 @@ it.each(['bankruptcy','customer_change'] as const)('native %s classification com
       // Diagnose the SAME complete public owner. Never append a facetless v1
       // assessment, replace the original failure or authorize an effect here.
       const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
-      diagnostic=await rpc('gridex_record_prodat_source_validation_v6',{
+      const actualRpc=await rpc('gridex_record_prodat_source_validation_v6',{
         p_company_id:evidence.companyId,p_environment:evidence.environment,p_source_message_id:evidence.sourceMessageId,
         p_source_payload_hash:evidence.sourcePayloadHash,p_facts_text:evidence.factsText,
         p_source_function_facts_text:evidence.prodatSourceFunctionValidation?JSON.stringify(evidence.prodatSourceFunctionValidation):null,
@@ -79,6 +79,23 @@ it.each(['bankruptcy','customer_change'] as const)('native %s classification com
         p_ignored_fields_text:evidence.prodatIgnoredFields?JSON.stringify(evidence.prodatIgnoredFields):null,
         p_response_facts_text:evidence.prodatResponseValidation?JSON.stringify(evidence.prodatResponseValidation):null,
       })
+      let predicates:unknown
+      try{
+        // Read the SAME native predicates and committed original/context.
+        // No new context, assessment, authority or effect is created here.
+        predicates=sql(`WITH input AS(SELECT ${literal(JSON.parse(evidence.factsText))}::jsonb facts,${literal(evidence.prodatSourceFunctionValidation??null)}::jsonb facet)
+          SELECT jsonb_build_object(
+            'sourceFunctionValid',gridex_received_sources.validate_prodat_source_function_v1(m.company_id,m.id,m.raw_payload,i.facts,i.facet),
+            'scopeQualifications',(SELECT jsonb_agg(jsonb_build_object('scope',o-'functionalDecision'-'reasonCodes','qualified',gridex_customer_life_events.inbound_context_object_is_qualified_v1(m.company_id,m.id,r.id,o-'functionalDecision'-'reasonCodes'))) FROM jsonb_array_elements(i.facet->'objects')o),
+            'registerScopes',i.facts#>'{registerValidation,objects}',
+            'context',jsonb_build_object('present',r.id IS NOT NULL,'environmentMatches',r.environment IS NOT DISTINCT FROM m.environment,'payloadMatches',r.payload_hash IS NOT DISTINCT FROM i.facet->>'sourcePayloadHash','contextHashMatches',r.context_facts_hash IS NOT DISTINCT FROM i.facet->>'sourceContextFactsHash','storedHashValid',r.context_facts_hash IS NOT DISTINCT FROM encode(sha256(convert_to(r.context_facts::text,'UTF8')),'hex'),'rawMatches',r.context_facts->>'rawPayload' IS NOT DISTINCT FROM m.raw_payload,'status',r.context_facts->>'status','committedBeforeDiagnostic',r.xmin::text::numeric<>mod(pg_current_xact_id()::text::numeric,4294967296),'legalContext',r.context_facts->'legalContext','planObjects',(SELECT jsonb_agg(p->'object') FROM jsonb_array_elements(r.context_facts->'plans')p)),
+            'wire',gridex_customer_life_events.wire_partition_v1(m.raw_payload))
+          FROM input i JOIN public.ediel_messages m ON m.id=${literal(evidence.sourceMessageId)} AND m.company_id=${literal(evidence.companyId)}
+          LEFT JOIN gridex_customer_life_events.inbound_context_receipts r ON r.id=(i.facet->>'sourceContextReceiptId')::uuid AND r.company_id=m.company_id AND r.source_message_id=m.id`)
+      }catch(error){predicates={diagnosticReadError:error instanceof Error?error.message:String(error)}}
+      diagnostic={actualRpc,applicationFacetPresent:evidence.prodatApplicationValidation!==null&&evidence.prodatApplicationValidation!==undefined,
+        applicationBytes:Buffer.byteLength(JSON.stringify(evidence.prodatApplicationValidation??null),'utf8'),
+        functionBytes:Buffer.byteLength(JSON.stringify(evidence.prodatSourceFunctionValidation??null),'utf8'),predicates}
     }
   }
   expect(receipt.status,JSON.stringify({boundary:'actual_complete_v6',diagnostic})).toBe('recorded')
