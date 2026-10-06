@@ -693,3 +693,26 @@ repair notmain; adoptingit requiresfresh affectedruntime/native/audit/CI.
 Next thissession receivewholeATreview, editonlyown2rows iffullyproved,
 reduceownedproof to exact source/result/effect map, currentmandatoryCI
 thenactualrepair adoption andfreshgates. Commonmirrorunder24fa role.
+
+## Whole approvals / reviewed own ledger / local runner correction
+
+Independent wholeAT APPROVE exact67d:33actualconsumer+20retainednative+4
+ownnative asserts everyplanned-card expected/prohibited effect. Independently
+verified originalZIP/files/JUnit/all18sourcehashes. Peer repeated40consumer
+with explicitNode22.23.3/absolute supported runtime exit0(4.96s), priorNode24
+boundedrun remainshistory not supportedproof. SCwholeAPPROVE alsosealed.
+All13ownlocks remoteGET exactreceipts reconfirmed beforeledgeredit.
+Local233231fc then916bd681714deb4e5ab6a97a8a9fa5bd74ef9959 approvesONLY
+SC064/LKacceptance rows, candidate111+169=280 versusactualmain278.
+Independent finalmetadata reviewAPPROVE, addressed preciseSCintentfields
+wording and separate own/peerNode22 labels; no test/productchange. Owned
+113lineproof recordsactual67dexecution/digests/effectports and preservedRED.
+
+Localcoverage --check at233 actualEXIT1: onlyexistingSC015/16wrapper failing.
+Isolatedtrace identifies OWNrunner relativeNODE_OPTIONS--require path lost
+after existingSC016child changesworkingdirectory; MODULE_NOT_FOUND, not
+SQL/productfailure. Absoluteoriginalpreload path usedfornextisolatedrerun
+andcoverage reexec; no foreigntest/assertion/gatealteration. Preservelogs
+/tmp/gridex-95bc-coverage-check.log andcoverage-sc015-failure.log.
+620qualifiedrepairstillnotmain; nextthissession qualifyabsoluterunner,
+publishreviewed916once, thenactualmainadoption/freshgatesbeforemerge.
