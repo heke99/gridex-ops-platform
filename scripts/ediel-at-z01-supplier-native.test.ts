@@ -1,6 +1,7 @@
 // Whole-contract candidates remain unapproved until authentic native evidence
 // and independent literal review. No private accepted facts are fixture inputs.
 // SMTP and counterparties are explicitly synthetic external ports.
+// masterplan: AT-Z01L-SUPPLIER, AT-Z01LK-SUPPLIER
 import {createHash, randomUUID} from 'node:crypto'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {getEdielMessageById} from '@/lib/ediel/db'
@@ -8,7 +9,9 @@ import {archiveCustomerAuthorizationDocument} from '@/lib/operations/db'
 import {enqueueCustomerDataRequestAutomation} from '@/lib/customer-operations/automation'
 import {readEdielBusinessExpectations} from '@/lib/ediel/businessExpectations'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {resolveCanonicalRuntimeDecisionWithRegistry, readReceivedCanonicalProdatApplicationObjects} from '@/lib/ediel/core/runtimeDecision'
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
+import {prodatPartyState} from '@/lib/ediel/prodat/prodatPartyFields'
 import {prepareAndQueueEdielZ03} from '@/lib/ediel/flows/prodatSwitch'
 import {PRODAT_APERAK_APPLICATION_TEXTS} from '@/lib/ediel/prodat/prodatAperakText'
 import {prodatNowDate203} from '@/lib/ediel/prodat/render/dates'
@@ -16,7 +19,7 @@ import {segmentComposite, segmentElementCount, tokenizeEdifact} from '@/lib/edie
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {originalAckLegalNadSegment} from '@/lib/ediel/core/originalAckPartyIdentities'
 import {nativeSql as sql, literal, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
-import {createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply, exerciseZ01SupplierOutboundField} from './helpers/ediel-z01-info-request-native-fixture'
+import {createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply, exerciseZ01SupplierOutboundField, ensureZ01SupplierKnownWrongGridArea} from './helpers/ediel-z01-info-request-native-fixture'
 import {externalZ01Aperak, externalZ01Contrl, externalZ02Reply, type ExternalZ02Overrides} from './helpers/ediel-z01-info-request-native-wire'
 import {createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
 
@@ -56,12 +59,37 @@ function sealedSource(id: string) {
     'original',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE s.source_message_id=m.id))
     FROM public.ediel_messages m WHERE m.id=${literal(id)}`)
 }
+type ActivationState = {periods: unknown[]; contracts: unknown[];
+  switches: Array<{id: string; status: string; confirmed: string | null}>}
 function activation(f: {companyId: string}) {
   // Z01, acknowledgements and Z02 are information processing, not supply start.
-  return sql(`SELECT jsonb_build_object(
+  return sql<ActivationState>(`SELECT jsonb_build_object(
     'periods',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]'::jsonb) FROM public.customer_supply_periods p WHERE p.company_id=${literal(f.companyId)}),
     'contracts',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',c.id,'status',c.status,'starts_at',c.starts_at) ORDER BY c.id),'[]'::jsonb) FROM public.customer_contracts c WHERE c.company_id=${literal(f.companyId)}),
     'switches',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',r.id,'status',r.status,'confirmed',r.confirmed_start_date) ORDER BY r.id),'[]'::jsonb) FROM public.supplier_switch_requests r WHERE r.company_id=${literal(f.companyId)}));`)
+}
+function switchRequest(f: {companyId: string; switchId: string}) {
+  return sql<Record<string, unknown>>(`SELECT to_jsonb(r) FROM public.supplier_switch_requests r
+    WHERE r.id=${literal(f.switchId)} AND r.company_id=${literal(f.companyId)}`)
+}
+function customerActivation(f: {companyId: string}) {
+  return sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'activated_at',activated_at) ORDER BY id),'[]'::jsonb)
+    FROM public.customers WHERE company_id=${literal(f.companyId)}`)
+}
+function assertOwnZ03Preparation(f: {companyId: string; switchId: string; actorUserId: string}, before: ActivationState,
+  requestBefore: Record<string, unknown>, original: {id: string; raw_payload?: string | null}) {
+  const after = switchRequest(f), wire = tokenizeEdifact(original.raw_payload!)
+  const ownLines = wire.segments.filter(s => s.tag === 'RFF' && segmentComposite(s, 1, wire.una)[0] === 'LI')
+  expect(ownLines).toHaveLength(1)
+  expect(Number.isFinite(Date.parse(String(after.updated_at)))).toBe(true)
+  expect(Date.parse(String(after.updated_at))).toBeGreaterThanOrEqual(Date.parse(String(requestBefore.updated_at)))
+  // The actual preparer binds this original and LI and marks only its own
+  // request prepared. This is allowed intent preparation, with every other
+  // request field and all supply/contract effects still compared exactly.
+  expect(after).toEqual({...requestBefore, status: 'prepared', outbound_z03_message_id: original.id,
+    rff_li_reference: segmentComposite(ownLines[0], 1, wire.una)[1], updated_by: f.actorUserId, updated_at: after.updated_at})
+  expect(activation(f)).toEqual({...before,
+    switches: before.switches.map(r => r.id === f.switchId ? {...r, status: 'prepared'} : r)})
 }
 function customerState(f: Fixture) {
   return sql(`SELECT jsonb_build_object(
@@ -86,6 +114,53 @@ async function watches(f: Fixture, original: Original) {
 function coreApplications(f: Fixture, requestId: string) {
   return sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.z02_core_applications
     WHERE company_id=${literal(f.companyId)} AND request_id=${literal(requestId)}`)
+}
+async function assertPhysicalZ02Application(f: Fixture, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>,
+  expected: {point: string; identityAgency: string; reason: string; gridAreaCode: string}) {
+  // This actual invocation proves application guidance only. Correlation and
+  // durable business application remain separate assertions below; an earlier
+  // unrelated field/header refusal cannot satisfy a source-correlation test.
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message)
+  const application = readReceivedCanonicalProdatApplicationObjects(decision, received.message)
+  const witness = JSON.stringify({decision, application, tenant: received.tenant,
+    match: received.match, pointMatch: received.pointMatch, processed: received.processed,
+    responseJobsBefore: received.inboundResponseJobsBefore, responseJobsAfter: received.inboundResponseJobsAfter,
+    responseJob: received.inboundResponseJob, responseResult: received.inboundResponseResult})
+  // A fresh read cannot establish that the actual processor reached runtime.
+  // Require its real persisted decisions, excluding an earlier routing hold.
+  expect(received.message.company_id, witness).toBe(f.companyId)
+  expect(received.message.processing_status, witness).not.toBe('routing_unresolved')
+  expect(received.message.validation_report, witness).toMatchObject({canonicalRuntimeVersion: '2.5B',
+    syntaxDecision: 'accepted', applicationDecision: 'accepted', functionalDecision: 'accepted'})
+  expect(decision.syntaxDecision, witness).toBe('accepted')
+  expect(decision.applicationDecision, witness).toBe('accepted')
+  expect(decision.functionalDecision, witness).toBe('accepted')
+  expect(decision.issues.filter(issue => issue.severity === 'error'), witness).toEqual([])
+  expect(application, witness).not.toBeNull()
+  const raw = received.message.raw_payload!, wire = tokenizeEdifact(raw)
+  const one = (tag: string) => {const rows = wire.segments.filter(s => s.tag === tag); expect(rows).toHaveLength(1); return rows[0]}
+  const lin = one('LIN'), unh = one('UNH'), identity = segmentComposite(lin, 3, wire.una)
+  expect(identity).toEqual([expected.point, '', '', expected.identityAgency])
+  expect(prodatRegisterFieldState('209', wire.segments, wire.una)).toMatchObject({present: true, value: expected.point, malformed: false})
+  expect(prodatPartyState('233', wire.segments, wire.una)).toMatchObject({present: true, value: expected.point, malformed: false, tooLong: false})
+  const installation = wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'IT')
+  expect(installation).toHaveLength(1)
+  expect(segmentComposite(installation[0], 2, wire.una)).toEqual([expected.point, '', expected.identityAgency])
+  const areas = wire.segments.filter(s => s.tag === 'RFF' && segmentComposite(s, 1, wire.una)[0] === 'Z05')
+  expect(areas).toHaveLength(1); expect(segmentComposite(areas[0], 1, wire.una)).toEqual(['Z05', expected.gridAreaCode])
+  const reasons = wire.segments.filter(s => s.tag === 'CCI' && segmentComposite(s, 2, wire.una)[0] === 'Z13')
+  expect(reasons).toHaveLength(1)
+  const reasonValue = wire.segments.find(s => s.index === reasons[0].index + 1 && s.tag === 'CAV')
+  expect(segmentComposite(reasonValue, 1, wire.una)[0]).toBe(expected.reason)
+  const scope = {messageIndex: 0, messageReference: segmentComposite(unh, 1, wire.una)[0],
+    objectId: expected.point, identityAgency: expected.identityAgency,
+    registers: [{lineIndex: 0, lineNumber: segmentComposite(lin, 1, wire.una)[0], registerIndex: null,
+      registerPosition: 1, segmentIndex: lin.index}]}
+  expect(application, witness).toEqual({version: 1, owner: 'canonical-prodat-application-all-v1',
+    coverage: 'canonical_own_application_only', sourcePayloadHash: sha(raw), headerDecision: 'accepted',
+    objects: [{...scope, applicationDecision: 'accepted', reasonCodes: []}]})
+  expect(decision.prodatRegisterValidation, witness).toEqual({version: 1, owner: 'validateProdatRegisterPolicy',
+    coverage: 'canonical_register_only', objects: [{...scope, disposition: 'accepted', reasons: []}]})
 }
 const protectedUdSlots: Readonly<Record<string, number>> = {'227': 2, '228': 4, '229': 5, '231': 8, '232': 6, '316': 9}
 function assertOnlyOwnUdFieldOmitted(rawOriginal: string, rawOmitted: string, field: string) {
@@ -196,6 +271,53 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
   })
 
+  it('a different genuinely existing GS1 object cannot borrow the own Z01 source or affect either company', async () => {
+    const {f, original} = await sent(variant), other = await createZ01SupplierNativeFixture(variant, provider)
+    const before = customerState(f), otherBefore = customerState(other), sealed = sealedSource(original.originalZ01.id)
+    expect(other.external).not.toBe(original.wire.point)
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {point: other.external}))
+    await assertPhysicalZ02Application(f, received, {...original.wire, point: other.external})
+    expect(coreApplications(f, original.requestId)).toBe(0)
+    expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
+    expect(customerState(f)).toEqual(before); expect(customerState(other)).toEqual(otherBefore)
+    expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
+  })
+
+  it('a different LIN identity agency cannot borrow the exact own object and source', async () => {
+    const {f, original} = await sent(variant), before = customerState(f), sealed = sealedSource(original.originalZ01.id)
+    const identityAgency = original.wire.identityAgency === '9' ? '89' : '9'
+    expect(['9', '89']).toContain(original.wire.identityAgency)
+    expect(identityAgency).not.toBe(original.wire.identityAgency)
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {identityAgency}))
+    await assertPhysicalZ02Application(f, received, {...original.wire, identityAgency})
+    expect(coreApplications(f, original.requestId)).toBe(0)
+    expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
+    expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
+  })
+
+  it('the opposite Z22/Z23 subtype cannot borrow the own source with the same object, LI and parties', async () => {
+    const {f, original} = await sent(variant), before = customerState(f), sealed = sealedSource(original.originalZ01.id)
+    const reason = variant === 'L' ? 'Z23' : 'Z22'
+    expect(reason).not.toBe(original.wire.reason)
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {reason}))
+    await assertPhysicalZ02Application(f, received, {...original.wire, reason})
+    expect(coreApplications(f, original.requestId)).toBe(0)
+    expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
+    expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
+  })
+
+  it('a known distinct grid area in the same price area cannot replace field260 of the own original Z01', async () => {
+    const {f, original} = await sent(variant), sealed = sealedSource(original.originalZ01.id)
+    const wrong = await ensureZ01SupplierKnownWrongGridArea(f), before = customerState(f)
+    expect(wrong.gridAreaCode).not.toBe(original.wire.gridAreaCode)
+    expect(wrong.after).toEqual(wrong.before)
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {gridAreaCode: wrong.gridAreaCode}))
+    await assertPhysicalZ02Application(f, received, {...original.wire, gridAreaCode: wrong.gridAreaCode})
+    expect(coreApplications(f, original.requestId)).toBe(0)
+    expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
+    expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
+  })
+
   it('actual inbound Z02 missing mandatory 217 cannot apply any information or activate supply', async () => {
     const {f, original} = await sent(variant), before = customerState(f)
     const received = await receiveZ01SupplierReply(f, z02(f, original, {}, true))
@@ -298,18 +420,22 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
 
 it('already-correct supplier data can actually originate Z03 without any Z01 or positive APERAK gate', async () => {
   const f = await seedNormalSwitchNativeFixture({deferOriginal: true, requestedStartDate: futureNativeSupplyDate()})
-  const before = activation(f)
+  const before = activation(f), requestBefore = switchRequest(f), activatedBefore = customerActivation(f)
+  expect(requestBefore.status).toBe('ready')
   const original = await prepareAndQueueEdielZ03({actorUserId: f.actorUserId, switchRequestId: f.switchId,
     communicationRouteId: f.routeId, environment: 'test'})
   expect(original).toMatchObject({direction: 'outbound', message_code: 'Z03', company_id: f.companyId})
   expect(original).toMatchObject({immutable_payload_hash: sha(original.raw_payload!)})
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code IN('Z01','APERAK')`)).toBe(0)
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_info_requests WHERE company_id=${literal(f.companyId)}`)).toBe(0)
-  expect(activation(f)).toEqual(before); expect(external.send).not.toHaveBeenCalled()
+  assertOwnZ03Preparation(f, before, requestBefore, original)
+  expect(customerActivation(f)).toEqual(activatedBefore); expect(external.send).not.toHaveBeenCalled()
 })
 
 it('already-correct move-in data can actually originate Z03LK without any Z01 or positive APERAK gate', async () => {
   const f = await createZ01SupplierNativeFixture('LK', provider), before = activation(f)
+  const requestBefore = switchRequest(f), activatedBefore = customerActivation(f)
+  expect(requestBefore.status).toBe('draft')
   const original = await prepareAndQueueEdielZ03({actorUserId: f.actorUserId, switchRequestId: f.switchId,
     communicationRouteId: f.routeId, environment: 'test'})
   expect(original).toMatchObject({direction: 'outbound', message_code: 'Z03', company_id: f.companyId,
@@ -317,7 +443,8 @@ it('already-correct move-in data can actually originate Z03LK without any Z01 or
   expect(original.raw_payload).toContain('CAV+Z23')
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code IN('Z01','APERAK')`)).toBe(0)
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_info_requests WHERE company_id=${literal(f.companyId)}`)).toBe(0)
-  expect(activation(f)).toEqual(before); expect(external.send).not.toHaveBeenCalled()
+  assertOwnZ03Preparation(f, before, requestBefore, original)
+  expect(customerActivation(f)).toEqual(activatedBefore); expect(external.send).not.toHaveBeenCalled()
 })
 
 // Run fresh before-original probes after the ordinary information chain.

@@ -13,6 +13,7 @@ import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {createCustomerInfoRequest} from '@/lib/onboarding/infoRequests'
 import {createGridOwnerDataRequest} from '@/lib/cis/db-data'
 import {getGridOwnerById} from '@/lib/masterdata/db'
+import {upsertPlatformGridAreaMasterRows} from '@/lib/energy/resolver'
 import {setOperationSnapshotRequestReference} from '@/lib/customer-operations/automation.part-1'
 import {findOrCreateDataRequestOutbound, finalizeOutboundDraft} from '@/lib/ediel/flows/shared'
 import {resolveDecisionBackedOutboundContext} from '@/lib/ediel/flows/routeDecisionContext'
@@ -20,7 +21,8 @@ import {createEdielMessageIntent} from '@/lib/ediel/intent/intentEngine'
 import {allocateZ01WireReferences, z01WireReferencesFromIntent} from '@/lib/ediel/prodat/z01WireReferences'
 import {buildCustomerMasterdataZ01Draft} from '@/lib/ediel/intent/renderers/customerMasterdataZ01'
 import {bindCustomerMasterdataDraftContext} from '@/lib/ediel/prodat/customerMasterdataDraft'
-import {bindCustomerMasterdataValidationContext, type CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import {bindCustomerMasterdataValidationContext, prepareCustomerMasterdataSource, type CustomerMasterdataValidationContext,
+  type SourceQualifiedCustomerMasterdataProjection} from '@/lib/ediel/production/customerMasterdataSource'
 import {createProdatRegisterEvidence, copyProdatRegisterFacts} from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import {validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
 import {segmentComposite, segmentElementCount, tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -39,6 +41,7 @@ export type Z01SupplierNativeFixture = NormalSwitchStageNativeFixture & {
   ackRouteId: string
   ackRouteProfileId: string
   customerAddress: ExternalZ02Address
+  customerMasterdataSource: SourceQualifiedCustomerMasterdataProjection
   installationAddress: ExternalZ02Address
 }
 
@@ -57,7 +60,14 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
   const f = await seedNormalSwitchNativeFixture({deferOriginal: true, requestedStartDate: futureNativeSupplyDate(), provider})
   const z01RouteId = randomUUID(), z01RouteProfileId = randomUUID(), ackRouteId = randomUUID(), ackRouteProfileId = randomUUID()
   const smtp = edielSmtpConfig()
-  const customerAddress = {street: 'Testgatan 1', city: 'Teststad', postalCode: '12345', country: 'SE'}
+  // Observe the existing producer's literal signed source through the same real
+  // preparation API as the Z01 renderer. Billing and installation cannot supply UD.
+  const customerMasterdataSource = await prepareCustomerMasterdataSource({companyId: f.companyId, customerId: f.customerId,
+    actorUserId: f.actorUserId, environment: 'test'})
+  expect(customerMasterdataSource.customerIdentity).toEqual(f.customerIdentity)
+  const masterdata = customerMasterdataSource.endUserMasterdata
+  if (masterdata.streetParts.length !== 1) phaseFailure('external_address_requires_single_source_street', masterdata)
+  const customerAddress = {street: masterdata.streetParts[0], city: masterdata.city, postalCode: masterdata.postalCode, country: masterdata.country}
   const installationAddress = {street: 'Synthetic installation road 2', city: 'Teststad', postalCode: '12345', country: 'SE'}
   const processType = variant === 'LK' ? 'move_in' : 'supplier_switch_existing_site'
   // The base's ready status is excluded by the real site-process resolver.
@@ -72,9 +82,6 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
       move_in_date=${variant === 'LK' ? `${literal(f.requestedStartDate)}::date` : 'NULL'},
       metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('process_type',${literal(processType)})
       WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)};
-    UPDATE public.customers SET street=${literal(customerAddress.street)},city=${literal(customerAddress.city)},
-      postal_code=${literal(customerAddress.postalCode)},country=${literal(customerAddress.country)}
-      WHERE id=${literal(f.customerId)} AND company_id=${literal(f.companyId)};
     UPDATE public.grid_owners SET platform_market_actor_id=${literal(f.marketActorId)}
       WHERE id=${literal(f.gridId)} AND company_id=${literal(f.companyId)};
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
@@ -91,7 +98,72 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
         'recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},NULL,NULL);`)
   const process = await resolveCustomerSiteProcessContext({companyId: f.companyId, customerId: f.customerId, siteId: f.siteId})
   expect(process.processType, JSON.stringify(process)).toBe(processType)
-  return {...f, variant, provider, z01RouteId, z01RouteProfileId, ackRouteId, ackRouteProfileId, customerAddress, installationAddress}
+  return {...f, variant, provider, z01RouteId, z01RouteProfileId, ackRouteId, ackRouteProfileId,
+    customerAddress, customerMasterdataSource, installationAddress}
+}
+
+function knownAreaSourceRows(f: Z01SupplierNativeFixture) {
+  return sql<Row>(`SELECT jsonb_build_object(
+    'site',(SELECT to_jsonb(r) FROM public.customer_sites r WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)}),
+    'point',(SELECT to_jsonb(r) FROM public.metering_points r WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)}),
+    'grid',(SELECT to_jsonb(r) FROM public.grid_owners r WHERE id=${literal(f.gridId)} AND company_id=${literal(f.companyId)}),
+    'platformActor',(SELECT to_jsonb(r) FROM public.platform_market_actors r WHERE id=${literal(f.marketActorId)}),
+    'platformOwners',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.platform_grid_owners r
+      WHERE r.market_actor_id=${literal(f.marketActorId)} OR r.ops_grid_owner_id=${literal(f.gridId)} OR r.ediel_id=${literal(f.receiver)}
+      OR r.id IN(SELECT grid_owner_id FROM public.platform_grid_areas WHERE grid_area_code=${literal(f.gridAreaCode)})),
+    'originalArea',(SELECT to_jsonb(r) FROM public.platform_grid_areas r WHERE grid_area_code=${literal(f.gridAreaCode)}),
+    'messages',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_messages r WHERE company_id=${literal(f.companyId)}),
+    'sources',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id),'[]') FROM gridex_received_sources.sources r WHERE company_id=${literal(f.companyId)}),
+    'watches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_business_expectations r WHERE company_id=${literal(f.companyId)}),
+    'requests',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_info_requests r WHERE company_id=${literal(f.companyId)}),
+    'snapshots',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_operation_request_snapshots r WHERE company_id=${literal(f.companyId)}))`)
+}
+
+/** A distinct known reference area isolates original-area correlation from
+ * unknown-area and price-area holds. Only the existing public importer may
+ * create the declared synthetic reference; it cannot change the source rows.
+ */
+export async function ensureZ01SupplierKnownWrongGridArea(f: Z01SupplierNativeFixture) {
+  const before = knownAreaSourceRows(f)
+  const sourcePoint = objectRecord(before.point), sourceGrid = objectRecord(before.grid), sourceSite = objectRecord(before.site)
+  const priceArea = String(sourcePoint.price_area_code ?? ''), gridOwnerName = String(sourceGrid.name ?? '')
+  if (!/^SE[1-4]$/.test(priceArea) || !gridOwnerName || sourceSite.price_area_code !== priceArea)
+    phaseFailure('known_area_source_mapping_required', {sourcePoint, sourceGrid, sourceSite})
+  const valid = `is_active IS TRUE AND price_area=${literal(priceArea)} AND grid_owner_name=${literal(gridOwnerName)}
+    AND (valid_from IS NULL OR valid_from<=(now() AT TIME ZONE 'Etc/GMT-1')::date)
+    AND (valid_to IS NULL OR valid_to>=(now() AT TIME ZONE 'Etc/GMT-1')::date)`
+  let row = sql<Row | null>(`SELECT to_jsonb(r) FROM public.platform_grid_areas r WHERE ${valid}
+    AND grid_area_code~'^[A-Z0-9]{3}$' AND grid_area_code<>${literal(f.gridAreaCode)} ORDER BY grid_area_code LIMIT 1`)
+  let importResult: Awaited<ReturnType<typeof upsertPlatformGridAreaMasterRows>> | null = null
+  if (!row) {
+    // The public importer updates an existing noncanonical name match. Refuse
+    // that branch so no existing platform DSO can be changed by this control.
+    const ownerRows = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.platform_grid_owners r
+      WHERE public.gridex_grid_owner_name_key(name)=public.gridex_grid_owner_name_key(${literal(gridOwnerName)})`)
+    const canonicalOwners = ownerRows.filter(r => r.is_active !== false && typeof r.ediel_id === 'string'
+      && r.ediel_id.trim() && r.ops_grid_owner_id !== null)
+    if (ownerRows.length && canonicalOwners.length !== 1) phaseFailure('known_area_import_would_change_existing_owner', ownerRows)
+    const gridAreaCode = sql<string | null>(`SELECT to_jsonb(code) FROM (SELECT 'Z'||upper(lpad(to_hex(n),2,'0')) code
+      FROM generate_series(0,255) n) candidates WHERE code<>${literal(f.gridAreaCode)}
+      AND NOT EXISTS(SELECT FROM public.platform_grid_areas WHERE grid_area_code=code) ORDER BY code LIMIT 1`)
+    if (!gridAreaCode) phaseFailure('known_area_no_fresh_reference_code', {priceArea, gridOwnerName})
+    importResult = await upsertPlatformGridAreaMasterRows([{gridAreaCode, priceArea, gridOwnerName,
+      gridAreaName: 'Synthetic distinct Z01 reply area', metadata: {synthetic_native_fixture: true}}])
+    if (importResult.length !== 1 || !importResult[0].ok || !importResult[0].id) phaseFailure('known_area_import_failed', importResult)
+    row = sql<Row | null>(`SELECT to_jsonb(r) FROM public.platform_grid_areas r WHERE id=${literal(importResult[0].id)}
+      AND grid_area_code=${literal(gridAreaCode)} AND ${valid}`)
+  }
+  if (!row || typeof row.grid_area_code !== 'string') phaseFailure('known_area_readback_unqualified', {row, importResult})
+  const mapping = sql<{count: number; priceArea: string | null}>(`SELECT jsonb_build_object(
+    'count',count(DISTINCT upper(price_area)),'priceArea',min(upper(price_area))) FROM public.platform_grid_areas
+    WHERE is_active IS TRUE AND upper(grid_area_code)=upper(${literal(row.grid_area_code)}) AND upper(price_area) IN('SE1','SE2','SE3','SE4')
+    AND (valid_from IS NULL OR valid_from<=(now() AT TIME ZONE 'Etc/GMT-1')::date)
+    AND (valid_to IS NULL OR valid_to>=(now() AT TIME ZONE 'Etc/GMT-1')::date)`)
+  expect(mapping).toEqual({count: 1, priceArea})
+  const after = knownAreaSourceRows(f)
+  expect(after, 'Public reference import must preserve the complete original source rows').toEqual(before)
+  expect(row.grid_area_code).not.toBe(f.gridAreaCode)
+  return {gridAreaCode: row.grid_area_code, priceArea, gridOwnerName, row, mapping, importResult, before, after}
 }
 
 /** Enqueue/claim/worker/create/queue/render/outbox/provider are all real.
