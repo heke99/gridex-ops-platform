@@ -159,9 +159,11 @@ for (const kind of ['contrl','aperak27','aperak34'] as const) {
     expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId:`native-corrected-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})).toMatchObject({status:'sent'})
     expect(smtp).toHaveBeenCalledTimes(2)
     const sent = (await getEdielMessageById(fresh.id))!
-    expect(sent).toMatchObject({id:fresh.id,status:'sent',original_message_id:f.originalZ03.id,source_operation_id:operationId,raw_payload:fresh.raw_payload,immutable_payload_hash:hash(fresh.raw_payload!)})
+    expect(sent).toMatchObject({id:fresh.id,status:'sent',company_id:f.companyId,environment:'test',communication_route_id:f.routeId,route_profile_id:f.routeProfileId,sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,receiver_email:'recipient@example.invalid',original_message_id:f.originalZ03.id,source_operation_id:operationId,raw_payload:fresh.raw_payload,immutable_payload_hash:hash(fresh.raw_payload!)})
+    expect(smtp.mock.calls[1][0]).toMatchObject({envelope:{to:['recipient@example.invalid']}})
+    expect(sql(`SELECT to_jsonb(route_contract_snapshot) FROM public.ediel_outbox WHERE id=${literal(id)}`)).toMatchObject({route_id:f.routeId,receiver_ediel_id:f.receiver,receiver_email:'recipient@example.invalid'})
     const attempt = sql<{id:string;company_id:string;message_id:string;classification:string}>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE company_id=${literal(f.companyId)} AND message_id=${literal(fresh.id)}`)
-    expect(attempt).toMatchObject({company_id:f.companyId,message_id:fresh.id,classification:'accepted'})
+    expect(attempt).toMatchObject({company_id:f.companyId,environment:'test',actor_user_id:f.actorUserId,message_id:fresh.id,classification:'accepted',binding:{routeId:f.routeId,originalHash:hash(fresh.raw_payload!),to:'recipient@example.invalid'}})
     expect(effects(f)).toEqual({...stable,attempts:stable.attempts+1})
     const mime = await readVerifiedEdielTransportCopy({companyId:f.companyId,actorUserId:f.actorUserId,messageId:fresh.id,attemptId:attempt.id})
     expect(mime.length).toBeGreaterThan(0)
@@ -549,7 +551,7 @@ it('a genuine worker blocked on its claimed row cannot enter SMTP when its lease
 },120000)
 
 // Bounded OPS04 implementation evidence only: synthetic upstream replies and
-// SMTP are explicit. The selected agreed-test/incident consumer stays unproved.
+// SMTP are explicit. An authentic selected agreed trial and live mandate remain absent.
 it.each(['actor','network_source'] as const)('fresh queued correction rechecks current %s before worker provider entry',async fault=>{
  const f=await seed(),ack=await receiveAck(f,externalAck(f,'contrl')),operationId=randomUUID()
  const input={companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId,correctedRawPayload:correction(f)}

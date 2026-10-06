@@ -122,7 +122,7 @@ jobs:
                             'scripts/ediel-tr-05-recovery-native.test.ts'],
               'ordinary_required_gates':'NOT_REPLACED',
               'schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN',
-              'whole_ops04':'BLOCKED_SELECTED_AGREED_TEST_INPUT_AND_CONSUMER',
+              'whole_ops04':'BLOCKED_AUTHENTIC_SELECTED_COUNTERPARTY_TRIAL_INPUT',
               'authentic_market_evidence':'NOT_PROVIDED',
           }
           pathlib.Path('z14n-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
