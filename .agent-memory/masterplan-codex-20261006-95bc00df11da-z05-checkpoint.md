@@ -1062,3 +1062,22 @@ pending, fullunit+threeTS running/lintEXIT0. TenoldcurrentchecksSUCCESS but
 clean/certFAIL retained6027210023, no currentCI_GREEN/MERGED/role/newpair.
 Next95bc finalsourcepeer/full/TS/12freshrefs→normalpublishsamePR→authentic
 new39+unchanged705clean fulltails/allgates/currentwhole reviews→serialmerge.
+
+## Exact9bc normallypublished / full12045 actualPASS
+
+Normalpush c726→9bcf13a8b8a0304b5d997255537372a65566b094 succeeded,
+branch+PR636API GETconfirm exact9bc OPENREADY/unmerged. Bothfinalsource
+reviews approveexact9bc/tree1ae7c2bbbf30ccf947d95e33b1dc361bfe4a801e,
+receiptREADY5306027267152/PR6366027267539. SourceCLEAN/frozen. ActualNode22
+full895files12045PASS/296.03s EXIT0 (product/test5bd identical9bc), SHA
+c42c602f4adcdff6af6c08db08482fdf62c01d32cd4694e58d6db261e6aa466e;
+three nonincrementalTS projects allno diagnostics/EXIT0, targetedlintEXIT0.
+Freshactualnative37546257721/job112550877555 QUEUED/notexecuted; other
+requiredcurrentjobs queued, no currentwhole/CI_GREEN/MERGED/externalclaim.
+Fetchedcurrentactualmain356 unchanged290; cleanreadonly normalmergepreview
+tree4fb0cee86ec4ccb2a5c0de21acdfc48a15c2ec94, onlyown2expected292 but
+previewNOTactualdelivery. All12 refs confirmedbeforepublication; no roles.
+Next95bc authenticate genuinecurrent39/unchanged705clean/allrequiredSUCCESS,
+currentwholefinalexecutionreviews/freshmain/resources/role beforeguarded
+normalmerge andactualmainreceipt; matchedmergerole releaseFIRST, shared
+role reconciliation/own12release, thenownconfirmedcleanup maintenance.
