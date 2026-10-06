@@ -113,3 +113,7 @@ supply_rescission_atomic_original_required/immutable_ediel_payload_cannot_change
 Now14new+24retained =38 strictnativeproposals, workflow29recordedinputs. No
 nativeexecuted/coverageapproval; next correctedtypes/lint/independentreview then
 strictauthenticfeedback publication.
+
+Added exactphysicalUCI2/3 sourceUNBsender/receiver compositecopy assertions from
+peer ae45REQUEST_CHANGES. b691role/direction/exactmutation refinement addresses
+bothpeerfindings; currentreviewandtypes pending, nativeNOT_RUN.

@@ -81,6 +81,8 @@ it.each(variants)('actual Z05%s commits its own end, physical acknowledgements a
   if(ack.message_family==='CONTRL'){
    const uci=wire.segments.find(s=>s.tag==='UCI')
    expect(segmentComposite(uci,1,wire.una)[0]).toBe(segmentComposite(sourceUnb,5,sourceWire.una)[0])
+   expect(segmentComposite(uci,2,wire.una)).toEqual(segmentComposite(sourceUnb,2,sourceWire.una))
+   expect(segmentComposite(uci,3,wire.una)).toEqual(segmentComposite(sourceUnb,3,sourceWire.una))
    expect(segmentComposite(uci,4,wire.una)).toEqual(['1'])
   }else{
    expect(wire.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,wire.una)[0])).toEqual(['100'])
