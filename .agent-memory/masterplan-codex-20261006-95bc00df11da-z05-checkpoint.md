@@ -289,3 +289,20 @@ Source523negativeACKreviewedunpublished; mergeactual634metadataed3 only after
 refresh compatibility; foreign621099custodyrepair stilladoptonlyactualmain.
 PR634actuallyMERGEDed3/tree0c3e/MERGED6024231854/rolesGETDELETE4046024234061;
 metadataCPseparate/currentqueued631historic/633+634mirror role-free, no wholeclaim.
+
+## Actual TDD RED before minimal Legacy projection fix
+
+Locala7dcacc4bfe17364bbb32c45f1949109f10d1dd2 ONLYownedunit+19lines/2cases,
+allold40unchanged. Node22actual42=40PASS2FAIL0skip/error exit1, bothfailstrict
+emptyLegacytask due actualduplicatecreation after properlyvalidated nonnull
+finiteRPCpartition/receipt; trailingnoLookup assertionnotreached. REDlogSHA
+4fbbd98ddd87e2b8f5a8bd38b78adfa993ab1ecf5cb989648577d2362c06a46d preserved
+/tmp/gridex-z05-followup-partition-tdd-red.log. BothmandatorypeersAPPROVE plan
+partition===null guard: realprocessorownsreceiptfollowupbeforeLegacy andtries
+againonreplay; no unboundLegacyfallbackwhenreceiptprojectionheld. Mained3
+634metadata adopted via7915cf67, ALLruntime/SQL/coveragebytes unchanged.
+Legacyextensiona09/CLAIM6024297023/10ownrefs confirmed; no foreignedit orrole.
+Next95bc postRED530 BEFOREproductionedit, addsinglepartitionNULLcondition+
+comment toownedLegacy; exactunchanged42tests→GREEN, scopedregressions/types/lint
+thenownnative route/correlation/ordinary39/currentfeedback/frozenfullreview.
+Remote63694 unchanged/no borrowednativewhole/custody621stillforeignpending.
