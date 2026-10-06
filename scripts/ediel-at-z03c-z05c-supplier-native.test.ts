@@ -250,6 +250,74 @@ describe('actual native supplier cancellation chains', () => {
     expect(permissions(f)).toEqual(permissionBefore)
   }, 180000)
 
+  it.each(['226','260','223','227','228','232','231','316','233','234','262'])('holds individually omitted required Z05C field %s with its actual national diagnostic', async fieldNumber => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const before = periods(f), permissionBefore = permissions(f)
+    const transitions = () => sql(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.source_message_id),'[]') FROM gridex_received_sources.supply_source_transitions t WHERE company_id=${literal(f.companyId)};`)
+    const historyBefore = transitions()
+    const wire = z05(f,'Z24', wire => {
+      const parsed = tokenizeEdifact(wire)
+      if (fieldNumber === '223') {
+        const index = parsed.segments.findIndex(segment => segment.tag === 'CCI' && segmentComposite(segment,2,parsed.una)[0] === 'Z13')
+        const characteristic = parsed.segments[index], value = parsed.segments[index+1]
+        expect(index).toBeGreaterThanOrEqual(0); expect(value.tag).toBe('CAV')
+        expect(segmentComposite(value,1,parsed.una)[0]).toBe('Z24')
+        // The own field is absent, rather than an invalid CCI with no value.
+        return wire.replace(characteristic.raw+parsed.una.segmentTerminator+value.raw+parsed.una.segmentTerminator,'')
+      }
+      if (['226','260'].includes(fieldNumber)) {
+        const target = parsed.segments.find(segment => segment.tag === 'RFF' && segmentComposite(segment,1,parsed.una)[0] === (fieldNumber === '226' ? 'LI' : 'Z05'))
+        expect(target).toBeDefined()
+        return wire.replace(target!.raw+parsed.una.segmentTerminator,'')
+      }
+      const qualifier = ['233','234'].includes(fieldNumber) ? 'IT' : fieldNumber === '262' ? 'Z02' : 'UD'
+      const party = parsed.segments.find(segment => segment.tag === 'NAD' && segmentComposite(segment,1,parsed.una)[0] === qualifier)
+      expect(party).toBeDefined()
+      const element = ({'227':2,'228':4,'232':6,'231':8,'316':9,'233':2,'234':5,'262':2} as Record<string,number>)[fieldNumber]
+      // These shared synthetic NADs contain no released data separators.
+      // Preserve all the other raw children of the actual selected parent.
+      const children = party!.raw.split(parsed.una.dataElementSeparator)
+      expect(children[element]).toBeTruthy()
+      children[element] = ''
+      return wire.replace(party!.raw,children.join(parsed.una.dataElementSeparator))
+    })
+    // z05 re-encodes the complete envelope after the single-field omission.
+    const held = await receiveProdat(f,wire,'Z05','C')
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(held)
+    expect(decision.syntaxDecision,JSON.stringify(decision.issues)).toBe('accepted')
+    expect(decision.issues).toContainEqual(expect.objectContaining({
+      prodatDiagnostic:expect.objectContaining({fieldNumber,...(fieldNumber === '223' ? {errorKind:'missing'} : {})}),
+    }))
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id})
+    expect(periods(f)).toEqual(before); expect(permissions(f)).toEqual(permissionBefore)
+    expect(transitions()).toEqual(historyBefore)
+    // A valid syntax CONTRL is permitted; no positive business APERAK is.
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(held.id)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)).toBe(0)
+  }, 180000)
+
+  it('concurrent invocation of the same received C restores once with one transition and one reply per family', async () => {
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const [baseline] = periods(f)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const [endingPeriod] = periods(f), beforeOriginal = original(f), permissionBefore = permissions(f)
+    const endingHistory = () => sql(`SELECT to_jsonb(t) FROM gridex_received_sources.supply_source_transitions t WHERE source_message_id=${literal(ending.id)} AND company_id=${literal(f.companyId)};`)
+    const historyBefore = endingHistory()
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
+    // Concurrent INVOCATION only: this does not attest observed lock overlap
+    // or a transaction's final-write rollback boundary.
+    await Promise.all([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})))
+    expect(periods(f)).toHaveLength(1)
+    expect(periods(f)[0]).toMatchObject({ id:baseline.id,status:baseline.status,source_message_id:baseline.source_message_id,
+      source_end_message_id:baseline.source_end_message_id,end_date:baseline.end_date,market_end_at:baseline.market_end_at,
+      market_state_version:endingPeriod.market_state_version+1,metadata:{...baseline.metadata,endCancellationSource:continuation.id} })
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)};`)).toBe(1)
+    expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('family',message_family,'outcome',ack_outcome) ORDER BY message_family,id),'[]') FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(continuation.id)} AND direction='outbound';`))
+      .toEqual([{family:'APERAK',outcome:'positive'},{family:'CONTRL',outcome:'positive'}])
+    expect(original(f)).toEqual(beforeOriginal); expect(endingHistory()).toEqual(historyBefore)
+    expect(permissions(f)).toEqual(permissionBefore)
+  }, 180000)
+
   it.each(['li','point','stop','required-date','required-user','selected-invoicee'])('holds Z05C %s without restoring its real ending decision', async variant => {
     const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
     const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)

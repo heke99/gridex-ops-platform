@@ -1687,7 +1687,9 @@
       "input_hashes_verified": 67,
       "mandatory_verify": "FAIL_SHARP_GHSA-wq5f-xc86-pv6w",
       "atomic_release": "AUTH_BLOCKED_OWN_REFS_REMAIN",
-      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019580520"
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6019580520",
+      "successor_proposed_cases": 24,
+      "successor_native_source_sha256": "360e87e6c09207308ed513f27e1137bb88eb00b2f1b2f7822c71d4e0416d080d"
     },
     "pr622": {
       "source_head": "2507d3932cc39f33d724422c845331f078671380",
