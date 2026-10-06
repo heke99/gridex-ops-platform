@@ -385,3 +385,25 @@ intended-cancel wording immediately reconciled on530); preservedJSON
 Next95bc authenticate own current results and old failure reason, finish local
 fullunit/currentgates/whole39+foreign621actualmaincustody. Actual634ed3 and old
 native94 32/6 stillseparate. Only own10resources, no role/secondpair/coverage.
+
+## Actual local full unit green / current native queued
+
+Actual full Node22 suite at2bef product/test bytes:893files11971PASS,0failure/
+error/skip,295.49s,exit0. Log/tmp/gridex-z05-2bef-full-unit.log SHA256
+e6fd3fdbeaf07e6efdaf07008b25ba9ac5465834a341d127f2754e19ea3a588e.
+Only change2bef→published51025 is2workflow trigger lines; ALLproduct/native/
+unit bytes identical. All3types/scopedlint/reviews valid. Current39 run
+37524429161 queued (job112477705385), ordinaryOPS/full/browser checks queued,
+no currentCI_GREEN. Whole contracts and coverage remain unchanged.
+
+Authenticated old94 clean job112457483357 log shows automatic operation
+cancellation20:11:04 after successor publication (existingOPS concurrency
+cancel-in-progress=true), then evidence FileNotFoundError during cancellation
+cleanup. It is not a completed F-3/browser proof. Old certificate112464580549
+failed after observing terminal non-success clean. No manual cancel was sent;
+old terminalFAIL preserved and cannot qualify current51025.
+
+Next95bc current native39/APIartifact/head/tree/9255 inputs/exit/JUnit, fresh
+mandatoryCI and independent whole review; custody621 only after actualmerge.
+No new pair/resources/role or foreign edit. LocalDocker default sandbox access
+to socket denied; no localnative execution or stack mutation claimed.
