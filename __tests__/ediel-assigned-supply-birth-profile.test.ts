@@ -32,16 +32,33 @@ it('binds the original catalog witness for every own assigned object at the actu
       version: evidence.originalVersion, checksum: evidence.sourceHash } })
 })
 
+it('binds the distinct production catalog witness for every homogeneous Z70 object', async () => {
+  const production = { ...evidence, rulePackId: 'production-pack', messageProfileId: 'production-profile',
+    databaseProfileKey: 'PRODAT:Z04:D:26.A:r3', originalSnapshot: { messageProfile: { id: 'production-profile' } } }
+  catalog.mockResolvedValue(production)
+  const result = await resolveAssignedSupplyBirthProfile({ rawPayload: wire(['Z70', 'Z70']), receivedAt: receipt })
+  expect(catalog).toHaveBeenCalledExactlyOnceWith({ family: 'PRODAT', messageCode: 'Z04', transactionSubtype: 'Z70',
+    applicationReference: '23-DDQ-PRODAT', direction: 'inbound', businessDate: '2026-10-07' })
+  expect(result).toEqual({ canonical_rule_pack_id: production.rulePackId, rule_profile_key: production.databaseProfileKey,
+    rule_profile_version_id: production.messageProfileId, rule_profile_version: production.originalVersion,
+    rule_pack_checksum: production.sourceHash, rule_pack_snapshot: { ...production.originalSnapshot,
+      profileKey: production.databaseProfileKey, profileVersionId: production.messageProfileId,
+      version: production.originalVersion, checksum: production.sourceHash } })
+})
+
 it.each([
   ['mixed own reasons', () => wire(['Z26', 'Z03'])],
-  ['other Z04 subtype', () => wire(['Z70'])],
+  ['mixed assigned and production reasons', () => wire(['Z26', 'Z70'])],
+  ['mixed production and assigned reasons', () => wire(['Z70', 'Z26'])],
+  ['other Z04 subtype', () => wire(['Z03'])],
+  ['duplicate production reason', () => wire(['Z70']).replace("CAV+Z70'", "CAV+Z70'CCI++Z13'CAV+Z70'")],
   ['missing own reason', () => wire().replace("CCI++Z13'CAV+Z26'", '')],
   ['duplicate own reason', () => wire().replace("CAV+Z26'", "CAV+Z26'CCI++Z13'CAV+Z26'")],
   ['header reason without an own LIN', () => wire().replace(/LIN[^']*'/, '')],
   ['two messages', () => wire().replace(/UNZ[^']*'/, wire().slice(wire().indexOf('UNH')))],
   ['another message code', () => wire().replace('BGM+Z04', 'BGM+Z06')],
   ['missing actual application reference', () => wire().replace('+23-DDQ-PRODAT', '')],
-] as const)('does not supply an A pin for %s', async (_name, original) => {
+] as const)('does not supply an assigned or production pin for %s', async (_name, original) => {
   expect(await resolveAssignedSupplyBirthProfile({ rawPayload: original(), receivedAt: receipt })).toBeNull()
   expect(catalog).not.toHaveBeenCalled()
 })
