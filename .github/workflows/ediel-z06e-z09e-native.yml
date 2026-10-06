@@ -114,6 +114,11 @@ jobs:
               -f scripts/ediel-requested-customer-selected-facts-regression.sql \
               >> z06e-z09e-native-working/decoder-sql.log 2>&1 || decoder_exit=$?
           fi
+          if [ "$decoder_exit" -eq 0 ]; then
+            psql "$Z06E_Z09E_SHADOW_URL" -X -v ON_ERROR_STOP=1 \
+              -f scripts/ediel-requested-change-life-event-current-regression.sql \
+              >> z06e-z09e-native-working/decoder-sql.log 2>&1 || decoder_exit=$?
+          fi
           capture_exit=0
           export Z06E_Z09E_SCHEMA_QUERY="select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');"
           bash -euo pipefail -c '
