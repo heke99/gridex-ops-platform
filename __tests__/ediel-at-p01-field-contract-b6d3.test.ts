@@ -131,7 +131,7 @@ for (const alphabet of alphabets) describe(`AT-P-01 actual metadata ${alphabet.j
       ...characteristic('Z13', 'E64'), qty('2'), line('3', '735123456789012352', '2')]
     const wire = input(raw(body, 'Z06', alphabet), 'Z06')
     const rules = canonicalProdat26AFieldRules('Z06').filter(row => row.fieldNumber === '213')
-    const result = validateProdatRegisterPolicy({ code: 'Z06', ...wire, direction: 'inbound',
+    const result = validateProdatRegisterPolicy({ ...wire, direction: 'inbound',
       rules, requireIndependentInventory: false })
     const errors = projectProdatDiagnostics(result.issues).applicationErrors
     expect(errors).toHaveLength(1)
@@ -139,8 +139,8 @@ for (const alphabet of alphabets) describe(`AT-P-01 actual metadata ${alphabet.j
       lineItemReference: null, prodatFieldDiagnostic: { group: 'SG8/SG12',
         component: { valueElement: 'C186/6060' }, occurrence: { lineIndex: 2, lineNumber: '3', registerPosition: 2,
           objectId: '735123456789012352', ownReferences: { lineItemReference: { kind: 'absent' } } } } })
-    expect(errors[0].prodatFieldDiagnostic?.sourceRule).toContain('213')
-    expect(validateProdatRegisterPolicy({ code: 'Z06', ...input(raw([...body, qty('2')], 'Z06', alphabet), 'Z06'),
+    expect(errors[0].prodatFieldDiagnostic?.sourceRule).toBe('PRODAT26A:P47/114–116')
+    expect(validateProdatRegisterPolicy({ ...input(raw([...body, qty('2')], 'Z06', alphabet), 'Z06'),
       direction: 'inbound', rules, requireIndependentInventory: false }).issues).toEqual([])
   })
 
