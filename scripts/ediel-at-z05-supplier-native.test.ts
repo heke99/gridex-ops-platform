@@ -176,6 +176,7 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
  expect(f.effects()).toEqual(after);expect(acknowledgements(f.sourceId)).toEqual(acks)
  expect(sql(`SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM public.customer_cases c WHERE company_id=${literal(f.companyId)} AND reason_category='final_metering_and_billing' AND metadata->>'source_ediel_message_id'=${literal(f.sourceId)}`)).toEqual(tasks)
  expect(unrelated(f.periodId,f.sourceId)).toEqual(unrelatedBefore)
+ expect(immutable(f.original.id)).toEqual(originalBefore);expect(immutable(f.startSourceId)).toEqual(startBefore);expect(immutable(f.sourceId)).toEqual(sourceBefore)
  if(!linked)expect(ordinaryReceiptState()).toEqual(ordinaryAfter)
 },120000)
 
