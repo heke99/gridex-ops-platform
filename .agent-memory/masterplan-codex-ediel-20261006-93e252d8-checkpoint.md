@@ -1,6 +1,8 @@
 # codex-ediel-20261006-93e252d8 — AT-Z06E-SUPPLIER, AT-Z09E-SUPPLIER
 
-Status: BLOCKED / RELEASED; OPEN PR622/head2507d393 remains NOT_MERGED. Bounded consumer tests locally verified and independently reviewed; native full-contract proof blocked. No coverage approval.
+Status: RESUMED OWN PR622 DELIVERY; frozen head2507d393 remains OPEN/NOT_MERGED and current-head CI pending. Native full-contract proof remains BLOCKED. No coverage approval.
+
+Current active delivery packet: f364f2b3-805f-4de8-a034-66fef55206e5; receipt 0ab6d405f4e28479fc0bbc0a45f683a3996f5168; base9cd954080a2b65d0b73f1662c4bd3f92adb3b122. New four-ref CLAIM https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6018675949. Original93e252d8 packet and its confirmed RELEASE below are historical; the same session resumes only its own preserved approved component delivery after original role holder released6018616234. No new technical pair/source change.
 
 Session/packet: 93e252d8-2e95-4176-9f34-d62402545d0f
 Branch: codex/ediel-at-z06e-z09e-93e252d8
@@ -85,3 +87,16 @@ No independent complete next pair is qualified by these current ownership/depend
 ## Confirmed reservation release
 
 Successful BLOCKED/RELEASE receipt: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6018585964. Only the four refs matching789523115c5f08510225a178687a582ff37b03bf were deleted after GET equality. Matching-ref readback confirms no remaining owned resource at that receipt; foreign roles/reservations untouched. PR622/source2507d393 stays OPEN/NOT_MERGED and frozen; remote CI remains independent. No next packet or coverage promotion. This metadata branch preserves the updated checkpoint without restarting the PR. Next: fresh final main/coverage/530/ref eligibility read; if unchanged and no qualified independent pair exists, report occupied/blocked with the concrete owners above.
+
+## Original publisher role release / own delivery resumed
+
+CLAIM / RESUME OWN PRESERVED DELIVERY — AT-Z06E-SUPPLIER, AT-Z09E-SUPPLIER — codex-ediel-20261006-93e252d8 — new packetf364f2b3-805f-4de8-a034-66fef55206e5 — PR branchcodex/ediel-at-z06e-z09e-93e252d8.
+
+Original packet explicitly RELEASED5306018585964 with all four own refs deleted. Final postrelease read showed both roles free: original publisher reconciled actual618/main9cd95408 and RELEASED5306018616234, explicitly permitting original PR owners to resume fresh-reserved delivery. This resumes ONLY own existing independently APPROVED PR622/head2507d3932cc39f33d724422c845331f078671380; no new code/pair, foreign source adoption or coverage promotion. The whole native E handoff remains blocked/unapproved. All four existing ID/file scope refs created-if-absent and GET-confirmed at new receipt0ab6d405f4e28479fc0bbc0a45f683a3996f5168, current main9cd954080a2b65d0b73f1662c4bd3f92adb3b122:
+refs/tags/agent-claims/masterplan/file-076e1b1a6bdda664caf4c1f029640e85da3699b904b6c8983e40703d8cd0667f
+refs/tags/agent-claims/masterplan/file-4f754c184381b9a560eb8156c324a47ffc95e7aa1f9e8c93bb17eb5d40b8f190
+refs/tags/agent-claims/masterplan/id-AT-Z06E-SUPPLIER
+refs/tags/agent-claims/masterplan/id-AT-Z09E-SUPPLIER
+
+Checkpoint.agent-memory/masterplan-codex-ediel-20261006-93e252d8-checkpoint.md on separate metadata branch (currentddc9c330). Baseline/correction/full11831PASS/review unchanged; seven ordinary current-head checks + CodeRabbit SUCCESS, clean-replay/pr-certificate IN_PROGRESS. Next this session: record new packet/receipt checkpoint, wait genuine remaining checks, refresh unchanged main/dependencies and acquire immediately free merge role, expected-head normal merge; document actual PR/main receipt, release this own reservation, reconcile campaign status under memory role. No changes to original frozen PR head or remaining native producer ownership.
+CLAIM: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6018675949
