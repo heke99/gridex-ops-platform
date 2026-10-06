@@ -599,3 +599,27 @@ Next root2f72: finish narrow direction/owned native controls and authenticate su
 
 TDD RED before direction production fix — sameA/D15refs
 Current new REALpublickernel/validator/policy test SHAab4e9387f25cd5787c57e3181abd84a043152717a14a886b88ad11be8587b6f7,4executed2PASS2FAIL/exit1 at19:35:01; /tmp/gridex-630-direction-tdd-red.log. Both forbidden physicalA/D first qualify canonicalinbound policy and unresolvedindependent258, actualpublickernel stayszeroRPC/from/originalwitness/persist, then unchanged precise directionoracle fails onfirst258. PermittedZ03L missing210 and unknownZ99/no-policy controlsPASS. Only declaredDBactor/auth/persist ports mocked, realvalidator/policy untouched. Earlierfixtureheadercountry error corrected inprospectiveinput andnotREDcredit. BOTH productionpaths stillunchanged fromb452. Nextauthor minimal export/reuse existingdirectionguard inrealpublickernel immediatelyafter actualresolvedPRODATpolicy beforechoosingfieldblocker. Keepoldregistrycheck/allfield/inventory/auth/witnessguards and allowedcontrols unchanged. Verify4GREEN thenaffectedconsumers/types/lint/diff andtwoindependentreviews, successor actualnative28+mandatoryCI; no currentnativegreen/wholecoverage/merge. Source locked4ab630; checkpoint/#530 publish before author may edit. Sevenownednative additions remainprospective, source-witnessAnegativebridge621/Esharedbirthowner93e dependencies separatelydocumented.
+
+CLAIM SOURCE EXTENSION BEFORE CODE — same AT-Z04A/AT-Z04D supplier pair
+{
+  "protocol": "masterplan-reservation-v1",
+  "packet": "fc23d8d7-2c49-47f1-aa2c-6e75f805ca1a",
+  "agent": "codex-ediel-20261006-2f72c8ab",
+  "branch": "codex/ediel-z04a-native-2f72c8ab",
+  "checkpoint": ".agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+  "ids": [
+    "AT-Z04A-SUPPLIER",
+    "AT-Z04D-SUPPLIER"
+  ],
+  "files": [
+    "__tests__/ediel-canonical-source-gateway.test.ts"
+  ],
+  "base": "b155d8b789988cb008c9711c23df729112f60f97",
+  "createdAt": "2026-10-06T19:37:31.304861+00:00",
+  "nextAction": "Same A/D pair: real direction4behaviorGREEN; existing5consumer suites69PASS1FAIL solely partial declared gateway mock omitted CanonicalEdielPolicy.semantics, new genuine productionguard appropriately rejects malformed mock. Claim existing test before replace ONLY partial policy fixture with real canonical Z01L policy, no assertion/policy/guard relaxation. App/tests/scripts typecheck and consumers rerun, native28 prospective.",
+  "receipt": "c4fcb606a388671844123f2714f99cb0a7becbc0",
+  "resources": [
+    "file-b945b3f48f6499f07ab2e083bda3994543f8973df877979bafd6baa6ce44bbda"
+  ]
+}
+Original20 strict native oracles unchanged; owned7newnativecases prospective/NOT_RUN. Main coverage preserved284/352. Nextroot/assigned directionauthor: meaningfulRED before minimal2productionfiles, then exactbehavior/consumers/type/lint/two independent review/currentnative and mandatoryCI. Eshared3birth paths remain35c0; Anegative authority design pending/foreign621capture coordination, no relaxation/operational catalogue authority.
