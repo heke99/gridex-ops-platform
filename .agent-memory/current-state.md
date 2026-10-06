@@ -1,3 +1,39 @@
+## Current actual deliveries and reserved continuation — observed 2026-10-06T18:36:53.464635+00:00
+
+Actual main `24720181a5a0c27644d2d31fe39bd843299000ea` (tree `fa454ab2f2fe94fb88ccf089eb940a7080e13b52`) includes #626 at
+`8f388b04ddf74758ae4b37dc45ccfadf3ea8d978` and #632 campaign memory.
+Stored code approvals: **113/121 rules +171/231 contracts =284/352;68 remain**.
+#626 approved only SC-064/AT-Z08LK-SUPPLIER after independent whole-current
+reviews, all9ordinary+2selectednative SUCCESS, authentic SC4/LK24 and full
+893files/11955tests PASS; source/main code trees match. #632 delivered the prior
+17:07 snapshot with required source-head checks/review, preserving actual284
+coverage. Source-head green and these merges do not certify resulting-main full,
+external counterparty/market acceptance or deployment. Prior snapshots below
+retain their original observations, failures and HOLD/PAUSED requirements.
+
+Current single technical packets: 621 C15/V18 current whole-reviewed/native11
+and SC07110/capture1082 qualified, final clean/certificate pending; 629 E06/E09
+actual17=10PASS7FAIL with physical birth/address-source and generated-output
+coordination remaining; 630 A04/D04 current20 queued after preserved17=10PASS7FAIL;
+633 C04/M10 bounded held-response repair native2PASS, whole contracts unapproved;
+c3ae Z03L/LK packet46456986 newly reserved/native NOT_RUN; 95bc Z05L/LK
+packetf290cb52/receipt388356a0 newly reserved/CLAIM6022898061/native NOT_RUN.
+SC064/LK08 all13 resources actually released6022686031. Original IMP05, SC014,
+SC047 and SC071 owner-ready proofs require their retained whole-approval owners;
+SC023 history coverage/DDQ and other retained source/native/market gaps remain.
+C627 authentic30=26PASS4FAIL and all4 refs released; original217/sender-role/case
+arbitration owners remain responsible. Reuse completed work and exact handoffs;
+neither empty tags nor idle agents release retained original responsibilities.
+
+Bounded shared writer is95bc, role-memory `be6c13ce53a5650622efd88a548b58d2009b3573`, CLAIM6022934899,
+checkpoint `masterplan-codex-95bc-memory-closeout-checkpoint.md`; prior c3ae
+memory/merge roles actually released6022795826. Next each technical owner:
+complete its frozen effects, current-source review/native/CI then guarded normal
+merge or explicit blocked handover/release. This memory candidate still needs
+its own review/current required checks and actual delivery; no shared-main
+closeout claim yet. Campaign remains PARTIAL, not complete. No assignment prompt
+or coordinator confirmation is needed for an eligible create-only reservation.
+
 ## Current joint continuation — 2026-10-06T17:07:13.371390+00:00
 
 The owner has renewed autonomous joint continuation toward all whole Masterplan IDs. Current observed main is `c0385ee4ee8340eb9e68029c2bd09d05bdf37f40`, tree `f56cc25ae1c4564adb0e64856a6c3698c7cfb2ce`. Stored approvals are **113/121 rules +169/231 contracts =282/352; 70 remain**. PR #620 actually merged its four owned rows and sharp0.35.5 dependency repair; exact source `39a0e472a99ce06c436e136f4ccd3465ae05ab68`, all ten applicable checks SUCCESS, actual receipt [6021215200](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6021215200). This replaces the former “620 unmerged / main278 / dependency fix missing” status. Other branches must adopt actual main and obtain their own current-head gates; old audit failures remain historical evidence.
