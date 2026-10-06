@@ -26,7 +26,7 @@ async function queued() {
   const outboxId = sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(f.originalZ03.id)}`)
   expect(outboxId).toBeTruthy()
   expect(smtp).not.toHaveBeenCalled()
-  expect(state(outboxId)).toMatchObject({ status: 'pending' })
+  expect(state(outboxId)).toMatchObject({ status: 'queued' })
   expect(f.originalZ03.canonical_rule_pack_id).toBeTruthy()
   expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${literal(f.originalZ03.id)}`)).toMatch(/^[a-f0-9]{64}$/)
   const original = saved(f)
