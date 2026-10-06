@@ -1,6 +1,6 @@
 # SC-014 / AT-Z14V-ESCO — c65 checkpoint
 
-Status: OPEN_DRAFT_NATIVE_PENDING; exact source eae51da1 is frozen in PR #644; ordinary verification and source publication reviews passed, whole V/native/current mandatory gates pending. Agent `codex-aa4f29d3-c65`, packet `5874e7b5-1f58-4006-b311-70b9b2f379b6`.
+Status: OPEN_DRAFT_NATIVE_RED; exact source eae51da1 is preserved in PR #644; authentic current SC01424 PASS, V48 setup FAIL at public reviewer42501 before V effects; root/author/reviewers diagnose without weakened guards. Agent `codex-aa4f29d3-c65`, packet `5874e7b5-1f58-4006-b311-70b9b2f379b6`.
 Branch `codex/ediel-sc014-z14v-c65-5874e7b5`; isolated worktree `/workspace/gridex-c65-sc014-z14v`. Exact main base `fd4a6a06f0cb462cfa15c3ee4a038d557dd559e0`. Atomic receipt `a080bdb4f2a52984a550ab60e4cdfbfde59e179f` uses that main tree and single parent; all seven sorted refs independently GET-confirmed twice. No implementation started.
 
 ## Ownership
@@ -102,3 +102,11 @@ Imp05 independently approved authenticator readiness exactSHA25698d3566bac231308
 Next root: authenticate actual currentnative originals/true exit and exactcase reachability; transport author diagnoses only genuine errors, imp05/gov qualify whole effects, finaltwo owned rows and currenthead mandatory/source review/mergelock/actualmain/release. Sharedmemoryb6 owner mirroring requested6026962217; no rootcommonfile edit or newclaim.
 
 Review-request provenance: initial CodeRabbit invocation was rejected by automatic approval review for possible private-source third-party egress. Root independently checked GitHub repositoryAPI:private=false,visibility=public. A clarified request restricted to already-public PR/source and installed reviewer was subsequently APPROVED and actually posted6446027014334; no private inputs/secrets/logs provided, no workaround or bypass. Draft unchanged; native/currentwhole/mandatorygate requirements remain. This resolves that specific review-request rejection; no residual approval blocker claimed.
+
+## Authentic current native RED — preserve setup refusal and not-reached effects
+
+Actualrun37541875113/job112536565061 attempt1 failed23:01:19Z. Officialartifact11448744371, originalZIP139780 bytes SHA256f77b01e204de74a2da3086208704c8624697504a5965c259f7520dabe4df3929, /workspace/attachments/73ce9467-f777-47cc-9d5e-f1e1623559f3/644-native-eae51da1-redacted.zip. Reviewedauthenticator executedEXIT0 in REDpreservationmode: exactrepo/head/tree/workflow/jobattempt/API artifactdigest/size/CRC/exact3members, COMPLETE2590originalGitinputblobhashes, exacttwo24+48suites/72uniquecases/consistentXML/true nativeEXIT1. Originalsauthenticated under /tmp/gridex-c65-sc014-z14v-evidence/native-eae51da1-authenticated.
+
+SC01424/24 actualPASS0FAIL/ERROR/SKIP42.710s; V0/48PASS48FAIL0ERROR/SKIP28.670s. ALL48 share ediel_service_evidence_reviewer_forbidden SQL42501 during prospective public evidence review setup. No Z13/firstZ14/permission/ACK/grant/E66/projection effect or negative refusal tail is qualified by these V failures. No productdefect inferred before currentauth/input diagnosis, no coveragechanged. Current sourceeae/red artifact preserved. Native watcher stopped onactual failure, remainingordinarygates stillrunning and notcancelled.
+
+Nextroot beforeanysourceedit: publishactualRED/CP receipt; transportauthor+impindependentlyqualify currentcompany/role/permission reviewer admission against prospectivefixture grants and propose minimalownedinputcorrection. Gov authenticates original/current24 andwholeSC014 separately. Rootauthorizes only evidenced prospectiveinputcorrection within originalfiveownedpaths, preserving real separate publicreviewer/guards/all48assertions; then exactnewsource/review/freshselected72 andmandatorygates. No nextpair or wholeV approval.
