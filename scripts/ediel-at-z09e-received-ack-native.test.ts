@@ -8,6 +8,13 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:delivery.smtp
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {createRequestedCustomerChangeNativeFixture} from './helpers/ediel-requested-customer-change-native-fixture'
+import {createBilateralCustomerSourceFixture} from './helpers/ediel-bilateral-customer-native-fixture'
+import {bilateralCustomerNativeWire} from './helpers/ediel-bilateral-customer-native-wire'
+import {supabaseService} from '@/lib/supabase/service'
+import {archiveBilateralCustomerSource,reviewBilateralCustomerSourceArtifact} from '@/lib/ediel/production/bilateralCustomerSource'
+import {applyConfirmedCustomerSource} from '@/lib/ediel/production/confirmedCustomerSource'
+import {readConfirmedCustomerHistory,isConfirmedCustomerHistoryQualified} from '@/lib/ediel/production/confirmedCustomerHistory'
+import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {archiveRequestedCustomerChangeSource,reviewRequestedCustomerChangeSourceArtifact} from '@/lib/ediel/production/requestedCustomerChangeSource'
@@ -103,4 +110,55 @@ it('fresh received unknown UCI and wrong LI cannot correlate or accept the sent 
   expect((await getEdielMessageById(original.id))!).toMatchObject({contrl_status:original.contrl_status,aperak_status:original.aperak_status,raw_payload:original.raw_payload})
   expect(business(f)).toEqual(before)
  }
+},120000)
+
+it('after actual Z09 send and same-original ACKs, an independent later Z06 commits its own confirmed history without changing the request or live customer',async()=>{
+ const{f,before,original}=await sent()
+ for(const family of ['CONTRL','APERAK'] as const){
+  const{message,decision}=await intake(f,original,externalAck(original,family))
+  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
+  expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision})).toMatchObject({status:'recorded'})
+  expect(await processInboundAckMessage({actorUserId:f.actorUserId,message})).toMatchObject({outcome:'positive',sourceMessage:{id:original.id},sourceAccepted:family==='APERAK',finalAckReached:family==='APERAK'})
+ }
+ const requestState=()=>sql(`SELECT jsonb_build_object('original',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(original.id)}),'desired',(SELECT jsonb_agg(to_jsonb(d) ORDER BY event_id) FROM gridex_customer_life_events.desired_changes d WHERE company_id=${literal(f.companyId)}),'correlations',(SELECT jsonb_agg(to_jsonb(c) ORDER BY ack_message_id) FROM gridex_ack_authority.source_correlations c WHERE source_message_id=${literal(original.id)}),'receipts',(SELECT jsonb_agg(to_jsonb(r) ORDER BY ack_message_id) FROM gridex_ack_authority.applied_receipts r JOIN gridex_ack_authority.source_correlations c USING(ack_message_id) WHERE c.source_message_id=${literal(original.id)}))`)
+ const accepted=requestState(),e=EdifactEnvelopeCodec.decode(original.raw_payload!),li=e.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,e.una)[0]==='LI')!,effective=e.segments.find(s=>s.tag==='DTM'&&segmentComposite(s,1,e.una)[0]==='157')!
+ const marketMinute=segmentComposite(effective,1,e.una)[1]
+ // The declared external DSO supplies a complete Z06 (including its own
+ // required reporting/installation fields), with exact requested UD/IV/date/LI.
+ // This is the existing finite native-original seam, not physical intake or
+ // an invented authoritative Z09-to-Z06 correlation receipt.
+ const base=EdifactEnvelopeCodec.decode(bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:segmentComposite(li,1,e.una)[1],marketMinute,repeatRegister:false,invoicee:true}))
+ const clock=sql<string>(`SELECT to_jsonb(to_char(clock_timestamp() AT TIME ZONE 'Etc/GMT-1','YYYYMMDDHH24MI'))`)
+ const body=base.segments.filter(s=>!['UNB','UNH','UNT','UNZ'].includes(s.tag)).map(s=>{
+  if(s.tag==='BGM')return 'BGM+Z06+'+randomUUID().replaceAll('-','').slice(0,14)+'+9+AB'
+  if(s.tag==='DTM'&&segmentComposite(s,1,base.una)[0]==='137')return 'DTM+137:'+clock+':203'
+  if(s.tag==='NAD'&&['UD','IV','Z02'].includes(segmentComposite(s,1,base.una)[0]))return e.segments.find(originalSegment=>originalSegment.tag==='NAD'&&segmentComposite(originalSegment,1,e.una)[0]===segmentComposite(s,1,base.una)[0])!.raw
+  return s.raw
+ })
+ const raw=EdifactEnvelopeCodec.encode({sender:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,senderSubAddress:e.receiverSubAddress,receiverSubAddress:e.senderSubAddress,applicationReference:e.applicationReference,acknowledgementRequest:true,environment:'test',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),timeZone:'Etc/GMT-1',messages:[{messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:base.segments.find(s=>s.tag==='UNH')!.elements[2],businessSegments:body}]})
+ const incomingWire=EdifactEnvelopeCodec.decode(raw)
+ expect(raw).not.toBe(original.raw_payload);expect(incomingWire.interchangeReference).not.toBe(e.interchangeReference)
+ expect(incomingWire.segments.find(s=>s.tag==='NAD'&&segmentComposite(s,1,incomingWire.una)[0]==='UD')!.raw).toBe(e.segments.find(s=>s.tag==='NAD'&&segmentComposite(s,1,e.una)[0]==='UD')!.raw)
+ expect(incomingWire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,incomingWire.una)[0]==='LI')!.raw).toBe(li.raw)
+ expect(incomingWire.segments.find(s=>s.tag==='DTM'&&segmentComposite(s,1,incomingWire.una)[0]==='157')!.raw).toBe(effective.raw)
+ const received=await createBilateralCustomerSourceFixture(email=>delivery.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'}),{existingSupply:f,sourceWire:raw})
+ expect(received.sourceMessageId).not.toBe(original.id)
+ expect(received.message).toMatchObject({direction:'inbound',message_code:'Z06',related_message_id:null,raw_payload:raw})
+ expect(Date.parse(received.message.message_received_at!)).toBeGreaterThan(Date.parse(original.message_sent_at!))
+ const artifact=await archiveBilateralCustomerSource({...received.submission('SYNTHETIC independent later received source',received.pdf('later source')),companyId:f.companyId,actorUserId:received.uploader.id})
+ expect(artifact.missing).toEqual([])
+ expect(await reviewBilateralCustomerSourceArtifact({...artifact,companyId:f.companyId,actorUserId:received.reviewer.id,decision:'approve',reason:'Synthetic separate independently received original',clause:received.clause})).toMatchObject({status:'authorized',sourceMessageId:received.sourceMessageId})
+ const result=await applyConfirmedCustomerSource({companyId:f.companyId,sourceMessageId:received.sourceMessageId,actorUserId:received.reviewer.id})
+ expect(result).toMatchObject({applied:true,sourceMessageId:received.sourceMessageId,eventId:null,authority:{kind:'bilateral',artifactId:artifact.artifactId},payloadHash:hash(raw)})
+ const versionState=()=>sql(`SELECT jsonb_build_object('versions',(SELECT count(*) FROM gridex_requested_changes.confirmed_customer_versions WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(received.sourceMessageId)}),'witnesses',(SELECT count(*) FROM gridex_requested_changes.customer_version_availability WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(received.sourceMessageId)}),'primaryVersions',(SELECT count(*) FROM gridex_customer_life_events.customer_versions WHERE company_id=${literal(f.companyId)}),'primaryReceipts',(SELECT count(*) FROM gridex_received_sources.customer_primary_response_receipts WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(received.sourceMessageId)}))`)
+ expect(versionState()).toEqual({versions:1,witnesses:1,primaryVersions:0,primaryReceipts:0})
+ const cutoffAt=sql<string>('SELECT to_jsonb(clock_timestamp())'),scope={companyId:f.companyId,environment:'test' as const,customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,legalSupplier:f.sender,legalNetwork:f.receiver,fromDate:f.requestedStartDate,toDate:f.requestedStartDate,cutoffAt}
+ const snapshot=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:f.companyId,p_environment:'test',p_cutoff:cutoffAt});expect(snapshot.error).toBeNull()
+ const readset=inspectStructuralReadset(scope,snapshot.data);expect(readset.timeline).toMatchObject({status:'inspected',boundedReadComplete:true})
+ const history=await readConfirmedCustomerHistory({scope,readset,actorUserId:received.reviewer.id})
+ expect(isConfirmedCustomerHistoryQualified(history,scope,readset)).toBe(true);expect(history.versions).toHaveLength(1)
+ expect(history.versions[0]).toMatchObject({sourceMessageId:received.sourceMessageId,payloadHash:hash(raw),supplyPeriodId:f.period,objectId:f.external,legalSender:f.receiver,legalReceiver:f.sender,marketMinute,authorityKind:'bilateral',party:{id:f.customerIdentity.id}})
+ expect(requestState()).toEqual(accepted);expect(business(f)).toEqual(before)
+ expect(await applyConfirmedCustomerSource({companyId:f.companyId,sourceMessageId:received.sourceMessageId,actorUserId:received.reviewer.id})).toMatchObject({applied:true,sourceMessageId:received.sourceMessageId,eventId:null})
+ expect(versionState()).toEqual({versions:1,witnesses:1,primaryVersions:0,primaryReceipts:0});expect(requestState()).toEqual(accepted);expect(business(f)).toEqual(before)
 },120000)

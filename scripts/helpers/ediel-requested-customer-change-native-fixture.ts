@@ -6,6 +6,7 @@ import {createRequestedChangeSupplyFixture} from './ediel-requested-change-nativ
 import {createBilateralSourceOperator,customerChangeMinute} from './ediel-bilateral-customer-native-fixture'
 import {bilateralCustomerNativeWire} from './ediel-bilateral-customer-native-wire'
 import {nativeSql as sql,literal,futureNativeSupplyDate} from './ediel-normal-switch-native-fixture'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact,segmentSourceSpan,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import type {RequestedCustomerChangeSubmission} from '@/lib/ediel/production/requestedCustomerChangeSource'
@@ -20,7 +21,19 @@ export async function createRequestedCustomerChangeNativeFixture(provider:(email
  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code) VALUES(${literal(customerRouteProfileId)},${literal(f.companyId)},${literal(customerRouteId)},'Synthetic requested customer profile','test','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','PRODAT','Z09');`)
  const counterparty=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`),agreementId=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),secret=Buffer.from('SYNTHETIC OUTGOING EXTERNAL ISSUER ONLY 0123456789012345'),authorityHash=createHash('sha256').update('SYNTHETIC OUTGOING LEGAL MANDATE CONTROL ONLY').digest('hex')
  sql(`INSERT INTO public.tenant_bilateral_agreements(id,company_id,environment,counterparty_actor_id,capability_code,terms,is_enabled,valid_from,valid_to,source_reference)VALUES(${literal(agreementId)},${literal(f.companyId)},'test',${literal(counterparty)},'prodat_z09e_requested_customer_change','{}',true,'2020-01-01','2099-01-01','SYNTHETIC outgoing legal mandate control');`)
- let rawPayload=bilateralCustomerNativeWire({sender:f.sender,receiver:f.receiver,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),repeatRegister:true,invoicee:true}).replace('BGM+Z06+','BGM+Z09+')
+ let rawPayload=bilateralCustomerNativeWire({sender:f.sender,receiver:f.receiver,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),repeatRegister:false,invoicee:true}).replace('BGM+Z06+','BGM+Z09+')
+ // National Z09 forbids C829/repeated registers, Z12 reporting frequency
+ // and installation-address IT. Keep mandatory BRP Z02 and complete UD/IV.
+ // Encode the retained physical segments so actual envelope counts agree.
+ const base=EdifactEnvelopeCodec.decode(rawPayload)
+ let omitFrequency=false
+ const body=base.segments.filter(segment=>{
+  if(segment.tag==='CCI')omitFrequency=segmentComposite(segment,2,base.una)[0]==='Z12'
+  else if(segment.tag!=='CAV')omitFrequency=false
+  return !['UNB','UNH','UNT','UNZ'].includes(segment.tag)&&!omitFrequency&&!(segment.tag==='NAD'&&segmentComposite(segment,1,base.una)[0]==='IT')
+ }).map(segment=>segment.raw)
+ const unh=base.segments.find(segment=>segment.tag==='UNH')!
+ rawPayload=EdifactEnvelopeCodec.encode({sender:f.sender,receiver:f.receiver,senderQualifier:base.senderQualifier,receiverQualifier:base.receiverQualifier,senderSubAddress:base.senderSubAddress,receiverSubAddress:base.receiverSubAddress,applicationReference:base.applicationReference,acknowledgementRequest:true,environment:'test',interchangeReference:base.interchangeReference!,messages:[{messageReference:segmentComposite(unh,1,base.una)[0],messageTypeToken:unh.elements[2],businessSegments:body}]})
  const headerClock=sql<{unb:string;dtm:string}>(`SELECT jsonb_build_object('unb',to_char(clock_timestamp() AT TIME ZONE 'Etc/GMT-1','YYMMDD:HH24MI'),'dtm',to_char(clock_timestamp() AT TIME ZONE 'Etc/GMT-1','YYYYMMDDHH24MI'))`)
  let tokens=tokenizeEdifact(rawPayload);const header=tokens.segments.find(s=>s.tag==='UNB')!,span=segmentSourceSpan(header)!,parts=header.raw.split(tokens.una.dataElementSeparator);parts[4]=headerClock.unb
  rawPayload=rawPayload.slice(0,span.startOffset)+parts.join(tokens.una.dataElementSeparator)+rawPayload.slice(span.endOffset);tokens=tokenizeEdifact(rawPayload)

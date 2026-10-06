@@ -143,7 +143,7 @@ it.each(['bankruptcy','customer_change'] as const)('native %s classification com
   const foreign=randomUUID()
   sql(`INSERT INTO public.companies(id,name,status)VALUES(${literal(foreign)},'Disposable foreign customer effect tenant','active')`)
   await expect(applyInboundCustomerLifeEvent({message:{...f.message,company_id:foreign},actorUserId:f.reviewer.id})).rejects.toMatchObject({message:'customer_life_event_source_required'})
-  sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from,valid_to)VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},'communication.write','deny',true,now()-interval '1 day',now()+interval '1 day')`)
+  sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from,valid_to)VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},'communication.write','deny',true,now()-interval '1 day',now()+interval '1 day') ON CONFLICT(company_id,user_id,permission_key) DO UPDATE SET effect=EXCLUDED.effect,is_active=EXCLUDED.is_active,valid_from=EXCLUDED.valid_from,valid_to=EXCLUDED.valid_to`)
   await expect(applyInboundCustomerLifeEvent({message:f.message,actorUserId:f.reviewer.id})).rejects.toMatchObject({message:'customer_life_event_actor_forbidden'})
   expect(counts(f)).toEqual(committed)
   expect(snapshot(f)).toEqual(before)

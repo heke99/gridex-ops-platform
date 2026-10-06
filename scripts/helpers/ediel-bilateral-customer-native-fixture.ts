@@ -41,10 +41,10 @@ export async function createBilateralSourceOperator(companyId:string,keys=bilate
 export function customerChangeMinute(requestedStartDate:string){
  const date=new Date(`${requestedStartDate}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+2);return `${date.toISOString().slice(0,10).replaceAll('-','')}0000`
 }
-export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string;physicalBirth?:boolean}={}){
- const {physicalBirth,...wireOptions}=options
+export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string;physicalBirth?:boolean;sourceWire?:string}={}){
+ const {physicalBirth,sourceWire,...wireOptions}=options
  let sourceMessageId:string=randomUUID()
- const wire=bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...wireOptions})
+ const wire=sourceWire??bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...wireOptions})
  if(physicalBirth){
   // Prospective custody: the actual parser/intake owns the source birth. No
   // graph matches, frozen profile or mailbox selector is patched afterward.
@@ -67,13 +67,17 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
  return {sourceMessageId,message,wire}
 }
 
-export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void,options:{physicalBirth?:boolean}={}){
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true,...options})
+export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void,options:{physicalBirth?:boolean;existingSupply?:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>;sourceWire?:string}={}){
+ const f=options.existingSupply??await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true,physicalBirth:options.physicalBirth,sourceWire:options.sourceWire})
  const uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  // The actual original structural review qualifies only a post-ledger future
  // supply anchor. It cannot backfill the old default September start.
- const baselineReview=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
- expect(baselineReview).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ // A reused supply has its genuine review already bound into outgoing
+ // signed claims. Re-reviewing that baseline would change its assessment.
+ if(!options.existingSupply){
+  const baselineReview=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
+  expect(baselineReview).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ }
  const counterpartyActorId=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)
  expect(counterpartyActorId).toBeTruthy()
  const agreementId=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),authorityHash=createHash('sha256').update('SYNTHETIC EXTERNAL BILATERAL MANDATE ONLY').digest('hex'),secret=Buffer.from('SYNTHETIC issuer key only 012345678901234567890123456789')
