@@ -1,0 +1,34 @@
+{
+  "recorded_at_utc": "2026-10-06 06:24:54 UTC",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 614,
+  "PR": {
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "head_sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+    "head_ref": "codex/ediel-combined-source-capture-20261005",
+    "head_repo": "heke99/gridex-ops-platform",
+    "base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+    "base_ref": "main",
+    "base_repo": "heke99/gridex-ops-platform",
+    "mergeable": true,
+    "mergeable_state": "clean"
+  },
+  "main_ref": {
+    "ref": "refs/heads/main",
+    "sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc"
+  },
+  "source_ref": {
+    "ref": "refs/heads/codex/ediel-combined-source-capture-20261005",
+    "sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d"
+  },
+  "source_commit": {
+    "sha": "075f61a47b32b368c9ccb72ee0a716304ab2dc6d",
+    "tree": "fa67aaad749ecb6367074e130862986163b2ab03",
+    "parents": [
+      "18f9325942ad8fa36f077b65a1ba0be319034736"
+    ]
+  },
+  "protection": "UNKNOWN_403_ADMIN_PERMISSION_UNAVAILABLE; normal server merge enforces policy; no bypass"
+}

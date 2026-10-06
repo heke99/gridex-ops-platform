@@ -1,0 +1,110 @@
+{
+  "scope": "Fresh genuine GitHub automatic merged dispositions of original533/535/578 through one qualified614 main delivery; not three independent new main-write claims",
+  "recorded_at_utc": "2026-10-06T06:28:56.381100+00:00",
+  "actual_main": "16d8a682a5a0aa7dfb5617b3c794985d0041afbe",
+  "PR614_merged_at": "2026-10-06T06:26:23Z",
+  "authentic_original_API_receipt_sha256": "4ca30308078aed093d2ab69f5bae0f692bd62c9ec2d1c5ad7e2ccd5bc1f81d91",
+  "actual_packet_custody_receipt_sha256": "f353ee217c3d7077901c8d16d0fe0ec81f5eaf392de44ba85532a87f61c322a0",
+  "packets": [
+    {
+      "pr": 533,
+      "state": "closed",
+      "merged": true,
+      "closed_at": "2026-10-06T06:26:25Z",
+      "merged_at": "2026-10-06T06:26:25Z",
+      "head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+      "base": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+      "merge_commit_sha": "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+      "associated_commit": {
+        "sha": "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+        "tree": "f9ebdbc719e52c31810c3b646641e7b2c1b3b0c1",
+        "parents": [
+          "3251d20a8b9fe0294367977dca49de65aabe7513",
+          "eca119cb5bd016cfe27d70720783fb08ad8970d1"
+        ]
+      },
+      "original_entire_packet_current_custody": {
+        "pr": 533,
+        "original_head": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+        "original_packet_count": 20,
+        "exact_original": 16,
+        "preapproved_substitutions": 4,
+        "all_OWN_docs_exact": 8,
+        "entire_original_packet_tuple_pinset_actual": "3f053ca9b62fcb318a9fabf02d61c1b14d149a69ef55cf8110a14db6a4641340",
+        "qualified_actual_main_custody": true,
+        "closure": "READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity"
+      },
+      "associated_commit_already_ancestor_qualified075f_before_normal614_merge": true,
+      "actual_disposition": "CLOSED_MERGED_GITHUB_AUTOMATIC_ANCESTRY_RECOGNITION_AFTER_QUALIFIED614_MAIN_DELIVERY",
+      "manual_close_or_separate_merge_by_ROOT": false
+    },
+    {
+      "pr": 535,
+      "state": "closed",
+      "merged": true,
+      "closed_at": "2026-10-06T06:26:25Z",
+      "merged_at": "2026-10-06T06:26:25Z",
+      "head": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+      "base": "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+      "merge_commit_sha": "932a194cded4d4a59aaa429464516b80ac38d303",
+      "associated_commit": {
+        "sha": "932a194cded4d4a59aaa429464516b80ac38d303",
+        "tree": "53b15632af24ad71431d849e3bd6b339b71ec0fe",
+        "parents": [
+          "b7d842aad6359c15ad7d8f8f91ad63bf5f1ac0be",
+          "78e5e90b809f87b0e667046e9cbd7f994562cce7"
+        ]
+      },
+      "original_entire_packet_current_custody": {
+        "pr": 535,
+        "original_head": "78e5e90b809f87b0e667046e9cbd7f994562cce7",
+        "original_packet_count": 15,
+        "exact_original": 11,
+        "preapproved_substitutions": 4,
+        "all_OWN_docs_exact": 8,
+        "entire_original_packet_tuple_pinset_actual": "04cc7b011de60e0b04b21312107fd358fc947a0583bd96fd1034756b065fbf7a",
+        "qualified_actual_main_custody": true,
+        "closure": "READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity"
+      },
+      "associated_commit_already_ancestor_qualified075f_before_normal614_merge": true,
+      "actual_disposition": "CLOSED_MERGED_GITHUB_AUTOMATIC_ANCESTRY_RECOGNITION_AFTER_QUALIFIED614_MAIN_DELIVERY",
+      "manual_close_or_separate_merge_by_ROOT": false
+    },
+    {
+      "pr": 578,
+      "state": "closed",
+      "merged": true,
+      "closed_at": "2026-10-06T06:26:25Z",
+      "merged_at": "2026-10-06T06:26:25Z",
+      "head": "ebf380da2528b6a32a17f94ca245835726babca4",
+      "base": "b83b284467c8e0fcaa277706a708706e0a705068",
+      "merge_commit_sha": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+      "associated_commit": {
+        "sha": "477e72ae0fbb34cbbe071f2c0f617748b817bcbf",
+        "tree": "79923be3c9bd4b4e5aab30d91fb0ace79c7bb0bf",
+        "parents": [
+          "06c46ddf7b42926c8fc76ed3c5896eff6bef33da",
+          "ebf380da2528b6a32a17f94ca245835726babca4"
+        ]
+      },
+      "original_entire_packet_current_custody": {
+        "pr": 578,
+        "original_head": "ebf380da2528b6a32a17f94ca245835726babca4",
+        "original_packet_count": 225,
+        "exact_original": 220,
+        "preapproved_substitutions": 5,
+        "all_OWN_docs_exact": 156,
+        "entire_original_packet_tuple_pinset_actual": "fe06c3ebfceb1be6dd751e3c1bd3cb7158ff308a8abf5bd823774a142726bf17",
+        "qualified_actual_main_custody": true,
+        "closure": "READY_CLOSED_UNMERGED_SUPERSEDED_after_fresh_original_API_identity"
+      },
+      "associated_commit_already_ancestor_qualified075f_before_normal614_merge": true,
+      "actual_disposition": "CLOSED_MERGED_GITHUB_AUTOMATIC_ANCESTRY_RECOGNITION_AFTER_QUALIFIED614_MAIN_DELIVERY",
+      "manual_close_or_separate_merge_by_ROOT": false
+    }
+  ],
+  "planned_closed_unmerged_superseded": "NOT_EXECUTED: authentic API instead reports CLOSED_MERGED two seconds after614; factual disposition takes precedence over conditional plan",
+  "one_common45th_marker": "ACTUAL614 only; original three associated commits are documented nested ancestry deliveries, no fabricated separate serial main writes",
+  "unique_legacy_HOLD_preserved": true,
+  "new_Masterplan": false
+}
