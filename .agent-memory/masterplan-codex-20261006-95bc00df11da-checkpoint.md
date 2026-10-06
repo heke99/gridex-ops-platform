@@ -8,7 +8,7 @@ fresh main stillc05625. TaggedSC fa run37490809344/artifact11425771948
 actual4/4PASS; LK802 run37491862075/artifact11425704191 actual22PASS2FAIL,
 all20retained and2newmutation PASS, premature matcher correction reviewed67d.
 Current67d nativeLK37493991168/job112373701278 andSC37493991484/job112373710893
-RUNNING, not current-head green. Components40/40peer/author and full802f
+actual24/24 and4/4PASS, not mandatory-CI green. Components40/40peer/author and full802f
 884files/11859tests285.95s/exit0 PASS; scripts/testTS/ownlint/diff PASS.
 Mandatory verify audit actuallyFAIL sharp0.35.4 GHSA-wq5f-xc86-pv6w;
 foreign locked repairPR62039a0 has8 applicable SUCCESS, clean/certificate
@@ -674,3 +674,22 @@ tests, repairedinstall/audit and ordinary exactheadgates; foreignCI not borrowed
 Current67d bothnative executing, no new success; verify auditFAIL reproduced.
 Next responsible thissession authenticate native terminalfeedback, then
 actual mainadoption/reverification; no dependencycopy or gateweakening.
+
+## Actual native whole behavior at67d / before coverage approval
+
+SCrun37493991484/job112373710893/artifact11426928665:4/4PASS,0failure/
+error/skip, exit0,20.335672965s. OriginalZIP7dec468f93c815ab33bb31fab993820db2f209851d45157db2de4bccb46d4e3f equalsAPI digest.
+LKrun37493991168/job112373701278/artifact11426628365:24/24PASS,0failure/
+error/skip, exit0, own4time26.62873549s+retained20time130.116279508s.
+ZIP16a675d7b939fc837ac6ddf8b4ff88d4e911f28a87ce0367316e6601731dba43 equalsAPI digest. Bothcheckout67d/tree96e7cbe74e72ec87f69ca98c0a7c4083fd6ba540 matchgit; allSC12+LK18inputhashes matched. Original redacted artifacts/JUnit/logs preserved
+under/tmp/gridex-native626-sc67-redacted andlk67-redacted plusworkspace
+authorizedattachments. The prior22/2RED remainsunalteredhistory.
+
+Independent wholeSC literalAPPROVE at67d:7component+4nativecoversall
+queuedauthoritychanges/durableeffects/history/no staletransport+positive.
+WholeATfinalreview pending33component+actual20retained+4newnative.
+Mergegate remains actuallyFAILED productionaudit, foreignqualified620
+repair notmain; adoptingit requiresfresh affectedruntime/native/audit/CI.
+Next thissession receivewholeATreview, editonlyown2rows iffullyproved,
+reduceownedproof to exact source/result/effect map, currentmandatoryCI
+thenactualrepair adoption andfreshgates. Commonmirrorunder24fa role.
