@@ -24,7 +24,7 @@ const provider = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: provider }) } }))
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks() })
 type Ground = Awaited<ReturnType<typeof createRegulatedSupplyGroundNativeFixture>>
-type WireOptions = { omitStart?: boolean; omitAnnualVolume?: boolean; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
+type WireOptions = { omitStart?: boolean; omitAnnualVolume?: boolean; omitReadingField?: '214' | '218'; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
 
 function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
   // Independent literal P26.A wire facts, not the production renderer. Field
@@ -46,6 +46,14 @@ function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
   ]
   if (options.omitStart) body.splice(body.findIndex(part => part[0] === 'DTM' && Array.isArray(part[1]) && part[1][0] === '92'), 1)
   if (options.omitAnnualVolume) body.splice(body.findIndex(part => part[0] === 'QTY'), 1)
+  if (options.omitReadingField) {
+    const qualifier = options.omitReadingField === '214' ? 'Z02' : 'Z05'
+    // Remove only this physical CCI/CAV pair before source birth. Own259 stays
+    // supplied and lets the actual source owner qualify the readings condition.
+    const index = body.findIndex(part => part[0] === 'CCI' && part[2] === qualifier)
+    expect(index).toBeGreaterThan(-1)
+    body.splice(index, 2)
+  }
   // Optional C082 must be wholly absent when testing national missing250;
   // supplying qualifier/agency with blank3039 fails full UNSM before that owner.
   if (options.invoiceeIdentity !== undefined) body.push(['NAD', 'IV', options.invoiceeIdentity === '' ? '' : [options.invoiceeIdentity, f.customerIdentity.qualifier, f.customerIdentity.agency],
@@ -238,11 +246,22 @@ it.each([
   { name: 'missing own required start field210', options: { omitStart: true }, field: '210' },
   { name: 'missing own required annual volume field213', options: { omitAnnualVolume: true }, field: '213' },
   { name: 'missing identity field250 activated by physical invoicee', options: { invoiceeIdentity: '' }, field: '250' },
+  { name: 'missing own constant field214 required by physical259', options: { omitReadingField: '214' as const }, field: '214' },
+  { name: 'missing own number of digits field218 required by physical259', options: { omitReadingField: '218' as const }, field: '218' },
 ])('actual adapter/processor holds $name without an invented dependency fact', async ({ options, field }) => {
   const f = await adapterSource(options)
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', f.sourceId).single()
   expect(error).toBeNull()
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(data as EdielMessageRow)
+  if (field === '214' || field === '218') {
+    expect(decision.policy?.prodatDependentFacts?.registerObjects).toEqual([
+      { meteringPointId: f.external, identityAgency: '9', meterReadingsSentInUtilts: true },
+    ])
+    const readings = decision.policy?.prodatDependentConditions.filter(condition => ['214', '218', '259'].includes(condition.fieldNumber))
+    expect(readings).toHaveLength(3)
+    expect(readings?.every(condition => condition.status === 'required')).toBe(true)
+    expect(decision.issues.some(issue => issue.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED')).toBe(false)
+  }
   await processWithDiagnostics(f)
   holds(f)
   expect(decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === field), JSON.stringify(decision.issues)).toBe(true)

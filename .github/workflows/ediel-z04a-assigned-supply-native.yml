@@ -17,6 +17,12 @@ on:
       - 'lib/inbound-mail/assignedSupplyBirthProfile.ts'
       - '__tests__/ediel-assigned-supply-birth-profile.test.ts'
       - 'lib/ediel/production/regulatedSupplyGroundIntake.ts'
+      - 'lib/ediel/core/kernel.ts'
+      - 'lib/ediel/core/messagePolicy.ts'
+      - 'lib/ediel/core/prodatBilateralSourceCapability.ts'
+      - 'lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts'
+      - 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'
+      - '__tests__/ediel-kernel-prodat-direction-before-fields.test.ts'
       - 'lib/ediel/flows/inboundProcessing.ts'
       - 'lib/ediel/flows/supplyMarketTransition.ts'
       - 'supabase/migrations/**'
@@ -82,6 +88,7 @@ jobs:
               'lib/ediel/prodat/prodatRegisterReadings.ts', 'lib/ediel/prodat/prodatRegisterGroups.ts', 'lib/ediel/rulebook/guideRegistry.ts', 'lib/ediel/core/canonicalMessage.ts',
               'lib/customer-contracts/agreementPdf.ts', 'lib/customer-contracts/documents.ts', 'lib/ediel/testing/invoiceTestContractLifecycle.ts',
               'lib/ediel/core/sourceRulePackEvidence.ts', 'lib/ediel/sources/receivedSourceOwnerSession.ts', 'lib/ediel/flows/inboundBusinessStateMachine.ts',
+              'lib/ediel/rulebook/canonicalRulePackRegistry.ts', '__tests__/ediel-kernel-prodat-direction-before-fields.test.ts',
               'supabase/schema.sql', 'docs/ediel/masterplan-v2/annex/source_tables.json',
               'supabase/migrations/20260716183000_contract_canonical_finalization.sql', 'supabase/migrations/20260727030000_contract_operation_readiness_completion.sql',
               'supabase/migrations/20260727040000_contract_security_energy_direction_api_completion.sql', 'supabase/migrations/20260727160000_contract_valid_to_active_rpc_repair.sql',

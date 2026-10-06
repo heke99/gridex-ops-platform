@@ -269,11 +269,11 @@ export async function createProductionReceiptNativeFixture(provider: Provider) {
     VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic D ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
     VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic D ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted',${literal(smtp.from)},${literal(smtp.host)},${smtp.port},'recipient@example.invalid','recipient@example.invalid');`)
-  return { ...f, ...production, selector, scoped, authorized, ackRoute, ackProfile }
+  return { ...f, ...production, selector, scoped, authorized, reviewer, ackRoute, ackProfile }
 }
 
 export function productionReceiptWire(f: Awaited<ReturnType<typeof createProductionReceiptNativeFixture>>, reference: string,
-  options: { omitConsumptionReference?: boolean; consumptionPoint?: string } = {}) {
+  options: { omitConsumptionReference?: boolean; consumptionPoint?: string; omitConstant?: boolean; omitNumberOfDigits?: boolean } = {}) {
   const start = f.requestedStartDate.replaceAll('-', '') + '0000'
   const body: Parts[] = [
     ['NAD', 'FR', [f.receiver, '160', 'SVK'], '', '', '', '', '', '', 'SE'], ['NAD', 'DO', [f.sender, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
@@ -284,7 +284,8 @@ export function productionReceiptWire(f: Awaited<ReturnType<typeof createProduct
     ...characteristic('Z15', 'Z32'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L641Q']],
     // Real source-local reading declaration, not a parsed dependency flag or
     // evidence that downstream UTILTS production readings have already arrived.
-    ...characteristic('Z02', '1', 3), ...characteristic('Z05', '6', 3), ...characteristic('Z16', '111', 3),
+    ...(options.omitConstant ? [] : characteristic('Z02', '1', 3)),
+    ...(options.omitNumberOfDigits ? [] : characteristic('Z05', '6', 3)), ...characteristic('Z16', '111', 3),
     ['RFF', ['MG', `METER-${f.productionExternal}`]], ['RFF', ['Z05', f.gridAreaCode]], ['RFF', ['LI', reference]],
     ...(options.omitConsumptionReference ? [] : [['RFF', ['Z07', options.consumptionPoint ?? f.external]] as Parts]),
     ['NAD', 'UD', [f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency], '', 'Synthetic Own Customer', 'Street', 'City', '', '12345', 'SE'],

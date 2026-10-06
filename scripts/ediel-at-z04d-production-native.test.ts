@@ -9,7 +9,9 @@ import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
+import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
+import { readRegulatedSupplyGroundScope } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
@@ -35,7 +37,7 @@ function graph(f: Awaited<ReturnType<typeof createConsumptionPrecondition>>, pro
     'productionPoint',(SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(production?.productionPointId ?? null)}))`)
 }
 
-async function source(f: Fixture, options: { omitConsumptionReference?: boolean; consumptionPoint?: string } = {}) {
+async function source(f: Fixture, options: NonNullable<Parameters<typeof productionReceiptWire>[2]> = {}) {
   const reference = `D${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
   const wire = productionReceiptWire(f, reference, options)
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
@@ -101,16 +103,30 @@ it('actual D intake commits a distinct production relation through its reviewed 
   expect(graph(f, f)).toEqual(before)
 }, 120000)
 
-it('actual D intake refuses missing required319 without creating production effects or mutating consumption', async () => {
+it.each([
+  { field: '319', options: { omitConsumptionReference: true } },
+  { field: '214', options: { omitConstant: true } },
+  { field: '218', options: { omitNumberOfDigits: true } },
+])('actual D intake refuses missing required$field without creating production effects or mutating consumption', async ({ field, options }) => {
   const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
-  const input = await source(f, { omitConsumptionReference: true })
+  const input = await source(f, options)
+  if (field === '214' || field === '218') {
+    expect(input.decision.policy?.prodatDependentFacts?.registerObjects).toEqual([
+      { meteringPointId: f.productionExternal, identityAgency: '9', meterReadingsSentInUtilts: true },
+    ])
+    const readings = input.decision.policy?.prodatDependentConditions.filter(condition => ['214', '218', '259'].includes(condition.fieldNumber))
+    expect(readings).toHaveLength(3)
+    expect(readings?.every(condition => condition.status === 'required')).toBe(true)
+    expect(input.decision.issues.some(issue => issue.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED')).toBe(false)
+  }
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   const first = noEffects(input)
   expect(input.decision.syntaxDecision).toBe('accepted')
   expect(input.decision.applicationDecision).not.toBe('accepted')
-  expect(input.decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === '319')).toBe(true)
+  expect(input.decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === field)).toBe(true)
   expect(first.acks.some(ack => ack.family === 'APERAK' && /ERC\+(?:41|42)::260/.test(ack.wire)
     && ack.wire.includes(`RFF+LI:${input.reference}`) && ack.wire.includes(`RFF+Z07:${f.productionExternal}`))).toBe(true)
+  expect(first.acks.every(ack => ack.company === f.companyId && ack.route === f.ackRoute && ack.profile === f.ackProfile)).toBe(true)
   expect(graph(f, f)).toEqual(before)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
@@ -128,18 +144,155 @@ it('actual D intake cannot borrow another customer and company consumption319; b
   const input = await source(f, { consumptionPoint: other.external })
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   const first = noEffects(input)
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  console.info('D_FOREIGN_SOURCE_OBSERVATION', JSON.stringify({ stage: 'initial_effects_and_both_graphs_preserved' }))
   // Require the real public ground/application guard to be reached. An earlier
   // catalogue/canonical error cannot earn this correlation assertion.
   const applied = await supabaseService.rpc('ediel_apply_supply_source_v1', { p_company_id: f.companyId,
     p_source_message_id: input.sourceId, p_actor_user_id: f.actorUserId })
+  const result = applied.data as { applied?: boolean; reason?: string; partition?: { disposition?: string; reason?: string }[] } | null
+  const decision = input.decision
+  // Whitelist only decision codes and positional scope facts. Original bytes,
+  // customer identities, reference values and verifier material stay excluded.
+  console.info('D_FOREIGN_SOURCE_DIAGNOSTIC', JSON.stringify({ stage: 'public_apply_returned_before_strict_partition_assertion',
+    decisions: [decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision],
+    disposition: decision.prodatProcessingDisposition && { kind: decision.prodatProcessingDisposition.kind,
+      reasons: decision.prodatProcessingDisposition.reasons.map(reason => ({ code: reason.code, sourceRule: reason.sourceRule })) },
+    issues: decision.issues.map(issue => ({ code: issue.code, layer: issue.layer, diagnostic: issue.prodatDiagnostic?.kind === 'field'
+      ? { kind: 'field', field: issue.prodatDiagnostic.fieldNumber, errorKind: issue.prodatDiagnostic.errorKind,
+        scope: issue.prodatDiagnostic.occurrence.scope, lineIndex: issue.prodatDiagnostic.occurrence.lineIndex,
+        registerPosition: issue.prodatDiagnostic.occurrence.registerPosition }
+      : issue.prodatDiagnostic && { kind: issue.prodatDiagnostic.kind, sourceRule: issue.prodatDiagnostic.sourceRule } })),
+    register: decision.prodatRegisterValidation && { owner: decision.prodatRegisterValidation.owner, coverage: decision.prodatRegisterValidation.coverage,
+      objects: decision.prodatRegisterValidation.objects.map((object, index) => ({ index, messageIndex: object.messageIndex,
+        disposition: object.disposition, reasons: object.reasons,
+        registers: object.registers.map(register => ({ segmentIndex: register.segmentIndex, registerPosition: register.registerPosition })) })) },
+    application: decision.prodatApplicationValidation && { owner: decision.prodatApplicationValidation.owner,
+      coverage: decision.prodatApplicationValidation.coverage, headerDecision: decision.prodatApplicationValidation.headerDecision,
+      objects: decision.prodatApplicationValidation.objects.map((object, index) => ({ index, messageIndex: object.messageIndex,
+        applicationDecision: object.applicationDecision, reasonCodes: object.reasonCodes,
+        registers: object.registers.map(register => ({ segmentIndex: register.segmentIndex, registerPosition: register.registerPosition })) })) },
+    publicApply: { errorCode: applied.error?.code ?? null, applied: result?.applied, reason: result?.reason,
+      partition: Array.isArray(result?.partition) ? result.partition.map(own => ({ disposition: own.disposition, reason: own.reason })) : null },
+  }))
   expect(applied.error).toBeNull()
-  expect(applied.data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
+  expect(effects(input)).toEqual(first)
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
+  console.info('D_FOREIGN_SOURCE_OBSERVATION', JSON.stringify({ stage: 'public_apply_and_retry_effects_and_both_graphs_preserved' }))
+  expect(applied.data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
+}, 120000)
+
+it('dated supplier role loss before actual D birth holds its genuine ground without consumption or production effects', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
+  expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.productionPointId)},${literal(f.selector.startAt)}))`)).toBe(true)
+  sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp()-interval '1 second'
+    WHERE company_id=${literal(f.companyId)} AND environment='test' AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier'`)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)}
+    AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier'
+    AND (valid_to IS NULL OR clock_timestamp()<valid_to)`)).toBe(0)
+  const scope = await readRegulatedSupplyGroundScope({ companyId: f.companyId, actorUserId: f.actorUserId, ...f.selector })
+  expect(scope.status).toBe('held')
+  expect(scope.missing).not.toEqual([])
+  const permission = await supabaseService.rpc('gridex_actor_has_company_permission', {
+    p_actor_user_id: f.actorUserId, p_company_id: f.companyId, p_permission: 'communication.write',
+  })
+  expect(permission.error).toBeNull()
+  expect(permission.data).toBe(true)
+  expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.productionPointId)},${literal(f.selector.startAt)}))`)).toBe(false)
+  const input = await source(f), providerCalls = smtp.provider.mock.calls.length
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  const first = noEffects(input)
+  expect(graph(f, f)).toEqual(before)
+  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(input.sourceId)}`)).toBe(input.wire)
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  expect(effects(input)).toEqual(first)
+  expect(graph(f, f)).toEqual(before)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
+}, 120000)
+
+it('revoked separate D reviewer permission holds an accepted genuine source with no consumption or production effects', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f), input = await source(f)
+  expect([input.decision.syntaxDecision, input.decision.applicationDecision, input.decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
+  const providerCalls = smtp.provider.mock.calls.length
+  sql(`UPDATE public.user_permissions SET effect='deny' WHERE user_id=${literal(f.reviewer)}
+    AND company_id=${literal(f.companyId)} AND permission_key='ediel.regulated_supply.review'`)
+  expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.productionPointId)},${literal(f.selector.startAt)}))`)).toBe(false)
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  const first = noEffects(input)
+  expect(graph(f, f)).toEqual(before)
+  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(input.sourceId)}`)).toBe(input.wire)
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  expect(effects(input)).toEqual(first)
+  expect(graph(f, f)).toEqual(before)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
+}, 120000)
+
+it('actual D processor rejects a foreign company actor while preserving both genuine graphs and its source', async () => {
+  const provider = externalTransport(), f = await createProductionReceiptNativeFixture(provider), other = await createConsumptionPrecondition(provider)
+  const before = graph(f, f), otherBefore = graph(other), input = await source(f), providerCalls = smtp.provider.mock.calls.length
+  const original = sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)
+  expect([input.decision.syntaxDecision, input.decision.applicationDecision, input.decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
+  expect(other.companyId).not.toBe(f.companyId)
+  expect(other.actorUserId).not.toBe(f.actorUserId)
+  const permission = await supabaseService.rpc('gridex_actor_has_company_permission', {
+    p_actor_user_id: other.actorUserId, p_company_id: f.companyId, p_permission: 'communication.write',
+  })
+  expect(permission.error).toBeNull()
+  expect(permission.data).toBe(false)
+  const attempt = () => processInboundEdielMessage({ actorUserId: other.actorUserId, edielMessageId: input.sourceId })
+  await expect(attempt()).rejects.toThrow()
+  const first = noEffects(input)
+  expect(first.acks).toEqual([])
+  expect(first.outbox).toEqual([])
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(original)
+  const denied = await supabaseService.rpc('ediel_apply_supply_source_v1', {
+    p_company_id: f.companyId, p_source_message_id: input.sourceId, p_actor_user_id: other.actorUserId,
+  })
+  expect(denied.error).toBeNull()
+  expect(denied.data).toMatchObject({ applied: false, reason: 'supply_execution_actor_unqualified' })
+  expect(effects(input)).toEqual(first)
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(original)
+  await expect(attempt()).rejects.toThrow()
+  expect(effects(input)).toEqual(first)
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(original)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
+}, 120000)
+
+it('real public outbound owner rejects supplier-originated physical D before any draft, outbox or source effects', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport()), beforeGraph = graph(f, f)
+  const reference = `D${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
+  // Prospective wire only: switch physical sender/receiver to supplier → DSO.
+  // No incoming D original or dependent inventory/acceptance fact is created.
+  const raw = productionReceiptWire({ ...f, sender: f.receiver, receiver: f.sender }, reference)
+  const counts = () => sql(`SELECT jsonb_build_object(
+    'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),
+    'requests',(SELECT count(*) FROM public.outbound_requests WHERE company_id=${literal(f.companyId)}),
+    'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),
+    'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}),
+    'effects',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE company_id=${literal(f.companyId)}),
+    'partitions',(SELECT count(*) FROM gridex_received_sources.supply_object_partitions WHERE company_id=${literal(f.companyId)}),
+    'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)}))`)
+  const before = counts(), providerCalls = smtp.provider.mock.calls.length
+  await expect(createCanonicalOutboundMessage({ actorUserId: f.actorUserId, requestType: 'supplier_switch', baseInput: {
+    actorUserId: f.actorUserId, companyId: f.companyId, environment: 'test', direction: 'outbound', messageStandard: 'edifact',
+    messageFamily: 'PRODAT', messageCode: 'Z04', messageVersion: 'E2SE6A', applicationReference: '23-DDQ-PRODAT', rawPayload: raw,
+    senderEdielId: f.sender, receiverEdielId: f.receiver, communicationRouteId: f.routeId, routeProfileId: f.routeProfileId,
+  } })).rejects.toThrow('canonical_source_direction_not_allowed:Z04:outbound:inbound')
+  expect(counts()).toEqual(before)
+  expect(graph(f, f)).toEqual(beforeGraph)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
 }, 120000)
 
 it.each(['raw_payload', 'direction', 'message_received_at'] as const)(
