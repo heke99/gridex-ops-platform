@@ -30,3 +30,15 @@ Reused seven GOV04/AT cases byte-for-byte from withdrawn #528 and preserved its 
 Verification: reused GOV04 + main version-time anchors 16/16 PASS. Initial actual-send run proves old-source/current-guide mismatch refuses provider entry (1 PASS); positive and boundary cases currently fail because the finite postacceptance projection adapter returns null. Those two failures are not yet evidence of a production defect. TEN09 finite SQL wrapper exits 1 without child stdout/stderr; native suite not run (no local Supabase/psql). Final typechecks/CI/review still pending.
 
 Independent spec review confirms existing send admission and immutable source mismatch behavior but identifies a possible guide rollover between validation and provider callback. Original guide exceptions for source-bound ACK must remain intact. Next: this agent completes the strict finite projection adapter, confirms a valid runtime failure before production edits, then acquires additional file locks if needed. Exact commit is recorded in #530 immediately after committing this checkpoint.
+
+## Confirmed GOV04 boundary and extended CLAIM
+
+Actual full send after completing finite accepted-projection ports: 2 PASS, 1 correctly FAIL. The rollover case resolves accepted at 2026-09-30T22:00:01Z (Stockholm Oct1) using its preceding Sep30/25-A-3 decision. Positive actual send and old immutable source mismatch pass; no fixture error remains for the confirmed case. Native durability is still outside this finite port test. Exact RED log retained locally, not counted as green.
+
+Additional create-only path locks receipt `1a2853c43833dc04b606d3f1447abbfbdbe72b6a`, both exact refs re-read:
+- `lib/ediel/transport/outboundAttempt.ts`
+- `lib/ediel/sources/correctionOutboundDispatch.ts`
+
+Variant search: exact generic beforeProviderCall, broaden to all Ediel provider callbacks/sendEdielEmail calls; only the shared generic gate and separate sealed Z08 gate authorize provider entry. Both use admission sealed before async preparation/journal/witness calls. Added RED tests for archive, prepare and enter crossover in both lanes plus accepted historical projection replay. No production change yet.
+
+Next this agent: reject a decision whose Stockholm reference date changed at the actual provider boundary, before prepare and after asynchronous authorization, keeping the sealed original and accepted replay semantics. A fresh invocation must execute its existing full validation; source-bound ACK guide inheritance stays intact (date freshness, no forced guide rewrite). Systematic-debugging/TDD + narrow variant-analysis activated. Local TEN09 finite SQL wrapper with permitted networking now 7 PASS, explicitly mechanics only. No native/whole-rule approval.
