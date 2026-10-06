@@ -770,3 +770,17 @@ Next95bc actualterminalqualification and whole peer review; approvedrows only
 afterproof. Scratchqualifier explicitlychecks completedrun/conclusion, exact
 3redactedartifactfiles+CRC, alltrackedGitinputs, JUnit errors/skips andtrueexit;
 no workflow/nativeoracle change. Qualified89failurehistory preserved.
+
+## BEFORE permanent native evidence scope reservation
+
+Same95bc onlyZ05pair/PR636 source9aCLEAN/frozen, current39 running; freshmain
+56e58 metadata-only unchangedcoverage286. Prepare exact2 additional paths:
+quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/contract-proof.json
+quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/native-9a9775a0.zip
+Next95bc atomic create-only extension withactualmaintree/oneparent andexact
+pathhashresources; verifyallprior10+new2 andCLAIM530 before anyarchive/proof
+write. Preserve originalofficial redactedZIP byteexact/digest/CRC/all9280
+Gitinputs/JUnit/trueexit so14-day artifact expiry cannoterase theexecution
+receipt. Compactproof mapsownwholecriteria and declared internalboundaries.
+No nativePASS/whole/coverage/currentCIclaim beforeauthenticterminal39. Archive
+andproof onlyafterqualifiedresult; sourcefreeze duringcurrentrun unchanged.
