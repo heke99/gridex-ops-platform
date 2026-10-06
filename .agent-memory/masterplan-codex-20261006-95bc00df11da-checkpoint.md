@@ -88,3 +88,42 @@ Native config remains foreign-locked; role-memory remains foreign.
 Next owner this session: strengthen same pair's missing policy refusal and
 existing-original no-effect cases, request final independent review, then
 record precise remaining native gates and preserve work if blocked.
+
+## Reviewed consumer delivery — source 4e19aa68
+
+Status: REVIEW_READY, not whole-ID approval. Base refreshed/merged9cd95408.
+SC064 now7/7 and Z08LK30/30 PASS (Node22.23.3); test TypeScript, targeted
+ESLint, specification integrity33/121/231 and diff check PASS. Sourcea934d141
+added complete earlier-policy authority and current admission mismatch plus
+protected replay/withdrawal cases;4e19aa68 fixes fixture typing/const lint.
+Initial TS optional draft errors/lint let finding were corrected without product
+changes or weakened gates. Full unit suite running with prescribed loopback
+preload/maxWorkers2; no full-suite success claimed yet.
+
+Independent sc064_spec_review: APPROVE final SC064 SHA256
+eabd92329dc76a2387d67090602c65090c329b0428357b066bb5d904842c5ae4,
+7/7 independently PASS. Independent z08lk_spec_review: APPROVE bounded
+a934d141 Z08LK delivery,30/30 independently PASS. Both whole IDs stay
+NOT_EXECUTED. No confirmed production defect.
+
+Remaining SC064: actual persisted earlier-policy intention under changed current
+registry/route/rights authority, actual worker, durable current-decision/block
+effects, preserved original/history and zero provider entry. Existing TR05
+source-withdrawal native evidence is reused only for its proved criterion.
+Remaining Z08LK: real matched-Z05 incorrect LI/end/customer/point correlation
+refusal with zero durable period end/closure receipt/transition/ERC100; map
+missing R/D and immutable source changes to real enforcement/effect assertions.
+Existing native LK positive/unsent/replay/reviewer/audit rollback is reused;
+finite finalizer refusal is not native proof. Native config/service fixture
+foreign owner bde0638 remains untouched; request bounded retained-owner handoff.
+Docker reachable through managed socket; no psql/Supabase CLI currently.
+Foreign native owner reports required17.6.1.155 image pull fails no-space with
+zero cached images/containers; that report is not this session's executed test.
+GitHub branch-protection read returned403 integration permission; do not infer
+absent gates. Run current-head project workflows and inspect PR checks.
+
+Next owner this session: publish small reviewed component PR, record READY/
+exact head on530, await mandatory current-head CI, inspect reusable native
+proof mapping; no coverage edit until whole literal effects are established.
+role-memory is foreign-held: shared summaries wait, own checkpoint/530 remain
+authoritative packet receipts. No new pair before merge or explicit handover.
