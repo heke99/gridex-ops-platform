@@ -171,6 +171,25 @@ describe.each(profiles)('AT-Z05 $subtype supplier ($reason)', profile => {
     assertOnlyEndTasks()
   })
 
+  it('a validated own receipt partition delegates final-value projection without a second Legacy task', async () => {
+    // The real adapter validates this declared finite RPC DTO. The independent
+    // native case establishes the actual receipt-owned task and persistence.
+    const row = message(profile), segmentIndex = tokenizeEdifact(row.raw_payload!).segments.findIndex(segment => segment.tag === 'LIN')
+    expect(segmentIndex).toBeGreaterThanOrEqual(0)
+    io.rpc.mockResolvedValue({ data: { applied: true, idempotent: false,
+      periods: [{ id: own.period, status: 'ending' }], effectReceiptIds: [id(44)],
+      partition: [{ object: { messageIndex: 0, messageReference: '1', objectId: CLOSURE_OBJECT, identityAgency: '9',
+        registers: [{ lineIndex: 0, segmentIndex, lineNumber: '1', registerIndex: null, registerPosition: 1 }] },
+      disposition: 'applied', effectReceiptId: id(44), effectFactsHash: 'a'.repeat(64) }] }, error: null })
+    const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
+    expect(cases()).toEqual([])
+    expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false, updated: ['customer_supply_periods'] })
+    expect(db.calls).toEqual([])
+    expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1', {
+      p_company_id: own.company, p_source_message_id: own.message, p_actor_user_id: own.actor })
+    assertOnlyEndTasks()
+  })
+
   it('plans each returned ending/ended scope without including an unrelated active period', async () => {
     io.rpc.mockResolvedValue({ data: { applied: true, periods: [
       { id: own.period, status: 'ending' }, { id: own.secondPeriod, status: 'ended' }, { id: id(97), status: 'active' }] }, error: null })
