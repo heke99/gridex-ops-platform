@@ -598,3 +598,20 @@ No privateauthority/readiness/certseed/sourcebackpatch/guardchange; default24kep
 FullfrozenLOCAL5ed stillrunning; MUSTwaitterminal beforeany sourceedit. All3TSC/
 scopedlint/diff PASS5ed. Next95bc fullterminal+peerplan review, only ownednative
 supplement ifsourceconfirmed, currentreview/strict39/allGitinputs/gates.
+
+## Frozen5ed actual full GREEN / same-pair transport supplement next
+
+ExactLOCAL5ed Node22 supported actual895files12043PASS0fail/error/skip exit0
+303.24s; /tmp/gridex-z05-5ed-full-unit.log SHA256b5dccfd160159a37a87b4ea855d8dd86694ac0067d83765256dc0e025dfb368f.
+No source mutations duringfull; all3TS/scopedlint/diff PASS, independentLK50/50PASS.
+Both mandatory exact5ed SOURCE_INTEGRATION_APPROVE, upstream37 and own8byte
+preservation/all9280Gitinputs verified. No currentnative/whole/CI_GREEN claim.
+LK peer independently confirms is_active NULL excludes fixture's ACKroute; no
+default/INSERT trigger activates profile. Source-directed prospectivepublic
+config correction approved, boundedread-onlypublicRPCcause diagnostic approved.
+Next95bc ONLYownnative configure existing one scopedACKprofile is_active=true
+beforefirstACK +publicrowassertion; retainstrictphysicalACK/nofx/history/replay/
+custody, old24defaults. PublicRPCcause only ifmissingCONTRL; neverfallbackauthority.
+Then exactsource2peer review/scriptsTSC/lint/diff, freezepublication/ALL10locks/
+authenticfresh39+ALLtrackedGitinputreceipt/currentmandatory gates. Full5ed stays
+qualifiedonlyunchangedproduct/unitbytes; forthcomingnative-onlydelta separate.
