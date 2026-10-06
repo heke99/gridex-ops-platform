@@ -1,3 +1,9 @@
+## Coordination task scope and skill routing — 2026-10-06T11:44:10.912279+00:00
+
+User instructed completion help, shared-memory correction and plan status. Applied using-superpowers, verification-before-completion, using-git-worktrees (isolated checkout) and cloud-environment-runtime for authenticated Git access. Product/React/Supabase/security-audit skills skipped: administrative/documentation changes only, no product/database code. Future runtime work activates its relevant skills. No subagents or new rule execution. Prior memory and failed observations preserved.
+
+Earlier entries below are historical; use the current coordination baseline.
+
 ## Current saved codephase — 2026-10-01
 
 Active branch `codex/ediel-composed-rules-20261001`; last actual published head `1d7172ebe3ba01d5390a845f7087d546a9d2c3d2`, tree `f22804877b49cb78217f790de138e931cf67848f`. Exact preserved-commit publication run36861867953 succeeded. This is publication evidence, never runtime/final acceptance. Genuine bba/3c composition, H0023 and intake056/823 original commits are retained. #424/#421 and main remain untouched.

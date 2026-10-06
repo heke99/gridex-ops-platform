@@ -1,3 +1,29 @@
+## Current coordination baseline — 2026-10-06T11:44:10.912279+00:00
+
+The user authorized completion of the existing administrative closeout and this
+shared-memory/workflow update. All fourteen legacy OPS PRs are now
+CLOSED_UNMERGED; original branches, commits, titles, bodies and HOLD/PAUSED
+requirements were independently checked and retained. Web43 remains separately
+CLOSED_UNMERGED/HOLD. See `masterplan-legacy-pr-register.json` before resuming.
+
+Current qualified code baseline: `6e49c4f6ea8c2f31ccb68dc21d5b26582a7d171f`, tree
+`371065377156039198b8a65c344bebe46ec41090`; original resulting-main eight-check
+SUCCESS receipt: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685.
+Coverage is unchanged: 111/121 VERIFIED rules +167/231 PASSED contracts =278/352;
+10 rules and64 contracts remain. See `masterplan-status-20261006.json`.
+Administrative closure is not criterion completion or formal/live acceptance.
+
+Read `masterplan-agent-workflow.md` and `masterplan-next-wave-prompt.md`.
+Each agent owns a two-ID packet and its checkpoint; #530 allocations require
+coordinator confirmation before code, and the next pair starts after actual
+merge or an explicit documented release. One campaign writer maintains shared
+status. Old retained PR work is assessed and reused before new implementation.
+Rule execution remains paused pending the next-wave dispatch; this update does
+not start rules, reopen every old PR or grant external/deployment approval.
+
+All earlier sections below are HISTORICAL. Their old active/next-action text must
+not restart completed integration or override this current section.
+
 ## Current qualified source baseline; Masterplan paused — 2026-10-06T06:41:53.421430+00:00
 
 Qualified source #614 is actually admitted at `16d8a682a5a0aa7dfb5617b3c794985d0041afbe` (tree `fa67aaad749ecb6367074e130862986163b2ab03`). Actual stored coverage: 278/352; the exact rule/contract statuses and retained legacy HOLD/PAUSED vehicles are in `quality/audits/ediel-masterplan-v2/final-existing-work-integration-20261006/final-baseline.json`. This metadata completion is pending actual normal merge at publication; its final actual main and CI outcome are recorded at https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685. Read that receipt before resuming. All earlier entries below remain historical; their next actions do not override this STOP.

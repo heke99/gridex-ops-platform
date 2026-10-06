@@ -1,3 +1,29 @@
+## Current coordination baseline — 2026-10-06T11:44:10.912279+00:00
+
+The user authorized completion of the existing administrative closeout and this
+shared-memory/workflow update. All fourteen legacy OPS PRs are now
+CLOSED_UNMERGED; original branches, commits, titles, bodies and HOLD/PAUSED
+requirements were independently checked and retained. Web43 remains separately
+CLOSED_UNMERGED/HOLD. See `masterplan-legacy-pr-register.json` before resuming.
+
+Current qualified code baseline: `6e49c4f6ea8c2f31ccb68dc21d5b26582a7d171f`, tree
+`371065377156039198b8a65c344bebe46ec41090`; original resulting-main eight-check
+SUCCESS receipt: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685.
+Coverage is unchanged: 111/121 VERIFIED rules +167/231 PASSED contracts =278/352;
+10 rules and64 contracts remain. See `masterplan-status-20261006.json`.
+Administrative closure is not criterion completion or formal/live acceptance.
+
+Read `masterplan-agent-workflow.md` and `masterplan-next-wave-prompt.md`.
+Each agent owns a two-ID packet and its checkpoint; #530 allocations require
+coordinator confirmation before code, and the next pair starts after actual
+merge or an explicit documented release. One campaign writer maintains shared
+status. Old retained PR work is assessed and reused before new implementation.
+Rule execution remains paused pending the next-wave dispatch; this update does
+not start rules, reopen every old PR or grant external/deployment approval.
+
+All earlier sections below are HISTORICAL. Their old active/next-action text must
+not restart completed integration or override this current section.
+
 ## Current root503 integration — 2026-10-05T17:14:00Z
 
 Active work: finish existing PR #503 and the coordinated reviewed PR merge wave, then qualify one shared main baseline. The user's instruction supersedes the old blanket merge freeze for necessary existing PR fixes. GitHub #530 remains the reservation board; each retained author owns its files and each PR has one CI reader/serial merger.

@@ -1,3 +1,9 @@
+## Coordination verification — 2026-10-06T11:44:10.912279+00:00
+
+Fresh GitHub postchecks:14 OPS CLOSED_UNMERGED,14 unchanged original title/body/head/ref;15 OPS/Web branches retained;0 open OPS PRs before this new documentation PR;baseline main unchanged. Coverage recalculated:111/121 rules and167/231 contracts approved. Original8-check code-baseline CI receipt retained at https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685. Local documentation checks PASS: `git diff --check`, `node scripts/check-agent-memory-git-state.cjs`, `node scripts/check-ediel-masterplan-v2.cjs`, JSON/count/link consistency, historical-content preservation and byte-identical coverage validation. Current documentation PR CI remains pending publication; no new runtime qualification claimed.
+
+Earlier entries below are historical; use the current coordination baseline.
+
 ## Sparad överlämning — 2026-10-01 (aktuell)
 
 Användaren bad om commit/sammanfogning/publicering och ny chatt. Runtime/integrationsversion `d396c2284f692a84dc961ee04935acb40a69c908`, tree `f20f8d843042f8b725c417c4e55670bf4d2227ad`, branch `codex/ediel-composed-rules-20261001`; senare dokument-HEAD läses från Git. P15, OPS/ACK134500 och H142000 med terminal expression-materialization är färdiga och real-mergade. Slutkandidat inte fryst, qualifiedCodeSha=NULL och heavy/final qualification NOT_RUN. Main/#310/#418/#422 orörda; ingen ny PR.
