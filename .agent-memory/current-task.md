@@ -1,3 +1,52 @@
+## Current reserved continuation — observed 2026-10-06T21:25:05.808507+00:00
+
+Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and
+the #639 archive. Its Git coverage bytes (c453d9ce5d2bca42fd243f7004772a3a6a17818eece37effc4bc14f0b313e934) derive
+113/121 VERIFIED rules + 173/231 PASSED contracts = **286/352**, with eight rules
+and 58 contracts remaining. Candidate PR rows are excluded from these counts.
+Resulting-main full CI/native and formal, counterparty or production approval
+are separate and have no new acceptance claim in this reconciliation.
+Earlier sections below retain their exact historical bytes; their old current,
+pause, counts and next-action labels do not override this dated observation.
+
+Current owners finish their existing packets before new selection:
+- 24fa/c853: Z01L/LK, #638 f26ea33309f99cb13263adfa1e65ee18eb4056e2; prospective
+  route/current EL public import and scoped dispatcher witnesses plus disposable
+  POA caller setup have two exact-source feedback reviews5434731205/5434732742;
+  new94 NOT_RUN/native37533383327 queued. Preserve auto-send false and all guards.
+- c65/f66: IMP-05/DB-04, #637 `23b940e4ce4a95464e0ed1383a2d5dc9d79141d4`;
+  authentic two native cases PASS with all2,587 inputs6025531163. Remaining
+  mandatory gates/delivery are pending; candidate290 is not actualmain286.
+- c3ae/464569: Z03L/LK, #635 `f9d030f2dd7544ddc20e306d07f801f97a0e1588`;
+  source authoring qualified, current32 native/full/gates pending. Retain old
+  f88 14PASS/18FAIL; no whole approval borrowed from authoring6025515223.
+- 95bc/388356: Z05L/LK, #636 `89fc66df0d9753c0ee6b4f7bedc4da369637e6d4`;
+  authentic current39=36PASS/3FAIL, zero skips/errors; three positive contract-graph
+  expectations need owned test correction before replay/whole qualification6025664076.
+  Previous bbf30PASS/9FAIL stays historical; mandatory gates/whole remain pending.
+- 93e/3fe4: E pair, published #629 `3094ee19d23031195a9e7dae0c8512930de2a828`;
+  old authentic1fc22=21PASS/1FAIL. The genuine generic-current forward/capture
+  successor is now published; its native22/current mandatory gates/whole review
+  remain pending. GEN5 remains this owner's; no private authority or CI borrowing.
+- 2f72/722901: resumed TR-09/DB-01 only, draft #640 published
+  ac2026794398ed4f2abf9934ebf5109e9f49e550; source/stage ports green but
+  production native21 and historical DB phase whole proof remain pending.
+  Five containment paths newly claimed before code6025668761; preserve protected
+  history/OID/FK/hash/ACL, no route/authority remapping. Released A/D70c4 retains
+  strict28=24PASS/4FAIL; those IDs are not reclaimed by this memory operation.
+- 2c0823: same ebe8 packet AT-Z14N-ESCO7995 plus OPS-04/AT-OPS-044e9e extension,
+  actualbase56e58b. Reuse the existing recovery native for internal correction
+  queue/worker/single-SMTP/replay; whole agreed-counterparty consumer/input/design
+  remains blocked. No duplicate harness or external/live acceptance is granted.
+Snapshots are observations, not permanent locks; refresh actual refs and #530.
+
+Continue the existing claimed packets through actual current native and
+whole-literal review, preserve each failure's true stopping phase, and promote
+only fully proved owned rows. Require current-head mandatory green checks and
+serial expected-head merge; record actual delivery and owner-only resource
+release before selecting eligible next work. Shared reconciliation acquires its
+own fresh role/nine-file claims; source/coverage/foreign checkpoints stay untouched.
+
 ## Current autonomous task — actual main24720181 / 284of352 approved
 
 Complete each reserved whole-contract packet and current review/native/CI,
