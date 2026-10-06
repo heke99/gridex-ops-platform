@@ -162,12 +162,21 @@ it.each(required)('actual N source independently omitting required field %s neve
   return
  }
  const source=await receive(f,omitted)
- await consume(f,source)
+ if(field==='314'){
+  const rejected=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  expect(rejected.applicationDecision).toBe('rejected')
+  expect(rejected.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:'314',errorKind:'missing'})})]))
+  // Without a physical sequence or an N object identity the source owner
+  // cannot confirm this malformed scope. Keep that fail-closed boundary;
+  // a technical CONTRL may already exist, never a positive business effect.
+  await expect(consume(f,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
+ }else await consume(f,source)
  expect(market(f)).toEqual(before);expect(reporting(f)).toEqual(reports);expect(original(p)).toEqual(old)
  expect(ackRows(f,source).acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
  const first=ackRows(f,source)
- await consume(f,source)
- expect(market(f)).toEqual(before);expect(reporting(f)).toEqual(reports);expect(ackRows(f,source)).toEqual(first);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(calls)
+ if(field==='314')await expect(consume(f,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
+ else await consume(f,source)
+ expect(market(f)).toEqual(before);expect(reporting(f)).toEqual(reports);expect(original(p)).toEqual(old);expect(ackRows(f,source)).toEqual(first);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(calls)
 },120000)
 
 it.each(['LI','legal_receiver','market_role'] as const)('actual N refuses wrong current %s with pending permission, unrelated tenant and reporting unchanged',async fault=>{
@@ -191,7 +200,7 @@ it('N outbound direction and actual raw/direction mutations refuse before denial
  const outboundSegments=tokenizeEdifact(denial(f,p,'A13',{legalSenderId:f.sender,legalReceiverId:f.receiver})).segments.filter(s=>!['UNA','UNB','UNH','UNT','UNZ'].includes(s.tag)).map(s=>s.raw)
  const outboundRaw=EdifactEnvelopeCodec.encode({sender:f.sender,receiver:f.receiver,applicationReference:f.app,interchangeReference:randomUUID().replaceAll('-','').slice(0,14),environment:'test',acknowledgementRequest:true,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:outboundSegments}]})
  const old=original(p),effects=f.effects()
- await expect(createCanonicalOutboundMessage({actorUserId:f.ids.actor,requestType:'metering_access',baseInput:{actorUserId:f.ids.actor,companyId:f.ids.company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z14',messageVersion:'E2SE6A',applicationReference:f.app,rawPayload:outboundRaw,senderEdielId:f.sender,receiverEdielId:f.receiver,communicationRouteId:f.ids.route,routeProfileId:f.ids.routeProfile}})).rejects.toThrow(/canonical Ediel-policy: PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED/)
+ await expect(createCanonicalOutboundMessage({actorUserId:f.ids.actor,requestType:'metering_access',baseInput:{actorUserId:f.ids.actor,companyId:f.ids.company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z14',messageVersion:'E2SE6A',applicationReference:f.app,rawPayload:outboundRaw,senderEdielId:f.sender,receiverEdielId:f.receiver,communicationRouteId:f.ids.route,routeProfileId:f.ids.routeProfile}})).rejects.toThrow(/^Outbound PRODAT Z14 blockerades av canonical Ediel-policy: CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE - canonical_source_direction_not_allowed:Z14:outbound:inbound$/)
  expect(f.effects()).toEqual(effects);expect(original(p)).toEqual(old)
  expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${lit(source.id)}`)).toEqual(originalRow)
  for(const [patch,reason] of [[{raw_payload:raw+' '},'immutable_ediel_payload_cannot_change'],[{direction:'outbound'},'immutable_ediel_received_context_cannot_change']] as const){
