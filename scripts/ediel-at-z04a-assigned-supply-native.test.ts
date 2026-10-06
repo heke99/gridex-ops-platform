@@ -24,7 +24,7 @@ const provider = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: provider }) } }))
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks() })
 type Ground = Awaited<ReturnType<typeof createRegulatedSupplyGroundNativeFixture>>
-type WireOptions = { omitStart?: boolean; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
+type WireOptions = { omitStart?: boolean; omitAnnualVolume?: boolean; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
 
 function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
   // Independent literal P26.A wire facts, not the production renderer. Field
@@ -42,7 +42,10 @@ function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
     ['NAD', 'Z02', [f.sender, '160', 'SVK']],
   ]
   if (options.omitStart) body.splice(body.findIndex(part => part[0] === 'DTM' && Array.isArray(part[1]) && part[1][0] === '92'), 1)
-  if (options.invoiceeIdentity !== undefined) body.push(['NAD', 'IV', [options.invoiceeIdentity, f.customerIdentity.qualifier, f.customerIdentity.agency],
+  if (options.omitAnnualVolume) body.splice(body.findIndex(part => part[0] === 'QTY'), 1)
+  // Optional C082 must be wholly absent when testing national missing250;
+  // supplying qualifier/agency with blank3039 fails full UNSM before that owner.
+  if (options.invoiceeIdentity !== undefined) body.push(['NAD', 'IV', options.invoiceeIdentity === '' ? '' : [options.invoiceeIdentity, f.customerIdentity.qualifier, f.customerIdentity.agency],
     '', 'Synthetic Own Invoicee', 'Street', 'City', '', '12345', 'SE'])
   return guideOrderedFixtureRaw(body, 'Z04')
     .replace('+S+R+', `+${f.receiver}:14+${f.sender}:14+`)
@@ -228,16 +231,18 @@ function holds(f: Awaited<ReturnType<typeof source>>) {
 
 it.each([
   { name: 'missing own required start field210', options: { omitStart: true }, field: '210' },
+  { name: 'missing own required annual volume field213', options: { omitAnnualVolume: true }, field: '213' },
   { name: 'missing identity field250 activated by physical invoicee', options: { invoiceeIdentity: '' }, field: '250' },
 ])('actual adapter/processor holds $name without an invented dependency fact', async ({ options, field }) => {
   const f = await adapterSource(options)
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', f.sourceId).single()
   expect(error).toBeNull()
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(data as EdielMessageRow)
-  expect(decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === field), JSON.stringify(decision.issues)).toBe(true)
-  expect(decision.applicationDecision).not.toBe('accepted')
   await processWithDiagnostics(f)
   holds(f)
+  expect(decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === field), JSON.stringify(decision.issues)).toBe(true)
+  expect(decision.syntaxDecision).toBe('accepted')
+  expect(decision.applicationDecision).not.toBe('accepted')
   const first = state(f)
   expect(first.acks.some(a => a.family === 'APERAK' && /ERC\+(?:41|42)::260/.test(a.wire)
     && a.wire.includes(`RFF+LI:${f.reference}`) && a.wire.includes(`RFF+Z07:${f.external}`))).toBe(true)
@@ -260,6 +265,7 @@ it('actual A source cannot borrow the archived ground start one minute away', as
   expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(f.submission.startAt)}))`)).toBe(true)
   expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(actualStart)}))`)).toBe(false)
   await processWithDiagnostics(f)
+  holds(f)
   const { data, error } = await supabaseService.rpc('ediel_apply_supply_source_v1', {
     p_company_id: f.companyId, p_source_message_id: f.sourceId, p_actor_user_id: f.actorUserId,
   })
@@ -282,6 +288,9 @@ it('real public outbound owner rejects supplier-originated physical A before any
   const f = await ground()
   const raw = assignedWire({ ...f, sender: f.receiver, receiver: f.sender }, f.reference)
     .replace(`NAD+Z02+${f.receiver}:160:SVK`, `NAD+Z02+${f.sender}:160:SVK`)
+    // Outbound field506 is forbidden; keep required242 so this independent
+    // literal reaches the modern direction owner if its other gates qualify.
+    .replace('CAV+:::L917:8716867000030', 'CAV+:::L917')
   const counts = () => sql(`SELECT jsonb_build_object(
     'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),
     'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),
@@ -294,7 +303,7 @@ it('real public outbound owner rejects supplier-originated physical A before any
     actorUserId: f.actorUserId, companyId: f.companyId, environment: 'test', direction: 'outbound', messageStandard: 'edifact',
     messageFamily: 'PRODAT', messageCode: 'Z04', messageVersion: 'E2SE6A', applicationReference: '23-DDQ-PRODAT', rawPayload: raw,
     senderEdielId: f.sender, receiverEdielId: f.receiver, communicationRouteId: f.routeId, routeProfileId: f.routeProfileId,
-  } })).rejects.toThrow('PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED')
+  } })).rejects.toThrow('canonical_source_direction_not_allowed:Z04:outbound:inbound')
   expect(counts()).toEqual(before)
   preserves(f)
 }, 120000)
