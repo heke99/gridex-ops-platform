@@ -13,6 +13,8 @@ import {readCustomerLifeEventSource} from '@/lib/ediel/production/lifeEventSourc
 import {prepareAndQueueRequestedCustomerChange} from '@/lib/ediel/flows/prodatRequestedCustomerChange'
 import {resolveCanonicalActorContext} from '@/lib/ediel/core/actorRegistry'
 import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
+import {supabaseService} from '@/lib/supabase/service'
+import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
@@ -51,7 +53,16 @@ it('actual qualified outgoing source reaches the existing atomic original/intent
  expect(result.message.raw_payload).toBe(f.rawPayload)
  expect(sql(`SELECT jsonb_build_object('originals',(SELECT count(*) FROM gridex_customer_life_events.originals WHERE company_id=${literal(f.companyId)}),'desired',(SELECT count(*) FROM gridex_customer_life_events.desired_changes WHERE company_id=${literal(f.companyId)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(result.message.id)}))`)).toMatchObject({originals:1,desired:1,outbox:1})
  expect(await prepareAndQueueRequestedCustomerChange({...scope,artifactId:artifact.artifactId})).toMatchObject({status:'existing',message:{id:result.message.id}})
+ // Unsent original: accepted-journal replay after later revocation is a
+ // separate legitimate path. This assertion exercises a fresh dispatch only.
+ expect(sql(`SELECT to_jsonb(message_sent_at IS NULL) FROM public.ediel_messages WHERE id=${literal(result.message.id)} AND company_id=${literal(f.companyId)}`)).toBe(true)
+ const alive=await supabaseService.rpc('ediel_customer_life_event_message_basis_v1',{p_company_id:f.companyId,p_message_id:result.message.id,p_actor_user_id:f.actorUserId})
+ expect(alive.error).toBeNull();expect(alive.data).toMatchObject({basis:{status:'authorized',rawPayload:f.rawPayload}})
+ const dispatchState=()=>sql(`SELECT jsonb_build_object('original',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(result.message.id)}),'desired',(SELECT jsonb_agg(to_jsonb(d) ORDER BY event_id) FROM gridex_customer_life_events.desired_changes d WHERE company_id=${literal(f.companyId)}),'originals',(SELECT jsonb_agg(to_jsonb(o) ORDER BY message_id) FROM gridex_customer_life_events.originals o WHERE company_id=${literal(f.companyId)}),'customer',(SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}),'supply',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(f.period)}),'outbox',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM public.ediel_outbox o WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(result.message.id)}),'events',(SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM public.ediel_message_events e WHERE company_id=${literal(f.companyId)} AND (message_id=${literal(result.message.id)} OR ediel_message_id=${literal(result.message.id)})),'attempts',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM gridex_ediel_transport.attempts a WHERE company_id=${literal(f.companyId)} AND message_id=${literal(result.message.id)}),'workerAttempts',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM gridex_outbound_dispatch.attempts a WHERE company_id=${literal(f.companyId)} AND message_id=${literal(result.message.id)}),'workerEvents',(SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM gridex_outbound_dispatch.events e WHERE company_id=${literal(f.companyId)} AND message_id=${literal(result.message.id)}))`)
+ const beforeDispatch=dispatchState(),providerCalls=delivery.smtp.mock.calls.length
  sql(`INSERT INTO gridex_requested_customer_changes.revocations(target_kind,target_id,source_reference,source_hash)VALUES('key',${literal(f.keyId)},'SYNTHETIC issuer revoked after original',${literal('b'.repeat(64))})`)
+ await expect(sendEdielMessageViaSmtp(result.message,{actorUserId:f.actorUserId})).rejects.toMatchObject({code:'P0001',message:'customer_life_event_current_original_scope_changed'})
+ expect(dispatchState()).toEqual(beforeDispatch);expect(delivery.smtp).toHaveBeenCalledTimes(providerCalls)
  expect(await prepareAndQueueRequestedCustomerChange({...scope,artifactId:artifact.artifactId})).toMatchObject({status:'held'})
 })
 
