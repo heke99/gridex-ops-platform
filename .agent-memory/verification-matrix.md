@@ -1,3 +1,20 @@
+## Autonomous reservation verification — 2026-10-06
+
+GitHub atomic create-ref: two concurrent contenders → one successful acquisition,
+one existing-reference rejection; winning owner receipt verified; temporary
+probe ref removed; main remained c19610cb. Local git diff/agent-memory/masterplan
+integrity checks pass. Scope: instruction-only change and lock API contract;
+no new rule approvals or production/formal acceptance. PR/current-head CI pending.
+
+## Autonomous packet selection — 2026-10-06T13:00:25.023661+00:00
+
+Owner requires identical prompts, self-selected eligible pairs, atomic ID/file
+reservations, documented progress and serial green merges. See
+masterplan-reservations.md and masterplan-next-wave-prompt.md. No technical
+packet started; coverage unchanged. Previous PR #617 is delivered at c19610cb,
+with actual receipt on #5306016670441. Publication of this clarification is
+pending; earlier coordinator/allocation text below is historical.
+
 ## Coordination verification — 2026-10-06T11:44:10.912279+00:00
 
 Fresh GitHub postchecks:14 OPS CLOSED_UNMERGED,14 unchanged original title/body/head/ref;15 OPS/Web branches retained;0 open OPS PRs before this new documentation PR;baseline main unchanged. Coverage recalculated:111/121 rules and167/231 contracts approved. Original8-check code-baseline CI receipt retained at https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003553685. Local documentation checks PASS: `git diff --check`, `node scripts/check-agent-memory-git-state.cjs`, `node scripts/check-ediel-masterplan-v2.cjs`, JSON/count/link consistency, historical-content preservation and byte-identical coverage validation. Current documentation PR CI remains pending publication; no new runtime qualification claimed.

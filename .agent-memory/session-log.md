@@ -1,3 +1,12 @@
+## Autonomous packet selection — 2026-10-06T13:00:25.023661+00:00
+
+Owner requires identical prompts, self-selected eligible pairs, atomic ID/file
+reservations, documented progress and serial green merges. See
+masterplan-reservations.md and masterplan-next-wave-prompt.md. No technical
+packet started; coverage unchanged. Previous PR #617 is delivered at c19610cb,
+with actual receipt on #5306016670441. Publication of this clarification is
+pending; earlier coordinator/allocation text below is historical.
+
 ## Coordination task scope and skill routing — 2026-10-06T11:44:10.912279+00:00
 
 User instructed completion help, shared-memory correction and plan status. Applied using-superpowers, verification-before-completion, using-git-worktrees (isolated checkout) and cloud-environment-runtime for authenticated Git access. Product/React/Supabase/security-audit skills skipped: administrative/documentation changes only, no product/database code. Future runtime work activates its relevant skills. No subagents or new rule execution. Prior memory and failed observations preserved.
