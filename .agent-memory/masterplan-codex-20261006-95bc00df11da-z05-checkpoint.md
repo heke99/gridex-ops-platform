@@ -69,3 +69,26 @@ ExternalSMTP/signingissuer/legalmechanism finitefixtureports staydisclosed, no
 counterparty/market/deployment acceptance. Localnative unavailable(no-space pinned
 image), authenticGitHubfeedback required. Currentnative NOT_RUN/no newcode/noPASS.
 Nextthisauthor publishthisreservation/checkpoint/CLAIM530 then scopedauthoring.
+
+## Scoped authoring / native NOT_RUN
+
+Independent bounded plan APPROVE z08lk_spec_review exact56063a7a; wholeAT still
+pending. Applied its minimum assertions and oracle boundaries: actualL wrongLI
+mayleave nationalselector; missing310 requires independentknown death, soD probe
+is presentIV missingname251 with a genuinecomplete-IV favorable control.
+Extracted ONLY completedLendfactory/effects into pureownedhelper; old20calls/
+defaults/assertions unchanged, LKold4acceptedcandidate defaults unchanged. New
+optionalcandidate controls operatebeforeimmutablebirth; observationreturnsreal
+canonicaldecision, no acceptedrow/effectseeds. New12nativecases joinphysical
+ACK grammar/source/object/LI, exactperiod/version/end/task/history/replay/noPRODAT
+businessreply andfullunrelatedcustomer/contract/site/point/period/taskgraphs.
+Actualtenantrolewithdrawal, R211, D251, Lcorrelation andsealedbytes staystrict;
+proposedoracles require authenticfeedback, no productdefectclaimed. Newinclude
+config reruns old20+4 unmodified; pinnedredaction-first workflow captures26
+actualinputs+tree/JUnit/exit, ordinarygates retained. No coverageedit.
+SupportedNode22.23.3 unchanged40component PASS1.44s, scoped5fileESLint PASS,
+workflowYAML/Bash/Python/26paths/diffPASS. Initial npmruntypes wasinvalidscript
+(no verification); corrected actualtypecheck:scripts ongoing. No localnative
+PASS (pinnedimagecannotfit). Nextthisauthor finishTSC, exactindependentreview,
+smallstrictfeedbackdraft linking597/503/614, actualnative/currentCI/artifacts
+beforeanywholepromotion. No runtimeedits/foreignfiles/secondpair.
