@@ -117,3 +117,11 @@ strictauthenticfeedback publication.
 Added exactphysicalUCI2/3 sourceUNBsender/receiver compositecopy assertions from
 peer ae45REQUEST_CHANGES. b691role/direction/exactmutation refinement addresses
 bothpeerfindings; currentreviewandtypes pending, nativeNOT_RUN.
+
+Exact54a supportedNode22scriptsTSC/scoped5ESLint/YAML+Bash+Python/29unique
+inputpaths/diff PASS; mechanicalretainedold20 extraction-onlyassertion and
+old4byte-equality PASS. LKpeer exact54a boundedauthoringAPPROVE; SCpeerfound
+no furtherblockerandrequestedexplicitunchangedperiodstart_date/market_start_at
+fromgenuinebefore.period, nowadded withoutassumingcachedstart. NativeNOT_RUN,
+wholeproofunapproved. Nextfinalqualifieddelta review+singlepublication, then
+actual38nativefeedback andordinarygates atfrozenpublishedhead.

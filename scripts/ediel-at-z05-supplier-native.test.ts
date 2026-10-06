@@ -64,7 +64,8 @@ it.each(variants)('actual Z05%s commits its own end, physical acknowledgements a
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  const after=f.effects()
  expect(after).toMatchObject({period:{id:f.periodId,company_id:f.companyId,customer_id:f.customerId,
-  metering_point_id:f.pointId,source_message_id:f.startSourceId,market_state_version:Number(before.period.market_state_version)+1,
+  metering_point_id:f.pointId,source_message_id:f.startSourceId,start_date:before.period.start_date,
+  market_start_at:before.period.market_start_at,market_state_version:Number(before.period.market_state_version)+1,
   end_date:'2026-10-16',market_end_at:'2026-10-16T12:30:00+00:00',source_end_message_id:f.sourceId,status:'ending'},
   ends:1,transitions:1,positive:1,followups:1,audits:1})
  const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
