@@ -127,3 +127,50 @@ exact head on530, await mandatory current-head CI, inspect reusable native
 proof mapping; no coverage edit until whole literal effects are established.
 role-memory is foreign-held: shared summaries wait, own checkpoint/530 remain
 authoritative packet receipts. No new pair before merge or explicit handover.
+
+## PR625 frozen source / executed environment blocker — 2026-10-06
+
+PR625 current exact75f25e9ff93f11a68c2cbaf163319827fb85f042 preserved.
+Current-head targeted-regressions/browser-public/smoke/verify SUCCESS;
+coverage/quality-release-gates/clean/upgrade running, no CI_GREEN/merge.
+Reviews above still apply to unchanged test blobs. Subsequent own checkpoint
+receipts use a separate metadata branch, avoiding status-only source/CI restart.
+
+Own managed-socket Docker pull of public.ecr.aws/supabase/postgres:17.6.1.155
+FAILED exit1: failed to register layer: no space left on device. Docker system
+df shows0 images/containers/volumes/build-cache; UID1000 cannot restore daemon
+storage. Local native execution BLOCKED_ON_ENVIRONMENT; environment/platform
+owner must recover storage without changing required image/harness. No native
+test or real counterparty exchange executed; no external approval inferred.
+
+Initial complete unit attempt INTERRUPTED exit143 after proven subprocess
+namespace hang, not PASS. Unchanged OPS03 ZIP fixture Python awaited EOF in
+spawnSync. Exact minimal child probe: default sandbox ETIMEDOUT5000ms; supported
+additional-permission environment exits0 and returns synthetic stdin. Stopped
+only own runner5775/worker5986/Python5996. Re-running whole suite under supported
+environment with Node22 on PATH,6GB heap, original maxWorkers2 and mandated
+unit-loopback preload. No test/config/time-limit/security gate edited. Initial
+log /tmp/gridex-full-unit-95bc00df11da.log retained; recovered log
+/tmp/gridex-full-unit-recovered-95bc00df11da.log. No full result claimed yet.
+
+Eligibility screen reuses and attributes published complete mapping in
+masterplan-codex-24fa8502b8-checkpoint.md at3c15ca067b598a0cff2e5a95bbf1bb5e604afb33
+plus own live lock/530/original checkpoint/legacy reads. Independently checked
+its row set/uniqueness against actual main ledger: exactly10rules+64contracts,
+74/74 once, no approved row. Remaining TEN09/GOV04,C,A/D,C/M,E,ESCO C/V18
+packets have current atomic owners. Other rules/SCs and L/LK,F/G,B/D,V/VH/N
+acceptances retain original source/native/handover owners and unresolved criteria.
+SC070 stays DB05's retained599 author. H03/H04 explicit retained491 handoff;
+H05/H08 need retained bilateral/legal source/effect authority; no independent
+complete source/effect seam is established. OPS04 requires agreed external
+counterparty run. Do not substitute market activation for internal code proof
+or take over a held source because its writer is quiet. No new permitted
+complete pair is qualified; no new claim.
+
+Next action owner this session: collect recovered full-unit result and exact
+PR625 remaining mandatory gates; inspect latest role ownership before any merge.
+Whole-ID native handoff remains the request5306018179691. role-mergefb798bdd
+and role-memory4d184dd belong to root-self-selection-20261006 even after actual
+618 merge9cd95408. Their publisher must reconcile actual delivery and DELETE
+only its own exact roles or record its operation blocker. Shared campaign
+reconciliation BLOCKED_ON_ROLE_MEMORY; own checkpoint/530 receipts continue.
