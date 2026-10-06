@@ -32,9 +32,16 @@ const nextStep = read('lib/customer-operations/customerProcessNextStepEngine.ts'
 ok(nextStep.includes('skipZ01Finalization?: boolean'), 'next-step engine supports skipping Z01 repair for facility responses')
 ok(nextStep.includes('input.skipZ01Finalization !== true'), 'skip flag prevents duplicate Z01 before supplier switch')
 
+// Inbound completion uses the protected physical-Z02 source owner. Exercise
+// its real adapter/linker and held-result behavior instead of requiring the
+// retired generic completion path. Declared worker ports are not native proof.
 const inbound = read('lib/ediel/inbound/inboundFacilityRecognition.ts')
-ok(inbound.includes('completeFacilityLookupAndRunNextSteps'), 'inbound facility recognition uses response orchestrator')
 ok(!inbound.includes("import { completeFacilityLookup }"), 'inbound recognition no longer calls raw completion directly')
+require('node:child_process').execFileSync(process.execPath, [
+  'node_modules/vitest/vitest.mjs', 'run',
+  '__tests__/ediel-facility-recognition-source-owner.test.ts',
+  '__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts',
+], { cwd: process.cwd(), stdio: 'inherit' })
 
 const actions = read('app/admin/facility-requests/actions.ts')
 ok(actions.includes('completeFacilityLookupAndRunNextSteps'), 'manual facility completion uses the same response orchestrator')

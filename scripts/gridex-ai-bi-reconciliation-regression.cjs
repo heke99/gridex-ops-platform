@@ -10,8 +10,20 @@ const engine = read('lib/ediel/aiBiImportEngine.ts')
 const recon = read('lib/ediel/aiBiReconciliation.ts')
 const migration = read('supabase/migrations/20260625120000_ai_bi_reconciliation_approval_audit.sql')
 
-// Import engine writes ONLY reconciliation tables, never masterdata
-assert(engine.includes("from('ai_list_imports')") && engine.includes("from('ai_list_import_rows')") && engine.includes("from('ai_list_discrepancies')"), 'import engine creates reconciliation runs/rows/discrepancies')
+// Persistence belongs to the sealed-source atomic RPC, not direct TS writes.
+// Execute existing caller/first-storage holds and actual SQL transaction probes;
+// declared PGlite legal/network ports do not establish native/legal acceptance.
+require('node:child_process').execFileSync(process.execPath, [
+  'node_modules/vitest/vitest.mjs', 'run',
+  '__tests__/ediel-ai-bi-processing-decision.test.ts',
+  '__tests__/ediel-ai-personal-storage.test.ts',
+  '__tests__/ediel-ai-inbound-prestorage.test.ts',
+], { cwd: root, stdio: 'inherit' })
+require('node:child_process').execFileSync(process.execPath, [
+  'scripts/test-ediel-ai-history-and-reconciliation.cjs',
+], { cwd: root, stdio: 'inherit' })
+
+// The caller itself must never write protected masterdata.
 for (const table of ['customer_sites', 'metering_points', 'contracts', 'customer_contracts', 'supplier_switch_requests']) {
   const writesTable = new RegExp(`from\\('${table}'\\)[\\s\\S]{0,80}\\.(update|upsert|insert)`).test(engine)
   assert(!writesTable, `import engine never writes ${table}`)
@@ -23,10 +35,6 @@ assert(recon.includes('export function assertAiBiNeverOverwritesMasterdata'), 'r
 assert(recon.includes('export async function approveAiBiDiscrepancy'), 'reconciliation exposes admin approval workflow')
 assert(recon.includes('resolved_by') && recon.includes('resolved_at') && recon.includes('resolution'), 'approval workflow writes an audit trail')
 assert(recon.includes("decision === 'rejected'") && recon.includes("status"), 'approval records accept/reject decision')
-
-// Retention / GDPR metadata
-assert(engine.includes('retention_until') && engine.includes('gdpr_basis'), 'import saves retention/GDPR metadata')
-assert(engine.includes('masterdataAutoOverwrite: false') && engine.includes('reconciliationOnly: true'), 'import metadata documents reconciliation-only, no auto-overwrite')
 
 // Migration adds approval/audit/retention columns idempotently and additively
 assert(migration.includes('add column if not exists resolution') && migration.includes('add column if not exists resolved_by'), 'migration adds discrepancy approval/audit columns')
