@@ -298,3 +298,43 @@ and zero receipt/transition/ERC100/audit/final task; actual required/dependent
 field boundary and immutable-byte refusal. Whole Z08LK stays unapproved.
 Next own action: extension CLAIM/request530, then implement only new owned
 SC native/config/workflow files, type/lint/review, publish actual selected CI.
+
+## Native authoring reviewed and published — source3a225a429e7207cc2d8ef796b57083a254a9f6f7
+
+PR626 DRAFT is the isolated three-file native follow-up to original625; its
+base temporarily remains625's frozen branch75f25e9f. Native branch
+codex/ediel-sc064-native-95bc00df11da contains only original75 plus reusable
+new native sourceb8938240 and exact retirement-oracle fix3a225a42, equivalent
+to preserved original authoringceebc757/d5c1a642. No source625 push/restart.
+Current625 has seven required SUCCESS gates and clean/certificate running;
+CodeRabbit SUCCESS. Neither PR is merged or whole ID approved.
+
+Scripts TypeScript PASS after correcting message-row immutable hash access
+to actual SQL, worker argument tooutboxItemId, and intent columns to actual
+expected_rule_version/expected_field_matrix_version. Targeted ESLint and
+diff PASS; new YAML Bash/Python syntax and redaction-before-upload/actual
+exit propagation assertions PASS. Existing37 component cases PASS2.78s.
+No production/config-owner/helper/schema/coverage edit; full11856 unit
+receipt applies to unchanged delivered component source. Native4 NOT_RUN;
+local required Postgres image no-space remains actual environment blocker.
+
+Independent sc064_spec_review APPROVE corrected d5c1a642 scoped authoring;
+retired-pack refusal now exactCANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE.
+Independent z08lk_spec_review APPROVE three-file wrapper/workflow atceeb;
+no actionable findings. Intent preservation claims selected identity/payload/
+version/matrix only, not mutable lifecycle or validation_result. Native
+actual4/4 and ordinary required CI still prerequisite for full SC approval.
+
+Z08LK existing UD/IV/IT native-independent consumer tests use Z08H/Z03 and
+existing gateway/kernel finalizer refusals are mocked; cannot close original
+Z08LK missing R/D/no-original effects. A selected real-finalizer component
+proof can independently cover R/D using finite IO; native LI/time/wrong-end
+and sealed-byte effects still need retained native LK helper export requested
+in5306018891000. No owner export/handoff observed; foreign helpers unchanged.
+
+Next own actions: inspect actual626 selected-native execution/receipts and
+correct owned test defects if proved, retain all ordinary gates; finish625
+clean/certificate, acquire merge role only current-head green, expected-head
+merge and document actualmain. Retarget626 main afteractual625merge. Meanwhile
+implement only own Z08LK missing R/D real-finalizer consumer proof through
+existing source seams and review; no next pair or coverage approval yet.
