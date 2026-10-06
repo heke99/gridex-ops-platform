@@ -6,13 +6,14 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE o gridex_requested_customer_changes.origins%rowtype;a gridex_requested_customer_changes.artifacts%rowtype;e gridex_customer_life_events.events%rowtype;current_source jsonb;
 BEGIN
  IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'requested_customer_change_service_required' USING ERRCODE='42501';END IF;
- IF gridex_requested_customer_changes.actor_v1(p_company_id,p_actor_user_id,'archive','method_contract') IS NOT TRUE THEN RAISE EXCEPTION 'requested_customer_change_selected_facts_actor_forbidden' USING ERRCODE='42501';END IF;
+ PERFORM gridex_customer_life_events.require_actor_v1(p_company_id,p_actor_user_id,'prepare');
  PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  SELECT * INTO o FROM gridex_requested_customer_changes.origins WHERE company_id=p_company_id AND event_id=p_event_id;
  IF o.artifact_id IS NULL THEN
-  IF gridex_requested_customer_changes.actor_v1(p_company_id,p_actor_user_id,'archive','method_contract') IS NOT TRUE THEN RAISE EXCEPTION 'requested_customer_change_post_wait_selected_facts_actor_forbidden' USING ERRCODE='42501';END IF;
+  PERFORM gridex_customer_life_events.require_actor_v1(p_company_id,p_actor_user_id,'prepare');
   RETURN NULL;
  END IF;
+ IF gridex_requested_customer_changes.actor_v1(p_company_id,p_actor_user_id,'archive','method_contract') IS NOT TRUE THEN RAISE EXCEPTION 'requested_customer_change_selected_facts_actor_forbidden' USING ERRCODE='42501';END IF;
  current_source:=gridex_requested_customer_changes.current_v1(o.artifact_id,p_company_id);
  SELECT * INTO a FROM gridex_requested_customer_changes.artifacts WHERE id=o.artifact_id AND company_id=p_company_id FOR SHARE;
  SELECT * INTO e FROM gridex_customer_life_events.events WHERE id=p_event_id AND company_id=p_company_id FOR SHARE;

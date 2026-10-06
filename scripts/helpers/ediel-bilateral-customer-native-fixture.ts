@@ -17,6 +17,7 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {BilateralCustomerSourceSubmission} from '@/lib/ediel/production/bilateralCustomerSource'
 import {seedOriginalMailboxNative} from './originalMailboxNative'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 
 export const bilateralSourceOperatorPermissions=['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review']
@@ -48,7 +49,15 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
  if(physicalBirth){
   // Prospective custody: the actual parser/intake owns the source birth. No
   // graph matches, frozen profile or mailbox selector is patched afterward.
-  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:assertEdielSmtpReadiness().from})
+  const smtp=assertEdielSmtpReadiness(),envelope=EdifactEnvelopeCodec.decode(wire),ackRoute=randomUUID(),ackProfile=randomUUID()
+  // Public prospective configuration for both prescribed replies. One generic
+  // profile avoids ambiguous transport selection; no source/effect fact is seeded.
+  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+   VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic physical customer ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,application_reference,is_enabled,is_active,transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
+   VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic physical customer ACK profile','test','edifact','edifact',${literal(envelope.receiver)},${literal(envelope.sender)},${literal(envelope.receiverSubAddress??null)},${literal(envelope.senderSubAddress??null)},${literal(envelope.applicationReference)},true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid',NULL,NULL,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});`)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.communication_routes r JOIN public.ediel_route_profiles p ON p.communication_route_id=r.id AND p.company_id=r.company_id WHERE r.id=${literal(ackRoute)} AND r.company_id=${literal(f.companyId)} AND r.route_scope='ediel_ack' AND r.is_active AND p.is_active AND p.is_enabled AND p.mailbox=${literal(smtp.from)} AND p.smtp_host=${literal(smtp.host)} AND p.smtp_port=${literal(smtp.port)} AND p.message_family IS NULL AND p.business_code IS NULL`)).toBe(1)
+  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})
   const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed})
   expect(id).toBeTruthy()
   if(!id)throw new Error('actual_bilateral_physical_source_birth_required')
