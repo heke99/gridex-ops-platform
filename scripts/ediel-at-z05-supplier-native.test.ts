@@ -142,6 +142,9 @@ it.each(variants)('actual Z05%s current receiving supplier role withdrawal holds
  expect(routing.evidence.filter(e=>e.source==='verified_legal_identity')).toEqual([])
  const held=await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  expect(held).toMatchObject({company_id:f.companyId,tenant_resolution_status:'tenant_ambiguous',business_match_status:'business_blocked',processing_status:'routing_unresolved'})
+ const diagnostics=sql<Record<string,unknown>[]>(`SELECT jsonb_agg(to_jsonb(u) ORDER BY id) FROM public.ediel_unresolved_items u WHERE source_message_id=${literal(f.sourceId)}`)
+ expect(diagnostics).toHaveLength(1)
+ expect(diagnostics[0]).toMatchObject({company_id:f.companyId,environment:'test',source_message_id:f.sourceId,issue_type:'tenant_ambiguous'})
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw)
 },120000)
 

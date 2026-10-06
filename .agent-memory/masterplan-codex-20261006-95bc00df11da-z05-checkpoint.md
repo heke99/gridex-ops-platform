@@ -125,3 +125,18 @@ no furtherblockerandrequestedexplicitunchangedperiodstart_date/market_start_at
 fromgenuinebefore.period, nowadded withoutassumingcachedstart. NativeNOT_RUN,
 wholeproofunapproved. Nextfinalqualifieddelta review+singlepublication, then
 actual38nativefeedback andordinarygates atfrozenpublishedhead.
+
+## Fresh dependency qualification before publication
+
+Bothmandatorypeers independently boundedauthoringAPPROVE exact99089ab3; whole
+pendingactual38. Freshmainb155d8b7 actual633DELIVERED fivefiles, all29recorded
+nativeinputs/coverage284unchanged; metadata634 samefrozen59f no sourcepush.
+Latest5306023256011 qualifies genuine621cleanF3 failure: unresolveddiagnostic
+rows with literalNULLcustody. Ownrolehold exercisesactualsameproducer; added
+strictactualown childcompany/environment/source expectation, consistentTEN05/F3
+without guessingbusinessresolution. Sourceowner2c/bde nowatomicallyowns
+lib/ediel/core/tenantResolver.ts andTDDrepair; rootdoesnotedit/takethatpath.
+Authenticnewnativewillqualifythispossibledependency (no executedZ05failureyet);
+no fakefixturecleanup or invariantweakening. Addedactualinvariantinputhash.
+Nextthisauthor integrateactualb155 (noaffectedrecordedinput), correctedtypes/
+scopedlint+independentboundedadditiveoracle review, frozenstrictdraft/native.
