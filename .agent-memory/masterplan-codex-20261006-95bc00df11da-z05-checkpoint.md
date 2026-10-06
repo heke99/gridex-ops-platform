@@ -369,3 +369,19 @@ affected final proof. Coverage unchanged284/352 on actualed3; ownpair10refs
 maintained, no second pair/shared role. Failed lock reconfirm query used wrong
 heads prefix and got404; corrected exact tags protocol before publication,
 no ownership absence/takeover inferred.
+
+## Actual successor publication / obsolete run reconciliation
+
+PR636 normalpush+API exact51025be860549c6f01b2c99022a93f006b8de91d confirmed,
+reviewed title/body updated; remote frozen unchanged thereafter. Current native
+37524429161/OPS37524430215/fullE2E37524429241/retainedLK37524429169 and ordinary
+workflow checks pending. Both authoring reviews/all3types remain valid;
+fullunit identical product/test bytes pending, actual native39 NOT_RUN yet.
+
+Old94 fullE2E37518141833 changed from earlier in_progress to actual completed
+FAILURE at immediate pre-action read. NO cancellation sent (document6024572811
+intended-cancel wording immediately reconciled on530); preservedJSON
+/tmp/gridex-z05-obsolete94-full-cancel.json actual terminalFAIL, no borrowedgreen.
+Next95bc authenticate own current results and old failure reason, finish local
+fullunit/currentgates/whole39+foreign621actualmaincustody. Actual634ed3 and old
+native94 32/6 stillseparate. Only own10resources, no role/secondpair/coverage.
