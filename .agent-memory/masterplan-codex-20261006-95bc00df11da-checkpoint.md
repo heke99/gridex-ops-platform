@@ -229,3 +229,18 @@ Next concrete responsible actions:
 No next packet: current74-row screen establishes only occupied/retained-source/
 external-prerequisite work, no independent complete free pair. Receiving this
 continuation does not release other authors' ownership or external boundaries.
+
+## RELEASE confirmed / final readback
+
+Actual BLOCKED/RELEASE5306018532770 published. All four own file/ID refs
+were GET-confirmed at415129e2 before deletion; each DELETE succeeded and
+subsequent GET returned404. No own resource remains, no foreign ref changed.
+Status: RELEASED / remaining requirements BLOCKED as handed over above.
+After release, fresh main remains9cd95408; PR625 exact75f25e9f is OPEN,
+mergedAtnull. Same six remote successes and three running gates; no failed
+current gate observed, no future success claimed. No main receipt exists.
+Released SC064/Z08LK now require the documented retained-native/environment
+actions before another full qualification; other mapped74-row dependencies/
+ownership remain. No eligible independent complete next pair established.
+Preserve this worktree and both source/metadata branches. Next delivery/source/
+platform/role actions and responsible owners are the explicit handover above.
