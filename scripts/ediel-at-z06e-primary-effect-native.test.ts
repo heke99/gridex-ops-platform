@@ -16,6 +16,8 @@ import {archiveBilateralCustomerSource,reviewBilateralCustomerSourceArtifact} fr
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
+import {supabaseService} from '@/lib/supabase/service'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent'
 
@@ -60,7 +62,26 @@ it.each(['bankruptcy','customer_change'] as const)('native %s classification com
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
   expect(decision.prodatSourceFunctionValidation?.objects.map(o=>o.functionalDecision)).toEqual(['accepted'])
   const receipt=await recordReceivedSourceValidation({original:f.message,validated:f.message,resolvedCompanyId:f.companyId,decision})
-  expect(receipt.status).toBe('recorded')
+  let diagnostic:unknown=null
+  if(receipt.status!=='recorded'){
+    const evidence=buildReceivedSourceValidationEvidence({original:f.message,validated:f.message,resolvedCompanyId:f.companyId,decision})
+    if(!evidence)diagnostic={boundary:'evidence_build',evidence:null}
+    else{
+      // Diagnose the SAME complete public owner. Never append a facetless v1
+      // assessment, replace the original failure or authorize an effect here.
+      const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+      diagnostic=await rpc('gridex_record_prodat_source_validation_v6',{
+        p_company_id:evidence.companyId,p_environment:evidence.environment,p_source_message_id:evidence.sourceMessageId,
+        p_source_payload_hash:evidence.sourcePayloadHash,p_facts_text:evidence.factsText,
+        p_source_function_facts_text:evidence.prodatSourceFunctionValidation?JSON.stringify(evidence.prodatSourceFunctionValidation):null,
+        p_object_facts_text:evidence.prodatObjectValidation?JSON.stringify(evidence.prodatObjectValidation):null,
+        p_application_facts_text:evidence.prodatApplicationValidation?JSON.stringify(evidence.prodatApplicationValidation):null,
+        p_ignored_fields_text:evidence.prodatIgnoredFields?JSON.stringify(evidence.prodatIgnoredFields):null,
+        p_response_facts_text:evidence.prodatResponseValidation?JSON.stringify(evidence.prodatResponseValidation):null,
+      })
+    }
+  }
+  expect(receipt.status,JSON.stringify({boundary:'actual_complete_v6',diagnostic})).toBe('recorded')
   if(receipt.status!=='recorded')throw new Error('actual_fresh_canonical_receipt_required')
   const session=createReceivedSourceOwnerSession(receipt)
   expect(session).not.toBeNull()

@@ -15,6 +15,9 @@ import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSour
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {BilateralCustomerSourceSubmission} from '@/lib/ediel/production/bilateralCustomerSource'
+import {seedOriginalMailboxNative} from './originalMailboxNative'
+import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 
 export const bilateralSourceOperatorPermissions=['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review']
 export async function createBilateralSourceOperator(companyId:string,keys=bilateralSourceOperatorPermissions){
@@ -38,10 +41,22 @@ export async function createBilateralSourceOperator(companyId:string,keys=bilate
 export function customerChangeMinute(requestedStartDate:string){
  const date=new Date(`${requestedStartDate}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+2);return `${date.toISOString().slice(0,10).replaceAll('-','')}0000`
 }
-export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string}={}){
- const sourceMessageId=randomUUID(),wire=bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...options})
+export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string;physicalBirth?:boolean}={}){
+ const {physicalBirth,...wireOptions}=options
+ let sourceMessageId:string=randomUUID()
+ const wire=bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...wireOptions})
+ if(physicalBirth){
+  // Prospective custody: the actual parser/intake owns the source birth. No
+  // graph matches, frozen profile or mailbox selector is patched afterward.
+  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:assertEdielSmtpReadiness().from})
+  const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed})
+  expect(id).toBeTruthy()
+  if(!id)throw new Error('actual_bilateral_physical_source_birth_required')
+  sourceMessageId=id
+ }else{
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(sourceMessageId)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},'test','inbound','edifact','PRODAT','Z06','received',${literal(wire)},'{}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z06:E:26.A:r3' AND profile.is_enabled`)
+ }
  const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceMessageId).single();expect(saved.error).toBeNull()
  const message=saved.data as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
@@ -52,8 +67,8 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
  return {sourceMessageId,message,wire}
 }
 
-export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void){
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true})
+export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void,options:{physicalBirth?:boolean}={}){
+ const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true,...options})
  const uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  // The actual original structural review qualifies only a post-ledger future
  // supply anchor. It cannot backfill the old default September start.

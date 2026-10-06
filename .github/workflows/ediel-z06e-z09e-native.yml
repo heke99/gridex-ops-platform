@@ -53,6 +53,8 @@ jobs:
             scripts/ediel-confirmed-customer-bilateral-native.test.ts
             scripts/ediel-requested-customer-change-source-native.test.ts
             scripts/ediel-at-z06e-primary-effect-native.test.ts
+            scripts/ediel-at-z06e-physical-intake-native.test.ts
+            scripts/ediel-at-z09e-received-ack-native.test.ts
           )
           export Z06E_Z09E_NATIVE_TEST_SCOPE
           Z06E_Z09E_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
