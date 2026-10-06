@@ -208,8 +208,11 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    const replies=()=>sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object('acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.message_family),'[]') FROM public.ediel_messages a WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND direction='outbound'),'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
    const actual=replies();expect(actual.acks.map(x=>[x.message_family,x.ack_outcome])).toEqual([['APERAK','negative'],['CONTRL','positive']]);expect(actual.outbox).toHaveLength(2)
    for(const ack of actual.acks){
-    expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',related_message_id:source.id})
+    expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,communication_route_id:f.ids.ackRoute,route_profile_id:f.ids.ackProfile})
     expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+    const sourceEnvelope=EdifactEnvelopeCodec.decode(source.raw_payload!),ackEnvelope=EdifactEnvelopeCodec.decode(ack.raw_payload!)
+    expect([ackEnvelope.sender,ackEnvelope.receiver]).toEqual([sourceEnvelope.receiver,sourceEnvelope.sender])
+    expect(ackEnvelope.applicationReference).toBe(sourceEnvelope.applicationReference)
     const correlation=readPhysicalAckSourceCorrelation(ack,source)
     expect(correlation.classification.outcome).toBe(ack.ack_outcome)
     if(ack.message_family==='CONTRL')expect(correlation.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(source.raw_payload!).interchangeReference])
