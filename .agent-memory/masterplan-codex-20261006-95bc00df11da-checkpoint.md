@@ -552,3 +552,18 @@ atomically held b912fab. Do not duplicate foreign package work or weaken audit.
 Own mandatory verify actual outcome not yet inspected; if same failure,
 reconcile repaired actualmain dependency and rerun affected currenthead CI.
 Foreign role-memory6f0a remains held. No newpair while own proof pending.
+
+## Final self-review correction / source recorded below on publication
+
+Only own2LKfiles: nativeSql blank SQLNULL is undefined, so boolean
+to_jsonb(matched_closure_operation_v1(...) IS NULL) asserts exactsame NULL
+matcher invariant. Existing whole wrong-direction negative now calls real
+renderer->canonical finalizer with inbound candidate: exact
+canonical_outbound_owner_scope_required, zero auth/dedupe/create-original
+RPC/queue/lifecycle. No product predicate or source decision relaxed.
+Independent delta APPROVE; peer and author40/40PASS(33LK+7SC), test/scripts
+TypeScript, own ESLint and diff PASS. Previouslypublishedfa39 remains
+source-specific priorhistory; fullcurrentunit11859 still required inCI.
+Currentcoverage unchanged. Next this author publish reviewedexactcorrection
+once, inspect actualnativecurrenthead and mandatorygates; proof mapping
+uses source/effect/path boundaries honestly, no invented nativeRD requirement.
