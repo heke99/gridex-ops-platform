@@ -113,6 +113,8 @@ jobs:
               'lib/ediel/flows/prodatSwitch.ts',
               'lib/ediel/flows/prodatSwitchCancellation.ts',
               'lib/ediel/flows/inboundProcessing.ts',
+              'lib/ediel/inboundCases.ts',
+              'lib/ediel/config.ts',
               'lib/ediel/flows/inboundAckProcessing.ts',
               'lib/ediel/flows/sourceSwitchCommit.ts',
               'lib/ediel/flows/supplyMarketTransition.ts',

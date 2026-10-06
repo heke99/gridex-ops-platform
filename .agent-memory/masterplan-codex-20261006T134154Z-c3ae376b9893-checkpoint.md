@@ -204,3 +204,21 @@ Ownnativeonly finalSHA44f2104b7931ea26eec91a7a43645f26b662d64f2a3a2d060b0afea9b2
 Next sameowner afterboundedreview: exact28successor publication preserving actual24head20PASS4FAIL, execute realfocusedCI/JUnit/hash proof. Any newlyexposed senderrole/race/rollback root remains real requirement; doNOT accept into green, retainqualifiedproducerhandoff. Current managedauthblockercleared and memoryroleownerreleased404 (5306020417244); ownpair7held. Nomergerole/newpair/fullapproval.
 
 Final independent native boundedAPPROVE exact44f2104b/28; no authoringblocker, workflowe497APPROVE. All actualnew28results remainNOT_RUN until publication/CI.
+
+## 2026-10-06T16:18:06.691724+00:00 — exact28 publication and current actual CI queued
+
+Normalfastforward publication PR62791a081073d140bc508e2f3cf38507ca5cc8c600c/treef5ce76f67bbe0b8f38adb20c230b23d76d53d29d matches reviewed local756ce7ef522bacad6c73b85e448b614232c85ab3 tree. Expectedbranchprehead7db7 compared beforepush; normalpushsuccess and authoritative ghPRhead confirms91a081. Publication5306020537970. Native44f2104b/28 andworkflowe497/75hashes independentboundedAPPROVE, localchecks0. Source onlyownnative/workflow/checkpoint3files; no commondoc/source/helper/migration/package/coverage edits. Existing6sharedproposals preservedfromrole-authorisedphase, notmain delivery; no newsharedwrite.
+
+Actualfocused37494354847 QUEUED at91a081, OPS37494354698 pending, masterplan37494354808 queued, browser37494354831 inprogress/full37494354901 pending. Twenty-eight NOT_RUN, currentheadNOTCI_GREEN/MERGED. Historical24actual20PASS4FAIL/12actual10PASS2FAIL/10actual8PASS2FAIL exactreceipts preserved separately; no greenborrowing. Authrestored/ownmemoryrole404; pair7refsheld/nomergerole.
+
+Direct source requalification: cancellationrenderer context supplies no meteringMethod (switchCancellation.ts26) and SwitchCancellationBasis/sourceObject exposes onlyqualifiedoriginalbasis, no newlyqualifiedmethod. Retained Claude SC039/P14 source responsibility remainsexplicit in masterplan-sc035-sc039-review-checkpoint.md10/35/41. No newsourcehandoff. Genuineoriginal method/source qualification andcanonicalvalidwire mustbe repairedthere, notinventdefault or silenttakeover. Currentmissing223ACK-policy exception andconcurrenttwo-row rejection needexactnewdiagnostics before productroot handover.
+
+Nextthisowner: current28authenticatedterminal/JUnit/tree/all75hashes; independentlyqualify role/actor/lastwrite/race results and strictremainingliteralclauses. Then finalsource-qualified BLOCKED/RELEASE/ownGET-DELETE-404 resources plusfreshmain/coverage/#530/openPR/legacy/liveownership eligibleworkscreen. Neverclaimwholeapproval or mergeRED.
+
+## 2026-10-06T16:24:53.459844+00:00 — before targeted real race root diagnostics
+
+Current91a081/28 run37494354847 job112374926466 remainsQUEUED0steps, NOTexecuted. Independent refutation identifies inboundCases.ts430 maybeSingle(ediel_message_id)→separateINSERT/no inspecteduniqueconstraint as candidate2-row race; route_runtime_v cardinality isanothercandidate. Notconfirmed fromgenericPGRST116. NeedactualCcaseIDs/count androute count alongsidealreadyplannednativeeffects/ACK/outcomes toconfirm/refute.
+
+Beforeedit same7refsretained, scopeONLYownednative diagnosticadds safe owncompany/source IDs+ownCcustomer_cases ids/count+route_runtime count, noassertionchange/28countunchanged. Ownedworkflow pins actuallycalled inboundCases.ts/config.ts. Source/shared/schema/helper/coverage untouched. IndependentdeltaReview/types/lint/normalpublication then actual28receipt needed. Existing24actual4errors preserved; doNOTnamecaseproductbug withoutactualroot proof. Metadata latestbb00c6720512736aea8331a4954e3023fdb63946 preserves exact91apublication andauth/roleclear.
+
+Final targeteddiag boundedAPPROVE nativeacb2bcc38ee42e4cff88240c90b9418584688429aa1f9300c9972af949a4b574/workflowe400e18a4749e2b6fe6da435d85c294fc291b5b2257ad07c962379bed166856a; actualtable public.ediel_inbound_cases corrects plannedgenericcustomer_cases wording. All strictassertions unchanged,28countunchanged, Node22types/lint/diff0/YAML+Bash+2Pythonheredocs/77uniqueexistinginputsPASS. SuccessorNOTRUN; underlying2-rowrace unconfirmed untilactualcasecounts.
