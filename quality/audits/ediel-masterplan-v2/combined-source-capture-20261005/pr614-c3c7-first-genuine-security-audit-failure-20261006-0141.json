@@ -1,0 +1,273 @@
+{
+  "schema": "ordinary-native-feedback-first-genuine-current-head-failure/v1",
+  "observed_at_utc": "2026-10-06 01:41:24 UTC",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "lease_started_at_utc": "2026-10-06 01:39:06 UTC",
+  "lease_status": "ACTIVE_SAME_SOLE_OBSERVER",
+  "gate_status": "HOLD_CURRENT_HEAD_GENUINE_FAILURE",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 614,
+  "head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+  "tree_sha": "7cd147cd2efc4311fddb8ed87fad9aba8829e375",
+  "parent_sha": "5d9d00576f930fbee9a087b50f1cb09c9ba855f7",
+  "head_branch": "codex/ediel-combined-source-capture-20261005",
+  "producer_base_sha": "2c11a5108f929f67441f6e01deede9521bcfd8cc",
+  "identity_guards": {
+    "exact_public_head_tree_parent": true,
+    "exact_current_run_job_event_branch_base_attempt": true,
+    "exact_current_terminal_check_job": true,
+    "genuine_failed_step": true,
+    "real_runner_execution_and_terminal_timestamps": true
+  },
+  "first_current_head_failure": {
+    "run_id": 37400151868,
+    "workflow_id": 298519857,
+    "workflow_path": ".github/workflows/ops-hardening.yml",
+    "event": "pull_request",
+    "run_attempt": 1,
+    "run_status_at_snapshot": "in_progress",
+    "run_conclusion_at_snapshot": null,
+    "job_id": 112065383334,
+    "job_name": "verify",
+    "job_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+    "job_head_branch": "codex/ediel-combined-source-capture-20261005",
+    "job_status": "completed",
+    "job_conclusion": "failure",
+    "job_started_at": "2026-10-06T01:38:29Z",
+    "job_completed_at": "2026-10-06T01:40:04Z",
+    "runner_id": 1000043955,
+    "runner_name": "GitHub Actions 1000043955",
+    "check_run_id": 112065383334,
+    "check_head_sha": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+    "check_status": "completed",
+    "check_conclusion": "failure",
+    "check_started_at": "2026-10-06T01:38:29Z",
+    "check_completed_at": "2026-10-06T01:40:04Z",
+    "check_details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37400151868/job/112065383334",
+    "annotation_count": 3,
+    "failed_steps": [
+      {
+        "number": 32,
+        "name": "Run npm run security:audit-production",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-06T01:40:00Z",
+        "completed_at": "2026-10-06T01:40:00Z"
+      }
+    ],
+    "diagnostic_cause": "UNKNOWN_FOR_CURRENT_C3C7; ROOT_EXCLUSIVELY_DIAGNOSES"
+  },
+  "applicable_job_states": [
+    {
+      "id": 112065383334,
+      "name": "verify",
+      "run_id": 37400151868,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-06T01:38:29Z",
+      "completed_at": "2026-10-06T01:40:04Z",
+      "runner_id": 1000043955,
+      "failed_steps": [
+        {
+          "number": 32,
+          "name": "Run npm run security:audit-production",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-10-06T01:40:00Z",
+          "completed_at": "2026-10-06T01:40:00Z"
+        }
+      ],
+      "active_steps": []
+    },
+    {
+      "id": 112065383541,
+      "name": "quality-release-gates",
+      "run_id": 37400151868,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:28Z",
+      "completed_at": null,
+      "runner_id": 1000043956,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 6,
+          "name": "Run npm run typecheck:scripts"
+        }
+      ]
+    },
+    {
+      "id": 112065383601,
+      "name": "clean-migration-replay",
+      "run_id": 37400151868,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:29Z",
+      "completed_at": null,
+      "runner_id": 1000043958,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Clean empty-database replay and verify generated types"
+        }
+      ]
+    },
+    {
+      "id": 112065383623,
+      "name": "upgrade-migration-replay",
+      "run_id": 37400151868,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:29Z",
+      "completed_at": null,
+      "runner_id": 1000043957,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Genuine ancestor upgrade and independent clean parity"
+        }
+      ]
+    },
+    {
+      "id": 112065467125,
+      "name": "coverage",
+      "run_id": 37400151749,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:50Z",
+      "completed_at": null,
+      "runner_id": 1000043959,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 5,
+          "name": "Run Vitest V8 coverage"
+        }
+      ]
+    },
+    {
+      "id": 112065467340,
+      "name": "smoke",
+      "run_id": 37400151749,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T01:38:48Z",
+      "completed_at": "2026-10-06T01:40:23Z",
+      "runner_id": 1000043960,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112065289213,
+      "name": "browser-public",
+      "run_id": 37400151796,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T01:38:07Z",
+      "completed_at": "2026-10-06T01:39:24Z",
+      "runner_id": 1000043952,
+      "failed_steps": [],
+      "active_steps": []
+    },
+    {
+      "id": 112065288998,
+      "name": "targeted-regressions",
+      "run_id": 37400151828,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:07Z",
+      "completed_at": null,
+      "runner_id": 1000043950,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Approved masterplan IDs have tagged, passing tests"
+        }
+      ]
+    },
+    {
+      "id": 112065296007,
+      "name": "sc003-sc005-native",
+      "run_id": 37400152094,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:08Z",
+      "completed_at": null,
+      "runner_id": 1000043954,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 6,
+          "name": "Execute the actual service owners after disposable clean replay"
+        }
+      ]
+    },
+    {
+      "id": 112065289917,
+      "name": "sc071-native",
+      "run_id": 37400152029,
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-06T01:38:07Z",
+      "completed_at": null,
+      "runner_id": 1000043953,
+      "failed_steps": [],
+      "active_steps": [
+        {
+          "number": 7,
+          "name": "Run bounded export races on a pinned canonical BASE stack"
+        }
+      ]
+    },
+    {
+      "id": 112065288802,
+      "name": "tenant-integrity-regression",
+      "run_id": 37400151750,
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-06T01:38:07Z",
+      "completed_at": "2026-10-06T01:38:17Z",
+      "runner_id": 1000043949,
+      "failed_steps": [],
+      "active_steps": []
+    }
+  ],
+  "counts_at_latest_poll": {
+    "applicable_names": 12,
+    "created_jobs": 11,
+    "success": 3,
+    "failure": 1,
+    "in_progress": 7,
+    "pending_names": [
+      "pr-certificate"
+    ],
+    "cancelled": 0
+  },
+  "historical_c1f_seal_preserved": {
+    "path": "/workspace/agent-review-checkpoints/pr614-c1f-historical-superseded-observer-lease-seal-20261006-0130.json",
+    "sha256": "053bb90e683367ce5cbcfd60d23b4176f6467ee1ed94fb7ebcf53a73097195c4",
+    "unchanged": true,
+    "success_or_failure_cause_transfer": false
+  },
+  "limits": [
+    "Current c3c7 verify job/check genuinely terminal FAILURE. The containing OPS workflow and other jobs may remain running and are not relabeled terminal.",
+    "Equal actual failed-step start/end timestamps are preserved without inventing duration or cause.",
+    "No source/full-native/CODE_VERIFIED qualification follows from other green feedback metadata; original594 owner retains source/pin/input scope.",
+    "Configured protection UNKNOWN403, not inferred from observed contexts. Root alone owns diagnostics/native artifacts/capture.",
+    "No capture, DOC613, other PR/main/global reads, logs, artifacts, annotation causes, source edits/review, local/native execution, retries, cancellation, dispatch or merge."
+  ]
+}

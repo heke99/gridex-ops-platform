@@ -1,0 +1,120 @@
+{
+  "scope": "Actual c3c7 mandatory security RED; existing dependency repair only, no new Masterplan work",
+  "source_head": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+  "run_id": 37400151868,
+  "run_attempt": 1,
+  "job_id": 112065383334,
+  "failed_step": {
+    "number": 32,
+    "name": "Run npm run security:audit-production",
+    "conclusion": "failure"
+  },
+  "actual_ci_excerpt": "dependency audit: documented exception applied: node-forge (GHSA-86w9-cpqp-85rv); production vulnerabilities at or above high (info=0 low=0 moderate=0 high=1 critical=0)",
+  "local_npm_audit_exit": 1,
+  "authentic_local_audit_sha256": "dee51fffad6b98182f8ed8e34253940f5b59ab537aed9b139b217bb07798c870",
+  "authentic_local_audit_path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-authentic-production-npm-audit-before-source-map-fix.json",
+  "actual_local_vulnerabilities": {
+    "next": {
+      "name": "next",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "postcss"
+      ],
+      "effects": [],
+      "range": "",
+      "nodes": [
+        "node_modules/next"
+      ],
+      "fixAvailable": false
+    },
+    "node-forge": {
+      "name": "node-forge",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        {
+          "source": 1240912,
+          "name": "node-forge",
+          "dependency": "node-forge",
+          "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+          "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+          "severity": "high",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+          },
+          "range": "<=1.4.0"
+        }
+      ],
+      "effects": [],
+      "range": "",
+      "nodes": [
+        "node_modules/node-forge"
+      ],
+      "fixAvailable": false
+    },
+    "postcss": {
+      "name": "postcss",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "source-map-js"
+      ],
+      "effects": [
+        "next"
+      ],
+      "range": "",
+      "nodes": [
+        "node_modules/postcss"
+      ],
+      "fixAvailable": false
+    },
+    "source-map-js": {
+      "name": "source-map-js",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1241209,
+          "name": "source-map-js",
+          "dependency": "source-map-js",
+          "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+          "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+          "severity": "high",
+          "cwe": [
+            "CWE-1284"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=1.0.0 <1.2.2"
+        }
+      ],
+      "effects": [
+        "postcss"
+      ],
+      "range": "",
+      "nodes": [
+        "node_modules/source-map-js"
+      ],
+      "fixAvailable": false
+    }
+  },
+  "registry_fixed_version_authenticated": {
+    "package": "source-map-js",
+    "version": "1.2.2",
+    "integrity": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw=="
+  },
+  "disposition": "Minimal source-map-js1.2.2 override/lock exclusively assigned to original guardian; root independent review required. No new audit exception or changed production gate.",
+  "not_claimed": [
+    "current successor CI PASS",
+    "native/schema/parity PASS",
+    "actual main adoption",
+    "new Masterplan rule approval"
+  ]
+}

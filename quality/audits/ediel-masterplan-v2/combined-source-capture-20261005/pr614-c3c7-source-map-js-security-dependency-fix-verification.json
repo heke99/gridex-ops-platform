@@ -1,0 +1,422 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-10-06T01:58:11.365101+00:00",
+  "verdict": "READY_DEPENDENCY_ONLY_SOURCE_MAP_JS_1_2_2_LOCAL_SECURITY_GATE_AND_AFFECTED_CONTROLS_CURRENT_HEAD_CI_PENDING",
+  "scope": {
+    "pr": 614,
+    "operator": "/root/pr612_five_component_publication_guard",
+    "publication_owner": "/root",
+    "public_claim_comment": 6007642597,
+    "existing_work_only": true,
+    "base_head": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+    "source_owned_paths": [
+      "package.json",
+      "package-lock.json"
+    ],
+    "documentation_owned_paths": [
+      ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-security-dependency-fix-verification.json"
+    ],
+    "root_concurrent_own_audits": [
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-duplicate-capture-skip-guard.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-security-audit-failure-diagnosis.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-authentic-production-npm-audit-before-source-map-fix.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-first-genuine-security-audit-failure-20261006-0141.json",
+      "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-historical-superseded-observer-lease-seal-20261006-0153.json"
+    ],
+    "commit_push_merge_performed": false
+  },
+  "cause": {
+    "actual_job": 112065383334,
+    "actual_run": 37400151868,
+    "attempt": 1,
+    "advisory": "GHSA-68fv-2mgg-jv7q",
+    "affected_range": ">=1.0.0 <1.2.2",
+    "actual_before_version": "1.2.1",
+    "before_audit": {
+      "path": "/workspace/agent-review-checkpoints/pr614-c3c7-current-production-npm-audit.json",
+      "bytes": 2587,
+      "sha256": "dee51fffad6b98182f8ed8e34253940f5b59ab537aed9b139b217bb07798c870"
+    },
+    "security_job_result": "FAILURE",
+    "old_head_success_not_transferred": true
+  },
+  "minimal_change": {
+    "package_json": {
+      "path": "/workspace/gridex-combined-source-capture/package.json",
+      "bytes": 40793,
+      "sha256": "51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de"
+    },
+    "package_lock_json": {
+      "path": "/workspace/gridex-combined-source-capture/package-lock.json",
+      "bytes": 290422,
+      "sha256": "de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b"
+    },
+    "override_added": {
+      "source-map-js": "1.2.2"
+    },
+    "other_package_fields_and_overrides_byte_exact": true,
+    "old_lock_tuple": {
+      "version": "1.2.1",
+      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
+      "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
+      "license": "BSD-3-Clause",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "new_lock_tuple": {
+      "version": "1.2.2",
+      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
+      "integrity": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==",
+      "license": "BSD-3-Clause",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "changed_lock_fields": [
+      "version",
+      "resolved",
+      "integrity"
+    ],
+    "every_other_lock_byte_exact": true,
+    "solver_unrelated_fsevents_optional_metadata_discarded": true,
+    "repository_tracked_delta_before_own_docs": [
+      "package-lock.json",
+      "package.json"
+    ],
+    "git_diff_check_exit": 0,
+    "protected_gate_and_exception_files_exact": {
+      "scripts/gridex-production-dependency-audit.cjs": "0386bc905bc5fde5d5d4b8bf7550ed49a128a320861da9eb738a98133a9c870b",
+      "scripts/dependency-audit-exceptions.json": "8e3eddeed48f83ff32715ed5bdc14c20f8ff3c11eae934b6009bc052b4dac3e2"
+    }
+  },
+  "isolation": {
+    "lock_only_project": "/tmp/pr614-source-map-js-lock-nj30glvy",
+    "runtime_project": "/tmp/pr614-source-map-js-lock-nj30glvy/runtime",
+    "scripts_disabled_for_both_installations": true,
+    "project_node_modules_direct_symlink": "/workspace/gridex-next-canonical-source-regression-checks/node_modules",
+    "project_node_modules_transitive_target": "/workspace/gridex-masterplan-review-491/node_modules",
+    "shared_install_performed": false,
+    "isolated_pinned_runtime_dependencies": {
+      "postcss": "8.5.25",
+      "source-map-js": "1.2.2",
+      "nanoid": "3.3.18",
+      "picocolors": "1.1.1"
+    }
+  },
+  "registry_tarball_custody": {
+    "tarball": {
+      "path": "/tmp/pr614-source-map-js-lock-nj30glvy/source-map-js-1.2.2.tgz",
+      "bytes": 36349,
+      "sha256": "05c8cf8e7c3a6b56cada7668fe9342b10f4b625efc92aba9ba05b9e8fe4d71a3"
+    },
+    "authenticated_integrity": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==",
+    "actual_sha512_matches_authenticated_registry_and_lock": true,
+    "pack_metadata": {
+      "path": "/tmp/pr614-c3c7-source-map-pack.json",
+      "bytes": 2160,
+      "sha256": "6e951476ad4ef2a4214780a934ea0b897a7cb9b7edd256443f8600fbcfb1539e"
+    },
+    "all_18_package_files_byte_exact_installed": [
+      {
+        "path": "LICENSE",
+        "bytes": 1526,
+        "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+      },
+      {
+        "path": "lib/array-set.js",
+        "bytes": 3197,
+        "sha256": "163bb3055aaea7140167740036a83161fd912c344b14f992754b80f21477d754"
+      },
+      {
+        "path": "lib/base64-vlq.js",
+        "bytes": 4714,
+        "sha256": "f3407e528f54ec0787bd0a71eeac0c99fffd98445916fcbe116dc69ca3be928b"
+      },
+      {
+        "path": "lib/base64.js",
+        "bytes": 1540,
+        "sha256": "651bf433cf05e9ec8cee0b94639483236a605d48279e83d3d5c5de81c21d6599"
+      },
+      {
+        "path": "lib/binary-search.js",
+        "bytes": 4249,
+        "sha256": "c7f4a47a125af0bd860443dfd71d2f412d1a97dcb53ab7038189d63b91dc32bd"
+      },
+      {
+        "path": "lib/mapping-list.js",
+        "bytes": 2339,
+        "sha256": "35ddb82861f11a70ab84cb47d620fcb28d7f884bb444644e06bde815b836ef9e"
+      },
+      {
+        "path": "lib/quick-sort.js",
+        "bytes": 4244,
+        "sha256": "1e2857cc4f6c9c36b764ce529f39b9243bed27aed809e895d7cec04c8a869266"
+      },
+      {
+        "path": "lib/source-map-consumer.js",
+        "bytes": 43611,
+        "sha256": "9ad10db386da13c1f95e6a680d6298dbb306c77f57a9a3539e4595b723a7654b"
+      },
+      {
+        "path": "lib/source-map-generator.js",
+        "bytes": 15205,
+        "sha256": "07894c9ea1e674263e2e7694d43d4fb935e98549b93946205b9536c1420696c0"
+      },
+      {
+        "path": "source-map.js",
+        "bytes": 405,
+        "sha256": "dc098456c2d9ab90a4c0a17cca9be16665b9813df20906553a98b0088a157be7"
+      },
+      {
+        "path": "lib/source-node.js",
+        "bytes": 14180,
+        "sha256": "d1a0ef136bf0e974ba956506c88e91fef5d8681bbf10c486ff9566a7d6d76f3c"
+      },
+      {
+        "path": "lib/util.js",
+        "bytes": 15403,
+        "sha256": "0629f3ae2f3049cda3a2e87ea651dcf0cc71108f4681795ab989a8ac1573fc03"
+      },
+      {
+        "path": "package.json",
+        "bytes": 2548,
+        "sha256": "9f1ea63b1661d0f6e5fcd50b625d86cddd77de870a0019b23262360987b487f5"
+      },
+      {
+        "path": "README.md",
+        "bytes": 26040,
+        "sha256": "8e1a57daf01cd2fc8969ecd0afeae51d1c05c7c79e9413ea82016a0f65e97646"
+      },
+      {
+        "path": "lib/source-map-consumer.d.ts",
+        "bytes": 40,
+        "sha256": "2ca1c32e3bd72c64662adf034d97df8606ba1e1399cafc75567809ecff4bca95"
+      },
+      {
+        "path": "lib/source-map-generator.d.ts",
+        "bytes": 41,
+        "sha256": "11f9b1e28747ca9cf5f4f7d41a7f261ac98ecde6be7dc146824fa275ac1f169d"
+      },
+      {
+        "path": "source-map.d.ts",
+        "bytes": 3408,
+        "sha256": "402e5c534fb2b85fa771170595db3ac0dd532112c8fa44fc23f233bc6967488b"
+      },
+      {
+        "path": "lib/source-node.d.ts",
+        "bytes": 33,
+        "sha256": "e4a2e40e293158fb2ab29aadb9eaa6400c8d9be5851d45a95a76f9e2a4bb7c8b"
+      }
+    ]
+  },
+  "execution": {
+    "node_version": "v22.23.3",
+    "npm_version": "10.9.2",
+    "lock_update": {
+      "cwd": "/tmp/pr614-source-map-js-lock-nj30glvy",
+      "argv": [
+        "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/lib/node_modules/npm/bin/npm-cli.js",
+        "install",
+        "--package-lock-only",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--cache=/tmp/masterplan-491-npm-cache",
+        "--registry=https://registry.npmjs.org/"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/pr614-c3c7-source-map-lock-update.log",
+        "bytes": 21,
+        "sha256": "d000e112ea55195ba44a97c6b0caefdfdf8550d4083146d17f98f65a2a032b02"
+      }
+    },
+    "isolated_install": {
+      "cwd": "/tmp/pr614-source-map-js-lock-nj30glvy/runtime",
+      "argv": [
+        "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/lib/node_modules/npm/bin/npm-cli.js",
+        "install",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/pr614-c3c7-source-map-isolated-install.log",
+        "bytes": 27,
+        "sha256": "0f5ef4451997100576c4e77020913fd3017f88e0b43a4898572d126f265a6b17"
+      }
+    },
+    "actual_maintained_production_gate": {
+      "cwd": "/tmp/pr614-source-map-js-lock-nj30glvy",
+      "argv": [
+        "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+        "/workspace/gridex-combined-source-capture/scripts/gridex-production-dependency-audit.cjs"
+      ],
+      "exact_project_package_and_lock": true,
+      "exit_code": 0,
+      "stdout": "dependency audit: documented exception applied: node-forge (GHSA-86w9-cpqp-85rv)\nProduction dependency audit passed (info=0 low=0 moderate=0 high=0 critical=0).\n",
+      "log": {
+        "path": "/tmp/pr614-c3c7-source-map-fixed-production-gate.log",
+        "bytes": 161,
+        "sha256": "2c2ec7ce955f131b4b520eda194e78c2cd84fd8ae467b18b603637eb4f345ffe"
+      },
+      "exception": "Unchanged maintained node-forge GHSA-86w9-cpqp-85rv exception; no source-map-js exception added."
+    },
+    "affected_controls": {
+      "cwd": "/tmp/pr614-source-map-js-lock-nj30glvy/runtime",
+      "argv": [
+        "timeout",
+        "20s",
+        "/tmp/masterplan-491-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+        "verify-source-map-fix.cjs"
+      ],
+      "exit_code": 0,
+      "stdout": {
+        "path": "/tmp/pr614-c3c7-source-map-affected-controls.stdout",
+        "bytes": 2064,
+        "sha256": "5548308c45a4a12a281ae63285fec69a2135cef1c03b7e52fd510d93259c6de1"
+      },
+      "stderr": {
+        "path": "/tmp/pr614-c3c7-source-map-affected-controls.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "actual_results": {
+        "node": "v22.23.3",
+        "source_map_js": "1.2.2",
+        "postcss": "8.5.25",
+        "postcss_source_map_resolution": "/tmp/pr614-source-map-js-lock-nj30glvy/runtime/node_modules/source-map-js/source-map.js",
+        "isolated_root": "/tmp/pr614-source-map-js-lock-nj30glvy/runtime",
+        "controls_passed": 22,
+        "failed": 0,
+        "controls": [
+          {
+            "name": "reject-line-negative",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-line-fraction",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-line-nan",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-line-infinity",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-line-string",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-line-null",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-line-unsafe-integer",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-negative",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-fraction",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-nan",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-infinity",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-string",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-null",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-column-unsafe-integer",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-flat-line-amplification",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-nested-line-amplification",
+            "result": "PASS"
+          },
+          {
+            "name": "reject-out-of-order-sections",
+            "result": "PASS"
+          },
+          {
+            "name": "valid-basic-map-roundtrip",
+            "result": "PASS"
+          },
+          {
+            "name": "valid-indexed-map-consumer",
+            "result": "PASS"
+          },
+          {
+            "name": "postcss-transform-and-generated-map",
+            "result": "PASS"
+          },
+          {
+            "name": "postcss-valid-previous-map-integration",
+            "result": "PASS"
+          },
+          {
+            "name": "postcss-rejects-amplifying-indexed-previous-map",
+            "result": "PASS"
+          }
+        ]
+      },
+      "script": {
+        "path": "/tmp/pr614-source-map-js-lock-nj30glvy/runtime/verify-source-map-fix.cjs",
+        "bytes": 5226,
+        "sha256": "1a0c46b151c7bce2b60c2a52308da0879ad3925d936f180eae638adb6ea74690"
+      },
+      "portable_script_source": "const assert = require('node:assert/strict');\nconst { createRequire } = require('node:module');\nconst path = require('node:path');\nconst fs = require('node:fs');\nconst { SourceMapGenerator, SourceMapConsumer } = require('source-map-js');\nconst postcss = require('postcss');\nconst postcssRequire = createRequire(require.resolve('postcss'));\nconst sourceMapVersion = require('source-map-js/package.json').version;\nassert.equal(sourceMapVersion, '1.2.2');\nassert.equal(postcssRequire('source-map-js/package.json').version, '1.2.2');\nassert.equal(require('postcss/package.json').version, '8.5.25');\n\nconst generator = new SourceMapGenerator({ file: 'input.css' });\ngenerator.addMapping({ generated: { line: 1, column: 0 }, original: { line: 7, column: 2 }, source: 'input-original.css' });\ngenerator.setSourceContent('input-original.css', '\\n\\n\\n\\n\\n\\na { color: red; }');\nconst basicMap = generator.toJSON();\nconst indexed = (line, column, map = basicMap) => ({ version: 3, sections: [{ offset: { line, column }, map }] });\nconst results = [];\nfunction control(name, execute) {\n  execute();\n  results.push({ name, result: 'PASS' });\n}\n\nfor (const field of ['line', 'column']) {\n  for (const [label, value] of [['negative', -1], ['fraction', 0.5], ['nan', NaN], ['infinity', Infinity], ['string', '1'], ['null', null], ['unsafe-integer', Number.MAX_SAFE_INTEGER + 1]]) {\n    control(`reject-${field}-${label}`, () => {\n      assert.throws(() => new SourceMapConsumer(indexed(field === 'line' ? value : 0, field === 'column' ? value : 0)), /Section offset line and column must be non-negative integers\\./);\n    });\n  }\n}\ncontrol('reject-flat-line-amplification', () => assert.throws(() => new SourceMapConsumer(indexed(10000001, 0)), /Section offset line must not exceed 10000000\\./));\ncontrol('reject-nested-line-amplification', () => assert.throws(() => new SourceMapConsumer(indexed(6000000, 0, indexed(6000000, 0))), /including offsets of nested sections\\./));\ncontrol('reject-out-of-order-sections', () => assert.throws(() => new SourceMapConsumer({ version: 3, sections: [{ offset: { line: 2, column: 0 }, map: basicMap }, { offset: { line: 1, column: 0 }, map: basicMap }] }), /Section offsets must be ordered and non-overlapping\\./));\ncontrol('valid-basic-map-roundtrip', () => {\n  const consumer = new SourceMapConsumer(basicMap);\n  assert.deepEqual(consumer.originalPositionFor({ line: 1, column: 0 }), { source: 'input-original.css', line: 7, column: 2, name: null });\n  assert.equal(consumer.sourceContentFor('input-original.css'), '\\n\\n\\n\\n\\n\\na { color: red; }');\n  assert.deepEqual(new SourceMapConsumer(SourceMapGenerator.fromSourceMap(consumer).toJSON()).originalPositionFor({ line: 1, column: 0 }), consumer.originalPositionFor({ line: 1, column: 0 }));\n});\ncontrol('valid-indexed-map-consumer', () => {\n  const consumer = new SourceMapConsumer(indexed(2, 0));\n  const mappings = [];\n  consumer.eachMapping(mapping => mappings.push(mapping));\n  assert.equal(mappings.length, 1);\n  assert.equal(mappings[0].generatedLine, 3);\n  assert.equal(mappings[0].originalLine, 7);\n  assert.equal(mappings[0].source, 'input-original.css');\n  assert.deepEqual(consumer.originalPositionFor({ line: 3, column: 1 }), { source: 'input-original.css', line: 7, column: 2, name: null });\n});\n\nconst plugin = { postcssPlugin: 'pr614-affected-dependency-control', Declaration(decl) { if (decl.prop === 'color') decl.value = 'blue'; } };\ncontrol('postcss-transform-and-generated-map', () => {\n  const result = postcss([plugin]).process('a { color: red; }', { from: 'input.css', to: 'output.css', map: { inline: false, annotation: false } });\n  assert.equal(result.css, 'a { color: blue; }');\n  assert.ok(result.map);\n  const original = new SourceMapConsumer(result.map.toJSON()).originalPositionFor({ line: 1, column: 0 });\n  assert.equal(original.source, 'input.css');\n  assert.equal(original.line, 1);\n});\ncontrol('postcss-valid-previous-map-integration', () => {\n  const result = postcss([plugin]).process('a { color: red; }', { from: 'input.css', to: 'output.css', map: { inline: false, annotation: false, prev: basicMap } });\n  assert.equal(result.css, 'a { color: blue; }');\n  const original = new SourceMapConsumer(result.map.toJSON()).originalPositionFor({ line: 1, column: 0 });\n  assert.equal(original.source, 'input-original.css');\n  assert.equal(original.line, 7);\n  assert.equal(original.column, 2);\n});\ncontrol('postcss-rejects-amplifying-indexed-previous-map', () => {\n  assert.throws(() => postcss([plugin]).process('a { color: red; }', { from: 'input.css', to: 'output.css', map: { inline: false, annotation: false, prev: indexed(10000001, 0) } }).css, /Section offset line must not exceed 10000000\\./);\n});\n\nconst output = { node: process.version, source_map_js: sourceMapVersion, postcss: require('postcss/package.json').version, postcss_source_map_resolution: postcssRequire.resolve('source-map-js'), isolated_root: __dirname, controls_passed: results.length, failed: 0, controls: results };\nconst destination = path.join(__dirname, 'affected-controls-result.json');\nfs.writeFileSync(destination, JSON.stringify(output, null, 2) + '\\n', { flag: 'wx' });\nprocess.stdout.write(JSON.stringify(output, null, 2) + '\\n');\n"
+    },
+    "initial_additional_probe": {
+      "exit_code": 1,
+      "stderr": {
+        "path": "/tmp/pr614-c3c7-source-map-initial-probe.stderr",
+        "bytes": 1152,
+        "sha256": "4573e784058cb66f10b25307db84a44baa302a970504375d1b90dd2b88512591"
+      },
+      "cause": "Indexed SourceMapGenerator.fromSourceMap encounters TypeError reading undefined sourceRoot.replace on both old shared 1.2.1 and isolated 1.2.2. This optional flatten probe was outside the requested valid-map compatibility path; no package workaround introduced. Valid indexed consumer mapping and basic-map flatten roundtrip both pass.",
+      "read_only_old_version_control": {
+        "version": "1.2.1",
+        "actual_outcome": "TypeError: Cannot read properties of undefined (reading 'replace')"
+      },
+      "unrelated_upstream_fix_proposed": false
+    }
+  },
+  "preservation": {
+    "sql_generator_raw_capture_workflow_production_consumer_fixture_and_coverage_edits": false,
+    "original_1079_sql_and_raw3_left_unchanged": true,
+    "audit_gate_or_exception_edit": false,
+    "native_capture_ci_full_suite_rerun": false,
+    "current_new_head_ci_native_type_schema_clean_upgrade_parity": "PENDING",
+    "whole_plan_main_or_native_approval_claimed": false
+  },
+  "routing": {
+    "active_vulnerability_and_affected_runtime_diagnosis": true,
+    "broad_supply_chain_inventory_workflow": "Not applied: supply-chain-risk-auditor skill explicitly excludes active vulnerability scanning and runtime application analysis."
+  }
+}

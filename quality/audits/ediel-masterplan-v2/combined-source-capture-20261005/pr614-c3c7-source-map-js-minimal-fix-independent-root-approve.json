@@ -1,0 +1,36 @@
+{
+  "verdict": "APPROVE_MINIMAL_DEPENDENCY_REPAIR_SOURCE_ONLY",
+  "base_head": "c3c7a001dc1d4bd272d6127cacba935369d5f904",
+  "base_tree": "7cd147cd2efc4311fddb8ed87fad9aba8829e375",
+  "staged_tree_before_own_peer_receipt": "dea0f98c3df1034d5d1e6db2d2d5ed500f46c57d",
+  "changed_paths_before_own_peer_receipt": [
+    ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+    "package-lock.json",
+    "package.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-duplicate-capture-skip-guard.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-security-audit-failure-diagnosis.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-authentic-production-npm-audit-before-source-map-fix.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-first-genuine-security-audit-failure-20261006-0141.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-historical-superseded-observer-lease-seal-20261006-0153.json",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-security-dependency-fix-verification.json"
+  ],
+  "all_foreign_original_tuples_exact": true,
+  "foreign_tuple_count": 9139,
+  "package_override_only": "source-map-js1.2.2",
+  "lock_changed_package_tuples": [
+    "node_modules/source-map-js"
+  ],
+  "checkpoint_original_bytes_retained": true,
+  "postimage_sha256": {
+    ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md": "111c946639c7632b3663763686a01f1a84d0154d004776ea4ba47688a03313c5",
+    "package-lock.json": "de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b",
+    "package.json": "51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-duplicate-capture-skip-guard.json": "83c664bb7afb973ee63b0891538e4dbf786eb4043d1f88f57c806c2af11a09a1",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-actual-security-audit-failure-diagnosis.json": "75d367b0c8b1549ffaa1842c57b86dd77bb0d3d528eb3ddd9fb8c6e3bed5c58b",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-authentic-production-npm-audit-before-source-map-fix.json": "dee51fffad6b98182f8ed8e34253940f5b59ab537aed9b139b217bb07798c870",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-first-genuine-security-audit-failure-20261006-0141.json": "ef48c6077490e6138bc1f7b4b01e360604a317c0c96f69c3b3ea65445e90cf78",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-historical-superseded-observer-lease-seal-20261006-0153.json": "6e0fa83c09f31b56a1c833fae054e5e0d5f63a00b9f4f0d1cf40b092919c5418",
+    "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-c3c7-source-map-js-security-dependency-fix-verification.json": "f20b1e82850e7eaaa9766b97f595d73224904748c7fdf8e1520e44b3970ceedd"
+  },
+  "scope": "Independent actual package/lock whole-byte and entire foreign-tree custody review. Author isolated production audit/22 parser-PostCSS controls remain their measured scope. No repeated tests, no generator/SQL/rawcapture/coverage/production-consumer/audit-gate/exception/workflow change. Current new-head CI/native/schema/parity and actual main admission remain PENDING. Own peer receipt is the only additional metadata path after the reviewed staged tree."
+}

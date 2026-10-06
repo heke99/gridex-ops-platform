@@ -210,3 +210,30 @@ duplicateintake. Root owns neither thatCIobserver nor finalcommonbaseline.
 Solec1fmetadataobserverSTOP/ACK053bb90e at01:30:21 preserves8SUCCESS/2FAILURE/2NOT_TERMINAL, no retry/cancel/successtransfer. Authenticone119capture/raw3/fourNOT_RUN/35olderorigins unchanged; c1factualoptionalcaptureguard skippedsixsteps/0artifacts. Original594 exactexpandedproducer pair/source-onlydisposition5550cc retainedaspublicNOT_EXECUTEDproposal; realconsumerwhole-b83-input guard remainsfailclosed/currentfullCard scopeNOT_VERIFIED, noinventedadditionalCODEmergepredicate orbaseline=self.
 
 AlreadyqualifiedoriginalDOC613 normallymergedat01:27:28 asactualmain2c11a510/tree5735c960/parents53b3+edb viarootfinite6136007433146 freshguardf8574c24/originalall9fourattempt1proof/postcheckPASS, RELEASE5306007444268. All160originalreleasedDOCpostimagesONCE+twooriginaloperatorpaths/8697foreignsource/SQL1073/gen/workflow/wholecoverage exact;43priormarks preserved. Originaladopter retainsintake/sourceapproval/finalbaseline. Rootsolecommonmarkerwriter addsactual613ONCE as44thmarker/ledger onSAMECPPcontinuationc439, no duplicatepacket. Next: genuinelycarryactualDOCmain2c11 andONLYreleasedlatestCPP4metadata delta intoSAME614necessaryfixed-successor, preserveallforeignactualmain/source/1079/gen8/raw3/currentcode, publishONEnormalFF andqualifythatactualnewheadmandatoryordinary/native/type-schema/clean-upgrade/parity beforemain. No recapture/newMasterplanrule/pair/scout/sourcevehicle orcompetingobserver.
+
+2026-10-06 Existing PR614 security dependency closeout, public claim 6007642597:
+actual c3c7 verify job 112065383334 / run 37400151868 failed on source-map-js
+GHSA-68fv-2mgg-jv7q, affected >=1.0.0 <1.2.2. The assigned guardian added only
+source-map-js 1.2.2 to the existing overrides and changed only that lock tuple's
+version/resolved/integrity; all other package/lock bytes remain exact. Unrelated
+optional fsevents metadata from npm's lock solver was discarded. Package SHA
+51fb820a7f765c0fb3a383bb367c802d76f53a8cea79759f0ea3704fd552a2de, lock SHA
+de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b.
+Node 22.23.3 isolated lock-only and four-package runtime installations used
+disabled lifecycle scripts; shared node_modules was never installed or modified.
+The 36,349-byte registry tarball matches the authenticated SHA512 integrity and
+all 18 installed package files. The actual maintained production audit gate
+passed exit 0 with zero unexcepted findings and the unchanged documented
+node-forge exception. All 22 affected controls passed: malformed offsets,
+flat/nested amplification, ordering, valid maps, real PostCSS 8.5.25 transformation,
+prior-map provenance, and PostCSS rejection. One optional indexed flatten probe
+exposed the identical existing sourceRoot TypeError on both 1.2.1 and 1.2.2;
+valid indexed consumption passes and no unrelated upstream workaround was added.
+Immutable outside receipt and byte-exact own audit copy SHA
+f20b1e82850e7eaaa9766b97f595d73224904748c7fdf8e1520e44b3970ceedd document
+commands, actual results, controls, provenance, and the narrow ownership scope.
+No SQL/generator/raw capture/workflow/production consumer/fixture/coverage edit,
+recapture, full-suite repeat, CI observation, commit, push, or merge by this guardian.
+Root owns independent review and one same-PR successor publication; mandatory
+actual new-head ordinary/native/type-schema/clean-upgrade/parity remains pending.
+Local dependency verification does not establish current-head CI, main, or whole-plan approval.
