@@ -16,8 +16,8 @@ foreign locked repairPR62039a0 has8 applicable SUCCESS, clean/certificate
 RUNNING, not main. Wholecoverage main278/352; ownreviewedcandidate280/352.
 OnlySC064/LKrowsapproved afterwholeactualproof. Authentic market/legal agreement/activation separate.
 Own13refs b57d220a/266aa5f7/bcf48437/a8a59928 active; unused RD released.
-No own role. Legitimate memory role24fa8502b8/fde4a57d confirmed, previous
-6f0a owner cleanup actuallydone; hand over concise625/626 facts for mirror.
+Own memoryrole8e60d8978a5462a477793922a3eece5d4d84b10a held; no mergerole.
+Previous24fa/fde4a owner exactDELETE/4046020927719 read; newCLAIM beforeedits.
 Next this agent: consume actual
 qualified main620 repair then fresh affected runtime/install/audit/native/CI;
 finish whole-contract review, owncoverage/proof and expected-head gatedmerge.
@@ -734,3 +734,23 @@ foreign62039a repairstillclean/certificateRUNNING, notmain. Nextthisowner
 consumeactualqualifiedmainrepair thenfreshGOV04/own40/install/audit/native/
 mandatoryexactheadgates; finalcurrentintegrationreview/expectedheadmerge.
 Currentrole24fa/fde4a physicallyheld, commonmirror via530; no newpair.
+
+## CLAIM common memory role — before edits
+
+Previouswriter explicitRELEASE actualDELETE/GET4045306020927719 read,
+newremote matchingrole list empty. OwnPOST+GET confirmed memoryrole
+receipt8e60d8978a5462a477793922a3eece5d4d84b10a, packetd6c71709-d963-4175-a133-98282215575f, basec05625 unchanged. Sourcebranchcodex/ediel-memory-95bc00df11da andisolatedworktree/workspace/gridex-ediel-95bc00df11da-common created.
+Exactscope6sharedfiles:current-state/current-task/checkpoint/handover/
+open-blockers/masterplan-status-20261006 under.agent-memory. No newrulepair,
+no foreignsource/ID/filelock taken, own13packetrefs unchanged.
+
+Reuse reviewedreleasedPR631 e82ae6d09fcb9576051fea826dd2b7dc64d2cdd9
+common6file proposal; do not copy itsforeignuniquecheckpoint or resume
+foreignPR. Valid actualmerge618/619/622/623/624/625 receipts preserved,
+625uniquehandoverline reusedonce. Refresh own626916 whole67dSC4/LK24
+green andcandidate280 separate actualmain278; foreign620repairstillpending
+clean/cert/notmain; authfailhistorical/rolesreleased factual. Preserveall
+foreign/history/legacyHOLD, update onlyfactualsnapshot notcodeapproval.
+Nextthissession CLAIM530beforecommonedits, refreshall6preimages+latest
+PRheads/main, boundedreconcile/review/JSON/diff, publishowncommonproposal
+orconcretehandover; no waitingformergerolewhilememoryroleheld.
