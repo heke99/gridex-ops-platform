@@ -149,6 +149,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
  const f=await seed(),a=await qualify(f);ackRoute(f)
  const ended=await receive(f,z15(f,a,false),'PRODAT','Z15','PRODAT:Z15:V:26.A:r3');await process(f,ended)
  const before=market(f,a.permissionId);expect(before.permission.status).toBe('ended')
+ const processingFailures:string[]=[]
  for(const field of permissionRequiredFields){
   if(field==='202'){
    // A physical message without BGM code has no selectable guide. The actual
@@ -195,18 +196,34 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    })
    expect(refused.data).toBeNull()
    expect(refused.error?.message).toBe('prodat_full_object_physical_scope_required')
+   const {events:rpcDiagnosticEvents,...rpcEffects}=f.effects();void rpcDiagnosticEvents
+   expect(rpcEffects).toEqual(protectedEffects)
    await expect(process(f,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
+   // Syntax is valid: its sole technical CONTRL may precede the APP ledger
+   // refusal. Prove that exact source-bound ACK, never treat it as permission
+   // execution or a positive APERAK, and account for only its own effects.
+   const technical=sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object('acks',(SELECT coalesce(jsonb_agg(to_jsonb(a)),'[]') FROM public.ediel_messages a WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND direction='outbound'),'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o)),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
+   expect(technical.acks).toHaveLength(1);expect(technical.outbox).toHaveLength(1)
+   expect(technical.acks[0]).toMatchObject({message_family:'CONTRL',ack_outcome:'positive',company_id:f.ids.company,environment:'test',related_message_id:source.id})
+   expect(validateEdifactEnvelope(technical.acks[0].raw_payload!).syntaxOk).toBe(true)
+   const correlation=readPhysicalAckSourceCorrelation(technical.acks[0],source)
+   expect(correlation.classification.outcome).toBe('positive')
+   expect(correlation.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(source.raw_payload!).interchangeReference])
+   expect(technical.outbox[0]).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,ediel_message_id:technical.acks[0].id,message_family:'CONTRL',ack_outcome:'positive'})
    const {events:updatedDiagnosticEvents,...actualEffects}=f.effects();void updatedDiagnosticEvents
-   expect(actualEffects).toEqual(protectedEffects)
+   expect(actualEffects).toEqual({...protectedEffects,messages:protectedEffects.messages+1,acks:protectedEffects.acks+1,creationReceipts:protectedEffects.creationReceipts+1,namespace:protectedEffects.namespace+1,outbox:protectedEffects.outbox+1})
    expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
    expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
   }else{
-   await process(f,source).catch(error=>{throw new Error(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`,{cause:error})})
+   // Preserve failure for every ordinary processing path, while exercising
+   // each independent omission before reporting the complete failing set.
+   await process(f,source).catch(error=>{processingFailures.push(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`)})
   }
   expect(market(f,a.permissionId),field).toEqual(before)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
  }
  expect(z18Count(f)).toBe(0)
+ expect(processingFailures).toEqual([])
 })
 
 it('actual Z15C consumer refuses foreign tenant/actor selectors and native source raw/direction mutation before restoring the unchanged qualified original',async()=>{
