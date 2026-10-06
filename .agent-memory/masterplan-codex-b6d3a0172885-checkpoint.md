@@ -48,3 +48,23 @@ register byte-identical to base. Authenticated637 mandatory10SUCCESS and641
 applicable8SUCCESS retained at original sources, not borrowed for this PR.
 Next: independent review of committed docs; own current mandatory CI before
 merge, then eligible AT-P01 singleton feasibility/reservation.
+
+## Publication / review
+
+Exact source `72fa9396998817a188f9edd03a480978ebaf9a75`, PR645
+https://github.com/heke99/gridex-ops-platform/pull/645.
+Independent exact-diff APPROVE is posted as attributed peer review5435329809;
+READY5306026765480. Seven mandatory source checks were actually QUEUED on
+latest observation; no CI_GREEN or merge. Own memory11refs remain963c97.
+SupportedNode22.23.3 dependencies installed; initial npm exec withoutnetwork
+permission stalled before tests and was cancelled (not test RED). Direct
+installedNode22 baseline4existing suites now executing; no technical code
+change before newclaim. AT-P01 is the only qualified new singleton in the
+independent screen; its facit110 numericD is distinct from10parentD/runtime120.
+H05/H08 unclaimed but publicfirstbirth lacks subtype/profile witness; existing
+binder requires exact1 family/code/date candidate, Z05H/L enabledsiblings
+create ambiguity before reception/ACK. Updater belongs93e35c0; coordination
+needed, no synthetic/foreignsource bypass. Other ownership/dependencies are
+recorded in peer review and #530; no blanket allremainingowned assertion.
+Next owner=thissession qualify645 current gates or record concretequeue
+blocker/release before continuing AT-P01 claim/proof on a separate branch.
