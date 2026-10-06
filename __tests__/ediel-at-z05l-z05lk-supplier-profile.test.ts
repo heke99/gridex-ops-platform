@@ -24,6 +24,7 @@ import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdiel
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { decideProdatLifecycle } from '@/lib/ediel/stateMachines/prodatLifecycle'
 import { applyInboundBusinessStateMachine } from '@/lib/ediel/flows/inboundBusinessStateMachine'
+import { applySupplyMarketSource } from '@/lib/ediel/flows/supplyMarketTransition'
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const own = { company: id(1), actor: id(2), message: id(3), period: id(4), customer: id(5), point: id(6),
@@ -181,12 +182,39 @@ describe.each(profiles)('AT-Z05 $subtype supplier ($reason)', profile => {
       partition: [{ object: { messageIndex: 0, messageReference: '1', objectId: CLOSURE_OBJECT, identityAgency: '9',
         registers: [{ lineIndex: 0, segmentIndex, lineNumber: '1', registerIndex: null, registerPosition: 1 }] },
       disposition: 'applied', effectReceiptId: id(44), effectFactsHash: 'a'.repeat(64) }] }, error: null })
-    const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
+    const committedSupplyResult = await applySupplyMarketSource({ actorUserId: own.actor, message: row })
+    const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row, committedSupplyResult })
     expect(cases()).toEqual([])
     expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false, updated: ['customer_supply_periods'] })
     expect(db.calls).toEqual([])
     expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1', {
       p_company_id: own.company, p_source_message_id: own.message, p_actor_user_id: own.actor })
+    assertOnlyEndTasks()
+  })
+
+  it('direct native closure creates its scoped final task and replay preserves that task', async () => {
+    const row = message(profile), segmentIndex = tokenizeEdifact(row.raw_payload!).segments.findIndex(segment => segment.tag === 'LIN')
+    const receipt = { applied: true, idempotent: false,
+      periods: [{ id: own.period, status: 'ending' }], effectReceiptIds: [id(44)],
+      partition: [{ object: { messageIndex: 0, messageReference: '1', objectId: CLOSURE_OBJECT, identityAgency: '9',
+        registers: [{ lineIndex: 0, segmentIndex, lineNumber: '1', registerIndex: null, registerPosition: 1 }] },
+        disposition: 'applied', effectReceiptId: id(44), effectFactsHash: 'a'.repeat(64) }] }
+    io.rpc.mockResolvedValue({ data: receipt, error: null })
+    const before = structuredClone(tables.customer_supply_periods)
+    const result = await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
+    expect(result).toMatchObject({ outcome: 'supply_terminated', reviewRequired: false,
+      updated: ['customer_supply_periods', 'customer_cases'] })
+    expect(cases()).toHaveLength(1)
+    expect(cases()[0]).toMatchObject({ company_id: own.company, customer_id: own.customer,
+      metering_point_id: own.point, reason_category: 'final_metering_and_billing',
+      metadata: { source_ediel_message_id: own.message } })
+    expect(tables.customer_supply_periods).toEqual(before)
+    assertOnlyEndTasks()
+    const after = structuredClone(tables)
+    io.rpc.mockResolvedValue({ data: { ...receipt, idempotent: true }, error: null })
+    await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: row })
+    expect(tables).toEqual(after)
+    expect(cases()).toHaveLength(1)
     assertOnlyEndTasks()
   })
 
