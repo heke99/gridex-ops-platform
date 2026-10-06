@@ -1,3 +1,9 @@
+## VERIFIED NARROW RELEASE — 2026-10-06 20:18:14 UTC
+
+After checkpoint3ca2c0fa and #5306024652995, BOTH8bbc normal-selector file refs actually GETmatched/DELETE/GET404. Onlythese2filesreleased; remaining12rootresources/IDs retained, activepair unchanged. Public635f88 and standalone4dd2source remain frozen;93e mayfreshlyclaim releasedpaths before byteexactcopy/commonintegration. Root state /tmp/gridex-c3ae-z03-session.json marks thisextensionreleased; subsequentownershipchecks skip it, neverdeleteforeignreplacement. Native current3365-inputrun37524840896 QUEUED; ordinaryOPS37524840701 plusbrowser/targeted/fullqueued. Full local28641 stillrunning; only RUNbannerobserved, no count/exitclaimed. Nextthisroot terminalfull andactualcurrentnativequalification;sourceowner93e boundedACKfix8f0reviewed142PASS/fullrunning, oldfaa4native21=20PASS1genericfreshsourcefailuredistinct; rootdoesnotborrowownerbranchgreen. WholeL/LK NOT_APPROVED.
+
+---
+
 ## RELEASE NARROW SELECTOR FILE HANDOFF — 2026-10-06 20:16 UTC
 
 Same AT-Z03L-SUPPLIER/AT-Z03LK-SUPPLIER onlypair. Explicit RELEASE ONLY two8bbc normal-selector file resources to93e integration owner; exact source4dd2d47f681a2cf48b426fdf562772dec1383b03 publicly containedinPR635f88/tree24f2. Ownnormalmodule2c5/unitfed3 independentlyboundedAUTHORING APPROVE; actual35TDDRED→GREEN+187regressions/types/lint. API resolveNormalSwitchBirthProfile({rawPayload,receivedAt}) returns sixcatalogwitness fields ornull; actualcatalog/clock/association errors propagate. No native/admission/business/whole approval from standalonecode.
