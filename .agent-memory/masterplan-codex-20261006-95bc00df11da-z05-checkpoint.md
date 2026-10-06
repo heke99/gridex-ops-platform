@@ -916,3 +916,28 @@ Same95bc12resources/sourcefreeze/no nextpair/newrole/CI_GREEN/MERGED/external.
 Next95bc qualify currentfinal39/ALL9284Gitinputs and ALL mandatory terminal
 checks, request final execution receipt review, then freshfreeatomicmerge role
 and expectedheadnormalmerge/actualmain/tree/covreceipt before release.
+
+## Authentic finalc726 native39 PASS / all9284 original inputs qualified
+
+Actual officialrun37537559580/job112522328624 attempt1 completedSUCCESS.
+Artifact11447952886 ZIP452380 bytes SHA
+d769307560af084f994e50d31b42578be289548bdf2bb69d321fac3b428c0bd1;
+API/headc726/tree059eac1b8d9c9b75168843877b05bdae6a7d8fcb/digest/size/
+CRC/exact3files/ALL9284originaltrackedGitblobhashes/required32subset qualified.
+OriginalJUnit39PASS=own15+retainedLK4+H20,0FAIL/ERROR/SKIP/nativeexit0;
+actual own125.398351401s/LK23.639803644s/H115.509668383s. No private
+acceptancefacts injected; physicalACK/currentcustody/correlation/end/followup/
+immutableglobalgraphs/replay assertions allreached. Originalprior9a official
+ZIP remains permanentbyteexact sourceproof; finalsource notedited toembed its
+newrun andcauseanotherCIcycle. Finalqualifiedreport/tmp/gridex-z05-c7267a5c-
+qualification.json andredacted originals preserved; no externalcredit.
+Both independent current-execution reviews requested; finalsource c726already
+bothapproved. Currentcoverage/upgrade/verify/smoke/LK/targeted/browser/hold/Z05
+SUCCESS, clean/quality/certificate pending. NoCI_GREEN/merge yet.
+Readonly normalmerge preview onto actualmainfd4a6a06 tree
+a9b7044bd0dbd0b8958599c2ecba6b766d3c71dc clean; ALL350foreignrows/order/
+metadata preserved, onlyown2promoted, preview115rules+177contracts=292/352.
+Mainactual290 distinct. Same12reservations/frozenhead/no role/nextpair.
+Next95bc collect finalcurrentexecution reviews andallmandatorycurrenthead
+terminalSUCCESS, refreshmain/claims/preview thenfreeatomicmerge role and
+expectedheadnormalmerge, actualmainreceipt beforematchedrole releasefirst.
