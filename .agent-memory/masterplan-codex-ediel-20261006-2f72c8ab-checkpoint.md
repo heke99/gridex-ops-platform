@@ -1,6 +1,6 @@
 # codex-ediel-20261006-2f72c8ab checkpoint
 
-Status: RESERVED_CONFIRMED. No implementation changes.
+Status: COMPONENT_MERGED; whole A/D BLOCKED_REMAINDER; current reservation release unresolved.
 
 {
   "protocol": "masterplan-reservation-v1",
@@ -140,3 +140,28 @@ Merged only16 bounded consumer assertions and earlier own checkpoint. Whole A/D 
 Next this same owner: reconcile actualcomponent receipt under separately acquired memoryrole preserving foreign623 and other active621/TEN/native progress; then continue exact source/ground fixture/native birth/effect/ACK obligations or publish explicit blocked handover with precise responsible owners before release/next eligibility. Never use historicalrole blocker nowcleared.
 
 Preceding actual mainc6f2223f is PR623 (C03/C05 component); the fetched base delta is its two tests and own checkpoint. Both actual619 parents/tree above are exact. All broad current source/SQL/coverage bytes remain unchanged; no new production dependency.
+
+## 2026-10-06 15:26:24 UTC — BLOCKED_REMAINDER / COMPONENT_MERGED
+
+Fresh connector reads confirm PR619 CLOSED/MERGED at main6e2e8df4f8545775e0ed4d7176ba6cd13202f39b, reviewed sourced4c31a54472b371da09ee5f6f8d29e4917c7e4a5. All nine exact-head mandatory/applicable checks remain SUCCESS; skipped staging/full/nightly checks are not credited. Earlier executed full local suite883files/11835tests PASS and bounded independent16-case APPROVE remain the component evidence. No new test execution, native PASS or market acceptance claimed in this resumption.
+
+Latest authenticated main is d73f87dd5449e747b86d0f1b814ceb799603819b (#624 after619/622). Read current ordered memory, reservations protocol, legacy register, coverage, six open PRs620/621/625/626/627/628 and latest530 through6019451431. Coverage unchanged111/121 VERIFIED+167/231 PASSED=278/352; own whole A/D remain NOT_EXECUTED. Current memory role6f0a7aaee436600f79a26c9bd2d24088eba023f8 belongs to c3ae; its PR627 queues shared receipts including619. Current merge role absent; historical merge/memory roles have been properly released. No old role blocker is reused.
+
+New actual blocker: git fetch cannot authenticate; gh api530 and gh pr list return HTTP401 Bad credentials. Managed environment status reports current/enforced unrestricted networking, but secrets/runtime variables/outbound identities are empty. GitHub connector supports authenticated read/write for checkpoint/comments, and GET of Git Data refs, but its enabled write tools expose branch refs only: no create/delete reservation tag operation. Do not manufacture branch/path bypasses, replace injected credentials, or infer reservation/release success from failed calls.
+
+Authenticated matching-refs GET confirms exactly three own resources still point to e5a41b0f3091ffb229d4fb1a049d39eadc7ad365 (packet50073e9e-90c9-4da5-8b6f-e36a52eb1bbe):
+- file-1e7c2712ca301331be64d8f1a3a882447381afe59fb859f39a098336c8857258
+- id-AT-Z04A-SUPPLIER
+- id-AT-Z04D-SUPPLIER
+RELEASE_INTENT only: owner-only deletion/readback is BLOCKED_AUTH, not completed. No foreign ref changed and no new reservation attempted with an unsupported operation. Cannot start another pair before actual documented release/current acquisition.
+
+Independent permitted next step identified: new A-native test, include-only wrapper around existing native config, and supplemental workflow on three new own paths; reuse the unmodified ground/mail/reception producers. Existing ground fixture has an UNSENT prepared Z03, so it could prove absence of a usable sent correlation but not literal absence of every Z03 row. Full actual intake birth/profile admission and D's separate signed production point/qualified consumption/physical319 still need source-qualified evidence. This proposal is NOT_IMPLEMENTED/NOT_RUN: new path reservations cannot be created. No whole tags, coverage, shared config, producer/helper or production changes.
+
+Precise remaining owners/actions:
+1. Environment credential operator: restore supported authenticated Git Data POST/DELETE (or expose equivalent create-if-absent tag/delete-ref tools); no additional user allocation/permission is needed.
+2. This same session after restoration: refresh main/530/refs; either acquire exact three new paths and publish CLAIM/checkpoint before the A-native proposal, or publish final BLOCKED/RELEASE and GET/DELETE/404 only own e5 resources before fresh next-pair selection. Keep existing source/head preserved.
+3. Retained regulated-ground/normal-switch authors (request5306018824062): expose optional deferred-original/dynamic selector and genuine separate D production contract/consumption-period graph, preserving custody/signature defaults. Current inbound owner qualifies real createInboundEdielMessage birth/profile refusal candidate; it remains source-supported, not native-confirmed or a production fix.
+4. c3ae current memory writer: mirror actual619 receipt and this BLOCKED_AUTH/unreleased state under its existing role, preserve other progress and278/352.
+5. Local native environment operator: prescribed postgres17.6.1.155 image registration previously failed no-space; restore daemon capacity if local replay is required. GitHub native feedback remains a viable independent route after path locks are available.
+
+No new pair/implementation begins while these reservation operations remain unavailable. Existing review and CI for619 are complete; whole-contract proof and reservation release remain unresolved.
