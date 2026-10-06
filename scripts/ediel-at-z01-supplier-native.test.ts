@@ -254,7 +254,16 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     expect(revoked.documentAfter.status).toBe('archived'); expect(revoked.revokedPowerOfAttorney?.status).toBe('revoked')
     const before = customerState(f)
     vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', f.actorUserId)
-    await expect(originateZ01SupplierRequest(f)).rejects.toThrow(/authorization|fullmakt|scope|Fullmakt/)
+    await expect(originateZ01SupplierRequest(f)).rejects.toThrow('missing_power_of_attorney')
+    const blocked = sql<{id: string; status: string; blockerCode: string; operationId: string}[]>(`SELECT
+      coalesce(jsonb_agg(jsonb_build_object('id',id,'status',status,'blockerCode',blocker_code,'operationId',operation_id) ORDER BY id),'[]'::jsonb)
+      FROM public.customer_info_requests WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)} AND site_id=${literal(f.siteId)}`)
+    expect(blocked).toHaveLength(1)
+    expect(blocked[0]).toMatchObject({status: 'missing_authorization', blockerCode: 'missing_power_of_attorney'})
+    expect(blocked[0].operationId).toMatch(/^[a-f0-9-]{36}$/)
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_info_request_events
+      WHERE company_id=${literal(f.companyId)} AND customer_info_request_id=${literal(blocked[0].id)}
+      AND event_type='blocked_missing_authorization'`)).toBe(1)
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)).toBe(0)
     expect(external.send).not.toHaveBeenCalled(); expect(customerState(f)).toEqual(before)
   })
