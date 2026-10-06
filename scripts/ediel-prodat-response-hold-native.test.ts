@@ -173,7 +173,8 @@ it('normal processing records held M but preserves the exact own-application gua
  expect(validateEdifactEnvelope(ack.wire).ok).toBe(true)
  expect(readPhysicalAckSourceCorrelation({id:ack.id,company_id:f.companyId,environment:'test',direction:'outbound',message_family:'CONTRL',raw_payload:ack.wire},
   {id:id!,company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',raw_payload:wire}))
-  .toMatchObject({classification:{family:'CONTRL',outcome:'positive'},scope:'interchange',acknowledgedReferences:[reference]})
+  // Original T §2.1 p16 table2: UCI/0020 contains the first14 if UNB/0020 is longer.
+  .toMatchObject({classification:{family:'CONTRL',outcome:'positive'},scope:'interchange',acknowledgedReferences:[reference.slice(0,14)]})
  for(const queued of before.outbox)expect(queued).toMatchObject({message:ack.id,hash:createHash('sha256').update(ack.wire).digest('hex')})
  await expect(process()).rejects.toThrow(/^structural_apply_complete_own_application_required$/)
  expect(first()).toEqual(immutableAssessment);expect(state()).toEqual(before)
