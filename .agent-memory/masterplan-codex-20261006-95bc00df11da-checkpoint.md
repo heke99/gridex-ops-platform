@@ -356,3 +356,16 @@ implement isolated owned file, verify/review and publish small follow-up.
 main and reopened own draft; actual runs37484780579 native and37484780167OPS
 plus ordinary Ediel/browser/full queued.625 source/checks unchanged. Current
 main6e2e8df4 includes actual619/623 component deliveries, no own merge yet.
+
+## Smaller R/D authoring scope before code
+
+Read-only assembly review established two cases in already-owned original
+Z08LK test are sufficient; no second finite fixture. New reserved R/D file
+was never edited. Only its own a6cdc559 ref GET-confirmed/DELETE/404, explicit
+RELEASE530posted. Initialb57d220a IDs/originaltests and266aa5f native paths
+remain owned. Extend originalZ08 test on isolated R/D branch, actual kernel
+delegate plus protected decoder/source binding and real validator, finite auth/
+duplicate/native DTO ports. Re-encode envelope and register evidence from
+independent original facts before binding malformed candidate. Exact missing
+262 or activatedIV expectedrefusal and no original/queue/lifecycle effects.
+Next: edit only existing claimed test, targeted verify and independent review.
