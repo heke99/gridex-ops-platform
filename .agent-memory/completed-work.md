@@ -1,3 +1,30 @@
+## Delivered source and archive qualification — observed 2026-10-06T21:25:05.808507+00:00
+
+Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and
+the #639 archive. Its Git coverage bytes (c453d9ce5d2bca42fd243f7004772a3a6a17818eece37effc4bc14f0b313e934) derive
+113/121 VERIFIED rules + 173/231 PASSED contracts = **286/352**, with eight rules
+and 58 contracts remaining. Candidate PR rows are excluded from these counts.
+Resulting-main full CI/native and formal, counterparty or production approval
+are separate and have no new acceptance claim in this reconciliation.
+Earlier sections below retain their exact historical bytes; their old current,
+pause, counts and next-action labels do not override this dated observation.
+
+#639 merged at21:11:40Z into56e58b after all nine mandatory source-head
+checks and independent source/main-compatibility approval6025555445. The exact
+6,439-byte #631 e82 snapshot/SHA919fd864d129b0bae5f24b3acb1549548d4eb025af584b71e8a97cc2b8e1c679
+is retained as HISTORICAL_SUPERSEDED at
+quality/audits/ediel-masterplan-v2/retained-memory-631-20261006/masterplan-status-20261006.json.
+Original #631 was owner-closed unmerged at21:13:40Z with its branch preserved;
+639 is archival preservation, not a duplicate technical delivery or new code
+approval. Old307 memory/four-path and2f9 merge resources are confirmed404
+6025580806; a new role plus all nine exact file refs is required for this operation.
+
+621's two claimed ESCO contracts are PASSED on actual main with current source-head
+native/review/gates; its parent diagnostic custody and physical311/223/rejected
+scope changes are delivered. No other candidate approvals are added here.
+638 older efdb94 was executed and authenticated as2/92; this records verification
+of a failed observation, not completion of either Z01 contract.
+
 ## Autonomous packet selection — 2026-10-06T13:00:25.023661+00:00
 
 Owner requires identical prompts, self-selected eligible pairs, atomic ID/file

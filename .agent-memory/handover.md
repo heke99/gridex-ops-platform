@@ -1,3 +1,8 @@
+## Current actual handover — observed 2026-10-06T21:25:05.808507+00:00
+
+- ACTUAL MERGED PR #621: AT-Z15C-ESCO and AT-Z18V-ESCO delivered at `141339d78f0b058a18ced03da7af02a41712a378` on2026-10-06T20:45:09Z from09944ec7, with all16 applicable source-head gates, strictF3 and independently authenticated11 native cases green; stored113+173=286/352, all350 foreign rows preserved, receipt6025141806, all37 technical refs and merge role released6025238276; this does not certify resulting-main full CI or external acceptance.
+- ACTUAL MERGED PR #639: exact archive source589f delivered at `56e58b95518ec4d5eef210ba16ba46228afb40ac` on2026-10-06T21:11:40Z after nine mandatory source-head greens and independent main compatibility; #631's e82 bytes/SHA919fd retained as historical, original631 owner-closed unmerged/branch preserved, resources4046025580806, coverage286 unchanged.
+
 ## Actual bounded deliveries preserved with the retained #631 snapshot
 
 - ACTUAL MERGED PR #633: `b155d8b789988cb008c9711c23df729112f60f97`; exact source `60e33df3547081028554d7fc0055013f921d391f`; all ten mandatory source-head checks SUCCESS and independent bounded source/native review; authentic native 2 PASS / 0 FAIL with all 36 original input hashes qualified. Delivers held-response processor projection only; whole C/M remain unapproved, with no resulting-main full or external acceptance claim. Actual receipt6023282979; own seven resources and merge role owner-released6023358271.
