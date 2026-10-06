@@ -395,3 +395,17 @@ Independent final R/D review pending. Whole IDs/coverage unchanged.
 Next own author: publish reviewedR/D delta afteroriginal625delivery or as
 small linkedfollowup; finish original625clean/certificate and rolemerge,
 continue626actualqualification. Retained LK helper export still no handoff.
+
+## Combined small follow-up reviewed — source forthcoming push
+
+764ecae1 corrects only native seed pending->queued; independent scoped
+sc064 review APPROVE actual executed/retained queue contract. R/D57ca0255
+independent APPROVE plus32/32peerPASS. Cherry-picked R/D into native626
+followup, preserving reviewed blobs and original625head. Four paths/one active
+pair, no third delivery stack. Combined39componentPASS/diffPASS; prior static
+checks unchanged, complete current-head unit and mandatoryCI still required.
+Whole IDs unchanged; no native success yet. Next publish exactcombinedhead
+with actualpreceding4FAILreceipt and narrowedqueuedfix, inspectnewselectedCI,
+finishoriginal625merge whengreen, thenfullSCcriterion review/coverage only
+if all literal effects execute. Retained LK actualcorrelation/sealednegative
+source helper handoff unresolved. No newpair or sharedstatus edit withoutrole.
