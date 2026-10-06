@@ -306,3 +306,14 @@ Next95bc postRED530 BEFOREproductionedit, addsinglepartitionNULLcondition+
 comment toownedLegacy; exactunchanged42tests→GREEN, scopedregressions/types/lint
 thenownnative route/correlation/ordinary39/currentfeedback/frozenfullreview.
 Remote63694 unchanged/no borrowednativewhole/custody621stillforeignpending.
+
+## Local minimal projection GREEN / native corrections next
+
+OwnedLegacy only+partitionNULLcondition/comment, EXACTunchanged42tests now
+42PASS0error/skip exit0 onNode22 (old40+2newdelegationcases); original40/2RED
+preserved. Sourcecommit recorded530 aftercommit; no lookup orLegacytask for
+validatednonnullpartition, existingnullpartitiontaskscope unchanged. Next95bc
+authoralreadyreserved/reviewed ownnative route/correlation/ordinaryL39 and
+firstimmutabilityerror correction, actualnegativeACK523 preserved; source
+freeze/affectedregressions/all3types/lint/whole-review/native/currentCI next.
+No foreign621custodyedit/borrowedwholecoverage; remote636still94.
