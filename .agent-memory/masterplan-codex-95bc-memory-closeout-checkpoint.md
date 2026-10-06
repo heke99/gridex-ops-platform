@@ -69,3 +69,14 @@ Queued631exacte82JSON6439B/SHA919fd864 originalpreserved/tmp andactual633+634
 uniquehandover await nextsmallcommonmirror AFTERactual634delivery; no frozen
 sourcepush/resetCI. OwntechnicalZ05remote94/native38pending, retained24current94
 authenticPASS; local523negativeACKproofbothpeersAUTHORINGAPPROVE/unpublished.
+
+## CI_GREEN634 / immediate merge role confirmed BEFORE delivery
+
+Exactsource59f7f58c7f4d7784240e1f388cd6e117980e3f31 all8applicablemandatorySUCCESS/currentstatusesSUCCESS,
+independentfinalreview6023436667/metadataonly sourceclean; source-head qualification,
+notresultingmainfull/externalacceptance. Freshmainb155d8b789988cb008c9711c23df729112f60f97; exact
+reviewedpreviewtree0c3e371329b4d27878dec5cdd06d2cb7fc74d9e2 product+coverageunchanged. Atomic
+merge-role0dda0fd47459b25a0da7d60e584151ae7ddd01fe/packete6b22dd4-64b5-4a2f-a522-90abae75b609 POSTcreate-if-absent+
+doubleGET confirmed immediatelyfree, memorybe6GETmatched. Next95bc normal
+expected59merge NOW, actualAPI/main/tree/parents CP/#530 thenmatchedGETDELETE404
+mergerole thenmemory; no waitingforforeignrole orotheroperation.
