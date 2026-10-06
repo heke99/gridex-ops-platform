@@ -873,3 +873,64 @@ browser plus both nativeSUCCESS; cleanjob112397536907 running and certificate
 112404036922 queued. Skipped nonapplicablestaging/full/nightly never credited.
 Nextauthor finish exacthead ordinary gates and guarded merge; current memory
 writer c3ae/receipt ae4c3562 receives eventual actual626main/uniquehandover.
+
+## Read-only next-eligibility preflight; existing pair remains active
+
+Actualmainc038/282approved70remaining, all15legacyOPS/Web heads/HOLD/PAUSED
+register reviewed against actual delivered source; no archived wholesale import.
+Fresh board through6021930339 and all live receipt groups authenticated; own13
+held, no ownrole, foreign memoryae4c held. Current626sourceb109 unchanged:
+9applicable ordinary gates stillrequire clean/certificate; both selected native
+and7otherordinary green. Original CodeRabbit statusSUCCESS explicitly says
+review skipped/manual required; project mandatory independent whole SC/LK
+reviews are the actual review evidence (PR626comment6021748886), not an invented
+automatic-review approval.
+
+Remaining-rule original responsibility: IMP05/AT originalnext_rule_pair/root503
+5994654419/5994890751, correctedsource6003309124; independentwhole current
+CODE_APPROVE6021767495 ready but no ownapprovalhandoff. P08/AT/P01/Z09D
+separate production/consumption/source owners6018824062. TR08/AT realrelay
+543HOLD counterexample plus providertrace; TR09/AT unique545CRL/reserve and
+536allfamily integration, originalowner explicitretention5985441118. DB01/AT
+523 originalowner receives unmerged expand5999562870; retirement/reconciliation
+whole criteria remain. DB04/AT actual620sevenplans reusable but SLAview/current
+selectivity/native-result custody gaps6021659265; DB05/AT/SC070 original599
+implementationretained5997948717, realclosedtenant lawfulperclass proof/capture.
+OPS04/AT realcounterparty agreed controlledproperenvironment sequence absent;
+market/transport/counterparty owner must provide it, syntheticnotwholeproof.
+
+Remaining-contract original responsibility: SC014 original5986588668 intake
+qualifier;620genuine25-case inputqualified reuse scout6021930339 isnotapproval
+transfer. SC023/history originalenv02/ESCO07; SC071 originalrevocation-20261005
+accepted5991386261→5991584319, actual620canonical6+4wholeproof6021567202 ready,
+no pending-proof/coverage handoff to thissession. SC031/035/037/038/039 original
+Claude/#563 source/case/date/production/cancellation owners; explicit review-only
+5991247216/5992041282 and concrete cron/source/physical503 findings5992830290
+retain implementation. SC046/047/052/053/054 originalUTILTS/storage/native owners,
+legacy596olderE66contrast, realrequested503/window/NULL0/storageACKdeadline
+joins;620SC047reuse scout6021930339 retains5991899491/5994962256 coverageowner.
+L/LK01/02/03/05 retained590/593/595/601 originalsource/admission/ACK/nativejoins;
+L/LK04 genuineLKsourceproducer absent in priorL/Hqualified fixture. C03/C05
+released627 preserved physical217/freshsender/atomiccase source blockers;
+C04/M10 active24fa e069/acb179 now633 boundedheldresponse/nativeproof,628strict
+0PASS2FAIL retained. A04/D04 released630 strict14/10PASS4FAIL, genuinepositive
+readings/register facts, national210/wrongstartbasis/outboundinventory and D
+separateproducer remain namedsourceowner dependencies6021578044/6021930339.
+H03/04/05/08 originalHpublicmail/parserstart provenance/normalfixture owners.
+E06/E09 active93e/629 current3PASS7FAIL+ownedforwarddecoderrepair6021830179.
+F/G06/09 retained588/584 first-reception/defer-before-apply/306/ACK sourceowners;
+B09/D09 finite598consumerdelivery excludes production/native/ACKowner5997296939.
+V/VH13/14/15 original479/ClaudeESCO07/09/history source/native owners, exact
+firstapplication/eightcellrequestedcoverage closure proposal5995605329 explicitly
+PROPOSAL_ONLY/noownershiptransfer; sharedfixture/nativeconfig remainforeign.
+N14 original552/tr06 producer needspositiveprocessingACK despite negativebusiness.
+C15/V18 active621/bde063 current11PASS/authentic1082capture/wholeAPPROVE now
+qualified6021899820/6021927076, ownedrow/currentmandatorydelivery stillpending.
+SC064/LK08 are thissession's currentpair, wholeapproved/currentnativequalified,
+notactualmain yet. No nextpair reserved or code begun by thispreflight.
+
+Nextthisauthor: finish626exactcurrentheadclean/certificate then guardedactualmerge/
+documentation/release; onlythen refreshallabove againstnewactualcoverage/latest
+ownerhandoffs. Originalreadyproof owners can deliver or explicitly release bounded
+approvalscope; sourceblocked owners qualify namedactualproducers. Foreignlock
+absence or agent silence is never evidence of such release.
