@@ -175,7 +175,7 @@ jobs:
           # Source-bound, already-redacted summaries remain readable through
           # the first-party check API when archive storage is unavailable.
           python3 - <<'PY'
-          import hashlib,json,os,pathlib,xml.etree.ElementTree as ET
+          import hashlib,json,os,pathlib,re,xml.etree.ElementTree as ET
           work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
           receipt=json.loads((work/'receipt.json').read_text())
           frozen=json.loads((work/'frozen-source.json').read_text())
@@ -214,7 +214,11 @@ jobs:
           # diagnostics. A failed replay remains explicitly native NOT_RUN.
           if receipt['component_exit_code']!=0:
               diagnostic=work/'native.log' if (work/'native.log').exists() else work/'replay-failure.log'
-              if diagnostic.exists():notice('Gridex native diagnostic',{'stage':receipt['stage'],'excerpt':diagnostic.read_text(errors='replace')[-3500:]})
+              if diagnostic.exists():
+                  # GitHub rewrites ANSI escapes inside JSON annotations.
+                  # Remove presentation codes only; retain the redacted log.
+                  excerpt=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',diagnostic.read_text(errors='replace'))[-3500:]
+                  notice('Gridex native diagnostic',{'stage':receipt['stage'],'excerpt':excerpt})
           PY
           mv "$Z13_NATIVE_WORK" z13-request-ack-native-evidence
           if test -f z13-request-ack-native-evidence/native.log; then

@@ -18,7 +18,10 @@ import {getEdielMessageById} from '@/lib/ediel/db'
 import {renderContrl2Ediel2} from '@/lib/ediel/contrlEngine'
 import {renderAperakEdiel} from '@/lib/ediel/aperakEngine'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
-import {segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
@@ -30,6 +33,7 @@ afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
 async function request(mode:'V'|'VH'){
  const seeded=await seed(mode)
+ configureProspectiveAckRoute(seeded)
  let f=seeded
  const sentinel=sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)
  if(mode==='VH'){
@@ -69,6 +73,46 @@ async function request(mode:'V'|'VH'){
  return{f,p,checkSentinel}
 }
 
+// External configuration input only, supplied before archive/send/ACK birth.
+// The shared E66 profile remains unchanged; the protected route selector,
+// source authority, real draft persistence and outbox insertion still run.
+function configureProspectiveAckRoute(f:Fixture){
+ const profile=randomUUID(),smtp=edielSmtpConfig()
+ const images=(exclude?:string)=>sql(`SELECT jsonb_build_object(
+  'routes',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.communication_routes r WHERE company_id IN (${lit(f.ids.company)},${lit(f.ids.beneficiary)})),
+  'profiles',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.ediel_route_profiles p WHERE company_id IN (${lit(f.ids.company)},${lit(f.ids.beneficiary)})${exclude?` AND id<>${lit(exclude)}`:''}))`)
+ const before=images()
+ sql(`INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,
+  message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,
+  mailbox,smtp_host,smtp_port,smtp_to,receiver_email,message_family,business_code,
+  sender_subaddress,sender_sub_address,receiver_subaddress,receiver_sub_address,transport_profile_id)
+  SELECT ${lit(profile)},company_id,communication_route_id,'Synthetic Z13 technical CONTRL only',environment,
+  message_standard,payload_format,sender_ediel_id,receiver_ediel_id,${lit(f.app)},is_enabled,is_active,
+  mailbox,smtp_host,smtp_port,smtp_to,receiver_email,'CONTRL','CONTRL',
+  sender_subaddress,sender_sub_address,receiver_subaddress,receiver_sub_address,transport_profile_id
+  FROM public.ediel_route_profiles WHERE id=${lit(f.ids.ackProfile)} AND company_id=${lit(f.ids.company)}`)
+ expect(images(profile)).toEqual(before)
+ // These are actual configured candidates, not a fabricated route capability.
+ // The native selector must independently qualify this same unique input.
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.communication_routes r
+  JOIN public.ediel_route_profiles p ON p.communication_route_id=r.id AND p.company_id=r.company_id
+  LEFT JOIN public.ediel_transport_profiles tp ON tp.id=p.transport_profile_id AND tp.company_id=p.company_id AND tp.environment='test'
+  WHERE r.company_id=${lit(f.ids.company)} AND r.is_active AND r.route_scope='ediel_ack'
+  AND r.environment_type::text IN ('tgt_test','agt_test','bilateral_test')
+  AND p.environment='test' AND p.is_enabled AND p.is_active AND p.message_standard='edifact' AND p.payload_format='edifact'
+  AND (p.message_family IS NULL OR p.message_family='CONTRL') AND (p.business_code IS NULL OR p.business_code='CONTRL')
+  AND p.sender_ediel_id=${lit(f.sender)} AND p.receiver_ediel_id=${lit(f.receiver)}
+  AND coalesce(p.sender_subaddress,p.sender_sub_address,'')='' AND coalesce(p.receiver_subaddress,p.receiver_sub_address,'')=''
+  AND (p.sender_subaddress IS NULL OR p.sender_sub_address IS NULL OR p.sender_subaddress=p.sender_sub_address)
+  AND (p.receiver_subaddress IS NULL OR p.receiver_sub_address IS NULL OR p.receiver_subaddress=p.receiver_sub_address)
+  AND p.application_reference=${lit(f.app)} AND p.mailbox=${lit(smtp.from)}
+  AND r.target_email~'^[^[:space:]@<>]+@[^[:space:]@<>]+\\.[^[:space:]@<>]+$'
+  AND ((p.transport_profile_id IS NULL AND p.smtp_host=${lit(smtp.host)} AND p.smtp_port=${lit(smtp.port)})
+   OR(tp.id IS NOT NULL AND tp.is_active AND tp.transport_channel='smtp' AND tp.direction IN ('outbound','both')
+    AND tp.sender_email=${lit(smtp.from)} AND tp.host=${lit(smtp.host)} AND tp.port=${lit(smtp.port)}
+    AND (p.smtp_host IS NULL OR p.smtp_host=${lit(smtp.host)}) AND (p.smtp_port IS NULL OR p.smtp_port=${lit(smtp.port)}))))`)).toBe(1)
+}
+
 // Full row images, not count-only absence assertions. Journal/status deltas
 // live in ACK state; legal scope, foreign tenant, data and supply must not move.
 function business(f:Fixture,p:Pending){
@@ -76,7 +120,7 @@ function business(f:Fixture,p:Pending){
  const tables=['companies','customers','customer_sites','metering_points','ediel_service_assignments',
   'ediel_service_evidence','ediel_assignment_permission_links','ediel_data_access_grants',
   'customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values',
-  'metering_permission_sites','ediel_service_history']
+  'metering_permission_sites','ediel_service_history','communication_routes','ediel_route_profiles']
  const rows=tables.map(table=>`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.${table} r WHERE ${table==='companies'?'id':'company_id'} IN ${companies})`)
  return sql(`SELECT jsonb_build_object(${rows.join(',')},
   'permissions',(SELECT coalesce(jsonb_agg(CASE WHEN r.id=${lit(p.permissionId)} THEN to_jsonb(r)-ARRAY['status','updated_at','updated_by'] ELSE to_jsonb(r) END ORDER BY r.id),'[]') FROM public.metering_permissions r WHERE company_id IN ${companies}),
@@ -124,13 +168,33 @@ function counterpart(p:Pending,family:'CONTRL'|'APERAK',defect?:'unknown'|'wrong
    externalReference:randomUUID(),transactionReference:randomUUID(),outcome:'positive'}).segments
  // Declared counterpart bytes, before mailbox birth. Do not fabricate a
  // qualified local negative-diagnostic capability for the production renderer.
- if(defect==='negative')segments=segments.map(s=>s.startsWith('BGM+')?s.replace(/\+34$/,'+27'):s==='ERC+100::260'?'ERC+42::260':s)
+ if(defect==='negative'){
+  // A synthetic external rejection of the actual field 202. This does not
+  // claim that our locally valid Z13 is invalid or mint a local diagnostic.
+  const receivedName=e.segments.find(s=>s.tag==='BGM')?.elements[1]
+  expect(receivedName).toBe('Z13')
+  segments=segments.map(s=>s.startsWith('BGM+')?s.replace(/\+34$/,'+27')
+   :s==='ERC+100::260'?'ERC+42::260'
+   :s==='FTX+AAO+++OK'?`FTX+AAO++202::260+Felaktigt Meddelandenamn ${receivedName}`:s)
+ }
  if(defect==='unknown')segments=segments.map(s=>s.startsWith('UCI+')?s.replace(/^(UCI\+)[^+]*/,'$1UNKNOWN'):s.startsWith('RFF+ACW:')?'RFF+ACW:UNKNOWN':s)
  if(defect==='wrongLI')segments=segments.map(s=>s.startsWith('RFF+LI:')?'RFF+LI:UNKNOWN':s)
- return EdifactEnvelopeCodec.encode({sender:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,
+ const raw=EdifactEnvelopeCodec.encode({sender:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,
   senderSubAddress:e.receiverSubAddress,receiverSubAddress:e.senderSubAddress,applicationReference:e.applicationReference,
   acknowledgementRequest:false,environment:'test',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),
   messages:[{messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:family==='CONTRL'?'CONTRL:2:2:UN:EDIEL2':'APERAK:D:96A:UN:E2SE6A',businessSegments:segments}]})
+ if(defect==='negative'){
+  const wire=tokenizeEdifact(raw),date=segmentComposite(wire.segments.find(s=>s.tag==='DTM'&&s.raw.startsWith('DTM+137:')),1,wire.una)[1]
+  expect(date).toMatch(/^\d{12}$/)
+  const policy=resolveCanonicalEdielPolicy({family:'APERAK',messageCode:'APERAK',direction:'inbound',
+   associationAssignedCode:segmentComposite(wire.segments.find(s=>s.tag==='UNH'),2,wire.una)[4],
+   applicationReference:e.applicationReference,referenceDate:`${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,mode:'parse'})
+  expect(validateCanonicalAckGuide({policy,rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,sourceRawPayload:p.z13.raw_payload})).toEqual([])
+  const physical=readPhysicalAckSourceCorrelation({...p.z13,direction:'inbound',message_family:'APERAK',raw_payload:raw},p.z13)
+  expect(physical.classification.outcome).toBe('negative')
+  expect(physical.acknowledgedReferences).toEqual([p.li])
+ }
+ return raw
 }
 async function retained(f:Fixture,raw:string){
  const mail=await seedOriginalMailboxNative(sql,lit,{companyId:f.ids.company,environment:'test',raw,smtpFrom:'esco-native@example.invalid'})
@@ -274,7 +338,7 @@ for(const mode of ['V','VH'] as const){
   const changed=message.raw_payload!.replace('RFF+LI:'+p.li,'RFF+LI:UNKNOWN')
   expect(changed).not.toBe(message.raw_payload)
   const result=await supabaseService.from('ediel_messages').update({raw_payload:changed}).eq('id',message.id).select('id')
-  expect(result.error).toMatchObject({code:'23514',message:'immutable_received_ack_source_cannot_change'})
+  expect(result.error).toMatchObject({code:'23514',message:'immutable_ediel_payload_cannot_change'})
   expect((await getEdielMessageById(message.id))!).toEqual(message)
   expect(ackState(f,p)).toEqual(stable);expect(await permission(f,p)).toEqual(pending)
   expect(fullOutbox(f)).toEqual(queuedBefore)
