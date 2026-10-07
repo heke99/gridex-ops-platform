@@ -61,7 +61,8 @@ it.each(['actor','permission','environment','parse'] as const)('retains the %s g
  if(guard==='permission')db.state.permission=false
  if(guard==='environment')request.environment='foreign'
  if(guard==='parse')request.parseResultId=''
- await expect(createInboundEdielMessage(request)).rejects.toThrow()
+ const errors={actor:'ediel_tenant_actor_forbidden',permission:'ediel_tenant_permission_forbidden',environment:'ediel_inbound_duplicate_scope_required',parse:'ediel_real_reception_actor_and_parse_required'}
+ await expect(createInboundEdielMessage(request)).rejects.toThrow(errors[guard])
  expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([])
  expect(db.state.rpcCalls.filter(c=>c.name==='ediel_record_inbound_reception_v1')).toEqual([])
 })
@@ -70,4 +71,50 @@ it('rejects a retained-mail environment conflict before selecting a catalog witn
  const payload=wire('Z02',['Z22']);setup(payload);db.state.environment='production'
  await expect(createInboundEdielMessage(input(payload))).rejects.toThrow('ediel_actual_inbound_receipt_clock_required')
  expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([])
+})
+
+// Override only the declared retained-mail result; actual caller filters and
+// chronology continue to execute, and no SQL/source authority is supplied.
+function patchMail(patch:Record<string,unknown>){
+ io.from.mockImplementation((table:string)=>{
+  const q=db.from(table)
+  if(table==='inbound_email_messages'){
+   const original=q.maybeSingle
+   q.maybeSingle=async()=>{const result=await original();return {...result,data:result.data?{...result.data,...patch}:result.data}}
+  }
+  return q
+ })
+}
+it.each([{company_id:'foreign-company'},{received_at:null},{received_at:'invalid-clock'}])('rejects retained-mail %j before catalog or INSERT',async(patch)=>{
+ const payload=wire('Z04',['Z25']);setup(payload);patchMail(patch)
+ await expect(createInboundEdielMessage(input(payload))).rejects.toThrow('ediel_actual_inbound_receipt_clock_required')
+ expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([])
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission'])
+})
+it('uses the retained zoned mail instant across the Stockholm date boundary',async()=>{
+ const payload=wire('Z04',['Z25']);setup(payload);patchMail({received_at:'2026-09-21T22:30:00Z'})
+ expect(await createInboundEdielMessage(input(payload))).toBe(newId)
+ expect(io.catalog).toHaveBeenCalledExactlyOnceWith({family:'PRODAT',messageCode:'Z04',transactionSubtype:'Z25',applicationReference:'23-DDQ-PRODAT',direction:'inbound',businessDate:'2026-09-22'})
+ expect(db.writes('ediel_messages')[0].payload).toHaveProperty('message_received_at','2026-09-21T22:30:00.000Z')
+})
+it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25']])('keeps the race winner %s/%s original immutable after unique conflict',async(code,reason)=>{
+ const payload=wire(code,[reason]);setup(payload)
+ const winner=inboundReceptionBoundary(parsed(payload)),before=structuredClone(winner.state.original)
+ db.state.error={code:'23505',message:'canonical duplicate'}
+ io.from.mockImplementation((table:string)=>{
+  const q=db.from(table)
+  if(table==='ediel_messages'){
+   const insert=q.insert
+   q.insert=(row)=>{db.state.existing=true;return insert(row)}
+  }
+  return q
+ })
+ io.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>name==='ediel_record_inbound_reception_v1'?winner.rpc(name,args):db.rpc(name,args))
+ expect(await createInboundEdielMessage(input(payload))).toBe(oldId)
+ expect(io.catalog).toHaveBeenCalledTimes(1)
+ expect(db.writes('ediel_messages').map(c=>c.operation)).toEqual(['insert'])
+ expect(winner.state.original).toEqual(before);expect(db.state.original).toEqual(before)
+ expect(winner.state.rpcCalls.map(c=>c.name)).toEqual(['ediel_record_inbound_reception_v1'])
+ expect(winner.state.rpcCalls[0].args.p_message_id).toBe(oldId)
+ expect(db.writes('outbound_requests')).toEqual([])
 })
