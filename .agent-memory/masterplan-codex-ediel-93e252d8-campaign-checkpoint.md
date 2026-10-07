@@ -76,3 +76,5 @@ BLOCKED_DELIVERY_WAIT / RELEASE INTENT SHARED_MEMORY — same0bf8056d/own5canoni
 Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6037228388
 
 ActualownerMATCH→DELETE→HTTP404 file-2f697f2ea1a5ed3c350be955dfa8f0d32aa092fc679f9252308dfc76127b60e6 canonical17b71f23069b75d4ff9b9eaa4565fbef1b5a7f1c; sourceb4c8bc4e74a2c9909b0b9d9c2c0cd60e29e8a0c7 preserved.
+
+ActualownerMATCH→DELETE→HTTP404 file-3b5e94a1f080f2d56a5ace5247b799f019e0adaa9996d559ad49cb08e52bb121 canonical17b71f23069b75d4ff9b9eaa4565fbef1b5a7f1c; sourceb4c8bc4e74a2c9909b0b9d9c2c0cd60e29e8a0c7 preserved.
