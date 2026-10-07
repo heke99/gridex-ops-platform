@@ -61,6 +61,8 @@ jobs:
               '.github/workflows/ediel-tr09-current-native.yml', 'scripts/ediel-tr09-current-native.config.ts',
               'scripts/helpers/ediel-normal-switch-native-fixture.ts', 'scripts/helpers/ediel-native-permission-catalog.setup.ts',
               'lib/ediel/transport/exception/previousCrl.ts', 'lib/ediel/transport/exception/source.ts',
+              'lib/inbound-mail/edielMailboxPoller.ts', 'lib/inbound-mail/edielMailboxPoller.part-1.ts',
+              'lib/inbound-mail/edielMailboxPoller.part-2.ts', 'lib/inbound-mail/edielMailboxPoller.part-3.ts',
               'lib/ediel/security/certificateTrust.ts', 'lib/ediel/security/outboundRecipientCertificate.ts',
               'lib/ediel/transport/index.part-1.ts', 'lib/ediel/transport/index.part-2.ts',
               'lib/ediel/config.ts', 'lib/ediel/sendContextConsistency.ts',

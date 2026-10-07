@@ -17,6 +17,8 @@ import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {extractSmimeDer} from '@/lib/ediel/transport/smimeTransportArchive'
 import {inspectCmsRecipientCertificateSet} from '@/lib/ediel/transport/cmsRecipientSet'
 import {resolveEdielCertificateTrustAuthority} from '@/lib/ediel/security/certificateTrust'
+import {resolveOutboundRecipientCertificate} from '@/lib/ediel/security/outboundRecipientCertificate'
+import {resolveMailboxPasswordFromSecretReference} from '@/lib/inbound-mail/edielMailboxPoller'
 import {runProductionDryRun} from '@/lib/ediel/productionReadiness'
 import {literal, nativeSql as sql, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {recordOriginalMailboxNativeReception, seedOriginalMailboxNative} from './helpers/originalMailboxNative'
@@ -126,30 +128,150 @@ async function productionContrl(encrypted: boolean) {
     AND s.evidence#>>'{originalUNB,testIndicator}'='' AND r.environment='production' AND r.payload_sha256=s.payload_sha256
     AND r.evidence=${literal(evidence)}::jsonb) FROM gridex_ediel_technical_ack.sources s
     JOIN gridex_ediel_technical_ack.replies r USING(source_message_id) WHERE s.source_message_id=${literal(sourceId)}`)).toBe(true)
-  const fixture = {f, source: source!, ack, evidence, trust, certificateId, routeId, profileId}
+  const prospectiveTransport = {receiver: '99001', recipientEmail: 'prodat-recipient@example.invalid',
+    routeId: randomUUID(), profileId: randomUUID(), mailboxId: randomUUID(), certificateId: randomUUID()}
+  const fixture = {f, source: source!, ack, evidence, trust, certificateId, routeId, profileId, prospective: prospectiveTransport}
   await configureProspectiveProfiles(fixture)
   await diagnoseProductionPrerequisites(fixture)
   return fixture
 }
 type Fixture = Awaited<ReturnType<typeof productionContrl>>
-async function configureProspectiveProfiles(s: Fixture) {
-  const tables = ['ediel_actor_settings', 'canonical_ediel_profile_identities', 'ediel_configuration_snapshots',
+const configurationTables = ['ediel_actor_settings', 'canonical_ediel_profile_identities', 'ediel_configuration_snapshots',
     'canonical_command_results', 'canonical_audit_events', 'company_provisioning_jobs', 'ediel_test_runs',
     'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state',
-    'company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles']
-  const image = () => sql<Record<string, Json[]>>(`SELECT jsonb_build_object(${tables.map(table =>
-    `${literal(table)},${rows(`public.${table}`, `t.company_id=${literal(s.f.companyId)}`)}`).join(',')})`)
-  const foreignImage = () => {
-    const captured = sql<Record<string, NativeForeignImage>>(`SELECT jsonb_build_object(${tables.map(table =>
-      `${literal(table)},${nativeForeignRowArrayImage(rows(`public.${table}`, `t.company_id IS DISTINCT FROM ${literal(s.f.companyId)}`))}`).join(',')})`)
-    expect(Object.keys(captured).sort()).toEqual([...tables].sort())
-    for (const value of Object.values(captured)) {
-      expect(Object.keys(value).sort()).toEqual(['rowCount', 'sha256'])
-      expect(Number.isInteger(value.rowCount)).toBe(true); expect(value.rowCount).toBeGreaterThanOrEqual(0)
-      expect(value.sha256).toMatch(/^[0-9a-f]{64}$/)
-    }
-    return captured
+    'company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles', 'communication_routes', 'ediel_route_profiles', 'ediel_mailboxes', 'ediel_certificates', 'ediel_route_history']
+function configurationImage(companyId: string) {
+  return sql<Record<string, Json[]>>(`SELECT jsonb_build_object(${configurationTables.map(table =>
+    `${literal(table)},${rows(`public.${table}`, `t.company_id=${literal(companyId)}`)}`).join(',')})`)
+}
+function foreignConfigurationImage(companyId: string) {
+  const captured = sql<Record<string, NativeForeignImage>>(`SELECT jsonb_build_object(${configurationTables.map(table =>
+    `${literal(table)},${nativeForeignRowArrayImage(rows(`public.${table}`, `t.company_id IS DISTINCT FROM ${literal(companyId)}`))}`).join(',')})`)
+  expect(Object.keys(captured).sort()).toEqual([...configurationTables].sort())
+  for (const value of Object.values(captured)) {
+    expect(Object.keys(value).sort()).toEqual(['rowCount', 'sha256'])
+    expect(Number.isInteger(value.rowCount)).toBe(true); expect(value.rowCount).toBeGreaterThanOrEqual(0)
+    expect(value.sha256).toMatch(/^[0-9a-f]{64}$/)
   }
+  return captured
+}
+async function configureProspectiveTransport(s: Fixture) {
+  // A separate synthetic configuration endpoint, never a licensed market
+  // counterparty, passed certification, live transition or provider result.
+  const p = s.prospective, smtp = assertEdielSmtpReadiness()
+  expect([s.f.sender, s.f.receiver]).not.toContain(p.receiver)
+  const contrlInput = {companyId: s.f.companyId, receiverEdielId: s.f.receiver, routeProfileId: s.profileId,
+    environment: 'production', certificateEnvironment: 'production', messageFamily: 'CONTRL', businessCode: 'CONTRL',
+    smtpTo: 'recipient@example.invalid', ownEdielId: s.f.sender}
+  const originalRecipient = s.trust ? await resolveOutboundRecipientCertificate(contrlInput) : null
+  // Real protected owner publication is separate from the four configuration
+  // INSERTs below; the original recipient registration/materials stay intact.
+  const trust = publishSyntheticRecipientTrust({companyId: s.f.companyId, actorUserId: s.f.actorUserId,
+    environment: 'production', receiverEdielId: p.receiver, recipientEmail: p.recipientEmail})
+  if (s.trust) {
+    expect(trust.registrationId).not.toBe(s.trust.registrationId)
+    expect(trust.fingerprint).not.toBe(s.trust.fingerprint)
+  }
+  const prior = before(s), old = configurationImage(s.f.companyId), foreign = foreignConfigurationImage(s.f.companyId)
+  const company = () => sql<Json>(`SELECT to_jsonb(c) FROM public.companies c WHERE id=${literal(s.f.companyId)}`)
+  const oldCompany = company()
+  sql(`INSERT INTO public.ediel_certificates(id,company_id,certificate_fingerprint,secret_reference,status,environment,
+    subject,issuer,serial_number,fingerprint_sha256,public_certificate_pem,valid_from,valid_to,owner_ediel_id,message_family,purpose,usage)
+    VALUES(${literal(p.certificateId)},${literal(s.f.companyId)},${literal(trust.leaf.fingerprint256)},'public://synthetic-tr09-prodat','active','production',
+      ${literal(trust.leaf.subject)},${literal(trust.leaf.issuer)},${literal(trust.leaf.serialNumber)},${literal(trust.fingerprint)},${literal(trust.leafPem)},
+      ${literal(new Date(trust.leaf.validFrom).toISOString())},${literal(new Date(trust.leaf.validTo).toISOString())},${literal(p.receiver)},'PRODAT','encryption','outbound_recipient');
+    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+    VALUES(${literal(p.routeId)},${literal(s.f.companyId)},'Synthetic prospective PRODAT endpoint','supplier_switch','production',true,${literal(p.recipientEmail)});
+    INSERT INTO public.ediel_mailboxes(id,company_id,environment,mailbox_name,email_address,username,secret_reference,mailbox_type,
+      tls_required,smtp_from,is_shared_platform_mailbox)
+    VALUES(${literal(p.mailboxId)},${literal(s.f.companyId)},'production','Synthetic own prospective mailbox',${literal(smtp.from)},
+      ${literal(process.env.EDIEL_SMTP_USER)},'env:EDIEL_SMTP_PASS','company',true,${literal(smtp.from)},false);
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,
+      sender_ediel_id,receiver_ediel_id,receiver_source,application_reference,is_enabled,is_active,transport_security_mode,encryption_mode,tls_required,
+      smtp_to,receiver_email,message_family,mailbox_id,mailbox,smtp_host,smtp_port,receiver_certificate_id)
+    VALUES(${literal(p.profileId)},${literal(s.f.companyId)},${literal(p.routeId)},'Synthetic prospective PRODAT profile','production','edifact','edifact',
+      ${literal(s.f.sender)},${literal(p.receiver)},'fixed_counterparty','23-DDQ-PRODAT',true,true,'required_encrypted','smime',true,
+      ${literal(p.recipientEmail)},${literal(p.recipientEmail)},'PRODAT',${literal(p.mailboxId)},${literal(smtp.from)},
+      ${literal(smtp.host)},${literal(smtp.port)},${literal(p.certificateId)});`)
+  const next = configurationImage(s.f.companyId)
+  const added = (table: string) => next[table].filter(row => !old[table].some(previous => previous.id === row.id))
+  for (const table of configurationTables.filter(table => !['ediel_test_runs', 'actor_test_results',
+    'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state'].includes(table))) {
+    for (const row of old[table]) expect(next[table].find(current => current.id === row.id)).toEqual(row)
+  }
+  for (const [table, id] of [['communication_routes', p.routeId], ['ediel_route_profiles', p.profileId],
+    ['ediel_mailboxes', p.mailboxId], ['ediel_certificates', p.certificateId]]) {
+    expect(added(table)).toHaveLength(1); expect(added(table)[0].id).toBe(id)
+  }
+  for (const table of ['ediel_actor_settings', 'canonical_ediel_profile_identities', 'canonical_command_results',
+    'canonical_audit_events', 'company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles']) expect(next[table]).toEqual(old[table])
+  expect(company()).toEqual(oldCompany)
+  const mailbox = added('ediel_mailboxes')[0]
+  expect(mailbox).toMatchObject({company_id: s.f.companyId, environment: 'production', secret_reference: 'env:EDIEL_SMTP_PASS',
+    security_status: 'not_checked', last_polled_at: null, is_shared_platform_mailbox: false, tls_required: true})
+  expect(resolveMailboxPasswordFromSecretReference({id: p.mailboxId, environment: 'production', secret_reference: String(mailbox.secret_reference)}))
+    .toBe(process.env.EDIEL_SMTP_PASS)
+  expect(process.env.EDIEL_SMTP_PASS).toBeTruthy()
+  const snapshots = added('ediel_configuration_snapshots')
+  expect(snapshots).toHaveLength(3)
+  expect(snapshots.map(row => row.reason).sort()).toEqual(['ediel_certificates_changed', 'ediel_mailboxes_changed', 'ediel_route_profiles_changed'])
+  for (const snapshot of snapshots) {
+    const payload = sql<string>(`SELECT to_jsonb(payload::text) FROM public.ediel_configuration_snapshots WHERE id=${literal(String(snapshot.id))}`)
+    expect(snapshot.configuration_hash).toBe(sha(payload))
+  }
+  const jobs = added('company_provisioning_jobs')
+  expect(jobs).toHaveLength(3)
+  expect(jobs.map(row => row.idempotency_key).sort()).toEqual(snapshots.map(row => row.id).sort())
+  for (const job of jobs) expect(job).toMatchObject({job_key: 'ediel_readiness_revalidate', status: 'pending'})
+  const latest = snapshots.find(row => row.reason === 'ediel_route_profiles_changed')!
+  for (const table of ['ediel_test_runs', 'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state']) {
+    expect(next[table]).toHaveLength(old[table].length)
+    for (const previous of old[table]) {
+      const current = next[table].find(row => row.id === previous.id)!
+      const changed = previous.configuration_snapshot_id !== latest.id
+      const applies = changed && (table !== 'ediel_test_runs' || previous.completed_at !== null)
+        && (table !== 'ediel_go_live_events' || previous.event_type === 'production_dry_run')
+      const expected: Json = table === 'ediel_production_state' ? {...previous, configuration_snapshot_id: latest.id, updated_at: current.updated_at}
+        : applies ? {...previous, is_stale: true, stale_reason: 'configuration_changed'} : {...previous}
+      if (applies && table === 'ediel_test_runs') expected.stale_at = current.stale_at
+      if (applies && table === 'actor_test_results') expected.updated_at = current.updated_at
+      for (const key of ['updated_at', 'stale_at']) if (expected[key] !== previous[key]) {
+        expect(Number.isFinite(Date.parse(String(expected[key])))).toBe(true)
+        expect(Date.parse(String(expected[key]))).toBeLessThanOrEqual(Date.now())
+        if (previous[key]) expect(Date.parse(String(expected[key]))).toBeGreaterThanOrEqual(Date.parse(String(previous[key])))
+      }
+      expect(current).toEqual(expected)
+    }
+  }
+  expect(added('ediel_route_history')).toHaveLength(1)
+  expect(added('ediel_route_history')[0]).toMatchObject({route_profile_id: p.profileId, company_id: s.f.companyId,
+    route_version: added('ediel_route_profiles')[0].route_version, snapshot: added('ediel_route_profiles')[0], change_reason: 'created'})
+  const input = {companyId: s.f.companyId, receiverEdielId: p.receiver, routeProfileId: p.profileId,
+    environment: 'production', certificateEnvironment: 'production', messageFamily: 'PRODAT', businessCode: 'Z03',
+    smtpTo: p.recipientEmail, ownEdielId: s.f.sender}
+  const recipient = await resolveOutboundRecipientCertificate(input)
+  expect(recipient).toMatchObject({id: p.certificateId, fingerprintSha256: trust.fingerprint,
+    trustEvidence: {verified: true, registrationId: trust.registrationId}})
+  expect(recipient.recipientCertificates.map(row => row.id)).toEqual([p.certificateId])
+  await expect(resolveOutboundRecipientCertificate({...input, companyId: randomUUID()})).rejects.toThrow('route saknas i aktuell tenant')
+  await expect(resolveOutboundRecipientCertificate({...input, receiverEdielId: s.f.receiver})).rejects.toThrow('receiver_certificate_owner_mismatch')
+  await expect(resolveOutboundRecipientCertificate({...input, messageFamily: 'CONTRL', businessCode: 'CONTRL'}))
+    .rejects.toThrow('receiver_certificate_message_family_mismatch')
+  if (originalRecipient) {
+    const current = await resolveOutboundRecipientCertificate(contrlInput)
+    expect(current).toMatchObject({id: originalRecipient.id, fingerprintSha256: originalRecipient.fingerprintSha256,
+      trustEvidence: {verified: true, registrationId: originalRecipient.trustEvidence.registrationId}})
+    expect(current.recipientCertificates.map(row => row.id)).toEqual(originalRecipient.recipientCertificates.map(row => row.id))
+  }
+  expect(configurationImage(s.f.companyId)).toEqual(next); expect(foreignConfigurationImage(s.f.companyId)).toEqual(foreign)
+  preserved(s, prior, true)
+  console.info('TR09 prospective transport configuration', {status: 'PASS', configurationInserts: 4, protectedTrustPublications: 1,
+    snapshots: 3, revalidationJobs: 3, routeHistory: 1, originalContrlPreserved: true, certificationSupplied: false, liveTransition: false})
+}
+async function configureProspectiveProfiles(s: Fixture) {
+  await configureProspectiveTransport(s)
+  const image = () => configurationImage(s.f.companyId)
+  const foreignImage = () => foreignConfigurationImage(s.f.companyId)
   const company = () => sql<Json>(`SELECT to_jsonb(c) FROM public.companies c WHERE id=${literal(s.f.companyId)}`)
   const prior = before(s), oldCompany = company(), old = image(), foreign = foreignImage()
   const profiles = old.ediel_actor_settings.filter(p => p.is_active === true && (p.role ?? p.actor_role) === 'supplier')
@@ -163,8 +285,8 @@ async function configureProspectiveProfiles(s: Fixture) {
     test_actor_name: testProfile!.actor_name, production_actor_name: productionProfile!.actor_name,
     test_application_reference: '23-DDQ-PRODAT', production_application_reference: '23-DDQ-PRODAT',
     test_mailbox: mailbox, production_mailbox: mailbox, smtp_from_email: mailbox,
-    test_counterparty_ediel_id: s.f.receiver, production_counterparty_ediel_id: s.f.receiver,
-    test_primary_route_id: s.f.routeProfileId, production_primary_route_id: s.profileId,
+    test_counterparty_ediel_id: s.f.receiver, production_counterparty_ediel_id: s.prospective.receiver,
+    test_primary_route_id: s.f.routeProfileId, production_primary_route_id: s.prospective.profileId,
     brp_ediel_id: s.f.brpEdielId, brp_name: 'Synthetic BRP',
     technical_contact_name: 'Declared TR09 configuration contact', technical_contact_email: mailbox}
   await withOwnSnapshotPermission(s, async () => {
@@ -179,8 +301,8 @@ async function configureProspectiveProfiles(s: Fixture) {
       test_ediel_id: s.f.sender, production_ediel_id: s.f.sender,
       test_application_reference: command.test_application_reference, production_application_reference: command.production_application_reference,
       test_mailbox: mailbox, production_mailbox: mailbox,
-      test_counterparty_ediel_id: s.f.receiver, production_counterparty_ediel_id: s.f.receiver,
-      ediel_primary_test_route_profile_id: s.f.routeProfileId, ediel_primary_production_route_profile_id: s.profileId,
+      test_counterparty_ediel_id: s.f.receiver, production_counterparty_ediel_id: s.prospective.receiver,
+      ediel_primary_test_route_profile_id: s.f.routeProfileId, ediel_primary_production_route_profile_id: s.prospective.profileId,
       brp_ediel_id: s.f.brpEdielId, brp_name: 'Synthetic BRP',
       technical_contact_name: command.technical_contact_name, technical_contact_email: mailbox,
       updated_at: nextCompany.updated_at})
@@ -191,7 +313,8 @@ async function configureProspectiveProfiles(s: Fixture) {
       if (priorValue) expect(Date.parse(String(value))).toBeGreaterThanOrEqual(Date.parse(String(priorValue)))
     }
     assertTime(nextCompany.updated_at, oldCompany.updated_at)
-    for (const table of ['company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles']) expect(next[table]).toEqual(old[table])
+    for (const table of ['company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles',
+      'communication_routes', 'ediel_route_profiles', 'ediel_mailboxes', 'ediel_certificates', 'ediel_route_history']) expect(next[table]).toEqual(old[table])
     const added = (table: string) => next[table].filter(row => !old[table].some(previous => previous.id === row.id))
     for (const table of ['ediel_configuration_snapshots', 'canonical_command_results', 'canonical_audit_events', 'company_provisioning_jobs']) {
       for (const row of old[table]) expect(next[table].find(current => current.id === row.id)).toEqual(row)
@@ -272,6 +395,12 @@ async function diagnoseProductionPrerequisites(s: Fixture) {
       console.info('TR09 actual readiness diagnostic', {stage,
         status: result.success ? 'READY_INPUTS' : 'BLOCKED', dryRunStatus: result.status,
         blockers: result.blockingIssues.map(issue => issue.code), wouldSend: result.previewMetadata.wouldSend})
+      expect(result.previewMetadata).toMatchObject({productionProdatRouteProfileId: s.prospective.profileId,
+        productionMailboxId: s.prospective.mailboxId, wouldSend: false})
+      for (const code of ['production_smime_missing', 'production_route_receiver_invalid', 'mailbox_secret_reference_missing']) {
+        expect(result.blockingIssues.map(issue => issue.code)).not.toContain(code)
+      }
+      expect(result.blockingIssues.map(issue => issue.code)).toContain('external_certification_and_pilot_missing')
       if (result.blockingIssues.some(issue => issue.code === 'canonical_required_tests_unavailable')) {
         const {error} = await supabaseService.rpc('gridex_company_go_live_readiness', {p_company_id: s.f.companyId})
         // Report the real read failure without exposing query arguments,
@@ -283,6 +412,7 @@ async function diagnoseProductionPrerequisites(s: Fixture) {
       }
       return null
     } catch (error) {
+      if (error instanceof Error && error.name === 'AssertionError') throw error
       console.info('TR09 actual readiness diagnostic', {stage, status: 'DIAGNOSTIC_FAIL',
         errorCode: errorMessage(error).match(/^[A-Za-z0-9_]+/)?.[0] ?? 'unclassified', wouldSend: 'NOT_REACHED'})
       return errorMessage(error)
