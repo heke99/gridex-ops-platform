@@ -950,7 +950,7 @@ async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Or
   const invalid="UNA:+.? '"+invalidParts.map(render).join("'")+"'"
   expect(rawParts(invalid)).toEqual(parts.map((p,i)=>i===valueIndex?['CAV',values.length===1?'E22':['E22',...values.slice(1)],...p.slice(2)]:p))
   expect("UNA:+.? '"+rawParts(invalid).map((p,i)=>render(i===valueIndex?cav:p)).join("'")+"'").toBe(valid)
-  const received=await observedStage('invalid306_actual_public_intake',()=>intake(f,invalid))
+  const received=await observedStage('critical_negative_invalid306_actual_public_intake',()=>intake(f,invalid))
   expect(received.tenant).toMatchObject({status:'resolved',companyId:f.companyId})
   expect(received.id).not.toBeNull()
   const message=(await getEdielMessageById(received.id!,{companyId:f.companyId}))!
@@ -959,11 +959,11 @@ async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Or
     rule_profile_key:'PRODAT:Z04:H:26.A:r3'})
   expect(received.mailbox.sourcePayloadHash).toBe(digest(invalid))
   const sourceBefore=sealed(message.id)
-  const capability=await observedStage('invalid306_current_process_capability',()=>readSourceQualifiedProdatBilateralCapability(message))
+  const capability=await observedStage('critical_negative_invalid306_current_process_capability',()=>readSourceQualifiedProdatBilateralCapability(message))
   expect(capability).toMatchObject({companyId:f.companyId,environment:'test',sourceMessageId:message.id,sourcePayloadHash:digest(invalid),
     subtype:'H',owner:'immutable-bilateral-prodat-profile-v1',objects:[expect.objectContaining({profileVersionId:f.profileVersionId,
       process:'normal_start_h',objectId:f.external,identityAgency:'9',lineItemReference:own(f,original).li})]})
-  const decision=await observedStage('invalid306_actual_application_gate',()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
+  const decision=await observedStage('critical_negative_invalid306_actual_application_gate',()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
   const matching=decision.issues.filter(issue=>issue.layer==='application'&&issue.severity==='error'
     &&issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber==='306'&&issue.prodatDiagnostic.errorKind==='invalid')
   const errors=decision.responsePlan.filter(p=>p.family==='APERAK'&&p.outcome==='negative')
