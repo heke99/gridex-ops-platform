@@ -17,6 +17,7 @@ import {projectEdielSeriesToBeneficiary} from '@/lib/ediel/services/projection'
 import {assertUtiltsPositiveAckAuthorityForSend} from '@/lib/ediel/utilts/positiveAckAuthority'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition'
+import {prodatDate203} from '@/lib/ediel/prodat/render/dates'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 beforeEach(resetNativeEscoFixture)
@@ -46,7 +47,7 @@ function canonicalLineageEvidence(p:PendingZ14,source:EdielMessageRow){
  'applicationFacetHash',(SELECT f.application_facts_hash FROM gridex_received_sources.prodat_application_facets f WHERE f.assessment_id=v.id AND f.company_id=v.company_id AND f.source_message_id=v.source_message_id AND f.environment=v.environment AND f.source_payload_hash=v.source_payload_hash)) ORDER BY v.assessed_at,v.id),'[]') FROM gridex_received_sources.validation_assessments v WHERE v.company_id=a.company_id AND v.source_message_id=${lit(source.id)})
  ) FROM public.ediel_service_assignments a JOIN public.metering_permissions mp ON mp.company_id=a.company_id AND mp.id=${lit(p.permissionId)} WHERE a.company_id=${lit(p.f.ids.company)} AND a.id=${lit(p.f.assignment)}`)
 }
-function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow){
+function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow,expectedPoint=p.f.point){
  const actual=replies(p,source),wire=tokenizeEdifact(source.raw_payload!),envelope=EdifactEnvelopeCodec.decode(source.raw_payload!)
  const line=wire.segments.find(s=>s.tag==='LIN')!,li=wire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI')!
  for(const ack of actual.acks){
@@ -61,7 +62,7 @@ function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow){
   else{
    expect(ack.route_profile_id).toBe(p.f.ids.ackProfile)
    expect(correlation.lookupReferences).toContainEqual({type:'BGM_REF',value:segmentComposite(wire.segments.find(s=>s.tag==='BGM'),2,wire.una)[0]})
-   expect(correlation.prodatObjectOutcomes).toEqual([{objectId:p.f.point,identityAgency:'9',firstLineIndex:line.index,lineItemReference:segmentComposite(li,1,wire.una)[1],outcome:'positive'}])
+   expect(correlation.prodatObjectOutcomes).toEqual([{objectId:expectedPoint,identityAgency:'9',firstLineIndex:line.index,lineItemReference:segmentComposite(li,1,wire.una)[1],outcome:'positive'}])
    const parsed=tokenizeEdifact(ack.raw_payload!)
    expect(parsed.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,parsed.una)[0])).toEqual(['100'])
   }
@@ -69,10 +70,10 @@ function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow){
  }
  return actual
 }
-async function committedReplies(p:PendingZ14,source:EdielMessageRow){
+async function committedReplies(p:PendingZ14,source:EdielMessageRow,expectedPoint=p.f.point){
  const diagnostic=JSON.stringify(ackEvidence(p,source))
  console.info('Z14 final ACK evidence',diagnostic)
- const actual=observedPositiveReplies(p,source)
+ const actual=observedPositiveReplies(p,source,expectedPoint)
  expect(actual.acks.map(a=>a.message_family),diagnostic).toEqual(['APERAK','CONTRL']);expect(actual.outbox,diagnostic).toHaveLength(2)
  const line=tokenizeEdifact(source.raw_payload!).segments.find(s=>s.tag==='LIN')!
  const plan=await readReceivedProdatFinalResponsePlan({companyId:p.f.ids.company,sourceMessageId:source.id,rawPayload:source.raw_payload!})
@@ -80,43 +81,80 @@ async function committedReplies(p:PendingZ14,source:EdielMessageRow){
  expect(sql(`SELECT jsonb_build_object('source',source_message_id,'company',company_id,'hash',payload_hash,'canonical',canonical_assessment_id) FROM gridex_received_sources.permission_effect_receipts WHERE id=${lit(plan!.plans[0].effectReceiptId)}`)).toEqual({source:source.id,company:p.f.ids.company,hash:createHash('sha256').update(source.raw_payload!).digest('hex'),canonical:plan!.plans[0].canonicalAssessmentId})
  return actual
 }
-async function firstPositive(p:PendingZ14){
- const raw=z14Wire(p)
+async function firstPositive(p:PendingZ14,options:{change?:Record<string,unknown>;expectedPoint?:string;expectedStart?:string;afterBirth?:()=>void}={}){
+ const expectedPoint=options.expectedPoint??p.f.point,expectedStart=options.expectedStart??p.f.fields.data_start
+ const raw=z14Wire(p,options.change),physical=tokenizeEdifact(raw),original=(await getEdielMessageById(p.z13.id))!
+ expect(original).toMatchObject({id:p.z13.id,company_id:p.f.ids.company,customer_id:p.f.ids.customer,direction:'outbound',environment:'test',message_family:'PRODAT',message_code:'Z13',status:'sent'})
+ expect(original.raw_payload).toBe(p.z13.raw_payload)
+ const sealed=sql<{renderedAt:string;hash:string}>(`SELECT jsonb_build_object('renderedAt',immutable_rendered_at,'hash',immutable_payload_hash) FROM public.ediel_messages WHERE company_id=${lit(p.f.ids.company)} AND id=${lit(original.id)}`)
+ expect(sealed.renderedAt).not.toBeNull();expect(sealed.hash).toBe(createHash('sha256').update(original.raw_payload!).digest('hex'))
+ const sent=tokenizeEdifact(original.raw_payload!),sentEnvelope=EdifactEnvelopeCodec.decode(original.raw_payload!)
+ expect([sentEnvelope.sender,sentEnvelope.receiver]).toEqual([p.f.sender,p.f.receiver])
+ expect(segmentComposite(sent.segments.find(s=>s.tag==='LIN'),1,sent.una)).toEqual(['1'])
+ expect(segmentComposite(sent.segments.find(s=>s.tag==='LIN'),3,sent.una).some(Boolean)).toBe(false)
+ const party=(wire:ReturnType<typeof tokenizeEdifact>,qualifier:string)=>segmentComposite(wire.segments.find(s=>s.tag==='NAD'&&segmentComposite(s,1,wire.una)[0]===qualifier),2,wire.una)
+ expect(party(sent,'UD')).toEqual(['199001011234','SE2','260']);expect(party(physical,'UD')).toEqual(party(sent,'UD'))
+ expect(party(sent,'FR')).toEqual([p.f.sender,'160','SVK']);expect(party(sent,'DO')).toEqual([p.f.receiver,'160','SVK'])
+ expect(party(physical,'FR')).toEqual(party(sent,'DO'));expect(party(physical,'DO')).toEqual(party(sent,'FR'))
+ const characteristic=(wire:ReturnType<typeof tokenizeEdifact>,qualifier:string)=>segmentComposite(wire.segments[wire.segments.findIndex(s=>s.tag==='CCI'&&segmentComposite(s,2,wire.una)[0]===qualifier)+1],1,wire.una)[0]
+ expect(characteristic(sent,'Z13')).toBe('S17');expect(characteristic(physical,'Z13')).toBe('S17')
+ expect(characteristic(sent,'Z24')).toBe('B72');expect(characteristic(physical,'Z24')).toBe('B72')
+ const ownLi=(wire:ReturnType<typeof tokenizeEdifact>)=>segmentComposite(wire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI'),1,wire.una)[1]
+ expect(ownLi(sent)).toBe(String(z14Market(p).permission.rff_li_reference));expect(ownLi(physical)).toBe(ownLi(sent))
+ expect(segmentComposite(physical.segments.find(s=>s.tag==='LIN'),3,physical.una)).toEqual([expectedPoint,'','','9'])
+ expect(segmentComposite(physical.segments.find(s=>s.tag==='DTM'&&segmentComposite(s,1,physical.una)[0]==='90'),1,physical.una)).toEqual(['90',prodatDate203(expectedStart),'203'])
  // Every independent omission must actually change the positive baseline.
  for(const field of z14RequiredFields)expect(omitZ14Field(raw,field),field).not.toBe(raw)
  if(p.bounded)expect(omitZ14Field(raw,'321')).not.toBe(raw)
  const before=z14Market(p),source=await receiveZ14(p,raw)
+ const assignment=before.assignments.find(a=>a.id===p.f.assignment)!
+ expect(assignment).toMatchObject({object_ids:['735999260731000007'],product_ids:[p.f.product],mode:'V'})
+ expect(Date.parse(String(assignment.data_start))).toBe(Date.parse('2026-06-01T00:00:00Z'))
  expect(z14Market(p)).toEqual(before);expect(replies(p,source)).toEqual({acks:[],outbox:[]})
+ options.afterBirth?.()
  // This is the FIRST domain/validation invocation. No fixture prefix applies
  // permission, records accepted validation or captures a passing private facet.
  await process(p,source)
  console.info('Z14 first-processing canonical lineage',JSON.stringify(canonicalLineageEvidence(p,source)))
  const after=z14Market(p)
  expect(after.permission).toMatchObject({status:'active',source_z14_message_id:source.id,inbound_z14_message_id:source.id})
- expect(after.permission.metadata).toMatchObject({marketPermission:{mode:'S17',legalActor:p.f.sender,dsoActor:p.f.receiver,sourceZ14:source.id,objects:expect.arrayContaining([expect.objectContaining({point:p.f.point,product:p.f.product,status:'A74'})])}})
+ expect(after.permission.metadata).toMatchObject({marketPermission:{mode:'S17',legalActor:p.f.sender,dsoActor:p.f.receiver,sourceZ14:source.id,objects:expect.arrayContaining([expect.objectContaining({point:expectedPoint,product:p.f.product,status:'A74'})])}})
  expect(await currentAssignment(p.f)).toMatchObject({mode:'V'})
  expect(Number(after.permission.market_state_version)).toBe(Number(before.permission.market_state_version)+1)
- expect(after.sites).toHaveLength(1);expect(after.sites[0]).toMatchObject({customer_id:p.f.ids.customer,facility_id:p.f.point,status:'approved'})
+ expect(after.sites).toHaveLength(1);expect(after.sites[0]).toMatchObject({customer_id:p.f.ids.customer,facility_id:expectedPoint,status:'approved'})
  expect(after.sites[0].metadata).toMatchObject({source:'inbound_prodat_z14',edielMessageId:source.id,mode:'S17',product:p.f.product})
- expect(Date.parse(String(after.sites[0].start_at))).toBe(Date.parse(p.f.fields.data_start))
+ expect(Date.parse(String(after.sites[0].start_at))).toBe(Date.parse(expectedStart))
  expect(after.sites[0].end_at===null).toBe(!p.bounded)
  if(p.bounded)expect(Date.parse(String(after.sites[0].end_at))).toBe(Date.parse(p.f.fields.data_end!))
  expect(after.permission.permission_id).toBe('SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8))
  expect(after.permission.rff_li_reference).toBe(before.permission.rff_li_reference)
  expect(after.grants).toEqual([]);expect(after.supply).toEqual(before.supply)
+ expect(after.assignments).toEqual(before.assignments);expect(after.links).toEqual(before.links)
  expect(after.receipts).toHaveLength(1)
  expect(after.receipts[0]).toMatchObject({source_message_id:source.id,qualified_original_message_id:p.z13.id,permission_id:p.permissionId,company_id:p.f.ids.company})
  expect(sql(`SELECT jsonb_build_object('source',source_message_id,'hash',payload_hash,'result',result) FROM gridex_received_sources.permission_partition_receipts WHERE company_id=${lit(p.f.ids.company)} AND source_message_id=${lit(source.id)}`)).toMatchObject({source:source.id,hash:createHash('sha256').update(raw).digest('hex'),result:{applied:true}})
  console.info('Z14 first-processing ACK evidence',JSON.stringify(ackEvidence(p,source)))
- const acks=observedPositiveReplies(p,source)
+ const acks=observedPositiveReplies(p,source,expectedPoint)
  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
  await process(p,source)
  console.info('Z14 replay canonical lineage',JSON.stringify(canonicalLineageEvidence(p,source)))
  console.info('Z14 replay ACK evidence',JSON.stringify(ackEvidence(p,source)))
- expect(z14Market(p)).toEqual(after);expect(observedPositiveReplies(p,source)).toEqual(acks)
+ expect(z14Market(p)).toEqual(after);expect(observedPositiveReplies(p,source,expectedPoint)).toEqual(acks)
  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
+ expect((await getEdielMessageById(original.id))?.raw_payload).toBe(original.raw_payload)
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(p.f.ids.company)} AND message_code='Z04'`)).toBe(0)
  return source
+}
+function currentScope(p:PendingZ14,source:EdielMessageRow,assignmentMatches=true){
+ const actual=sql(`SELECT jsonb_build_object('sourceCurrent',public.ediel_permission_source_is_current_v1(a.company_id,mp.id,${lit(source.id)}),'assignmentMatches',gridex_service_administration.permission_matches_assignment_v1(a,mp),'assessment',public.ediel_service_assignment_assessment_v1(a.company_id,a.id)) FROM public.ediel_service_assignments a JOIN public.metering_permissions mp ON mp.company_id=a.company_id AND mp.id=${lit(p.permissionId)} WHERE a.company_id=${lit(p.f.ids.company)} AND a.id=${lit(p.f.assignment)}`)
+ expect(actual,JSON.stringify(actual)).toMatchObject({sourceCurrent:true,assignmentMatches,assessment:{status:'authorized'}})
+}
+async function createGrant(p:PendingZ14,change:Record<string,unknown>={}){
+ const {f}=p,link=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_assignment_permission_links WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)} AND permission_id=${lit(p.permissionId)}`)
+ return f.command({action:'create_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,fields:{permission_link_id:link,object_ids:[f.point],product_ids:[f.product],fields:f.fields.field_sets,data_start:f.fields.data_start,data_end:f.fields.data_end,valid_from:f.fields.valid_from,valid_to:f.fields.valid_to,...change}})
+}
+async function publishGrant(p:PendingZ14,grant:Record<string,unknown>){
+ return p.f.command({action:'publish_grant',commandId:randomUUID(),assignmentId:p.f.assignment,expectedVersion:(await currentAssignment(p.f)).version,grantId:grant.grantId,expectedGrantVersion:sql<number>(`SELECT to_jsonb(version) FROM public.ediel_data_access_grants WHERE company_id=${lit(p.f.ids.company)} AND id=${lit(grant.grantId)}`)})
 }
 
 it.each([false,true])('first mailbox-born private Z14V/S17 commits permission and physical ACKs, bounded=%s; V triggers no VH historical job',async bounded=>{
@@ -163,9 +201,49 @@ it.each([
  ['object',{meterPointId:'735999260731000014'}],['agency',{siteIdAgency:'89'}],
  ['purpose',{permissionPurpose:'B71'}],
  ['expanded start',{reportStartDate:'2026-05-01T00:00:00Z'}],
-] as const)('fresh first-response wrong %s cannot authorize V or create committed positive APERAK',async(_name,change)=>{
- const p=await pendingZ14(),before=z14Market(p),source=await receiveZ14(p,z14Wire(p,change))
- await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
+] as const)('fresh first-response %s obeys the original customer scope and independent grant boundary',async(name,change)=>{
+ const p=await pendingZ14(),mutation:Record<string,unknown>=change
+ if(['LI','customer','purpose'].includes(name)){
+  const before=z14Market(p),source=await receiveZ14(p,z14Wire(p,change))
+  await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source);return
+ }
+ // Preserve the exact original adverse mutant bytes. Customer-bound Z13 has
+ // no physical point; NAD IT89 and a declared May start are lawful inputs.
+ // Original RED artifacts remain adverse history, not waived native results.
+ const outsider=await pendingZ14(),foreignBefore=z14Market(outsider)
+ const expectedPoint=name==='object'?String(mutation.meterPointId):p.f.point
+ const source=await firstPositive(p,{change,expectedPoint,expectedStart:name==='expanded start'?String(mutation.reportStartDate):undefined})
+ expect(z14Market(outsider)).toEqual(foreignBefore)
+ if(name==='object'||name==='expanded start'){
+  const unchanged=z14Market(p)
+  await expect(createGrant(p,name==='object'?{object_ids:[expectedPoint]}:{data_start:String(mutation.reportStartDate)}))
+   .rejects.toMatchObject({message:'ediel_grant_scope_exceeds_assignment'})
+  expect(z14Market(p)).toEqual(unchanged);expect(z14Market(outsider)).toEqual(foreignBefore)
+  currentScope(p,source)
+  const grant=await createGrant(p);expect(grant).toMatchObject({status:'held',accessGranted:false})
+  if(name==='object'){
+   const stable=z14Market(p)
+   expect(await publishGrant(p,grant)).toMatchObject({status:'held',missing:['explicit_approved_object_product_period']})
+   expect(z14Market(p)).toEqual(stable);expect(z14Market(p).grants.every(g=>g.status!=='active')).toBe(true)
+  }else await proveConsumer(p,source,outsider,foreignBefore,{grant,preJune:true})
+ }else{
+  const wire=tokenizeEdifact(source.raw_payload!)
+  expect(segmentComposite(wire.segments.find(s=>s.tag==='NAD'&&segmentComposite(s,1,wire.una)[0]==='IT'),2,wire.una)[2]).toBe('89')
+  expect(segmentComposite(wire.segments.find(s=>s.tag==='LIN'),3,wire.una)[3]).toBe('9')
+  // A separate fresh mailbox source changes ONLY the actual LIN agency.
+  const invalid=await pendingZ14(),raw=z14Wire(invalid),physical=tokenizeEdifact(raw)
+  const segments=physical.segments.map(s=>s.tag==='LIN'?s.raw.replace(':::9',':::ZZ'):s.raw)
+  const changed=serializeUna(physical.una)+segments.join(physical.una.segmentTerminator)+physical.una.segmentTerminator
+  const bad=tokenizeEdifact(changed)
+  expect(changed).not.toBe(raw);expect(segmentComposite(bad.segments.find(s=>s.tag==='LIN'),3,bad.una)).toEqual([invalid.f.point,'','','ZZ'])
+  expect(bad.segments.filter(s=>s.tag!=='LIN').map(s=>s.raw)).toEqual(physical.segments.filter(s=>s.tag!=='LIN').map(s=>s.raw))
+  const before=z14Market(invalid),rejected=await receiveZ14(invalid,changed),decision=await resolveCanonicalRuntimeDecisionWithRegistry(rejected,{actorUserId:invalid.f.ids.actor})
+  expect(decision.applicationDecision).toBe('rejected')
+  expect(decision.issues).toContainEqual(expect.objectContaining({layer:'application',severity:'error',prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'209',errorKind:'invalid'})}))
+  await expect(process(invalid,rejected)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/);expect(z14Market(invalid)).toEqual(before);noPositiveObjectAck(invalid,rejected)
+ }
+ expect(z14Market(outsider)).toEqual(foreignBefore)
+ await committedReplies(p,source,expectedPoint)
 })
 
 it('fresh bounded V cannot expand its reporting end beyond the exact sent request',async()=>{
@@ -188,10 +266,22 @@ it('fresh reply needs the actual current ESCO role',async()=>{
  await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
 })
 
-it('fresh reply needs the actual current DSO grid-owner role',async()=>{
- const p=await pendingZ14(),source=await receiveZ14(p),before=z14Market(p)
- sql(`UPDATE public.platform_actor_roles SET is_active=false WHERE actor_id=${lit(p.f.ids.dso)} AND actor_role='grid_owner'`)
- await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
+it('DSO platform-flag control preserves born permission, while current verified identity gates public grant publication',async()=>{
+ const p=await pendingZ14(),outsider=await pendingZ14(),foreignBefore=z14Market(outsider)
+ const source=await firstPositive(p,{afterBirth:()=>sql(`UPDATE public.platform_actor_roles SET is_active=false WHERE actor_id=${lit(p.f.ids.dso)} AND actor_role='grid_owner'`)})
+ expect(sql(`SELECT to_jsonb(is_active) FROM public.platform_actor_roles WHERE actor_id=${lit(p.f.ids.dso)} AND actor_role='grid_owner'`)).toBe(false)
+ currentScope(p,source)
+ const grant=await createGrant(p);expect(grant).toMatchObject({status:'held',accessGranted:false})
+ const stable=z14Market(p),acks=replies(p,source)
+ const identifier=sql<string>(`UPDATE public.platform_actor_identifiers SET is_verified=false WHERE actor_id=${lit(p.f.ids.dso)} AND identifier_type='EdielId' AND identifier_value=${lit(p.f.receiver)} RETURNING to_jsonb(id)`)
+ expect(identifier).toMatch(/^[0-9a-f-]{36}$/);currentScope(p,source,false)
+ expect(await publishGrant(p,grant)).toMatchObject({status:'held',missing:['current_source_approved_market_permission']})
+ expect(z14Market(p)).toEqual(stable);expect(replies(p,source)).toEqual(acks);expect(z14Market(outsider)).toEqual(foreignBefore)
+ expect(z14Market(p).grants.every(g=>g.status!=='active')).toBe(true)
+ expect(sql(`UPDATE public.platform_actor_identifiers SET is_verified=true WHERE id=${lit(identifier)} AND actor_id=${lit(p.f.ids.dso)} AND identifier_type='EdielId' AND identifier_value=${lit(p.f.receiver)} RETURNING to_jsonb(id)`)).toBe(identifier)
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.platform_actor_identifiers WHERE actor_id=${lit(p.f.ids.dso)} AND identifier_type='EdielId' AND is_verified`)).toBe(1)
+ currentScope(p,source)
+ await proveConsumer(p,source,outsider,foreignBefore,{grant})
 })
 
 it.each(['product','sender','receiver','environment','S18'] as const)('fresh physical wrong %s is checked by actual inbound custody and consumers',async target=>{
@@ -228,14 +318,13 @@ it.each(['product','sender','receiver','environment','S18'] as const)('fresh phy
  expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
 })
 
-it('actual Z14 permission still grants no access: separate public publication, genuine E66 storage/ACK, scoped projection, and refreshed revocation',async()=>{
- const p=await pendingZ14(),outsider=await pendingZ14(),foreignBefore=z14Market(outsider),{f}=p
+async function proveConsumer(p:PendingZ14,source:EdielMessageRow,outsider:PendingZ14,foreignBefore:ReturnType<typeof z14Market>,options:{grant?:Record<string,unknown>;preJune?:boolean}={}){
+ const {f}=p
  expect(outsider.f.point).toBe(f.point);expect(foreignBefore.permission.id).toBe(outsider.permissionId)
- const source=await firstPositive(p);expect(z14Market(outsider)).toEqual(foreignBefore)
- const link=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_assignment_permission_links WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)} AND permission_id=${lit(p.permissionId)}`)
- const grant=await f.command({action:'create_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,fields:{permission_link_id:link,object_ids:[f.point],product_ids:[f.product],fields:f.fields.field_sets,data_start:f.fields.data_start,data_end:f.fields.data_end,valid_from:f.fields.valid_from,valid_to:f.fields.valid_to}})
+ expect(z14Market(outsider)).toEqual(foreignBefore);currentScope(p,source)
+ const grant=options.grant??await createGrant(p)
  expect(grant).toMatchObject({status:'held',accessGranted:false})
- const published=await f.command({action:'publish_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,grantId:grant.grantId,expectedGrantVersion:grant.grantVersion})
+ const published=await publishGrant(p,grant)
  // Read the actual guards and persisted terms for diagnosis only. This adds
  // no caller readiness flag, source assessment or authority-bearing write.
  const publicationEvidence=JSON.stringify({published,scope:sql(`SELECT jsonb_build_object(
@@ -266,6 +355,13 @@ it('actual Z14 permission still grants no access: separate public publication, g
  expect(sql(`SELECT jsonb_build_object('source',source_message_id,'hash',raw_hash,'version',contract_version) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(incoming.source.id)}`)).toEqual({source:incoming.source.id,hash:createHash('sha256').update(incoming.source.raw_payload!).digest('hex'),version:2})
  expect(incoming.source.raw_payload).not.toContain(p.permissionId)
  expect(incoming.source.raw_payload).not.toContain('SYNTHETIC-PERMISSION-')
+ if(options.preJune){
+  // Actual fixture measurements are July; the live grant starts in June.
+  expect(Date.parse(series.start)).toBeGreaterThanOrEqual(Date.parse(f.fields.data_start))
+  await expect(projectEdielSeriesToBeneficiary({...request,startInclusive:'2026-05-01T00:00:00Z'}))
+   .rejects.toMatchObject({message:'ediel_projection_outside_grant'})
+  expect(stable()).toEqual(upstream)
+ }
  for(const change of [{purpose:'ungranted billing'},{fields:['secret'] as never},{startInclusive:'1990-01-01T00:00:00Z'},{endExclusive:'2099-01-01T00:00:00Z'},{expectedGrantVersion:request.expectedGrantVersion+1},{actorUserId:f.ids.reviewer},{beneficiaryCompanyId:outsider.f.ids.company}]){
   await expect(projectEdielSeriesToBeneficiary({...request,...change})).rejects.toBeDefined();expect(stable()).toEqual(upstream)
  }
@@ -275,4 +371,9 @@ it('actual Z14 permission still grants no access: separate public publication, g
  await expect(incoming.persist()).rejects.toBeDefined();await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toBeDefined()
  expect(stable()).toEqual(upstream);expect(z14Market(outsider)).toEqual(foreignBefore)
  await committedReplies(p,source)
+}
+it('actual Z14 permission still grants no access: separate public publication, genuine E66 storage/ACK, scoped projection, and refreshed revocation',async()=>{
+ const p=await pendingZ14(),outsider=await pendingZ14(),foreignBefore=z14Market(outsider)
+ const source=await firstPositive(p)
+ await proveConsumer(p,source,outsider,foreignBefore)
 })
