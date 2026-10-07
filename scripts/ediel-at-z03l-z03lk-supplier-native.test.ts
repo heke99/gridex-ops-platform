@@ -6,7 +6,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
-import { seedNormalSwitchNativeFixture, nativeSql as sql, literal, type NormalSwitchStageNativeFixture, type NormalSwitchNativeRequestInput } from './helpers/ediel-normal-switch-native-fixture'
+import { seedNormalSwitchNativeFixture, normalSwitchNetworkRegistry, nativeSql as sql, literal, type NormalSwitchStageNativeFixture, type NormalSwitchNativeRequestInput } from './helpers/ediel-normal-switch-native-fixture'
+import { attachNetworkRegistrySourceFixture } from './helpers/ediel-network-registry-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { supabaseService } from '@/lib/supabase/service'
@@ -24,7 +25,10 @@ import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutoma
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
-import { getEdielMessageById } from '@/lib/ediel/db'
+import { getEdielMessageById, listEdielMessageEvents } from '@/lib/ediel/db'
+import { archiveNetworkRegistrySource, readNetworkRegistrySourceArtifact, reviewNetworkRegistrySource } from '@/lib/ediel/production/networkRegistrySource'
+import { readContractRequestedMethodSource } from '@/lib/ediel/production/contractRequestedMethodSource'
+import type { SupplyObjectPartition } from '@/lib/ediel/flows/supplyMarketTransition'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
@@ -35,6 +39,9 @@ import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
+import type { CanonicalDecisionState } from '@/lib/ediel/core/runtimeDecision'
+import type { ReceivedSourceValidationReceipt } from '@/lib/ediel/core/receivedSourceValidationLedger'
+import type { ProdatProcessingDisposition } from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { PRODAT_26A_FIELD_MATRIX } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -42,12 +49,90 @@ import { prepareCustomerMasterdataSource, bindCustomerMasterdataValidationContex
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { ProdatInvoiceeObject } from '@/lib/ediel/prodat/prodatInvoicee'
-import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
+import type { CreateEdielMessageInput, EdielMessageRow, EdielMessageStatus, EdielMessageEventRow, EdielMessageEventType, EdielMessageEventStatus } from '@/lib/ediel/types'
 
 type Variant = 'L' | 'LK'
 type Fixture = NormalSwitchStageNativeFixture & { variant: Variant; original: EdielMessageRow; li: string }
 const required = ['311','312','202','203','313','205','206','207','208','314','209','210','217','223','260','261','226','227','228','231','232','316','262'] as const
 const conditional = ['229','233','234','250','251','252','253','317','318','INVOICEE_GROUP'] as const
+const diagnosticMessageStatuses = ['draft','prepared','queued','dispatching','provider_accepted','sent','delivered','received','parsed','validated','acknowledged','failed','cancelled'] as const satisfies readonly EdielMessageStatus[]
+const diagnosticEventTypes = ['created','prepared','queued','dispatching','provider_accepted','sent','delivered','received','parsed','validated','linked','contrl_sent','contrl_received','aperak_sent','aperak_received','utilts_err_sent','utilts_err_received','failed','cancelled','manual_note'] as const satisfies readonly EdielMessageEventType[]
+const diagnosticEventStatuses = ['info','success','warning','error'] as const satisfies readonly EdielMessageEventStatus[]
+const diagnosticDecisions = ['accepted','rejected','not_applicable','manual_review'] as const satisfies readonly CanonicalDecisionState[]
+const diagnosticDispositions = ['continue','internal_review'] as const satisfies readonly ProdatProcessingDisposition['kind'][]
+const diagnosticEvidenceStatuses = ['not_requested','unconfirmed','recorded'] as const satisfies readonly ReceivedSourceValidationReceipt['status'][]
+// Exact identifiers from the current normal-switch owner and scoped supply
+// adapter. Unknown untrusted text is hashed, never copied to assertion output.
+const diagnosticHeldReasons = ['own_application_not_accepted','ambiguous_physical_supply_scope','own_supply_wire_or_legal_scope_unavailable','own_supply_business_unqualified','supply_original_cohort_changed',
+  'normal_z04_source_required','normal_z04_execution_actor_required','normal_z04_frozen_legal_context_required','normal_z04_canonical_leaf_ambiguous','normal_z04_canonical_source_not_accepted',
+  'normal_z04_whole_physical_scope_required','normal_z04_register_owner_scope_required','normal_z04_exact_sent_original_required','normal_z04_locked_original_scope_required',
+  'normal_z04_owned_signed_contract_scope_required','normal_z04_conflicting_supply_period'] as const
+const diagnosticRollbackReasons = ['supply_service_required','supply_partition_replay_conflict','supply_scoped_business_receipt_required','supply_scoped_canonical_assessment_changed',
+  'supply_own_canonical_application_and_function_required','normal_z04_replay_conflict','ediel_inbound_legal_context_required','ediel_source_rule_pack_basis_required',
+  'ediel_historical_identity_basis_unavailable','ediel_historical_rule_pack_basis_unavailable'] as const
+function diagnosticRecord(value: unknown): Record<string,unknown> {
+  return value && typeof value==='object' && !Array.isArray(value) ? value as Record<string,unknown> : {}
+}
+function diagnosticEnum<T extends string>(value:unknown, allowed:readonly T[]):T|'absent'|'unknown' {
+  return value==null ? 'absent' : typeof value==='string' && allowed.includes(value as T) ? value as T : 'unknown'
+}
+function diagnosticHash(value:unknown):string {
+  let text='unknown'
+  try { text=value instanceof Error ? value.message : typeof value==='string' ? value : JSON.stringify(value)??'unknown' } catch { /* Never mask the business assertion. */ }
+  return createHash('sha256').update(text,'utf8').digest('hex')
+}
+function diagnosticRollback(value:unknown) {
+  if (typeof value!=='string') return {reason:'unknown',sqlstate:'unknown',reasonHash:diagnosticHash(value)}
+  // formatErrorMessage appends code/details/hint after a middle-dot delimiter.
+  // Only an exact leading owner identifier and a delimited SQLSTATE survive.
+  const reason=value.split(' · ')[0],code=/ · kod: ([0-9A-Z]{5})(?: · |$)/.exec(value)?.[1]
+  return {reason:diagnosticEnum(reason,diagnosticRollbackReasons),
+    sqlstate:diagnosticEnum(code,['42501','P0001','23502','23503','23505','23514','22P02','40001','40P01','XX000'] as const),reasonHash:diagnosticHash(value)}
+}
+function diagnosticEvent(event:EdielMessageEventRow|undefined, f:Fixture, source:EdielMessageRow) {
+  if (!event) return {read:'absent'}
+  const scope={companyMatches:event.company_id===f.companyId,sourceMatches:event.ediel_message_id===source.id}
+  if (!scope.companyMatches || !scope.sourceMatches) return {read:'scope_unqualified',scope}
+  const p=diagnosticRecord(event.payload),partition=p.sourceObjectPartition
+  return {read:'available',scope,eventType:diagnosticEnum(event.event_type,diagnosticEventTypes),eventStatus:diagnosticEnum(event.event_status,diagnosticEventStatuses),
+    syntax:diagnosticEnum(p.syntaxDecision,diagnosticDecisions),application:diagnosticEnum(p.applicationDecision,diagnosticDecisions),functional:diagnosticEnum(p.functionalDecision,diagnosticDecisions),
+    disposition:diagnosticEnum(diagnosticRecord(p.prodatProcessingDisposition).kind,diagnosticDispositions),
+    tenantResolutionStatus:diagnosticEnum(p.tenantResolutionStatus,['tenant_resolved','tenant_not_found','tenant_ambiguous'] as const),
+    supplySourceApply:diagnosticEnum(p.supplySourceApply,['rolled_back'] as const),
+    ...(p.supplySourceApply==='rolled_back'?{rollback:diagnosticRollback(p.reason)}:{}),
+    actorTestingGlobalHook:typeof p.actorTestingGlobalHook==='boolean'?p.actorTestingGlobalHook:'absent',
+    phase:diagnosticEnum(p.phase,['pre_business_processing','post_ack_processing','post_generic_processing'] as const),
+    ...Object.fromEntries(['applied','fullyApplied','reviewRequired','idempotent'].map(key=>[key,typeof p[key]==='boolean'?p[key]:'absent'])),
+    partition:Array.isArray(partition)?partition.slice(0,8192).map(value=>{
+      const entry=diagnosticRecord(value),disposition=diagnosticEnum(entry.disposition,['applied','held'] as const satisfies readonly SupplyObjectPartition['disposition'][])
+      return {disposition,...(disposition==='held'?{reason:diagnosticEnum(entry.reason,diagnosticHeldReasons),reasonHash:diagnosticHash(entry.reason)}:{})}
+    }):partition==null?'absent':'unknown',
+    committedEffectReceiptCount:Array.isArray(p.committedEffectReceiptIds)?p.committedEffectReceiptIds.length:'absent'}
+}
+function projectZ04Diagnostic(f:Fixture,source:EdielMessageRow,reads:readonly [PromiseSettledResult<EdielMessageRow|null>,PromiseSettledResult<EdielMessageEventRow[]>]) {
+  try {
+    const [messageRead,eventRead]=reads
+    const message=messageRead.status==='fulfilled'?messageRead.value:null
+    const scope=message?{companyMatches:message.company_id===f.companyId,sourceMatches:message.id===source.id,environmentMatches:message.environment==='test'}:null
+    const report=scope?.companyMatches&&scope.sourceMatches&&scope.environmentMatches?diagnosticRecord(message?.validation_report):{}
+    const evidence=diagnosticRecord(report.receivedSourceValidationEvidence)
+    const ownEvents=eventRead.status==='fulfilled'?eventRead.value.filter(event=>event.company_id===f.companyId&&event.ediel_message_id===source.id):[]
+    return {cause:'UNKNOWN',message:messageRead.status==='rejected'?{read:'read_unavailable',reasonHash:diagnosticHash(messageRead.reason)}:
+      !message?{read:'not_found'}:{read:scope?.companyMatches&&scope.sourceMatches&&scope.environmentMatches?'available':'scope_unqualified',scope,
+        status:scope?.companyMatches&&scope.sourceMatches&&scope.environmentMatches?diagnosticEnum(message.status,diagnosticMessageStatuses):'unknown',
+        syntax:diagnosticEnum(report.syntaxDecision,diagnosticDecisions),application:diagnosticEnum(report.applicationDecision,diagnosticDecisions),functional:diagnosticEnum(report.functionalDecision,diagnosticDecisions),
+        disposition:diagnosticEnum(diagnosticRecord(report.prodatProcessingDisposition).kind,diagnosticDispositions),sourceValidation:diagnosticEnum(evidence.status,diagnosticEvidenceStatuses),
+        recordedAssessmentReferencePresent:evidence.status==='recorded'&&typeof evidence.assessmentId==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(evidence.assessmentId)},
+      events:eventRead.status==='rejected'?{read:'read_unavailable',reasonHash:diagnosticHash(eventRead.reason)}:{read:'available',
+        allCompanyMatches:eventRead.value.every(event=>event.company_id===f.companyId),allSourceMatches:eventRead.value.every(event=>event.ediel_message_id===source.id),
+        latest:diagnosticEvent(eventRead.value[0],f,source),
+        runtime:diagnosticEvent(ownEvents.find(event=>event.event_type==='validated'&&'syntaxDecision' in diagnosticRecord(event.payload)),f,source),
+        domain:diagnosticEvent(ownEvents.find(event=>event.event_type==='validated'&&'sourceObjectPartition' in diagnosticRecord(event.payload)),f,source),
+        rollback:diagnosticEvent(ownEvents.find(event=>event.event_type==='manual_note'&&diagnosticRecord(event.payload).supplySourceApply==='rolled_back'),f,source),
+        tenant:diagnosticEvent(ownEvents.find(event=>'tenantResolutionStatus' in diagnosticRecord(event.payload)),f,source),
+        actorTesting:diagnosticEvent(ownEvents.find(event=>diagnosticRecord(event.payload).actorTestingGlobalHook===true),f,source)}}
+  } catch (error) { return {cause:'UNKNOWN',read:'read_unavailable',reasonHash:diagnosticHash(error)} }
+}
 afterEach(() => { vi.unstubAllEnvs(); smtp.mockReset() })
 function configureSmtp() {
   for (const [key,value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',
@@ -144,6 +229,24 @@ async function stage(variant: Variant, date=days(today(),14), invoicee=false,pub
   return { ...f,variant }
 }
 async function materializeWindowRoute(f: NormalSwitchStageNativeFixture) {
+  const registry=await attachNetworkRegistrySourceFixture(f),prior=normalSwitchNetworkRegistry(f.companyId)
+  expect(prior).toBeTruthy()
+  if (!prior) throw Error('native_window_original_network_source_required')
+  const oldScope={companyId:f.companyId,actorUserId:registry.reviewer.id,artifactId:prior.artifact.artifactId}
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({status:'authorized',sourceVersion:'1',
+    networkActorId:registry.networkActorId,networkEdielId:f.receiver,sourceHash:prior.artifact.sourceHash,claimsHash:prior.artifact.claimsHash})
+  const originalNetwork=()=>sql(`SELECT jsonb_build_object(
+    'artifact',(SELECT to_jsonb(a) FROM gridex_network_registry_sources.artifacts a WHERE a.id=${literal(prior.artifact.artifactId)} AND a.company_id=${literal(f.companyId)}),
+    'origin',(SELECT to_jsonb(o) FROM gridex_network_registry_sources.origins o WHERE o.artifact_id=${literal(prior.artifact.artifactId)} AND o.company_id=${literal(f.companyId)}));`)
+  const signedSource=()=>sql(`SELECT jsonb_build_object(
+    'contract',(SELECT to_jsonb(c) FROM public.customer_contracts c WHERE c.id=${literal(f.contractId)} AND c.company_id=${literal(f.companyId)}),
+    'pdf',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]') FROM public.customer_contract_documents d WHERE d.company_id=${literal(f.companyId)} AND d.customer_contract_id=${literal(f.contractId)}),
+    'method',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]') FROM gridex_metering_method_changes.contract_request_declarations d WHERE d.company_id=${literal(f.companyId)} AND d.contract_id=${literal(f.contractId)}));`)
+  const oldNetwork=originalNetwork(),agreement=signedSource()
+  const methodScope={companyId:f.companyId,contractId:f.contractId,actorUserId:f.actorUserId,environment:'test' as const}
+  const method=await readContractRequestedMethodSource(methodScope)
+  expect(method).toMatchObject({status:'authorized',companyId:f.companyId,contractId:f.contractId,
+    customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,environment:'test'})
   // Submit actual prospective test catalog bytes through the public importer.
   // Registry verification deliberately keeps automatic sending disabled; no
   // certificate/readiness/accepted-source fact or production approval is seeded.
@@ -214,6 +317,30 @@ async function materializeWindowRoute(f: NormalSwitchStageNativeFixture) {
   expect(rows[0].ediel_route_profile_id).toEqual(expect.stringMatching(/^[0-9a-f-]{36}$/))
   f.routeId=rows[0].communication_route_id as string
   f.routeProfileId=rows[0].ediel_route_profile_id as string
+  // The public import prospectively changes current registry claims. Preserve
+  // the old original and qualify a distinct version through the cached issuer
+  // and the separate public reviewer before the unchanged calendar dispatcher.
+  expect(source.actorId).toBe(registry.networkActorId)
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({status:'held',
+    sourceHash:prior.artifact.sourceHash,claimsHash:prior.artifact.claimsHash})
+  expect(await readContractRequestedMethodSource(methodScope)).toEqual({status:'held',missing:['ai_bi_network_registry_current_source_unqualified']})
+  const submission=registry.submission('SYNTHETIC prospective window network original',registry.pdf('prospective window network'))
+  expect(submission.source.version).toBe('2')
+  const next=await archiveNetworkRegistrySource({...submission,companyId:f.companyId,actorUserId:registry.uploader.id})
+  expect(next.missing).toEqual([])
+  expect(next.artifactId).not.toBe(prior.artifact.artifactId)
+  expect(next.sourceHash).not.toBe(prior.artifact.sourceHash)
+  expect(next.claimsHash).not.toBe(prior.artifact.claimsHash)
+  expect(registry.reviewer.id).not.toBe(registry.uploader.id)
+  expect(await reviewNetworkRegistrySource({...next,companyId:f.companyId,actorUserId:registry.reviewer.id,
+    decision:'approve',reason:'SYNTHETIC separate review of prospective window network original',clause:registry.clause}))
+    .toMatchObject({status:'authorized',artifactId:next.artifactId})
+  expect(await readNetworkRegistrySourceArtifact({...oldScope,artifactId:next.artifactId})).toMatchObject({status:'authorized',
+    sourceVersion:submission.source.version,networkActorId:source.actorId,networkEdielId:f.receiver,sourceHash:next.sourceHash,claimsHash:next.claimsHash})
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({status:'held',sourceHash:prior.artifact.sourceHash,claimsHash:prior.artifact.claimsHash})
+  expect(originalNetwork()).toEqual(oldNetwork)
+  expect(signedSource()).toEqual(agreement)
+  expect(await readContractRequestedMethodSource(methodScope)).toEqual(method)
   expect(sql(`SELECT to_jsonb(auto_send_allowed) FROM public.platform_actor_routes WHERE id=${literal(platformRouteId)} AND actor_id=${literal(source.actorId)};`)).toBe(false)
   const readiness=await getCompanyGridOwnerRouteReadiness({companyId:f.companyId,gridOwnerId:f.gridId,
     environment:'test',messageFamily:'PRODAT',messageCode:'Z03'})
@@ -712,10 +839,14 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     const source=await receive(f,confirmation(f)),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
     expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+    const diagnosticReads=await Promise.allSettled([
+      getEdielMessageById(source.id,{companyId:f.companyId}),listEdielMessageEvents(source.id,f.companyId),
+    ] as const)
+    const diagnostic=projectZ04Diagnostic(f,source,diagnosticReads)
     expect(sql(`SELECT jsonb_build_object('switch',(SELECT jsonb_build_object('status',status,'original',outbound_z03_message_id,'source',inbound_z04_message_id,'li',rff_li_reference) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)}),
       'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)} AND metering_point_id=${literal(f.pointId)} AND source_message_id=${literal(source.id)} AND status='confirmed_by_grid_owner'),
       'active',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND status='active'),
-      'proof',(SELECT count(*) FROM gridex_received_sources.normal_switch_confirmations WHERE company_id=${literal(f.companyId)} AND switch_id=${literal(f.switchId)} AND original_message_id=${literal(original.id)} AND source_message_id=${literal(source.id)}))`))
+      'proof',(SELECT count(*) FROM gridex_received_sources.normal_switch_confirmations WHERE company_id=${literal(f.companyId)} AND switch_id=${literal(f.switchId)} AND original_message_id=${literal(original.id)} AND source_message_id=${literal(source.id)}))`),JSON.stringify(diagnostic))
       .toEqual({switch:{status:'accepted',original:original.id,source:source.id,li:f.li},periods:1,active:0,proof:1})
     expect(originalHistory(f)).toEqual(history)
     const returned=replies(f,source.id)
