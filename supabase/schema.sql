@@ -16798,9 +16798,11 @@ BEGIN
  -- globally, including preserved rows predating this prospective ledger.
  IF (SELECT count(*) FROM (SELECT o.* FROM public.ediel_messages o WHERE o.direction='inbound'
    AND (coalesce(evidence#>>'{originalUNB,uciReference}','') !~ '^[A-Za-z0-9]+$'
-   OR (left(o.raw_payload,3)='UNA' AND (substring(o.raw_payload,5,1)<>'+' OR substring(o.raw_payload,9,1)<>''''))
-   OR strpos(o.raw_payload,'+'||(evidence#>>'{originalUNB,uciReference}')||'+')>0
-   OR strpos(o.raw_payload,'+'||(evidence#>>'{originalUNB,uciReference}')||'''')>0) OFFSET 0) old
+   OR (left(o.raw_payload,3)='UNA' AND (substring(o.raw_payload,5,1)<>'+' OR substring(o.raw_payload,7,1)<>'?' OR substring(o.raw_payload,9,1)<>''''))
+   OR CASE WHEN char_length(evidence#>>'{originalUNB,uciReference}')=14
+    THEN strpos(translate(o.raw_payload,E'?\r\n',''),'+'||(evidence#>>'{originalUNB,uciReference}'))>0
+    ELSE strpos(translate(o.raw_payload,E'?\r\n',''),'+'||(evidence#>>'{originalUNB,uciReference}')||'+')>0
+     OR strpos(translate(o.raw_payload,E'?\r\n',''),'+'||(evidence#>>'{originalUNB,uciReference}')||'''')>0 END) OFFSET 0) old
   CROSS JOIN LATERAL(SELECT gridex_ediel_technical_ack.envelope(old.raw_payload)e)p
   WHERE old.direction='inbound' AND p.e IS NOT NULL AND p.e->>'environment'=m.environment AND p.e->'sender'=evidence#>'{originalUNB,sender}' AND p.e->'receiver'=evidence#>'{originalUNB,receiver}' AND p.e->>'applicationReference'=evidence#>>'{originalUNB,applicationReference}' AND p.e->>'uciReference'=evidence#>>'{originalUNB,uciReference}')<>1 THEN RAISE EXCEPTION 'ediel_technical_ack_original_ambiguous';END IF;
  IF EXISTS(SELECT FROM jsonb_array_elements(tokens)cm WHERE cm->>'tag'='UCM' AND NOT EXISTS(SELECT FROM jsonb_array_elements(gridex_utilts_binding.wire_tokens_v1(source.raw_payload))h WHERE h->>'tag'='UNH' AND h#>>'{elements,1,0}'=cm#>>'{elements,1,0}')) THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;
