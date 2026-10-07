@@ -2,6 +2,7 @@
 // Genuine full-schema PostgreSQL/PostgREST consumers. Synthetic external
 // issuer/legal/mail/SMTP inputs confer no formal TGT/LIVE or legal approval.
 import {createHash,randomUUID} from 'node:crypto'
+import {isDeepStrictEqual} from 'node:util'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit} from './fixtures/ediel-service-evidence-native'
 import {pendingZ14,currentAssignment,z14Market,z14Wire,receiveZ14,omitZ14Field,z14RequiredFields,setOwnAckApplication,type PendingZ14} from './helpers/ediel-z14v-current-native-fixture'
@@ -17,7 +18,11 @@ import {projectEdielSeriesToBeneficiary} from '@/lib/ediel/services/projection'
 import {assertUtiltsPositiveAckAuthorityForSend} from '@/lib/ediel/utilts/positiveAckAuthority'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition'
-import {prodatDate203} from '@/lib/ediel/prodat/render/dates'
+import {isProdatCalendarMinute,prodatDate203} from '@/lib/ediel/prodat/render/dates'
+import {supabaseService} from '@/lib/supabase/service'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
+import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 beforeEach(resetNativeEscoFixture)
@@ -46,6 +51,87 @@ function canonicalLineageEvidence(p:PendingZ14,source:EdielMessageRow){
  'leaf',NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id),
  'applicationFacetHash',(SELECT f.application_facts_hash FROM gridex_received_sources.prodat_application_facets f WHERE f.assessment_id=v.id AND f.company_id=v.company_id AND f.source_message_id=v.source_message_id AND f.environment=v.environment AND f.source_payload_hash=v.source_payload_hash)) ORDER BY v.assessed_at,v.id),'[]') FROM gridex_received_sources.validation_assessments v WHERE v.company_id=a.company_id AND v.source_message_id=${lit(source.id)})
  ) FROM public.ediel_service_assignments a JOIN public.metering_permissions mp ON mp.company_id=a.company_id AND mp.id=${lit(p.permissionId)} WHERE a.company_id=${lit(p.f.ids.company)} AND a.id=${lit(p.f.assignment)}`)
+}
+async function reportingReadEvidence(p:PendingZ14,source:EdielMessageRow){
+ // Observation only, AFTER processing. This later READ cannot prove that the
+ // earlier runtime READ or its opaque capability qualified. Never pass its
+ // result to canonical validation, a capability loader or any write port.
+ const digest=(v:unknown)=>{const value=typeof v==='string'?v:JSON.stringify(v)??String(v);return {length:value.length,sha256:createHash('sha256').update(value).digest('hex')}}
+ const hash=(v:unknown)=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v)
+ const text=(v:unknown,empty=false)=>typeof v==='string'&&(empty||v.length>0)&&v.length<=200&&v===v.trim()&&!/[\x00-\x1f\x7f]/.test(v)
+ const safeNames=new Set(['received_reporting_service_required','received_reporting_actor_required','received_reporting_read_actor_forbidden',
+  'immutable_received_reporting_scope_required','complete_received_reporting_wire_required','complete_own_received_reporting_identity_required',
+  'current_received_reporting_legal_role_required','unique_immutable_service_original_required','unique_immutable_service_origin_required',
+  'sealed_sent_immutable_service_original_required','actual_unique_accepted_original_before_receive_required','exact_independent_original_reporting_identity_required',
+  'exact_historical_assignment_scope_required','explicit_historical_classification_and_reporting_terms_required','independent_bounded_reporting_end_required','explicit_indefinite_reporting_term_required',
+  ...['end_user_contract','dso_contract','service_contract','downstream_use','privacy_roles'].map(k=>'historical_review:'+k)])
+ const safe=(v:unknown)=>typeof v==='string'&&safeNames.has(v)?v:digest(v)
+ const missing=(v:unknown)=>Array.isArray(v)?{count:v.length,names:v.slice(0,32).map(safe)}:{array:false}
+ const sourceIdentity=(m:EdielMessageRow)=>digest(['id','company_id','environment','direction','message_standard','message_family','message_code','raw_payload','message_received_at','immutable_payload_hash','execution_context_snapshot']
+  .map(k=>(m as unknown as Record<string,unknown>)[k])).sha256
+ const protectedIdentity=()=>sql<string|null>(`SELECT to_jsonb(encode(sha256(convert_to(jsonb_build_object('source',source_message_id,'company',company_id,'environment',environment,'origin',origin,'code',message_code,'rawHash',encode(sha256(convert_to(raw_payload,'UTF8')),'hex'),'payloadHash',payload_hash,'receivedAt',source_received_at,'capturedAt',captured_at,'birth',received_context)::text,'UTF8')),'hex')) FROM gridex_received_sources.sources WHERE company_id=${lit(p.f.ids.company)} AND source_message_id=${lit(source.id)}`)
+ let sourceBefore:string|undefined,protectedBefore:string|null|undefined,marketBefore:string|undefined
+ const readStart=Date.now(),output:Record<string,unknown>={sourceMessageId:source.id,readStart,observation:'post_processing_read_only'}
+ try{
+  const current=await getEdielMessageById(source.id)
+  if(!current){output.currentSourceAvailable=false;return}
+  output.currentSourceAvailable=true
+  output.sourceUnchanged=['id','company_id','environment','direction','message_standard','message_family','message_code','raw_payload','message_received_at','immutable_payload_hash','execution_context_snapshot']
+   .every(k=>isDeepStrictEqual((current as unknown as Record<string,unknown>)[k],(source as unknown as Record<string,unknown>)[k]))
+  sourceBefore=sourceIdentity(current);protectedBefore=protectedIdentity();marketBefore=digest(z14Market(p)).sha256
+  const {data:b,error}=await supabaseService.rpc('gridex_ediel_received_z14_reporting_source_basis_v1',
+   {p_source_message_id:source.id,p_actor_user_id:p.f.ids.actor}).abortSignal(AbortSignal.timeout(2000))
+  const readEnd=Date.now();output.readEnd=readEnd;output.elapsedMs=readEnd-readStart
+  if(error){output.rpcError={code:typeof error.code==='string'&&/^[A-Z0-9]{5}$/.test(error.code)?error.code:digest(error.code),message:safe(error.message)};return}
+  if(b===null){output.rpcResult='unavailable';return}
+  if(!isEvidenceRecord(b)){output.rpcResult='invalid_record';return}
+  output.rpcResult=['qualified','held'].includes(String(b.status))?b.status:digest(b.status)
+  output.missing=missing(b.missing)
+  output.objectCount=Array.isArray(b.objects)?b.objects.length:null;output.heldObjectCount=Array.isArray(b.heldObjects)?b.heldObjects.length:null
+  output.heldMissing=Array.isArray(b.heldObjects)?b.heldObjects.slice(0,2).map(o=>missing(isEvidenceRecord(o)?o.missing:undefined)):[]
+  const received=parseSourceReceiptInstant(current.message_received_at),born=isEvidenceRecord(current.execution_context_snapshot)?current.execution_context_snapshot.receivedProdatContext:undefined
+  const payloadHash=createHash('sha256').update(current.raw_payload??'').digest('hex')
+  const captured=isEvidenceRecord(born)?parseSourceReceiptInstant(born.capturedAt):null
+  output.envelopeChecks={actorUuid:isEvidenceUuid(p.f.ids.actor),companyUuid:isEvidenceUuid(current.company_id),receivedClock:received!==null,
+   companyMatches:b.companyId===current.company_id,sourceMatches:b.sourceMessageId===current.id,environmentMatches:b.environment===current.environment,
+   payloadHashMatches:b.sourcePayloadHash===payloadHash,actorMatches:b.actorUserId===p.f.ids.actor,contextHashFormat:hash(b.sourceContextHash),
+   nestedContextMatches:isDeepStrictEqual(b.sourceReceivedContext,born),receivedClockMatches:received!==null&&parseSourceReceiptInstant(b.sourceReceivedAt)===received,
+   birthIdentity:isEvidenceRecord(born)&&born.sourceMessageId===current.id&&born.companyId===current.company_id&&born.environment===current.environment&&born.messageCode==='Z14'&&born.payloadHash===payloadHash&&born.version===1&&born.contextOrigin==='database_insert',
+   birthReceivedClock:isEvidenceRecord(born)&&received!==null&&parseSourceReceiptInstant(born.sourceReceivedAt)===received,
+   birthCapturedClock:captured!==null&&received!==null&&captured>=received&&captured<(BigInt(readEnd)+BigInt(1))*BigInt(1000),
+   evaluationClockInteger:Number.isSafeInteger(b.evaluationUtcMs),evaluationNotAfterReadEnd:Number.isSafeInteger(b.evaluationUtcMs)&&Number(b.evaluationUtcMs)<=readEnd,
+   evaluationAfterReceive:Number.isSafeInteger(b.evaluationUtcMs)&&received!==null&&(BigInt(Number(b.evaluationUtcMs))+BigInt(1))*BigInt(1000)>received,
+   evaluationWithinDiagnosticRead:Number.isSafeInteger(b.evaluationUtcMs)&&Number(b.evaluationUtcMs)>=readStart&&Number(b.evaluationUtcMs)<=readEnd,
+   arraysBounded:Array.isArray(b.objects)&&b.objects.length<=1000&&Array.isArray(b.heldObjects)&&b.heldObjects.length<=1000,
+   objectScopesUnique:Array.isArray(b.objects)&&b.objects.length<=1000&&new Set(b.objects.map(o=>JSON.stringify(isEvidenceRecord(o)?o.scope:null))).size===b.objects.length}
+  const wire=tokenizeEdifact(current.raw_payload??''),{groups}=prodatRegisterGroups(wire.segments,wire.una,'Z14')
+  output.objectChecks=Array.isArray(b.objects)?b.objects.slice(0,2).map(v=>{
+   if(!isEvidenceRecord(v)||!isEvidenceRecord(v.scope)||!isEvidenceRecord(v.scope.customer)||!isEvidenceRecord(v.original)||!isEvidenceRecord(v.term)||!isEvidenceRecord(v.purpose))return {recordShape:false}
+   const s=v.scope,c=s.customer as Record<string,unknown>,o=v.original,t=v.term,purpose=v.purpose
+   const clocks=['originCreatedAt','sealedAt','acceptedObservedAt','evidenceReviewedAt','evidenceArchivedAt'].map(k=>parseSourceReceiptInstant(o[k]))
+   const scopeMatches=groups.some(g=>{
+    const own=g.segments,refs=own.filter(x=>x.tag==='RFF'&&segmentComposite(x,1,wire.una)[0]==='LI'),customers=own.filter(x=>x.tag==='NAD'&&segmentComposite(x,1,wire.una)[0]==='UD'),reasons=own.filter(x=>x.tag==='CCI'&&segmentComposite(x,2,wire.una)[0]==='Z13')
+    if(refs.length!==1||customers.length!==1||reasons.length!==1)return false
+    const ref=segmentComposite(refs[0],1,wire.una),customer=segmentComposite(customers[0],2,wire.una),cav=own[own.indexOf(reasons[0])+1]
+    return cav?.tag==='CAV'&&isDeepStrictEqual(s,{lineIndex:g.lineIndex,objectId:g.itemId,identityAgency:g.identityAgency,lineItemReference:ref[1],customer:{id:customer[0],qualifier:customer[1]??'',agency:customer[2]},reason:segmentComposite(cav,1,wire.una)[0]})
+   })
+   return {recordShape:true,scopeShape:Number.isSafeInteger(s.lineIndex)&&Number(s.lineIndex)>=0&&text(s.objectId)&&['9','89'].includes(String(s.identityAgency))&&text(s.lineItemReference)&&text(c.id)&&text(c.qualifier,true)&&text(c.agency)&&['S17','S18'].includes(String(s.reason)),scopeMatches,
+    classificationKnown:['private','nonprivate'].includes(String(v.classification)),originalUuids:['messageId','originIntentId','assignmentId','permissionId','acceptedAttemptId','evidenceId'].every(k=>isEvidenceUuid(o[k])),
+    originalHashes:hash(o.payloadHash)&&hash(o.evidenceSha256),scopeVersion:Number.isSafeInteger(o.scopeBasisVersion)&&Number(o.scopeBasisVersion)>=1,evidenceVersionText:text(o.evidenceVersion),
+    clocksParse:clocks.map(x=>x!==null),clocksBeforeReceive:received!==null&&clocks.every(x=>x!==null&&x<=received),
+    originBeforeSeal:clocks[0]!==null&&clocks[1]!==null&&clocks[0]<=clocks[1],sealBeforeAccepted:clocks[1]!==null&&clocks[2]!==null&&clocks[1]<=clocks[2],archiveBeforeReview:clocks[4]!==null&&clocks[3]!==null&&clocks[4]<=clocks[3],reviewBeforeOrigin:clocks[3]!==null&&clocks[0]!==null&&clocks[3]<=clocks[0],
+    termShape:t.kind==='indefinite'||t.kind==='bounded'&&typeof t.endMinute==='string'&&isProdatCalendarMinute(t.endMinute),purposeShape:purpose.kind==='absent'||purpose.kind==='present'&&['B71','B72','B73','B74','B75','B76'].includes(String(purpose.code))}
+  }):[]
+ }catch(error){output.diagnosticError={name:error instanceof Error?digest(error.name):digest(typeof error),message:safe(error instanceof Error?error.message:error)}}
+ finally{
+  try{
+   const after=await getEdielMessageById(source.id),protectedAfter=protectedIdentity(),marketAfter=digest(z14Market(p)).sha256
+   output.diagnosticSourceUnchanged=sourceBefore===undefined||!after?null:sourceBefore===sourceIdentity(after)
+   output.diagnosticProtectedSourceUnchanged=protectedBefore===undefined||protectedBefore===null||protectedAfter===null?null:protectedBefore===protectedAfter
+   output.diagnosticMarketUnchanged=marketBefore===undefined?null:marketBefore===marketAfter
+  }catch(error){output.nonmutationObservationError=safe(error instanceof Error?error.message:error)}
+  output.finishedAt=Date.now();console.info('Z14 post-processing reporting READ diagnostics',JSON.stringify(output))
+ }
 }
 function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow,expectedPoint=p.f.point){
  const actual=replies(p,source),wire=tokenizeEdifact(source.raw_payload!),envelope=EdifactEnvelopeCodec.decode(source.raw_payload!)
@@ -116,6 +202,7 @@ async function firstPositive(p:PendingZ14,options:{change?:Record<string,unknown
  // permission, records accepted validation or captures a passing private facet.
  await process(p,source)
  console.info('Z14 first-processing canonical lineage',JSON.stringify(canonicalLineageEvidence(p,source)))
+ await reportingReadEvidence(p,source)
  const after=z14Market(p)
  expect(after.permission).toMatchObject({status:'active',source_z14_message_id:source.id,inbound_z14_message_id:source.id})
  expect(after.permission.metadata).toMatchObject({marketPermission:{mode:'S17',legalActor:p.f.sender,dsoActor:p.f.receiver,sourceZ14:source.id,objects:expect.arrayContaining([expect.objectContaining({point:expectedPoint,product:p.f.product,status:'A74'})])}})
@@ -182,6 +269,7 @@ it.each(z14RequiredFields)('fresh pending private V omits required field %s befo
  const source=await receiveZ14(p,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,field==='323'?{actorUserId:p.f.ids.actor}:{})
  if(field==='209')await expect(process(p,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
  else await process(p,source)
+ if(field==='323')await reportingReadEvidence(p,source)
  expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify({field,issues:decision.issues})).not.toEqual(['accepted','accepted','accepted'])
  if(field==='233')expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UNSM_MANDATORY_ELEMENT_MISSING',layer:'syntax',severity:'error',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'})]))
@@ -192,7 +280,7 @@ it.each(z14RequiredFields)('fresh pending private V omits required field %s befo
 it('fresh bounded V omits required 321 and cannot mutate the still-pending permission',async()=>{
  const p=await pendingZ14(true),before=z14Market(p),source=await receiveZ14(p,omitZ14Field(z14Wire(p),'321'))
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:p.f.ids.actor})
- await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
+ await process(p,source);await reportingReadEvidence(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
  expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:'321'})})]))
 })
 
