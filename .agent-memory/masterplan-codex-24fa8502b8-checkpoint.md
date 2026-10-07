@@ -1,6 +1,6 @@
 # Masterplan checkpoint — root24fa
 
-Updated 2026-10-07T03:46:36.011705+00:00. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All17 technical refs remain held; no merge or memory roles held. Do not start another pair.
+Updated 2026-10-07T03:46:36.011705+00:00. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All15 active technical refs remain held after explicit two-retired-file RELEASE264e13ef; no merge or memory roles held. Do not start another pair.
 
 ## Current sources and next action
 
@@ -273,3 +273,9 @@ Rootallpermittedindependentsource/reader/currentoriginalauth/6effectreviews/comp
 RootsoleZ01pair IDs/native/runtime custody remains. Twooptional paths absentactual80e+main andcommon653 usesvalidreleased643moduleinstead: `lib/inbound-mail/informationReplyBirthProfile.ts` / `__tests__/ediel-information-reply-birth-profile.test.ts`. Their immutable06a9carrier/ce24/test118+3mutationhistoricalreceipts remainpreserved; retirement8e independentlyapproved0d635bab/66db3c5e andnewheadbothSOURCEGOs. Continuing toholdtheirfiletags isunnecessary.
 
 Beforemutation scope EXACTONLY `file-183571704f7f40afaf0aff4f2f5a494c3d094603581285c6f21d14c4cf5acd62` and `file-542ed46fbb839b03e4c6eec3992d69d8d709daccb0b1fcf30b50437dfca2cff5`, eachmustownerGETMATCH receiptab1950906b988dc122251488de794d9e47feba4c; thenDELETEthenexplicitHTTP404. Recordactual terminalsbeforerecounting17→15. No releaseofpairIDs/active13filepaths/commonSQL/foreignroles. ThisisexplicitRELEASEofcompletedretired2pathscope, not wholehandoff/adoption/newpair or expiryinference. Failuremeansownershipunresolvedandmustnotclaimrelease. Responsible rootactualrelease+ownCP530aftercurrentdoc; common653stillOPEN/wholeblockerunchanged. Current80mandatoryverify+quality+smokeSUCCESS (originalworkerAPI03:57), native68/26FAIL unchanged.
+
+## Actual limited file release and retained15 reconciliation — 2026-10-07T03:59:43.387931+00:00
+
+AFTERbefore-releaseCPc313cb9ed/#5306030606846 rootauthenticated exactlytwoab195 retiredfiletags ownerGETMATCH→DELETE→explicitJSONstatus404+HTTP404. Actualreceipt `/workspace/scratch/z01-retired-two-file-release-24fa8502b8.json` SHA264e13efc30becddb50e9141d44b35904f515856d15d911f0a10edc522250386. Root pairIDs andactive13filepaths NOTreleased; noSQL/common/foreign/roles touched. Immutable06a9+ce24/historical118+3mutation preserved, unused2pathruntimeproposal SUPERSEDED notwholecredit.
+
+Fresh eachremaining15 individually ownerGETMATCH in `/workspace/scratch/z01-active15-after-retired-release-24fa8502b8.json`: exactly2IDs+13files andoriginalreceiptsc853/e576/ONLYCJS231e/guard0d1/worker7975; no role held. This15map supersedes old17maps for future publication/adoption/merge/release protocol; historical17observations remain true at their epochs. Current sourcePR63880e/all94/2589 unchanged/clean/currentCI stillnon-green dueactual68/26native; no newpair. Nextrootfreshmain+15mapGETMATCH/beforecodeCP530 afterlegitimatecommon653delivery/handoff thenfreshwholeproof; next93ecommonclean/certificate qualification/delivery. Shared95bcreconcile actualreleased2/reduced15 underownrole.
