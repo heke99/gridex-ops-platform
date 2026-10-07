@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "observedAtUtc": "2026-10-07T20:37:32.397827+00:00",
+  "scope": "One frozen-original source qualification prerequisite within retained original503 F/G work; IDs[]; no whole acceptance or coverage approval.",
+  "sourceBase": "b21ddbfd3f445c6d2a1b92c9c3b4a67f620dbd92",
+  "reservationReceipt": "4eb1357b8e3ca63d96712c925b885a1b792fadd5",
+  "originalSource": {
+    "url": "https://www.ediel.se/Portal/Document/3338",
+    "document": "260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B",
+    "updated": "2026-06-30",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "bytes": 3083488,
+    "pages": 140,
+    "downloadResult": "Actual successful public HTTPS retrieval; bytes match the previously recorded frozen P26.A / APERAK16.B hash.",
+    "physicalPageEvidence": [
+      {
+        "physicalPage": 19,
+        "observation": "Field306 is required for Z04; conditional Z06 requirement explicitly obligatory for Z06F/E64 and Z06G/E32, optional for Z06E.",
+        "extractedTextUtf8Sha256": "6bf12c33a7ecba02df78bda48300f32b263e8e4a4e05dbf4a9680f35ffc368f7",
+        "visualInspection": true,
+        "renderScale": 1.5,
+        "renderPngSha256": "aaabd652fdb3df3e890d7dd23afab2d873ba38dcb8e38200ea95b295cc85d978"
+      },
+      {
+        "physicalPage": 60,
+        "observation": "SG14/CCI descriptor Z07, example CCI++Z07; SG14/CAV C889/7111 value Z11 Closed or Z12 Active, example CAV+Z12. Required for Z04, Z06F and Z06G.",
+        "extractedTextUtf8Sha256": "da182af505a887780e6e8b8273c7d7b728e718579fd4b7582c79d9b9e5b411b8",
+        "visualInspection": true,
+        "renderScale": 1.5,
+        "renderPngSha256": "cf77f2a9f911152093f75e4f304de9431f27f227629742334aadbd40941f383c"
+      },
+      {
+        "physicalPage": 122,
+        "observation": "Field306 Installation status / Installationsstatus: Giltiga koder: Z11, Z12.",
+        "extractedTextUtf8Sha256": "911176eaa4548f0af17c35195c3888e072688a4e5e7c9f08c90dffd22d75517b",
+        "visualInspection": true,
+        "renderScale": 1.5,
+        "renderPngSha256": "6f1ec5422168dcd2a06571c19e6f15503eff68d68e25a890f66dcf74c9d13294"
+      }
+    ]
+  },
+  "qualifiedRequirement": {
+    "fieldNumber": "306",
+    "fieldKey": "installation_status",
+    "locator": "SG14/CCI++Z07/CAV",
+    "codedValueElement": "C889/7111",
+    "validCodes": {
+      "Z11": "Closed",
+      "Z12": "Active"
+    },
+    "requiredFor": [
+      "Z04",
+      "Z06F/E64",
+      "Z06G/E32"
+    ],
+    "optionalFor": [
+      "Z06E"
+    ],
+    "visualContext": "Inspected table rows, adjacent conditions and shading on physical19/60/122 give no E22 exception for field306 in this exact frozen original."
+  },
+  "inspectedCurrentPath": {
+    "classification": "Static value-check gap in the inspected field306 path; not missing requiredness, not reproduced runtime acceptance, and not a reproduced native failure.",
+    "fixture": "Retained structuralOwnerFixtures.ts emits CCI descriptor Z07 and legacy CAV value E22. This is not a guide-valid positive field306 control under the inspected original.",
+    "matrix": "Current field306 row has CCI++Z07/CAV, cavComponent0 and existing requiredness, with no allowedValues list.",
+    "policy": "canonicalEdielPolicy.ts imports canonicalProdat26AFieldRules from the matrix.",
+    "validator": "fieldMatrix.ts value checking normalizes rule.allowedValues and continues when the list is empty. Other paths and guards may reject an input; no end-to-end E22 acceptance is inferred.",
+    "sourcePins": [
+      {
+        "path": "__tests__/helpers/structuralOwnerFixtures.ts",
+        "blob": "2e8699e1073c639a4bf511dbf27a55c9ca9184d6",
+        "sha256": "8c9fe5dd58432b0847c4e75ac0801471bb514c7a1a8d90e77167cd874e09b77d",
+        "bytes": 2600
+      },
+      {
+        "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "blob": "89c53595dea27d15c14d9069bc6501c875a4fa79",
+        "sha256": "336ada156b9cf96d63c9a15b4a821fd1e740344b6cb5845a9b38010aac7c16e7",
+        "bytes": 17919
+      },
+      {
+        "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "blob": "18a4b4359d40d9972e06b5b438a65e5f699815fa",
+        "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+        "bytes": 22014
+      },
+      {
+        "path": "lib/ediel/rulebook/fieldMatrix.ts",
+        "blob": "b582f8bd7e31a7fbb4cbf233c6a6130d5e694eb8",
+        "sha256": "3b9bf43d4243f40ad1ecc0339476d53ff2472973d7a7acc960e9e74ba92d4ed5",
+        "bytes": 53961
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/field-306-source-qualification.json",
+        "blob": "a6c965dfc84438de07a740340e80611a253d3386",
+        "sha256": "0346cee6f489bd2749ab35a3040a85b042ef343237ae885740c97d677f9e9a8d",
+        "bytes": 6225
+      }
+    ],
+    "historicalPinCaveat": "Current whole matrix and validator blobs differ from the old report pins. They were inspected at this sourceBase; no historical whole-module equality is claimed."
+  },
+  "historicalEvidence": {
+    "preservedReport": "quality/audits/ediel-masterplan-v2/at-z06f-z06g-supplier/field-306-source-qualification.json",
+    "supersededCaveatOnly": "At this new observation the exact original bytes are available, rehashed and visually inspected for field306. The old report accurately records its earlier unavailable/unseen state and remains unchanged.",
+    "priorSourceReuse": "Existing at-z13v-z14v-esco/original-source-qualification.json already authenticates the same original PDF for other fields; that does not approve field306 runtime behavior.",
+    "preservation": "Existing fixtures, source reports, frozen registers, runtime code, test oracles, earlier native failures and coverage are unchanged."
+  },
+  "remainingOwnerActions": [
+    "Retained original503 fixture/native/source custodian (historical board receipt5998493891) and canonical P owner must coordinate guide-valid Z11/Z12 positives and explicit E22/other invalid-code contrasts on the existing fixture and runtime path.",
+    "Qualify any applicable later guidance or supplement before correction; this bounded observation performs no exhaustive supplement search.",
+    "Prove requiredness, subtype applicability, real permissions, accepted-source provenance, physical parsing and resulting durable effects through the affected F/G system path, with prescribed independent reviews/current gates and lawful file ownership.",
+    "Deliver retained F/G helper/acceptance integration once under its existing custodian, then evaluate full contract effects; source qualification alone cannot promote an acceptance row."
+  ],
+  "verificationLimits": {
+    "runtimeTests": "NOT_RUN for this source-only component",
+    "nativeAcceptance": "NOT_RUN; earlier native outcomes retain their original source/date",
+    "laterSupplementCensus": "NOT_PERFORMED",
+    "databaseOrGenChanges": false,
+    "fixtureOrValidatorCorrection": false,
+    "wholeAcceptance": "UNAPPROVED",
+    "coverageChanges": false
+  }
+}
