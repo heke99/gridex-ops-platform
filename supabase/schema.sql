@@ -35916,6 +35916,7 @@ declare
   v_company public.companies%rowtype;
   v_actor public.ediel_actor_settings%rowtype;
   v_route public.ediel_route_profiles%rowtype;
+  v_communication_route public.communication_routes%rowtype;
   v_payload jsonb;
   v_hash text;
   v_next_version bigint;
@@ -35983,6 +35984,16 @@ begin
     raise exception 'test_route_actor_binding_mismatch';
   end if;
 
+  select * into v_communication_route
+  from public.communication_routes
+  where id=v_route.communication_route_id and company_id=p_company_id
+  for share;
+  if not found or v_communication_route.is_active is distinct from true
+     or v_communication_route.environment_type is null
+     or v_communication_route.environment_type not in ('agt_test','tgt_test','bilateral_test') then
+    raise exception 'test_route_communication_source_required';
+  end if;
+
   v_payload := jsonb_build_object(
     'test_context', jsonb_build_object(
       'actor_profile_id', v_actor.id,
@@ -35992,7 +36003,7 @@ begin
       'counterparty_ediel_id', v_route_receiver,
       'message_family', upper(coalesce(v_route.message_family,'')),
       'application_reference', v_route.application_reference,
-      'environment_type', v_route.environment_type
+      'environment_type', v_communication_route.environment_type
     ),
     'company', jsonb_build_object(
       'id', v_company.id,
@@ -36027,13 +36038,15 @@ begin
         'receiver_subaddress',coalesce(r.receiver_sub_address,r.receiver_subaddress),
         'application_reference',r.application_reference,
         'message_family',r.message_family,
-        'environment_type',r.environment_type,
+        'environment_type',cr.environment_type,
         'mailbox_id',r.mailbox_id,'transport_profile_id',r.transport_profile_id,
         'certificate_id',r.certificate_id,'receiver_certificate_id',r.receiver_certificate_id,
         'transport_security_mode',r.transport_security_mode,
         'is_active',r.is_active,'is_enabled',r.is_enabled
       ) order by r.environment,r.id)
       from public.ediel_route_profiles r
+      left join public.communication_routes cr
+        on cr.id=r.communication_route_id and cr.company_id=r.company_id
       where r.company_id=p_company_id
     ),'[]'::jsonb),
     'mailboxes', coalesce((
@@ -40505,6 +40518,40 @@ begin
     p_idempotency_key
   );
 
+  -- checked_live_untouched_capability_projection_v1
+  if p_target_state='live'
+    and v_result->>'changed'='true'
+    and v_result->>'company_id'=p_company_id::text
+    and v_result->>'state'='live'
+    and coalesce((v_readiness->>'ready')::boolean,false)
+    and v_readiness->>'company_id'=p_company_id::text
+    and v_readiness->>'configuration_snapshot_id'=p_configuration_snapshot_id::text
+    and exists (
+      select 1 from public.ediel_production_state s
+      where s.company_id=p_company_id and s.state='live'
+        and s.state_version=(v_result->>'state_version')::bigint
+        and s.configuration_snapshot_id=p_configuration_snapshot_id
+        and s.readiness_check_id=p_readiness_check_id
+        and s.dry_run_id=p_dry_run_id
+    )
+    and coalesce((public.canonical_ediel_production_evidence_readiness(p_company_id)->>'ready')::boolean,false)
+  then
+    insert into public.company_capabilities as capability (
+      company_id,capability_code,enabled,readiness_status,
+      last_verified_at,last_verified_by,created_by,updated_by
+    ) values (
+      p_company_id,'ediel_production',true,'ready',
+      now(),p_actor_user_id,p_actor_user_id,p_actor_user_id
+    ) on conflict (company_id,capability_code) do update
+    set enabled=true,readiness_status='ready',last_verified_at=now(),
+        last_verified_by=p_actor_user_id,updated_by=p_actor_user_id,updated_at=now()
+    where capability.enabled=false and capability.readiness_status='not_configured'
+      and capability.configuration='{}'::jsonb and capability.blockers='{}'::text[]
+      and capability.last_verified_at is null and capability.last_verified_by is null
+      and capability.created_by is null and capability.updated_by is null
+      and capability.updated_at is not distinct from capability.created_at;
+  end if;
+
   update public.canonical_command_results
   set request_payload = v_request,
       request_hash = v_hash
@@ -40653,19 +40700,19 @@ begin
 
   v_lock:=p_target_state<>'live';
   insert into public.ediel_send_locks(
-    company_id,environment,locked,locked_reason,locked_by,locked_at,
+    company_id,environment,lock_key,locked,locked_reason,locked_by,locked_at,
     unlocked_by,unlocked_at,updated_at
   ) values (
-    p_company_id,'production',v_lock,
+    p_company_id,'production',jsonb_build_array(p_company_id,'production')::text,v_lock,
     case when v_lock then coalesce(p_reason,'Canonical production state is not live.') else null end,
     case when v_lock then p_actor_user_id else null end,
-    case when v_lock then now() else null end,
+    now(),
     case when not v_lock then p_actor_user_id else null end,
     case when not v_lock then now() else null end,
     now()
   ) on conflict (company_id,environment) do update
   set locked=excluded.locked,locked_reason=excluded.locked_reason,
-      locked_by=excluded.locked_by,locked_at=excluded.locked_at,
+      locked_by=excluded.locked_by,locked_at=case when excluded.locked then excluded.locked_at else public.ediel_send_locks.locked_at end,
       unlocked_by=excluded.unlocked_by,unlocked_at=excluded.unlocked_at,
       updated_at=excluded.updated_at;
 
