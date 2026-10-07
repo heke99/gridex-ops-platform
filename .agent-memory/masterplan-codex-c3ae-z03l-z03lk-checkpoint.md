@@ -1,3 +1,13 @@
+## NEW a762 actualnative execution started; attributed source reviews current — 2026-10-07T08:25:45.816466+00:00
+
+Exacta762/tree152/nativee561/public635OPENdraft, main185297/soleL14/ownNOT_EXECUTED/wholeNOT_APPROVED. Independent+rootauthenticatedAPI confirmsrun37592902355/workflow376735068/attempt1 IN_PROGRESS, job112698417687 started08:21:43Z/set-upactual08:21:44, checkout/node/npm/SupabaseCLI SUCCESS, composite execute08:22:13Z IN_PROGRESS/uploadPENDING/noartifact/current34resultyet. Earlierqueued value wasnotactualexecution. Source all6localactualgreens/all3404/source2 remainssamea762, notnativeapproval.
+
+GitHub twoattributed independentSOURCE-onlyreviews actualPOSTsuccess andexactGET bindcommit a762:5439569573(source74e976) +5439570953(boundaryd312). Theyare COMMENTED sourceattestations, NOTGitHubAPPROVED orwholeapproval/currentCI_GREEN. Mandatorycurrentchecks queriedfresh: nineexecuting/queued plusconditionalcrawlerSKIPPED; individualjobgreensnotoverallgreen. Desktopattach635 attemptagain hung/terminatedcell302, outcomeAMBIGUOUS/no successfuldesktopattachmentclaim; officialPR/Gitref/sourceactualconfirmedindependently. No taskapproval/blocker inferredfromdesktopUI.
+
+NextROOT+independentverifier obtain unchangedoriginalZIPaftertruecompletednative/upload, freshofficialrepo/head/tree/native/runattempt/job/window/size/digest/CRC/all3404MODEOID/exact34/JUnit+log+typedEXIT strictv4bqualification; classifyactualfieldTRUE/UNKNOWN andCONTRL/APP/effects/fullpositive/replay andremainingnegativegate paths. Nativefail retainedhonestly/qualifier0authenticatesonly; actualfiniteproducerhand-off95bc+c65 andonlyownreservedsourcefixes. No sourceCP-onlyrestart/borrowedgreen/newpair/coverage/merge/external; sharedc65roleonlymirrorsactualCP530.
+
+---
+
 ## ACTUAL635 a762 published; newcurrentofficial34 pending — 2026-10-07T08:21:41.329901+00:00
 
 NormalFF push507→a762d44a2051861742c635429ccb584d32f6d331 actualEXIT0 afterCPdebbc541/5306033902034 andexactall14/main185/sourcechecks/reviews/scope/readbacks. ImmediateauthenticatedGitDataref+PR635GET confirmsOPENdraft exacta762/tree152fc09f153994ea30a2f8a49308016b1a37bd1a/nativee561; PRtitle/body rewritten currentlocalsourceproof/preserved50730P2F/new34PENDING/wholeNOT_APPROVED/no coverage. No sourceCP-onlyrestart. Sourceactualfull917/13618PASS/focused11/1288PASS/type3/lint0/static3404/source2APP remains samea762; previous concurrenttimeouts/interruptedreceipt unchanged.
