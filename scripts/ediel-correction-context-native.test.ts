@@ -710,7 +710,7 @@ async function nativeTechnicalAck(){
  expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'CONTRL',
   communication_route_id:route.route.id,route_profile_id:route.routeRuntime.route_profile_id,related_message_id:source.id,
   mailbox:route.mailbox,sender_ediel_id:route.senderEdielId,receiver_ediel_id:route.receiverEdielId,application_reference:route.applicationReference})
- expect(ack.immutable_payload_hash).toBe(createHash('sha256').update(ack.raw_payload!).digest('hex'))
+ expect(ack).toMatchObject({immutable_payload_hash:createHash('sha256').update(ack.raw_payload!).digest('hex')})
  return {f,source,ack,evidence}
 }
 it('native actual fresh CONTRL binds protected syntax before generic entry, observes once and repairs retry without SMTP',async()=>{
