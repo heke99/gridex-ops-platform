@@ -1,6 +1,9 @@
 name: Ediel Z02 L LK native contract feedback
 
 on:
+  push:
+    branches:
+      - 'codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae'
   pull_request:
     paths:
       - 'scripts/ediel-at-z02-supplier-native.test.ts'
@@ -117,7 +120,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ediel-z02-supplier-native-${{ github.event.pull_request.number }}
+  group: ediel-z02-supplier-native-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 # Executes prospective catalog and proposed whole Z02 consumer tests.
@@ -130,10 +133,40 @@ jobs:
     timeout-minutes: 30
     env:
       NODE_OPTIONS: --max-old-space-size=6144
+      Z02_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ env.Z02_SOURCE_SHA }}
+      - name: Verify exact supplemental event and checkout source
+        shell: bash
+        env:
+          SOURCE_EVENT: ${{ github.event_name }}
+          SOURCE_REF: ${{ github.ref }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          PR_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_SOURCE_SHA: ${{ github.sha }}
+          SOURCE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          SOURCE_WORKFLOW_REF: ${{ github.workflow_ref }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REPOSITORY" == 'heke99/gridex-ops-platform' ]]
+          checkout_sha="$(git rev-parse HEAD)"
+          if [[ "$SOURCE_EVENT" == pull_request ]]; then
+            [[ "$PR_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$checkout_sha" == "$PR_SOURCE_SHA" ]]
+          elif [[ "$SOURCE_EVENT" == push ]]; then
+            [[ "$SOURCE_REF" == 'refs/heads/codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+            [[ "$SOURCE_BRANCH" == 'codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+            [[ "$PUSH_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$checkout_sha" == "$PUSH_SOURCE_SHA" ]]
+            [[ "$SOURCE_WORKFLOW_SHA" == "$PUSH_SOURCE_SHA" ]]
+            [[ "$SOURCE_WORKFLOW_REF" == 'heke99/gridex-ops-platform/.github/workflows/ediel-z02-supplier-native.yml@refs/heads/codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+          else
+            echo 'Unsupported supplemental source event.' >&2
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -337,7 +370,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ediel-z02-supplier-native-${{ github.event.pull_request.head.sha }}
+          name: ediel-z02-supplier-native-${{ env.Z02_SOURCE_SHA }}
           path: z02-supplier-native-evidence/
           if-no-files-found: warn
           retention-days: 14

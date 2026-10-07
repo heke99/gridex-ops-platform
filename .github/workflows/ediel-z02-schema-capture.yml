@@ -1,0 +1,242 @@
+name: Ediel Z02 schema capture (capture only)
+
+on:
+  push:
+    branches:
+      - 'codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z02-schema-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+# This artifact producer does not compare baselines or execute native/browser
+# tests. OPS hardening clean/upgrade replay and parity remain mandatory.
+jobs:
+  capture:
+    name: Capture disposable clean-replay types and schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact supplemental event and checkout source
+        shell: bash
+        env:
+          SOURCE_EVENT: ${{ github.event_name }}
+          SOURCE_REF: ${{ github.ref }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          PR_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_SOURCE_SHA: ${{ github.sha }}
+          SOURCE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          SOURCE_WORKFLOW_REF: ${{ github.workflow_ref }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REPOSITORY" == 'heke99/gridex-ops-platform' ]]
+          checkout_sha="$(git rev-parse HEAD)"
+          [[ "$SOURCE_EVENT" == push ]]
+            [[ "$SOURCE_REF" == 'refs/heads/codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+            [[ "$SOURCE_BRANCH" == 'codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+            [[ "$PUSH_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$checkout_sha" == "$PUSH_SOURCE_SHA" ]]
+            [[ "$SOURCE_WORKFLOW_SHA" == "$PUSH_SOURCE_SHA" ]]
+            [[ "$SOURCE_WORKFLOW_REF" == 'heke99/gridex-ops-platform/.github/workflows/ediel-z02-schema-capture.yml@refs/heads/codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+      - name: Select the existing combined-prefix capture turn
+        id: capture_turn
+        shell: bash
+        env:
+          SOURCE_HEAD_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$SOURCE_HEAD_REF" == "codex/ediel-combined-source-capture-20261005" ]]; then
+            pending="$(python3 -c 'import json; print("true" if json.load(open("scripts/supabase-types-manifest.json"))["composition_capture_pending"] is True else "false")')"
+            echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          else
+            echo 'pending=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.capture_turn.outputs.pending == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.capture_turn.outputs.pending == 'true'
+      - uses: supabase/setup-cli@v1
+        if: steps.capture_turn.outputs.pending == 'true'
+        with:
+          version: 2.101.0
+      - name: Install the matching PostgreSQL 17 client
+        if: steps.capture_turn.outputs.pending == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\\s*=\\s*(\\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          [[ "$server_major" == 17 ]]
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Capture authentic artifacts from the sourced clean replay
+        if: steps.capture_turn.outputs.pending == 'true'
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          CAPTURE_SOURCE_EVENT: ${{ github.event_name }}
+          CAPTURE_SOURCE_REF: ${{ github.ref }}
+          CAPTURE_SOURCE_BRANCH: ${{ github.ref_name }}
+          CAPTURE_WORKFLOW_REF: ${{ github.workflow_ref }}
+          CAPTURE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          export CAPTURE_CHECKOUT_SHA="$(git rev-parse HEAD)"
+          export CAPTURE_CHECKOUT_TREE="$(git rev-parse 'HEAD^{tree}')"
+          # Hash the complete immutable checkout before replay moves SQL files.
+          export CAPTURE_SOURCE_INVENTORY="$RUNNER_TEMP/z02-capture-source-inventory.json"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          def sha(data):
+              return hashlib.sha256(data).hexdigest()
+          inventory = {}
+          entries = subprocess.check_output(['git','ls-tree','-r','-z','HEAD']).split(b'\0')
+          for entry in entries:
+              if not entry:
+                  continue
+              meta, raw_path = entry.split(b'\t', 1)
+              mode, kind, oid = meta.decode().split()
+              path = raw_path.decode()
+              if kind != 'blob':
+                  raise SystemExit('Unexpected non-blob checkout input: ' + path)
+              data = subprocess.check_output(['git','cat-file','blob',oid])
+              if pathlib.Path(path).read_bytes() != data:
+                  raise SystemExit('Checkout input differs from Git: ' + path)
+              inventory[path] = {'mode':mode, 'oid':oid, 'sha256':sha(data), 'bytes':len(data)}
+          manifest_paths = ['scripts/migration-history-manifest.json',
+              'scripts/migration-history-manifest.additions.json',
+              'scripts/migration-history-manifest.runtime.additions.json']
+          canonical = {}
+          for path in manifest_paths:
+              for name, expected in json.loads(pathlib.Path(path).read_text())['files'].items():
+                  if name in canonical and canonical[name] != expected:
+                      raise SystemExit('Conflicting SQL checksum: ' + name)
+                  canonical[name] = expected
+          for name, expected in canonical.items():
+              path = 'supabase/migrations/' + name
+              if path not in inventory or inventory[path]['sha256'] != expected:
+                  raise SystemExit('Canonical SQL checksum mismatch: ' + path)
+          result = {'purpose':'capture_only_source_inventory',
+              'checkout_sha':os.environ['CAPTURE_CHECKOUT_SHA'],
+              'checkout_tree':os.environ['CAPTURE_CHECKOUT_TREE'],
+              'workflow_path':'.github/workflows/ediel-z02-schema-capture.yml',
+              'git_inputs':inventory, 'canonical_sql_sha256':canonical,
+              'npmrc_sha256':inventory.get('.npmrc', {}).get('sha256')}
+          pathlib.Path(os.environ['CAPTURE_SOURCE_INVENTORY']).write_text(json.dumps(result,indent=2)+'\n')
+          PY
+          unset GRIDEX_REPLAY_DB_URL
+          echo 'Running the existing local clean replay; raw output stays on the disposable runner.'
+          # Do not upload replay/status output: startup output can contain local
+          # credentials. Source the exact owner script so its EXIT trap keeps
+          # the database alive until capture finishes, then stops/restores it.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
+          CAPTURE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
+          export CAPTURE_REPLAY_MIGRATIONS="$TIMESTAMP_EXEC"
+          export CAPTURE_SERVER_VERSION="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
+          GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');")"
+          [[ -n "$GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS" ]]
+          export GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS
+          mkdir -p staff-schema-capture
+          cp "$CAPTURE_SOURCE_INVENTORY" staff-schema-capture/source-input-inventory.json
+          supabase gen types --help > /dev/null
+          supabase gen types typescript --local > staff-schema-capture/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs staff-schema-capture/database.types.ts
+          npm run db:schema:snapshot -- --url "$CAPTURE_DB_URL" --out-dir staff-schema-capture
+          python3 - <<'PY'
+          from datetime import datetime, timezone
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          def digest(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          output = Path('staff-schema-capture')
+          artifact_names = ['database.types.ts', 'schema.sql', 'schema.fingerprint.json']
+          replay_migrations = [Path(line) for line in Path(os.environ['CAPTURE_REPLAY_MIGRATIONS']).read_text().splitlines() if line]
+          latest = max(replay_migrations, key=lambda path: path.name)
+          assert latest.name[:14] == os.environ['CAPTURE_LATEST_MIGRATION_VERSION']
+          fingerprint = json.loads((output / 'schema.fingerprint.json').read_text())
+          receipt = {
+              'purpose': 'capture_only',
+              'source_profile': 'z02_exact_branch_push_capture_only',
+              'source_event': os.environ['CAPTURE_SOURCE_EVENT'],
+              'source_ref': os.environ['CAPTURE_SOURCE_REF'],
+              'source_branch': os.environ['CAPTURE_SOURCE_BRANCH'],
+              'workflow_ref': os.environ['CAPTURE_WORKFLOW_REF'],
+              'workflow_sha': os.environ['CAPTURE_WORKFLOW_SHA'],
+              'workflow_path': '.github/workflows/ediel-z02-schema-capture.yml',
+              'workflow_sha256': digest('.github/workflows/ediel-z02-schema-capture.yml'),
+              'source_inventory_sha256': digest(output / 'source-input-inventory.json'),
+              'npmrc_sha256': json.loads((output / 'source-input-inventory.json').read_text())['npmrc_sha256'],
+              'captured_at': datetime.now(timezone.utc).isoformat(),
+              'checkout_sha': os.environ['CAPTURE_CHECKOUT_SHA'],
+              'checkout_tree': os.environ['CAPTURE_CHECKOUT_TREE'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'supabase_cli_version': subprocess.check_output(['supabase', '--version'], text=True).strip(),
+              'postgres_server_version': os.environ['CAPTURE_SERVER_VERSION'],
+              'pg_dump_version': subprocess.check_output([os.environ['GRIDEX_PG_DUMP'], '--version'], text=True).strip(),
+              'latest_replay_migration': {'name': latest.name, 'sha256': digest(latest)},
+              'schema_names': fingerprint['schemas'],
+              'schema_fingerprint': fingerprint['sha256'],
+              'artifact_sha256': {name: digest(output / name) for name in artifact_names},
+              'input_sha256': {
+                  path: digest(path) for path in [
+                      'scripts/gridex-aud-003-clean-replay.sh',
+                      'scripts/migration-history-manifest.json',
+                      'scripts/migration-history-manifest.additions.json',
+                      'scripts/migration-history-manifest.runtime.additions.json',
+                      'scripts/supabase-types-manifest.json',
+                      'scripts/apply-supabase-types-nullability-overrides.cjs',
+                      'scripts/gridex-schema-snapshot.cjs',
+                      'supabase/config.toml',
+                      '.github/workflows/ediel-z02-schema-capture.yml',
+                      'package.json',
+                      'package-lock.json',
+                  ]
+              },
+              'native_tests': 'NOT_RUN',
+              'browser_tests': 'NOT_RUN',
+              'type_schema_comparison': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN',
+              'required_gate': 'OPS hardening clean/upgrade replay and parity remain mandatory',
+          }
+          (output / 'capture-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print('Capture-only artifacts and receipt written; native tests and parity were not run.')
+          PY
+      - name: Upload capture-only artifacts
+        if: always() && steps.capture_turn.outputs.pending == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z02-schema-capture-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            staff-schema-capture/database.types.ts
+            staff-schema-capture/schema.sql
+            staff-schema-capture/schema.fingerprint.json
+            staff-schema-capture/capture-receipt.json
+            staff-schema-capture/source-input-inventory.json
