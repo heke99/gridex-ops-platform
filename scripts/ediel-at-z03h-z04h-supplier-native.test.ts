@@ -962,13 +962,13 @@ describe('H original ACK receipt and current archive authority proposals',()=>{
     expect(await observedStage('withdrawal_read_existing_capability',async()=>readSourceQualifiedProdatBilateralCapability((await getEdielMessageById(control.message.id))!))).toBeNull()
     const fresh=await observedStage('withdrawal_fresh_physical_intake',()=>intake(f,freshPhysicalIdentity(control.message.raw_payload!)))
     expect(fresh.id,JSON.stringify(fresh)).not.toBeNull();expect(fresh.id).not.toBe(control.message.id)
-    const message=(await getEdielMessageById(fresh.id!))!
+    const message=(await observedStage('withdrawal_read_fresh_message',()=>getEdielMessageById(fresh.id!)))!
     expect(await observedStage('withdrawal_read_fresh_capability',()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
     const decision=await observedStage('withdrawal_fresh_canonical_decision',()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
     expect(decision.validationReport.failureDisposition,JSON.stringify(decision)).toMatchObject({kind:'internal_failure',code:'EDIEL_INTERNAL_EXECUTION_FAILURE'})
     expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
     await observedStage('withdrawal_actual_processor',()=>processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id}))
-    expect((await listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
+    expect((await observedStage('withdrawal_list_business_ack',()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'})))
       .filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
     expect(business(f)).toEqual(before);expect(archive()).toEqual(history)
     expect(sealed(original.id)).toEqual(originalBefore);expect(sealed(control.message.id)).toEqual(controlBefore)

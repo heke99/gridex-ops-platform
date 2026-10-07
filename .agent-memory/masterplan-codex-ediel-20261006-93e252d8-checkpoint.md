@@ -1933,3 +1933,11 @@ Reuse suited existingown657 fe717/source tree23b1836c and100strictoriginalcases.
 
 Nextroot afterCLAIM durableCP: confirmall5, normalmain composition, only2callwrappers, fresh nonincremental scriptTSC/scopedlint/diff+original100identity, mandatory independent exactsource+currentcompositionreviews. NormalFF reuseown657 afterreviews then fresh genuinecurrent100/API/originalZIP/allinputs/phase97 qualification. Preservefailedhistory; finish any newly confirmed owned defect only with evidence, or explicitblockedhandoff/owner-only5release. Foreignmemoryrole6b552/c65/currentsource producer locks respected; sharedfactualhandoff530 only, no merge role beforewhole/currentgatesgreen. No nextpair until documentedcloseout/reservation.
 Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6033885257
+
+## Owned phase97 same-call instrumentation — after CLAIM6033885257
+
+Exact currentmain185 composed normally at9151cd84, all10foreignincoming paths/modes andwhole352coverage297BYTEEXACT; native/config/workflow reusedfe BYTEEXACT before edit. AfterdurableCLAIMCP1c742cb4, ONLY2existing originalcalls wrapped using existing observedStage: withdrawal_read_fresh_message and withdrawal_list_business_ack. Sameargs/order/results/errors/assertions/100identities; no sourceguard/SQL/consumer change. TestSHA f80be5546b4fa68236dfff8b7b5ad6c0d36b3cfd1edfe8de5862230227f728de. Confirmed37reading baselines and allotherblockers retained; no predictedPASS or phasecause. NextfreshnonincrementalscriptsTSC/lint/diff/declarationidentity, mandatoryindependentexactsource/currentcomposition reviews before publishing657; current100native thenactualphasequalification.
+
+## Fresh phase97 local verification
+
+ActualsupportedNode22 nonincrementalscriptsTypeScript EXIT0/empty andscopedESLint EXIT0/empty; diffcheck0. Inverting ONLYtwofailure wrappers reproduces entirefe717 nativefileBYTEEXACT, proving all100names/alloriginalassertions/effectguards/calls retained; config/workflowBYTEEXACTfe. No runtime/native execution or bugfix claim. Freshofficialmain185unchanged. Nextindependentexact-source/compositionreviews, READY+normalFF suited657 thencurrentnative100/originalartifactqualification.
