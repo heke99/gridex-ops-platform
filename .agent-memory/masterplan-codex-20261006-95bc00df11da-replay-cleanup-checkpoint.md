@@ -11,3 +11,18 @@ Skill routing: systematic-debugging/directreproduction+fp-check verifiedcause; T
 Meaningful TDD plan actual disposable copy/sentinelbytes+modes+nonSQLinventory: missingpsql, missingprovenance/badbootstrapchecksum, partialmigrationbackup, partialseedbackup, actualPythonpoststagingfailure, fakeCLIstartfail andfirstfakepsqlfail. Allrealfilesystem/realPythonprovenance; fakeexternalSupabase/psql only/noDB/Docker/network. Sourceflags validonlyafter BOTH backups; ownstackstop only afterstartattempt; preserve PostgreSQLpin/trap/source-on-success lifecycle/alloldSQL/native/checks/historicalhashes.
 
 Next95bc: freshmain/liveexactpath404/create-onlycommits/tags/GETmatch, durableCP+CLAIM530 BEFORE source/test/shared edits. Anyconflict owner-preservingrollback onlythisattempt; memory conflict doesnotauthorizeforeignwrites. ThenactualRED→minimalfix→GREEN/2reviews/currentPRgates/normalgreenmerge/actualreceipt/role-firstrelease/shareddocs/resourcesrelease.
+
+## Actual13 resources confirmed BEFORE authoring
+
+Technical2 receiptf7547494edf5a1ce4ef247810c5604963905430f/packet7ded5f6f-056b-4c4d-bdfe-96dc62bbf21f;
+separate10shared+role-memory11 receiptf838b7098c71fe22089f380eb6619aeb2059c3a2/packete5b62b1c-ee30-4ec1-a3c2-d9ddd1f8cfc8.
+All13lexicographiccreate-onlytags re-readGETMATCH exactowner, currentmain600.
+Memoryscope comesfromexplicitreleased649/6456028474988+ALL11actualrelease
+6028513006; ownoldb0a-busy handoff SUPERSEDED byfreshclaim, no quiettakeover.
+No merge role/newrulepair/coverageapproval. Ownworktree600clean beforecode;
+uniquecheckpoint needsnosharedfilelock. Next95bc normalpushthisCP+CLAIM530
+withallresources/files/nextaction beforeanycode/sharededits. Thenactualscript
+TDDRED beforeminimalbackup/startflagfix; reuseONLY10releasedmetadatafiles
+from649de0 andrefreshactual293/636receipt preservingforeignCP/history,
+independentfinalreviews/currentmandatoryCI/normalmerge/actualreceipt/roles
+release/own13release andfreshnextpairselection.
