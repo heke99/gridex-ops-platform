@@ -1,3 +1,13 @@
+## Serial verification correction; partial full timeout run preserved — 2026-10-07T07:57:54.449595+00:00
+
+Actuala762 unchanged/CLEAN/allmain185foreignposts/nativee561. Initialdefaultfull is NOTterminalgreen: first completedfiles show4failures in ediel-db02-profile-periods and1 in ediel-generic-requested-change-current-bridge while concurrentfull+focused+three semanticcompilers consume resources. Exactcause notestablished; fullpartialfailure mustnotbecalledterminal5FAIL orcontractdefect. Originalprivatefull log andfocused1283P5F receipt preserved. Node currenttypes scripts trueEXIT0/274.368sec; app/tests RUNNING. Lint0 andstaticintegrity3404 unchanged.
+
+ROOT correction: SIGINT ONLY ownfullVitestPID286147 after exactproc cmdline/cwd/parent285996 ownershipguard; no foreign processes/services stopped. Preserve actualinterruptedexit/partialtimeouts ininitialv6 receipts, neverassert fullcomplete. Waittwo remaining owncompilers terminal, then RUN unchangeddefaultfull ALONE followedunchangedaffected11; no timeout/worker/config/assertion/source/loopbackboundary reduction. This tests resourcecontention hypothesis with actualequal-settings results; oldfailures remainvisible. Running separate compiler and suites was root orchestration choice, not repo behavior; freshserialproof needed, not presumedgreen.
+
+NextROOT exactremainingtypes+initialfullterminalreceipts→newdurableserial-full/focus receipts/prepostheadseals on samea762 andtwoinstalledreviews→actualcurrentpublication/native34. NoCI_GREEN/whole/coverage/merge/newpair/external; soleL14 retained.
+
+---
+
 ## Current focused check failed; exact native-input inventory corrected — 2026-10-07T07:55:48.069739+00:00
 
 Sourcea762/tree152/nativee561 CLEAN unchanged/published635507/main185297/soleL14/wholeNOT_APPROVED. Actualaffected11 defaultVitest terminalEXIT1/1283PASS5FAIL0skip (1288), 206.686sec. ALL5failures in incoming main SC014 unit: one actual beforeAll hook10sec andfour actualtest5sec timeouts; originalten otherfiles PASS. These are observed timeout failures, not asserted productdefects/green/environmentrootcause. Receipt /tmp/gridex-c3ae-l-v6-focused-receipt.json withtruehead/seals andprivateoriginal log retained. No timeout/defaultworker/assertion change permitted. All3types/defaultfull stillRUNNING; linttrueEXIT0/21.047s. ROOT nextwaits terminalremaining checks then serial unchanged focused rerun on samea762 to test resourcecontention hypothesis; preserves initialRED and requires actualterminalproof, no oldgreen loans or foreignunit edits.
