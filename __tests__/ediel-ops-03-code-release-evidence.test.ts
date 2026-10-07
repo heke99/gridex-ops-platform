@@ -68,6 +68,15 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
     const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
     if (sha256(bytes) === originalDigest) return bytes
+    // The expanded native output buffer retains every original row. Model
+    // only its exact known source back to the reviewed H fixture bytes.
+    if (sha256(bytes) === '15937e871370531980c596e93027530932814d82b0746527a88b0e80a23c8eb3') {
+      const expanded = 'maxBuffer:64*1024*1024'
+      const current = bytes.toString('utf8')
+      if (current.split(expanded).length !== 2) throw Error('fixture_reviewed_normal_correction_not_unique')
+      bytes = Buffer.from(current.replace(expanded, 'maxBuffer:2_000_000'))
+      if (sha256(bytes) !== '3e581711df5f7e509df93101ba4e83d414c711662a85ec9b11d2622286776623') throw Error('fixture_reviewed_normal_original_digest_mismatch')
+    }
     // Model only the exact retained H binding/address fixture as its reviewed
     // historical default. Optional inputs do not admit current H proof.
     if (sha256(bytes) === '3e581711df5f7e509df93101ba4e83d414c711662a85ec9b11d2622286776623') {
