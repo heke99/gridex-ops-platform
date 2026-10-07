@@ -104,23 +104,27 @@ export function validateReceivedZ05RejectedIdentityStructure(input: Input): {evi
  * compares the actual born guide. No event, point or bilateral ground is made. */
 export async function loadReceivedZ05RejectedIdentityRejection(source: EdielMessageRow, actor: string): Promise<ReceivedZ05RejectedIdentityRejection | null> {
   const at = clock(), identity = bornIdentity(source)
+  // Pin the authorized READ principal before any asynchronous actor or source
+  // port. A caller-owned row may change while those ports are pending.
+  const messageId = source.id, companyId = source.company_id, environment = source.environment
+  const actorSource: EdielMessageRow = {...source, id: messageId, company_id: companyId, environment}
   if (!identity || !validateEdifactSyntax({...source, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null}).ok) return null
   const wire = tokenizeEdifact(source.raw_payload!), input = {rawSegments: wire.segments.map(s => s.raw), una: wire.una}
-  if (!observeReceivedZ05RejectedIdentity(input).length || !await assertRejectedSourceActor(source, actor)) return null
+  if (!observeReceivedZ05RejectedIdentity(input).length || !await assertRejectedSourceActor(actorSource, actor)) return null
   try {
-    const stored = await supabaseService.from('ediel_messages').select('*').eq('id', source.id).eq('company_id', source.company_id!).single()
+    const stored = await supabaseService.from('ediel_messages').select('*').eq('id', messageId).eq('company_id', companyId!).single()
     if (stored.error || bornIdentity(stored.data) !== identity) return null
     const original = stored.data as EdielMessageRow, witness = bornWitness(original)
     if (!witness) return null
-    const legal = await requireEdielInboundLegalContext(source.company_id!, source.id), basis = legal as unknown as Record<string, unknown>
+    const legal = await requireEdielInboundLegalContext(companyId!, messageId), basis = legal as unknown as Record<string, unknown>
     const projection = basis.canonicalProjection, receivers = wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'DO')
     const unb = wire.segments.filter(s => s.tag === 'UNB'), received = parseSourceReceiptInstant(original.message_received_at)
     if (!fresh(at) || unb.length !== 1 || receivers.length !== 1 || legal.basisKind !== 'observed_source_persistence'
-      || legal.direction !== 'inbound' || legal.environment !== source.environment || basis.family !== 'PRODAT' || basis.code !== 'Z05' || basis.subtype !== 'H'
+      || legal.direction !== 'inbound' || legal.environment !== environment || basis.family !== 'PRODAT' || basis.code !== 'Z05' || basis.subtype !== 'H'
       || !isEvidenceUuid(legal.legalActorId) || !isEvidenceUuid(legal.transportActorId) || legal.actorRole !== 'electricity_supplier'
       || legal.legalEdielId !== segmentComposite(receivers[0], 2, wire.una)[0] || legal.transportEdielId !== segmentComposite(unb[0], 3, wire.una)[0]
       || legal.applicationReference !== segmentComposite(unb[0], 7, wire.una)[0]
-      || source.environment !== (segmentComposite(unb[0], 11, wire.una)[0] === '1' ? 'test' : 'production')
+      || environment !== (segmentComposite(unb[0], 11, wire.una)[0] === '1' ? 'test' : 'production')
       || typeof basis.sourceEdition !== 'string' || !/^[a-f0-9]{64}$/.test(basis.sourceEdition) || received === null
       || parseSourceReceiptInstant(legal.sourceReceivedAt) !== received || parseSourceReceiptInstant(legal.observedAt) === null
       || !isEvidenceRecord(projection) || projection.family !== 'PRODAT' || projection.code !== 'Z05' || projection.subtype !== 'H'
