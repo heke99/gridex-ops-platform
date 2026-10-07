@@ -870,3 +870,15 @@ Current independent review bindings:
   }
 ]
 ```
+
+
+## 2026-10-07T23:22:35.609933+00:00 — docs(ediel): reserve independent private-source component within active Z03 pair
+
+CLAIM EXTENSION AT-Z03L-SUPPLIER / AT-Z03LK-SUPPLIER — codex-20261007T221051Z-c65z03route-a66abf9a — same packet a66abf9a-d69a-41ea-95dc-bdabd563fd3c — branch codex/c65-z03-private-read-c437ef36
+
+Same sole active pair; original9 refs6cf7 still GET_MATCH. Separate finite private-source3 file scope CREATE_ONLY/individualGET_MATCH receipt 37da861297a740bd8269d497dd3d9174d7b88d4f: lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts, __tests__/helpers/prodatOwnSourceReadingFixture.ts, __tests__/ediel-prodat-own-source-register-reading-component.test.ts. No code yet; main 7c45f2b6134f9dd6b4222536d588c8337ff9fee4. PR690 source343 stays frozen with current-source2; actual11/13 gates SUCCESS, clean/certificate running. No new pair/whole approval/coverage changes.
+
+Retained635BB04d161 API and cdd05 SDK explicitly released6047333495/6047376989; reuse only these two, preserve original integration77/native34 and all failure oracles. New direct component must execute real scoped issuer→one-use declarations→existing resolveCanonicalEdielPolicy(registerObjects)→actual validateCanonicalPolicyFields, finite SDK transport only. Include genuine no-B-query adverse control for candidate principal mutation during first authorization await; establish reproducible assertion RED on retained loader before minimal principal freeze. Preserve permission errors/revocation, birth hash/microseconds, physical group/object scope, poison ignored, one-use/copy/replay/clock/guide and TRUE/NULL diagnostics; no FALSE/UNKNOWN loosening. No nativeRLS/legal registry/tariff/counter list/automaticpolicy-bridge/wholeZ03 credit.
+
+Next ROOT: independent frozen finiteplan review and freshmain fullscopedsource read; create isolated WT and retained-baseline tests only AFTER this receipt full readback, reproduceRED and document before production guard repair. Keep690 currenthead CI progressing; its actualmerge will release only sevenroute files, retain justified samepair+new3 until component delivery or explicitblockedhandoff. Earlier plan of releasing/reclaiming pair after690 superseded by within-same-pair independent extension (user allows independent work within blocked pair). Currentmain7c45 #689 ten source/test paths requires fresh affected composition/review before690merge, no oldcce/fdcarry borrowed.
+
