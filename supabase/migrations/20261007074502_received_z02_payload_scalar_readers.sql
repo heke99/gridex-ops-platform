@@ -15,7 +15,7 @@ begin
   if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;
   v_match := regexp_match(
     p_raw,
-    'CCI\\+\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', '\\\1', 'g') || '[^'']*''[[:space:]]*CAV\\+([^+''\\r\\n]+)'
+    E'CCI\\+\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\+([^+''\\r\\n]+)'
   );
   v_value := nullif(btrim(v_match[1]), '');
   if v_value is null then return null; end if;
@@ -38,7 +38,7 @@ begin
   if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;
   v_match := regexp_match(
     p_raw,
-    'NAD\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', '\\\1', 'g') || '\\+([^''\\r\\n]+)'
+    E'NAD\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\1', 'g') || E'\\+([^''\\r\\n]+)'
   );
   v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');
   v_parts := string_to_array(v_segment, '+');
