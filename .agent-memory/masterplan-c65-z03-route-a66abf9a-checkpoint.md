@@ -22,3 +22,13 @@ refs/tags/agent-claims/masterplan/file-fa14e631dd2ba5dff84de95c3a6ea28b171d66b4a
 refs/tags/agent-claims/masterplan/file-fcda285af25fd5bfee7f7cc55b3e346967bde435b611ce0514362fe87e83f425 6cf7ad3b090a9858a95b7d79af4b36119303d2ef
 refs/tags/agent-claims/masterplan/id-AT-Z03L-SUPPLIER 6cf7ad3b090a9858a95b7d79af4b36119303d2ef
 refs/tags/agent-claims/masterplan/id-AT-Z03LK-SUPPLIER 6cf7ad3b090a9858a95b7d79af4b36119303d2ef
+
+
+## 2026-10-07T22:15:06.302117+00:00 — docs(ediel): record current Z03 behavioral failures before reuse
+
+ACTUAL CURRENT-MAIN RED / SOURCE GO — samea66abf9a/all9. PublishedCLAIMa3b3/6736047897965 confirmedbeforecode. TEST_ONLY a8a9afa1acdedb34ba763a3fffd35b072039afaa adds ONLY2 byteexactreleasedBB newunits; all4 production and existingtest remain exactmaina635. Actual unchangedsupportedNode22/defaultsuite/timeouts/loopbackboundary run2files41cases=33FAIL8PASS0ERROR0SKIP/trueEXIT1; HEADbeforeaftera8exact. LogSHA157585e536ec50a0d026f1936d833652ca88ae04c42aff22ad09123382f46ac7. All33 are genuinebehavioralAssertions (explicit test route readsproduction, missingpersistedsubtype/status/date, wrongcallerdate/environment, selectedscope accepted/missingexactquery); no absentexport/import/setup TypeError/ReferenceError. Historical16/24 priorrevision counts notborrowed; actualcurrent16route+25dispatch=41.
+
+Two boundedseven-source PLAN approvals Govb72ec1ae9ff21ed8a21fc282ae8da4c459b334751d11b5f084edf33a073c4942 +Transportea46e98987845db12946ead400763652af0be0d2e117daa1557589092002a9df. Original635release finalCP3e3ea2bc22f69bf77c78d081c1341574a134144a fullofficialGET468802B confirmsall26released/currentknown20P14F34/unknowncauses retained. No actualwhole/native evidence reused.
+
+NEXT root afterthisCP/673readbacks: reuse EXACT4ownedBBproductionpostimages and existing9-line switch-readiness queryportupdate, keepingnew2tests byteexact and oldassertions. Currentmain APIs/schema/source7supportsubsetwithoutolderSQLGENruntime/policy/helpers; allforeign684workers/685source preserved. Actual41+oldreadiness+canonical scheduler+automationcallers+routeapproval/security tests; appropriate3nonincrementaltypes/lint/diff; completeSOURCE2/self/currentmaincomposition and smallNEWPRlinked635. Explicitenvironment paths and durablecurrentrequest scheduler semantics are repaired; omittedautomationenvironment retains existing production-readiness/test-producer mismatch, gateAlreadyChecked remains trustedexistingbypass (commentnotnewenforcement), neitherclaimedfixed. No guards/tests/limits weakened; no whole/SC037/currentnative/externalcredit/coverage change.
+
