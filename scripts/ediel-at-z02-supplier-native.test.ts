@@ -6,6 +6,7 @@ import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierData
 import { supabaseService } from '@/lib/supabase/service'
 import { raw, line, characteristic, type Parts } from '../__tests__/fixtures/prodat-register'
 import { createHash, randomUUID } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
@@ -247,6 +248,115 @@ async function validateIncoming(f: Fixture, rawPayload: string) {
   return validateRulebookMessageWithRegistry({ family: 'PRODAT', code: 'Z02', rawPayload, companyId: f.companyId,
     direction: 'inbound', environment: 'test', mode: 'parse' })
 }
+// Observation only: one READ-only public snapshot after acceptedPhysical.
+// No source/capability/identity/UUID or arbitrary result text enters the log.
+const positiveProjectionStates = ['queued', 'running', 'completed', 'failed', 'cancelled', 'blocked', 'needs_review',
+  'draft', 'prepared', 'received', 'parsed', 'validated', 'manual_review', 'waiting_for_z02', 'ready_for_switch',
+  'manual_review_required', 'waiting_response', 'delivery_uncertain', 'skipped', 'missing_authorization', 'ready_to_send',
+  'z01_prepared', 'route_missing', 'sent_to_grid_owner', 'waiting_for_contrl', 'waiting_for_aperak', 'z02_received',
+  'negative_aperak', 'missing_binding_info', 'missing_termination_info', 'rejected', 'exact', 'valid', 'invalid',
+  'stale', 'recorded', 'unconfirmed', 'not_requested', 'absent', 'unlisted'] as const
+const positiveProjectionReasons = ['z02_atomic_core_finalized', 'z02_processing_enqueue_failed', 'no_matching_customer_info_request',
+  'z02_job_invalid_identifiers', 'z02_job_missing_identifiers', 'z02_request_not_found_for_tenant', 'request_site_customer_mismatch',
+  'z02_inbound_message_not_found', 'z02_customer_mismatch', 'response_site_mismatch',
+  'z02_originating_sent_source_unavailable', 'z02_originating_dispatch_proof_required', 'z02_original_object_reference_mismatch',
+  'z02_original_party_namespace_mismatch', 'z02_original_site_snapshot_changed', 'z02_end_user_identity_conflict',
+  'z02_required_measure_method_missing', 'z02_frozen_source_unavailable', 'z02_current_canonical_assessment_ambiguous',
+  'z02_canonical_source_not_accepted', 'z02_own_application_scope_unavailable', 'z02_verified_customer_identity_mismatch',
+  'z02_atomic_apply_invalid_identifiers', 'z02_atomic_message_link_mismatch', 'z02_atomic_metering_point_evidence_missing',
+  'z02_atomic_metering_point_not_verified', 'z02_source_grid_area_missing', 'z02_operation_snapshot_missing',
+  'z02_snapshot_site_mismatch', 'site_address_changed_after_request', 'site_grid_owner_changed_after_request',
+  'site_facility_changed_after_request', 'z02_atomic_core_apply_failed', 'z02_variant_mismatch',
+  'absent', 'unlisted'] as const
+function positiveProjectionData(value: unknown, key: string): unknown {
+  if (!value || typeof value !== 'object') return undefined
+  const descriptor = Object.getOwnPropertyDescriptor(value, key)
+  return descriptor && 'value' in descriptor ? descriptor.value : undefined
+}
+function positiveProjectionCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null
+}
+function positiveProjectionObject(value: unknown, booleanKeys: readonly string[], stateKeys: readonly string[], reasonKeys: readonly string[]) {
+  const result: Record<string, string | boolean | null> = Object.create(null)
+  for (const key of booleanKeys) {
+    const data = positiveProjectionData(value, key)
+    result[key] = typeof data === 'boolean' ? data : null
+  }
+  for (const [keys, allowlist] of [[stateKeys, positiveProjectionStates], [reasonKeys, positiveProjectionReasons]] as const) {
+    for (const key of keys) {
+      const data = positiveProjectionData(value, key)
+      result[key] = typeof data === 'string' && (allowlist as readonly string[]).includes(data) ? data : 'unlisted'
+    }
+  }
+  return result
+}
+function observeZ02PositiveProjection(f: Fixture, original: Original, received: Received): void {
+  const stage = 'positive.pre606.public_projection'
+  const emit = (value: unknown) => { try { console.info('Z02_NATIVE_POSITIVE_PROJECTION', JSON.stringify(value)) } catch { /* Diagnostic failure cannot replace assertion606. */ } }
+  try {
+    const state = (expression: string) => `CASE WHEN ${expression} IS NULL THEN 'absent'
+      WHEN ${expression} IN (${positiveProjectionStates.map(literal).join(',')}) THEN ${expression} ELSE 'unlisted' END`
+    const reason = (expression: string) => `CASE WHEN ${expression} IS NULL THEN 'absent'
+      WHEN ${expression} IN (${positiveProjectionReasons.map(literal).join(',')}) THEN ${expression} ELSE 'unlisted' END`
+    const boolean = (expression: string) => `CASE WHEN jsonb_typeof(${expression})='boolean' THEN ${expression}='true'::jsonb ELSE NULL END`
+    const query = `SELECT jsonb_build_object(
+      'message', (SELECT jsonb_build_object(
+        'originalMatches', m.related_message_id IS NOT DISTINCT FROM ${literal(original.originalZ01.id)}::uuid,
+        'pointMatches', m.metering_point_id IS NOT DISTINCT FROM ${literal(f.pointId)}::uuid,
+        'customerMatches', m.customer_id IS NOT DISTINCT FROM ${literal(f.customerId)}::uuid,
+        'siteMatches', m.site_id IS NOT DISTINCT FROM ${literal(f.siteId)}::uuid,
+        'status', ${state('m.status')}, 'processingStatus', ${state('m.processing_status')},
+        'assessmentReceipt', ${state("m.validation_report->'receivedSourceValidationEvidence'->>'status'")},
+        'atomicProjection', ${boolean("m.parsed_payload->'canonicalCorrelation'->'atomic_core_apply'")})
+        FROM public.ediel_messages m WHERE m.id=${literal(received.id)} AND m.company_id=${literal(f.companyId)}),
+      'request', (SELECT jsonb_build_object('status', ${state('r.status')}, 'blockerCode', ${reason('r.blocker_code')},
+        'originalMatches', r.ediel_message_id IS NOT DISTINCT FROM ${literal(original.originalZ01.id)}::uuid,
+        'responseMatches', r.response_ediel_message_id IS NOT DISTINCT FROM ${literal(received.id)}::uuid,
+        'pointMatches', r.metering_point_id IS NOT DISTINCT FROM ${literal(f.pointId)}::uuid)
+        FROM public.customer_info_requests r WHERE r.id=${literal(original.requestId)} AND r.company_id=${literal(f.companyId)}),
+      'jobCount', (SELECT count(*) FROM public.customer_operation_jobs j WHERE j.company_id=${literal(f.companyId)}
+        AND j.job_type='apply_inbound_grid_owner_response' AND j.payload->>'ediel_message_id'=${literal(received.id)}),
+      'jobs', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'status', ${state('j.status')}, 'reason', ${reason("coalesce(j.result->>'reason_code',j.result->>'reason')")},
+        'correlation', ${state("j.result->>'z02_correlation_status'")},
+        'payload', ${state("j.result->>'z02_payload_validation_status'")},
+        'snapshot', ${state("j.result->>'z02_snapshot_freshness_status'")},
+        'atomicApplied', ${boolean("j.result->'z02_atomic_core_applied'")},
+        'coreOk', ${boolean("j.result->'z02_atomic_core'->'ok'")},
+        'coreCode', ${reason("j.result->'z02_atomic_core'->>'code'")},
+        'customerMatches', j.customer_id IS NOT DISTINCT FROM ${literal(f.customerId)}::uuid,
+        'siteMatches', j.customer_site_id IS NOT DISTINCT FROM ${literal(f.siteId)}::uuid,
+        'requestMatches', j.payload->>'customer_info_request_id' IS NOT DISTINCT FROM ${literal(original.requestId)},
+        'originalMatches', j.result->'correlation'->>'originating_z01_message_id' IS NOT DISTINCT FROM ${literal(original.originalZ01.id)},
+        'coreSourceMatches', j.result->'z02_atomic_core'->>'messageId' IS NOT DISTINCT FROM ${literal(received.id)},
+        'coreRequestMatches', j.result->'z02_atomic_core'->>'requestId' IS NOT DISTINCT FROM ${literal(original.requestId)}
+      ) ORDER BY j.created_at,j.id),'[]'::jsonb) FROM (SELECT j.id,j.created_at,j.status,j.result,j.customer_id,j.customer_site_id,j.payload FROM public.customer_operation_jobs j
+        WHERE j.company_id=${literal(f.companyId)} AND j.job_type='apply_inbound_grid_owner_response'
+          AND j.payload->>'ediel_message_id'=${literal(received.id)} ORDER BY j.created_at,j.id LIMIT 5) j))`
+    // Explicit pipes keep psql error text (including SQL identifiers) out of logs.
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
+    const stdout = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
+      { input: query, encoding: 'utf8', timeout: 10000, maxBuffer: 2_000_000, stdio: ['pipe', 'pipe', 'pipe'] })
+    const observation: unknown = JSON.parse(stdout.trim())
+    const jobCount = positiveProjectionCount(positiveProjectionData(observation, 'jobCount'))
+    const rows = positiveProjectionData(observation, 'jobs')
+    const rowCount = Array.isArray(rows) ? positiveProjectionCount(positiveProjectionData(rows, 'length')) : null
+    if (jobCount === null || rowCount === null || rowCount !== Math.min(jobCount, 5)) throw Error('observation_shape_unavailable')
+    const jobs = []
+    for (let i = 0; i < rowCount; i++) jobs.push(positiveProjectionObject(positiveProjectionData(rows, `${i}`),
+      ['atomicApplied', 'coreOk', 'customerMatches', 'siteMatches', 'requestMatches', 'originalMatches', 'coreSourceMatches', 'coreRequestMatches'],
+      ['status', 'correlation', 'payload', 'snapshot'], ['reason', 'coreCode']))
+    const output = Object.assign(Object.create(null), {stage, observed: true, jobCount, jobsTruncated: jobCount > 5,
+      message: positiveProjectionObject(positiveProjectionData(observation, 'message'),
+        ['originalMatches', 'pointMatches', 'customerMatches', 'siteMatches', 'atomicProjection'], ['status', 'processingStatus', 'assessmentReceipt'], []),
+      request: positiveProjectionObject(positiveProjectionData(observation, 'request'),
+        ['originalMatches', 'responseMatches', 'pointMatches'], ['status'], ['blockerCode']), jobs})
+    emit(output)
+  } catch {
+    emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
+  }
+}
+
 async function acceptedPhysical(f: Fixture, received: Received) {
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message, { actorUserId: f.actorUserId })
   const actual = JSON.stringify({ report: received.message.validation_report, decision,
@@ -336,7 +446,8 @@ async function rereadControl(f: Fixture, original: Original, control: Awaited<Re
     routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT' }))).toEqual(control.dso)
 }
 async function unavailableSource(f: Fixture, original: Original, id: string, rawPayload: string,
-  control: Awaited<ReturnType<typeof sourceControl>>) {
+  control: Awaited<ReturnType<typeof sourceControl>>, before: unknown, sealed: unknown,
+  otherEffects?: { fixture: Fixture; before: unknown }) {
   expect(id).not.toBe(control.row.id)
   const row = (await observeZ02NativeOperation('negative.message.read', () => getEdielMessageById(id)))!
   expect(row).toMatchObject({ id, company_id: f.companyId, direction: 'inbound', environment: 'test',
@@ -366,6 +477,13 @@ async function unavailableSource(f: Fixture, original: Original, id: string, raw
     expect(after[key], key).toEqual(receivedBytes[key])
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments
     WHERE source_message_id=${literal(id)} AND facts_text::jsonb->>'applicationDecision'='accepted'`)).toBe(0)
+  // Complete the existing protected-effect and fresh-control checks before
+  // the mandatory ACK reader; a guarded read still fails this native case.
+  assertRefusedEffects(f, original, before, sealed)
+  if (otherEffects) expect(protectedEffects(otherEffects.fixture, original)).toEqual(otherEffects.before)
+  await rereadControl(f, original, control)
+  assertRefusedEffects(f, original, before, sealed)
+  if (otherEffects) expect(protectedEffects(otherEffects.fixture, original)).toEqual(otherEffects.before)
   expect((await observeZ02NativeOperation('negative.business-ack.list', () => listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: id,
     actorUserId: f.actorUserId, environment: 'test' }))).filter(a => a.message_family === 'APERAK')).toEqual([])
   await rereadControl(f, original, control)
@@ -603,6 +721,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     expect(validation.ok, JSON.stringify(validation.issues)).toBe(true)
     const received = await receiveZ01SupplierReply(f, rawPayload)
     await acceptedPhysical(f, received)
+    observeZ02PositiveProjection(f, original, received)
     expect(received.message).toMatchObject({ related_message_id: original.originalZ01.id, customer_id: f.customerId,
       site_id: f.siteId, metering_point_id: f.pointId })
     const applied = applications(f, original)
@@ -778,16 +897,39 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
 
   it.each([
     ['LI', { lineReference: 'UNRELATED-OWN-Z01-LI' }, 'z02_original_object_reference_mismatch|z02_line_item_reference_mismatch'],
-    ['customer', { customerIdentity: { id: '199001010017', qualifier: 'SE2', agency: '260' } }, 'z02_verified_customer_identity_mismatch'],
+    ['customer', { customerIdentity: { id: '199001010017', qualifier: 'SE2', agency: '260' } }, 'z02_end_user_identity_conflict'],
     ['agency', { identityAgency: '89' }, 'z02_original_object_reference_mismatch'],
     ['subtype', { reason: variant === 'L' ? 'Z23' : 'Z22' }, 'z02_source_reference_or_subtype_mismatch|z02_variant_mismatch'],
   ] as const)('a complete but wrong %s cannot borrow the own sent source', async (facet, overrides, cause) => {
     const { f, original } = await sent(variant)
     if (facet === 'customer') {
       const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id)
-      const received = await receiveZ01SupplierReply(f, reply(f, original, overrides))
+      const rawPayload = reply(f, original, overrides), wire = tokenizeEdifact(rawPayload)
+      const endUsers = wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'UD')
+      expect(endUsers).toHaveLength(1)
+      expect(segmentComposite(endUsers[0], 2, wire.una)).toEqual(['199001010017', 'SE2', '260'])
+      expect(segmentComposite(endUsers[0], 2, wire.una)[0]).not.toBe(f.customerIdentity.id)
+      const received = await receiveZ01SupplierReply(f, rawPayload)
       await acceptedPhysical(f, received)
-      expect(JSON.stringify(refusalObservation(f, original, received.id))).toMatch(new RegExp(cause))
+      const jobs = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(j) ORDER BY id),'[]') FROM public.customer_operation_jobs j
+        WHERE company_id=${literal(f.companyId)} AND job_type='apply_inbound_grid_owner_response'
+          AND payload->>'ediel_message_id'=${literal(received.id)}`)
+      expect(jobs).toHaveLength(1)
+      const job = jobs[0], result = record(job.result), payloadGate = record(result.z02_payload_validation)
+      expect(job).toMatchObject({ company_id: f.companyId, customer_id: f.customerId, customer_site_id: f.siteId,
+        job_type: 'apply_inbound_grid_owner_response', status: 'needs_review',
+        payload: { ediel_message_id: received.id, customer_info_request_id: original.requestId } })
+      expect(result).toMatchObject({ reason: cause, reason_code: cause, z02_correlation_status: 'exact' })
+      expect(payloadGate).toMatchObject({ gate: 'gridex_gate_inbound_z02_required_payload',
+        inbound_message_id: received.id, customer_info_request_id: original.requestId,
+        line_item_id: original.wire.point, line_reference: original.wire.lineReference, grid_area: original.wire.gridAreaCode,
+        measure_method: 'Z04', reason_for_transaction: variant === 'L' ? 'Z22' : 'Z23',
+        end_user_id: '199001010017', end_user_qualifier: 'SE2', installation_id: original.wire.point })
+      expect(result.z02_payload_validation_status).not.toBe('valid')
+      expect(result.z02_atomic_core_applied).not.toBe(true)
+      expect(record(result.z02_atomic_core).ok).not.toBe(true)
+      expect(request(f, original)).toMatchObject({ id: original.requestId, company_id: f.companyId,
+        customer_id: f.customerId, site_id: f.siteId, status: 'manual_review_required', blocker_code: cause })
       assertRefusedEffects(f, original, before, sealed)
       return
     }
@@ -798,7 +940,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const control = await sourceControl(f, original, complete)
     const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id), staged = await observeZ02NativeOperation('negative.mail.birth', () => stage(f, rawPayload))
     expect(staged.id, JSON.stringify(staged)).not.toBeNull(); expect(staged.birthErrors).toEqual([])
-    await unavailableSource(f, original, staged.id!, rawPayload, control)
+    await unavailableSource(f, original, staged.id!, rawPayload, control, before, sealed)
     const observation = refusalObservation(f, original, staged.id!)
     console.info('Z02_NATIVE_REFUSAL', JSON.stringify({ facet, company: f.companyId, original: original.originalZ01.id, received: staged.id, observation }))
     // The current normal kernel holds at the earlier protected source guard.
@@ -817,7 +959,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const before = protectedEffects(f, original), otherBefore = protectedEffects(other, original), sealed = frozen(original.originalZ01.id)
     const staged = await observeZ02NativeOperation('negative.mail.birth', () => stage(f, rawPayload))
     expect(staged.id, JSON.stringify(staged)).not.toBeNull(); expect(staged.birthErrors).toEqual([])
-    await unavailableSource(f, original, staged.id!, rawPayload, control)
+    await unavailableSource(f, original, staged.id!, rawPayload, control, before, sealed, { fixture: other, before: otherBefore })
     assertRefusedEffects(f, original, before, sealed)
     expect(protectedEffects(other, original)).toEqual(otherBefore)
   })
@@ -855,7 +997,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
           await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id })
           expect(sql<Row>(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE source_message_id=${literal(staged.id)}`))
             .toMatchObject({ status: 'held', reason: 'ediel_inbound_legal_context_required' })
-        } else await unavailableSource(f, original, staged.id, changed, control)
+        } else await unavailableSource(f, original, staged.id, changed, control, before, sealed)
       } else {
         expect(staged.birthErrors).toHaveLength(1)
         expect(staged.birthErrors[0]).toMatchObject({ code: 'P0001', message: 'ediel_inbound_legal_context_required' })
@@ -918,7 +1060,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     expect(staged.tenant).toMatchObject({ status: 'resolved', companyId: f.companyId })
     expect(staged.id, JSON.stringify(staged)).not.toBeNull()
     expect(staged.birthErrors).toEqual([])
-    await unavailableSource(f, original, staged.id!, rawPayload, baseline)
+    await unavailableSource(f, original, staged.id!, rawPayload, baseline, before, sealed)
     expect(await requireRegistryDispatchSource({ companyId: f.companyId, communicationRouteId: f.z01RouteId,
       routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT' })).toEqual(baseline.dso)
     assertRefusedEffects(f, original, before, sealed)
