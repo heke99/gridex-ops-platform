@@ -237,6 +237,7 @@ if (phase === 'historical') {
     const f = await chain.authorized(), old = configureLegacy(f), lifecycleConfig = configureLegacy(f, true)
     // An independent public metadata birth has no bytes/accepted facts/custody.
     // It is the disposable FK action control, never the physical source proof.
+    console.info('DB01_STAGE historical_audit START')
     const audit = await createEdielMessage({actorUserId: f.actorUserId, companyId: f.companyId, environment: 'test', direction: 'inbound',
       messageStandard: 'xml', messageFamily: 'OTHER', messageCode: 'DB01_METADATA', status: 'draft', partyAddressId: lifecycleConfig.addressId,
       requiresContrl: false, requiresAperak: false})
@@ -255,16 +256,25 @@ if (phase === 'historical') {
       'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE ediel_message_id=${literal(audit.id)}),
       'supplyPeriods',(SELECT count(*) FROM public.customer_supply_periods WHERE source_message_id=${literal(audit.id)}))`))
       .toEqual({receivedSources: 0, technicalSources: 0, identityReceipts: 0, ruleReceipts: 0, receptions: 0, ownerConsumptions: 0, outbox: 0, supplyPeriods: 0})
+    console.info('DB01_STAGE historical_audit PASS')
     const lifecycle = {...lifecycleConfig, messageId: audit.id}
+    console.info('DB01_STAGE historical_direct START')
     const direct = await directWire(f, old.addressId)
     expect(direct.message).toMatchObject({party_address_id: old.addressId})
     expect(sha(direct.message.raw_payload!)).toBe(sha(direct.input.rawPayload!))
+    console.info('DB01_STAGE historical_direct PASS')
     // No accepted/application/legal fact is assigned to this audit birth.
+    console.info('DB01_STAGE historical_h START')
     const {original, originalDraft} = await originateWithHint(f, old.addressId)
     expect(original).toMatchObject({party_address_id: old.addressId})
+    console.info('DB01_STAGE historical_h PASS')
+    console.info('DB01_STAGE historical_agt_configuration START')
     const af = await configureAgt(f.companyId), aold = configureLegacy(af)
+    console.info('DB01_STAGE historical_agt_configuration PASS')
+    console.info('DB01_STAGE historical_agt_original START')
     const am = await agtOriginal({companyId: af.companyId, actorUserId: af.actorUserId, profileId: af.routeProfileId}, f.companyId)
     expect(am).toMatchObject({party_address_id: aold.addressId, company_id: af.companyId, message_code: 'Z09'})
+    console.info('DB01_STAGE historical_agt_original PASS')
     const table = catalog('public.ediel_party_addresses')
     expect(table.policies).toHaveLength(4)
     expect((table.fks as Array<{delete: string}>).map(k => k.delete).sort()).toEqual(['c', 'n', 'n', 'n'])
