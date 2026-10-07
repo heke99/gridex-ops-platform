@@ -79,6 +79,10 @@ const refusals: [string, () => string][] = [
 it.each(refusals)('refuses %s before catalog lookup', async (_name, make) => {
   expect(await select(make())).toBeNull(); expect(catalog).not.toHaveBeenCalled()
 })
+it.each(['PRODAT:X:97A:UN:E2SE6A', 'PRODAT:D:1:UN:E2SE6A', 'PRODAT:D:97A:ZZ:E2SE6A', 'PRODAT:D:97A:UN:E2SE6A:EXTRA'])('refuses the complete foreign physical UNH token %s before lookup', async token => {
+  expect(await select(raw(object()).replace('PRODAT:D:97A:UN:E2SE6A', token))).toBeNull()
+  expect(catalog).not.toHaveBeenCalled()
+})
 it.each([['Z04', 'Z05'], ['Z05', 'Z04'], ['Z04', 'Z01']])('rejects physical %s with caller %s', async (physical, caller) => {
   expect(await select(raw(object(), physical), caller)).toBeNull(); expect(catalog).not.toHaveBeenCalled()
 })
