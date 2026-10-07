@@ -266,7 +266,10 @@ export async function applyInboundBusinessStateMachine(input: {
       // The task is scoped to each committed ending period. A bound message
       // carries that scope; an unbound received H end takes it from the
       // committed periods.
-      const scopes = outcome === 'supply_terminated' && companyId && !sourceResult.idempotent
+      // The reception consumer attempts receipt-bound projection before passing
+      // its committed result, including retries after a held projection. A direct
+      // native apply has no preceding projector and retains this scoped task.
+      const scopes = outcome === 'supply_terminated' && companyId && !sourceResult.idempotent && input.committedSupplyResult?.partition == null
         ? await endingPeriodScopes(companyId, sourceResult.periods)
         : []
       if (companyId) for (const period of scopes) {
