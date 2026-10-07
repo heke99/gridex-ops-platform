@@ -155,8 +155,13 @@ function ackSendFailureDiagnostic(f: Fixture, sourceId: string, ack: Original, o
 async function observedStage<T>(stage: string, action: () => Promise<T>): Promise<T> {
   try { return await action() }
   catch (error) {
-    console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify({stage,code:record(error).code ?? null,
-      message:error instanceof Error ? error.message : record(error).message ?? String(error)}))
+    const own=record(error),code=own.code,message=error instanceof Error?error.message:String(own.message??''),guard=message.split(':')[0]
+    const diagnostic=stage.startsWith('critical_negative_')
+      ? {stage,code:typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code)?code:null,
+        guard:['canonical_inbound_rule_profile_resolution_failed','ediel_inbound_legal_context_required','ediel_historical_rule_pack_basis_unavailable'].includes(guard)?guard:null,
+        unknownError:!['canonical_inbound_rule_profile_resolution_failed','ediel_inbound_legal_context_required','ediel_historical_rule_pack_basis_unavailable'].includes(guard)}
+      : {stage,code:own.code??null,message:error instanceof Error?error.message:own.message??String(error)}
+    console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify(diagnostic))
     throw error
   }
 }
