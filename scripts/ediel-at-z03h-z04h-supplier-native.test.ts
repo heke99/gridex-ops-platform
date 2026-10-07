@@ -676,6 +676,15 @@ function omit(raw: string, field: string) {
       : field === '207' && p[0] === 'NAD' && component(p, 1) === 'FR'
         ? [p[0], p[1], ['', '160', 'SVK'], ...p.slice(3)] : p))
   }
+  if (['208','227','233','262','250'].includes(field)) {
+    const role = nads[field][0], baseline = parts.filter(p => p[0] === 'NAD' && component(p,1) === role)
+    expect(baseline).toHaveLength(1)
+    expect(component(baseline[0],2)).not.toBe('')
+    // Empty only 3039 in the actual present C082. Each role keeps its own
+    // qualifier/agency, full parent and every other physical control byte.
+    expect(rawParts(malformed)).toEqual(parts.map(p => p[0] === 'NAD' && component(p,1) === role
+      ? [p[0], p[1], ['', ...(typeof p[2] === 'string' ? [p[2]] : p[2]).slice(1)], ...p.slice(3)] : p))
+  }
   return malformed
 }
 function freshPhysicalIdentity(raw:string) {
@@ -757,11 +766,12 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   expect(control.message.raw_payload).toBe(complete)
   await observedStage(`critical_negative_${field}_control_reread`,()=>reread(f,control))
   const originalBefore=sealed(original.id), controlBefore=sealed(control.message.id)
+  const syntaxField=['207','208','227','233','262','250'].includes(field)
   const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f),
-    refusalBefore=field==='202'||field==='207'?criticalRefusalGraph(f,original,control.message.id):null,
+    refusalBefore=field==='202'||syntaxField?criticalRefusalGraph(f,original,control.message.id):null,
     received=await observedStage(`critical_negative_${field}_public_intake`,()=>intake(f,malformed,'test',field==='312'))
   if(field==='202')expect(received.id).toBeNull()
-  if(field==='207')expect(received.id).not.toBeNull()
+  if(syntaxField)expect(received.id).not.toBeNull()
   if(received.id===null) {
     console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify({stage:'critical_negative_public_intake_returned_no_source',field,
       capturedErrorCount:received.birthErrors.length,parserFamilyProdat:received.mailbox.parsed.messageFamily==='PRODAT',
@@ -818,11 +828,11 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
     expect(received.id).not.toBe(control.message.id)
     const message=(await observedStage(`critical_negative_${field}_read_born_message`,()=>getEdielMessageById(received.id!)))!
     expect(message.raw_payload).toBe(malformed); expect(record(message).immutable_payload_hash).toBe(digest(malformed))
-    const sourceBefore=field==='207'?sealed(message.id):null
+    const sourceBefore=syntaxField?sealed(message.id):null
     const decision=await observedStage(`critical_negative_${field}_canonical_decision`,()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
     expect(decision.applicationDecision,JSON.stringify(decision)).not.toBe('accepted')
     const fieldError=decision.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field)
-    if(field==='207')expect(fieldError).toBe(false)
+    if(syntaxField)expect(fieldError).toBe(false)
     if(!fieldError) {
       if(['208','227','233','262','250'].includes(field)) {
         // Failure feedback from this already computed decision; planned replies
@@ -842,24 +852,34 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
           sourceHashMatches:record(message).immutable_payload_hash===digest(message.raw_payload!),
         }))
       }
+    }
+    if(syntaxField) {
+      expect(message).toMatchObject({company_id:f.companyId,direction:'inbound',environment:'test',
+        inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+      expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['rejected','not_applicable','not_applicable'])
+      const syntax=validateEdifactSyntax(message),description='PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'
+      expect(syntax).toMatchObject({ok:false,grammarQualification:'qualified',issues:[expect.objectContaining({
+        code:'UNSM_MANDATORY_ELEMENT_MISSING',severity:'error',description})]})
+      expect(decision.issues).toEqual([expect.objectContaining({layer:'syntax',severity:'error',
+        code:'UNSM_MANDATORY_ELEMENT_MISSING',description,source:'validateEdifactSyntax'})])
+      expect(decision.responsePlan).toEqual([{family:'CONTRL',outcome:'negative',reason:description}])
+      if(field==='208') {
+        // The actual current protected reader denies missing local legal identity.
+        // Keep that exact refusal; it is neither a NULL capability nor ACK proof.
+        await expect(observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message)))
+          .rejects.toMatchObject({code:'P0001',message:'ediel_inbound_legal_context_required'})
+      } else {
+        expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
+      }
+    } else if(!fieldError) {
       expect(['311','312','202','207','208','223','226','209','210','260']).toContain(field)
       expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
-      if(field==='207') {
-        expect(message).toMatchObject({company_id:f.companyId,direction:'inbound',environment:'test',
-          inbound_email_message_id:received.mailbox.inboundEmailMessageId})
-        expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['rejected','not_applicable','not_applicable'])
-        const syntax=validateEdifactSyntax(message),description='PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'
-        expect(syntax).toMatchObject({ok:false,grammarQualification:'qualified',issues:[expect.objectContaining({
-          code:'UNSM_MANDATORY_ELEMENT_MISSING',severity:'error',description})]})
-        expect(decision.issues).toEqual([expect.objectContaining({layer:'syntax',severity:'error',
-          code:'UNSM_MANDATORY_ELEMENT_MISSING',description,source:'validateEdifactSyntax'})])
-        expect(decision.responsePlan).toEqual([{family:'CONTRL',outcome:'negative',reason:description}])
-      } else expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
+      expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
     }
     await observedStage(`critical_negative_${field}_actual_processor`,()=>processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id}))
-    if(field==='207') {
+    if(syntaxField) {
       expect(sealed(message.id)).toEqual(sourceBefore)
-      await observedStage('critical_negative_207_actual_technical_reply',()=>actualNegativeSyntaxReply(f,message,refusalBefore!,
+      await observedStage(`critical_negative_${field}_actual_technical_reply`,()=>actualNegativeSyntaxReply(f,message,refusalBefore!,
         criticalRefusalGraph(f,original,control.message.id)))
     } else {
       const acks=await observedStage(`critical_negative_${field}_list_physical_ack`,()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
@@ -876,6 +896,10 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(originalBefore)
   // The control was not applied and must remain the same immutable source.
   expect(sealed(control.message.id)).toEqual(controlBefore); await observedStage(`critical_negative_${field}_final_control_reread`,()=>reread(f,control))
+  // CV-P-HEADER still requires a physical negative P-APERAK for missing 202.
+  // NULL custody/no effects prove refusal only; they cannot satisfy that reply.
+  if(field==='202')expect(received.id,
+    'CV-P-HEADER missing202 requires actual source-bound negative P-APERAK BGM27/ERC41/field202; public birth returned no source').not.toBeNull()
 }
 async function actualOutboundOmission(f:Fixture,original:Original,field:string,malformed:string) {
   const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
