@@ -72,6 +72,7 @@ jobs:
               'scripts/helpers/correctionContextNative.ts', '__tests__/helpers/closureWireFixtures.ts',
               '__tests__/helpers/utiltsNativeSourceFixture.ts',
               'scripts/gridex-aud-003-clean-replay.sh', 'scripts/gridex-redact-native-evidence.py',
+              'scripts/ediel-actor-profile-expansion-fingerprint.py',
               'supabase/config.toml', 'supabase/schema.sql', 'package.json', 'package-lock.json',
               'lib/ediel/productionReadiness.ts',
               'lib/ediel/productionReadiness.part-1.ts',

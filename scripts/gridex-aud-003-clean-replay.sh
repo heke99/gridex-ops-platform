@@ -24,7 +24,10 @@ GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE="$SUPABASE/bootstrap/20260902_grid_owner
 GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE_SHA256="4cedc24155993c8e61616769ec02b712542d69cf5cd91d3aafe4fe016345316d"
 WHITE_LABEL_HYGIENE_REPLAY_SHIM="$SUPABASE/bootstrap/20260902_white_label_admin_membership_hygiene_replay_shim.sql"
 WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256="73db4904c17a721b756dfa56efc4e38005f46ea8d1e40d6d05f2367ce44ccf38"
-EXPECTED_FINGERPRINT="9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b"
+# Actual canonical replay on 981697d8, job 112792473059. The six supplier
+# configuration fields are the only admitted change in this fingerprint domain.
+EXPECTED_FINGERPRINT="5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c"
+PROFILE_PREEXPAND_FINGERPRINT="9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b"
 HOLD="$(mktemp -d)"
 LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
@@ -431,6 +434,19 @@ select
   to_regclass('public.company_capabilities') is not null as company_capabilities_ok;
 SQL
 ACTUAL_FINGERPRINT="$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -f "$FINGERPRINT_SQL" | tr -d '[:space:]')"
+# READ-only metadata admission followed by the unchanged fingerprint query
+# with exactly those six company columns excluded. Every other original column,
+# ordinal, constraint and readiness function must retain the historical hash.
+# Do not accept a new golden hash merely because the full schema changed.
+PROFILE_BASELINE_FINGERPRINT="$(python3 "$ROOT/scripts/ediel-actor-profile-expansion-fingerprint.py" "$FINGERPRINT_SQL" \
+  | psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 | tr -d '[:space:]')"
+if [[ "$PROFILE_BASELINE_FINGERPRINT" != "$PROFILE_PREEXPAND_FINGERPRINT" ]]; then
+  echo "[GRIDEX-REM-002 replay] profile expansion changed the original fingerprint domain" >&2
+  echo "expected=$PROFILE_PREEXPAND_FINGERPRINT" >&2
+  echo "actual=$PROFILE_BASELINE_FINGERPRINT" >&2
+  exit 1
+fi
+echo "[GRIDEX-REM-002 replay] six profile fields verified; original fingerprint preserved: $PROFILE_BASELINE_FINGERPRINT"
 if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   echo "[GRIDEX-REM-002 replay] schema fingerprint mismatch" >&2
   echo "expected=$EXPECTED_FINGERPRINT" >&2
