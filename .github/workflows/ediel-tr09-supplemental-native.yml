@@ -24,7 +24,8 @@ concurrency:
   group: ediel-tr09-supplemental-native-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# BASE56 clean + two immutable forwards is supplemental composition only.
+# BASE56 clean + two transport, delivered route contract and three profile
+# forwards is supplemental composition only.
 # Canonical current replay/capture/upgrade and ordinary checks remain unchanged.
 jobs:
   tr09-composed-stack-native:
@@ -45,7 +46,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Execute BASE56 clean, two transport and three profile forwards and all current TR21 cases
+      - name: Execute BASE56 clean, two transport, delivered route contract and three profile forwards and all current TR21 cases
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -74,6 +75,8 @@ jobs:
               'de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36',
             'supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql':
               'd774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba',
+            'supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql':
+              '4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5',
             'supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql':
               'a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c',
             'supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql':
@@ -152,8 +155,14 @@ jobs:
                   raise RuntimeError('BASE/current dependency inputs differ: '+path)
           for path, digest in forwards.items():
               if current['blobs'][path]['sha256'] != digest:
-                  raise RuntimeError('owned forward identity changed: '+path)
-          receipt = {'purpose':'TR09_supplemental_BASE56_plus_two_transport_and_three_profile_forwards_actual_native',
+                  raise RuntimeError('immutable forward identity changed: '+path)
+          route_contract_path = 'supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql'
+          route_contract_revision = '01ecdb2a00a8426929bf3362ae42f86ad075b90b'
+          subprocess.run(['git','merge-base','--is-ancestor',route_contract_revision,head],check=True)
+          delivered_oid = subprocess.check_output(['git','rev-parse',route_contract_revision+':'+route_contract_path],text=True).strip()
+          if delivered_oid != 'c5ff03633279491dffcc478ef9678e03a1d66727' or current['blobs'][route_contract_path]['git_blob_oid'] != delivered_oid:
+              raise RuntimeError('delivered route contract source identity changed')
+          receipt = {'purpose':'TR09_supplemental_BASE56_plus_two_transport_delivered_route_contract_and_three_profile_forwards_actual_native',
             'root_path':str(root),'base_path':str(pathlib.Path(os.environ['TR09_BASE_ROOT']).resolve()),
             'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
             'workflow_run_id':os.environ['GITHUB_RUN_ID'],
@@ -161,8 +170,10 @@ jobs:
             'root_source':current,'base_source':baseline,'required_input_paths':required,
             'required_base_input_paths':base_required,
             'composition':[{'path':p,**current['blobs'][p]} for p in forwards],
+            'delivered_route_contract_basis':{'source_revision':route_contract_revision,'path':route_contract_path,
+              'source':current['blobs'][route_contract_path]},
             'phases':{p:{'status':'NOT_RUN','exit_code':None} for p in
-              ['baseline_clean','smime_forward','legacy_address_forward','profile_fields_forward','profile_replay_forward','profile_legal_forward','current_native','junit_qualification']},
+              ['baseline_clean','smime_forward','legacy_address_forward','supplier_route_contract_forward','profile_fields_forward','profile_replay_forward','profile_legal_forward','current_native','junit_qualification']},
             'test_scope':tests,'expected_test_count':21,'native_exit_code':None,
             'ordinary_required_gates':'NOT_REPLACED','canonical_current_clean':'NOT_RUN',
             'canonical_current_schema_capture':'NOT_RUN','canonical_upgrade_parity':'NOT_RUN',
@@ -216,8 +227,9 @@ jobs:
               >> "$TR09_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
             update_phase legacy_address_forward "$forward_exit"
             if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
-            for phase in profile_fields_forward profile_replay_forward profile_legal_forward; do
+            for phase in supplier_route_contract_forward profile_fields_forward profile_replay_forward profile_legal_forward; do
               case "$phase" in
+                supplier_route_contract_forward) forward=supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql ;;
                 profile_fields_forward) forward=supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql ;;
                 profile_replay_forward) forward=supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql ;;
                 profile_legal_forward) forward=supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql ;;
