@@ -1381,3 +1381,20 @@ Claim6029897361 confirms five new paths receiptbe209 plus existing common intake
 ## Common physical profile integration — source verification in progress
 
 Original reuse frozen ate641348fc5c2958f99aa7d88a9208f9f27f48c98; meaningful RED #5306029966527. Production intake now adds only7 lines: Z02 physical supplier selection at retained clock before firstINSERT and third Z04 H fallback. Existing-original return precedes every selector; no SQL/context/authority/coverage changes. Independent early reviewer identified generic guard-oracle weakness; corrected to exact actor/permission/environment/parse errors and added foreign-mail company/missing-invalid clock, zoned-date boundary and23505 race preserving existing original/no patch. Final affected12 files263 testsPASS exit0, log/tmp/gridex-common-birth-affected.log SHA2566ea52d6826cf22145630d998b3496c72d718703497ee799eeb7f393f84b38fec. Migration/types artifact checksPASS exit0; all3 nonincremental TypeScript/scopedlint and supported full/tagged running, not yet credited. Next root: finish terminal evidence and all3 independent final affected-path reviews; small new PR linking original643/650, exact-head CI/native as applicable. Whole original Z02/H contracts remain unapproved and independently owned.
+
+## Published common component — PR653, exact27ae
+
+Actual PR653 OPEN/NOT_MERGED at27ae6399b479893ece939471224aeb2d1dbde0ca/base1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a. All3 independent final bounded SOURCE_APPROVE/no findings; PR review receipt6030038382 and #530 publication6030040114. Affected263PASS/12 suites, new32 real-intake cases; all3 nonincremental TS, scoped ESLint, migration-version/generated/diff0. Supported full/tagged stillRUNNING. Current checks include new z05-supplier-native plus z06e-z09e-native/recovery/z14n/responsehold; mandatory9 remainpending. No official capture job selected by pureapplication delta; E native produces current disposable capture in its own receipt. No CI_GREEN, native whole Z02/H or new ID/coverage approval. Own65 refs retained; merge/memoryrole not acquired. App attach_artifact invoked but returned no response in bounded wait; exec terminated before queued GitHub comments/state mutations; no attachment success claimed, independent subsequent actual comments above succeeded. Next root: finish full/tagged and authenticate genuine selected native/currenthead checks, normal free-role guarded merge, factual main delivery documentation and onlythen existingGEN/common release/fresh eligiblepair.
+
+Current local log SHA256:
+types-app: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+types-tests: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+types-scripts: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+lint: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+migrations: ce0c6de1e70f0177c5006b23bcd896469adb01a8459b4016ac0b3a1c74a29710
+generated: 8aaa78326fa86395ff3b507514add095d677ccb8417e1a4450e0f962ac146f93
+affected: 6ea52d6826cf22145630d998b3496c72d718703497ee799eeb7f393f84b38fec
+
+## Final current component local verification
+
+Exact source27ae remains PR653 head; local checkpoint-only postpublication changes are separate. Supported full912files12632PASS exit0 in429.61s, log/tmp/gridex-common-birth-full.log SHA256955b25e74f8ae4b8e7416e7f027370f7008d1c3885890284c00e14a0c86a92a7; tagged326GREEN0FAIL/295approved/26untagged exit0, log/tmp/gridex-common-birth-tagged.log SHA256fc207e08da1da470b45a038b84b9c4b84479c3c441a7418d2f7afb076b24d383. All3 TS/nonincremental, scopedlint/migration/typesartifact/diff0 confirmed. Three exact-source independent approvals retain scope. No current CI/native success inferred from local output. Next root: genuine current27ae selected native/all9mandatory green, currentmain composition check, free canonicalmerge role, expectedhead actual merge; then ownCP/#530 actualmain delivery and root-resource closeout.
