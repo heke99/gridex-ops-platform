@@ -47,6 +47,7 @@ export default defineConfig({
     'scripts/ediel-service-evidence-native.test.ts',
     'scripts/ediel-sc-003-005-service-native.test.ts',
     'scripts/ediel-at-z15c-z18v-esco-native.test.ts',
+    'scripts/ediel-at-z14n-esco-native.test.ts',
     'scripts/ediel-esco-10-11-projection-native.test.ts',
     'scripts/ediel-sc-010-beneficiary-export-native.test.ts',
     'scripts/ediel-sc-071-projection-revocation-native.test.ts',
