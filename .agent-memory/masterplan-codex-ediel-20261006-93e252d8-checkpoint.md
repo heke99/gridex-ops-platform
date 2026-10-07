@@ -1,3 +1,14 @@
+## Authoritative local subprocess permission diagnosis; corrected full/native next
+
+PROGRESS VERIFIER_ENVIRONMENT_DIAGNOSED — sameH88aa/all6 owned/code575 unchanged/current checked915937f9f736ea17371e10579ab97aaca0e862ca. Exact same5 suites25tests/currentNode22 parent+PATH/canonical loopbackpreload: DEFAULT sandbox actual17PASS8FAIL/true1, several direct spawnSync EPERM +native-lock timing failures; with network capability needed for local child/IPC, exact25PASS0FAIL0SKIP/true0. Guard still rejects external destinations and inherits in Nodechildren; no source/test/oracle change, worker/timeout bypass or skipped case. Reports /tmp/gridex-h-helper-full-diagnosis-node22{,-ipc}.json/results/logs preserve bothactual outcomes. Node24 PATH mismatch in initialfull was also real, but not asserted solecause; pure Node22 comparison establishes these reproduced permission failures. Other firstfull failures unqualified until corrected FULL terminal result.
+
+Firstfull interrupted130/759s/910passedfiles+otherfailures remains preserved, NOT green. Next ROOT corrected FULL defaultworkers/unchangedcanonicalguard with consistentlyNode22 and localIPC-capable execution, then exactcurrent terminal evidence. Both existing independent source reviews309 prove unchanged product575/currentmain0ec composition only; successor CP-only version gets exactpeer qualification before normalFFdraft657. Genuine strict100 can run alongside corrected full after exactsource approvals, without any merge/currentmandatory/whole approval. No new native baseline borrowed/cancelled or firstfullfailure removed.
+
+Official657 remains6e authentic56/44; new readingfacet unit24GREEN finite IOonly, all3types/lint0; wholeH real effects/ACKs unresolved. c65 frozenuniqueunit stillretained; request6038347474 is not owner-release. Own664 actualCLOSED_UNMERGED/all5released/historypreservedfcdadbe0/receipt6038478798; shared668 pending successorONLY/no responsibilitytransfer. Actualmain0ec coverage300/52remain. Continue solepair; nocoverage/CI_GREEN/main/external claim.
+Receipt https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6038628003
+
+Prior headings historical.
+
 ## Authoritative full verification interrupted with failures; metadata withdrawal actual
 
 PROGRESS FULL_ORDINARY_NOT_GREEN — sameH88aa/agent93/code575/currentfrozen309/all6owned. First FULL defaultworkers attempt was interrupted by ROOT SIGINT after759.05s, true Vitest130, headunchanged. Partial log had910 passedfiles and15 other reported files including failures/skips/suite-error; OPS03 never reported, no terminalJSON/whole totals. Preserve /tmp/gridex-h-helper-full-unit-first.log and first-result.json. This is NOT fullgreen. Parent Node22 was explicit but PATH resolves Node24.19.0 for generic child invocations: confirmed verifier setup mismatch, not yet proof of each failure cause. Canonical loopback guard unchanged. No source/test/oracle changes or global requirement weakening.
