@@ -36,3 +36,9 @@ Next concrete owner/action: c65 run meaningful baseline RED, then reused fix. No
 ## Skill routing
 
 Activated using-superpowers, using-git-worktrees, acquire-codebase-knowledge, systematic-debugging, test-driven-development, differential-review, code-review, spec-to-code-compliance, code-security, sharp-edges, requesting/receiving-code-review, verification-before-completion and Supabase for existing tenant-filtered authorization queries. Dispatching independent agent source reviewers only, no duplicate large verification. Conditional finishing-a-development-branch at delivery. Skipped UI/React/performance/email/SQL-migration/deployment/hook installation: no such changes; no broad security baseline audit claimed.
+
+## Behavioral RED — before source reuse
+
+Unchanged original12-case test blob installed; two existing-worker refusal cases actually executed on source base825d79. Both FAIL at unchanged-domain assertion (customer process summary and site quality/confidence mutated), ten unselected cases explicitly SKIPPED. No missing-export/setup error. Actual exit1; logSHA `696cf5dad5b6e21c8c7f9822dacace6e5d97e2585a59d18016d6af4b602f4294` at `/tmp/c65-z01-main-worker-red.log`; receipt `/tmp/c65-z01-main-worker-red.json`. Production source still main-identical. Root cause directly confirmed: mutable resolver precedes queue authorization.
+
+Next c65: apply only the three original4389 production postimages; unchanged full12 tests + existing authorization/queue/worker regressions. Whole94 remains historical90P4F and not executed here.
