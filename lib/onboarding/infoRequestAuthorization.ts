@@ -3,6 +3,7 @@ import {powerOfAttorneyCoverageFromScopes} from '@/lib/operations/powerOfAttorne
 import type {AuthorizationScopeRow, CustomerInfoRequestRow} from './infoRequests'
 
 type Row = Record<string, unknown>
+type ScopeRequest = Pick<CustomerInfoRequestRow, 'company_id' | 'customer_id' | 'site_id' | 'metering_point_id'>
 type Request = Pick<CustomerInfoRequestRow, 'id' | 'company_id' | 'customer_id' | 'site_id' | 'metering_point_id'
   | 'authorization_document_id' | 'grid_owner_data_request_id' | 'outbound_request_id' | 'ediel_message_id'>
 const object = (value: unknown): Row => value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}
@@ -20,19 +21,19 @@ function currentDateBounds(row: Row, today: string): boolean {
   return true
 }
 
-function own(row: Row, request: Request): boolean {
+function own(row: Row, request: ScopeRequest): boolean {
   return row.company_id === request.company_id && row.customer_id === request.customer_id
 }
 
-function matchesPoint(row: Row, request: Request): boolean {
+function matchesPoint(row: Row, request: ScopeRequest): boolean {
   return row.metering_point_id == null || row.metering_point_id === request.metering_point_id
 }
 
-function matchesOptionalSite(row: Row, request: Request): boolean {
+function matchesOptionalSite(row: Row, request: ScopeRequest): boolean {
   return ['site_id', 'customer_site_id'].every(key => row[key] == null || row[key] === request.site_id)
 }
 
-function matchesContractReferences(references: unknown[], contracts: Row[], request: Request): boolean {
+function matchesContractReferences(references: unknown[], contracts: Row[], request: ScopeRequest): boolean {
   const populated = references.filter(value => value != null)
   if (populated.some(value => typeof value !== 'string') || new Set(populated).size > 1) return false
   return populated.every(id => contracts.some(row => row.id === id && own(row, request)
@@ -41,7 +42,7 @@ function matchesContractReferences(references: unknown[], contracts: Row[], requ
 
 /** Read current public authority without healing a chain or deriving permission
  * from customer identity, contract supply dates, an invoice or caller metadata. */
-export async function resolveCurrentInfoRequestAuthorization(request: Request, options: {gridOwnerRequired: boolean}) {
+async function currentInfoRequestScopes(request: ScopeRequest) {
   const today = new Date().toISOString().slice(0, 10)
   let documentQuery = supabaseService.from('customer_authorization_documents')
     .select('id,company_id,customer_id,site_id,metering_point_id,power_of_attorney_id,customer_contract_id,document_type,status')
@@ -99,6 +100,21 @@ export async function resolveCurrentInfoRequestAuthorization(request: Request, o
       covers_current_supplier_contract: row.covers_current_supplier_contract === true && (!coverage || coverage.coversCurrentSupplierContract),
       covers_metering_data: row.covers_metering_data === true && (!coverage || coverage.coversMeteringData)} as AuthorizationScopeRow)
   }
+  return scopes
+}
+
+/** Read current site authority before mutable facility resolution. This unbound
+ * check never looks up or manufactures a CIR, GODR or original identity. */
+export async function resolveCurrentInfoRequestScopeAuthorization(request: ScopeRequest) {
+  const scopes = await currentInfoRequestScopes(request)
+  const ordered = [...scopes].sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))
+  return {scopes, gridOwnerDocumentId: ordered.find(row => row.covers_grid_owner_data)?.authorization_document_id ?? null,
+    supplierDocumentId: scopes.find(row => row.covers_current_supplier_contract)?.authorization_document_id ?? null}
+}
+
+/** Bound dispatch also checks the retained original's authority identity. */
+export async function resolveCurrentInfoRequestAuthorization(request: Request, options: {gridOwnerRequired: boolean}) {
+  const scopes = await currentInfoRequestScopes(request)
   const supplierDocumentId = scopes.find(row => row.covers_current_supplier_contract)?.authorization_document_id ?? null
   // Supplier-only requests use the existing manual branch, without a GODR.
   if (!options.gridOwnerRequired) return {scopes, gridOwnerDocumentId: null, supplierDocumentId}
