@@ -1,0 +1,9 @@
+# b6d3 TRDB shared-memory reconciliation
+
+Agent codex-20261006T223328Z-b6d3a0172885; sole technical packet ccde1d53-5672-463e-8822-5849a019fe02 / TR-09+DB-01+associated contracts,38 original locks retained. This operation owns no second ID pair.
+
+BEFORE_START actual main9b013631afed0b7de5f704fdc759bc68624d92b5 (#668 metadata-only actual delivery). Create-only role-memory and exact five shared paths all GETMATCH receipt 3185e725e2734fd5ee164f29c004663bd1437103. Branch codex/ediel-trdb-b6d3-memory-9b013631; all files [".agent-memory/current-state.md", ".agent-memory/current-task.md", ".agent-memory/handover.md", ".agent-memory/open-blockers.md", ".agent-memory/masterplan-status-20261006.json"]. No merge-role held.
+
+Scope: prepend a dated currentTRDB observation retaining all original foreign evidence/history/300ledger. Record real81c native18/21 and supplementalDB14/14, source-only d1f prospectiveconfiguration/two source reviews, CAPTURE_ONLY1104 and GEN2f types/manifest/clean-upgrade dependency; source-head/current-main/external statuses stay distinct. Correct95 memorycloseout ownership label only with actual668 delivery/release5306039708993. No source/SQL/schema/generatedtypes/coverage or foreigncheckpoint edits.
+
+Next ROOT: exact#530 before-code claim/readback, fresh shared main postimages, implement bounded five-file reconciliation; two independent exactmetadata reviews/current-head required checks, immediate merge-role if free (otherwise release memory-role before waiting), expectedhead actualmerge and merge-role FIRST/ownmemoryresources release. If genuine blocked, explicit scoped handover/release; source/native execution does not wait on this memory-only delivery.
