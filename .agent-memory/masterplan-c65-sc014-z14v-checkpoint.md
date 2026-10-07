@@ -917,3 +917,18 @@ Actual V824 tagged first run ended07:51:13 trueEXIT1/log0614c75f77ea4e3792d0adbe
 
 Bounded campaign status PR661 exact5d93d7224a979d91a234221270276a7c6c911f18 published/officialreadbackMATCH/attached, two independentmetadata SOURCE reviews, currentmandatory pending. Role-memory+file6b552 held, no merge role. Root continues producerhandoff, actualVsameheadretry diagnosis and metadata currentgates; Gov/transport independentfinalgate checks,95 genuineproducerintegration/native.
 
+
+
+### 2026-10-07T08:03:15.939916+00:00 — docs(ediel): authorize current A-D consumer composition retaining actor guard
+CURRENT CONSUMER COMPOSITION GO — same owned R210 prerequisite, no new technicalpair.
+
+Source596598cffb18c0c5c97aad222b82cb9db90fb874/tree9552141768f741135cf1e83934b35f5b90341da9 is now normally published on codex/c65-z04-r210-producer-5874e7b5 and official readbackMATCH, after all36 technicalrefs confirmed and CPb809b435afeadb981c8363e377c50d36990d1ca1/#5306033610523. Original two boundedSOURCE approvals,226 finitePASS,all3nonincremental TSC/lint/diff0 retained. Full real ledger/ACK/native notclaimed; locks retained.
+
+Fresh rightful95 PR656 actuallyadvanced50586754ec11692ca86dfa44d2be56d8fdb2ddd9. Its inbound/actorunit/ACKunit are EXACT alreadyapproved actorcarrier a1cf postimages0f1ad363/95d0/d76, and foreign currentnative cases/helpers plus deliveredSC/status/P01 now present. Direct replacement by older596 inbound36574 would drop the delivered trusted technicalendpoint typed/cause quarantine guard, so that replacement is NOT authorized. Reuse valid actorwork rather than recreate or overwrite it.
+
+Root GO BEFORE code for isolated ownbranch codex/c65-z04-r210-current-carrier-5874e7b5 /workspace/gridex-c65-z04-r210-current-carrier, exact publishedcurrent505 parent. ONLY seven alreadyheld R210paths: copy six other596 source/unit postimages byteexact; mechanically threeway current505 inbound and596 inbound using original7e63 common source, retaining ALL existing a1cf security import/twohelpers/currenttechnicalcatch/outercause propagation plus all596 preflight/typedactorforward/private-negative branches. No newsemantics, no foreignnative/helper/SQL/GEN/coverage/checkpoint edits. Every other trackedpath/mode/blob MUSTremainexact505. Allownedfile/ID reservations are retained, same SC014/V pair; no new locks or pair.
+
+Imp is sole7path mechanicalwriter after this CP/530 confirmation; Gov and root independently review actual resultinghead/composition. Freeze exactsource; fresh currentaffectedruntime/actor/ACK/typed-negative/source-owner consumers and scopes/typechecks, all3nonincremental TSC beforepublication. Delay heavyTSC until running unchangedV824 fulltagretry ends to avoid repeating own heavy CPU overlap; preserve firsttagRED2files/3mappedIDs/percasecauseUNKNOWN and focused36PASS. Copy/integration does not borrow596/current505/native evidence. Root publishes reviewedimmutableONLYseven currentconsumer postimages and explicit95 adoption, preserves theircurrentnative original before newpublication. Recipient95 thenproves real publicsource→v6COMMIT→captureCOMMIT→normalnegativeprepare/physicalAPERAK+outbox/replay/zero businesseffects. No SQLfirstguard waiver or accepted-onlyreplay privilege.
+
+Shared metadata6615d93 remains reviewed/currentchecks running; memory/file6b552 held/no merge role. PublicV644de7 clean job112659604262 now SUCCESS, originalclean artifact11468273000 size16468766/SHAa59df5b128bcf3b068ad2ac3ccc0d9b05e76208ed803f6a16c5c4dcf191a03e6 awaits custody/qualification. That remains de7 evidence; V824 source notpublic and currentfulltag retry93782RUNNING. Root continues authentic qualification/publication and precisecheckpoint receipts without newassignment.
+
