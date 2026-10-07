@@ -28,7 +28,7 @@ function declaration(prefix: string, name: string, end: string) {
   return schema.slice(start, stop + (end === '\n);' ? 3 : 0)).trim()
 }
 async function one<T>(db: PGlite, sql: string, params: unknown[] = []) {return (await db.query<T>(sql, params)).rows[0]}
-async function setup() {
+async function setup(withLegalTrigger = false) {
   const db = new PGlite(); databases.push(db)
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth; CREATE SCHEMA extensions;
     CREATE FUNCTION extensions.digest(bytes bytea,algorithm text) RETURNS bytea LANGUAGE plpgsql IMMUTABLE STRICT AS $$
@@ -64,6 +64,21 @@ async function setup() {
     INSERT INTO permissions VALUES('${uid(21)}','ediel.profile.write');
     INSERT INTO role_permissions VALUES('${uid(20)}','${uid(21)}');
     INSERT INTO user_roles VALUES('${uid(3)}','${uid(20)}','${uid(1)}',true,'active',NULL),('${uid(4)}','${uid(20)}','${uid(2)}',true,'active',NULL);`)
+  if (withLegalTrigger) {
+    await db.exec(declaration('CREATE TABLE', 'tenant_legal_profiles (', '\n);'))
+    for (const sql of schema.match(/ALTER TABLE ONLY public\.tenant_legal_profiles\s+ADD CONSTRAINT [^;]+(?:PRIMARY KEY|UNIQUE) [^;]+;/g) ?? []) await db.exec(sql)
+    await db.exec(declaration('CREATE FUNCTION', 'gridex_normalize_country_code(', '\n--\n'))
+    await db.exec(declaration('CREATE FUNCTION', 'gridex_normalize_postal_code(p_value text, p_country_code text)', '\n--\n'))
+    for (const name of ['gridex_normalize_postal_code', 'gridex_build_canonical_address', 'gridex_company_legal_profile_defaults',
+      'gridex_tenant_legal_profile_readiness_status', 'gridex_legal_missing_field_details', 'gridex_rebuild_company_legal_profile',
+      'gridex_sync_company_legal_profile_trigger']) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
+    const trigger = schema.match(/CREATE TRIGGER gridex_companies_legal_profile_sync [^;]+;/)
+    if (!trigger) throw new Error('captured_company_legal_profile_sync_trigger_missing')
+    await db.exec(trigger[0])
+    // Actual deterministic projection only: no manual legal override/review or
+    // admission state. The genuine company trigger remains enabled throughout.
+    await db.exec(`SELECT public.gridex_rebuild_company_legal_profile('${uid(1)}',NULL,false)`)
+  }
   return db
 }
 async function apply(db: PGlite) {if (existsSync(forward)) await db.exec(readFileSync(forward, 'utf8'))}
@@ -71,6 +86,9 @@ async function state(db: PGlite) {
   const rows: Record<string, unknown> = {}
   for (const name of [...tables, 'permissions', 'roles', 'role_permissions', 'user_roles', 'company_memberships']) {
     rows[name] = (await db.query(`SELECT to_jsonb(t) value FROM public.${name} t ORDER BY to_jsonb(t)::text`)).rows
+  }
+  if ((await one<{present: boolean}>(db, "SELECT to_regclass('public.tenant_legal_profiles') IS NOT NULL present")).present) {
+    rows.tenant_legal_profiles = (await db.query('SELECT to_jsonb(t) value FROM tenant_legal_profiles t ORDER BY id')).rows
   }
   return rows
 }
@@ -103,7 +121,7 @@ it('reproduces the real unchanged public save 42703 before expansion, with actua
 })
 it('restores exactly the original six nullable text fields, keeps unknown statuses missing and does not infer identity/contact/evidence', async () => {
   const db = await setup(); await apply(db)
-  const columns = (await db.query(`SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns
+  const columns = (await db.query<{column_name: string; data_type: string; is_nullable: string; column_default: string | null}>(`SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns
     WHERE table_schema='public' AND table_name='companies' AND column_name=ANY($1) ORDER BY column_name`, [fields])).rows
   expect(columns).toHaveLength(6)
   for (const column of columns) expect(column).toMatchObject({data_type: 'text', is_nullable: 'YES',
@@ -193,4 +211,11 @@ it('keeps another tenant untouched and enforces the public identity/payload-boun
   expect(await save(db)).toEqual(first); expect(await state(db)).toEqual(before)
   expect(await one(db, 'SELECT to_jsonb(c) company FROM companies c WHERE id=$1', [uid(2)])).toEqual(foreign)
   await refused(db, command({production_application_reference: 'CONTRL'}), {message: 'idempotency_key_payload_mismatch'})
+})
+it('preserves the actual legal projection on an Ediel-only public save with unchanged company legal fields', async () => {
+  const db = await setup(true); await apply(db)
+  const projection = () => one(db, 'SELECT to_jsonb(t) legal FROM tenant_legal_profiles t WHERE company_id=$1', [uid(1)])
+  const before = await projection()
+  await save(db)
+  expect(await projection()).toEqual(before)
 })
