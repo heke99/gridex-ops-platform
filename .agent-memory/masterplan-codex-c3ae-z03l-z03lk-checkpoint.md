@@ -1,3 +1,13 @@
+## Consumer source approved; before delivered-fixture composition — 2026-10-07
+
+Same sole L/LK pair and 23 technical reservations. The committed isolated three-path component now has two complete independent installed-source approvals with zero new findings. Root actual 165 tests, lint and all three nonincremental typechecks exit 0. The broader 300-test compatibility process exits 1:299 pass and the same SC012 failure remains, with its entire failure block byte-identical to the unchanged baseline. Exact commit, full code/check/review receipts remain private. No full/native/whole/CI-green/coverage/merge credit.
+
+Current main has delivered the other owner's two-path opt-in fixture component through #672. That delivery is distinct from whole acceptance. Before publication, GO only after this own checkpoint and a continuation receipt are confirmed plus fresh technical locks/source checks: normally merge the verified delivered main into the isolated preview, preserve both incoming file postimages exactly and all three reviewed owned postimages. Inspect actual default/opt-in behavior; run affected original regressions plus the delivered fixture's tests, compatibility and required types/lint. Obtain two exact composed-version source reviews; previous component approvals cannot approve an unreviewed combined version. No foreign edits or new pair. Published primary PR #635 remains frozen.
+
+The whole-proof gap review confirms both positive suffixes and twelve specific negative causes remain unproved. Runtime integration/reviewed reuse stays with its existing owner; no no-effect or generic held outcome is promoted into intended denial proof. Next root: perform the documented composition and current checks/reviews, then a separately documented source-only publication decision when justified. Memory-role reconciliation is a separate bounded two-status-path operation; no merge role is held.
+
+---
+
 ## Three-path consumer source committed; root checks in progress — 2026-10-07
 
 Same L/LK pair and 23 reservations. The isolated preview normally adopted current main's six new metadata postimages, preserving each mode/OID and file byte, then committed exactly the three approved consumer/test-fixture paths. All 9400 other tracked paths match its parent. The published primary source remains frozen. Exact commits, reviewed plan, source hashes and full author/self-review receipts are retained privately.
