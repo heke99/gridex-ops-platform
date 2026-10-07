@@ -28,6 +28,8 @@ import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/valida
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { segmentComposite, segmentElementCount, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
+import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterReadingState } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { inboundLegalReceiverEdielId, resolveInboundTenantFromIdentifiers } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -167,6 +169,9 @@ function replyBody(f: Fixture, original: Original, refs = references(), invoicee
     ...rawParts(originalAckLegalNadSegment('DO', parties.legalSender) + "'"),
     line('1', f.external, undefined, '9'), qty('1000'), ...common(f.external, 'Synthetic Own Customer', observed.start),
     ...characteristic('Z07', 'E22'), ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'D'),
+    // Prospective own readings declaration, before physical mail birth. This
+    // does not assert actual UTILTS delivery or supply a policy condition fact.
+    ...characteristic('Z02', '10', 3), ...characteristic('Z05', '8', 3), ...characteristic('Z16', 'E01', 3),
     ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L917', '8716867000030']],
     ['NAD', 'IT', [f.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
     ['NAD', 'Z02', [f.brpEdielId, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
@@ -258,13 +263,27 @@ async function intake(f: Fixture, raw: string, environment: 'test' | 'production
     return { id, mailbox, tenant, outboundMatch, meteringPointMatch, birthErrors }
   } finally { warnings.mockRestore() }
 }
-async function ready(f: Fixture, original: Original, raw = reply(f, original), expectedLi = own(f, original).li) {
+async function ready(f: Fixture, original: Original, raw = reply(f, original), expectedLi = own(f, original).li,
+  expectedRegisters: 1 | 2 = 1) {
   const received = await intake(f, raw)
   expect(received.tenant, JSON.stringify(received)).toMatchObject({ status: 'resolved', companyId: f.companyId })
   expect(received.id, JSON.stringify(received)).not.toBeNull()
   const message = (await getEdielMessageById(received.id!))!
   expect(message).toMatchObject({ raw_payload: raw, immutable_payload_hash: digest(raw), direction: 'inbound', company_id: f.companyId,
     message_code: 'Z04', rule_profile_key: 'PRODAT:Z04:H:26.A:r3' })
+  const wire = tokenizeEdifact(message.raw_payload!), physical = prodatRegisterGroups(wire.segments, wire.una)
+  expect(physical.problems).toEqual([])
+  expect(physical.groups).toHaveLength(expectedRegisters)
+  for (const [index, group] of physical.groups.entries()) {
+    expect(group).toMatchObject({ itemId: f.external, identityAgency: '9', validRegisterChain: true })
+    // Read physical local segments, never inherited first-register evidence.
+    expect(['214', '218', '259'].map(field => prodatRegisterReadingState(field, group.segments, wire.una)))
+      .toEqual([
+        { present: true, value: '10', malformed: false },
+        { present: true, value: '8', malformed: false },
+        { present: true, value: index === 0 ? 'E01' : 'E02', malformed: false },
+      ])
+  }
   const capability = await readSourceQualifiedProdatBilateralCapability(message)
   expect(capability).toMatchObject({ sourceMessageId: message.id, sourcePayloadHash: digest(raw), subtype: 'H',
     owner: 'immutable-bilateral-prodat-profile-v1', objects: [expect.objectContaining({ profileVersionId: f.profileVersionId,
@@ -673,8 +692,9 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   })
   it('actual two-register Z04 inheritance makes each declared physical subline258 necessary',async()=>{
     const {f,original}=await sent(), refs=references(), first=replyBody(f,original,refs).map((p):Parts=>p[0]==='LIN'?line('1',f.external,'1','9'):p)
-    const body:Parts[]=[...first,line('2',f.external,'2','9'),qty('1200')]
-    const complete=reply(f,original,body,refs), control=await ready(f,original,complete)
+    const body:Parts[]=[...first,line('2',f.external,'2','9'),qty('1200'),
+      ...characteristic('Z02','10',3),...characteristic('Z05','8',3),...characteristic('Z16','E02',3)]
+    const complete=reply(f,original,body,refs), control=await ready(f,original,complete,own(f,original).li,2)
     expect(control.decision.prodatRegisterValidation?.objects).toHaveLength(1)
     const fresh=freshPhysicalIdentity(complete), parts=rawParts(fresh), lines=parts.filter(p=>p[0]==='LIN')
     expect(lines).toHaveLength(2); expect(component(lines[1],4,1)).toBe('2')
@@ -849,11 +869,11 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   })
 })
 
-// Remaining exact authoritative gap: incoming reading conditions214/218/259.
-// readProdatRegisterEvidence copies body-bound declarations; it is not a public
-// received-Z04 UTILTS/expected-readings producer. Incoming kernel reads the
-// parsed source and no qualified independent reading selection is exported for
-// this H profile. We never add meterReadingsSentInUtilts or accepted facts to it.
+// Own physical reading declarations214/218/259 now precede public mail birth.
+// The current H consumer must still qualify their applicability from the
+// immutable source and protected profile. These supplied values alone prove
+// neither canonical TRUE nor actual UTILTS delivery. We never add
+// meterReadingsSentInUtilts or accepted facts to the received source.
 // D229 and258 above remain strict proposals if their actual intended owner is
 // absent: a held baseline is FAIL/NOT_REACHED, not a green omission proof.
 // A negotiated H business deadline needs explicit archived agreement evidence;
