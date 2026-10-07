@@ -114,11 +114,13 @@ async function createAdditionalSameCompanyConsumption(base: Awaited<ReturnType<t
  const before=retainedGraph()
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.admin_users WHERE user_id=${literal(actorUserId)}`)).toBe(0)
  await assertEdielTenantActor({companyId,actorUserId,permission:'customers.write'})
- const permissions=['customers.write','contracts.read','contracts.write','communication.read','communication.write','communication.send','metering.read','metering.write']
+ const permissions=['customers.write','contracts.read','contracts.write','contracts.create','communication.read','communication.write','communication.send','metering.read','metering.write']
  for(const permission of permissions){
   const checked=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:companyId,p_permission:permission})
   expect(checked.error).toBeNull();expect(checked.data).toBe(true)
  }
+ const contractPermission=await supabaseService.rpc('gridex_contract_actor_has_permission',{p_actor_user_id:actorUserId,p_permission:'contracts.create'})
+ expect(contractPermission.error).toBeNull();expect(contractPermission.data).toBe(true)
  const binding=sql<Record<string,unknown>>(`SELECT jsonb_build_object(
   'contract_offer_id',c.contract_offer_id,'contract_publication_version_id',v.id,
   'contract_product_id',p.contract_product_id,'contract_product_version_id',v.contract_product_version_id,
@@ -376,8 +378,10 @@ async function createProductionContract(f: Awaited<ReturnType<typeof createConsu
 
 export async function createProductionReceiptNativeFixture(provider: Provider, options: { sameCompanyContrast?: boolean } = {}) {
   const f = await createConsumptionPrecondition(provider)
-  const sameCompanyContrast = options.sameCompanyContrast ? await createAdditionalSameCompanyConsumption(f, provider) : null
   const production = await createProductionContract(f)
+  // Reuse the existing qualified contract-operation actor before the optional
+  // second public onboarding; clean replay requires contracts.create there.
+  const sameCompanyContrast = options.sameCompanyContrast ? await createAdditionalSameCompanyConsumption(f, provider) : null
   const reviewer = randomUUID(), agreement = randomUUID(), keyId = randomUUID(), representationId = randomUUID()
   const key = Buffer.from('SYNTHETIC D verifier boundary; no real legal authority')
   sql(`INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)

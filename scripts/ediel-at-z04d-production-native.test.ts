@@ -8,6 +8,7 @@ import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import { EdielExecutionFailure, classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
 import { resolveCanonicalRuntimeDecisionWithRegistry, readReceivedCanonicalProdatResponseValidation } from '@/lib/ediel/core/runtimeDecision'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
@@ -346,6 +347,7 @@ it('actual D processor rejects a foreign company actor while preserving both gen
   const provider = externalTransport(), f = await createProductionReceiptNativeFixture(provider), other = await createConsumptionPrecondition(provider)
   const before = graph(f, f), otherBefore = graph(other), input = await source(f), providerCalls = smtp.provider.mock.calls.length
   const original = sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)
+  expect(original).toEqual(input.original)
   expect([input.decision.syntaxDecision, input.decision.applicationDecision, input.decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
   expect(other.companyId).not.toBe(f.companyId)
   expect(other.actorUserId).not.toBe(f.actorUserId)
@@ -356,10 +358,16 @@ it('actual D processor rejects a foreign company actor while preserving both gen
   expect(permission.data).toBe(false)
   const attempt = async () => {
     const refused = await processInboundEdielMessage({ actorUserId: other.actorUserId, edielMessageId: input.sourceId })
-    // The observed public refusal returns its untouched original. Require
-    // that exact row, then every durable no-effect oracle below and on retry.
-    // An arbitrary result, exception or timeout cannot satisfy this contract.
-    expect(refused).toEqual(input.original)
+      .then(() => null, (error: unknown) => error)
+    // The actual protected endpoint rejects this foreign actor before writers.
+    // Require its exact typed security category and trusted SQL refusal cause;
+    // every full SQL/source/effect/graph/output/provider oracle remains below.
+    expect(refused).toBeInstanceOf(EdielExecutionFailure)
+    expect(classifyEdielFailure(refused)).toEqual({ kind: 'security_quarantine', code: 'EDIEL_INBOUND_EXECUTION_ACTOR_FORBIDDEN' })
+    const endpointFailure = (refused as Error & { cause: unknown }).cause
+    expect(endpointFailure).toBeInstanceOf(Error)
+    expect((endpointFailure as Error).message).toBe('ediel_technical_endpoint_unqualified')
+    expect((endpointFailure as Error & { cause: unknown }).cause).toMatchObject({ code: '42501', message: 'ediel_technical_ack_current_actor_required' })
   }
   await attempt()
   const first = noEffects(input)
