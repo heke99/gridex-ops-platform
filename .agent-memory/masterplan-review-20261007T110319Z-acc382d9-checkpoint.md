@@ -1246,3 +1246,136 @@ Concrete next source/native owners: explicitly settle finite structural helper/c
 ```
 
 Next: refresh actual main/530/owner responses, choose another distinct unlocked review scope; existing all7 agent chats ACTIVE at compactwait snapshot, no competitor launched.
+
+
+## GEN cross-owner source capture input delta
+
+GEN CAPTURE INPUT DELTA / review-acc382→2fGEN+b6TR; closes6039088790. Exact PR66281c9093f2ca327488e47c9fa26e848a134558901 (implementation=d15), prior60ee79dc6058956afae04ebd1d111c56e04e9610. AllfiveSQL+entiremigrationtree+all3supportedmanifests OID/SHA exact; reuse frozenSQL inventory1104/current-main1099+TR5, and hypothetical union1108 SQL matrix ONLY if ownerselects thosecomponents. No fullSQL recomputation/rerun here.
+12/13 earlier trackedcapture/GEN entries exact; ONEchanged=clean-replay driver OID7b5b5cac11d7794711be90f8742dccc276ac636a/SHA d045477dac0206888c9a7c1386221d3d35292d91bf80762a0539c910c9a99977. NEW transitive captureinput scripts/ediel-actor-profile-expansion-fingerprint.py OIDb7f47307021a19f94e7222885c058080c370cfea/SHA3c31fb683dde942583257e1e64386bb596a4855b9caf7079182bd3b52cd97b6b. Existing staff-api captureworkflow calls source clean driver, so changingdriver changes captureproducer even though workflow/generator unchanged. Prior capture receipts lacking this new driver/helper execution cannot approve that selected newproducer. Preserve exacthelper source in capture qualification's transitive source map; canonical capture-receipt.input_sha256 fixed8 onlynamesdriver, so authenticatehelper via frozen checkout/Git modeOID/SHA plus actual executed source custody, not pretend oldnamedinput hash includes it.
+SCOPE CHOICE: driver now REQUIRES actual sixordinarynullabletext/nonDOMAIN/nongenerated/nonidentity companies columns with exactmissing defaults, fullfingerprint5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c AND exactsix-column-excluded9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b. It is NOT a generic replacement for2f's selected1102=main1099+Z02three WITHOUT TRsix-column SQL; absentcolumns correctlyrefuse. Do not make independentZ02/C delivery waitforunselectedTR/readiness or waivefixedmetadata/full/inverse guards. Ownerchooses small actualsource and qualifies thatproducer; no blanket1108requirement.
+Originalquery targets13namedtables and ONLY public gridex_contract_platform_readiness/_internal_v1; readiness666 alters gridex_company_go_live_readiness OUTSIDEthat functionsubset. Therefore no claimed readiness-vs-fixedfingerprint function conflict fromsource; readiness stillchanges fullschema andselectedGENoutputs/currentmandatoryproof. Unchanged old GENpostimages inTRsource are pendingoutputs, not new six-column captureproof.
+Concrete next2f/b6: freeze actual selected SQL+driver/helper/head/tree; reuse existing current producer/artifact reader if alreadyassigned, otherwise one genuine selected-source capture for types/schema/fingerprint+mandatoryclean/upgrade/parity. b6's latestpermission6039002098 is immutableREAD/PLAN, not authorization to author/adopt its helddriver/helper; any carrier adoption needs explicitboundedhandoff+actualreleasedrefs+freshreservation. Prefer producer-owned exactartifact handoff/current-version qualification where it avoids heldfileadoption. Owner2f retains4GENrefs/checksum/currentrows/finaldelivery; no rivalcapture/implementation/coverage/CI reader by me.
+
+```json
+{
+  "priorTRSource": "60ee79dc6058956afae04ebd1d111c56e04e9610",
+  "currentTRSource": "81c9093f2ca327488e47c9fa26e848a134558901",
+  "currentMain": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+  "captureInputs": [
+    {
+      "path": "supabase/migrations",
+      "oldOID": "ebf8de0646b77c01b8be743fe576672874331f1f",
+      "currentOID": "ebf8de0646b77c01b8be743fe576672874331f1f",
+      "equal": true
+    },
+    {
+      "path": "supabase/config.toml",
+      "oldOID": "b9d270434e61e39db0d136728726f6dc6fbfe987",
+      "currentOID": "b9d270434e61e39db0d136728726f6dc6fbfe987",
+      "equal": true
+    },
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "oldOID": "ff105a5d6984a4a7631091151a7a6c279d404966",
+      "currentOID": "7b5b5cac11d7794711be90f8742dccc276ac636a",
+      "equal": false
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "oldOID": "b41a69a48e637d6cbe82c2b0a72f4a93f6bf8c5f",
+      "currentOID": "b41a69a48e637d6cbe82c2b0a72f4a93f6bf8c5f",
+      "equal": true
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "oldOID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49",
+      "currentOID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49",
+      "equal": true
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "oldOID": "3ee9964a8f36e49302234537d4d847de915624db",
+      "currentOID": "3ee9964a8f36e49302234537d4d847de915624db",
+      "equal": true
+    },
+    {
+      "path": "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "oldOID": "b69589847d86b5936041b8f7f78438166846eefa",
+      "currentOID": "b69589847d86b5936041b8f7f78438166846eefa",
+      "equal": true
+    },
+    {
+      "path": "scripts/gridex-schema-snapshot.cjs",
+      "oldOID": "9ecbb2974ee1cda265747e656709ace5675edc3e",
+      "currentOID": "9ecbb2974ee1cda265747e656709ace5675edc3e",
+      "equal": true
+    },
+    {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "oldOID": "54d21d8d8a0688695a65846012822a5dd1757b9b",
+      "currentOID": "54d21d8d8a0688695a65846012822a5dd1757b9b",
+      "equal": true
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "oldOID": "d65f99c861315f95004f6f17764312edec1f2ae4",
+      "currentOID": "d65f99c861315f95004f6f17764312edec1f2ae4",
+      "equal": true
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "oldOID": "1a4981e0090adedb91a6e448486e4368b9f4bd27",
+      "currentOID": "1a4981e0090adedb91a6e448486e4368b9f4bd27",
+      "equal": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "oldOID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "currentOID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "equal": true
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "oldOID": "bb76b17f044fa4591c6e24e8aca09818ffb4457e",
+      "currentOID": "bb76b17f044fa4591c6e24e8aca09818ffb4457e",
+      "equal": true
+    },
+    {
+      "path": "scripts/ediel-actor-profile-expansion-fingerprint.py",
+      "oldOID": null,
+      "currentOID": "b7f47307021a19f94e7222885c058080c370cfea",
+      "equal": false
+    }
+  ],
+  "fiveSQL": [
+    {
+      "path": "supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql",
+      "sha256": "b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb",
+      "stillEqual": true
+    },
+    {
+      "path": "supabase/migrations/20261006235632_ediel_checked_production_capability_convergence.sql",
+      "sha256": "681b5100a40ca564e5d238fd7671e8e1758be960d9fefc0463c489b315672f1b",
+      "stillEqual": true
+    },
+    {
+      "path": "supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql",
+      "sha256": "a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c",
+      "stillEqual": true
+    },
+    {
+      "path": "supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql",
+      "sha256": "f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc",
+      "stillEqual": true
+    },
+    {
+      "path": "supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql",
+      "sha256": "38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b",
+      "stillEqual": true
+    }
+  ],
+  "scope": "Input equivalence only; new driver/helper require authentic selected-source capture; no runtime/native proof"
+}
+```
+
+Next: refresh paginated530 (page25 nowactive), own reviewed heads andnamed owner receipts; pick next nonduplicated review or document precise unavailable scope/owner/resumption.
