@@ -1373,3 +1373,7 @@ CLAIM common physical-profile dependency paths — codex-ediel-20261006-93e252d8
 Claim publication pending the immediately following API call; no source authoring authorized until its receipt is recorded.
 
 CLAIM publication completed: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6029897361. Five refs confirmed; no product source edits or tests performed by the helper.
+
+## Common physical profile RED — 2026-10-07
+
+Claim6029897361 confirms five new paths receiptbe209 plus existing common intake35c. Branchcodex/ediel-common-profile-93e252d8-c63dc305 at1907f87016c42112c42c6e0a9708877ee4ebf814 composes actualmain1ac; only own checkpoint differs before source work. Original aa97 supplier and286a bilateral two modules/two tests copied byte-exact. New real parser/intake declared-port test25 executed BEFORE production change:6FAIL19PASS, all six fail at missing physical Z02/Z22,Z23 or Z04/Z25 catalog call/error propagation; existing A/D/L/LK/E and scope guards pass. Log/tmp/gridex-common-birth-red.log SHA256424bfb6a8dcbbe2b12d1be35a805fc5b58c8d357ed77c16afd89479f4d7f1728. No SQL/native/whole contract credit or coverage edits. Next root: minimal prospective Z02 binding and third Z04 H fallback, current verification and independent reviews.
