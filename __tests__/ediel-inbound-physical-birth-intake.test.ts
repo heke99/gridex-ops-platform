@@ -22,7 +22,7 @@ beforeEach(()=>{vi.clearAllMocks();setup(wire());io.catalog.mockReset().mockImpl
  return evidence(messageCode,({Z22:'L',Z23:'LK',Z25:'H',Z26:'A',Z70:'D',E34:'E'} as Record<string,string>)[transactionSubtype])
 })})
 
-it.each([['Z02','Z22','L'],['Z02','Z23','LK'],['Z04','Z25','H'],['Z04','Z26','A'],['Z04','Z70','D'],['Z04','Z22','L'],['Z04','Z23','LK'],['Z06','E34','E']])('binds %s/%s only before first INSERT and preserves existing selector %s',async(code,reason,profile)=>{
+it.each([['Z02','Z22','L'],['Z02','Z23','LK'],['Z04','Z25','H'],['Z04','Z26','A'],['Z04','Z70','D'],['Z04','Z22','L'],['Z04','Z23','LK'],['Z06','E34','E'],['Z05','Z25','H'],['Z05','Z22','L']])('binds %s/%s only before first INSERT and preserves existing selector %s',async(code,reason,profile)=>{
  const payload=wire(code,[reason]);setup(payload)
  expect(await createInboundEdielMessage(input(payload))).toBe(newId)
  expect(io.catalog).toHaveBeenCalledExactlyOnceWith({family:'PRODAT',messageCode:code,transactionSubtype:reason,applicationReference:'23-DDQ-PRODAT',direction:'inbound',businessDate:'2026-09-21'})
@@ -33,14 +33,14 @@ it.each([['Z02','Z22','L'],['Z02','Z23','LK'],['Z04','Z25','H'],['Z04','Z26','A'
  expect(db.writes('outbound_requests')).toEqual([])
 })
 
-it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25']])('keeps existing %s/%s immutable without reselection on replay',async(code,reason)=>{
+it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25'],['Z05','Z25'],['Z05','Z22']])('keeps existing %s/%s immutable without reselection on replay',async(code,reason)=>{
  const payload=wire(code,[reason]);setup(payload);db.state.existing=true
  const before=structuredClone(db.state.original)
  expect(await createInboundEdielMessage(input(payload))).toBe(oldId)
  expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([]);expect(db.state.original).toEqual(before)
 })
 
-it.each([['Z02',['Z22','Z23']],['Z04',['Z25','Z22']],['Z02',['Z25']],['Z04',['']],['Z05',['Z25']],['Z01',['Z22']]])('does not borrow a sibling profile for %s/%j',async(code,reasons)=>{
+it.each([['Z02',['Z22','Z23']],['Z04',['Z25','Z22']],['Z02',['Z25']],['Z04',['']],['Z05',['Z26']],['Z05',['Z25','Z22']],['Z01',['Z22']]])('does not borrow a sibling profile for %s/%j',async(code,reasons)=>{
  const payload=wire(code,reasons);setup(payload)
  expect(await createInboundEdielMessage(input(payload))).toBe(newId)
  expect(io.catalog).not.toHaveBeenCalled()
@@ -48,7 +48,7 @@ it.each([['Z02',['Z22','Z23']],['Z04',['Z25','Z22']],['Z02',['Z25']],['Z04',['']
  for(const key of ['canonical_rule_pack_id','rule_profile_key','rule_profile_version_id','rule_profile_version','rule_pack_checksum','rule_pack_snapshot'])expect(writes[0].payload).not.toHaveProperty(key)
 })
 
-it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25']])('propagates %s/%s catalog failure before INSERT or reception',async(code,reason)=>{
+it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25'],['Z05','Z25'],['Z05','Z22']])('propagates %s/%s catalog failure before INSERT or reception',async(code,reason)=>{
  const payload=wire(code,[reason]);setup(payload);io.catalog.mockRejectedValue(Error('canonical_rule_pack_evidence_count:0'))
  await expect(createInboundEdielMessage(input(payload))).rejects.toThrow('canonical_rule_pack_evidence_count:0')
  expect(db.writes('ediel_messages')).toEqual([]);expect(db.writes('ediel_message_events')).toEqual([])
@@ -97,7 +97,7 @@ it('uses the retained zoned mail instant across the Stockholm date boundary',asy
  expect(io.catalog).toHaveBeenCalledExactlyOnceWith({family:'PRODAT',messageCode:'Z04',transactionSubtype:'Z25',applicationReference:'23-DDQ-PRODAT',direction:'inbound',businessDate:'2026-09-22'})
  expect(db.writes('ediel_messages')[0].payload).toHaveProperty('message_received_at','2026-09-21T22:30:00.000Z')
 })
-it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25']])('keeps the race winner %s/%s original immutable after unique conflict',async(code,reason)=>{
+it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25'],['Z05','Z25'],['Z05','Z22']])('keeps the race winner %s/%s original immutable after unique conflict',async(code,reason)=>{
  const payload=wire(code,[reason]);setup(payload)
  const winner=inboundReceptionBoundary(parsed(payload)),before=structuredClone(winner.state.original)
  db.state.error={code:'23505',message:'canonical duplicate'}
@@ -117,4 +117,30 @@ it.each([['Z02','Z22'],['Z02','Z23'],['Z04','Z25']])('keeps the race winner %s/%
  expect(winner.state.rpcCalls.map(c=>c.name)).toEqual(['ediel_record_inbound_reception_v1'])
  expect(winner.state.rpcCalls[0].args.p_message_id).toBe(oldId)
  expect(db.writes('outbound_requests')).toEqual([])
+})
+
+// The production omission this catches is a Z05 source INSERT without its own
+// immutable physical H/L catalog witness. Guard refusals must precede lookup.
+it.each(['Z25','Z22'].flatMap(reason=>['actor','permission','environment','parse'].map(guard=>[reason,guard])))('keeps Z05/%s %s refusal before catalog or effects',async(reason,guard)=>{
+ const payload=wire('Z05',[reason]);setup(payload);const request=input(payload)
+ if(guard==='actor')db.state.actorActive=false
+ if(guard==='permission')db.state.permission=false
+ if(guard==='environment')request.environment='foreign'
+ if(guard==='parse')request.parseResultId=''
+ const errors:Record<string,string>={actor:'ediel_tenant_actor_forbidden',permission:'ediel_tenant_permission_forbidden',environment:'ediel_inbound_duplicate_scope_required',parse:'ediel_real_reception_actor_and_parse_required'}
+ await expect(createInboundEdielMessage(request)).rejects.toThrow(errors[guard])
+ expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([])
+ expect(db.state.rpcCalls.filter(c=>c.name==='ediel_record_inbound_reception_v1')).toEqual([])
+})
+it.each(['Z25','Z22'])('uses the original retained zoned receipt for Z05/%s across the Stockholm date boundary',async(reason)=>{
+ const payload=wire('Z05',[reason]);setup(payload);patchMail({received_at:'2026-09-21T22:30:00Z'})
+ expect(await createInboundEdielMessage(input(payload))).toBe(newId)
+ expect(io.catalog).toHaveBeenCalledExactlyOnceWith({family:'PRODAT',messageCode:'Z05',transactionSubtype:reason,applicationReference:'23-DDQ-PRODAT',direction:'inbound',businessDate:'2026-09-22'})
+ expect(db.writes('ediel_messages')[0].payload).toHaveProperty('message_received_at','2026-09-21T22:30:00.000Z')
+})
+it.each(['Z25','Z22'])('rejects a foreign retained-mail owner before Z05/%s catalog or source effects',async(reason)=>{
+ const payload=wire('Z05',[reason]);setup(payload);patchMail({company_id:'foreign-company'})
+ await expect(createInboundEdielMessage(input(payload))).rejects.toThrow('ediel_actual_inbound_receipt_clock_required')
+ expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([])
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission'])
 })
