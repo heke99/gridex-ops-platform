@@ -1214,7 +1214,7 @@ coverage rows/order/meta exactmain, all16noncoverageincoming paths exactmain
 noncoverage paths exactapproved9bc. ONLYown2 prospectivePASSED total292,
 notactualdelivery. sc064 inspectedrootrawAPI snapshot andcurrentWHOLE remains
 approved withprecisetransport attribution. Currentwholepublicreceipts530
-6027800574/PR6366027800764, CP4ce92078ee (resolve Git for exactfullSHA).
+6027800574/PR6366027800764, CP4ce92078b857416a6ecbe93cdd77a513504767b7.
 
 Temp currentclean qualifier /tmp/gridex-qualify-z05-current-clean.py reviewed
 sc064 APPROVE after correcting incompleteXMLinventory and knownE72duplicate
