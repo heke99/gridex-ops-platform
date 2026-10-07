@@ -665,3 +665,177 @@ Correction evidence:
   "verificationLimit": "193tests/threeTSC/lint/budgets bound exact c6 source; compile/unit inputs unchanged through343. Mandatory CI must match343."
 }
 ```
+
+
+## 2026-10-07T22:53:02.352951+00:00 — docs(ediel): record actual final-head CI progression without source restart
+
+PR690 343f4bd1083d108ada6115183aa517f8d1af69fa / CURRENT CI PROGRESSION — samea66/rootownsALL9. Actualsuccess checks smoke, upgrade-migration-replay, verify, z04a-assigned-supply-native, z06e-z09e-native, browser-public, z05-supplier-native, sc014-z14v-native, targeted-regressions. Pending/running coverage, clean-migration-replay, quality-release-gates; certificate13 mayappear afterparents. This is NOT CI_GREEN/allmandatory/whole acceptance. Source/config/tests frozen; no rerun/manualnative/GEN/artifact duplicate and no merge role held. Previous196 outcomes supersededonlyascurrentgates, allfailed/successhistoricalobservations preserved.
+
+Transport current343SOURCE_APPROVE a2ceec8e0102fed0b6606297d9cdff79cddf201f1584472033587b0e3d77dba4, rootactual343self8e6d46dae576ac47f0dd9572cabf2e46933cf5ffce43fa3244e5beea2f3ebf98. Gov complete196 frozen-source approval9afcd68e and allunchangedposts retained; exact343metadata-successor rebind requested and pending, not claimedcompleted. All193cases/3TSC/lint/budgets0 remain actualc6source-program credit; whitespace196fail2→3430 explicit178360/6736048367808. Currentmaina63526adeff2aa71d5c7a12c910183d70e69d576/coverage300 unchanged.
+
+Next ROOT: complete source2currentbinding +remainingmandatoryquality/fullcoverage/clean/PRcert, freshsource/main/locks/free role andexpectedheadmerge, actualmainreceipt/release. Withinpair sourceAPI originalBB read-only minimalclosure map independentlyunderreview; no newsourcefileclaims/code/newpair. Current2f closedLautomaticREAD/completepolicyinvocations/nativeediel-onlySQL+appropriateGEN remain distinctwholeblockers. Currentmemory2c owns3e5e; actualboundedstatus canbemirroredunderownrole.
+
+Exact actualsnapshot:
+```json
+{
+  "atUTC": "2026-10-07T22:53:00.551728+00:00",
+  "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+  "main": "a63526adeff2aa71d5c7a12c910183d70e69d576",
+  "checks": [
+    {
+      "name": "nightly-release-certificate",
+      "id": 113054862753,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "real-customer-staging",
+      "id": 113054861983,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "full",
+      "id": 113054861847,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "runtime-staging",
+      "id": 113054861658,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "coverage",
+      "id": 113054860507,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "name": "smoke",
+      "id": 113054860237,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 113054311021,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 113054311008,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 113054310848,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "name": "verify",
+      "id": 113054310683,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "z04a-assigned-supply-native",
+      "id": 113054112053,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "browser-staging",
+      "id": 113053916630,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "crawl-production-readonly",
+      "id": 113053866378,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "staging-quality-certificate",
+      "id": 113053866037,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "k6-staging-soak",
+      "id": 113053865861,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "zap-staging-baseline",
+      "id": 113053865756,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "k6-staging-load",
+      "id": 113053865611,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "z06e-z09e-native",
+      "id": 113053864302,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "browser-public",
+      "id": 113053864112,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "z05-supplier-native",
+      "id": 113053863896,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "sc014-z14v-native",
+      "id": 113053863887,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 113053863627,
+      "head": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}
+```
