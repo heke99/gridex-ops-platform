@@ -35,7 +35,7 @@ const contextKeys = ['version', 'contextOrigin', 'sourceMessageId', 'companyId',
 const reads = new WeakMap<ReceivedZ05RejectedIdentityRejection, {identity: string; actor: string; at: number; witness: Witness}>()
 const structures = new WeakMap<object, {wire: string; facts: string; at: number}>()
 const owners = new WeakMap<object, {identity: string; actor: string; decisionHash: string}>()
-const fresh = (at: number) => Date.now() >= at && Date.now() - at <= 2000
+const fresh = (at: number) => {const now = Date.now(); return now >= at && now - at <= 2000}
 const wireIdentity = (input: Input) => evidenceHash(JSON.stringify([input.rawSegments, serializeUna(input.una ?? DEFAULT_UNA)]))
 function bornIdentity(value: unknown): string | null {
   if (!isEvidenceRecord(value) || value.direction !== 'inbound' || value.message_standard !== 'edifact'
@@ -149,6 +149,9 @@ export function ownReceivedZ05RejectedIdentityRejection(decision: CanonicalRunti
   if (!read || !structure || !fresh(read.at) || !fresh(structure.at) || read.actor !== actor || read.identity !== bornIdentity(source)
     || structure.wire !== wireIdentity(input) || structure.facts !== evidenceHash(JSON.stringify(decision.prodatRegisterValidation))
     || decision.policy !== null || decision.syntaxDecision !== 'accepted' || decision.applicationDecision !== 'rejected' || decision.functionalDecision !== 'not_applicable'
+    || decision.validationReport.syntaxDecision !== decision.syntaxDecision || decision.validationReport.applicationDecision !== decision.applicationDecision
+    || decision.validationReport.functionalDecision !== decision.functionalDecision || decision.validationReport.canonicalPolicy !== null
+    || !isDeepStrictEqual(decision.validationReport.responsePlan, decision.responsePlan)
     || decision.utiltsBusinessOutcome !== null || decision.prodatApplicationValidation !== undefined || decision.prodatSourceFunctionValidation !== undefined
     || !isDeepStrictEqual(decision.canonical, parseCanonicalMessageRow(source)) || !bindReceivedRegisterValidation(decision.prodatRegisterValidation, source.raw_payload!)
     || plans.length !== 1 || plans[0].outcome !== 'negative' || !plans[0].applicationErrors?.length
