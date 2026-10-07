@@ -14,6 +14,7 @@ export async function buildSwitchCancellationDraft(input: { actorUserId: string;
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>; outboundRequestId: string }) {
   const { basis: b, intent: i, routeContext: route } = input
   assertSwitchCancellationRoute(b, route)
+  if(!b.requestedMethod)throw new Error('switch_cancellation_source_requested_method_required')
   const version = await resolveCanonicalOutboundVersion({ family: 'PRODAT', code: 'Z03', standard: 'edifact', environment: b.environment, routeDefaultMessageVersion: route.defaultMessageVersion })
   if(!version||!i.operationId||i.companyId!==b.companyId||i.environment!==b.environment||i.messageCode!=='Z03'||i.transactionReference!==b.li||(b.operationId&&b.operationId!==i.operationId)) throw new Error('switch_cancellation_canonical_version_reference_required')
   const facts = {market:'electricity' as const}
@@ -24,7 +25,7 @@ export async function buildSwitchCancellationDraft(input: { actorUserId: string;
     context: { code: 'Z03', bgmReference: i.interchangeReference, transactionReference: b.li,
       senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId, legalSenderId: b.legalSenderId, legalReceiverId: b.legalReceiverId,
       customerName:b.customerName,customerId:b.customerIdentity,customerIdCodeListQualifier:b.customerQualifier,customerIdAgency:'260',meterPointId:b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, reasonForTransaction:'Z24',startDate:b.startAt,
-      dependentConditionFacts: facts } })
+      meteringMethod:b.requestedMethod,dependentConditionFacts: facts } })
   // The source owner's LI is an exact protocol identity. The ordinary renderer's
   // compact-reference helper must not rewrite an escaped existing identity.
   const segments=rendered.segments.map(s=>s.startsWith('RFF+LI:')?`RFF+LI:${escapeEdifactValue(b.li)}`:s)
