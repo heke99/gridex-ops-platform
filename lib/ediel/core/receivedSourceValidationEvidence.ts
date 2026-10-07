@@ -1,4 +1,5 @@
 import {bindReceivedProdatSourceFunction,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
+import {hasReceivedZ04RequiredStartRejection} from '@/lib/ediel/prodat/receivedZ04RequiredStartRejection'
 import {projectReceivedProdatObjectValidation,type ReceivedProdatObjectValidation} from './receivedProdatObjectValidation'
 import type {CanonicalRuntimeDecision} from './runtimeDecision'
 import {bindReceivedProdatApplicationObjects,type ReceivedProdatApplicationObjectValidation} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
@@ -15,7 +16,7 @@ import {bindReceivedUtiltsHeaderValidation,type ReceivedUtiltsHeaderValidation} 
 import {bindReceivedUtiltsFunctionalValidation,type ReceivedUtiltsFunctionalValidation} from './receivedUtiltsFunctionalValidation'
 
 type SourceFacts = { id: unknown; company_id?: unknown; environment: unknown; direction: unknown; message_family: unknown; message_standard: unknown; raw_payload: unknown; message_code: unknown; message_received_at: unknown; execution_context_snapshot?: unknown }
-type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown;prodatIgnoredFields?:unknown;utiltsTransactionValidation?:unknown;utiltsHeaderValidation?:unknown;utiltsFunctionalValidation?:unknown;responsePlan?:unknown }
+type RuntimeFacts = { policy?:unknown;syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown;prodatIgnoredFields?:unknown;utiltsTransactionValidation?:unknown;utiltsHeaderValidation?:unknown;utiltsFunctionalValidation?:unknown;responsePlan?:unknown }
 export type SourceValidationInput = { companyId: string; environment: 'test' | 'production'; sourceMessageId: string; sourcePayloadHash: string; factsText: string;prodatObjectValidation?:ReceivedProdatObjectValidation;prodatSourceFunctionValidation?:ReceivedProdatSourceFunctionValidation;prodatApplicationValidation?:ReceivedProdatApplicationObjectValidation;prodatResponseValidation?:ReceivedProdatResponseValidation;prodatIgnoredFields?:ProdatIgnoredField[];utiltsTransactionValidation?:ReceivedUtiltsTransactionValidation;utiltsHeaderValidation?:ReceivedUtiltsHeaderValidation;utiltsFunctionalValidation?:ReceivedUtiltsFunctionalValidation }
 const CONTEXT_KEYS = ['version','contextOrigin','sourceMessageId','companyId','environment','messageCode','payloadHash','sourceReceivedAt','capturedAt']
 const states = new Set(['accepted','rejected','not_applicable','manual_review'])
@@ -80,7 +81,7 @@ export function buildReceivedSourceValidationEvidence(input: { original: SourceF
   if ((ack||utilts) && decision.prodatIgnoredFields!==undefined) return null
   const prodatIgnoredFields=decision.prodatIgnoredFields!==undefined?bindReceivedProdatIgnoredFields(decision.prodatIgnoredFields,original.raw_payload):null
   if(decision.prodatIgnoredFields!==undefined && (!hasRegisterValidation||!prodatIgnoredFields)) return null
-  const prodatObjectValidation=original.message_family==='PRODAT'&&registerValidation&&rulePackEvidence&&Array.isArray(decision.responsePlan)
+  const prodatObjectValidation=original.message_family==='PRODAT'&&decision.policy!==null&&!hasReceivedZ04RequiredStartRejection(decision,original)&&registerValidation&&rulePackEvidence&&Array.isArray(decision.responsePlan)
     ? projectReceivedProdatObjectValidation(original.raw_payload,decision as unknown as CanonicalRuntimeDecision):null
   const prospectiveFunction=original.message_family==='PRODAT'?readReceivedCanonicalProdatSourceFunction(decision,original):null
   const prodatSourceFunctionValidation=prospectiveFunction?bindReceivedProdatSourceFunction(prospectiveFunction,original.raw_payload):null
