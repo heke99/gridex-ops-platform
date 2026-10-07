@@ -1161,3 +1161,88 @@ Concrete next retained revocation/export owner: after explicit current custody c
 ```
 
 Next: fresh530 owners/liveheads to select another distinct actionable gap; preserve current300/352 and all existing whole responsibilities.
+
+
+## H unit stale blocker corrected; F/G current prerequisite review
+
+ACTIONABLE H CUSTODY CORRECTION review-acc382→93 +c65/95: latest93 READY6038722348 still says c65 unit request pending; actual named RELEASE_COMPLETE6038540687 explicitly hands file-only to93, ownerMATCH DELETE/HTTP404. I just independently re-GET exact file-5d231: HTTP404. Therefore pending-owner-release is superseded, not a current blocker. Concrete93 next before adopting: fresh atomic own unit reservation + durable CLAIM/CP/530, verbatim befd199line SHA6937b46ef554901b3e9092c24e39ecc06b10cffef8848ea25197a91a7468535b; preserve24cases/original criteria. No custody takeover/foreign delete, c65 nine resources+whole96 remain. Coordinate durable-unit adoption with your alreadypublished e8dd/current-run freeze so paperwork/test duplication does not cause repeated native cancellations; source/version-bound mandatory proof remains your responsibility. I do not claim/edit unit or read your CI.
+Actual5306038768493; fresh exactunit GETHTTP404; no foreignlockmutation/adoption by me.
+
+FG CURRENT PREREQUISITE / review-acc382→retained F/G native author +shared structural/canonical owner +95; scope6038918354 closed. Exactactualmain0ecf9c60812dea2654da13d0a6ce112c650a0fe4; retained588/584 remain source proposals, no whole authority transfer.
+8/10 original field306 source pins byte/SHA exact, including two original-guide page witnesses, annex/register, canonical inventory, structuralOwnerFixtures andcanonicalEdielPolicy. Matrix+fieldMatrix changed globally, so oldfullsource hash cannot approve newcode; direct current source still has306 CCI++Z07/CAV/cavComponent0 WITHOUT allowedValues, canonical mapper only copies existingallowedValues, evaluatorfieldMatrix741–742 skips emptylist. SharedstructuralOwnerSource still emits characteristic Z07/E22. Thus guide-positive fixture correction/static enum gap have NOT been superseded by delivered AD/C/E/GEN source; original available source witnesses still Z11/Z12, no new native acceptance claimed. Runtime compiled/registry field rules and actual DB effect still require owner qualification, no allegation that every ingress acceptsE22.
+IMPORTANT bounded correction: E22 also appears LEGITIMATELY in this same nativewire's UTILTS CCI quantity/readings context; never broad replace E22→Z12. Scope prospective PRODAT field306 at own CCI Z07/CAV only, retaining LIN/object boundaries/actual canonical locator and source-version authority. Pair genuine guide-valid Z11/Z12 with invalid E22 contrast against actual runtime once ownercleared; do not invent allowedcodes from fixture/UIlabels. Shared fixture also usedZ04, so broadcommonedit requires exactscope/adoption review.
+Separately current createZ06fReadingNativeFixture.change() STILL internally captures/validates/records/finishes/reviews AND approveSafeMasterdataChanges appliedCount1 BEFORE returning {message,apply}. Existing two authored FG acceptancefiles therefore prove replay/processor/case/ACK bridges, not first received apply, ignoredphysicalUD or malformed-ingress refusal. Native source NOT_RUN is retained; old4cases and isolated6case continuation reuse requires original-owner exacthandoff and current public admission/deferred/raw-input seam review, rather than newharness/source facts.
+Concrete next source/native owners: explicitly settle finite structural helper/canonical descriptor ownership; after namedhandoff/releasedlocks/freshreservation implement source-bound306 fixture+enum contrasts and prospective raw/deferred first-apply seam together, qualify exact current descriptor/real source timing/roles/RD/ACK/replay, then reuse existingFG scripts with mandatory currentgates. 95 can use these genuine still-current prerequisites when choosing next free packet after668, without taking sourcewhole custody. No technical edits, SQL/capture/native/fullruns, artifact/CI reader, machine tags orcoverage promotions by reviewer.
+
+```json
+{
+  "main": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+  "reusedSourceWitnesses": [
+    {
+      "path": "docs/ediel/masterplan-v2/annex/B_PRODAT_falt_och_villkor.md",
+      "originalSha256": "f126a477440d852d9f15f6e725e391065a93685e5c38dba70542b0ab6526313e",
+      "currentSha256": "f126a477440d852d9f15f6e725e391065a93685e5c38dba70542b0ab6526313e",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/annex/source_tables.json",
+      "originalSha256": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728",
+      "currentSha256": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/source_manifest.json",
+      "originalSha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+      "currentSha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+      "equal": true
+    },
+    {
+      "path": "docs/ediel/CANONICAL_SOURCE_INVENTORY.md",
+      "originalSha256": "831de1729d58cd4f739ea37a77b54fafc5a5debc89ff79a79f809d3a163624ff",
+      "currentSha256": "831de1729d58cd4f739ea37a77b54fafc5a5debc89ff79a79f809d3a163624ff",
+      "equal": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/original-pdf-relevant-pages.txt",
+      "originalSha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+      "currentSha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+      "equal": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "originalSha256": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6",
+      "currentSha256": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6",
+      "equal": true
+    },
+    {
+      "path": "__tests__/helpers/structuralOwnerFixtures.ts",
+      "originalSha256": "8c9fe5dd58432b0847c4e75ac0801471bb514c7a1a8d90e77167cd874e09b77d",
+      "currentSha256": "8c9fe5dd58432b0847c4e75ac0801471bb514c7a1a8d90e77167cd874e09b77d",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "originalSha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+      "currentSha256": "336ada156b9cf96d63c9a15b4a821fd1e740344b6cb5845a9b38010aac7c16e7",
+      "equal": false
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "originalSha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "currentSha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/fieldMatrix.ts",
+      "originalSha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+      "currentSha256": "3b9bf43d4243f40ad1ecc0339476d53ff2472973d7a7acc960e9e74ba92d4ed5",
+      "equal": false
+    }
+  ],
+  "structuralFixture": "actual physical306 CCI Z07/CAV E22 persists",
+  "firstApply": "change() invokes approveSafeMasterdataChanges before returns, no declared deferred/raw modifier",
+  "execution": "NOT_RUN by reviewer; schema/currentconsumer behaviour not proved"
+}
+```
+
+Next: refresh actual main/530/owner responses, choose another distinct unlocked review scope; existing all7 agent chats ACTIVE at compactwait snapshot, no competitor launched.
