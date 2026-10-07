@@ -32,6 +32,7 @@ export async function requestForSite(input: {
   companyId: string;
   customerId: string;
   siteId: string;
+  meteringPointId?: string | null;
   operationId?: string | null;
   gridOwnerId?: string | null;
 }) {
@@ -62,6 +63,8 @@ export async function requestForSite(input: {
       .eq('request_type', 'z01_customer_masterdata')
       .eq('operation_id', input.operationId)
       .in('status', ACTIVE_STATUSES)
+    if (input.meteringPointId !== undefined) q = input.meteringPointId === null
+      ? q.is('metering_point_id', null) : q.eq('metering_point_id', input.meteringPointId)
     if (input.gridOwnerId) q = q.eq('grid_owner_id', input.gridOwnerId)
     const { data, error } = await q.order('updated_at', { ascending: false }).limit(1).maybeSingle()
     if (error && !missingSchema(error)) throw error
@@ -79,6 +82,8 @@ export async function requestForSite(input: {
     .eq('site_id', input.siteId)
     .eq('request_type', 'z01_customer_masterdata')
     .in('status', ACTIVE_STATUSES)
+  if (input.meteringPointId !== undefined) q2 = input.meteringPointId === null
+    ? q2.is('metering_point_id', null) : q2.eq('metering_point_id', input.meteringPointId)
   if (input.gridOwnerId) q2 = q2.eq('grid_owner_id', input.gridOwnerId)
   const { data: data2, error: error2 } = await q2.order('updated_at', { ascending: false }).limit(1).maybeSingle()
   if (error2 && !missingSchema(error2)) throw error2
@@ -196,7 +201,7 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
   if (!scopeAuthorization.gridOwnerDocumentId) {
     const blockedRequest = await requestForSite({
       companyId: job.company_id, customerId: job.customer_id,
-      siteId: job.customer_site_id, operationId,
+      siteId: job.customer_site_id, meteringPointId: job.metering_point_id, operationId,
     }) ?? await createRequest()
     const checked = await checkCustomerInfoRequestAuthorization({
       companyId: job.company_id, actorUserId, requestId: String(blockedRequest.id),
@@ -236,6 +241,7 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
     companyId: job.company_id,
     customerId: job.customer_id,
     siteId: job.customer_site_id,
+    meteringPointId: job.metering_point_id,
     operationId,
     gridOwnerId: resolved.result.gridOwnerId,
   })

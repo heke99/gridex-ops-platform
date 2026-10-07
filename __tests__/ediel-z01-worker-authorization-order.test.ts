@@ -285,6 +285,54 @@ describe('Z01 worker authorizes before mutable facility resolution', () => {
     expect(state.tables.customer_info_requests).toHaveLength(2)
     expect(state.createGodr).toHaveBeenCalledWith(expect.objectContaining({gridOwnerId: ids.grid}))
   })
+  it.each([ids.operation, uuid(81)])('does not borrow a live same-site CIR for a different unauthorized metering point (operation %s)', async (existingOperationId) => {
+    const otherPoint = uuid(80)
+    state.tables.metering_points.push({...state.tables.metering_points[0], id: otherPoint})
+    state.tables.customer_info_requests.push({...request(), id: uuid(60), operation_id: existingOperationId})
+    const original = structuredClone(state.tables.customer_info_requests[0])
+    const before = domain()
+    const result = await processCustomerDataRequest({...job(), metering_point_id: otherPoint})
+    expect(domain()).toEqual(before)
+    expect(state.resolver).not.toHaveBeenCalled()
+    expect(result.result?.reason).toBe('missing_power_of_attorney')
+    expect(state.tables.customer_info_requests[0]).toEqual(original)
+    expect(state.tables.customer_info_requests).toHaveLength(2)
+    expect(state.tables.customer_info_requests[1]).toMatchObject({id: ids.request,
+      metering_point_id: otherPoint, status: 'missing_authorization'})
+    expect(state.createGodr).not.toHaveBeenCalled()
+    expect(state.prepare).not.toHaveBeenCalled()
+  })
+  it.each([ids.operation, uuid(81)])('keeps a different-point CIR unchanged while dispatching an authorized job point (operation %s)', async (existingOperationId) => {
+    const otherPoint = uuid(80)
+    state.tables.metering_points.push({...state.tables.metering_points[0], id: otherPoint})
+    state.tables.customer_info_requests.push({...request(), id: uuid(60), operation_id: existingOperationId})
+    const original = structuredClone(state.tables.customer_info_requests[0])
+    state.tables.customer_authorization_documents[0].metering_point_id = otherPoint
+    state.tables.powers_of_attorney[0].metering_point_id = otherPoint
+    const result = await processCustomerDataRequest({...job(), metering_point_id: otherPoint})
+    expect(state.tables.customer_info_requests[0]).toEqual(original)
+    expect(state.tables.customer_info_requests).toHaveLength(2)
+    expect(state.tables.customer_info_requests[1]).toMatchObject({id: ids.request, metering_point_id: otherPoint})
+    expect(state.resolver).toHaveBeenCalledTimes(1)
+    expect(state.createGodr).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({meteringPointId: otherPoint}))
+    expect(state.prepare).toHaveBeenCalledTimes(1)
+    expect(result.result?.reason).toBe('z01_prepared_pending_send_guard')
+  })
+  it('does not borrow a point-specific CIR when the job has an explicit null point', async () => {
+    state.tables.customer_info_requests.push({...request(), id: uuid(60)})
+    const original = structuredClone(state.tables.customer_info_requests[0])
+    const before = domain()
+    const result = await processCustomerDataRequest({...job(), metering_point_id: null})
+    expect(domain()).toEqual(before)
+    expect(state.resolver).not.toHaveBeenCalled()
+    expect(state.tables.customer_info_requests[0]).toEqual(original)
+    expect(state.tables.customer_info_requests).toHaveLength(2)
+    expect(state.tables.customer_info_requests[1]).toMatchObject({metering_point_id: null,
+      status: 'missing_authorization'})
+    expect(result.result?.reason).toBe('missing_power_of_attorney')
+    expect(state.createGodr).not.toHaveBeenCalled()
+    expect(state.prepare).not.toHaveBeenCalled()
+  })
   it('unbound qualification applies current immutable signed scope and contract ownership', async () => {
     state.tables.powers_of_attorney[0].signed_scope_snapshot = ['current_supplier_contract']
     state.tables.powers_of_attorney[0].scope_summary = {scopes: ['grid_owner_data']}
