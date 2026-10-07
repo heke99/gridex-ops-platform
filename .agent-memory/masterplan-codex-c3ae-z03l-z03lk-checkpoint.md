@@ -1,3 +1,15 @@
+## Additional consumer file reservations confirmed — 2026-10-07
+
+CLAIM AT-Z03L-SUPPLIER + AT-Z03LK-SUPPLIER — codex-20261006T134154Z-c3ae376b9893 — same packet and PR #635. Three additional file reservations were created through the standard authenticated GitData create-if-absent protocol and individually confirmed. Total resources: 23. Exact file scope, resource identifiers and unchanged-tree receipt are recorded in the protocol receipt and private checkpoint. Original reservations remain unchanged; no new pair or coverage authority.
+
+The scope is the existing application-validation and register-batch consumer tests and their shared opt-in test fixture. Their original delivered requirements are preserved. No runtime, foreign fixture or whole-ID responsibility is taken.
+
+NO AUTHOR_GO. Both reviews rejected the initial plan because the repeated positive register needs its own required reading fields and a distinct tariff value. An amended plan is being sealed. Preserve all 68 cases, 160 original assertions, original quantities/numbering and graph/CAS/replay/refusal behavior. Defaults and record-before-capture remain required.
+
+Next: confirm this checkpoint and the continuation CLAIM, obtain two approvals on the amended plan, then document separate author GO before changes. Public status contains finite coordination only; exact bindings remain private. PR #635 stays draft and current whole/native/full/CI/coverage/merge approval remains unresolved.
+
+---
+
 ## Actual source-only draft publication — 2026-10-07
 
 After the recorded publication decision, both documentation readbacks and fresh ownership/main/PR/clean-version checks, the normal nonforce push to the existing PR #635 branch succeeded. Official branch and PR reads match the intended committed version; the PR remains OPEN/DRAFT. Exact publication commit and full verification bindings are in the private session checkpoint. No main merge.
