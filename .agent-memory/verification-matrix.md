@@ -1,3 +1,13 @@
+## Actual campaign observation — 2026-10-07T12:37:33.769902+00:00
+
+Executed proofs are bound to source0ce and actual656 delivery; new metadata-head checks are still required.
+
+Observed actual main 0ecf9c60812dea2654da13d0a6ce112c650a0fe4 (tree bb01da21316cf0fba279c6b820b49da9a1ed9e62), coverage SHA256 51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a: **115/121 VERIFIED rules + 185/231 PASSED contracts = 300/352; 52 remain**. PR #656 actually merged at2026-10-07T12:07:06Z to5b150f18 from0ce62698; exact treecd1b/parents[c401,0ce]/all350foreign rows preserved. All18 source-head mandatory checks, two independent final whole/source reviews, authenticated34 A/D native, actual924files14085unit+45quality, clean725PASS+oneoriginalphaseSKIP/browser31 and strictupgrade/types/schema/state proof qualified. Actual [merge receipt](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6037593233); merge-role released FIRST; all21 [technical resources released](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6037786738). Source-only PR #663 subsequently delivered its C cancellation-birth module/native2 without any coverage change. **Resulting-main runtime/full CI, deployment and external acceptance remain NOT_VERIFIED.**
+
+Native34/quality924-14085/clean725+originalphaseSKIP/browser31 and strictupgrade proof belong to source0ce. FTX210 is reached source/renderer/native-SQL equality inference, not a direct raw substring assertion; syntheticlegal/SMTP/legacyL prerequisites remain explicit. Original upgrade-reader RED and exact source-redaction correction reviews53175d86/8f7bb23e/true retry0 are retained. New metadata-head reviews/eight mandatory checks and authentic artifacts are pending.
+
+Earlier dated entries below are historical. This own metadata update is proposed; current-head review/CI/delivery remain required.
+
 ## Actual campaign observation — 2026-10-07T02:40:35.459682+00:00
 
 Observed actual main 1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a (tree 45ea1533702665b11b8f1a7eafeef96162d14227), coverage SHA256 31fc286d62354e9632d576c4b5cc40f04b76ef112887e5ba241b34418bdd402e: **115/121 VERIFIED rules + 180/231 PASSED contracts = 295/352; 57 remain**. Actual PR #629 delivered ed7c0980 from4b131b8a with nineteen non-skipped source checks SUCCESS and its two E contracts accepted in main. PR #651 merged at2026-10-07T02:36:55Z frombfa77190; exactparents ed7c0980+bfa77190 and exact reviewed tree45ea153 authenticated. Its scoped cleanup and dated636/released649/645 metadata are delivered; no ID is promoted by651. Earlier dated snapshots and the old GEN213222 missing-column blocker are SUPERSEDED by these actual observations.
