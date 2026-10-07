@@ -210,3 +210,415 @@ Small eight-path PR is now actually OPEN/non-draft; seven reviewed635BB componen
 
 Next ROOT owns CI failure repair in seven reserved paths only, exact-current-head mandatory qualification and expected-head merge under immediately-free role. Whole IDs remain NOT_EXECUTED; all9 reservations retained solely for this active delivery. After actual main receipt and release, refresh current dependencies and next free pair autonomously. Existing shared-memory role holder can mirror690 open/locallyverified distinctly from actualmerged684 and coverage300/352. No user/coordinator allocation needed.
 
+
+
+## 2026-10-07T22:31:02.716421+00:00 — docs(ediel): archive exact PR690 independent delivery reviews
+
+SOURCE2_COMPLETE / EXACT PR690 DELIVERY REVIEW — samea66/ALL9, sourcehead196e8e88e26530233cf0c843996b38f832ace8e8. Both independent fullsource/currentcallgraph/entireCP and actualterminalverification reviews APPROVE/no findings; honestly attributed currentcommit COMMENT reviews 5449181920,5449182302. No formalselfAPPROVED/native/whole/currentCI_GREEN claimed.
+
+Current CI13 mandatory remain pending/queued/running; existing conditional staging/crawler SKIPs are not mandatory PASS. No merge role held; no native/GEN/owner89/artifact or large localtest duplicate. ROOT owns current690 gates and sourcefailurecause correction within seven claimedpaths. Meaningful review/CP progression is archived on a separate ownCP-only branch to preserve the exact reviewed PRhead and its already triggered CI; sourceWT remains clean196.
+
+Next ROOT: qualify fresh exact196 mandatory results, fix genuineownfailures without weakeningguards, then currentmain/source2/allgreens/freecreate-onlymerge-role/expectedhead delivery; authenticate actualmain/sourceposts/foreigncoverage, publishactualreceipt and release. If fullL acceptance remains blocked aftercomponentdelivery, retain635 genuine20P14F34/source and exact2f automaticprivateREAD/compiler/GEN+applicable259+nativeREADSQL obligations, explicitwholeduty RELEASE before choosing next freepair. Currentledger300/352 remainsunchanged. Namedsharedmemory2c/3e5e please reconcileactual690open vs684main and remainingwhole duties under ownrole.
+
+Exact independent GitHub review bindings:
+```json
+[
+  {
+    "id": 5449181920,
+    "reviewer": "gov04_contract_review",
+    "receiptSHA": "9afcd68ee98947a22916329b01c4906461f4efdd196403454c240facae45f3f6",
+    "head": "196e8e88e26530233cf0c843996b38f832ace8e8",
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/690#pullrequestreview-5449181920"
+  },
+  {
+    "id": 5449182302,
+    "reviewer": "transport_remaining_scope",
+    "receiptSHA": "f98843ae11fc8ff7329a5dd156218dfe438d607dc9c3624f937a8c052fb2ff92",
+    "head": "196e8e88e26530233cf0c843996b38f832ace8e8",
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/690#pullrequestreview-5449182302"
+  }
+]
+```
+
+Complete independent receipt:
+```json
+{
+  "reviewer": "gov04_contract_review",
+  "verdict": "SOURCE_DELIVERY_APPROVE_CURRENT_COMPONENT",
+  "head": "196e8e88e26530233cf0c843996b38f832ace8e8",
+  "tree": "82f5be36f24383c07edf3ea8ac580b6d25bb0ee4",
+  "officialPr": 690,
+  "officialPrHead": "196e8e88e26530233cf0c843996b38f832ace8e8",
+  "officialPrBase": "a63526adeff2aa71d5c7a12c910183d70e69d576",
+  "officialMain": "a63526adeff2aa71d5c7a12c910183d70e69d576",
+  "officialIdentityMethod": "Connected GitHub fetch_pr690 and canonical Git refs/heads/main read in this review; both exact identifiers match.",
+  "sourceReviewRetained": {
+    "path": "/tmp/c65-z03-c6dfa-gov-final-source-review.json",
+    "sha256": "b38c633135886e3e553e1e0ba5bb74978a43f41b708cede75011d96f6ffabe63",
+    "executedAndReviewedSourceHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "sevenPosts": [
+      {
+        "path": "lib/customer-operations/customerProcessRouteReadiness.ts",
+        "modeTypeOID": "100644 blob 907f15d54e2d88faa298988ddde8e1f1856c8c3c",
+        "sha256": "3cdb5dc49cb146bd16fbbaab51982e0f2db8edda97b724661b93fd2e32fe592b",
+        "exactReleasedBB": true
+      },
+      {
+        "path": "lib/customer-operations/switchReadiness.ts",
+        "modeTypeOID": "100644 blob e7ca5ea4655002efbcb8c4fb9f295aaf64c0a50c",
+        "sha256": "b7423e0dc2e179d9ac90a0cbc55e1c9684851e30970ea36386acafae4de43ce4",
+        "exactReleasedBB": true
+      },
+      {
+        "path": "lib/operations/edielAutomation.ts",
+        "modeTypeOID": "100644 blob f62432b47c3e9be578fd4d020fe1455d3106bd4c",
+        "sha256": "cea99753618d3d21afce99e5eb156fc813e74ca9f460852627f42e0e5d3cbadc",
+        "exactReleasedBB": true
+      },
+      {
+        "path": "lib/operations/types.ts",
+        "modeTypeOID": "100644 blob e8aa77d6e5646092c062291f578d242fdef7d0ea",
+        "sha256": "598065b7206119a35895e8a776c594fdb229b5f9f0bfaa04bf8c1fef5a359b16",
+        "exactReleasedBB": true
+      },
+      {
+        "path": "__tests__/ediel-z03-route-context.test.ts",
+        "modeTypeOID": "100644 blob 0ad9a55c040fedd995864730354f53b293e779ae",
+        "sha256": "0cd39c177b9bd3d9003911e430bc154c9c11dea97f88032f3eff53930dccda32",
+        "exactReleasedBB": true
+      },
+      {
+        "path": "__tests__/ediel-z03-dispatch-window.test.ts",
+        "modeTypeOID": "100644 blob fbd40dfd7577fbc4ea77bbc961f3b4d1349f80e9",
+        "sha256": "61642e9f92224711ad016d45e4bbb9cd4b67a4604137939989f5770ee56ea21d",
+        "exactReleasedBB": true
+      },
+      {
+        "path": "__tests__/switch-readiness.test.ts",
+        "modeTypeOID": "100644 blob 2896bfbd8c97b695975463a434e8144ce5fc36da",
+        "sha256": "4496308eae626a3d64f5088222fe8f898691bd4ff94a507c72fe394e89aaa58e",
+        "exactReleasedBB": true
+      }
+    ]
+  },
+  "composition": {
+    "onlyDeltaFromReviewedSource": [
+      ".agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md"
+    ],
+    "foreignModeTypeOIDPostimagesPreserved": 9401,
+    "allSevenSourcePostsExactPrevious": true,
+    "workingTreeClean": true,
+    "ownCheckpointSha256": "e964c19bb473c281cd4d57ad4aa745f987255fa4b847da02f94b22d98edb1b12"
+  },
+  "checkpointReview": "Read entire current checkpoint including original claim, historical/source limits, actual test-only33F8P-before-production, exact7-source/foreign preservation, version-bound193PASS and all7 terminal receipts, two SOURCE and rootself approvals, current-head mandatoryCI and whole acceptance remaining. No material inaccurate green/capture/native/source-authority assertion found.",
+  "verifiedParentExecutions": {
+    "affected-green": {
+      "receipt": "/tmp/c65-z03-current-main-affected-green.json",
+      "receiptSha256": "a0ac5d7279a0859207b127def1dda87c6486416c21e4b7491b0d48610ff24ec2",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "1a75afdc795469b33a399ff93a01d1b11cc22aad9f056d1a149324ef5ff92de6",
+      "inputEquivalentAtPublishedHead": true
+    },
+    "app-typecheck": {
+      "receipt": "/tmp/c65-z03-current-main-app-typecheck.json",
+      "receiptSha256": "ad1eb24ab0ae1a9a1102fb500aa23dea7e776f879ececb2d786abb1241e11910",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputEquivalentAtPublishedHead": true
+    },
+    "tests-typecheck": {
+      "receipt": "/tmp/c65-z03-current-main-tests-typecheck.json",
+      "receiptSha256": "09de1a3594e4171746c56e4c661b4c5ab03e37be3174b42143acb49aacf4c71c",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputEquivalentAtPublishedHead": true
+    },
+    "scripts-typecheck": {
+      "receipt": "/tmp/c65-z03-current-main-scripts-typecheck.json",
+      "receiptSha256": "0a7672974343b926a7e8b9c2604a8c6b687493e2ab4eb9ede56d8e913fa74c49",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputEquivalentAtPublishedHead": true
+    },
+    "lint": {
+      "receipt": "/tmp/c65-z03-current-main-lint.json",
+      "receiptSha256": "7e36e2e7703d01eddc8b5d9893ab49b663c340b197b2e4da804271e9924634ec",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputEquivalentAtPublishedHead": true
+    },
+    "large-budget": {
+      "receipt": "/tmp/c65-z03-current-main-large-budget.json",
+      "receiptSha256": "9bab8673b9186af427ca73a507f5e730ce372cbf3997b06592e313ceeafbb894",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "c5b7be1855aed509b812437c2629bbdea81153965d977e7738bfece7e7e2a1a3",
+      "inputEquivalentAtPublishedHead": true
+    },
+    "tenant-ratchet": {
+      "receipt": "/tmp/c65-z03-current-main-tenant-ratchet.json",
+      "receiptSha256": "3d2a365628aad3118fac2122894ff72d501f91f0c12e3d9b436293c4a436621b",
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "exit": 0,
+      "logSha256": "ac48a00549d68e77e7e9aad6aefb916b2116447f8b269dc3a883f06be8361a4c",
+      "inputEquivalentAtPublishedHead": true
+    }
+  },
+  "rootSelfReview": {
+    "path": "/tmp/c65-z03-c6dfa-root-final-self-review.json",
+    "sha256": "11ab5f77a71a12a1592a65d762553be9a91357c4001f138f47a8d38be178264b",
+    "verdict": "SOURCE_APPROVE_CHECKS_TERMINAL"
+  },
+  "findings": [],
+  "limits": [
+    "Executed193PASS/14files and all7 exit0 bind c6dfa; b191 and final196 change only checkpoint, so compiler/test/lint inputs are byte-equivalent. No tests rerun or falsely labeled newly executed at196.",
+    "Source delivery component only. Existing omitted-env defaults and trusted skip flag remain unchanged, not capability enforcement.",
+    "PR690 mandatory checks must qualify exact196 and remain separate from local component proof. No merge/role authorization asserted in this review.",
+    "No native34/SQL/RLS/READ/source-ledger/certification/whole Z03/SC037/coverage/external market credit. Coverage exact main preserved."
+  ],
+  "actions": "No repo edits, runs, artifact downloads, comments, locks or source-head change. Read-only official identity and local immutable source/receipts; only unique /tmp artifact written.",
+  "finalRebind": {
+    "previousReceipt": "/tmp/c65-z03-pr690-b191-gov-source-delivery-review.json",
+    "previousReceiptSha256": "e8acd53b7f9ee381cd53fb3f6887df8d3b5b46dfebd997095c6469d06b377b02",
+    "previousHead": "b19142c4e505c267520392ffb18eaddfe903e48c",
+    "onlyChange": ".agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md",
+    "allOtherModeTypeOIDExact": true,
+    "officialPrExactHeadConfirmed": true,
+    "checkpointAppendReview": "Truthful PR690 OPEN/non-draft, local c6dfa193+three types/lint/budget/tenant0 distinct from mandatory CI pending; no native/whole/CI_GREEN, no merge role claimed. Active delivery9ref retention and eventual actual merge+release explicit. No material finding."
+  }
+}
+
+```
+
+Complete independent receipt:
+```json
+{
+  "verdict": "SOURCE_PUBLICATION_APPROVE",
+  "head": "196e8e88e26530233cf0c843996b38f832ace8e8",
+  "tree": "82f5be36f24383c07edf3ea8ac580b6d25bb0ee4",
+  "base": "a63526adeff2aa71d5c7a12c910183d70e69d576",
+  "reviewer": "c65 transport_remaining_scope independent read-only",
+  "utc": "2026-10-07T22:27:17.247669+00:00",
+  "priorSourceApproval": {
+    "verdict": "SOURCE_PUBLICATION_APPROVE",
+    "scope": "bounded seven-path released Z03 initiating dispatch component; mandatory checks remain separate",
+    "reviewer": "c65 transport_remaining_scope independent read-only",
+    "utc": "2026-10-07T22:18:55.893755+00:00",
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "tree": "542676f2baa1ff769295e133dc4079835e47c187",
+    "base": "a63526adeff2aa71d5c7a12c910183d70e69d576",
+    "retainedSource": "bb2dfea62659282b77c080b7508cef3505afc3ad",
+    "projectMutation": false,
+    "testsExecutedByReviewer": false,
+    "exactPosts": [
+      {
+        "path": "lib/customer-operations/customerProcessRouteReadiness.ts",
+        "modeTypeOid": "100644 blob 907f15d54e2d88faa298988ddde8e1f1856c8c3c",
+        "sha256": "3cdb5dc49cb146bd16fbbaab51982e0f2db8edda97b724661b93fd2e32fe592b",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      },
+      {
+        "path": "lib/customer-operations/switchReadiness.ts",
+        "modeTypeOid": "100644 blob e7ca5ea4655002efbcb8c4fb9f295aaf64c0a50c",
+        "sha256": "b7423e0dc2e179d9ac90a0cbc55e1c9684851e30970ea36386acafae4de43ce4",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      },
+      {
+        "path": "lib/operations/edielAutomation.ts",
+        "modeTypeOid": "100644 blob f62432b47c3e9be578fd4d020fe1455d3106bd4c",
+        "sha256": "cea99753618d3d21afce99e5eb156fc813e74ca9f460852627f42e0e5d3cbadc",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      },
+      {
+        "path": "lib/operations/types.ts",
+        "modeTypeOid": "100644 blob e8aa77d6e5646092c062291f578d242fdef7d0ea",
+        "sha256": "598065b7206119a35895e8a776c594fdb229b5f9f0bfaa04bf8c1fef5a359b16",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      },
+      {
+        "path": "__tests__/ediel-z03-route-context.test.ts",
+        "modeTypeOid": "100644 blob 0ad9a55c040fedd995864730354f53b293e779ae",
+        "sha256": "0cd39c177b9bd3d9003911e430bc154c9c11dea97f88032f3eff53930dccda32",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      },
+      {
+        "path": "__tests__/ediel-z03-dispatch-window.test.ts",
+        "modeTypeOid": "100644 blob fbd40dfd7577fbc4ea77bbc961f3b4d1349f80e9",
+        "sha256": "61642e9f92224711ad016d45e4bbb9cd4b67a4604137939989f5770ee56ea21d",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      },
+      {
+        "path": "__tests__/switch-readiness.test.ts",
+        "modeTypeOid": "100644 blob 2896bfbd8c97b695975463a434e8144ce5fc36da",
+        "sha256": "4496308eae626a3d64f5088222fe8f898691bd4ff94a507c72fe394e89aaa58e",
+        "releasedPostimageByteExact": true,
+        "workingBytesByteExact": true
+      }
+    ],
+    "inverse": {
+      "baseEntryCount": 9406,
+      "foreignBaseEntriesUnchangedModeTypeOid": 9401,
+      "onlyChanges": [
+        ".agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md",
+        "__tests__/ediel-z03-dispatch-window.test.ts",
+        "__tests__/ediel-z03-route-context.test.ts",
+        "__tests__/switch-readiness.test.ts",
+        "lib/customer-operations/customerProcessRouteReadiness.ts",
+        "lib/customer-operations/switchReadiness.ts",
+        "lib/operations/edielAutomation.ts",
+        "lib/operations/types.ts"
+      ],
+      "sourceSchemaSqlGenCoverageNativeHelpersUnchanged": true,
+      "cleanTrackedWorkingTree": true
+    },
+    "callgraph": {
+      "actualScheduler": "unchanged supplierSwitchScheduler.ts resolves cancellation first, canonical subtype/request_type, strict Stockholm calendar D-14/LKday/14months and duplicate/negative-ACK gates",
+      "actualRoute": "customer route -> actual grid-owner approval -> actual scoped company readiness view; explicit environment propagated, omitted/null production remains",
+      "actualOrigination": "unchanged prodatSwitch params supports environment and actual request variant/reason fields; new automation forwards same explicit environment",
+      "actualCallers": "Both customer prepare/continue-Z03 actions retain switching.write and company-access check; document/engine callers retain existing authorization paths; none changed by this slice or passes a caller-controlled skip/env",
+      "selectedRow": "current site tenant/customer validation retained, exact switch id/company/customer/site before POA healing, persisted switch date/subtype/status/point used only for scheduler; absent/error failclosed"
+    },
+    "testReview": {
+      "newTestsByteExact": true,
+      "staticRegistration": {
+        "routeContext": 16,
+        "dispatchWindow": 25,
+        "total": 41
+      },
+      "newTestsActualBusinessModulesNotMocked": [
+        "customerProcessRouteReadiness",
+        "gridOwnerBusinessApproval",
+        "companyRouteReadiness",
+        "switchReadiness",
+        "edielAutomation",
+        "canonical supplierSwitchScheduler via delegating spy"
+      ],
+      "declaredFinitePorts": [
+        "view rows/profile checker/events",
+        "scoped switch and contract rows",
+        "legal coverage/route verification",
+        "outbound producer IO"
+      ],
+      "existingSwitchReadinessAdapterOnly": "nine-line actual selected row response; every old test identity/assertion unchanged",
+      "reportedCurrentMainRed": {
+        "source": "a8a9afa1acdedb34ba763a3fffd35b072039afaa",
+        "cases": 41,
+        "passed": 8,
+        "assertionFailures": 33,
+        "errors": 0,
+        "skipped": 0,
+        "trueExit": 1,
+        "logSHA256": "157585e536ec50a0d026f1936d833652ca88ae04c42aff22ad09123382f46ac7",
+        "authority": "parent actual receipt/checkpoint, no reviewer execution"
+      }
+    },
+    "confirmedSourceRegressionFinding": null,
+    "limits": [
+      "No current GREEN test/type/CI result certified by this source review; root checks still authoritative pending receipts",
+      "Whole Z03 L/LK physical application/BGM/reason/ACK/Z04/correlation/timers/no active supply remain unapproved",
+      "Omitted automation env retains production readiness versus test producer fallback; explicit env path is repaired, default unification is not claimed",
+      "Trusted gateAlreadyChecked by-only bypass is unchanged; no newly enforced environment binding claimed",
+      "Direct continueSwitchEdielAutomation Z03 method remains existing; inspected admin Z03 caller chooses guarded initial function, not a new universal route enforcement claim",
+      "Site/legal candidate point gates are existing and separate from persisted scheduler point; no broader scope alignment claim",
+      "No SQL/native/GEN/market approval or original34 successful-execution credit"
+    ]
+  },
+  "successorDeltaOnly": ".agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md",
+  "successorCheckpointSHA256": "e964c19bb473c281cd4d57ad4aa745f987255fa4b847da02f94b22d98edb1b12",
+  "fullCheckpointRead": true,
+  "terminalOrdinaryChecks": [
+    {
+      "name": "affected-green",
+      "receipt": "/tmp/c65-z03-current-main-affected-green.json",
+      "receiptSHA256": "a0ac5d7279a0859207b127def1dda87c6486416c21e4b7491b0d48610ff24ec2",
+      "logSHA256": "1a75afdc795469b33a399ff93a01d1b11cc22aad9f056d1a149324ef5ff92de6",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    },
+    {
+      "name": "app-typecheck",
+      "receipt": "/tmp/c65-z03-current-main-app-typecheck.json",
+      "receiptSHA256": "ad1eb24ab0ae1a9a1102fb500aa23dea7e776f879ececb2d786abb1241e11910",
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    },
+    {
+      "name": "tests-typecheck",
+      "receipt": "/tmp/c65-z03-current-main-tests-typecheck.json",
+      "receiptSHA256": "09de1a3594e4171746c56e4c661b4c5ab03e37be3174b42143acb49aacf4c71c",
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    },
+    {
+      "name": "scripts-typecheck",
+      "receipt": "/tmp/c65-z03-current-main-scripts-typecheck.json",
+      "receiptSHA256": "0a7672974343b926a7e8b9c2604a8c6b687493e2ab4eb9ede56d8e913fa74c49",
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    },
+    {
+      "name": "lint",
+      "receipt": "/tmp/c65-z03-current-main-lint.json",
+      "receiptSHA256": "7e36e2e7703d01eddc8b5d9893ab49b663c340b197b2e4da804271e9924634ec",
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    },
+    {
+      "name": "large-budget",
+      "receipt": "/tmp/c65-z03-current-main-large-budget.json",
+      "receiptSHA256": "9bab8673b9186af427ca73a507f5e730ce372cbf3997b06592e313ceeafbb894",
+      "logSHA256": "c5b7be1855aed509b812437c2629bbdea81153965d977e7738bfece7e7e2a1a3",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    },
+    {
+      "name": "tenant-ratchet",
+      "receipt": "/tmp/c65-z03-current-main-tenant-ratchet.json",
+      "receiptSHA256": "3d2a365628aad3118fac2122894ff72d501f91f0c12e3d9b436293c4a436621b",
+      "logSHA256": "ac48a00549d68e77e7e9aad6aefb916b2116447f8b269dc3a883f06be8361a4c",
+      "exit": 0,
+      "executedHead": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+      "rebindLimit": "seven source posts and all execution inputs identical; successor only own CP"
+    }
+  ],
+  "affectedResult": {
+    "files": 14,
+    "cases": 193,
+    "passed": 193,
+    "failed": 0,
+    "skipped": 0
+  },
+  "rootSelfReceiptSHA256": "11ab5f77a71a12a1592a65d762553be9a91357c4001f138f47a8d38be178264b",
+  "findings": [],
+  "limits": [
+    "No rerun by reviewer",
+    "Current published-head mandatory CI remains required",
+    "Whole acceptance/native34/market status unapproved and unchanged",
+    "Existing omitted env/trusted skip/directcontinue limitations retained"
+  ],
+  "priorPublishedSourceHead": "b19142c4e505c267520392ffb18eaddfe903e48c",
+  "officialPRHeadConfirmed": true
+}
+
+```
