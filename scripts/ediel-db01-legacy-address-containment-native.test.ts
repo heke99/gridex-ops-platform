@@ -1,6 +1,8 @@
 // Prospective supplemental DB-01 native upgrade; no approval tag.
-// Historical public births run against exact BASE56, then the two owned
-// forwards run on that same real stack. Current owners run in a fresh process.
+// Historical public births use exact BASE56 source over its unchanged clean
+// stack plus the separately pinned snapshot repair before births; then the two
+// owned forwards run on that stack. Current owners run in a fresh process.
+// Unrepaired BASE56's actual 42703 failure remains preserved separately.
 // Synthetic issuer verifier configuration is explicit fixture input, never an
 // external legal approval. Nodemailer is the sole injected external I/O port.
 import {createHash, randomUUID} from 'node:crypto'

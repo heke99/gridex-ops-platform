@@ -3,7 +3,8 @@ import {readFileSync, realpathSync} from 'node:fs'
 import {isAbsolute, resolve} from 'node:path'
 import {defineConfig} from 'vitest/config'
 
-// Supplemental BASE + two exact forwards, never canonical current clean credit.
+// Supplemental unchanged BASE source + exact snapshot repair before births +
+// two exact forwards, never canonical current clean/capture/upgrade credit.
 const root = realpathSync(resolve(__dirname, '..'))
 const phase = process.env.GRIDEX_DB01_NATIVE_PHASE
 const receiptPath = process.env.GRIDEX_DB01_NATIVE_RECEIPT
