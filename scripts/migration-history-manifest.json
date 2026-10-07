@@ -846,7 +846,11 @@
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
-    "20261004223219_ediel_tenant_profile_interval_guard.sql": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0"
+    "20261004223219_ediel_tenant_profile_interval_guard.sql": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0",
+    "20261006205324_ediel_production_all_family_smime.sql": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+    "20261006210116_ediel_db01_legacy_address_containment.sql": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+    "20261006231122_ediel_test_configuration_route_environment_source.sql": "b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb",
+    "20261006235632_ediel_checked_production_capability_convergence.sql": "681b5100a40ca564e5d238fd7671e8e1758be960d9fefc0463c489b315672f1b"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
