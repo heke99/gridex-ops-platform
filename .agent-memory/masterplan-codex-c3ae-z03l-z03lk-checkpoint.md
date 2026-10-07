@@ -1,3 +1,15 @@
+## Actual source-only draft publication — 2026-10-07
+
+After the recorded publication decision, both documentation readbacks and fresh ownership/main/PR/clean-version checks, the normal nonforce push to the existing PR #635 branch succeeded. Official branch and PR reads match the intended committed version; the PR remains OPEN/DRAFT. Exact publication commit and full verification bindings are in the private session checkpoint. No main merge.
+
+The published bounded change has two independent source approvals and all five local checks green: 97 targeted tests, scoped lint and three nonincremental typechecks. It preserves the original 77 controls, 17 unrelated cases and all original assertions; the separately reviewed native prerequisites preserve all 34 native identities/oracles. These are source and local results only.
+
+New current-version CI has started: 13 workflows queued and the conditional production crawler skipped. No current CI result, native result or artifact approval is inferred. Earlier genuine native 32 passed/2 failed and prior full-suite failures remain separate history. Whole effects, intended negative causes, business/history/replay and full mandatory greens remain required before merge or coverage approval.
+
+The #530 comment cap remains an actual HTTP403 blocker; original ownership/history is preserved and #673 carries the confirmed operational continuation. Network publication recovered after earlier actual server failures. Next: record current finite status there and in the PR, inspect genuine new CI as it completes, and finish the read-only three-path plan for remaining application/register-batch fixture/READ integration. No additional source scope is edited before confirmed claims and plan reviews; runtime and shared-fixture owners keep their responsibilities.
+
+---
+
 ## Before source-only draft publication — 2026-10-07
 
 Same L/LK pair and 20 resource reservations. The actual committed version has two independent complete four-file source approvals and all five bounded checks green: 97 tests, scoped lint and three nonincremental type checks. The separately reviewed native fixture prerequisites preserve all 34 identities and original assertions. Main is unchanged; previous source component posts and all foreign files are preserved. Exact version bindings remain in the private checkpoint.
