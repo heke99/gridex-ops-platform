@@ -296,6 +296,10 @@ it('actual A source cannot borrow the archived ground start one minute away', as
   expect(error).toBeNull()
   expect(data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
   holds(f)
+  const first = state(f)
+  await processWithDiagnostics(f)
+  expect(state(f)).toEqual(first)
+  holds(f)
 }, 120000)
 
 it('dated supplier role loss before actual source birth holds the original legal scope without removing user permission', async () => {
@@ -305,6 +309,10 @@ it('dated supplier role loss before actual source birth holds the original legal
     contractId: f.contractId, meteringPointId: f.pointId, identityAgency: '9', bilateralAgreementId: f.agreement, startAt: f.submission.startAt })
   expect(scope).toMatchObject({ status: 'held', missing: ['actual_current_own_contract_point_legal_registry_and_bilateral_scope'] })
   await processWithDiagnostics(f)
+  holds(f)
+  const first = state(f)
+  await processWithDiagnostics(f)
+  expect(state(f)).toEqual(first)
   holds(f)
 }, 120000)
 
@@ -337,6 +345,10 @@ it('revoked separate reviewer permission holds current ground with no source eff
   expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, transitions: 0, normalConfirmations: 0 })
   expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
   preserves(f)
+  const first = state(f)
+  await processWithDiagnostics(f)
+  expect(state(f)).toEqual(first)
+  holds(f)
 }, 120000)
 
 it('actual final partition failure rolls back assigned period/effect/audit before any positive own APERAK escapes', async () => {

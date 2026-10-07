@@ -141,11 +141,17 @@ it('actual D intake cannot borrow another customer and company consumption319; b
   expect(other.companyId).not.toBe(f.companyId)
   expect(other.customerId).not.toBe(f.customerId)
   expect(other.external).not.toBe(f.external)
-  const input = await source(f, { consumptionPoint: other.external })
+  const input = await source(f, { consumptionPoint: other.external }), providerCalls = smtp.provider.mock.calls.length
+  const original = () => sql(`SELECT jsonb_build_object('raw',raw_payload,'direction',direction,'receipt',message_received_at,
+    'created',created_at,'document',message_created_at,'context',execution_context_snapshot)
+    FROM public.ediel_messages WHERE id=${literal(input.sourceId)} AND company_id=${literal(f.companyId)}`)
+  const originalBefore = original()
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   const first = noEffects(input)
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
+  expect(original()).toEqual(originalBefore)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
   console.info('D_FOREIGN_SOURCE_OBSERVATION', JSON.stringify({ stage: 'initial_effects_and_both_graphs_preserved' }))
   // Require the real public ground/application guard to be reached. An earlier
   // catalogue/canonical error cannot earn this correlation assertion.
@@ -180,10 +186,14 @@ it('actual D intake cannot borrow another customer and company consumption319; b
   expect(effects(input)).toEqual(first)
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
+  expect(original()).toEqual(originalBefore)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
+  expect(original()).toEqual(originalBefore)
+  expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
   console.info('D_FOREIGN_SOURCE_OBSERVATION', JSON.stringify({ stage: 'public_apply_and_retry_effects_and_both_graphs_preserved' }))
   expect(applied.data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
 }, 120000)
