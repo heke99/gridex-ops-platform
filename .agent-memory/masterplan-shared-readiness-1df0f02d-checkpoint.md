@@ -189,3 +189,67 @@ QUEUE_CAPACITY_CHECK: officialownbranchActions API37runs across7426/8e053/121/e4
 NEXT_SHARED_L_PREREQUISITE_HANDOFF beforeanyimplementation: latestc3 actualfull5c018930files918PASS12FAIL/14310=14260P50F, originalOPS03 executes afterenvironmentcorrection; directSubtypeRegistry boundaryfix owneralreadychosen canonicalfacade, no donorduplicate. Multiple remainingbatch/SC consumers need qualifiedphysical259/214218+protectedREAD andcurrentCOREport, not callerFALSE or testskip; sourceowner2f history/coreplan andc3 opaqueREADport areactive. Unassignedhelp ONLY documentminimumreusable test-source prerequisite/immutableport ownerhandoff and existingcaller-fixture reuse constraints aftersource/casecausepublication. DoNOTauthoranotherREADissuer/testfactory whilec3unit77 alreadyimplements same SDKfixture. No occupiedfixture/test/source edits; ifownerscanprovideone existingqualifiedfixture constructor plus exactrealcasehead/firststop, donor mayreview/adaptfreeboundedcomponent afterexplicitfilehandoff/freshclaims. Currentneeds: physicalwirecompletedbeforebirth, ownactor/company/clock/policy/hashbefore-afterawait, actualissuer/privateone-use receipt andlegitimateREADACL; all existingtestexpected/prohibited effects andoriginalfailurehistory retained. UnitIOdoubles remainunit-only, doNOTinventDBwitness/acceptedAPP orphysical259 afterbirth. Nextasksolec3/2f exactunassignedhandoff scope ratherthanparallelimplementation; continuecurrentfree forensichelp whileownersfinishplans.
 
 NEXT_READONLY_FIXTURE_REUSE_MAP / before analysis delivery. Fresh official main9b013631afed0b7de5f704fdc759bc68624d92b5 supersedes0ec; actual668 metadata-only normal merge changes12 memory paths, no source/coverage assumption from old chat. c3 actual6039639668 grants2f exact reviewed immutable three-post READ/adoption/publication, requests helper existing fixture mapping; c3 still owns policy/module/unit and50-failure classification. I own only read-only exact-current main fixture constructor/permission-port comparison in /tmp +this unique checkpoint and530. Recipients c3 L/LK,2f CORE/history and2c native Z04 predecessor owner. Existing shared ownerSource/common, batch guideOrderedFixtureRaw and H199line producer unit are reused as source references, no alternate issuer/factory or edits/tests/native/capture. Determine constructor-local missing physical214/218/259 and batch finite permission responses; distinguish static prerequisites from authentic case's first executed stop. Preserve absence/UNKNOWN, revocation/race/tenant guards, exact ordering/own first-register scope, true protected READ port and before-birth immutable snapshots. Any proposed fixture change requires original explicit bounded custody release plus own fresh atomic reservation before implementation. Next independently review bounded map and publish exact immutable line/OID/SHA references, no root-cause/whole approval without execution.
+
+EXISTING_FIXTURE_REUSE_MAP BOUNDED_GO / independent boundary reviewer verifies all7 exact Git/OID/SHA identities and static facts, no tests/edits/root-cause/whole approval. Internal initial similar A/D188line file corrected BEFORE delivery to actualH199line670ab/SHA6937; original draft/path mistake retained here, no failed product result rewritten. No named native case executed; absent lock refs do not transfer retained package custody. Map SHA256 3ff8366ce920742a7188156cb4e54b7d27f2e0b2b8f149a40e7ae476ee6ebbce; JSON SHA256 d0ff68564613742ac3d9428ff9e4d6d19bd0fee27c9e42cf0896dddbd6e100a3.
+Read-only existing fixture reuse map. Source main9b013631 metadata-only successor of0ec. No fixtures changed and no tests executed. Existing H unit is a shape reference only: its H opaque issuer and mocked RPC never establish L or native authority. No claim these static gaps explain every actual failed case.
+
+1. __tests__/helpers/sourceOwnerFixtures.ts:23–36 ownerSource builds common() plus reporting/electricity/identity characteristics; common in __tests__/fixtures/prodat-register.ts:14–19 supplies Z13/Z04, dates, references and party. Neither supplies CCI Z02/Z05/Z16 reading pairs. NAD Z02 and RFF Z05 do not supply CCI reading214/218. parsed_payload callerFALSE is still present, not private source authority. Shared consumers include sourceOwnerTestDatabase, source-owner runtime/processor, inbound coordinator, SC012 and SC069; relevant cases need owner attribution before modifying this broadly reused helper. Syntax-only, malformed and absence probes must preserve original bytes.
+
+2. Batch file lines24–39 raw enhancement uses existing guideOrderedFixtureRaw and adds E22/W/D/L917 and parties, not reading214/218/259. Both first object/register starts (A first register and B) use common; A second register preserves chain. Construct case-specific genuine-positive wire BEFORE withProdatFixtureInsertContext at39; do not mutate stored original afterwards or blanket-add fields to common. That insert helper26–33 hashes complete incoming bytes and structuredClone stores original, resets facets. No proposed new factory.
+
+3. Existing H unit measurement26–29 uses characteristic(Z02,1,3), characteristic(Z05,6,3), characteristic(Z16,111,3). This documents CAV fourth-component shape only, not a certified value enumeration or proof every L fixture is legal. Reuse guide ordering, first-own-register grouping and actual field/subtype guide. prodatRegisterReadings40–47 reads parts[3], refuses duplicate/malformed/nonlocal pairs and extra components. Header or later-object259 cannot repair own missing declaration. H fixture receipt cannot qualify L.
+
+4. Batch lines43–45 intercept gridex_actor_has_company_permission BEFORE delegation and allow active same-company exact actor only communication.write/customers.write. The shared fixture RPC59 already models communication.read but is unreachable for this intercepted RPC. Therefore adding a read allow-list to the shared helper alone cannot repair batch READ response. Model the exact legitimate read permission required by the reviewed L issuer in the existing scoped interception, keeping actorActive/company/actor checks and all revocation races, no blanket TRUE. This remains a unit IO response, not native RBAC proof. Missing private L READ/source port remains a separate prerequisite; neither permission nor wire additions substitute for the one-use private receipt.
+
+5. Batch own original revocation/source loss/current completed replay tests290–327 and corrupt receipt negatives301–314 stay unchanged. Preserve immutable primitive source/hash/company/actor/policy/microclock across awaited reads and exact source error/data refusal. c3/2f select named positive vs missing/unknown negative constructors and supply actual reviewed READ integration; helper will edit only a bounded explicitly released case/file after fresh atomic reservation. No test skip, oracle rewrite, post-birth wire seed, accepted APP fabrication, runtime/private issuer duplicate or whole/coverage approval.
+
+Next c3: freeze published exact READ module and map an actual failed positive case to this constructor and first observed stop. Next2f: integrate only permitted immutable L posts through genuine owned actor/context ports, preserving before/after read scope. Next original batch/helper/native owners: authorize bounded fixture adaptation after explicit custody and retain all negative originals. Source/OID/SHA identities in accompanying JSON.
+
+```json
+[
+  {
+    "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "path": "__tests__/helpers/sourceOwnerFixtures.ts",
+    "oid": "96d589b1e172164cb8ff21ffb1a7180afdf4f7a5",
+    "sha256": "bbe5f5f5b60976aa8eefedf0196557f6d5a13cdc58e49e859e7d7a6c763f8620"
+  },
+  {
+    "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "path": "__tests__/fixtures/prodat-register.ts",
+    "oid": "0c23e9e3729974714ba8da3cbabbd6bb03a251a9",
+    "sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2"
+  },
+  {
+    "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "path": "__tests__/helpers/prodatInboundSourceFixture.ts",
+    "oid": "49ee6a25056320b72f5c94c4d2e2d3186adcd488",
+    "sha256": "03b3de6e474fd6da20a388e6807c6f0ac7d7499782fecb35b991935b9cf66e13"
+  },
+  {
+    "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "path": "__tests__/ediel-prodat-register-batch-application.test.ts",
+    "oid": "1c10753a7275311dfefce6bc1aebf50a3bc7ace1",
+    "sha256": "11409f818cf109954dcabeee73f3e556821dfcb118afbe6e4c476d2093e280b5"
+  },
+  {
+    "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "path": "lib/ediel/prodat/prodatRegisterReadings.ts",
+    "oid": "db85ecdf51323a3528838b4f0ae872efb58498a9",
+    "sha256": "d1807ce0b42573b217fec2f9130c560486f83b2ecec209a733e91c5033d808bc"
+  },
+  {
+    "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "path": "__tests__/helpers/prodatGuideOrderedFixture.ts",
+    "oid": "928fbb236cac0cd482aa6f0a29206cc9e073c406",
+    "sha256": "3dc7c32cc2b263a3d0fe2f238d7eeadd8de15d79c8f33721fea1081520321be5"
+  },
+  {
+    "source": "befd7e162b6a795f5e3bc21101d752a6b5274a58",
+    "path": "__tests__/ediel-prodat-h-source-register-reading-declarations.test.ts",
+    "oid": "670abec33c6f4644371f9a195a5efabbcf858886",
+    "sha256": "6937b46ef554901b3e9092c24e39ecc06b10cffef8848ea25197a91a7468535b",
+    "lines": 199
+  }
+]
+```
+Next publish this exact map to c3/2f/2c, request one immutable positive case and bounded original-owner fixture assignment, then continue another unassigned blocker while private runtime integration/mandatory results mature. No free-tag inference or global common() mutation; donor technical refs still released.
