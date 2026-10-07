@@ -1,0 +1,38 @@
+# Z01L / Z01LK — c65 checkpoint
+
+Agent `codex-20261007T194829Z-c65z01-1a8250da`; packet `1a8250da-6479-4765-a7de-b63ef2b07a07`. Branch `codex/ediel-z01-worker-c65-1a8250da`. Base `d0a655ce192f2c3d6cced06cab91898b0f7ad9b4`.
+
+## Current responsibility
+
+Fresh whole-contract reservation AT-Z01L-SUPPLIER and AT-Z01LK-SUPPLIER, resumed from explicit original PR638 release [6038201371](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6038201371). Original immutable head `438917c3cbb7ada5f71705be7bccfd70456dc238`; reuse only the four listed paths. Already-delivered queue authorization #648 and birth #653 remain unchanged. Prior H packet explicitly fully released [6045412116](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6045412116), all nine owned refs independently GETMATCH→DELETE0→404. No H custody retained.
+
+Own atomic receipt `c89415318a36abe3c3542d2928d1b3943ed937d6`, all six resources individually GETMATCH.
+- `file-1b8d203cdfa3766a11d8f4a9930c785fee4dba1ab6ac3e70b794237018e61d1a`
+- `file-4aa32f2d5c2d8814fa4b4f398d28ed31d59eee525df6e22e86cbba7fc0f35478`
+- `file-eb7f8b2d06c0bb4358144413230df4f251979ea413b6b9e01a5e242cc6050ed0`
+- `file-fa42b8c5a94227a343273d0ce3b6d1f182cd777f39d96f088543fe5c5bfd9346`
+- `id-AT-Z01L-SUPPLIER`
+- `id-AT-Z01LK-SUPPLIER`
+
+Owned paths:
+- `lib/customer-operations/automation.part-2.ts`
+- `lib/onboarding/infoRequestAuthorization.ts`
+- `lib/onboarding/infoRequests.ts`
+- `__tests__/ediel-z01-worker-authorization-order.test.ts`
+
+## Evidence and limits
+
+Current main coverage remains 300/352 (115/121 rules,185/231 contracts); both selected rows NOT_EXECUTED. Original native94=90PASS4FAIL is historical, not current-head/whole approval. No source, test, coverage or native execution yet. Three source paths still differ meaningfully from current main: worker invokes mutable recipient resolver before checking current scoped authority. Main resolver updates site/point/audit before queue refusal. Fix current scope before resolver, retain fresh bound check before dispatch.
+
+## Delivery plan and next action
+
+1. Preserve unchanged original twelve-case finite-port worker regression. On current main execute two existing-worker refusal cases, avoiding credit for missing future APIs. Require behavioral RED (resolver/domain effects despite revoked or archived authority).
+2. Reuse only three original source postimages; execute all twelve cases and relevant queue/worker/authorization regressions, nonincremental typechecks and lint. Review tenant/source binding, missing-facility gate and grant-revocation race with two independent readers.
+3. Publish a small source component PR linked to638. Merge only exact-head approved/mandatory green under fresh merge lock. Do not promote either whole contract with component proof.
+4. Resume remaining genuine whole94 proof after actual Z02 scalar/measurement source delivery by owner2f or explicit file handoff; no foreign source/native/CI/artifact duplication. Whole blockers: original four native failures require authentic selected runtime/source. Owner2f retains scalar/Z02/runtime; original PR638 preserved. Current helper Lc3/CORE delivery being actively worked by owners, no stale global blocker claim.
+
+Next concrete owner/action: c65 run meaningful baseline RED, then reused fix. No merge/memory role held; named role-memory holder24fa may mirror this receipt.
+
+## Skill routing
+
+Activated using-superpowers, using-git-worktrees, acquire-codebase-knowledge, systematic-debugging, test-driven-development, differential-review, code-review, spec-to-code-compliance, code-security, sharp-edges, requesting/receiving-code-review, verification-before-completion and Supabase for existing tenant-filtered authorization queries. Dispatching independent agent source reviewers only, no duplicate large verification. Conditional finishing-a-development-branch at delivery. Skipped UI/React/performance/email/SQL-migration/deployment/hook installation: no such changes; no broad security baseline audit claimed.
