@@ -35,15 +35,16 @@ const readingScope={actorUserId:ownerId(50),receivedAt:'2026-09-22T10:00:00.0000
 const assertProtectedReadTrace=()=>{
  const sdk=reading.sdk!
  const permission={kind:'rpc',name:'gridex_actor_has_company_permission',args:{p_actor_user_id:ownerId(50),p_company_id:ownerId(2),p_permission:'communication.read'}}
+ const edielPermission={kind:'rpc',name:'gridex_actor_has_company_permission',args:{p_actor_user_id:ownerId(50),p_company_id:ownerId(2),p_permission:'ediel.read'}}
  const membership={kind:'table',name:'company_memberships',args:{company_id:ownerId(2),user_id:ownerId(50),status:'active',is_active:true},notNull:['accepted_at']}
  const profile={kind:'table',name:'user_profiles',args:{id:ownerId(50),user_status:'active'},notNull:[]}
- const expected=[permission,permission,membership,membership,profile,profile,
+ const expected=[permission,permission,edielPermission,edielPermission,membership,membership,profile,profile,
   {kind:'table',name:'ediel_messages',args:{id:ownerId(1),company_id:ownerId(2)},notNull:[]},
   {kind:'rpc',name:'ediel_require_inbound_legal_context_v1',args:{p_company_id:ownerId(2),p_message_id:ownerId(1)}},
   {kind:'rpc',name:'ediel_inbound_reception_request_v1',args:{p_company_id:ownerId(2),p_message_id:ownerId(1),p_actor_user_id:ownerId(50),p_inbound_email_message_id:ownerId(60)}},
   {kind:'table',name:'inbound_email_messages',args:{id:ownerId(60),company_id:ownerId(2),environment:'test'},notNull:[]},
   {kind:'table',name:'inbound_ediel_parse_results',args:{id:ownerId(61),company_id:ownerId(2)},notNull:[]}]
- expect(sdk.calls).toHaveLength(11)
+ expect(sdk.calls).toHaveLength(13)
  // JSON sorts call records, not query fields: exact request keys/order stay visible.
  expect(sdk.calls.map(call=>JSON.stringify(call)).sort()).toEqual(expected.map(call=>JSON.stringify(call)).sort())
 }

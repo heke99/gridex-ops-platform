@@ -273,3 +273,70 @@ it('reception RPC failure remains an error',async()=>{
  const f=fixture();install(f.row,f.variant);const error={message:'DECLARED_SCHEMA_FAILURE',code:'42P01'};io.rpcErrors.ediel_inbound_reception_request_v1=error
  await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toBe(error)
 })
+
+// READ alternatives execute both real issuer guards with declared SDK replies.
+// Native reception SQL/catalog and business authority remain separate gates.
+const expectReadPermissions=(row:EdielMessageRow,batches:number)=>{
+ const permissionCalls=io.calls.filter(c=>c.kind==='rpc'&&c.name==='gridex_actor_has_company_permission')
+ expect(permissionCalls).toEqual(Array.from({length:batches},()=>['communication.read','ediel.read'].map(p_permission=>({
+  kind:'rpc',name:'gridex_actor_has_company_permission',args:{p_actor_user_id:actor,p_company_id:row.company_id,p_permission},
+ }))).flat())
+}
+for(const variant of ['L','LK'] as const){
+ it(`${variant}: ediel.read alone declares physical TRUE once without a metering write grant`,async()=>{
+  const f=fixture({variant});install(f.row,variant);io.permissions=new Set(['ediel.read'])
+  const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+  expect(context).not.toBeNull();expectReadPermissions(f.row,2)
+  expect(ownFact(f.row,context!)).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:true}])
+  expect(ownFact(f.row,context!)).toBeNull()
+  expect(io.permissions.has('metering.write')).toBe(false)
+ })
+ it(`${variant}: communication.read alone still performs both current READ alternatives`,async()=>{
+  const f=fixture({variant});install(f.row,variant);io.permissions=new Set(['communication.read'])
+  const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+  expect(context).not.toBeNull();expectReadPermissions(f.row,2)
+  expect(ownFact(f.row,context!)).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:true}])
+ })
+ it(`${variant}: neither READ permission quarantines before the source or legal/reception reads`,async()=>{
+  const f=fixture({variant});install(f.row,variant);io.permissions=new Set(['metering.write'])
+  await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
+  expectReadPermissions(f.row,1)
+  expect(io.calls.filter(c=>c.kind==='table').map(c=>c.name).sort()).toEqual(['company_memberships','user_profiles'])
+  expect(io.calls.filter(c=>c.kind==='rpc').map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','gridex_actor_has_company_permission'])
+ })
+ it(`${variant}: a nonwinning ediel.read RPC error remains the exact failure beside communication.read`,async()=>{
+  const f=fixture({variant});install(f.row,variant);io.permissions=new Set(['communication.read'])
+  const failure={code:'READ_RPC_UNAVAILABLE',message:'Declared READ transport failure'}
+  const original=io.rpc.getMockImplementation()!
+  io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
+   if(name==='gridex_actor_has_company_permission'&&args.p_permission==='ediel.read'){
+    io.calls.push({kind:'rpc',name,args:{...args}})
+    return {data:null,error:failure}
+   }
+   return original(name,args)
+  })
+  await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toBe(failure)
+  expectReadPermissions(f.row,1)
+  expect(io.calls.filter(c=>c.kind==='table').map(c=>c.name).sort()).toEqual(['company_memberships','user_profiles'])
+ })
+ it(`${variant}: losing the only ediel.read grant before issuance quarantines the second READ`,async()=>{
+  const f=fixture({variant});install(f.row,variant);io.permissions=new Set(['ediel.read']);io.revokeAfter=2
+  await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
+  expectReadPermissions(f.row,2)
+  expect(io.calls).toContainEqual({kind:'table',name:'inbound_ediel_parse_results',args:{id:id(5),company_id:f.row.company_id}})
+  expect(io.permissionChecks).toBe(4)
+ })
+ it(`${variant}: ediel.read with an absent physical259 leaves all three conditions UNKNOWN`,async()=>{
+  const f=fixture({variant,declaration:'missing'});install(f.row,variant);io.permissions=new Set(['ediel.read'])
+  const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+  expect(context).not.toBeNull();expectReadPermissions(f.row,2)
+  const selected=policy(f.row,context!)
+  expect(selected.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:null}])
+  const conditions=selected.prodatDependentConditions.filter(c=>fields.includes(c.fieldNumber as typeof fields[number]))
+  expect(conditions).toHaveLength(3);expect(conditions.every(c=>c.status==='undetermined')).toBe(true)
+  const canonical=parseCanonicalMessageRow(f.row)
+  const issues=validateCanonicalPolicyFields({policy:selected,rawPayload:f.row.raw_payload,rawSegments:canonical.rawSegments,una:canonical.una,scope:'dependent_only'})
+  expect(issues.filter(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED'&&['CCI++Z02/CAV','CCI++Z05/CAV','CCI++Z16/CAV'].includes(i.fieldPath??''))).toHaveLength(3)
+  expect(ownFact(f.row,context!)).toBeNull()
+ })
+}

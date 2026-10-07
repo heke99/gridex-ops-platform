@@ -71,7 +71,7 @@ function physicalSource(source:EdielMessageRow) {
 export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,actorUserId:string):Promise<ProdatOwnSourceReadingContext|null> {
   const identity=sourceIdentity(source)
   if(!identity||!isEvidenceUuid(actorUserId)||!physicalSource(source))return null
-  await assertEdielTenantActor({companyId:source.company_id!,actorUserId,permission:'communication.read'})
+  await assertEdielTenantActor({companyId:source.company_id!,actorUserId,permissionAnyOf:['communication.read','ediel.read']})
   const stored=await getEdielMessageById(source.id,{companyId:source.company_id})
   if(!stored||sourceIdentity(stored)!==identity)return null
   const physical=physicalSource(stored)
@@ -114,7 +114,7 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
     ||parsed.data.company_id!==stored.company_id||parsed.data.inbound_email_message_id!==stored.inbound_email_message_id
     ||parsed.data.raw_payload!==stored.raw_payload||parsed.data.parse_status!=='parsed')return null
   // Current membership/permission errors remain security errors, never UNKNOWN success.
-  await assertEdielTenantActor({companyId:stored.company_id!,actorUserId,permission:'communication.read'})
+  await assertEdielTenantActor({companyId:stored.company_id!,actorUserId,permissionAnyOf:['communication.read','ediel.read']})
   const token=Object.freeze({}) as ProdatOwnSourceReadingContext
   reads.set(token,{identity,actor:actorUserId,source:structuredClone(stored),sourceEdition:basis.sourceEdition,
     projection:structuredClone(projection)})
