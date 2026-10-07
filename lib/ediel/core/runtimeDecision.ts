@@ -1,4 +1,5 @@
 import {readPeriodicReasonAuthority,type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
+import {loadReceivedZ04RequiredStartRejection,readReceivedZ04RequiredStartWitness,ownReceivedZ04RequiredStartRejection} from '@/lib/ediel/prodat/receivedZ04RequiredStartRejection'
 import {bindReceivedProdatSourceFunction,type ReceivedProdatSourceFunctionValidation,ownProdatSourceFunctionAccepted} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {bindReceivedProdatApplicationObjects,type ProdatApplicationObjectValidation,type ReceivedProdatApplicationObjectValidation} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
@@ -8,7 +9,7 @@ import {buildReceivedUtiltsHeaderValidation,type ReceivedUtiltsHeaderValidation}
 import {buildReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from './receivedUtiltsTransactionValidation'
 import {readSourceBoundAckRulePackEvidence,sourceBoundAckCanonicalPolicy} from './ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
-import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
+import { classifyEdielFailure,EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
@@ -35,7 +36,7 @@ import { canonicalAckRuleForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdi
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy,type EdielMessageTimeOptions } from '@/lib/ediel/core/messagePolicy'
 import {readSourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
-import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import { validateCanonicalPolicyFields,observeReceivedZ04RequiredStart,validateReceivedZ04RequiredStartStructure } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {
   resolveUtiltsInboundBusinessOutcome,
@@ -425,7 +426,7 @@ function buildResult(params: {
   }
 }
 
-export type CanonicalRuntimeSourceFacts=EdielMessageTimeOptions&{deathStatusContext?:DeathStatusValidationContext}
+export type CanonicalRuntimeSourceFacts=EdielMessageTimeOptions&{deathStatusContext?:DeathStatusValidationContext;actorUserId?:string}
 export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):CanonicalRuntimeDecision {
   return resolveCanonicalRuntimeDecisionCore(message,facts)
 }
@@ -525,6 +526,13 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
       prodatHeaderFieldRejection({field:'202',sourceWire,errors:projected.applicationErrors}).qualified)
     const failureDisposition = classifyEdielFailure(error, qualified ? { sourceRule: 'PRODAT26A:§2.2:ALL:202' } : undefined)
     if (failureDisposition.kind !== 'protocol_rejection') {
+      // An unavailable bilateral ground does not erase physical R210. This
+      // actorless observation has no register/response/business owner.
+      if(message.direction==='inbound'&&canonical.family==='PRODAT'&&canonical.messageCode==='Z04'&&['A','Z26'].includes(canonical.subtype??'')){
+        const observed=projectProdatDiagnostics(observeReceivedZ04RequiredStart({rawSegments:canonical.rawSegments,una:canonical.una}))
+        issues.push(...observed.observations.map(item=>issue({layer:'application',severity:item.severity,code:item.code,title:item.title,
+          description:item.description,source:'PRODAT26A:§2.2:Z04:210',prodatDiagnostic:item.prodatDiagnostic,prodatAperakText:item.prodatAperakText})))
+      }
       const contextRule = description.startsWith('ediel_energy_sharing_activation_held:') ? 'GOV-07'
         : /^ediel_(?:admission_time|business_time|actual_send_time|replay_time)_/.test(description) ? 'GOV-06' : 'OPS-05'
       sourceRules.push(`${contextRule}:LOCAL_CONTEXT`)
@@ -722,7 +730,42 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
     try{
       const capability=await readSourceQualifiedProdatBilateralCapability(message)
       if(capability)base=resolveCanonicalRuntimeDecisionCore(message,{...facts,prodatSourceCapability:capability})
-    }catch{return base}
+    }catch(error){
+      if(error instanceof EdielExecutionFailure&&error.disposition.kind==='security_quarantine')throw error
+      return base
+    }
+  }
+  if(base.syntaxDecision==='accepted'&&!base.policy&&base.canonical.family==='PRODAT'&&base.canonical.messageCode==='Z04'
+    &&['A','Z26'].includes(base.canonical.subtype??'')&&message.direction==='inbound'){
+    const observed=observeReceivedZ04RequiredStart({rawSegments:base.canonical.rawSegments,una:base.canonical.una})
+    // Syntax and the physical defect precede lazy actor access. The ordinary
+    // positive business capability path above remains unchanged.
+    if(observed.length){
+      const actor=facts.actorUserId
+      if(actor){
+        const token=await loadReceivedZ04RequiredStartRejection(message,actor)
+        const witness=token?readReceivedZ04RequiredStartWitness(token,message,actor):null
+        if(token&&witness){
+          const structural=validateReceivedZ04RequiredStartStructure({rawSegments:base.canonical.rawSegments,una:base.canonical.una})
+          const projected=projectProdatDiagnostics(observed),registerFindings=projectProdatDiagnostics(structural.issues)
+          const responsePlan=base.responsePlan.filter(plan=>plan.family==='CONTRL')
+          addNegativeAperakIfAllowed({family:'PRODAT',code:'Z04',responsePlan,reason:'Eget obligatoriskt fält 210 saknas.',applicationErrors:projected.applicationErrors})
+          const issues=[...base.issues,...registerFindings.observations.map(item=>issue({layer:'application',severity:item.severity,code:item.code,
+            title:item.title,description:item.description,source:'validateProdatRegisterPolicy',prodatDiagnostic:item.prodatDiagnostic,prodatAperakText:item.prodatAperakText}))]
+          const result=buildResult({canonical:base.canonical,policy:null,utiltsBusinessOutcome:null,syntaxDecision:'accepted',
+            applicationDecision:'rejected',functionalDecision:'not_applicable',responsePlan,issues,
+            prodatRegisterValidation:structural.evidence,prodatProcessingDisposition:registerFindings.disposition,
+            sourceRules:[...base.sourceRules,'PRODAT26A:§2.2:Z04:210'],decisionTrace:[...base.decisionTrace,'Skyddad R210-avvisning; ingen operativ A-policy eller affärsauktoritet.'],syntax:base.validationReport.syntax})
+          result.validationReport.rulePackEvidence={profileKey:witness.profileKey,messageProfileId:witness.messageProfileId,
+            rulePackId:witness.rulePackId,sourceHash:witness.sourceHash,version:witness.version,snapshot:witness.snapshot}
+          result.validationReport.fieldRuleSource='physical_R210_rejection_only'
+          if(ownReceivedZ04RequiredStartRejection(result,message,actor,token)){
+            const facet=buildReceivedProdatResponseValidation(message,result)
+            if(facet){initialProdatResponseOwners.set(result,{sourceIdentity:prodatResponseSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(result)),facet});return result}
+          }
+        }
+      }
+    }
   }
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
   if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL' || base.policy.family === 'UTILTS_ERR') {
