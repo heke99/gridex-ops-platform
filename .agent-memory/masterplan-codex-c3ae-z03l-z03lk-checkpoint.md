@@ -1,3 +1,11 @@
+## MERGED status-only PR678 — 2026-10-07T18:26:22Z
+
+Actual normal expected-head merge exit0; official PR678 merged fromc0ab68a5a09b5ad92e9b07fff42f74e578817c5b as main8f884fb884cd10e30432eb9aa69cd7b916a675a7, parents4fd34b8f+c0ab verified. Source reviews5445515362/5445517162 and all8 current mandatory SUCCESS rechecked immediately before merge under own role fba56466987856a878620cb18a80f2ceba1cb39b. Fresh fetched entire mainMODE/type/OID inventory confirms exactly3 claimed metadata paths changed, their actualheadblobs exact, all foreignbaseobjects and coverage preserved. No technical source/whole/native/current-main runtime/external approval. Coverage stays300/352,52remaining.
+
+Memory operationaf612a7c complete. Next ROOT release exact own merge-role FIRST (GETMATCH/DELETE/GET404), then explicit RELEASE matching memory3 fdcd6f46 (GETMATCH/DELETE/GET404). Retain technical25/sole L/LK and preserved clean c0f consumer composition. Independent direct-consumer plan has literal PLANAPP9ec31328 and FP PLANAPPa3c616f4, source authorGO still notissued. Continue documented bounded directfixture/native mechanisms; runtime/auth229/252 dependency remains with its owners.
+
+---
+
 ## Immediately-free merge role confirmed for metadata678 — 2026-10-07
 
 PR678 expectedhead c0ab68a5a09b5ad92e9b07fff42f74e578817c5b now READY, eight current mandatory SUCCESS and source reviews5445515362/5445517162; actualmain4fd34b8f8bc0debdacc706628e9a3e6324b2e929, tree1ce9b1f707c074511dc0e8cdce4b46121a869864, nonoverlapping2docs from reviewedbaseFF50. Exact role-merge GET returned404 immediately; canonical singleparent/unchangedmain-tree packet3b98ff4b-73e5-4c53-93f7-16c74bd6a00b, receiptfba56466987856a878620cb18a80f2ceba1cb39b, create-if-absent and separate GET MATCH. Memory3 stays owned fdcd6f46 until actual delivery, no waiting while roles held.
