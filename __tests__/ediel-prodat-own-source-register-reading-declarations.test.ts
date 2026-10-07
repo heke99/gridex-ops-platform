@@ -1,0 +1,273 @@
+// These controls execute the real source loader, policy and field validator.
+// Only Supabase transport responses are synthetic. They do not prove native
+// RBAC, immutable database custody, registry admission, history or effects.
+import {createHash} from 'node:crypto'
+import {beforeEach,expect,it,vi} from 'vitest'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+import {loadProdatOwnSourceReadingContext,sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
+import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
+import {parseCanonicalMessageRow} from '@/lib/ediel/core/canonicalMessage'
+import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
+import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
+import {characteristic,line,qty,type Parts} from './fixtures/prodat-register'
+
+const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),rows:{} as Record<string,Record<string,unknown>[]>,
+ legal:{} as Record<string,unknown>,reception:{} as Record<string,unknown>,
+ calls:[] as {kind:'table'|'rpc';name:string;args:Record<string,unknown>}[],
+ rpcErrors:{} as Record<string,unknown>,tableErrors:{} as Record<string,unknown>,
+ permissions:new Set<string>(),permissionChecks:0,revokeAfter:Infinity}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}}))
+
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
+const actor=id(3),point='735123456789012344',otherPoint='735123456789012351'
+const received='2026-10-01T12:01:00.123456Z'
+const hash=(raw:string)=>createHash('sha256').update(raw,'utf8').digest('hex')
+const fields=['214','218','259'] as const
+type Variant='L'|'LK'
+type FieldState='valid'|'missing'|'invalid'
+type Declaration='valid'|'missing'|'duplicate'|'malformed'|'misplaced'|'header'|'other-object'
+type FixtureOptions={variant?:Variant;constant?:FieldState;digits?:FieldState;declaration?:Declaration;value259?:string;poison?:boolean}
+
+function reading(field:typeof fields[number],state:FieldState='valid',value?:string):Parts[]{
+ if(state==='missing')return []
+ const qualifier={214:'Z02',218:'Z05',259:'Z16'}[field]
+ // The wrong national C889 component is still legal UNSM CAV syntax. It
+ // exercises an invalid supplied field, rather than a grammar rejection.
+ return characteristic(qualifier,value??({214:'1',218:'6',259:'111'}[field]),state==='invalid'?0:3)
+}
+
+function fixture(options:FixtureOptions={}){
+ const variant=options.variant??'L',kind=options.declaration??'valid'
+ const bodyFor=(objectId:string,index:number,own259:Declaration):Parts[]=>[
+  line(String(index+1),objectId,undefined,'9'),['DTM',['92','202610150000','203']],['DTM',['354','15','806']],qty('1000'),
+  ...characteristic('Z13',variant==='L'?'Z22':'Z23'),...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),
+  ...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
+  ...reading('214',options.constant),...reading('218',options.digits),
+  ...(own259==='valid'||own259==='duplicate'||own259==='misplaced'?reading('259','valid',options.value259):
+    own259==='malformed'?reading('259','invalid'):[]),
+  ...(own259==='duplicate'?reading('259'):[]),
+  ['RFF',['MG',`METER-${objectId}`]],['RFF',['Z05','TES']],['RFF',['LI',`OWN-${index+1}`]],
+  ['NAD','UD',['199001011234','SE2','260'],'','Synthetic Customer','Street','City','','12345','SE'],
+  ['NAD','IT',[objectId,'','9'],'','','Street','City','','12345','SE'],['NAD','Z02',['99876','160','SVK']],
+ ]
+ const body:Parts[]=[['NAD','FR',['54321','160','SVK']],['NAD','DO',['12345','160','SVK']],
+  ...(kind==='header'?reading('259'):[]),...bodyFor(point,0,kind),
+  ...(kind==='other-object'?bodyFor(otherPoint,1,'valid'):[])]
+ let raw=guideOrderedFixtureRaw(body,'Z04').replace('+S+R+','+54321:14+12345:14+')
+  .replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++1++1'")
+ // Preserve the counted wire while moving the pair after its own SG16 RFF.
+ // Do this after the synthetic guide-order helper, which otherwise repairs it.
+ if(kind==='misplaced')raw=raw.replace("CCI++Z16'CAV+:::111'",'').replace('NAD+UD+',"CCI++Z16'CAV+:::111'NAD+UD+")
+ const payloadHash=hash(raw)
+ const birth={version:1,contextOrigin:'database_insert',sourceMessageId:id(1),companyId:id(2),environment:'test',
+  messageCode:'Z04',payloadHash,sourceReceivedAt:received,capturedAt:received}
+ const row={id:id(1),company_id:id(2),environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',
+  message_code:'Z04',message_version:'E2SE6A',application_reference:'23-DDQ-PRODAT',raw_payload:raw,
+  inbound_email_message_id:id(4),message_created_at:'2026-09-17T11:00:00Z',message_received_at:received,created_at:received,
+  status:'received',syntax_check_status:'not_checked',failure_reason:null,execution_context_snapshot:{receivedProdatContext:birth},
+  parsed_payload:options.poison===undefined?{}:{meterReadingsSentInUtilts:options.poison,
+   prodatDependentFacts:{meterReadingsSentInUtilts:options.poison,byCell:{'Z04:214':options.poison,'Z04:218':options.poison,'Z04:259':options.poison}}},
+  validation_report:options.poison===undefined?{}:{prodatDependentFacts:{meterReadingsSentInUtilts:options.poison}}} as unknown as EdielMessageRow
+ return {row,variant,payloadHash}
+}
+
+function install(row:EdielMessageRow,variant:Variant){
+ io.rows={ediel_messages:[structuredClone(row) as unknown as Record<string,unknown>],
+  user_profiles:[{id:actor,user_status:'active'}],
+  company_memberships:[{company_id:row.company_id,user_id:actor,status:'active',is_active:true,accepted_at:received}],
+  inbound_email_messages:[{id:id(4),company_id:row.company_id,environment:row.environment,received_at:received,raw_edifact_payload:row.raw_payload}],
+  inbound_ediel_parse_results:[{id:id(5),company_id:row.company_id,inbound_email_message_id:id(4),raw_payload:row.raw_payload,parse_status:'parsed'}]}
+ io.legal={basisKind:'observed_source_persistence',companyId:row.company_id,environment:row.environment,direction:'inbound',
+  family:'PRODAT',code:'Z04',subtype:variant,legalActorId:id(8),legalEdielId:'12345',actorRole:'electricity_supplier',
+  transportActorId:id(8),transportEdielId:'12345',applicationReference:'23-DDQ-PRODAT',sourceEdition:'c'.repeat(64),
+  canonicalProjection:{family:'PRODAT',code:'Z04',subtype:variant,transactionReasonCode:variant==='L'?'Z22':'Z23',direction:'inbound',
+   senderRoles:['grid_owner'],receiverRoles:['supplier'],applicationReferences:['23-DDQ-PRODAT']},
+  observedAt:received,sourceReceivedAt:received}
+ io.reception={companyId:row.company_id,sourceMessageId:row.id,inboundEmailMessageId:id(4),parseResultId:id(5),receptionId:id(6),
+  classification:'first_reception',isReplay:true,receivedAt:received,canonicalPayloadHash:hash(row.raw_payload!),receivedPayloadHash:hash(row.raw_payload!),
+  responseRequestId:null,status:'observed',reason:null,businessEffectAuthorized:false}
+}
+
+beforeEach(()=>{
+ io.rpc.mockReset();io.from.mockReset();io.rows={};io.calls=[];io.rpcErrors={};io.tableErrors={}
+ io.permissions=new Set(['communication.read','metering.write']);io.permissionChecks=0;io.revokeAfter=Infinity
+ io.from.mockImplementation((table:string)=>{
+  if(!Object.hasOwn(io.rows,table))throw Error(`UNEXPECTED_UNIT_TABLE:${table}`)
+  const filters:Record<string,unknown>={},notNull:string[]=[]
+  const result=async()=>{
+   const matches=io.rows[table].filter(row=>Object.entries(filters).every(([key,value])=>row[key]===value)&&notNull.every(key=>row[key]!==null&&row[key]!==undefined))
+   io.calls.push({kind:'table',name:table,args:{...filters}})
+   return {data:matches.length===1?structuredClone(matches[0]):null,error:io.tableErrors[table]??null}
+  }
+  const query={select:(_columns:string)=>query,eq:(key:string,value:unknown)=>{filters[key]=value;return query},
+   not:(key:string,operator:string,value:unknown)=>{if(operator!=='is'||value!==null)throw Error('UNEXPECTED_UNIT_NOT');notNull.push(key);return query},
+   single:result,maybeSingle:result}
+  return query
+ })
+ io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
+  io.calls.push({kind:'rpc',name,args:{...args}})
+  if(io.rpcErrors[name])return {data:null,error:io.rpcErrors[name]}
+  if(name==='gridex_actor_has_company_permission'){
+   io.permissionChecks++
+   return {data:args.p_company_id===id(2)&&args.p_actor_user_id===actor&&io.permissionChecks<=io.revokeAfter&&io.permissions.has(String(args.p_permission)),error:null}
+  }
+  if(name==='ediel_require_inbound_legal_context_v1')return {data:args.p_company_id===id(2)&&args.p_message_id===id(1)?structuredClone(io.legal):null,error:null}
+  if(name==='ediel_inbound_reception_request_v1')return {data:Object.keys(io.reception).length&&args.p_company_id===id(2)&&args.p_message_id===id(1)&&args.p_actor_user_id===actor&&args.p_inbound_email_message_id===id(4)?structuredClone(io.reception):null,error:null}
+  throw Error(`UNEXPECTED_UNIT_RPC:${name}`)
+ })
+})
+
+function policy(row:EdielMessageRow,context?:ProdatOwnSourceReadingContext|null,actorUserId=actor){
+ const result=resolveCanonicalMessagePolicy(row,parseCanonicalMessageRow(row),{
+  prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:actorUserId,
+ })
+ expect(result).not.toBeNull()
+ return result!
+}
+async function loaded(options:FixtureOptions={}){
+ const f=fixture(options);install(f.row,f.variant)
+ expect(validateEdifactSyntax(f.row)).toMatchObject({ok:true,grammarQualification:'qualified'})
+ const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+ expect(context).not.toBeNull()
+ return {...f,context:context!}
+}
+function ownFact(row:EdielMessageRow,context:ProdatOwnSourceReadingContext,actorUserId=actor){
+ return sourceProdatOwnRegisterReadingDeclarations({message:row,context,actorUserId,policy:policy(row)})
+}
+
+const states=['valid','missing','invalid'] as const
+for(const variant of ['L','LK'] as const)for(const constant of states)for(const digits of states){
+ it(`${variant}: valid259 TRUE with214 ${constant} and218 ${digits}; typed diagnostics remain`,async()=>{
+  const {row,context}=await loaded({variant,constant,digits}),selected=policy(row,context),canonical=parseCanonicalMessageRow(row)
+  expect(selected.guide.guideRevision).toBe('26-A')
+  expect(selected.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:true}])
+  const conditions=selected.prodatDependentConditions.filter(c=>fields.includes(c.fieldNumber as typeof fields[number]))
+  expect(conditions).toHaveLength(3)
+  expect(conditions.every(c=>c.status==='required')).toBe(true)
+  const issues=validateCanonicalPolicyFields({policy:selected,rawPayload:row.raw_payload,rawSegments:canonical.rawSegments,una:canonical.una,scope:'dependent_only'})
+  expect(issues.filter(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED'&&['CCI++Z02/CAV','CCI++Z05/CAV','CCI++Z16/CAV'].includes(i.fieldPath??''))).toEqual([])
+  for(const [field,state] of [['214',constant],['218',digits]] as const){
+   const findings=issues.filter(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field)
+   if(state==='valid')expect(findings).toEqual([])
+   else expect(findings).toContainEqual(expect.objectContaining({blocking:true,prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field,errorKind:state==='missing'?'missing':'invalid',occurrence:expect.objectContaining({objectId:point,identityAgency:'9',lineItemReference:'OWN-1'})})}))
+  }
+ })
+}
+
+for(const variant of ['L','LK'] as const)for(const declaration of ['missing','duplicate','malformed','misplaced','header','other-object'] as const){
+ it(`${variant}: ${declaration}259 cannot fill the own unknown declaration`,async()=>{
+  const f=fixture({variant,declaration});install(f.row,f.variant)
+  // SG14 placed after SG16 is invalid full UNSM grammar. That early refusal
+  // must remain intact, rather than inventing a valid private context for it.
+  expect(validateEdifactSyntax(f.row).ok).toBe(declaration!=='misplaced')
+  const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+  if(declaration==='misplaced')expect(context).toBeNull()
+  else expect(context).not.toBeNull()
+  const selected=policy(f.row,context)
+  if(context)expect(selected.prodatDependentFacts?.registerObjects?.find(o=>o.meteringPointId===point)).toEqual({meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:null})
+  if(declaration==='other-object')expect(selected.prodatDependentFacts?.registerObjects?.find(o=>o.meteringPointId===otherPoint)?.meterReadingsSentInUtilts).toBe(true)
+  const conditions=selected.prodatDependentConditions.filter(c=>fields.includes(c.fieldNumber as typeof fields[number]))
+  expect(conditions).toHaveLength(3)
+  expect(conditions.every(c=>c.status==='undetermined')).toBe(true)
+ })
+}
+
+for(const variant of ['L','LK'] as const){
+ it(`${variant}: current non-enumerated259 accepts own E01 and creates no inventory`,async()=>{
+  const {row,context}=await loaded({variant,value259:'E01'}),selected=policy(row,context)
+  expect(selected.fieldRules.find(r=>r.fieldNumber==='259')?.allowedValues).toBeUndefined()
+  expect(selected.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:true}])
+  expect(selected.prodatDependentFacts?.registerObjects?.[0]?.expectedRegisterCount).toBeUndefined()
+ })
+ for(const poison of [true,false] as const)it(`${variant}: caller root/report/byCell ${poison} cannot fill omitted own259`,async()=>{
+  const {row,context}=await loaded({variant,declaration:'missing',poison})
+  expect(policy(row,context).prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:null}])
+ })
+ it(`${variant}: physical own TRUE overrides caller FALSE`,async()=>{
+  const {row,context}=await loaded({variant,poison:false})
+  expect(policy(row,context).prodatDependentFacts?.registerObjects?.[0]?.meterReadingsSentInUtilts).toBe(true)
+ })
+ it(`${variant}: actorless caller TRUE cannot replace private source context`,()=>{
+  const {row}=fixture({variant,declaration:'missing',poison:true})
+  expect(policy(row).prodatDependentConditions.filter(c=>fields.includes(c.fieldNumber as typeof fields[number])).every(c=>c.status==='undetermined')).toBe(true)
+ })
+}
+
+it('the genuine loader performs exact source, legal, reception, mail, parse and actor reads',async()=>{
+ const {row,context}=await loaded()
+ expect(ownFact(row,context)).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:true}])
+ expect(io.calls).toContainEqual({kind:'table',name:'ediel_messages',args:{id:row.id,company_id:row.company_id}})
+ expect(io.calls).toContainEqual({kind:'table',name:'inbound_email_messages',args:{id:id(4),company_id:row.company_id,environment:'test'}})
+ expect(io.calls).toContainEqual({kind:'table',name:'inbound_ediel_parse_results',args:{id:id(5),company_id:row.company_id}})
+ expect(io.calls).toContainEqual({kind:'rpc',name:'ediel_require_inbound_legal_context_v1',args:{p_company_id:row.company_id,p_message_id:row.id}})
+ expect(io.calls).toContainEqual({kind:'rpc',name:'ediel_inbound_reception_request_v1',args:{p_company_id:row.company_id,p_message_id:row.id,p_actor_user_id:actor,p_inbound_email_message_id:id(4)}})
+ for(const permission of ['communication.read','metering.write'])expect(io.calls.filter(c=>c.kind==='rpc'&&c.name==='gridex_actor_has_company_permission'&&c.args.p_permission===permission)).toHaveLength(2)
+})
+
+for(const copy of ['spread','structuredClone'] as const)it(`${copy} of a genuine private context is not authority`,async()=>{
+ const {row,context}=await loaded(),copied=copy==='spread'?{...context}:structuredClone(context)
+ expect(ownFact(row,copied)).toBeNull()
+ expect(ownFact(row,context)?.[0]?.meterReadingsSentInUtilts).toBe(true)
+})
+it('one context is consumed once, while repeated genuine reads can issue another context',async()=>{
+ const {row,context}=await loaded()
+ expect(ownFact(row,context)?.[0]?.meterReadingsSentInUtilts).toBe(true)
+ expect(ownFact(row,context)).toBeNull()
+ const next=await loadProdatOwnSourceReadingContext(row,actor)
+ expect(next).not.toBeNull();expect(next).not.toBe(context)
+ expect(ownFact(row,next!)?.[0]?.meterReadingsSentInUtilts).toBe(true)
+})
+it('a different actor cannot redeem the genuine context',async()=>{
+ const {row,context}=await loaded()
+ expect(ownFact(row,context,id(9))).toBeNull()
+})
+
+const changedSources=[
+ {name:'source identity',change:{id:id(9)}},{name:'company',change:{company_id:id(9)}},
+ {name:'environment',change:{environment:'production'}},{name:'raw hash',change:{raw_payload:'HOSTILE'}},
+ {name:'receipt microsecond',change:{message_received_at:'2026-10-01T12:01:00.123457Z'}},
+] as const
+for(const {name,change} of changedSources)it(`${name} mismatch cannot redeem a genuine context`,async()=>{
+ const {row,context}=await loaded(),altered={...row,...change} as EdielMessageRow
+ const selected=policy(row)
+ expect(sourceProdatOwnRegisterReadingDeclarations({message:altered,actorUserId:actor,context,policy:selected})).toBeNull()
+})
+
+const readMismatchCases=['stored raw','born hash','mail raw','parse raw','parse status','mail receipt microsecond','legal receipt microsecond','legal reason','legal edition missing','reception hash','reception absent'] as const
+for(const name of readMismatchCases)it(`actual ${name} mismatch cannot issue a source context`,async()=>{
+ const f=fixture();install(f.row,f.variant)
+ if(name==='stored raw')io.rows.ediel_messages[0].raw_payload='HOSTILE'
+ if(name==='born hash')(io.rows.ediel_messages[0].execution_context_snapshot as {receivedProdatContext:{payloadHash:string}}).receivedProdatContext.payloadHash='d'.repeat(64)
+ if(name==='mail raw')io.rows.inbound_email_messages[0].raw_edifact_payload='HOSTILE'
+ if(name==='parse raw')io.rows.inbound_ediel_parse_results[0].raw_payload='HOSTILE'
+ if(name==='parse status')io.rows.inbound_ediel_parse_results[0].parse_status='failed'
+ if(name==='mail receipt microsecond')io.rows.inbound_email_messages[0].received_at='2026-10-01T12:01:00.123457Z'
+ if(name==='legal receipt microsecond')io.legal.sourceReceivedAt='2026-10-01T12:01:00.123457Z'
+ if(name==='legal reason')(io.legal.canonicalProjection as Record<string,unknown>).transactionReasonCode='Z23'
+ if(name==='legal edition missing')delete io.legal.sourceEdition
+ if(name==='reception hash'){io.reception.canonicalPayloadHash='d'.repeat(64);io.reception.receivedPayloadHash='d'.repeat(64)}
+ if(name==='reception absent')io.reception={}
+ expect(await loadProdatOwnSourceReadingContext(f.row,actor)).toBeNull()
+})
+
+it('actor permission loss before issuance remains a security error',async()=>{
+ const f=fixture();install(f.row,f.variant);io.revokeAfter=2
+ await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toMatchObject({disposition:{kind:'security_quarantine'}})
+})
+for(const permission of ['communication.read','metering.write'])it(`missing ${permission} remains a security error`,async()=>{
+ const f=fixture();install(f.row,f.variant);io.permissions.delete(permission)
+ await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toMatchObject({disposition:{kind:'security_quarantine'}})
+})
+for(const table of ['ediel_messages','inbound_email_messages','inbound_ediel_parse_results'])it(`${table} schema failure remains an error`,async()=>{
+ const f=fixture();install(f.row,f.variant);const error={message:'DECLARED_SCHEMA_FAILURE',code:'42P01'};io.tableErrors[table]=error
+ await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toBe(error)
+})
+it('legal context RPC failure remains a failure, not an unknown-green fallback',async()=>{
+ const f=fixture();install(f.row,f.variant);io.rpcErrors.ediel_require_inbound_legal_context_v1={message:'DECLARED_SCHEMA_FAILURE',code:'42P01'}
+ await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toThrow('ediel_inbound_legal_context_required')
+})
+it('reception RPC failure remains an error',async()=>{
+ const f=fixture();install(f.row,f.variant);const error={message:'DECLARED_SCHEMA_FAILURE',code:'42P01'};io.rpcErrors.ediel_inbound_reception_request_v1=error
+ await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toBe(error)
+})
