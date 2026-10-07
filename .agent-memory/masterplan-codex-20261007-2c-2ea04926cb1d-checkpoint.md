@@ -541,3 +541,10 @@ Original local artifact `/tmp/gridex-2ea-c-native-qualifier/root-self-actual-pro
 
 
 Evidence-storage correction: the original reader has two trailing spaces. Its first literal fenced copy triggered `git diff --check`; that failure is preserved in local output and was not a source error or green check. Store the same exact bytes as a JSON string instead of trimming reviewed evidence; SHA6c5e unchanged. No PR691 code or reader changed. Final checkpoint diff-check must pass before publication.
+
+
+## PR metadata and targeted upstream boundary — source803 unchanged
+
+Own PR691 body now records authentic current30=1PASS29FAIL/true1 and precise28 HELD/premise stops, LK217 and sole combined origination refusal. Fresh OPEN803 plus original body were checked before the metadata-only PATCH; subsequent official full body GET matches `/tmp/gridex-2ea-c-source-pr-body-current.md`. This changes no code, head or CI input and does not grant whole acceptance. Durable proof comment6049060994 FULLBODYGETMATCH links CPc40db116 and reused acc382 actualmain7c45 composition.
+
+New bounded read-only investigation within the same C pair: current `messagePolicy.ts157` calls `sourceProdatRegisterReadingDeclarations`; that implementation accepts only qualified immutable-regulated-supply-ground-v1 A/D sources, while current `runtimeDecision.ts741` capability gate lists A/D/H/Z25/Z26/Z70. Own real ordinary source is Z04/Z22. z15 independently checks whether an alternative existing ordinary-L private port refutes the apparent absent automatic source/READ policy bridge. This is a new narrow upstream callsite question, not a repeated native proof/large verification or second packet. c65 owns the retained/API3 issuer component; 2f owns actual runtime/messagePolicy integration and selected GEN. Missing upstream bridge must not be inferred solely from three UNKNOWN counts, and physical259 is not private READ. Next ROOT receives exact current-chain result, supplies a precise named unblock condition if confirmed, then awaits sole FP all8/current delivery review. No sourceedit, new claim, producer, artifact or merge-role.
