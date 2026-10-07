@@ -202,7 +202,8 @@ it('the genuine loader performs exact source, legal, reception, mail, parse and 
  expect(io.calls).toContainEqual({kind:'table',name:'inbound_ediel_parse_results',args:{id:id(5),company_id:row.company_id}})
  expect(io.calls).toContainEqual({kind:'rpc',name:'ediel_require_inbound_legal_context_v1',args:{p_company_id:row.company_id,p_message_id:row.id}})
  expect(io.calls).toContainEqual({kind:'rpc',name:'ediel_inbound_reception_request_v1',args:{p_company_id:row.company_id,p_message_id:row.id,p_actor_user_id:actor,p_inbound_email_message_id:id(4)}})
- for(const permission of ['communication.read','metering.write'])expect(io.calls.filter(c=>c.kind==='rpc'&&c.name==='gridex_actor_has_company_permission'&&c.args.p_permission===permission)).toHaveLength(2)
+ expect(io.calls.filter(c=>c.kind==='rpc'&&c.name==='gridex_actor_has_company_permission'&&c.args.p_permission==='communication.read')).toHaveLength(2)
+ expect(io.calls.filter(c=>c.kind==='rpc'&&c.name==='gridex_actor_has_company_permission'&&c.args.p_permission==='metering.write')).toHaveLength(0)
 })
 
 for(const copy of ['spread','structuredClone'] as const)it(`${copy} of a genuine private context is not authority`,async()=>{
@@ -252,12 +253,53 @@ for(const name of readMismatchCases)it(`actual ${name} mismatch cannot issue a s
 })
 
 it('actor permission loss before issuance remains a security error',async()=>{
- const f=fixture();install(f.row,f.variant);io.revokeAfter=2
+ const f=fixture();install(f.row,f.variant);io.revokeAfter=1
  await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toMatchObject({disposition:{kind:'security_quarantine'}})
 })
-for(const permission of ['communication.read','metering.write'])it(`missing ${permission} remains a security error`,async()=>{
- const f=fixture();install(f.row,f.variant);io.permissions.delete(permission)
+it('missing communication.read remains a security error',async()=>{
+ const f=fixture();install(f.row,f.variant);io.permissions.delete('communication.read')
  await expect(loadProdatOwnSourceReadingContext(f.row,actor)).rejects.toMatchObject({disposition:{kind:'security_quarantine'}})
+})
+it('communication.read-authorized actor can declare TRUE with metering.write denied',async()=>{
+ const f=fixture();install(f.row,f.variant);io.permissions.delete('metering.write')
+ const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+ expect(context).not.toBeNull()
+ expect(ownFact(f.row,context!)?.[0]?.meterReadingsSentInUtilts).toBe(true)
+ expect(io.calls.filter(c=>c.kind==='rpc'&&c.name==='gridex_actor_has_company_permission'&&c.args.p_permission==='metering.write')).toHaveLength(0)
+})
+
+for(const clock of ['created_at','born capturedAt','legal observedAt'] as const)it(`${clock} before original receipt does not erase a valid source declaration`,async()=>{
+ const f=fixture(),earlier='2026-10-01T12:00:00.123456Z'
+ const row=structuredClone(f.row)
+ if(clock==='created_at')row.created_at=earlier
+ if(clock==='born capturedAt')(row.execution_context_snapshot as {receivedProdatContext:{capturedAt:string}}).receivedProdatContext.capturedAt=earlier
+ // Install the same source identity on both caller and actual stored READ;
+ // source/mail/reception/birth sourceReceivedAt remain the original .123456Z.
+ install(row,f.variant)
+ if(clock==='legal observedAt')io.legal.observedAt=earlier
+ expect(validateEdifactSyntax(row).ok).toBe(true)
+ const context=await loadProdatOwnSourceReadingContext(row,actor)
+ expect(context).not.toBeNull()
+ expect(ownFact(row,context!)?.[0]?.meterReadingsSentInUtilts).toBe(true)
+})
+
+it('explicit admission microsecond mismatch is refused by the real consumer',async()=>{
+ const {row,context}=await loaded(),selected=policy(row)
+ expect(()=>sourceProdatOwnRegisterReadingDeclarations({message:row,actorUserId:actor,context,policy:selected,
+  admissionAt:'2026-10-01T12:01:00.123457Z'})).toThrow('prodat_source_readings_admission_clock_mismatch')
+})
+for(const mismatch of ['guide','fieldRules','referenceDate','association'] as const)it(`actual compiled policy ${mismatch} mismatch is refused by the real consumer`,async()=>{
+ const {row,context}=await loaded(),selected=policy(row)
+ // A hostile alteration of a genuinely selected policy is a refusal input,
+ // not a way to construct private context or claim new policy authority.
+ const altered={...selected,
+  ...(mismatch==='guide'?{guide:{...selected.guide,guideRevision:'25-A'}}:{}),
+  ...(mismatch==='fieldRules'?{fieldRules:selected.fieldRules.filter(rule=>rule.fieldNumber!=='259')}:{}),
+  ...(mismatch==='referenceDate'?{referenceDate:'2026-10-02'}:{}),
+  ...(mismatch==='association'?{associationAssignedCode:'E2SE5A'}:{}),
+ }
+ expect(()=>sourceProdatOwnRegisterReadingDeclarations({message:row,actorUserId:actor,context,policy:altered}))
+  .toThrow('prodat_own_source_readings_policy_unqualified')
 })
 for(const table of ['ediel_messages','inbound_email_messages','inbound_ediel_parse_results'])it(`${table} schema failure remains an error`,async()=>{
  const f=fixture();install(f.row,f.variant);const error={message:'DECLARED_SCHEMA_FAILURE',code:'42P01'};io.tableErrors[table]=error
