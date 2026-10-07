@@ -2,6 +2,7 @@ import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionM
 import { prepareManualServicePermission } from '@/lib/ediel/services/manualPermission';
 import type { EdielMessageRow } from '@/lib/ediel/types';
 import { supabaseService } from "@/lib/supabase/service";
+import { gridOwnerRequestMatchesAuthorization, resolveCurrentInfoRequestAuthorization } from "./infoRequestAuthorization";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
 import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
@@ -692,15 +693,6 @@ export type InfoRequestDispatchResult = {
   blockerDetails: (CustomerOperationBlocker & Record<string, unknown>) | null;
 };
 
-function todayDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function isDateBeforeToday(value: string | null | undefined): boolean {
-  if (!value) return false;
-  return value < todayDate();
-}
-
 function requestNeedsGridOwnerAuthorization(
   request: Pick<
     CustomerInfoRequestRow,
@@ -729,26 +721,6 @@ function requestNeedsSupplierContractAuthorization(
     request.requested_data_categories.includes("termination_notice") ||
     request.requested_data_categories.includes("contract_end_date") ||
     request.requested_data_categories.includes("break_fee")
-  );
-}
-
-async function listActiveAuthorizationScopesForCustomer(params: {
-  companyId: string;
-  customerId: string;
-}): Promise<AuthorizationScopeRow[]> {
-  const { data, error } = await supabaseService
-    .from("authorization_scopes")
-    .select("*")
-    .eq("company_id", params.companyId)
-    .eq("customer_id", params.customerId)
-    .eq("status", "active")
-    .is("revoked_at", null)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-
-  return ((data ?? []) as AuthorizationScopeRow[]).filter(
-    (scopeRow) => !isDateBeforeToday(scopeRow.valid_to),
   );
 }
 
@@ -1138,11 +1110,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     throw new Error("Uppgiftsbegäran hittades inte för valt bolag.");
   await assertCustomerBelongsToCompany(request.customer_id, companyId);
 
-  const scopes = await listActiveAuthorizationScopesForCustomer({
-    companyId,
-    customerId: request.customer_id,
+  const currentAuthorization = await resolveCurrentInfoRequestAuthorization(request, {
+    gridOwnerRequired: requestNeedsGridOwnerAuthorization(request),
   });
-  const authorization = hasAuthorizationForRequest(request, scopes);
+  const authorization = hasAuthorizationForRequest(request, currentAuthorization.scopes);
 
   if (!authorization.ok) {
     const blocker = makeCustomerOperationBlocker("missing_power_of_attorney", {
@@ -1185,8 +1156,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
 
     return {
       customerInfoRequest: data as CustomerInfoRequestRow,
-      gridOwnerDataRequestId: null,
-      outboundRequestId: null,
+      gridOwnerDataRequestId: request.grid_owner_data_request_id ?? null,
+      outboundRequestId: request.outbound_request_id ?? null,
       routeProfileId: null,
       status: "missing_authorization",
       blockerReason: blocker.blocker_reason,
@@ -1321,18 +1292,28 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     automationOrigin: "customer_info_request",
     automationKey,
     operationId,
-    authorizationDocumentId: request.authorization_document_id,
+    authorizationDocumentId: currentAuthorization.gridOwnerDocumentId,
     requestPayload: {
-      authorization_document_id: request.authorization_document_id,
+      authorization_document_id: currentAuthorization.gridOwnerDocumentId,
       customer_info_request_id: request.id,
       verified_payload: request.verified_payload ?? {},
       requested_data_categories: request.requested_data_categories ?? [],
     },
   });
 
+  if (!gridOwnerRequestMatchesAuthorization(gridOwnerDataRequest, request, currentAuthorization.gridOwnerDocumentId)) {
+    return blockCustomerInfoRequest({
+      request, companyId, actorUserId, status: "missing_authorization",
+      blockerCode: "missing_power_of_attorney",
+      blockerReason: "Nätägarbegärans bundna fullmakt och anläggning måste motsvara den aktuella behörigheten. Skapa en ny uppgiftsbegäran om underlaget har ändrats.",
+      eventType: "blocked_missing_authorization",
+    });
+  }
+
   const linkNow = await supabaseService
     .from("customer_info_requests")
     .update({
+      authorization_document_id: currentAuthorization.gridOwnerDocumentId,
       grid_owner_data_request_id: gridOwnerDataRequest.id,
       operation_id: operationId ?? request.operation_id ?? null,
       route_resolution_status: "grid_owner_request_created",
@@ -1375,6 +1356,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
 
   const linkedRequest: CustomerInfoRequestRow = {
     ...request,
+    authorization_document_id: currentAuthorization.gridOwnerDocumentId,
     grid_owner_data_request_id: gridOwnerDataRequest.id,
     operation_id: operationId ?? request.operation_id ?? null,
     route_resolution_status: "grid_owner_request_created",
