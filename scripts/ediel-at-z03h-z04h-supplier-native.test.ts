@@ -693,8 +693,9 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     const supplier=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:f.companyId,environment:'test',requireExactCounts:true})
     expect(supplier.identity).toMatchObject({legalEdielId:f.sender,transportEdielId:f.sender,roleCodes:expect.arrayContaining(['electricity_supplier'])})
     expect(original.communication_route_id).toBe(f.routeId);expect(original.route_profile_id).toBeTruthy()
-    const dso=await requireRegistryDispatchSource({companyId:f.companyId,communicationRouteId:original.communication_route_id!,routeProfileId:original.route_profile_id!,
-      environment:'test',messageFamily:'PRODAT',applicationReference:'23-DDQ-PRODAT'})
+    const dispatchScope={companyId:f.companyId,communicationRouteId:original.communication_route_id!,routeProfileId:original.route_profile_id!,
+      environment:'test' as const,messageFamily:'PRODAT',applicationReference:'23-DDQ-PRODAT'}
+    const dso=await requireRegistryDispatchSource(dispatchScope)
     expect(dso).toMatchObject({status:'source_qualified',legalEdielId:f.receiver,roles:expect.arrayContaining(['grid_owner'])})
     const parties=originalAckPartyIdentities({rawPayload:original.raw_payload})
     const body=replyBody(f,original,refs).map((p):Parts=>p[0]==='NAD'&&component(p,1)==='FR'
@@ -714,8 +715,7 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
       await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:row.id})
     }
     expect(business(f)).toEqual(before); await reread(f,control)
-    expect(await requireRegistryDispatchSource({companyId:f.companyId,communicationRouteId:f.routeId,routeProfileId:f.routeProfileId,
-      environment:'test',messageFamily:'PRODAT',applicationReference:'23-DDQ-PRODAT'})).toEqual(dso)
+    expect(await requireRegistryDispatchSource(dispatchScope)).toEqual(dso)
   })
 
   it('expiry of the actual SUPPLIER recipient role before a fresh H birth cannot rewrite the old ready source or authorize a new effect',async()=>{
