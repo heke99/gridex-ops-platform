@@ -139,7 +139,9 @@ it.each(z14RequiredFields)('fresh pending private V omits required field %s befo
   await expect(receiveZ14(p,raw)).rejects.toThrow(/canonical_inbound_rule_profile_resolution_failed:PRODAT:PRODAT_UNKNOWN:/)
   expect(z14Market(p)).toEqual(before);return
  }
- const source=await receiveZ14(p,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+ // Private323 is receiver knowledge: read the genuine protected source with
+ // the actual actor; the public processor performs its own fresh READ below.
+ const source=await receiveZ14(p,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,field==='323'?{actorUserId:p.f.ids.actor}:{})
  if(field==='209')await expect(process(p,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
  else await process(p,source)
  expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
@@ -151,7 +153,7 @@ it.each(z14RequiredFields)('fresh pending private V omits required field %s befo
 
 it('fresh bounded V omits required 321 and cannot mutate the still-pending permission',async()=>{
  const p=await pendingZ14(true),before=z14Market(p),source=await receiveZ14(p,omitZ14Field(z14Wire(p),'321'))
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:p.f.ids.actor})
  await process(p,source);expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
  expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({fieldNumber:'321'})})]))
 })

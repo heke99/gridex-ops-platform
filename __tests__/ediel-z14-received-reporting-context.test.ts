@@ -8,14 +8,16 @@ import type {CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {permissionAckMessage,permissionAckObject} from './fixtures/prodat-permission-ack'
 import type {Parts} from './fixtures/prodat-register'
 
-const io=vi.hoisted(()=>({message:{} as EdielMessageRow,basis:null as unknown,error:null as string|null,
+const io=vi.hoisted(()=>({message:{} as EdielMessageRow,basis:null as unknown,error:null as string|null,throwAfterMs:null as number|null,
  reads:[] as {name:string;args:Record<string,unknown>}[],decision:null as CanonicalRuntimeDecision|null}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{
  from:()=>{throw Error('UNDECLARED_TABLE_IO')},
  rpc:(name:string,args:Record<string,unknown>)=>{
   io.reads.push({name,args})
   if(name!=='gridex_ediel_received_z14_reporting_source_basis_v1')throw Error(`UNDECLARED_RPC:${name}`)
-  const result=Promise.resolve({data:structuredClone(io.basis),error:io.error?{message:io.error}:null})
+  const result=io.throwAfterMs!==null?Promise.resolve().then(()=>{
+   vi.setSystemTime(new Date(Date.now()+io.throwAfterMs!));throw Error('declared_read_timeout')
+  }):Promise.resolve({data:structuredClone(io.basis),error:io.error?{message:io.error}:null})
   return Object.assign(result,{abortSignal:()=>result})
  }
 }}))
@@ -42,6 +44,8 @@ vi.mock('@/lib/ediel/core/receivedSourceValidationLedger',()=>({
 }))
 import {resolveCanonicalRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {loadReceivedZ14ReportingContext,receivedZ14ReportingContextForMessage} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
+import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const actor=id(2),company=id(3),received='2026-09-30T12:00:00.000000Z'
@@ -60,7 +64,8 @@ function omitPurpose(body:Parts[]){
 function basis(m:EdielMessageRow,classification:'private'|'nonprivate'='private',bounded=false){
  return {status:'qualified',companyId:company,sourceMessageId:m.id,environment:m.environment,
   sourcePayloadHash:digest(m.raw_payload!),sourceReceivedAt:received,
-  sourceContextHash:digest(JSON.stringify(m.execution_context_snapshot)),actorUserId:actor,
+  // PG jsonb digest remains producer-owned; bind the actual nested value.
+  sourceContextHash:'d'.repeat(64),sourceReceivedContext:structuredClone((m.execution_context_snapshot as Record<string,unknown>).receivedProdatContext),actorUserId:actor,
   evaluationUtcMs:Date.parse(received),objects:[{
    scope:{lineIndex:0,objectId:'735123456789012345',identityAgency:'9',
     lineItemReference:'CASE:A+B?C',customer:{id:'001',qualifier:'',agency:'89'},reason:'S17'},
@@ -68,7 +73,7 @@ function basis(m:EdielMessageRow,classification:'private'|'nonprivate'='private'
     assignmentId:id(12),permissionId:id(13),scopeBasisVersion:1,acceptedAttemptId:id(14),
     acceptedObservedAt:'2026-09-29T11:00:00.000Z',originCreatedAt:'2026-09-29T09:00:00.000Z',
     sealedAt:'2026-09-29T10:00:00.000Z',evidenceId:id(15),evidenceSha256:'b'.repeat(64),
-    evidenceVersion:1,evidenceReviewedAt:'2026-09-29T08:00:00.000Z',archivedAt:'2026-09-29T07:00:00.000Z'},
+    evidenceVersion:'revision-1',evidenceReviewedAt:'2026-09-29T08:00:00.000Z',evidenceArchivedAt:'2026-09-29T07:00:00.000Z'},
    classification,term:bounded?{kind:'bounded',endMinute:'202611010000'}:{kind:'indefinite'},
    purpose:{kind:'present',code:'B72'}
   }],heldObjects:[]}
@@ -113,8 +118,8 @@ function end(body:Parts[],minute:string){
  const at=body.findIndex(p=>p[0]==='DTM'&&Array.isArray(p[1])&&p[1][0]==='90')
  return [...body.slice(0,at+1),['DTM',['91',minute,'203']] as Parts,...body.slice(at+1)]
 }
-beforeEach(()=>{io.reads=[];io.decision=null;io.basis=null;io.error=null;vi.setSystemTime(new Date(received))})
-afterEach(()=>vi.useRealTimers())
+beforeEach(()=>{io.reads=[];io.decision=null;io.basis=null;io.error=null;io.throwAfterMs=null;vi.setSystemTime(new Date(received))})
+afterEach(()=>{vi.restoreAllMocks();vi.useRealTimers()})
 describe('received Z14 known reporting requirements before own APP projection',()=>{
  it('standalone no-actor keeps receiver-local U absence unqualified',()=>{
   const d=resolveCanonicalRuntimeDecision(wire(omitPurpose(permissionAckObject('Z14','S17','A74',null))))
@@ -171,7 +176,7 @@ describe('received Z14 known reporting requirements before own APP projection',(
  })
  it.each(['sourceMessageId','companyId','environment','sourcePayloadHash','sourceContextHash','actorUserId']as const)
  ('refuses copied READ authority with wrong %s',async key=>{
-  const m=wire();io.basis={...basis(m),[key]:key.endsWith('Hash')?'c'.repeat(64):key==='environment'?'production':id(99)}
+  const m=wire();io.basis={...basis(m),[key]:key==='sourceContextHash'?'malformed-opaque-hash':key.endsWith('Hash')?'c'.repeat(64):key==='environment'?'production':id(99)}
   localHold(await canonical(m))
  })
  it('a neighboring known object cannot supply missing own original scope',async()=>{
@@ -181,13 +186,158 @@ describe('received Z14 known reporting requirements before own APP projection',(
  })
  it('a forged JSON context without actual READ/actor does not qualify receiver-local U',()=>{
   const m=wire(omitPurpose(permissionAckObject('Z14','S17','A74',null)))
-  const facts={deathStatusContext:undefined,receivedReportingContext:basis(m)}
+  const facts={deathStatusContext:undefined,receivedReportingContext:basis(m) as unknown as import('@/lib/ediel/prodat/receivedZ14ReportingContext').ReceivedZ14ReportingContext}
   expect(resolveCanonicalRuntimeDecision(m,facts).applicationDecision).toBe('accepted');expect(io.reads).toEqual([])
  })
- it('unknown full grammar is rejected before any historical reporting READ',async()=>{
+ it('unknown full grammar is held before any historical reporting READ',async()=>{
   const m=wire();expect(m.raw_payload).toContain('PRODAT:D:97A:UN')
   m.raw_payload=m.raw_payload!.replace('PRODAT:D:97A:UN','PRODAT:D:99Z:UN')
   expect(m.raw_payload).toContain('PRODAT:D:99Z:UN')
-  const d=await canonical(m);expect(d.syntaxDecision).toBe('rejected');expect(io.reads).toEqual([]);noPositive(d)
+  const d=await canonical(m);expect(d.syntaxDecision).toBe('manual_review');expect(io.reads).toEqual([]);noPositive(d)
+ })
+ it('binds the actual nested received context despite unrelated public snapshot fields',async()=>{
+  const m=wire();m.execution_context_snapshot={...(m.execution_context_snapshot as Record<string,unknown>),
+   unrelatedPublicMetadata:{notAuthority:true}}
+  io.basis=basis(m);expect((await canonical(m)).applicationDecision).toBe('accepted')
+  expect(io.reads).toHaveLength(1)
+ })
+ it('refuses copied nested birth facts while retaining the producer-owned opaque hash',async()=>{
+  const m=wire(),b=basis(m);io.basis={...b,sourceReceivedContext:{...(b.sourceReceivedContext as Record<string,unknown>),companyId:id(99)}}
+  localHold(await canonical(m))
+ })
+ it('compares protected reception instants at microsecond precision',async()=>{
+  const m=wire();io.basis={...basis(m),sourceReceivedAt:'2026-09-30T12:00:00.000001Z'}
+  localHold(await canonical(m))
+ })
+ it('accepts equivalent exact UTC timestamp spelling without millisecond truncation',async()=>{
+  const m=wire();io.basis={...basis(m),sourceReceivedAt:'2026-09-30T12:00:00+00:00'}
+  expect((await canonical(m)).applicationDecision).toBe('accepted')
+ })
+ it('holds historical accepted-original evidence observed after actual reception',async()=>{
+  const m=wire(),b=basis(m);io.basis={...b,objects:b.objects.map(o=>({...o,original:{...o.original,
+   acceptedObservedAt:'2026-09-30T12:00:00.000001Z'}}))};localHold(await canonical(m))
+ })
+ it('does not reuse opaque authority after the immutable original changes',async()=>{
+  const m=wire();io.basis=basis(m)
+  const context=await loadReceivedZ14ReportingContext(m,actor)
+  expect(context).toBeDefined()
+  expect(receivedZ14ReportingContextForMessage(context,{...m,id:id(99)},actor)).toBeUndefined()
+  expect(receivedZ14ReportingContextForMessage(context,{...m,raw_payload:m.raw_payload+' '},actor)).toBeUndefined()
+  expect(receivedZ14ReportingContextForMessage(context,{...m,message_standard:'ai_list'},actor)).toBeUndefined()
+  const changedHash={...m,immutable_payload_hash:'c'.repeat(64)}
+  expect(receivedZ14ReportingContextForMessage(context,changedHash,actor)).toBeUndefined()
+  expect(receivedZ14ReportingContextForMessage(context,m,actor)).toBe(context)
+  expect(receivedZ14ReportingContextForMessage(context,m,actor)).toBeUndefined()
+ })
+ it('a genuine unrelated/nonservice NULL remains receiver-local U',async()=>{
+  const m=wire(omitPurpose(permissionAckObject('Z14','S17','A74',null)));io.basis=null
+  expect((await canonical(m)).applicationDecision).toBe('accepted');expect(io.reads).toHaveLength(1)
+ })
+ it('source-valid Z14N never asks for positive reporting facts',async()=>{
+  const m={...permissionAckMessage('Z14','Z96','A76',null),company_id:company,status:'received'} as EdielMessageRow
+  const d=await canonical(m);expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision).toBe('accepted')
+  expect(io.reads).toEqual([])
+ })
+ it('physical gas cannot borrow cached electricity reporting authority',async()=>{
+  const m=wire();m.raw_payload=m.raw_payload!.replace('23-DGI-PRODAT','27-DDQ-PRODAT').replace('E2SE6A','E2SE6B')
+  expect(m.raw_payload).toContain('27-DDQ-PRODAT');expect(m.raw_payload).toContain('E2SE6B')
+  expect(await loadReceivedZ14ReportingContext(m,actor)).toBeUndefined();expect(io.reads).toEqual([])
+ })
+ it('another PRODAT message cannot inherit received Z14 reporting context',async()=>{
+  const m={...permissionAckMessage('Z15','Z24','A74','E37'),company_id:company,status:'received'} as EdielMessageRow
+  expect((await canonical(m)).applicationDecision).toBe('accepted');expect(io.reads).toEqual([])
+ })
+ it('a known sibling cannot satisfy another private own missing323',async()=>{
+  const first=permissionAckObject('Z14','S17','A74',null)
+  const second=permissionAckObject('Z14','S17','A74',null,'2','SECOND')
+  const m=wire([...first,...omitPurpose(second)]),b=basis(m),firstKnown=b.objects[0]
+  io.basis={...b,objects:[firstKnown,{...firstKnown,scope:{...firstKnown.scope,lineIndex:1,
+   objectId:'735123456789012352',lineItemReference:'SECOND'}}]}
+  const d=await canonical(m);expect(d.applicationDecision).toBe('rejected');noPositive(d)
+  const failures=d.issues.filter(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber==='323')
+  expect(failures).toHaveLength(1)
+  expect(failures[0].prodatDiagnostic).toMatchObject({kind:'field',errorKind:'missing',occurrence:{lineIndex:1,
+   objectId:'735123456789012352',lineItemReference:'SECOND'}})
+  expect(d.prodatApplicationValidation?.objects.map(o=>o.applicationDecision)).toEqual(['accepted','rejected'])
+ })
+ it('opaque invocation: standalone noactor cannot reuse a real prior READ token',async()=>{
+  const m=wire(omitPurpose(permissionAckObject('Z14','S17','A74',null)));io.basis=basis(m)
+  const receivedReportingContext=await loadReceivedZ14ReportingContext(m,actor)
+  const d=resolveCanonicalRuntimeDecision(m,{receivedReportingContext})
+  expect(d.applicationDecision).toBe('accepted');expect(io.reads).toHaveLength(1)
+ })
+ it('opaque invocation: fresh async READ refusal cannot be bypassed with a prior token',async()=>{
+  const m=wire();io.basis=basis(m)
+  const receivedReportingContext=await loadReceivedZ14ReportingContext(m,actor)
+  io.error='current_actor_read_revoked'
+  localHold(await resolveCanonicalRuntimeDecisionWithRegistry(m,{actorUserId:actor,receivedReportingContext}))
+  expect(io.reads).toHaveLength(2)
+ })
+ it('opaque invocation: prior token expires before a later execution',async()=>{
+  const m=wire();io.basis=basis(m)
+  const context=await loadReceivedZ14ReportingContext(m,actor)
+  vi.setSystemTime(new Date(Date.parse(received)+3000))
+  expect(receivedZ14ReportingContextForMessage(context,m,actor)).toBeUndefined()
+ })
+ it('retains legal incoming optional C889 components four/five with the same original purpose',async()=>{
+  const body=permissionAckObject('Z14','S17','A74',null).map((p,i,a)=>
+   p[0]==='CAV'&&a[i-1]?.[0]==='CCI'&&a[i-1]?.[2]==='Z24'?['CAV',['B72','','','OPTIONAL','OPTIONAL']] as Parts:p)
+  const m=wire(body);io.basis=basis(m)
+  expect((await canonical(m)).applicationDecision).toBe('accepted')
+ })
+ it('joins SQL-shaped text evidence version and Swedish full UD selector to actual physical fields',async()=>{
+  const body=permissionAckObject('Z14','S17','A74',null).map(p=>p[0]==='NAD'&&p[1]==='UD'
+   ?['NAD','UD',['CUSTOMER','SE1','260'],'','Synthetic','','','','','SE'] as Parts:p)
+  const m=wire(body),b=basis(m);io.basis={...b,objects:b.objects.map(o=>({...o,scope:{...o.scope,
+   customer:{id:'CUSTOMER',qualifier:'SE1',agency:'260'}}}))}
+  expect((await canonical(m)).applicationDecision).toBe('accepted');expect(io.reads).toHaveLength(1)
+ })
+ it('opaque invocation refuses a different executing actor before one valid redemption',async()=>{
+  const m=wire();io.basis=basis(m)
+  const context=await loadReceivedZ14ReportingContext(m,actor)
+  expect(receivedZ14ReportingContextForMessage(context,m,id(99))).toBeUndefined()
+  expect(receivedZ14ReportingContextForMessage(context,m,actor)).toBe(context)
+ })
+ it('opaque invocation rejects a serialized copy of the real READ capability',async()=>{
+  const m=wire();io.basis=basis(m)
+  const context=await loadReceivedZ14ReportingContext(m,actor)
+  expect(receivedZ14ReportingContextForMessage({...context!},m,actor)).toBeUndefined()
+  expect(receivedZ14ReportingContextForMessage(context,m,actor)).toBe(context)
+ })
+ it('opaque invocation with no async actor drops a prior real READ capability',async()=>{
+  const m=wire(omitPurpose(permissionAckObject('Z14','S17','A74',null)));io.basis=basis(m)
+  const receivedReportingContext=await loadReceivedZ14ReportingContext(m,actor)
+  expect((await resolveCanonicalRuntimeDecisionWithRegistry(m,{receivedReportingContext})).applicationDecision).toBe('accepted')
+  expect(io.reads).toHaveLength(1)
+ })
+ it('opaque invocation is consumed by only one actual full field evaluation',async()=>{
+  const m=wire(),decision=resolveCanonicalRuntimeDecision(m);io.basis=basis(m)
+  const context=await loadReceivedZ14ReportingContext(m,actor)
+  const receivedReportingContext=receivedZ14ReportingContextForMessage(context,m,actor)
+  const input={policy:decision.policy!,rawPayload:m.raw_payload,rawSegments:decision.canonical.rawSegments,
+   una:decision.canonical.una,receivedReportingContext}
+  expect(validateCanonicalPolicyFields(input).some(i=>i.code==='PRODAT_RECEIVED_REPORTING_SOURCE_UNQUALIFIED')).toBe(false)
+  expect(validateCanonicalPolicyFields(input)).toContainEqual(expect.objectContaining({
+   code:'PRODAT_RECEIVED_REPORTING_SOURCE_UNQUALIFIED',prodatDiagnostic:expect.objectContaining({kind:'local_unknown'})}))
+ })
+ it('an elapsed thrown READ timeout retains localhold before APP and positive ACK',async()=>{
+  const m=wire();io.basis=basis(m);io.throwAfterMs=3000
+  localHold(await canonical(m));expect(io.reads).toHaveLength(1)
+ })
+ it('non-EDIFACT rows cannot read reporting facts through the standalone loader',async()=>{
+  expect(await loadReceivedZ14ReportingContext({...wire(),message_standard:'ai_list'},actor)).toBeUndefined()
+  expect(io.reads).toEqual([])
+ })
+ it('a review later than the immutable original origin cannot qualify historical private facts',async()=>{
+  const m=wire(),b=basis(m);io.basis={...b,objects:b.objects.map(o=>({...o,original:{...o.original,
+   evidenceReviewedAt:'2026-09-29T09:00:00.000001Z'}}))}
+  localHold(await canonical(m))
+ })
+ it.each(['complete','missing323','missing321'] as const)('successful READ authority expiring before the private core cannot become unqualified positive U: %s',async omission=>{
+  const m=wire(omission==='missing323'?omitPurpose(permissionAckObject('Z14','S17','A74',null)):undefined)
+  io.basis=basis(m,'private',omission==='missing321');let afterReadCalls=0
+  vi.spyOn(Date,'now').mockImplementation(()=>Date.parse(received)
+   +(io.reads.length&&++afterReadCalls>=4?3000:0))
+  localHold(await canonical(m));expect(io.reads).toHaveLength(1)
  })
 })
