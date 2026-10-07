@@ -824,6 +824,24 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
     const fieldError=decision.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field)
     if(field==='207')expect(fieldError).toBe(false)
     if(!fieldError) {
+      if(['208','227','233','262','250'].includes(field)) {
+        // Failure feedback from this already computed decision; planned replies
+        // are not evidence that physical ACKs or later effects were reached.
+        console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify({
+          stage:`critical_negative_${field}_canonical_summary`,field,
+          syntaxRejected:decision.syntaxDecision==='rejected',
+          applicationNotApplicable:decision.applicationDecision==='not_applicable',
+          functionalNotApplicable:decision.functionalDecision==='not_applicable',
+          issueCount:decision.issues.length,syntaxIssueCount:decision.issues.filter(i=>i.layer==='syntax').length,
+          mandatoryNad3039:decision.issues.some(i=>i.layer==='syntax'&&i.severity==='error'
+            &&i.code==='UNSM_MANDATORY_ELEMENT_MISSING'
+            &&i.description==='PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'),
+          negativeContrlPlanCount:decision.responsePlan.filter(p=>p.family==='CONTRL'&&p.outcome==='negative').length,
+          negativeAperakPlanCount:decision.responsePlan.filter(p=>p.family==='APERAK'&&p.outcome==='negative').length,
+          positiveAperakPlanCount:decision.responsePlan.filter(p=>p.family==='APERAK'&&p.outcome==='positive').length,
+          sourceHashMatches:record(message).immutable_payload_hash===digest(message.raw_payload!),
+        }))
+      }
       expect(['311','312','202','207','208','223','226','209','210','260']).toContain(field)
       expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
       if(field==='207') {
