@@ -30,6 +30,8 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
+SOURCE_RESTORE_REQUIRED=0
+LOCAL_STACK_START_ATTEMPTED=0
 # Supautils <=3.2.2 crashes on actual EXECUTE-denied calls for hint roles.
 # The vendor-fixed image preserves the real 42501 and every RLS/ACL test.
 # https://github.com/supabase/supautils/issues/214#issuecomment-5312009974
@@ -61,7 +63,7 @@ fi
 
 cleanup(){
   set +e
-  if [[ -z "${EXTERNAL_DB:-}" ]]; then
+  if [[ -z "${EXTERNAL_DB:-}" && "$LOCAL_STACK_START_ATTEMPTED" == 1 ]]; then
     supabase stop --no-backup >/dev/null 2>&1 || true
   fi
   if [[ -n "${REPLAY_PG_VERSION_PINNED:-}" ]]; then
@@ -71,9 +73,11 @@ cleanup(){
       rm -f "$REPLAY_PG_VERSION_PATH"
     fi
   fi
-  rm -f "$MIGRATIONS"/*.sql
-  cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
-  cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
+  if [[ "$SOURCE_RESTORE_REQUIRED" == 1 ]]; then
+    rm -f "$MIGRATIONS"/*.sql
+    cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
+    cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
+  fi
   rm -rf "$HOLD" "$LEDGER_MARKERS" "$SEED_BACKUP" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
 }
 trap cleanup EXIT
@@ -112,6 +116,8 @@ fi
 
 cp -a "$MIGRATIONS"/. "$HOLD"/
 cp "$SEED" "$SEED_BACKUP"
+# Both backups must be complete before cleanup may replace original sources.
+SOURCE_RESTORE_REQUIRED=1
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 
@@ -308,6 +314,7 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   REPLAY_PG_VERSION_PINNED=1
   printf '%s' "$REPLAY_POSTGRES_VERSION" > "$REPLAY_PG_VERSION_PATH"
   echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
+  LOCAL_STACK_START_ATTEMPTED=1
   supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 else
   # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
