@@ -900,3 +900,13 @@ RED CONFIRMED SAME Z03PAIR API3 — actual unchanged retained API04d161/SDKcdd05
 
 NextROOT minimalfix cache validated messageId/companyId before FIRSTawait and use identicalprincipal for actorguard+actualsourcequery. Keep storedidentity/hash/physical/legal/reception/currentsecondactor guard/oneuse untouched; same91tests mustPASS withnoassertion changes. Beforefix all3new37da+old9 refsconfirmed; exactprecodeplan361e/independent0b1e before staging. Skills use documentedCP0320/#6736048892532. Actual current7c45+690composed20/347PASS trueEXIT0 logSHAc48398f5b8809dd2e9492c4c4320990eebafa06c614962d1d0a9f9535272c36a, 3TSC pending; neither native/whole nor actualmergecredit.
 
+
+
+## 2026-10-07T23:29:16.125956+00:00 — docs(ediel): record verified private-source repair and remaining delivery gates
+
+LOCALLY VERIFIED SOURCE COMPONENT — sameZ03pair API3 exact 6f967e15500f9bf53e552fd7ba6f7c0c636af4bd base7c45, minimal authorized-principal guard repair only. Unchanged91directsource cases nowPASS plus47existingmatrix/condition/READcontrols = **138PASS/0FAIL/0SKIP trueEXIT0**, logSHA d1fc7f3c21fb63fae92b802374d3d5795b6c9e4cd6eb255fcb883e4dd60d8453. Originalnegative89PASS2FAIL retainedbaseline7edd5 log467f preserved; noassertion/baseline weakening. SDKexactBBcdd05 retained, scopedlint trueEXIT0/0errors/**onepre-existing unused_columns warning** 07b1176fcd76895045c8535fac30bc56938b182d324faaeed76066354e455550; do notclaimwarning-free. WholePRdiffcheckactual0, only3ownedpaths; API/postcall TRUE/NULL and allerror/refusal gates retained.
+
+Independentfinalsource reviews requested next_read_source_scope +transport_remaining_scope, sourcefrozen6f967; threeNONincrementalTSC pending. NoPR/CI/main/native/automaticbridge/wholecredit, coverageunchanged. ExactmissingcompleteL prerequisite remains runtime/messagePolicy automaticprivateissuer+selectedpolicybridge and actualnativelegalREAD/sourcequalification/full259 applicability+healthyZ04 effects, owned2f+c3 original handoffs. This API3 is actual boundeddeliveryinput tothatbridge, not substitute declarationauthority.
+
+NextROOT complete3typechecks/budgets/self/fullsource2 thennormalpublish smallthreefilePR linked635 preservingoriginal77integration/native34; allmandatoryactualcurrenthead CI and freshaffectedmain composition beforemerge. PR690 independentcurrent7c4520/347+appTSC0, tests/scriptsstillrunning; clean/certificate11/13 remainrunning no mergeroleheld. Sharedmemory 2f91e role currentlyheld, asknamedmirror of actualdeliveryaftermerge orfreshclaimonlyofficialrelease; no heldstatusfilewrite.
+
