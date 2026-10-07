@@ -105,6 +105,53 @@ function effectFailureDiagnostic(companyId: string, sourceId: string) {
         AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard'))`)
   } catch (error) { return {stage:'diagnostic_select_failed',message:record(error).message ?? String(error)} }
 }
+// Stored-boundary observation only: never invokes transport or projection again.
+function ackSendFailureDiagnostic(f: Fixture, sourceId: string, ack: Original, outboxId: string, providerMessageId: string | null, ordinal: number) {
+  try {
+    return sql(`WITH source AS (SELECT id FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
+        AND environment='test' AND direction='inbound' AND id=${literal(sourceId)}),
+      ack AS (SELECT * FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
+        AND environment='test' AND direction='outbound' AND id=${literal(ack.id)}),
+      outbox AS (SELECT * FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}
+        AND environment='test' AND id=${literal(outboxId)}),
+      attempts AS (SELECT * FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)}
+        AND environment='test' AND message_id=${literal(ack.id)})
+      SELECT jsonb_build_object('stage','after_existing_ack_send_result','ordinal',${ordinal},
+        'family',${literal(ack.message_family)},'code',${literal(ack.message_code)},'sourceCount',(SELECT count(*) FROM source),
+        'ack',(SELECT jsonb_build_object('status',m.status,'processingStatus',m.processing_status,
+          'sentAt',m.message_sent_at,'relatedSourceMatches',m.related_message_id=${literal(sourceId)},
+          'originalHashMatches',m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')) FROM ack m),
+        'outbox',(SELECT jsonb_build_object('status',o.status,'sentAt',o.sent_at,'attempts',o.attempts,
+          'sendAttemptCount',o.send_attempt_count,'attemptIdPresent',o.current_send_attempt_id IS NOT NULL,
+          'ackMatches',o.ediel_message_id=${literal(ack.id)},'sourceMatches',o.source_message_id=${literal(sourceId)},
+          'originalHashMatches',o.immutable_payload_hash=(SELECT immutable_payload_hash FROM ack),
+          'errorStored',o.last_error IS NOT NULL,
+          'identifierError',CASE WHEN o.last_error ~ '^[a-z][a-z0-9_]{0,159}$' THEN o.last_error ELSE NULL END) FROM outbox o),
+        'attemptCount',(SELECT count(*) FROM attempts),
+        'attempts',(SELECT coalesce(jsonb_agg(jsonb_build_object('enteredAt',a.entered_at,'observedAt',a.observed_at,
+          'classification',a.classification,'actorMatches',a.actor_user_id=${literal(f.actorUserId)},
+          'workerOwner',a.owner->>'kind'='worker','outboxMatches',a.owner->>'outboxId'=${literal(outboxId)},
+          'sendAttemptMatches',a.owner->>'sendAttemptId'=(SELECT current_send_attempt_id::text FROM outbox),
+          'originalHashMatches',a.binding->>'originalHash'=(SELECT immutable_payload_hash FROM ack),
+          'routeMatches',a.binding->>'routeId'=(SELECT communication_route_id::text FROM ack),
+          'acceptedArray',jsonb_typeof(a.provider_result->'accepted')='array',
+          'acceptedCount',CASE WHEN jsonb_typeof(a.provider_result->'accepted')='array' THEN jsonb_array_length(a.provider_result->'accepted') END,
+          'rejectedCount',CASE WHEN jsonb_typeof(a.provider_result->'rejected')='array' THEN jsonb_array_length(a.provider_result->'rejected') END,
+          'acceptedRecipientMatches',CASE WHEN jsonb_typeof(a.provider_result->'accepted')='array' THEN
+            jsonb_array_length(a.provider_result->'accepted')>0 AND NOT EXISTS(SELECT FROM jsonb_array_elements_text(a.provider_result->'accepted') v(value)
+              WHERE lower(v.value) IS DISTINCT FROM lower(a.binding->>'to')) ELSE NULL END,
+          'returnedSelectorMatches',a.provider_result->>'messageId'=${literal(providerMessageId)},
+          'sentClockMatches',a.observed_at=(SELECT message_sent_at FROM ack)) ORDER BY a.created_at,a.id),'[]')
+          FROM (SELECT * FROM attempts ORDER BY created_at,id LIMIT 30) a),
+        'events',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',e.event_type,'status',e.event_status,'count',e.n)),'[]')
+          FROM (SELECT event_type,event_status,count(*) n FROM public.ediel_message_events
+            WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(ack.id)}
+            GROUP BY event_type,event_status) e))`)
+  } catch (error) {
+    const code = record(error).code
+    return { stage: 'diagnostic_select_failed', code: typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? code : null }
+  }
+}
 async function observedStage<T>(stage: string, action: () => Promise<T>): Promise<T> {
   try { return await action() }
   catch (error) {
@@ -375,7 +422,8 @@ async function acknowledgements(f: Fixture, original: Original, sourceId: string
       WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(ack.id)}`)
     expect(outboxes).toHaveLength(1)
     const bytes = sealed(ack.id), result = await sendOutboxItem({ actorUserId: f.actorUserId, outboxItemId: outboxes[0].id, smtpMimeMode: 'nodemailer-attachment' })
-    expect(result.status, JSON.stringify(result)).toBe('sent'); expect(sealed(ack.id)).toEqual(bytes)
+    expect(result.status, JSON.stringify({ result, diagnostic: result.status === 'sent' ? null
+      : ackSendFailureDiagnostic(f, sourceId, ack, outboxes[0].id, result.messageId, acks.indexOf(ack) + 1) })).toBe('sent'); expect(sealed(ack.id)).toEqual(bytes)
   }
   return acks
 }
