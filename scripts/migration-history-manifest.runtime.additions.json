@@ -130,6 +130,18 @@
     "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
     "20261006150200_ediel_permission_ack_committed_scope.sql": "db92ef573db27c7fda350b83f358a92b4d3e089767507eae952e7c27fe0b13ea",
     "20261006160000_ediel_rejected_permission_scope_capture.sql": "bfa6718cbce524e69f2e06dab096df5a99fad789f754d584adaeaeb892bc5dee",
-    "20261006172500_ediel_missing_object_rejection_reason.sql": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21"
+    "20261006172500_ediel_missing_object_rejection_reason.sql": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21",
+    "20261006173100_ediel_customer_wire_partition_headers_arrays.sql": "c55df843fa1275d2ee2899e57866c85520f36d8ace1ac65da671b118bd79b7d3",
+    "20261006184000_ediel_requested_customer_selected_facts.sql": "ecfbbc7581d6093f456e2989922e0d0d4c4c19c13616a15d72f814bc013c416f",
+    "20261006195500_ediel_requested_change_life_event_current_guard.sql": "2d14450d6e87a894e6c8c6c0296e2839f4952d96aaf51cb365fcccdeb7c1d12d",
+    "20261006205800_ediel_generic_requested_change_current_bridge.sql": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
+    "20261006205324_ediel_production_all_family_smime.sql": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+    "20261006210116_ediel_db01_legacy_address_containment.sql": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+    "20261006213222_ediel_public_supplier_route_column_contract.sql": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
+    "20261006214250_ediel_requested_change_owned_site_origin.sql": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
+    "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
+    "20261006225500_customer_info_requests_z01_status_compatibility.sql": "f7848962bfbee52b0da34eb0f293827f8d3a6d8f88751ccaf41b3dd6b33b4cca",
+    "20261006231000_ediel_confirmed_death_final_response.sql": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e",
+    "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd"
   }
 }

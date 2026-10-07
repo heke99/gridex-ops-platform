@@ -2,7 +2,7 @@ import { readRegistryRouteSource } from '@/lib/actor-registry/registryMarketSour
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { importPlatformActorsAction, refreshExpisoftReceiverCertificateAction, resolvePlatformActorImportIssueAction, saveEdielPartyRegistryEntryAction, verifyPlatformActorForCustomerFlowAction } from '@/app/admin/ediel/actors/actions'
+import { importPlatformActorsAction, resolvePlatformActorImportIssueAction, saveEdielPartyRegistryEntryAction, verifyPlatformActorForCustomerFlowAction } from '@/app/admin/ediel/actors/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,7 +103,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const roleFilter = params.role ?? 'all'
   const statusFilter = params.status ?? 'all'
   const queryFilter = String(params.q ?? '').trim().toLowerCase()
-  const [actorsResult, partiesResult, addressesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, importRunsResult] = await Promise.all([
+  const [actorsResult, partiesResult, marketActorsResult, actorRolesResult, actorRoutesResult, importIssuesResult, semanticsResult, importRunsResult] = await Promise.all([
     supabaseService
     .from('ediel_actor_settings')
     .select('id, company_id, ediel_id, actor_ediel_id, actor_role, role, environment, is_active, updated_at')
@@ -114,11 +114,6 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
       .select('id, name, ediel_id, roles, status, visible_to_customer_flow, source, updated_at')
       .order('updated_at', { ascending: false })
       .limit(100),
-    supabaseService
-      .from('ediel_party_addresses')
-      .select('id, party_id, ediel_id, qualifier, subaddress, business_code, environment, message_family, smtp_address, receiver_certificate_id, transport_security_mode, updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(200),
     supabaseService
       .from('platform_market_actors')
       .select('id,name,org_number,status,source,updated_at')
@@ -149,7 +144,6 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   ])
   const actors = actorsResult.data ?? []
   const parties = partiesResult.error ? [] : partiesResult.data ?? []
-  const addresses = addressesResult.error ? [] : addressesResult.data ?? []
   const marketActors = marketActorsResult.error ? [] : marketActorsResult.data ?? []
   const actorRoles = actorRolesResult.error ? [] : actorRolesResult.data ?? []
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
@@ -159,12 +153,6 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []
   const importRuns = importRunsResult.error ? [] : importRunsResult.data ?? []
-  const addressesByParty = new Map<string, typeof addresses>()
-  for (const address of addresses) {
-    const existing = addressesByParty.get(address.party_id) ?? []
-    existing.push(address)
-    addressesByParty.set(address.party_id, existing)
-  }
   const rolesByActor = new Map<string, string[]>()
   for (const role of actorRoles) {
     const actorId = String(role.actor_id ?? '')
@@ -198,7 +186,6 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
 
   const verifiedGridOwners = parties.filter((party) => Array.isArray(party.roles) && party.roles.includes('grid_owner') && party.status === 'verified').length
   const verifiedSuppliers = parties.filter((party) => Array.isArray(party.roles) && (party.roles.includes('electricity_supplier') || party.roles.includes('supplier')) && party.status === 'verified').length
-  const missingCertificates = addresses.filter((address) => String(address.message_family ?? '').toUpperCase() === 'PRODAT' && !address.receiver_certificate_id).length
   const hiddenOrTestParties = parties.filter((party) => !party.visible_to_customer_flow || (Array.isArray(party.roles) && (party.roles.includes('ediel_portal') || party.roles.includes('test_counterparty')))).length
   const registryGridOwners = new Set(actorRoles.filter((role) => ['netowner', 'grid_owner', 'network_owner'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
   const registrySuppliers = new Set(actorRoles.filter((role) => ['powersupplier', 'electricity_supplier', 'supplier'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
@@ -210,7 +197,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
       <AdminHeader title="Ediel-aktörsregister" subtitle="Superadmin-register för nätägare, elleverantörer, Ediel-ID, subadresser, SMTP och transportskydd." userEmail={context.email} workspaceName="Plattform" workspaceMode="platform" />
       <main className="space-y-8 p-8">
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Verifierade nätägare</p>
             <div className="mt-2 text-3xl font-black text-emerald-950">{verifiedGridOwners}</div>
@@ -220,11 +207,6 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Verifierade elleverantörer</p>
             <div className="mt-2 text-3xl font-black text-blue-950">{verifiedSuppliers}</div>
             <p className="mt-2 text-xs leading-5 text-blue-900">Globala motparter och leverantörer som kan användas i marknadsflöden.</p>
-          </div>
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Saknar mottagarcertifikat</p>
-            <div className="mt-2 text-3xl font-black text-amber-950">{missingCertificates}</div>
-            <p className="mt-2 text-xs leading-5 text-amber-900">PRODAT-adresser utan kopplat mottagarcertifikat ska inte markeras som sändningsklara.</p>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Dolda portalparter</p>
@@ -518,34 +500,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               <div><dt className="font-bold text-slate-500">Kundflöde</dt><dd>{party.visible_to_customer_flow ? 'synlig' : 'dold'}</dd></div>
               <div><dt className="font-bold text-slate-500">Källa</dt><dd>{party.source === 'manual_verified' ? 'Manuellt verifierad' : party.source ?? '—'}</dd></div>
             </dl>
-            <div className="mt-4 space-y-2">
-              {(addressesByParty.get(party.id) ?? []).length ? (
-                <p className="text-xs font-bold text-amber-800">Avvecklade adresser (läses inte av routing, registrera rutter under Ediel-rutter)</p>
-              ) : null}
-              {(addressesByParty.get(party.id) ?? []).map((address) => (
-                <div key={address.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
-                  <div className="font-mono font-bold text-slate-950">
-                    {address.ediel_id}:{address.qualifier}{address.subaddress ? `:${address.subaddress}` : ''}
-                  </div>
-                  <div className="mt-1 text-slate-700">{address.environment} · {address.message_family} {address.business_code ?? '*'} · {address.smtp_address}</div>
-                  <div className="mt-1 font-semibold text-slate-800">{routeStatusLabel(address.transport_security_mode)} · certifikat {address.receiver_certificate_id ?? 'saknas'}</div>
-                  <form action={refreshExpisoftReceiverCertificateAction} className="mt-3 flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="partyId" value={party.id} />
-                    <input type="hidden" name="edielId" value={address.ediel_id} />
-                    <input type="hidden" name="subaddress" value={address.subaddress ?? ''} />
-                    <input type="hidden" name="smtpEmail" value={address.smtp_address} />
-                    <input type="hidden" name="forceRefresh" value="true" />
-                    <button className="rounded-lg border border-emerald-300 bg-white px-3 py-1 font-semibold text-emerald-800">
-                      Hämta mottagarcertifikat från Expisoft
-                    </button>
-                    <span className="font-mono text-slate-600">mail={address.smtp_address}</span>
-                  </form>
-                  <div className="mt-2 break-all text-slate-600">
-                    ldap://sodir01.expisoft.se:389/c=se?userCertificate?sub?mail={address.smtp_address}
-                  </div>
-                </div>
-              ))}
-            </div>
+
           </section>
         ))}
         </section>
