@@ -70,6 +70,26 @@ jobs:
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z13-request-ack-status.json"
           export Z13_NATIVE_STAGE="$RUNNER_TEMP/z13-request-ack-stage"
           export Z13_NATIVE_EXIT_FILE="$RUNNER_TEMP/z13-request-ack-test-exit"
+          # Freeze the exact Git blob catalog before execution, and refuse
+          # working bytes/modes that differ from that immutable checkout.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          source=[]
+          for entry in filter(None,subprocess.check_output(['git','ls-tree','-r','-z','HEAD']).decode().split('\0')):
+              head,path=entry.split('\t',1)
+              mode,kind,oid=head.split()
+              if kind!='blob' or mode not in ('100644','100755','120000'):
+                  raise RuntimeError('unsupported_native_source_object')
+              file=pathlib.Path(path)
+              data=os.readlink(file).encode() if file.is_symlink() else file.read_bytes()
+              actual_mode='120000' if file.is_symlink() else '100755' if file.stat().st_mode&0o111 else '100644'
+              actual_oid=hashlib.sha1(('blob '+str(len(data))+'\0').encode()+data).hexdigest()
+              if (actual_mode,actual_oid)!=(mode,oid):raise RuntimeError('candidate_git_source_mismatch: '+path)
+              source.append({'path':path,'mode':mode,'git_oid':oid,'sha256':hashlib.sha256(data).hexdigest()})
+          frozen={'head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'source':source}
+          pathlib.Path(os.environ['Z13_NATIVE_WORK'],'frozen-source.json').write_text(json.dumps(frozen,indent=2)+'\n')
+          PY
           # The child retains canonical errexit and its own EXIT cleanup trap.
           # Replay/status/credentials remain in RUNNER_TEMP, never artifacts.
           component_exit=0
@@ -95,14 +115,16 @@ jobs:
           work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
           stage=pathlib.Path(os.environ['Z13_NATIVE_STAGE'])
           native_exit=pathlib.Path(os.environ['Z13_NATIVE_EXIT_FILE'])
-          tracked=subprocess.check_output(['git','ls-files','-s','-z']).decode().split('\0')
-          source=[]
-          for entry in filter(None,tracked):
-              head,path=entry.split('\t',1)
-              mode,oid,index=head.split()
-              if index!='0':raise RuntimeError('unmerged_native_source')
-              source.append({'path':path,'mode':mode,'git_oid':oid,
-                  'sha256':hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()})
+          frozen=json.loads((work/'frozen-source.json').read_text())
+          source=frozen['source']
+          if frozen['head']!=os.environ['EXPECTED_SOURCE_SHA'] or frozen['head']!=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip():
+              raise RuntimeError('native_candidate_head_changed')
+          for row in source:
+              file=pathlib.Path(row['path'])
+              data=os.readlink(file).encode() if file.is_symlink() else file.read_bytes()
+              mode='120000' if file.is_symlink() else '100755' if file.stat().st_mode&0o111 else '100644'
+              if (mode,hashlib.sha256(data).hexdigest())!=(row['mode'],row['sha256']):
+                  raise RuntimeError('native_candidate_source_changed: '+row['path'])
           sql=[r for r in source if r['path'].startswith('supabase/migrations/') and r['path'].endswith('.sql')]
           junit=work/'native-junit.xml'
           counts=None
@@ -125,6 +147,7 @@ jobs:
               'native_exit_code':int(native_exit.read_text()) if native_exit.exists() else 'NOT_RUN',
               'junit_counts':counts,'test_scope':['scripts/ediel-z13v-z13vh-request-ack-native.test.ts'],
               'tracked_source':source,'selected_sql':sql,
+              'source_frozen_before_execution':True,'source_unchanged_after_cleanup':True,
               'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','browser_tests':'NOT_RUN',
               'upgrade_parity':'NOT_RUN','authentic_market_evidence':'NOT_PROVIDED','whole_card_approval':'NOT_PROVIDED'}
           (work/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')

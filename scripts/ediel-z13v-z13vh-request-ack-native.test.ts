@@ -70,13 +70,27 @@ async function request(mode:'V'|'VH'){
 
 // Full row images, not count-only absence assertions. Journal/status deltas
 // live in ACK state; legal scope, foreign tenant, data and supply must not move.
-function business(f:Fixture){
+function business(f:Fixture,p:Pending){
  const companies=`(${lit(f.ids.company)},${lit(f.ids.beneficiary)})`
  const tables=['companies','customers','customer_sites','metering_points','ediel_service_assignments',
   'ediel_service_evidence','ediel_assignment_permission_links','ediel_data_access_grants',
-  'customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values']
+  'customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values',
+  'metering_permission_sites','ediel_service_history']
  const rows=tables.map(table=>`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.${table} r WHERE ${table==='companies'?'id':'company_id'} IN ${companies})`)
  return sql(`SELECT jsonb_build_object(${rows.join(',')},
+  'permissions',(SELECT coalesce(jsonb_agg(CASE WHEN r.id=${lit(p.permissionId)} THEN to_jsonb(r)-ARRAY['status','updated_at','updated_by'] ELSE to_jsonb(r) END ORDER BY r.id),'[]') FROM public.metering_permissions r WHERE company_id IN ${companies}),
+  'permissionEffects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_received_sources.permission_effect_receipts r WHERE company_id IN ${companies}),
+  'permissionTransitions',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 r WHERE company_id IN ${companies}),
+  'origins',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.intent_id),'[]') FROM gridex_service_permission.origins r WHERE company_id IN ${companies}),
+  'transportAttempts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_transport.attempts r WHERE company_id IN ${companies}),
+  'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id IN ${companies}),
+  'sealedOriginal',(SELECT jsonb_build_object('id',id,'company',company_id,'environment',environment,'direction',direction,
+   'family',message_family,'code',message_code,'standard',message_standard,'raw',raw_payload,'hash',immutable_payload_hash,
+   'rendered',immutable_rendered_at,'sent',message_sent_at,'sender',sender_ediel_id,'receiver',receiver_ediel_id,
+   'application',application_reference,'interchange',interchange_reference,'transaction',transaction_reference,
+   'route',communication_route_id,'routeProfile',route_profile_id,'intent',intent_id,'request',outbound_request_id,
+   'operation',source_operation_id,'customer',customer_id,'site',site_id,'point',metering_point_id,
+   'executionContext',execution_context_snapshot) FROM public.ediel_messages WHERE id=${lit(p.z13.id)}),
   'exports',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_exports.jobs r WHERE beneficiary_company_id=${lit(f.ids.beneficiary)}),
   'foreignMessages',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_messages r WHERE company_id=${lit(f.ids.beneficiary)}))`)
 }
@@ -143,7 +157,7 @@ async function consume(f:Fixture,message:EdielMessageRow){
 
 for(const mode of ['V','VH'] as const){
  it(`${mode}: actual Z13 receives CONTRL then object APERAK; waits for customer without access, immutable replay`,async()=>{
-  const{f,p,checkSentinel}=await request(mode),before=business(f),pending=await permission(f,p),acks:EdielMessageRow[]=[]
+  const{f,p,checkSentinel}=await request(mode),before=business(f,p),pending=await permission(f,p),acks:EdielMessageRow[]=[]
   await noAccess(f,p)
   for(const family of ['CONTRL','APERAK'] as const){
    const message=await intake(f,p,counterpart(p,family))
@@ -164,54 +178,54 @@ for(const mode of ['V','VH'] as const){
    }
    expect(original.raw_payload).toBe(p.z13.raw_payload)
    expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${lit(original.id)}`)).toBe(hash(p.z13.raw_payload!))
-   expect(business(f)).toEqual(before);await noAccess(f,p);checkSentinel();acks.push(message)
+   expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel();acks.push(message)
   }
   const stable=ackState(f,p),waiting=await permission(f,p),sends=nativeEscoExternal.send.mock.calls.length
   for(const message of acks){expect(await consume(f,message)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id});expect(ackState(f,p)).toEqual(stable)}
   expect(await permission(f,p)).toEqual(waiting)
   expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
-  expect(business(f)).toEqual(before);checkSentinel()
+  expect(business(f,p)).toEqual(before);checkSentinel()
  },120000)
 
  for(const[family,defect]of [['CONTRL','unknown'],['APERAK','wrongLI']] as const){
   it(`${mode}: ${family} ${defect} cannot admit another original or grant access`,async()=>{
-   const{f,p,checkSentinel}=await request(mode),before=business(f),pending=await permission(f,p)
+   const{f,p,checkSentinel}=await request(mode),before=business(f,p),pending=await permission(f,p)
    const original=(await getEdielMessageById(p.z13.id))!,message=await intake(f,p,counterpart(p,family,defect))
    expect(await consume(f,message)).toBeNull()
    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ack_authority.source_correlations WHERE ack_message_id=${lit(message.id)}`)).toBe(0)
    expect((await getEdielMessageById(p.z13.id))!).toEqual(original)
    expect(await permission(f,p)).toEqual(pending)
-   expect(business(f)).toEqual(before);await noAccess(f,p);checkSentinel()
+   expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
   },120000)
  }
  it(`${mode}: received negative object APERAK records refusal, not customer permission`,async()=>{
-  const{f,p,checkSentinel}=await request(mode),before=business(f),pending=await permission(f,p)
+  const{f,p,checkSentinel}=await request(mode),before=business(f,p),pending=await permission(f,p)
   const message=await intake(f,p,counterpart(p,'APERAK','negative'))
   expect(await consume(f,message)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
    result:{outcome:'negative',sourceAccepted:false,finalAckReached:true}})
   expect(await permission(f,p)).toEqual(pending)
-  expect(business(f)).toEqual(before);await noAccess(f,p);checkSentinel()
+  expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
  },120000)
  for(const defect of ['wrongTenant','wrongRole'] as const){
   it(`${mode}: ${defect} is refused at the public intake boundary with no ACK effect`,async()=>{
    const{f,p,checkSentinel}=await request(mode),input=await retained(f,counterpart(p,'APERAK'))
-   const before=business(f),stable=ackState(f,p),pending=await permission(f,p)
+   const before=business(f,p),stable=ackState(f,p),pending=await permission(f,p)
    await expect(createInboundEdielMessage({...input,...(defect==='wrongTenant'?{companyId:f.ids.beneficiary}:{actorUserId:f.ids.reviewer})}))
     .rejects.toMatchObject({name:'EdielExecutionFailure',disposition:{kind:'security_quarantine',
      code:defect==='wrongTenant'?'EDIEL_TENANT_ACTOR_FORBIDDEN':'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
    expect(ackState(f,p)).toEqual(stable);expect(await permission(f,p)).toEqual(pending)
-   expect(business(f)).toEqual(before);await noAccess(f,p);checkSentinel()
+   expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
   },120000)
  }
  it(`${mode}: a received ACK cannot mutate its frozen physical original before processing`,async()=>{
   const{f,p,checkSentinel}=await request(mode),message=await intake(f,p,counterpart(p,'APERAK'))
-  const before=business(f),stable=ackState(f,p),pending=await permission(f,p)
+  const before=business(f,p),stable=ackState(f,p),pending=await permission(f,p)
   const changed=message.raw_payload!.replace('RFF+LI:'+p.li,'RFF+LI:UNKNOWN')
   expect(changed).not.toBe(message.raw_payload)
   const result=await supabaseService.from('ediel_messages').update({raw_payload:changed}).eq('id',message.id).select('id')
   expect(result.error).toMatchObject({code:'23514',message:'immutable_received_ack_source_cannot_change'})
   expect((await getEdielMessageById(message.id))!).toEqual(message)
   expect(ackState(f,p)).toEqual(stable);expect(await permission(f,p)).toEqual(pending)
-  expect(business(f)).toEqual(before);await noAccess(f,p);checkSentinel()
+  expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
  },120000)
 }
