@@ -926,6 +926,64 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   if(field==='202')expect(received.id,
     'CV-P-HEADER missing202 requires actual source-bound negative P-APERAK BGM27/ERC41/field202; public birth returned no source').not.toBeNull()
 }
+// Component: actual national value gate. This does not qualify prescribed
+// physical replies, their private bindings/outboxes, or processor replay.
+async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Original,complete:string,
+  control:Awaited<ReturnType<typeof ready>>) {
+  expect(control.message.raw_payload).toBe(complete)
+  await reread(f,control)
+  const before=business(f),originalBefore=sealed(original.id),controlBefore=sealed(control.message.id),sends=smtp.send.mock.calls.length
+  const valid=freshPhysicalIdentity(complete),parts=rawParts(valid)
+  const first=parts.findIndex(p=>p[0]==='LIN')
+  expect(first).toBeGreaterThanOrEqual(0)
+  expect(component(parts[first],3)).toBe(f.external)
+  expect(component(parts[first],3,3)).toBe('9')
+  const boundary=parts.slice(first+1).findIndex(p=>p[0]==='LIN'||p[0]==='UNT')
+  expect(boundary).toBeGreaterThanOrEqual(0)
+  const local=parts.slice(first,first+1+boundary)
+  const statuses=local.flatMap((p,i)=>p[0]==='CCI'&&component(p,2)==='Z07'?[first+i]:[])
+  expect(statuses).toHaveLength(1)
+  const valueIndex=statuses[0]+1,cav=parts[valueIndex]
+  expect(cav[0]).toBe('CAV');expect(component(cav,1)).toBe('Z12')
+  const values=typeof cav[1]==='string'?[cav[1]]:[...cav[1]]
+  const invalidParts=parts.map((p,i)=>i===valueIndex?['CAV',['E22',...values.slice(1)],...p.slice(2)] as Parts:p)
+  const invalid="UNA:+.? '"+invalidParts.map(render).join("'")+"'"
+  expect(rawParts(invalid)).toEqual(parts.map((p,i)=>i===valueIndex?['CAV',['E22',...values.slice(1)],...p.slice(2)]:p))
+  expect("UNA:+.? '"+rawParts(invalid).map((p,i)=>render(i===valueIndex?cav:p)).join("'")+"'").toBe(valid)
+  const received=await observedStage('invalid306_actual_public_intake',()=>intake(f,invalid))
+  expect(received.tenant).toMatchObject({status:'resolved',companyId:f.companyId})
+  expect(received.id).not.toBeNull()
+  const message=(await getEdielMessageById(received.id!,{companyId:f.companyId}))!
+  expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',raw_payload:invalid,
+    immutable_payload_hash:digest(invalid),inbound_email_message_id:received.mailbox.inboundEmailMessageId,
+    rule_profile_key:'PRODAT:Z04:H:26.A:r3'})
+  expect(received.mailbox.sourcePayloadHash).toBe(digest(invalid))
+  const sourceBefore=sealed(message.id)
+  const capability=await observedStage('invalid306_current_process_capability',()=>readSourceQualifiedProdatBilateralCapability(message))
+  expect(capability).toMatchObject({companyId:f.companyId,environment:'test',sourceMessageId:message.id,sourcePayloadHash:digest(invalid),
+    subtype:'H',owner:'immutable-bilateral-prodat-profile-v1',objects:[expect.objectContaining({profileVersionId:f.profileVersionId,
+      process:'normal_start_h',objectId:f.external,identityAgency:'9',lineItemReference:own(f,original).li})]})
+  const decision=await observedStage('invalid306_actual_application_gate',()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
+  const matching=decision.issues.filter(issue=>issue.layer==='application'&&issue.severity==='error'
+    &&issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber==='306'&&issue.prodatDiagnostic.errorKind==='invalid')
+  const errors=decision.responsePlan.filter(p=>p.family==='APERAK'&&p.outcome==='negative')
+    .flatMap(p=>p.applicationErrors??[]).filter(e=>e.fieldCode==='306'&&e.ercCode==='42')
+  const closed=(value:unknown)=>typeof value==='string'&&['accepted','rejected','not_applicable','manual_review'].includes(value)?value:null
+  console.error('H_NATIVE_INVALID306_GATE',JSON.stringify({stage:'invalid306_actual_application_gate',
+    syntax:closed(decision.syntaxDecision),application:closed(decision.applicationDecision),functional:closed(decision.functionalDecision),
+    matchingInvalid306:matching.length>0,plannedERC42Count:errors.length}))
+  expect(business(f)).toEqual(before);expect(sealed(original.id)).toEqual(originalBefore)
+  expect(sealed(control.message.id)).toEqual(controlBefore);expect(sealed(message.id)).toEqual(sourceBefore)
+  expect(smtp.send.mock.calls.length).toBe(sends)
+  await reread(f,control)
+  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],
+    'Original field306 invalid E22 requires actual national application rejection; whole physical response/effects/replay remain separate unproved criteria')
+    .toEqual(['accepted','rejected','accepted'])
+  expect(matching.length).toBeGreaterThan(0)
+  expect(errors).toEqual([expect.objectContaining({fieldCode:'306',ercCode:'42',text:'Felaktigt Installationsstatus E22',
+    referenceNumber:f.external,lineItemReference:own(f,original).li})])
+}
+
 async function actualOutboundOmission(f:Fixture,original:Original,field:string,malformed:string) {
   const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
   const context=await loadCustomerMasterdataValidationContext(original,f.actorUserId)
@@ -1088,6 +1146,7 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     if(code==='Z04') {
       if(!('decision' in baseline))throw Error('actual_h_incoming_control_required')
       await actualIncomingOmission(f,original,field,baselineRaw,baseline)
+      if(field==='306')await actualIncomingInvalidInstallationStatusGate(f,original,baselineRaw,baseline)
     } else await actualOutboundOmission(f,original,field,malformed)
   })
 
