@@ -1,0 +1,185 @@
+name: Ediel public supplier cancellation strict30 native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-cancellation-public-acceptance-native.test.ts'
+      - 'scripts/ediel-cancellation-public-acceptance-native.config.ts'
+      - '__tests__/ediel-cancellation-birth-profile.test.ts'
+      - '__tests__/ediel-inbound-cancellation-birth-intake.test.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/fixtures/**'
+      - 'scripts/helpers/**'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - 'lib/supabase/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ediel-cancellation-public-acceptance-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-cancellation-public-acceptance-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Additional genuine feedback. Ordinary full-native, clean/upgrade, browser,
+# tenant, parity and certificate gates remain mandatory. No receipt approves a whole contract.
+jobs:
+  cancellation-public-acceptance-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Run genuine public intake and original strict30 supplier cancellation chains
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p cancellation-public-acceptance-native-working
+          export GRIDEX_C_GIT_INPUTS="$RUNNER_TEMP/cancellation-public-acceptance-git-inputs.json"
+          # Freeze original Git blobs before replay generates local types/schema.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
+          source={}
+          for entry in entries:
+              if not entry: continue
+              header,path=entry.split(b'\t',1)
+              mode,kind,oid=header.decode().split()
+              if kind!='blob': continue
+              name=path.decode()
+              blob=subprocess.check_output(['git','cat-file','blob',oid])
+              source[name]={'mode':mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
+          required=['scripts/ediel-cancellation-public-acceptance-native.test.ts',
+                    'scripts/ediel-cancellation-public-acceptance-native.config.ts',
+                    'lib/inbound-mail/cancellationBirthProfile.ts',
+                    '.github/workflows/ediel-cancellation-public-acceptance-native.yml']
+          if not all(name in source for name in required): raise RuntimeError('native_input_missing_from_frozen_git')
+          pathlib.Path(os.environ['GRIDEX_C_GIT_INPUTS']).write_text(json.dumps(dict(sorted(source.items())),indent=2)+'\n')
+          PY
+          # Replay owns its EXIT cleanup. Disposable status/credentials stay local.
+          echo BOOTSTRAP > "$RUNNER_TEMP/cancellation-public-acceptance-stage"
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/cancellation-public-acceptance-replay.log" 2>&1
+          echo STATUS > "$RUNNER_TEMP/cancellation-public-acceptance-stage"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/cancellation-public-acceptance-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          echo NATIVE > "$RUNNER_TEMP/cancellation-public-acceptance-stage"
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-cancellation-public-acceptance-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=cancellation-public-acceptance-native-working/native-junit.xml \
+            > cancellation-public-acceptance-native-working/native.log 2>&1 || native_exit=$?
+          export GRIDEX_C_NATIVE_EXIT="$native_exit"
+          echo "$native_exit" > "$RUNNER_TEMP/cancellation-public-acceptance-native-exit"
+          echo POST_NATIVE > "$RUNNER_TEMP/cancellation-public-acceptance-stage"
+          # Restore replay's original tracked migrations/seed before comparing
+          # working files with their immutable pre-replay Git identities.
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          echo SOURCE_IDENTITY > "$RUNNER_TEMP/cancellation-public-acceptance-stage"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          source=json.loads(pathlib.Path(os.environ['GRIDEX_C_GIT_INPUTS']).read_text())
+          changed={}
+          for name,identity in source.items():
+              path=pathlib.Path(name)
+              if not path.is_file(): raise RuntimeError('tracked_native_runtime_input_missing:'+name)
+              actual=hashlib.sha256(path.read_bytes()).hexdigest()
+              if actual!=identity['sha256']: changed[name]=actual
+          allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json',
+                   'scripts/supabase-types-manifest.json'}
+          if set(changed)-allowed: raise RuntimeError('unexpected_replay_runtime_source_change:'+','.join(sorted(set(changed)-allowed)))
+          receipt={
+              'purpose':'supplemental_actual_native_feedback',
+              'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'repository':os.environ['GITHUB_REPOSITORY'],
+              'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'native_exit_code':int(os.environ['GRIDEX_C_NATIVE_EXIT']),
+              'input_identity':'immutable_checkout_before_replay',
+              'source_blobs':source,
+              'input_sha256':{name:identity['sha256'] for name,identity in source.items()},
+              'runtime_generated_input_sha256':changed,
+              'test_scope':['scripts/ediel-cancellation-public-acceptance-native.test.ts'],
+              'ordinary_required_gates':'NOT_REPLACED',
+              'schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN',
+              'whole_c03_c05':'NOT_APPROVED_BY_RECEIPT_ALONE',
+              'authentic_market_evidence':'NOT_PROVIDED',
+          }
+          pathlib.Path('cancellation-public-acceptance-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          echo REDACTION > "$RUNNER_TEMP/cancellation-public-acceptance-stage"
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root cancellation-public-acceptance-native-working
+          mv cancellation-public-acceptance-native-working cancellation-public-acceptance-native-evidence
+          cat cancellation-public-acceptance-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_C_GIT_INPUTS"
+          exit "$native_exit"
+      - name: Preserve original failed stage without false execution credit
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -d cancellation-public-acceptance-native-evidence && -f "$RUNNER_TEMP/cancellation-public-acceptance-replay.log" ]]; then
+            mkdir -p cancellation-public-acceptance-native-working
+            cp "$RUNNER_TEMP/cancellation-public-acceptance-replay.log" cancellation-public-acceptance-native-working/bootstrap.log
+            python3 - <<'PY'
+          import json,os,pathlib,subprocess
+          inputs=pathlib.Path(os.environ['RUNNER_TEMP'])/'cancellation-public-acceptance-git-inputs.json'
+          if not inputs.is_file(): raise RuntimeError('bootstrap_original_git_inputs_unavailable')
+          stage=(pathlib.Path(os.environ['RUNNER_TEMP'])/'cancellation-public-acceptance-stage').read_text().strip()
+          stages={'BOOTSTRAP','STATUS','NATIVE','POST_NATIVE','SOURCE_IDENTITY','REDACTION'}
+          if stage not in stages: raise RuntimeError('failed_native_stage_unknown')
+          exit_file=pathlib.Path(os.environ['RUNNER_TEMP'])/'cancellation-public-acceptance-native-exit'
+          native_exit=int(exit_file.read_text()) if exit_file.is_file() else None
+          native='NOT_REACHED' if stage in {'BOOTSTRAP','STATUS'} else 'EXECUTION_INCOMPLETE' if stage=='NATIVE' else 'EXECUTED_WITH_EVIDENCE_FAILURE'
+          receipt={'purpose':'original_failed_stage',
+                   'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                   'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+                   'repository':os.environ['GITHUB_REPOSITORY'],
+                   'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
+                   'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+                   'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                   'source_blobs':json.loads(inputs.read_text()),
+                   'failed_stage':stage,'bootstrap':'FAILED' if stage=='BOOTSTRAP' else 'PASSED',
+                   'native':native,'native_exit_code':native_exit,
+                   'test_scope':['scripts/ediel-cancellation-public-acceptance-native.test.ts'],
+                   'whole_c03_c05':'NOT_APPROVED','ordinary_required_gates':'NOT_REPLACED'}
+          pathlib.Path('cancellation-public-acceptance-native-working/failure-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+            python3 scripts/gridex-redact-native-evidence.py \
+              --local-secrets "$RUNNER_TEMP/cancellation-public-acceptance-native-status.json" --root cancellation-public-acceptance-native-working
+            mv cancellation-public-acceptance-native-working cancellation-public-acceptance-native-evidence
+          fi
+      - name: Upload redacted native proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-cancellation-public-acceptance-native-${{ github.run_id }}
+          path: cancellation-public-acceptance-native-evidence
+          if-no-files-found: ignore
+          retention-days: 14
