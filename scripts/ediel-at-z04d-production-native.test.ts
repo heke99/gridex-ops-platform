@@ -8,7 +8,7 @@ import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
-import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
+import { resolveCanonicalRuntimeDecisionWithRegistry, readReceivedCanonicalProdatResponseValidation } from '@/lib/ediel/core/runtimeDecision'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { readRegulatedSupplyGroundScope } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
@@ -76,10 +76,11 @@ async function source(f: Fixture, options: NonNullable<Parameters<typeof product
 
 function effects(f: Awaited<ReturnType<typeof source>>) {
   return sql<{ periods: { id: string; company: string; customer: string; point: string; process: string; start: string; status: string; ground: string; consumptionPoint: string }[];
-    effects: number; partitions: number; transitions: number; normalConfirmations: number;
+    effects: number; partitions: number; transitions: number; normalConfirmations: number; companyPeriodCount: number;
     acks: { id: string; family: string; wire: string; company: string; route: string; profile: string }[];
     outbox: { message: string; company: string; source: string; status: string; hash: string }[] }>(`SELECT jsonb_build_object(
     'periods',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'company',company_id,'customer',customer_id,'point',metering_point_id,'process',source_process,'start',market_start_at,'status',status,'ground',metadata->>'sourceGroundId','consumptionPoint',metadata#>>'{sourceObject,consumptionPoint}')),'[]') FROM public.customer_supply_periods WHERE source_message_id=${literal(f.sourceId)}),
+    'companyPeriodCount',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}),
     'effects',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE source_message_id=${literal(f.sourceId)}),
     'partitions',(SELECT count(*) FROM gridex_received_sources.supply_object_partitions WHERE source_message_id=${literal(f.sourceId)}),
     'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(f.sourceId)}),
@@ -129,6 +130,7 @@ function noEffects(f: Awaited<ReturnType<typeof source>>) {
   const result = effects(f)
   expect(result).toMatchObject({ periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
   assertOwnedAckOutputs(f, result)
+  expect(result.companyPeriodCount).toBe(1)
   expect(result.acks.some(ack => ack.family === 'APERAK' && ack.wire.includes('ERC+100'))).toBe(false)
   return result
 }
@@ -136,6 +138,8 @@ function noEffects(f: Awaited<ReturnType<typeof source>>) {
 it('actual D intake commits a distinct production relation through its reviewed ground and own319, preserving consumption on retry', async () => {
   const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
   const input = await source(f)
+  const productionZ03Count = () => sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND metering_point_id=${literal(f.productionPointId)} AND message_code='Z03'`)
+  expect(productionZ03Count()).toBe(0)
   assertSourceGuard(input)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   const first = effects(input)
@@ -143,9 +147,11 @@ it('actual D intake commits a distinct production relation through its reviewed 
   assertOwnedAckOutputs(input, first)
   expect(first).toMatchObject({ effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
+  expect(first.companyPeriodCount).toBe(2)
   expect(first.periods[0]).toMatchObject({ company: f.companyId, customer: f.customerId, point: f.productionPointId,
     process: 'production_receipt_obligation', status: 'confirmed_by_grid_owner', ground: f.authorized.groundId, consumptionPoint: f.external })
   expect(first.periods[0].id).not.toBe(f.periodId)
+  expect(productionZ03Count()).toBe(0)
   expect(Date.parse(first.periods[0].start)).toBe(Date.parse(f.selector.startAt))
   expect(first.acks.map(ack => ack.family)).toEqual(['APERAK', 'CONTRL'])
   expect(first.acks.every(ack => ack.company === f.companyId && ack.route === f.ackRoute && ack.profile === f.ackProfile)).toBe(true)
@@ -159,6 +165,7 @@ it('actual D intake commits a distinct production relation through its reviewed 
   expect(effects(input)).toEqual(first)
   assertSourceGuard(input)
   assertOwnedAckOutputs(input, effects(input))
+  expect(productionZ03Count()).toBe(0)
   expect(graph(f, f)).toEqual(before)
 }, 120000)
 
@@ -166,9 +173,14 @@ it.each([
   { field: '319', options: { omitConsumptionReference: true } },
   { field: '214', options: { omitConstant: true } },
   { field: '218', options: { omitNumberOfDigits: true } },
+  { field: '217', options: { omitMeasurementMethod: true } },
 ])('actual D intake refuses missing required$field without creating production effects or mutating consumption', async ({ field, options }) => {
   const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
   const input = await source(f, options)
+  if (field === '217') {
+    expect(await readSourceQualifiedProdatBilateralCapability(input.original)).not.toBeNull()
+    expect(input.decision.policy).toMatchObject({ family: 'PRODAT', code: 'Z04', subtype: 'D' })
+  }
   if (field === '214' || field === '218') {
     expect(input.decision.policy?.prodatDependentFacts?.registerObjects).toEqual([
       { meteringPointId: f.productionExternal, identityAgency: '9', meterReadingsSentInUtilts: true },
@@ -413,3 +425,75 @@ it.each(['raw_payload', 'direction', 'message_received_at'] as const)(
     expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
   }, 120000,
 )
+
+it('actual healthy D intake preserves unknown reading applicability and holds own effects when original259 is absent', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
+  const input = await source(f, { omitReadingDeclaration: true }), physical = tokenizeEdifact(input.wire)
+  expect(physical.segments.filter(token => token.tag === 'LIN')).toHaveLength(1)
+  for (const qualifier of ['Z02', 'Z05']) {
+    expect(physical.segments.filter(token => token.tag === 'CCI' && segmentComposite(token, 2, physical.una)[0] === qualifier)).toHaveLength(1)
+  }
+  expect(physical.segments.filter(token => token.tag === 'CCI' && segmentComposite(token, 2, physical.una)[0] === 'Z16')).toHaveLength(0)
+  const capability = await readSourceQualifiedProdatBilateralCapability(input.original)
+  expect(capability).toMatchObject({ owner: 'immutable-regulated-supply-ground-v1', subtype: 'D',
+    companyId: f.companyId, sourceMessageId: input.sourceId,
+    sourcePayloadHash: createHash('sha256').update(input.wire, 'utf8').digest('hex') })
+  expect(capability?.objects).toHaveLength(1)
+  expect(input.decision.policy).toMatchObject({ family: 'PRODAT', code: 'Z04', subtype: 'D' })
+  expect(input.decision.policy?.prodatDependentFacts?.registerObjects).toEqual([
+    { meteringPointId: f.productionExternal, identityAgency: '9', meterReadingsSentInUtilts: null },
+  ])
+  const conditions = input.decision.policy?.prodatDependentConditions.filter(condition => ['214', '218', '259'].includes(condition.fieldNumber))
+  expect(conditions).toHaveLength(3)
+  expect(conditions?.every(condition => condition.status === 'undetermined')).toBe(true)
+  // UNKNOWN is a local observation. Aggregate acceptance does not grant the
+  // complete own APP authority required by the real downstream effect owner.
+  expect([input.decision.syntaxDecision, input.decision.applicationDecision, input.decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
+  expect(input.decision.prodatProcessingDisposition?.kind).toBe('continue')
+  const unknowns = input.decision.issues.filter(issue => issue.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED')
+  expect(unknowns).toHaveLength(3)
+  expect(unknowns.every(issue => issue.severity === 'warning' && issue.prodatDiagnostic?.kind === 'local_unknown')).toBe(true)
+  expect(input.decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === '259')).toBe(false)
+  expect(input.decision.prodatRegisterValidation?.objects).toHaveLength(1)
+  expect(input.decision.prodatRegisterValidation?.objects[0]).toMatchObject({ disposition: 'unavailable', reasons: ['PRODAT_DEPENDENT_CONDITION_UNDETERMINED'] })
+  expect(input.decision.prodatApplicationValidation).toMatchObject({ headerDecision: 'held', objects: [{ applicationDecision: 'held' }] })
+  expect(readReceivedCanonicalProdatResponseValidation(input.decision, input.original)).toMatchObject({ objects: [{ outcome: 'held' }], responses: [] })
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  const application = await supabaseService.rpc('ediel_read_prodat_application_objects_v1', {
+    p_company_id: f.companyId, p_source_message_id: input.sourceId,
+  })
+  expect(application.error).toBeNull()
+  expect(application.data).toMatchObject({ headerDecision: 'held', sourcePayloadHash: capability!.sourcePayloadHash,
+    assessmentId: expect.any(String), objects: [{ applicationDecision: 'held', reasonCodes: ['PRODAT_DEPENDENT_CONDITION_UNDETERMINED'] }] })
+  const first = noEffects(input)
+  expect(first.acks.map(ack => ack.family)).toEqual(['CONTRL'])
+  expect(first.acks[0]).toMatchObject({ company: f.companyId, route: f.ackRoute, profile: f.ackProfile })
+  expect(first.outbox).toHaveLength(1)
+  expect(graph(f, f)).toEqual(before)
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
+  expect(graph(f, f)).toEqual(before)
+}, 120000)
+
+it('actual D final partition failure rolls back production and preserves consumption before any positive own APERAK', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
+  const input = await source(f), constraint = `synthetic_production_partition_${randomUUID().replaceAll('-', '')}`
+  sql(`ALTER TABLE gridex_received_sources.supply_object_partitions ADD CONSTRAINT ${constraint} CHECK(source_message_id<>${literal(input.sourceId)}::uuid) NOT VALID`)
+  try {
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+    const rollbacks = sql<{ reason: string }[]>(`SELECT coalesce(jsonb_agg(payload),'[]') FROM public.ediel_message_events
+      WHERE ediel_message_id=${literal(input.sourceId)} AND payload->>'supplySourceApply'='rolled_back'`)
+    expect(rollbacks).toHaveLength(1)
+    expect(rollbacks[0].reason).toContain(constraint)
+    const first = noEffects(input)
+    expect(first.acks.filter(ack => ack.family === 'CONTRL')).toHaveLength(1)
+    expect(graph(f, f)).toEqual(before)
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+    expect(effects(input)).toEqual(first)
+    assertSourceGuard(input)
+    assertOwnedAckOutputs(input, effects(input))
+    expect(graph(f, f)).toEqual(before)
+  } finally { sql(`ALTER TABLE gridex_received_sources.supply_object_partitions DROP CONSTRAINT ${constraint}`) }
+}, 120000)

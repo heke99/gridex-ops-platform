@@ -131,7 +131,8 @@ async function ground(options: WireOptions = {}) {
   return { ...f, authorized, reference, wire, mail, smtp, receivedAt, ackRoute, ackProfile,
     beforeSwitch: sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(f.switchId)}`),
     beforeContract: sql(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(f.contractId)}`),
-    beforeCustomer: sql(`SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}`) }
+    beforeCustomer: sql(`SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}`),
+    beforePoint: sql(`SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)}`) }
 }
 
 async function source(options: WireOptions = {}) {
@@ -156,11 +157,12 @@ async function source(options: WireOptions = {}) {
 
 function state(f: Awaited<ReturnType<typeof source>>) {
   return sql<{ raw: string; periods: { customer: string; point: string; process: string; date: string; start: string; status: string; ground: string }[];
-    effects: number; partitions: number; transitions: number; normalConfirmations: number;
+    effects: number; partitions: number; transitions: number; normalConfirmations: number; companyPeriodCount: number;
     acks: { id: string; family: string; wire: string; company: string; route: string; profile: string }[];
     outbox: { message: string; company: string; source: string; status: string; hash: string }[] }>(`SELECT jsonb_build_object(
     'raw',(SELECT raw_payload FROM public.ediel_messages WHERE id=${literal(f.sourceId)}),
     'periods',(SELECT coalesce(jsonb_agg(jsonb_build_object('customer',customer_id,'point',metering_point_id,'process',source_process,'date',start_date,'start',market_start_at,'status',status,'ground',metadata->>'sourceGroundId')),'[]') FROM public.customer_supply_periods WHERE source_message_id=${literal(f.sourceId)}),
+    'companyPeriodCount',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}),
     'effects',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE source_message_id=${literal(f.sourceId)}),
     'partitions',(SELECT count(*) FROM gridex_received_sources.supply_object_partitions WHERE source_message_id=${literal(f.sourceId)}),
     'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(f.sourceId)}),
@@ -208,6 +210,7 @@ function preserves(f: Awaited<ReturnType<typeof ground>>) {
   expect(sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(f.switchId)}`)).toEqual(f.beforeSwitch)
   expect(sql(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(f.contractId)}`)).toEqual(f.beforeContract)
   expect(sql(`SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}`)).toEqual(f.beforeCustomer)
+  expect(sql(`SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)}`)).toEqual(f.beforePoint)
   if (f.z03Mode === 'legacy_unsent') expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(f.originalZ03.id)}`)).toBe(false)
   else expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z03'`)).toBe(0)
   expect(provider).not.toHaveBeenCalled()
@@ -288,6 +291,7 @@ async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
   assertOwnedAckOutputs(f, first)
   expect(first).toMatchObject({ raw: f.wire, effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
+  expect(first.companyPeriodCount).toBe(1)
   expect(first.periods[0]).toMatchObject({ customer: f.customerId, point: f.pointId, process: 'assigned_supply', date: f.requestedStartDate,
     status: 'confirmed_by_grid_owner', ground: f.authorized.groundId })
   expect(Date.parse(first.periods[0].start)).toBe(Date.parse(f.submission.startAt))
@@ -320,6 +324,7 @@ it.each(['raw', 'direction', 'clock'] as const)('actual A original rejects %s mu
   expect(error).toMatchObject({ code: '23514', message: expected })
   expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(f.sourceId)}`)).toEqual(before)
   expect(state(f)).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0, acks: [], outbox: [] })
+  expect(state(f).companyPeriodCount).toBe(0)
   preserves(f)
 }, 120000)
 
@@ -328,6 +333,7 @@ function holds(f: Awaited<ReturnType<typeof source>>) {
   const result = state(f)
   expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
   assertOwnedAckOutputs(f, result)
+  expect(result.companyPeriodCount).toBe(0)
   expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
   preserves(f)
 }
@@ -459,6 +465,7 @@ it('revoked separate reviewer permission holds current ground with no source eff
   assertSourceGuard(f)
   assertOwnedAckOutputs(f, result)
   expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, transitions: 0, normalConfirmations: 0 })
+  expect(result.companyPeriodCount).toBe(0)
   expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
   preserves(f)
   const first = state(f)
@@ -480,7 +487,12 @@ it('actual final partition failure rolls back assigned period/effect/audit befor
     assertSourceGuard(f)
     assertOwnedAckOutputs(f, result)
     expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
+    expect(result.companyPeriodCount).toBe(0)
     expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
     preserves(f)
   } finally { sql(`ALTER TABLE gridex_received_sources.supply_object_partitions DROP CONSTRAINT ${constraint}`) }
+}, 120000)
+
+it('actual unmatched A adapter accepts a physically complete invoicee without changing customer, contract or point', async () => {
+  await assertAssignedEffects(await adapterSource({ invoiceeIdentity: '199001011234', withoutOwnZ03: true }))
 }, 120000)

@@ -273,19 +273,21 @@ export async function createProductionReceiptNativeFixture(provider: Provider) {
 }
 
 export function productionReceiptWire(f: Awaited<ReturnType<typeof createProductionReceiptNativeFixture>>, reference: string,
-  options: { omitConsumptionReference?: boolean; consumptionPoint?: string; omitConstant?: boolean; omitNumberOfDigits?: boolean } = {}) {
+  options: { omitConsumptionReference?: boolean; consumptionPoint?: string; omitConstant?: boolean; omitNumberOfDigits?: boolean; omitMeasurementMethod?: boolean; omitReadingDeclaration?: boolean } = {}) {
   const start = f.requestedStartDate.replaceAll('-', '') + '0000'
   const body: Parts[] = [
     ['NAD', 'FR', [f.receiver, '160', 'SVK'], '', '', '', '', '', '', 'SE'], ['NAD', 'DO', [f.sender, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
     line('1', f.productionExternal, undefined, '9'), ['DTM', ['92', start, '203']], ['DTM', ['354', '15', '806']], qty('1000'),
     // Original P p69: quarter-hour solar production with daily settlement.
     // Solar identifies the product; no microproduction capacity is assumed.
-    ...characteristic('Z13', 'Z70'), ...characteristic('Z04', 'Z04'), ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3),
+    ...characteristic('Z13', 'Z70'),
+    ...(options.omitMeasurementMethod ? [] : characteristic('Z04', 'Z04')), ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3),
     ...characteristic('Z15', 'Z32'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L641Q']],
     // Real source-local reading declaration, not a parsed dependency flag or
     // evidence that downstream UTILTS production readings have already arrived.
     ...(options.omitConstant ? [] : characteristic('Z02', '1', 3)),
-    ...(options.omitNumberOfDigits ? [] : characteristic('Z05', '6', 3)), ...characteristic('Z16', '111', 3),
+    ...(options.omitNumberOfDigits ? [] : characteristic('Z05', '6', 3)),
+    ...(options.omitReadingDeclaration ? [] : characteristic('Z16', '111', 3)),
     ['RFF', ['MG', `METER-${f.productionExternal}`]], ['RFF', ['Z05', f.gridAreaCode]], ['RFF', ['LI', reference]],
     ...(options.omitConsumptionReference ? [] : [['RFF', ['Z07', options.consumptionPoint ?? f.external]] as Parts]),
     ['NAD', 'UD', [f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency], '', 'Synthetic Own Customer', 'Street', 'City', '', '12345', 'SE'],
