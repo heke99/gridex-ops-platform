@@ -100,12 +100,12 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'f4f3d3af1d6da059f91d94bb01ba552a6344d1fc59f0b202c29292da26f9d5a1',
+                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'fed80cb12ffa89c01e1501fb85040a09f0555c0257ea0dbd850946feea5c4fde',
                   'scripts/ediel-at-z10m-supplier-acceptance-native.config.ts': '458b8c838e1bf52740b422b04207dc2cf23a1f299744f2130a184123e90438b1',
               }
               for path, digest in frozen_native.items():
                   if inputs[path]['sha256'] != digest:
-                      raise SystemExit('original_native_source_drift: ' + path)
+                      raise SystemExit('native_source_drift: ' + path)
               ledger_path = 'scripts/gridex-aud-003-main-ledger.json'
               ledger_input = inputs[ledger_path]
               ledger = json.loads(git('cat-file', 'blob', ledger_input['blob_oid']))
@@ -131,7 +131,11 @@ jobs:
               if not runtime['node'].startswith('v22.') or runtime['supabase_cli'] != '2.101.0':
                   raise SystemExit('native_runtime_version_mismatch')
               frozen = {'checkout_sha': head, 'checkout_tree': tree, 'tracked_inputs': inputs,
-                        'runtime_versions': runtime, 'original_native_source_sha256': frozen_native,
+                        'runtime_versions': runtime,
+                        'original_native_source_sha256': {**frozen_native,
+                            'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'f4f3d3af1d6da059f91d94bb01ba552a6344d1fc59f0b202c29292da26f9d5a1'},
+                        'native_source_sha256': frozen_native,
+                        'native_source_version': 'm2_post_failure_application_read_observer_v1',
                         'workflow_run_id': os.environ['GITHUB_RUN_ID'],
                         'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
                         'canonical_marker_expected': expected_markers,

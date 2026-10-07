@@ -17,6 +17,8 @@ import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokeniz
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
+import {bindReceivedProdatApplicationObjects} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
+import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {approveEdielInboundCase} from '@/lib/ediel/inboundCases'
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {createRequestedChangeSupplyFixture} from './helpers/ediel-requested-change-native-fixture'
@@ -84,6 +86,38 @@ function changeWire(f:Fixture,oldMeter='METER-1'){
   return {wire,reference,minute}
 }
 
+// A new read after normal failure, before the retained extra resolver/recorder.
+// This is not the failed normal read's return and cannot approve any effect.
+async function observePostFailureApplicationRead(input:{companyId:string;sourceMessageId:string;rawPayload:string}){
+  const observation='new_post_failure_read_before_extra_resolver_recorder'
+  let reply
+  try{
+    reply=await supabaseService.rpc('ediel_read_prodat_application_objects_v1',{
+      p_company_id:input.companyId,p_source_message_id:input.sourceMessageId,
+    }).abortSignal(AbortSignal.timeout(2000))
+  }catch{return {observation,status:'rpc_error',sqlstate:'unknown'}}
+  try{
+    const {data,error}=reply
+    if(error){
+      const sqlstate=typeof error.code==='string'&&['42501','P0001','22P02','57014','40001','40P01'].includes(error.code)?error.code:'unknown'
+      return {observation,status:'rpc_error',sqlstate}
+    }
+    if(data===null)return {observation,status:'missing'}
+    if(!isEvidenceRecord(data))return {observation,status:'shape'}
+    const {assessmentId,...candidate}=data
+    if(!isEvidenceUuid(assessmentId))return {observation,status:'shape'}
+    const facet=bindReceivedProdatApplicationObjects(candidate,input.rawPayload)
+    if(!facet||!['accepted','rejected','held'].includes(facet.headerDecision)
+      ||facet.objects.some(object=>!['accepted','rejected','held'].includes(object.applicationDecision)))return {observation,status:'unbound'}
+    const objectCount=facet.objects.length,registerCount=facet.objects.reduce((count,object)=>count+object.registers.length,0)
+    if(!Number.isSafeInteger(objectCount)||objectCount>8192||!Number.isSafeInteger(registerCount)||registerCount>8192)return {observation,status:'shape'}
+    return {observation,status:facet.headerDecision,objectCount,registerCount,
+      acceptedObjectCount:facet.objects.filter(object=>object.applicationDecision==='accepted').length,
+      rejectedObjectCount:facet.objects.filter(object=>object.applicationDecision==='rejected').length,
+      heldObjectCount:facet.objects.filter(object=>object.applicationDecision==='held').length}
+  }catch{return {observation,status:'projection_error'}}
+}
+
 async function receive(f:Fixture,wire:string){
   const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,
     smtpFrom:'synthetic@example.invalid'})
@@ -101,6 +135,7 @@ async function receive(f:Fixture,wire:string){
   try{
     await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
   }catch(error){
+    const postFailureApplicationRead=await observePostFailureApplicationRead({companyId:f.companyId,sourceMessageId:sourceId!,rawPayload:wire})
     let diagnostic:unknown
     try{
       // Separate fresh canonical invocation after the failed normal processor.
@@ -123,7 +158,7 @@ async function receive(f:Fixture,wire:string){
         evidenceBuilt:evidence!==null,recording:recording?{error:recording.error?{code:recording.error.code,message:recording.error.message}:null,
           dataVersion:(recording.data as {version?:unknown}|null)?.version}:null}
     }catch(diagnosticError){diagnostic={diagnosticFailure:diagnosticError instanceof Error?diagnosticError.message:String(diagnosticError)}}
-    throw new Error(JSON.stringify({normalProcessFailure:error instanceof Error?error.message:String(error),diagnostic}),{cause:error})
+    throw new Error(JSON.stringify({normalProcessFailure:error instanceof Error?error.message:String(error),postFailureApplicationRead,diagnostic}),{cause:error})
   }
   const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceId!).eq('company_id',f.companyId).single()
   expect(saved.error).toBeNull()
