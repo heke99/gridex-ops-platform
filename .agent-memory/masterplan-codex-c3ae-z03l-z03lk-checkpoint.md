@@ -1,3 +1,13 @@
+## Actual main adoption complete; corrected inverse guard and tool approved — 2026-10-07T07:49:10.829831+00:00
+
+SoleL14/all14 immediateGETMATCH66a70; priorCPb30caac5/5306033445245 exactGETMATCH beforeactualnormalmerge. Local mainadoption caf815540b6d40bc964bbe7a2bdad812cf013441/treeb5f3c04ef4ce2cd57bbf1e4b4251e02a5972eecf CLEAN, ordinaryparents60b+main185. All10 foreignincomingMODEOID exactly185, all15 retainedproposalposts exactly60b. Native169f unchanged; newe561 NOT_ADOPTED/34NOT_RUN.
+
+Initial postmerge own-inverse checker incorrectly included incoming main paths by comparingmain185 againstold60b; it stopped before any native/checkpoint write at foreignc65CP. Corrected proof identifies own15 by actualEDF→60b delta, individuallyMODEOIDmatches; all10foreignposts independentlymatchmain185. No source/oracle/coverage/assertion changes or hidden failure. The merge itself matches preapprovedpreviewexactly; checker bookkeeping corrected only. Next adoptONLY reviewede561 plusENTIRECP andfreezeactualsource, actualcurrentchecks/two installedreviews as priorGO.
+
+Strictv4b2d60 now TWO independent fresh SOURCE_APPROVE: formate8a3fda378538789b84d1a9f5ec114e71f987d9ef6fd7edfe2426c606b32c0eb (130/130normal+optimized), integritye66096e2581e3c4c4b7693a64edddcb06f58213f3d476dbbc4f1f031fc824299 (102/102each; all10oldfalseacceptsnowrefused). Root256/256eachalreadyactualPASS; all185priorfamilies unchanged, oldd58/v3/counterexamples/reviews preserved. Tool mayqualify futuregenuine34 onlywith exactofficialsource/API/windows/GitMODEOID/CRC/full34/typedEXIT; no actualnewartifact exists/use/wholecredit. Old507authentic30/2 remains ownlatestexecution. Current297/352 unchanged/ownNOT_EXECUTED; no role/newpair/CI_GREEN/merge/external.
+
+---
+
 ## GO: exact corrected34 source and ordinary current-main composition — 2026-10-07T07:47:12.860617+00:00
 
 Same agentcodex-20261006T134154Z-c3ae376b9893, sole AT-Z03L-SUPPLIER / AT-Z03LK-SUPPLIER packet5b7d6b12-46d0-4294-aca2-32ed76f9c716/all14 own refs freshGETMATCH66a70 (/tmp/gridex-c3ae-l-v6-before-adoption-locks.json). Primary60b85d212007c1cfdeec77d249e32df16c665a58/tree9635d2627bf7207effefc202a10afce1c970bd17 remains CLEAN/native169f; published635507 authentic30PASS2FAIL/native1 remains failed/wholeREFUSED. No roles/newpair/coverage change.
