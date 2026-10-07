@@ -1,6 +1,8 @@
 import {raw, common, line, characteristic, qty} from '../fixtures/prodat-register'
 import {head, source} from '../fixtures/prodat-identity'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 export const ownerId = (n:number) => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 export const OWNER = {source:ownerId(1),company:ownerId(2),customer:ownerId(3),point:ownerId(4),site:ownerId(5),grid:ownerId(6),switch:ownerId(7),supply:ownerId(8),actor:ownerId(9),external:'735123456789012345'}
@@ -20,20 +22,35 @@ export function ownerRulePack() {
 }
 /** Fixed synthetic wire. The real canonical engine must accept it, not a stub
  * of its output. Receiver-local reading facts are explicit fixture input. */
-export function ownerSource():EdielMessageRow {
+export function ownerSource(options?:{readingDeclarations:true;environment?:'test'|'production'}):EdielMessageRow {
   const own=common('1','Synthetic')
+  // Explicit synthetic physical inputs only; no private READ or UTILTS receipt.
+  // Keep the original no-argument wire and its UNKNOWN readings unchanged.
+  const optedIn=options?.readingDeclarations===true
+  const readings=optedIn?[...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','111',3)]:[]
+  const environment=optedIn?(options.environment??'test'):'test'
   // Original D97A group8: own dates, quantity, characteristics, references, parties.
-  const wire=raw([...head(),line('1',OWNER.external,undefined,'9'),...own.filter(p=>p[0]==='DTM'),qty('1000'),
+  let wire=raw([...head(),line('1',OWNER.external,undefined,'9'),...own.filter(p=>p[0]==='DTM'),qty('1000'),
     ...own.filter(p=>p[0]==='CCI'||p[0]==='CAV'),
     ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),
     ['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
+    ...readings,
     ...own.filter(p=>p[0]==='RFF'),...own.filter(p=>p[0]==='NAD'),
     ['NAD','IT',[OWNER.external,'','9'],'','','Street','Town','','12345','SE'],
     ['NAD','Z02',['11111','160','SVK']]],'Z04').replace('+S+R+','+12345:14+54321:14+')
+  if(optedIn){
+    const envelopeTags=new Set(['UNB','UNH','UNT','UNZ'])
+    const businessSegments=tokenizeEdifact(wire).segments.filter(segment=>!envelopeTags.has(segment.tag)).map(segment=>segment.raw)
+    wire=EdifactEnvelopeCodec.encode({sender:'12345',receiver:'54321',senderQualifier:'14',receiverQualifier:'14',interchangeReference:'I',
+      applicationReference:'23-DDQ-PRODAT',acknowledgementRequest:true,environment,
+      createdAt:new Date('2026-09-17T10:00:00.000Z'),timeZone:'Europe/Stockholm',
+      messages:[{messageReference:'M',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments}]})
+  }
   return {...source(wire,'Z04'),id:OWNER.source,company_id:OWNER.company,customer_id:OWNER.customer,metering_point_id:OWNER.point,site_id:OWNER.site,
+    ...(optedIn?{environment,test_flag:environment==='test'?1:0,inbound_email_message_id:ownerId(60),created_at:'2026-09-22T10:00:00Z'}:{}),
     message_received_at:'2026-09-22T10:00:00Z',
     parsed_payload:{subtype:'L',start_date:'2026-10-01',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}},
-    execution_context_snapshot:{receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:OWNER.source,companyId:OWNER.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:'2026-09-22T10:00:00Z',capturedAt:'2026-09-22T10:00:00Z'}}} as EdielMessageRow
+    execution_context_snapshot:{receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:OWNER.source,companyId:OWNER.company,environment,messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:'2026-09-22T10:00:00Z',capturedAt:'2026-09-22T10:00:00Z'}}} as EdielMessageRow
 }
 export function ownerRows():Record<string,Record<string,unknown>[]> {
   const tenant={company_id:OWNER.company,environment:'test',valid_from:'2026-01-01T00:00:00Z',valid_to:null}
