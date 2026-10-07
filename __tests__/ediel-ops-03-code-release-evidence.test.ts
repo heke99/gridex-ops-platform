@@ -68,15 +68,36 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
     const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
     if (sha256(bytes) === originalDigest) return bytes
-    if (sha256(bytes) !== '72f50e5a064f5416ef707daa06d567ede4bcb8d7a11e9ad70fc4fffc4751f28c') throw Error('fixture_reviewed_normal_source_unavailable')
-    const corrections: [string, string][] = [
+    const fixtureDigest = sha256(bytes)
+    // Optional pre-signature source inputs restore the same historical bytes;
+    // this finite model grants no current native proof.
+    const corrections: [string, string][] | null = fixtureDigest === 'e9db6c06d2885a911b0b3349a2d3feab0ec0e48d7f9110f7b72492d950fcb964' ? [
       ["export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}\n", ""],
       [";createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>", ""],
       [" // An opt-in caller may exercise its public request creator before any case\n // exists. Existing callers retain their exact prospective SQL input below.\n let createdSwitchId:string=switchId\n if(input.createSwitchRequest){\n  createdSwitchId=await input.createSwitchRequest({companyId,actorUserId,customerId,siteId,pointId,contractId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id,invoiceeSnapshot})\n }else{\n", ""],
       ["\n }\n sql(`INSERT INTO public.user_permissions(", "\n sql(`INSERT INTO public.user_permissions("],
       ["switchId:createdSwitchId,external", "switchId,external"],
       ["switchRequestId:createdSwitchId,communicationRouteId", "switchRequestId:switchId,communicationRouteId"],
-    ]
+      ["export type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;bindingMonths?:number;billingAddress?:{street:string;postalCode:string;city:string;country:string}}\n", "type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string}\n"],
+      [" const bindingMonths=input.bindingMonths??0\n if(!Number.isInteger(bindingMonths)||bindingMonths<0)throw Error('native_switch_binding_months_invalid')\n if(input.billingAddress&&Object.values(input.billingAddress).some(value=>!value.trim()))throw Error('native_switch_billing_address_incomplete')\n", ""],
+      ["  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:bindingMonths,\n", "  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,\n"],
+      ["   ${bindingMonths},1,true,12,'active','both',true,false,${literal(actorUserId)}\n", "   0,1,true,12,'active','both',true,false,${literal(actorUserId)}\n"],
+      [" // Optional synthetic source inputs belong to the original draft, before\n // canonical signature, price snapshot and PDF/POA capture. Never change a\n // signed contract to manufacture a conditional native branch.\n if(input.billingAddress){\n  const address=input.billingAddress\n  sql(`UPDATE public.customer_contracts SET billing_address_same_as_site=false,\n   billing_street=${literal(address.street)},billing_postal_code=${literal(address.postalCode)},\n   billing_city=${literal(address.city)},billing_country=${literal(address.country)}\n   WHERE id=${literal(contractId)} AND company_id=${literal(companyId)} AND status='draft';`)\n  expect(sql(`SELECT jsonb_build_object('street',billing_street,'postalCode',billing_postal_code,'city',billing_city,'country',billing_country)\n   FROM public.customer_contracts WHERE id=${literal(contractId)} AND status='draft'`)).toEqual(address)\n }\n", ""],
+    ] : fixtureDigest === '3e581711df5f7e509df93101ba4e83d414c711662a85ec9b11d2622286776623' ? [
+      ["export type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;bindingMonths?:number;billingAddress?:{street:string;postalCode:string;city:string;country:string}}\n", "type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string}\n"],
+      [" const bindingMonths=input.bindingMonths??0\n if(!Number.isInteger(bindingMonths)||bindingMonths<0)throw Error('native_switch_binding_months_invalid')\n if(input.billingAddress&&Object.values(input.billingAddress).some(value=>!value.trim()))throw Error('native_switch_billing_address_incomplete')\n", ""],
+      ["  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:bindingMonths,\n", "  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,\n"],
+      ["   ${bindingMonths},1,true,12,'active','both',true,false,${literal(actorUserId)}\n", "   0,1,true,12,'active','both',true,false,${literal(actorUserId)}\n"],
+      [" // Optional synthetic source inputs belong to the original draft, before\n // canonical signature, price snapshot and PDF/POA capture. Never change a\n // signed contract to manufacture a conditional native branch.\n if(input.billingAddress){\n  const address=input.billingAddress\n  sql(`UPDATE public.customer_contracts SET billing_address_same_as_site=false,\n   billing_street=${literal(address.street)},billing_postal_code=${literal(address.postalCode)},\n   billing_city=${literal(address.city)},billing_country=${literal(address.country)}\n   WHERE id=${literal(contractId)} AND company_id=${literal(companyId)} AND status='draft';`)\n  expect(sql(`SELECT jsonb_build_object('street',billing_street,'postalCode',billing_postal_code,'city',billing_city,'country',billing_country)\n   FROM public.customer_contracts WHERE id=${literal(contractId)} AND status='draft'`)).toEqual(address)\n }\n", ""],
+    ] : fixtureDigest === '72f50e5a064f5416ef707daa06d567ede4bcb8d7a11e9ad70fc4fffc4751f28c' ? [
+      ["export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}\n", ""],
+      [";createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>", ""],
+      [" // An opt-in caller may exercise its public request creator before any case\n // exists. Existing callers retain their exact prospective SQL input below.\n let createdSwitchId:string=switchId\n if(input.createSwitchRequest){\n  createdSwitchId=await input.createSwitchRequest({companyId,actorUserId,customerId,siteId,pointId,contractId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id,invoiceeSnapshot})\n }else{\n", ""],
+      ["\n }\n sql(`INSERT INTO public.user_permissions(", "\n sql(`INSERT INTO public.user_permissions("],
+      ["switchId:createdSwitchId,external", "switchId,external"],
+      ["switchRequestId:createdSwitchId,communicationRouteId", "switchRequestId:switchId,communicationRouteId"],
+    ] : null
+    if (!corrections) throw Error('fixture_reviewed_normal_source_unavailable')
     let original = bytes.toString('utf8')
     for (const [current, previous] of corrections) {
       if (original.split(current).length !== 2) throw Error('fixture_reviewed_normal_correction_not_unique')
