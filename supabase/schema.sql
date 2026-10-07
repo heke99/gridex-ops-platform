@@ -26684,7 +26684,7 @@ BEGIN
          OR a.archived_at IS NULL OR NOT isfinite(a.archived_at) OR a.archived_at>v.reviewed_at OR v.reviewed_at IS NULL OR NOT isfinite(v.reviewed_at)
          OR NOT EXISTS(SELECT FROM auth.users u WHERE u.id=v.reviewer_user_id AND u.deleted_at IS NULL AND (u.banned_until IS NULL OR u.banned_until<=clock_at))
          OR gridex_ediel_services.actor_current_v1(m.company_id,v.reviewer_user_id,true) IS NOT TRUE
-         OR v.reviewer_user_id=a.submitted_by OR NOT EXISTS(SELECT FROM gridex_service_administration.commands stage WHERE stage.command_id=v.stage_command_id AND stage.company_id=m.company_id AND stage.input->>'action'='stage_evidence' AND stage.result->>'evidenceId'=e.id::text AND stage.actor_user_id<>v.reviewer_user_id AND stage.created_at<=v.reviewed_at)
+         OR v.reviewer_user_id=a.submitted_by OR NOT EXISTS(SELECT FROM gridex_service_administration.commands stage WHERE stage.command_id=v.stage_command_id AND stage.company_id=m.company_id AND stage.input->>'action'='stage_evidence' AND stage.result->>'evidenceId'=e.id::text AND stage.actor_user_id<>v.reviewer_user_id AND stage.recorded_at<=v.reviewed_at)
          OR gridex_ediel_services.receipt_current_v1(a) IS NOT TRUE THEN CONTINUE;END IF;
         IF evidence_kind='end_user_contract' AND (e.source_sha256 IS DISTINCT FROM o.basis->>'evidenceSha256' OR e.source_version IS DISTINCT FROM o.basis->>'evidenceVersion'
          OR e.permission_customer_classification IS DISTINCT FROM o.basis->>'customerClassification' OR e.permission_reporting_term_kind IS DISTINCT FROM o.basis->>'reportingTerm' OR e.permission_purpose_code IS DISTINCT FROM o.basis->>'purposeCode') THEN CONTINUE;END IF;
