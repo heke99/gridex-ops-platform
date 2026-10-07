@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="49" failures="0" errors="0" time="254.209165932">
+    <testsuite name="scripts/ediel-at-z14n-esco-native.test.ts" timestamp="2026-10-06T22:40:02.789Z" hostname="runnervm8df0l" tests="19" failures="0" errors="0" skipped="0" time="76.884216122">
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="real A13 N response records rejected_active, sends correlated positive processing ACKs and leaves access/reporting denied" time="4.910451511">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="real A76 N response records rejected_passive_timeout, sends correlated positive processing ACKs and leaves access/reporting denied" time="4.364552476">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 311 never denies the request or grants access/reporting" time="3.344855884">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 312 never denies the request or grants access/reporting" time="3.970419777">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 202 never denies the request or grants access/reporting" time="2.885025843">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 203 never denies the request or grants access/reporting" time="3.847746563">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 313 never denies the request or grants access/reporting" time="3.90742254">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 205 never denies the request or grants access/reporting" time="3.816397267">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 206 never denies the request or grants access/reporting" time="3.859639413">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 207 never denies the request or grants access/reporting" time="3.467791384">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 208 never denies the request or grants access/reporting" time="3.290232997">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 314 never denies the request or grants access/reporting" time="3.354663193">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 223 never denies the request or grants access/reporting" time="3.388359718">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 322 never denies the request or grants access/reporting" time="4.470292693">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N source independently omitting required field 226 never denies the request or grants access/reporting" time="3.764541445">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N refuses wrong current LI with pending permission, unrelated tenant and reporting unchanged" time="5.87810183">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N refuses wrong current legal_receiver with pending permission, unrelated tenant and reporting unchanged" time="5.692282979">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="actual N refuses wrong current market_role with pending permission, unrelated tenant and reporting unchanged" time="5.570587494">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z14n-esco-native.test.ts" name="N outbound direction and actual raw/direction mutations refuse before denial/access/report effects" time="3.09888952">
+        </testcase>
+    </testsuite>
+    <testsuite name="scripts/ediel-at-z15c-z18v-esco-native.test.ts" timestamp="2026-10-06T22:40:02.791Z" hostname="runnervm8df0l" tests="11" failures="0" errors="0" skipped="0" time="93.625597253">
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="unsolicited received Z15 then exact Z15C restores only its market permission, with genuine own ACKs and a still-revoked grant" time="5.138745129">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign LI cannot restore the real ended permission or emit positive APERAK" time="4.212310186">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign Z09 cannot restore the real ended permission or emit positive APERAK" time="4.04377315">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign object cannot restore the real ended permission or emit positive APERAK" time="3.94363285">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="Z15C foreign DTM164 cannot restore the real ended permission or emit positive APERAK" time="4.021074622">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="every required common/own/UD Z15C omission reaches its actual syntax/guide/field barrier without market, grant or positive APERAK effects" time="44.218719915">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual Z15C consumer refuses foreign tenant/actor selectors and native source raw/direction mutation before restoring the unchanged qualified original" time="5.079796464">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual current legal role prevents Z15C restoration and positive APERAK after a genuine prior received ending" time="4.040220141">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual ESCO terminate command protects a shared active mission then sends its source-qualified Z18 and consumes physical ACKs and matching Z15" time="11.05560507">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="actual Z18 origination rejects a foreign tenant actor and a missing current legal ESCO role before any wire or provider effect" time="2.971270018">
+        </testcase>
+        <testcase classname="scripts/ediel-at-z15c-z18v-esco-native.test.ts" name="every required common/own/UD Z18V omission is rejected by the actual registry and send consumer without modifying the queued original or entering SMTP" time="4.89897787">
+        </testcase>
+    </testsuite>
+    <testsuite name="scripts/ediel-tr-05-recovery-native.test.ts" timestamp="2026-10-06T22:40:02.793Z" hostname="runnervm8df0l" tests="19" failures="0" errors="0" skipped="0" time="83.699352557">
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="received contrl drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged" time="5.632198852">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="received aperak27 drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged" time="4.913734296">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="received aperak34 drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged" time="5.084437468">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="actual correction preparation denies omitted/foreign objects and a prepared correction cannot queue after current actor revocation" time="4.03005428">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="a genuinely observed SMTP rejection permits one actual worker retry and preserves the previous attempt and archived original" time="3.609583955">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="a queued definite-loss retry rechecks actual revoked network-source authority before worker provider entry" time="3.224277946">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="a prepared correction cannot queue after its actual current network source is withdrawn" time="3.772194616">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="fresh correction finalization denies a retired actual guide activation after a qualified negative ACK" time="3.69759733">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="a prepared correction consumes current public mandate authority and cannot send after the actual POA is revoked" time="4.129633779">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="an actual provider-entered unobserved attempt and expired timer cannot grant retry authority" time="3.174070406">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="the actual sweep of a declared expired public SLA row cannot create recovery/outbox/provider effects for absent, accepted, foreign-mixed or uncertain attempts" time="12.46527838">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="a real after-DATA unknown worker result is retained and worker restart cannot resend or authorize recovery" time="3.163578759">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="an expired actual pre-entry worker lease is held and its stale identity cannot enter SMTP" time="2.934306505">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="lease expiry while the real worker awaits SMTP cannot re-enter, and its late accepted receipt only reconciles the same original" time="3.210445392">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="an actual accepted journal survives failed DB projection and repairs with its frozen clock without another SMTP call" time="3.27607624">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="an unswept expired genuine claim cannot reach the provider with its old worker identity" time="3.313225535">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="a genuine worker blocked on its claimed row cannot enter SMTP when its lease expires during the lock wait" time="5.440383632">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="fresh queued correction rechecks current actor before worker provider entry" time="4.225653031">
+        </testcase>
+        <testcase classname="scripts/ediel-tr-05-recovery-native.test.ts" name="fresh queued correction rechecks current network_source before worker provider entry" time="4.401007263">
+        </testcase>
+    </testsuite>
+</testsuites>

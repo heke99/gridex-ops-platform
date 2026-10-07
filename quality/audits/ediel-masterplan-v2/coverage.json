@@ -4049,8 +4049,20 @@
     },
     {
       "id": "AT-Z14N-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z14n-esco-profile.test.ts",
+        "scripts/ediel-at-z14n-esco-native.test.ts",
+        "scripts/fixtures/ediel-service-evidence-native.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "lib/ediel/services/administration.ts",
+        "lib/ediel/core/kernel.ts",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/original-artifact.zip",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/native-junit.xml",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/artifact-metadata.json",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/qualification.json"
+      ]
     },
     {
       "id": "AT-Z15C-ESCO",
