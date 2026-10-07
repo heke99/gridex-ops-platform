@@ -8,6 +8,10 @@ on:
       - 'scripts/test-ediel-z01-info-request-status-compatibility.cjs'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/helpers/**'
+      - 'scripts/lib/**'
+      - 'scripts/fixtures/**'
+      - 'scripts/supabase-types-manifest.json'
+      - 'config/**'
       - 'scripts/gridex-aud-003-*'
       - 'scripts/gridex-redact-native-evidence.py'
       - 'scripts/migration-history-manifest*.json'
@@ -91,6 +95,7 @@ jobs:
               'scripts/migration-history-manifest.json',
               'scripts/migration-history-manifest.additions.json',
               'scripts/migration-history-manifest.runtime.additions.json',
+              'scripts/supabase-types-manifest.json',
               '__tests__/fixtures/prodat-register.ts',
               '__tests__/helpers/sourceOwnerFixtures.ts',
               'e2e/production/helpers/swedish-organization-number.mjs',
@@ -98,17 +103,27 @@ jobs:
               'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
               'quality/audits/ediel-masterplan-v2/coverage.json',
               'supabase/config.toml', 'supabase/database.types.ts',
+              'supabase/schema.fingerprint.json',
               'package.json', 'package-lock.json',
           ]
           assert len(required) == len(set(required)), 'duplicate_required_input'
-          tracked = set(subprocess.check_output([
-              'git', 'ls-tree', '-r', '--name-only', '-z', 'HEAD'
-          ]).decode().rstrip('\0').split('\0'))
+          tracked = {}
+          for entry in subprocess.check_output([
+              'git', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD'
+          ]).split(b'\0'):
+              if not entry:
+                  continue
+              header, raw_path = entry.split(b'\t', 1)
+              mode, kind, oid = header.decode().split()
+              path = raw_path.decode()
+              assert path not in tracked, 'duplicate_tracked_input'
+              tracked[path] = {'mode': mode, 'type': kind, 'oid': oid}
           assert set(required) <= tracked, 'required_input_missing_from_head'
           def consumed(path):
               return (
-                  path.startswith(('lib/', 'types/', 'e2e/production/helpers/', '__tests__/helpers/'))
+                  path.startswith(('lib/', 'types/', 'config/', 'e2e/production/helpers/', '__tests__/helpers/'))
                   or path.startswith('scripts/helpers/')
+                  or path.startswith(('scripts/lib/', 'scripts/fixtures/'))
                   or path.startswith('supabase/') and path.endswith(('.sql', '.ts', '.tsx', '.toml'))
                   or path.startswith('scripts/sql/') and path.endswith('.sql')
                   or path.startswith('scripts/gridex-aud-003-')
@@ -119,19 +134,27 @@ jobs:
               )
           paths = sorted(set(required) | {p for p in tracked if consumed(p)})
           assert len(paths) == len(set(paths)), 'duplicate_receipt_input'
-          hashes = {}
+          hashes, git_inputs = {}, {}
           # A single Git batch process keeps the comprehensive input set bounded.
           with subprocess.Popen(['git', 'cat-file', '--batch'], stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE) as objects:
               for path in paths:
+                  identity = tracked[path]
+                  assert identity['type'] == 'blob' and identity['mode'] in {'100644', '100755'}, 'regular_committed_input_required: ' + path
+                  working = pathlib.Path(path)
+                  assert not working.is_symlink() and working.is_file(), 'regular_working_input_required: ' + path
+                  executable = bool(working.stat().st_mode & 0o111)
+                  assert executable == (identity['mode'] == '100755'), 'original_input_mode_drift: ' + path
                   objects.stdin.write(('HEAD:' + path + '\n').encode())
                   objects.stdin.flush()
                   header = objects.stdout.readline().split()
                   assert len(header) == 3 and header[1] == b'blob', 'committed_blob_required'
+                  assert header[0].decode() == identity['oid'], 'committed_input_oid_drift: ' + path
                   original = objects.stdout.read(int(header[2]))
                   assert objects.stdout.read(1) == b'\n', 'git_batch_delimiter_required'
-                  assert pathlib.Path(path).read_bytes() == original, 'original_input_drift: ' + path
+                  assert working.read_bytes() == original, 'original_input_drift: ' + path
                   hashes[path] = hashlib.sha256(original).hexdigest()
+                  git_inputs[path] = identity
               objects.stdin.close()
               assert objects.wait() == 0, 'git_input_hashing_failed'
           receipt = {
@@ -144,6 +167,7 @@ jobs:
               'workflow_job': os.environ['GITHUB_JOB'],
               'test_scope': test_scope,
               'input_sha256': hashes,
+              'input_git_identity': git_inputs,
               'input_count': len(hashes),
               'input_hash_origin': 'HEAD original Git object bytes; every working input verified before canonical replay',
               'native_execution': 'NOT_RUN', 'native_observation': 'NOT_RUN',
