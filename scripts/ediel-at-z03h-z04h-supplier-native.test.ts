@@ -539,10 +539,18 @@ async function reread(f:Fixture,control:Awaited<ReturnType<typeof ready>>) {
 }
 async function actualIncomingOmission(f:Fixture,original:Original,field:string,complete:string,control:Awaited<ReturnType<typeof ready>>) {
   expect(control.message.raw_payload).toBe(complete)
-  await reread(f,control)
+  await observedStage(`critical_negative_${field}_control_reread`,()=>reread(f,control))
   const originalBefore=sealed(original.id), controlBefore=sealed(control.message.id)
-  const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f), received=await intake(f,malformed,'test',field==='312')
+  const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f), received=await observedStage(`critical_negative_${field}_public_intake`,()=>intake(f,malformed,'test',field==='312'))
   if(received.id===null) {
+    console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify({stage:'critical_negative_public_intake_returned_no_source',field,
+      capturedErrorCount:received.birthErrors.length,parserFamilyProdat:received.mailbox.parsed.messageFamily==='PRODAT',
+      parserCodeZ04:received.mailbox.parsed.messageCode==='Z04',parserCodeUnknown:received.mailbox.parsed.messageCode==='PRODAT_UNKNOWN',
+      errors:received.birthErrors.slice(0,10).map(error=>{
+        const own=record(error),code=own.code,message=String(own.message??''),guard=message.split(':')[0]
+        return {code:typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code)?code:null,
+          guard:['canonical_inbound_rule_profile_resolution_failed','ediel_inbound_legal_context_required','ediel_historical_rule_pack_basis_unavailable'].includes(guard)?guard:null}
+      })}))
     // No fabricated canonical source for a missing family/code/tenant header.
     // The positive before/after source and exact physical omission constrain
     // the actual first public owner; unrelated arbitrary errors never qualify.
@@ -568,30 +576,30 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
     }
   } else {
     expect(received.id).not.toBe(control.message.id)
-    const message=(await getEdielMessageById(received.id))!
+    const message=(await observedStage(`critical_negative_${field}_read_born_message`,()=>getEdielMessageById(received.id!)))!
     expect(message.raw_payload).toBe(malformed); expect(record(message).immutable_payload_hash).toBe(digest(malformed))
-    const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+    const decision=await observedStage(`critical_negative_${field}_canonical_decision`,()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
     expect(decision.applicationDecision,JSON.stringify(decision)).not.toBe('accepted')
     const fieldError=decision.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field)
     if(!fieldError) {
       expect(['311','312','202','207','208','223','226','209','210','260']).toContain(field)
-      expect(await readSourceQualifiedProdatBilateralCapability(message)).toBeNull()
+      expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
       expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
     }
-    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id})
-    const acks=await listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'})
+    await observedStage(`critical_negative_${field}_actual_processor`,()=>processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id}))
+    const acks=await observedStage(`critical_negative_${field}_list_physical_ack`,()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
     expect(acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
     if(fieldError) {
       // National refusal is not credited from a separately recomputed plan:
       // any prescribed negative APERAK must exist as protected physical bytes.
       if(decision.responsePlan.some(p=>p.family==='APERAK'&&p.outcome==='negative')) {
-        await negativeAcknowledgement(f,message,decision,field)
+        await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,decision,field))
       }
     }
   }
   expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(originalBefore)
   // The control was not applied and must remain the same immutable source.
-  expect(sealed(control.message.id)).toEqual(controlBefore); await reread(f,control)
+  expect(sealed(control.message.id)).toEqual(controlBefore); await observedStage(`critical_negative_${field}_final_control_reread`,()=>reread(f,control))
 }
 async function actualOutboundOmission(f:Fixture,original:Original,field:string,malformed:string) {
   const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
