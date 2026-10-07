@@ -16,6 +16,7 @@ import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {extractSmimeDer} from '@/lib/ediel/transport/smimeTransportArchive'
 import {inspectCmsRecipientCertificateSet} from '@/lib/ediel/transport/cmsRecipientSet'
+import {resolveEdielCertificateTrustAuthority} from '@/lib/ediel/security/certificateTrust'
 import {literal, nativeSql as sql, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {recordOriginalMailboxNativeReception, seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {publishSyntheticRecipientTrust} from './helpers/syntheticCertificateTrust'
@@ -33,6 +34,11 @@ const rpc = supabaseService.rpc.bind(supabaseService) as unknown as
 type Json = Record<string, unknown>
 const targetHold = 'transport_exception_actual_approved_plaintext_source_required'
 let prepareRequests = 0
+let observedPrepareInput: Json | null = null
+function capturePrepareInput(input: Json) {
+  expect(observedPrepareInput).toBeNull()
+  observedPrepareInput = structuredClone(input)
+}
 const errorMessage = (error: unknown) => error instanceof Error ? error.message :
   typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : String(error)
 
@@ -40,8 +46,13 @@ beforeEach(() => {
   provider.send.mockReset(); provider.options.mockReset()
   provider.send.mockImplementation(async () => {throw new Error('TR09_production_native_unexpected_provider_entry')})
   prepareRequests = 0
+  observedPrepareInput = null
   vi.spyOn(supabaseService, 'rpc').mockImplementation(((name: string, args: Record<string, unknown>) => {
-    if (name === 'gridex_ediel_transport_attempt_v1' && (args.p_input as Json | undefined)?.action === 'prepare') prepareRequests++
+    const input = args.p_input as Json | undefined
+    if (name === 'gridex_ediel_transport_attempt_v1' && input?.action === 'prepare') {
+      prepareRequests++
+      capturePrepareInput(input)
+    }
     return rpc(name, args)
   }) as typeof supabaseService.rpc)
   for (const [key, value] of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid',
@@ -162,6 +173,60 @@ async function observedSend(s: Fixture, mimeMode?: string) {
   try {return {result: await sendEdielMessageViaSmtp(s.ack, {actorUserId: s.f.actorUserId, smtpMimeMode: mimeMode}), error: null}}
   catch (error) {return {result: null, error}}
 }
+async function assertEncryptedPreparationArchive(s: Fixture, prior: ReturnType<typeof before>, label: string) {
+  // The actual sender archives these bytes before its private prepare RPC.
+  // This preparation proof supplies no activation or provider acceptance.
+  expect(prepareRequests).toBe(1)
+  expect(observedPrepareInput).toMatchObject({companyId: s.f.companyId, environment: 'production',
+    messageId: s.ack.id, actorUserId: s.f.actorUserId, action: 'prepare'})
+  const binding = observedPrepareInput!.binding as Json
+  expect(binding).toMatchObject({mode: 'raw', mimeMode: 'ediel-smime-enveloped',
+    originalHash: sha(s.ack.raw_payload!), technicalSyntaxAckEvidence: s.evidence, sourceRulePackEvidence: null})
+  expect(typeof binding.rawBase64).toBe('string')
+  const previousIds = new Set(prior.archives.map(row => row.id))
+  const fresh = archives(s).filter(row => !previousIds.has(row.id) && row.ediel_message_id === s.ack.id && row.payload_kind === 'smime_enveloped')
+  expect(fresh).toHaveLength(1)
+  const snapshot = fresh[0], metadata = snapshot.metadata as Json
+  expect(snapshot).toMatchObject({id: binding.mimePayloadSnapshotId, company_id: s.f.companyId,
+    ediel_message_id: s.ack.id, payload_kind: 'smime_enveloped', raw_payload: null, raw_payload_hash: null,
+    encryption_mode: 'smime', certificate_fingerprint: s.trust!.fingerprint, certificate_fingerprint_sha256: s.trust!.fingerprint})
+  const expectedPath = `transport/${s.f.companyId}/${s.ack.id}/${binding.mimeSha256}.eml`
+  expect(binding.mimeArchiveRef).toBe(`storage://ediel-files/${expectedPath}`)
+  expect(snapshot.encrypted_payload_ref).toBe(binding.mimeArchiveRef)
+  const downloaded = await supabaseService.storage.from('ediel-files').download(expectedPath)
+  expect(downloaded.error).toBeNull(); expect(downloaded.data).not.toBeNull()
+  const raw = Buffer.from(await downloaded.data!.arrayBuffer()), der = extractSmimeDer(raw)
+  expect(raw).toEqual(Buffer.from(binding.rawBase64 as string, 'base64'))
+  expect(sha(raw)).toBe(binding.mimeSha256)
+  expect(raw.length).toBe(binding.mimeLength)
+  const headers = raw.toString('ascii').split(/\r?\n\r?\n/, 1)[0].replace(/\r?\n[ \t]+/g, ' ')
+  const messageIds = headers.split(/\r?\n/).filter(line => /^message-id:/i.test(line))
+  expect(messageIds).toHaveLength(1)
+  const rfcMessageId = messageIds[0].slice('message-id:'.length).trim()
+  expect(rfcMessageId).toMatch(/^<[^\s<>]+>$/)
+  expect(rfcMessageId).toBe(binding.rfcMessageId)
+  expect(metadata).toMatchObject({mimeMode: 'ediel-smime-enveloped', archive_bucket: 'ediel-files',
+    archive_path: expectedPath, archive_verified: true, archived_mime_sha256: sha(raw), archived_mime_bytes: raw.length,
+    archived_rfc_message_id: rfcMessageId, archived_encrypted_payload_sha256: sha(der),
+    encryptedPayloadSha256: sha(der), encryptedPayloadLength: der.length,
+    expected_receiver_certificate_id: s.certificateId, expected_receiver_certificate_fingerprint: s.trust!.fingerprint,
+    cmsExpectedReceiverPresent: true})
+  const authority = await resolveEdielCertificateTrustAuthority({companyId: s.f.companyId,
+    environment: 'production', receiverEdielId: s.f.receiver})
+  expect(authority).toMatchObject({companyId: s.f.companyId, environment: 'production', receiverEdielId: s.f.receiver,
+    registrationId: s.trust!.registrationId, recipientFingerprints: [s.trust!.fingerprint]})
+  expect(typeof authority!.registerVersion).toBe('string'); expect(authority!.registerVersion).not.toBe('')
+  expect(metadata.sourceRecipientTrustEvidence).toMatchObject({verified: true,
+    registrationId: s.trust!.registrationId, registerVersion: authority!.registerVersion, leafFingerprint: s.trust!.fingerprint})
+  expect(sql(`SELECT to_jsonb(c.company_id=${literal(s.f.companyId)}::uuid AND c.environment='production'
+    AND c.owner_ediel_id=${literal(s.f.receiver)} AND c.fingerprint_sha256=${literal(s.trust!.fingerprint)}
+    AND c.public_certificate_pem=${literal(s.trust!.leafPem)}) FROM public.ediel_certificates c WHERE c.id=${literal(s.certificateId)}`)).toBe(true)
+  expect(inspectCmsRecipientCertificateSet({encryptedDer: der, recipientCertificatePems: [s.trust!.leafPem]}))
+    .toMatchObject({expectedReceiverPresent: true, recipientCount: 1})
+  expect(raw.includes(Buffer.from(s.ack.raw_payload!, 'latin1'))).toBe(false)
+  console.info('TR09 production archive preparation', {case: label, archivePhase: 'PASS',
+    privatePrepareObserved: true, intendedRecipientCount: 1, providerCalls: provider.send.mock.calls.length})
+}
 function reach(s: Fixture, label: string, error: unknown) {
   // No raw MIME, wire, customer rows, credentials or authority payloads logged.
   const gate = sql<Json>(`SELECT to_jsonb(d) FROM public.canonical_tenant_operation_decision(${literal(s.f.companyId)},'ediel.production.send') d`)
@@ -197,6 +262,7 @@ it('production-born CONTRL actual public prepare rejects an adversarial plaintex
     const input = args.p_input as Json | undefined
     if (name === 'gridex_ediel_transport_attempt_v1' && input?.action === 'prepare') {
       prepareRequests++
+      capturePrepareInput(input)
       preparation.input = structuredClone(input)
       preparation.prior = before(s)
       // Forward the real request. Alter only the adversarial caller MIME
@@ -211,6 +277,7 @@ it('production-born CONTRL actual public prepare rejects an adversarial plaintex
   if (preparation.prior) {preserved(s, preparation.prior, true); expect(archives(s)).toEqual(preparation.prior.archives)}
   expect(preparation.input).not.toBeNull()
   expect(preparation.input?.binding).toMatchObject({mimeMode: 'ediel-smime-enveloped', technicalSyntaxAckEvidence: s.evidence})
+  await assertEncryptedPreparationArchive(s, prior, 'actual-prepare-adversarial-binding')
   expect(actual.result).toBeNull()
   expect(errorMessage(actual.error)).toBe(targetHold)
 })
@@ -236,6 +303,7 @@ for (const mode of [undefined, 'ediel-smime-enveloped']) {
     const actual = await observedSend(s, mode)
     reach(s, `smime-${mode ?? 'default'}`, actual.error)
     preserved(s, prior, actual.error !== null)
+    await assertEncryptedPreparationArchive(s, prior, `smime-${mode ?? 'default'}`)
     // Keep the positive oracle strict when an earlier genuine production gate
     // blocks entry. Later certificate/receipt/retry proof is then NOT_REACHED.
     expect(actual.error).toBeNull()

@@ -14,7 +14,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {createEdielMessage, createEdielTestRun, getEdielMessageById} from '@/lib/ediel/db'
 import * as messageDb from '@/lib/ediel/db'
 import {createEdielSupplierAgtOutboundCommand} from '@/lib/ediel/testing/agtEngine'
-import {getEdielAgtRouteName} from '@/lib/ediel/testing/agtRegistry'
+import {EDIEL_AGT_APPROVAL_VERSION_2026A, getEdielAgtRouteName, isEdielAgtRunApprovalVersion} from '@/lib/ediel/testing/agtRegistry'
 import {saveEdielSystemTestSettings} from '@/lib/ediel/systemTestSettings'
 import {buildContrlDraft} from '@/lib/ediel/ack'
 import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
@@ -214,8 +214,12 @@ async function agtOriginal(f: {companyId: string; actorUserId: string; profileId
   // Actual public run creation captures current configuration. No seeded
   // locked-run, certification/approval result or fabricated ready decision.
   const run = await createEdielTestRun({companyId: f.companyId, actorUserId: f.actorUserId, testSuite: 'PRODAT', roleCode: 'supplier',
-    actorRole: 'supplier', messageFamily: 'PRODAT', businessCode: 'Z09', testCaseCode: 'L7', approvalVersion: 'AGT 2026A', status: 'running',
+    actorRole: 'supplier', messageFamily: 'PRODAT', businessCode: 'Z09', testCaseCode: 'L7', approvalVersion: EDIEL_AGT_APPROVAL_VERSION_2026A, status: 'running',
     startedAt: new Date().toISOString(), routeProfileId: f.profileId, environmentType: 'agt_test', encryptionMode: 'none'})
+  expect(run).toMatchObject({company_id: f.companyId, test_suite: 'PRODAT', test_case_code: 'L7', role_code: 'supplier',
+    approval_version: EDIEL_AGT_APPROVAL_VERSION_2026A, status: 'running', route_profile_id: f.profileId,
+    environment: 'test', environment_type: 'agt_test', created_by: f.actorUserId})
+  expect(isEdielAgtRunApprovalVersion(run.approval_version)).toBe(true)
   expect(run.route_profile_id).toBe(f.profileId)
   const command = () => createEdielSupplierAgtOutboundCommand({companyId: f.companyId, actorUserId: f.actorUserId, testRunId: run.id, testCaseCode: 'L7', balanceResponsibleEdielId: '99876'})
   if (phase === 'current') {
