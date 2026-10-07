@@ -1,3 +1,13 @@
+## Actual campaign observation — 2026-10-07T12:37:33.769902+00:00
+
+Resumed own A/D duty, qualified current artifacts/reviews, merged656, released merge-role FIRST/all21 technical refs, reserved independent common closeout and adopted delivered663 immutably.
+
+Actual main 0ecf9c60812dea2654da13d0a6ce112c650a0fe4; **115 VERIFIED rules +185 PASSED contracts =300/352;52 remain**. Actual A/D656 delivery5b/source0ce and source-only663 are separate; resulting-main runtime/deployment/external acceptance NOT_VERIFIED. Receipts6037593233/6037786738.
+
+Own MERGED checkpoint6037593233; merge-role501a actual404 FIRST; all21 technical release6037786738. Role-memory+ten commonfiles c947/f6c8d7dc CLAIM6037712691; immutable currentmain663 adoption and retained664 responsibility assessment6037972590. No source/SQL/GEN/coverage/foreign checkpoint authorship.
+
+Earlier dated entries below are historical. This own metadata update is proposed; current-head review/CI/delivery remain required.
+
 ## Actual campaign observation — 2026-10-07T02:40:35.459682+00:00
 
 Observed actual main 1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a (tree 45ea1533702665b11b8f1a7eafeef96162d14227), coverage SHA256 31fc286d62354e9632d576c4b5cc40f04b76ef112887e5ba241b34418bdd402e: **115/121 VERIFIED rules + 180/231 PASSED contracts = 295/352; 57 remain**. Actual PR #629 delivered ed7c0980 from4b131b8a with nineteen non-skipped source checks SUCCESS and its two E contracts accepted in main. PR #651 merged at2026-10-07T02:36:55Z frombfa77190; exactparents ed7c0980+bfa77190 and exact reviewed tree45ea153 authenticated. Its scoped cleanup and dated636/released649/645 metadata are delivered; no ID is promoted by651. Earlier dated snapshots and the old GEN213222 missing-column blocker are SUPERSEDED by these actual observations.
