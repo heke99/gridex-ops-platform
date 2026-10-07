@@ -4,6 +4,7 @@ import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
 import {prodatErrorOccurrence,validProdatWireDiagnostic} from './prodatFieldDiagnostic'
 import {prodatHeaderFieldRejection} from './prodatHeaderDateRejection'
 import {isProdatIdentityOmissionScope} from './prodatIdentityOmissionScope'
+import {hasProdatRejectedIdentityDiagnostic} from './prodatRejectedIdentityScope'
 import type {ProdatAckObjectScope} from '@/lib/ediel/ack/sourceCorrelation'
 import type {AperakEngineApplicationError,AperakEngineOutcome} from '@/lib/ediel/aperakEngine'
 
@@ -126,9 +127,12 @@ export function prodatAckObjectScopes(params:{
    // Field209's sole matrix/subtype owner may permit an absent identity.
    // Such a negative scope is still its actual first LIN and unique own LI;
    // two absent identities never become one global null object or fake Z07.
+   // Required invalid Z05 identities need their separate typed209 rejection.
    const qualifiedIdentity=firstGroup&&(firstGroup.itemId
     ?first.filter(candidate=>candidate.itemId===firstGroup.itemId&&candidate.identityAgency===firstGroup.identityAgency).length===1
-    :isProdatIdentityOmissionScope(sourceCode,firstGroup,sourceWire.una)&&uniqueOwn(actual.lineItemReference))
+    :(isProdatIdentityOmissionScope(sourceCode,firstGroup,sourceWire.una)
+      || hasProdatRejectedIdentityDiagnostic({code: sourceCode, group: firstGroup,
+        rawSegments: sourceWire.segments.map(token=>token.raw), una: sourceWire.una}, error.prodatFieldDiagnostic))&&uniqueOwn(actual.lineItemReference))
    if(!firstGroup||firstGroup.registerPosition!==1||!qualifiedIdentity
     ||(actual.lineItemReference?!uniqueOwn(actual.lineItemReference):actual.ownReferences?.lineItemReference.kind!=='absent'))throw new Error('aperak_prodat_requested_scope_unqualified')
    return scopeFor(firstGroup)
