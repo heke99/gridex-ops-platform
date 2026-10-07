@@ -841,3 +841,14 @@ Operational transport substitution explicitly recorded: injected gh REST credent
 
 All 36 technical ID/file reservations remain held by this packet. Current role-merge absent; foreign role-memory aebf6520cdc2cb1cb43a5c6aedfeec704c430c25 remains untouched. Next root action: atomically acquire own fresh role-merge receipt, reread current main/head/checks/rows, normal expected-head merge647, document actual main commit and PR, then exact-owner release. No admin bypass. V PR644 and seven-path A/R210 producer remain current independent work; no new rule pair.
 
+
+
+### 2026-10-07T07:31:16.370299+00:00 — docs(ediel): record actual SC014 PR647 main delivery
+MERGED — SC-014 — codex-aa4f29d3-c65.
+
+PR647 https://github.com/heke99/gridex-ops-platform/pull/647 actually merged by ordinary expected-head merge, head 4b95a592a2db6b3df8ed57fb45dfeb2cfe20825f. Actual main commit 9bffe292813c23ec61efadd79d12f6bd072f7c6f, tree 6682a17306a5b2a3ee863fae2f013da241105382, parents previous actual main edf0b9d241b2d07c48209ec8ba62f43150543cfa and exact reviewed4b95. Official fresh PR/main/Git commit readback confirms merged. Actual tree equals reviewed conflict-free composition; every foreign row/P01 file postimage and own whole SC-014 PASSED preserved. Current delivered census 115/121 rules and 182/231 contracts = 297/352; 55 remain. This is actual main delivery; no external market acceptance invented.
+
+Current original SC24 PASS and all ten mandatory SUCCESS plus two independent whole/source reviews are bound to merged exact PR head. Role receipt 92b26a78b1767b2889a0bb8f57559d19f5178245 held through actual merge/documentation; next root action is fresh matching official GET then explicit exact-own SHA lease release. Foreign memory-role owner remains untouched; shared status update handed to that owner via campaign receipt. All 36 technical reservations retained for V delivery and immutable cooperative producer handoffs; no new pair.
+
+V PR644 exactde7 has authenticated current native72 PASS and whole/source approval; mandatory clean/certificate must finish, then compose actual SC main preserving all active1099 migration history/GEN/foreign rows and freshly verify the resulting current head. Actor producer a1cf2b549ba5a8968bbd56db7fd43dedfad91a9d is published immutable3postimage handoff to rightful95. A/R210 seven-path producer continues under documented GO, with genuine additional actor-order RED before correction; full actual negative SQL/ACK/native acceptance remains required.
+
