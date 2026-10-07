@@ -948,7 +948,7 @@ async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Or
   const values=typeof cav[1]==='string'?[cav[1]]:[...cav[1]]
   const invalidParts=parts.map((p,i)=>i===valueIndex?['CAV',['E22',...values.slice(1)],...p.slice(2)] as Parts:p)
   const invalid="UNA:+.? '"+invalidParts.map(render).join("'")+"'"
-  expect(rawParts(invalid)).toEqual(parts.map((p,i)=>i===valueIndex?['CAV',['E22',...values.slice(1)],...p.slice(2)]:p))
+  expect(rawParts(invalid)).toEqual(parts.map((p,i)=>i===valueIndex?['CAV',values.length===1?'E22':['E22',...values.slice(1)],...p.slice(2)]:p))
   expect("UNA:+.? '"+rawParts(invalid).map((p,i)=>render(i===valueIndex?cav:p)).join("'")+"'").toBe(valid)
   const received=await observedStage('invalid306_actual_public_intake',()=>intake(f,invalid))
   expect(received.tenant).toMatchObject({status:'resolved',companyId:f.companyId})
