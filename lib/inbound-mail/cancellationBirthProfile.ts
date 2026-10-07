@@ -21,6 +21,8 @@ export async function resolveCancellationBirthProfile(input: {
     return own.length === 1 ? segments.indexOf(own[0]) : -1
   })
   if (positions.some((position, index) => position < 0 || index > 0 && position <= positions[index - 1])) return null
+  const messageType = segmentComposite(segments[positions[1]], 2, una)
+  if (messageType.length !== 5 || messageType.some((part, index) => part !== ['PRODAT', 'D', '97A', 'UN', 'E2SE6A'][index])) return null
   if (segments.some((token, index) => token.tag === 'LIN' && (index <= positions[2] || index >= positions[3]))) return null
   const grouped = prodatRegisterGroups(segments, una, input.messageCode)
   if (!grouped.groups.length || grouped.problems.length || !grouped.groups.every(group => {
