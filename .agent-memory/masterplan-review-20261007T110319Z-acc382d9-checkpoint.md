@@ -1379,3 +1379,125 @@ Concrete next2f/b6: freeze actual selected SQL+driver/helper/head/tree; reuse ex
 ```
 
 Next: refresh paginated530 (page25 nowactive), own reviewed heads andnamed owner receipts; pick next nonduplicated review or document precise unavailable scope/owner/resumption.
+
+
+## SC047 ready retained case: existing execution evidence request
+
+SC047 READY EXISTING-PROOF HANDOFF / review-acc382→retained joined-native author +95; closes6039214471. WholeSC047 stillPARTIAL/main0ec300, no custody/coverage transfer. Exactexisting scripts/ediel-utilts-err-gateway-native.test.ts SHA bdc94d64720fe820c89bbfeb327a9d06c937226bbc77d127fd5be3d270b8f866, joinedcase201–272. Literal map complete in source: actual syntax +zero nonfunctional national errors, legaltenant receiver/role &require-contextRPC; own0foreign1 physicalobject, functionalE10 onlycorrectE01 withcopiedsource7/E88, TN+reservedfinalERR/no acceptedseries/contracts/APERAK/sinks fornegative, ownphysicalpositivecontrast+positiveCONTRL, bothtenantmasterdata/foreignsource unchanged, replayexactACK/outbox/receipts/reservations/masterdata. Explicitmeter/billing/completionIO doubles retained; nativeSQL/dispatcher/ACK/storage real. No source-level missingliteral clause found; execution/whole approval NOT inferred.
+All17 compared relevant source/tree/SQL/package/helper inputs EXACT source6560ce626981423dc077e9c5ab36043dad74649e06a→actualmain0ecf: entirelib/ediel, fullSQLtree, rawschema/types, packagepair, exactnativefile, originalmail/issuer/decision/UTILTSfixture, CIS/billing/meter ports/mailpoller. Delivered663 onlychanged inboundStatusUpdater creator branch to resolve PRODATZ04/Z05 cancellations; joinedSC047 uses original nativeSQLinsert+realmailreception/processor, notthatcreator. Newbranch family/code excludes UTILTSE66 even ifcreatorwerecalled; no executed-source relabeling/currentmain native claim. Existingactualsource656qualifiedclean proof may therefore be relevant, after ownerchecks its directcurrent-case/source bindings; no reflexive fullnative rerun just torediscover unchangedcase.
+Concrete next95/original joined-native owner: reuse YOUR ALREADY-authenticated #656 clean rawJUnit/qualification for this exact file/case and return finite source0ce/run/job/artifact/casePASS/directnativeexit identity from the existing report (not a second ZIPdownload/CIreader). If case absent/notqualified, document exactmissingproof and ONE necessary currentnative scope; no old592641d allSTS E88/E10 failure aspass. Then originalcustodian verifies whole frozenSC047, authentic reached effects/noeffects and currentcompatibility/requiredgates, explicitlyfreshclaim onlyitsrow/scopedhandoff where needed, taggedbehavior+coveragecurrent-approved evidence and expected-head merge protocol. Rowcurrently lists onlycomponenttests/engine/matcher; taggedgreen/componentreview alone insufficient. This is a ready retained whole-review/row delivery candidate if genuineexistingdirectproof closesexecution, notnew product/harness work. Original588/FG/source parents andallactiveH/L/C/GEN packet owners untouched. No tests/fullruns/native/CI/artifact qualification or source/coverage edit by reviewer.
+
+```json
+{
+  "source656": "0ce626981423dc077e9c5ab36043dad74649e06a",
+  "currentMain": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+  "exact17Paths": [
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "source656OID": "6292160a16e725178646023a1e8d9c411ea836fb",
+      "mainOID": "6292160a16e725178646023a1e8d9c411ea836fb",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel",
+      "source656OID": "dc49b31a8c029c30108fb0a1c77195b3305a973e",
+      "mainOID": "dc49b31a8c029c30108fb0a1c77195b3305a973e",
+      "equal": true
+    },
+    {
+      "path": "lib/ediel/calendar",
+      "source656OID": "05942931e12694e075912d86ab76f86b19556822",
+      "mainOID": "05942931e12694e075912d86ab76f86b19556822",
+      "equal": true
+    },
+    {
+      "path": "supabase/migrations",
+      "source656OID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47",
+      "mainOID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47",
+      "equal": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "source656OID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "mainOID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "equal": true
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "source656OID": "1a4981e0090adedb91a6e448486e4368b9f4bd27",
+      "mainOID": "1a4981e0090adedb91a6e448486e4368b9f4bd27",
+      "equal": true
+    },
+    {
+      "path": "package.json",
+      "source656OID": "bf3a30b706a96bacf8dbcf158ed99ae405881689",
+      "mainOID": "bf3a30b706a96bacf8dbcf158ed99ae405881689",
+      "equal": true
+    },
+    {
+      "path": "package-lock.json",
+      "source656OID": "0e19ad13ea476c169f63f0cb8f6c4d2164c13847",
+      "mainOID": "0e19ad13ea476c169f63f0cb8f6c4d2164c13847",
+      "equal": true
+    },
+    {
+      "path": "scripts/helpers/originalMailboxNative.ts",
+      "source656OID": "6475301f1c907ae4874b54e10b58b81714cd5000",
+      "mainOID": "6475301f1c907ae4874b54e10b58b81714cd5000",
+      "equal": true
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "source656OID": "2747395a3d014f0b3535bf9f7d649465e60103a5",
+      "mainOID": "2747395a3d014f0b3535bf9f7d649465e60103a5",
+      "equal": true
+    },
+    {
+      "path": "scripts/helpers/ediel-decision-original-native-fixture.ts",
+      "source656OID": "40f37225945b4578abbfd14e53732e9620845bcc",
+      "mainOID": "40f37225945b4578abbfd14e53732e9620845bcc",
+      "equal": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "source656OID": "ce3d82bfaac13406f35f7917696b83c5e3058a76",
+      "mainOID": "ce3d82bfaac13406f35f7917696b83c5e3058a76",
+      "equal": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsNativeSourceFixture.ts",
+      "source656OID": "ba82f9c046e6db50fa9a97cdb43836de3a92b66e",
+      "mainOID": "ba82f9c046e6db50fa9a97cdb43836de3a92b66e",
+      "equal": true
+    },
+    {
+      "path": "lib/cis/db.ts",
+      "source656OID": "c9218f0c6ea320c33d4533ab428df3dcb626765c",
+      "mainOID": "c9218f0c6ea320c33d4533ab428df3dcb626765c",
+      "equal": true
+    },
+    {
+      "path": "lib/billing/meterValueBillingMatcher.ts",
+      "source656OID": "0c57c031ff55830062e6ef795a4d8593856dba16",
+      "mainOID": "0c57c031ff55830062e6ef795a4d8593856dba16",
+      "equal": true
+    },
+    {
+      "path": "lib/metering/normalizeMeteringValues.ts",
+      "source656OID": "8e2ede8bf4e41815776056269367b0102ab9632a",
+      "mainOID": "8e2ede8bf4e41815776056269367b0102ab9632a",
+      "equal": true
+    },
+    {
+      "path": "lib/inbound-mail/edielMailboxPoller.ts",
+      "source656OID": "c7e16ccbf811f3e196b956569d90c7194c53c9d4",
+      "mainOID": "c7e16ccbf811f3e196b956569d90c7194c53c9d4",
+      "equal": true
+    }
+  ],
+  "scriptSHA256": "bdc94d64720fe820c89bbfeb327a9d06c937226bbc77d127fd5be3d270b8f866",
+  "readScope": "No original artifact/CI qualification; original source656 native result not relabeled currentmain; Ccreator path source change outside joinedcase invoked source insertion/processor chain"
+}
+```
+
+Next: wait for finite owner feedback or choose another nonduplicated scope afterfresh paginated530; no takeover of original whole row or assigned evidence readers.
