@@ -115,7 +115,8 @@ it.each(['invalid', 'absent', 'two', 'mixed'])('genuine private component projec
   const base = resolveCanonicalRuntimeDecision(io.source), plan = {family: 'APERAK' as const, outcome: 'negative' as const,
     reason: 'Own field209 rejection', applicationErrors: errors}
   const decision: CanonicalRuntimeDecision = {...base, policy: null, applicationDecision: 'rejected', functionalDecision: 'not_applicable',
-    prodatRegisterValidation: structural.evidence, responsePlan: [plan], validationReport: {...base.validationReport, rulePackEvidence: witness}}
+    prodatRegisterValidation: structural.evidence, responsePlan: [plan], validationReport: {...base.validationReport, rulePackEvidence: witness, syntaxDecision: 'accepted', applicationDecision: 'rejected', functionalDecision: 'not_applicable'}}
+  decision.validationReport.responsePlan = decision.responsePlan
   expect(buildReceivedProdatResponseValidation(io.source, decision)).toBeNull()
   expect(ownReceivedZ05RejectedIdentityRejection(decision, io.source, actor, token)).toBe(true)
   expect(hasReceivedZ05RejectedIdentityRejection(decision, io.source, actor)).toBe(true)
@@ -198,7 +199,8 @@ async function prepared() {
   const decision: CanonicalRuntimeDecision = {...base, policy: null, applicationDecision: 'rejected', functionalDecision: 'not_applicable',
     prodatRegisterValidation: structural.evidence, responsePlan: [{family: 'APERAK' as const, outcome: 'negative' as const,
       reason: 'Own field209 rejection', applicationErrors: projectProdatDiagnostics(observeReceivedZ05RejectedIdentity(input())).applicationErrors}],
-    validationReport: {...base.validationReport, rulePackEvidence: witness}}
+    validationReport: {...base.validationReport, rulePackEvidence: witness, syntaxDecision: 'accepted', applicationDecision: 'rejected', functionalDecision: 'not_applicable'}}
+  decision.validationReport.responsePlan = decision.responsePlan
   return {token, decision}
 }
 it.each(['accepted', 'functional', 'syntax', 'positive', 'borrowedLI', 'fakeZ07', 'changed-witness', 'copied-structure', 'changed-structure', 'foreign-structure', 'foreign-source', 'foreign-actor', 'expired-token', 'backward-token'])('redemption refuses %s and consumes its private READ', async kind => {
@@ -232,4 +234,16 @@ it('compares the retained receipt in Stockholm, without a cached subtype or curr
   const token = await loadReceivedZ05RejectedIdentityRejection(io.source, actor)
   expect(token).not.toBeNull()
   expect(registryCalls()[0].args.p_business_date).toBe('2026-09-21')
+})
+
+it.each(['report-accepted', 'report-functional', 'report-syntax', 'report-policy', 'report-positive-plan'])('rejected owner refuses a contradictory %s report', async kind => {
+  const {token, decision} = await prepared()
+  if (kind === 'report-accepted') decision.validationReport.applicationDecision = 'accepted'
+  if (kind === 'report-functional') decision.validationReport.functionalDecision = 'accepted'
+  if (kind === 'report-syntax') decision.validationReport.syntaxDecision = 'rejected'
+  if (kind === 'report-policy') decision.validationReport.canonicalPolicy = {family: 'PRODAT', businessEffect: 'apply'}
+  if (kind === 'report-positive-plan') decision.validationReport.responsePlan = [{family: 'APERAK', outcome: 'positive'}]
+  expect(ownReceivedZ05RejectedIdentityRejection(decision, io.source, actor, token)).toBe(false)
+  expect(hasReceivedZ05RejectedIdentityRejection(decision, io.source, actor)).toBe(false)
+  expect(buildReceivedProdatResponseValidation(io.source, decision)).toBeNull()
 })
