@@ -3,10 +3,11 @@
 // Only disposable identities, legal issuer inputs, counterpart bytes and
 // external SMTP are synthetic. All archive/review/send/intake/ACK owners run.
 import {createHash,randomUUID} from 'node:crypto'
+import {spawn} from 'node:child_process'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prepare,
  resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,
- nativeEscoExternal} from './fixtures/ediel-service-evidence-native'
+ nativeEscoExternal,NATIVE_ESCO_DB} from './fixtures/ediel-service-evidence-native'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -21,6 +22,8 @@ import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -152,6 +155,78 @@ async function permission(f:Fixture,p:Pending){
  expect(result.data).toMatchObject({source_z13_message_id:p.z13.id,source_z14_message_id:null,inbound_z14_message_id:null,approved_start_date:null,approved_end_date:null})
  return result.data
 }
+
+async function withPermissionShare<T>(action:(signal:AbortSignal)=>Promise<T>):Promise<T>{
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321'
+  ||NATIVE_ESCO_DB!=='postgresql://postgres:postgres@127.0.0.1:54322/postgres')throw Error('synthetic_local_native_only')
+ const holder=spawn('psql',[NATIVE_ESCO_DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:'pipe'})
+ const abort=new AbortController()
+ let closed=false,expired=false,output=''
+ const completion=new Promise<number|null>(resolve=>holder.once('close',code=>{closed=true;resolve(code)}))
+ let refuse:(error:Error)=>void=()=>{}
+ const ready=new Promise<void>((resolve,reject)=>{
+  refuse=reject
+  holder.once('error',()=>reject(Error('native_permission_holder_start_failed')))
+  holder.once('exit',()=>reject(Error('native_permission_holder_exit_before_ready')))
+  holder.stdout.on('data',chunk=>{
+   output+=String(chunk)
+   if(output.includes('NATIVE_PERMISSION_SHARE_READY\n'))resolve()
+  })
+ })
+ // Consume diagnostics privately; never forward a child connection string.
+ holder.stderr.on('data',()=>{})
+ holder.stdin.on('error',()=>{})
+ const timeout=setTimeout(()=>{
+  expired=true;abort.abort();holder.kill('SIGTERM');refuse(Error('native_permission_holder_timeout'))
+ },15000)
+ try{
+  holder.stdin.write("BEGIN; SET LOCAL idle_in_transaction_session_timeout='15s'; LOCK TABLE public.metering_permissions IN SHARE MODE; SELECT 'NATIVE_PERMISSION_SHARE_READY';\n")
+  await ready
+  return await action(abort.signal)
+ }finally{
+  if(!closed&&!holder.stdin.destroyed)holder.stdin.end('ROLLBACK;\n')
+  const exit=await completion
+  clearTimeout(timeout)
+  if(expired||exit!==0)throw Error('native_permission_holder_cleanup_failed')
+ }
+}
+
+async function proveWaitingLockRollback(f:Fixture,p:Pending,message:EdielMessageRow){
+ // Real-owner preparation for an isolated public-RPC atomicity control.
+ // Intake itself did not mint a canonical assessment. Use the same actual
+ // resolver/ledger owners as the processor, with no invented facts or status.
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.ids.actor})
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
+ const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})
+ expect(recorded.status).toBe('recorded')
+ if(recorded.status!=='recorded')throw Error('native_actual_canonical_owner_required')
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments v
+  WHERE id=${lit(recorded.assessmentId)} AND source_message_id=${lit(message.id)} AND company_id=${lit(f.ids.company)}
+  AND environment='test' AND source_payload_hash=${lit(hash(message.raw_payload!))}
+  AND facts_text::jsonb->>'syntaxDecision'='accepted' AND facts_text::jsonb->>'applicationDecision'='accepted'
+  AND facts_text::jsonb->>'functionalDecision'='accepted'
+  AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)`)).toBe(1)
+ const full=()=>sql(`SELECT jsonb_build_object(
+  'received',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${lit(message.id)}),
+  'outcomes',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_ack_authority.scope_outcomes r WHERE source_message_id=${lit(p.z13.id)}),
+  'chains',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM public.ediel_ack_chains r WHERE source_message_id=${lit(p.z13.id)}),
+  'physical',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.ack_message_id),'[]') FROM gridex_ack_authority.prodat_physical_receipts r WHERE source_message_id=${lit(p.z13.id)}))`)
+ const before=business(f,p),pending=await permission(f,p),acks=ackState(f,p),queues=fullOutbox(f),physical=full()
+ await withPermissionShare(async signal=>{
+  const result=await supabaseService.rpc('gridex_apply_inbound_ack_source_v1',{
+   p_company_id:f.ids.company,p_environment:'test',p_ack_message_id:message.id,p_source_message_id:p.z13.id,p_actor_user_id:f.ids.actor,
+  }).abortSignal(signal)
+  expect(result.error?.code).toBe('55P03')
+  expect(result.data).toBeNull()
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ack_authority.source_correlations WHERE ack_message_id=${lit(message.id)}`)).toBe(0)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ack_authority.applied_receipts WHERE ack_message_id=${lit(message.id)}`)).toBe(0)
+  expect(ackState(f,p)).toEqual(acks);expect(await permission(f,p)).toEqual(pending)
+  expect(business(f,p)).toEqual(before);expect(fullOutbox(f)).toEqual(queues);expect(full()).toEqual(physical)
+ })
+ // Holder is closed before the unchanged full public processor runs below.
+ expect(ackState(f,p)).toEqual(acks);expect(await permission(f,p)).toEqual(pending)
+ expect(business(f,p)).toEqual(before);expect(fullOutbox(f)).toEqual(queues);expect(full()).toEqual(physical)
+}
 async function noAccess(f:Fixture,p:Pending){
  const read=await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})
  expect(read).toMatchObject({companyId:f.ids.company,marketActivationGranted:false,grants:[]})
@@ -278,6 +353,7 @@ for(const mode of ['V','VH'] as const){
   await noAccess(f,p)
   for(const family of ['CONTRL','APERAK'] as const){
    const message=await intake(f,p,counterpart(p,family))
+   if(mode==='V'&&family==='APERAK')await proveWaitingLockRollback(f,p,message)
    expect(await consume(f,message)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
     result:{outcome:'positive',sourceAccepted:family==='APERAK',finalAckReached:family==='APERAK'}})
    const original=(await getEdielMessageById(p.z13.id))!

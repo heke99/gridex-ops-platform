@@ -10,7 +10,7 @@ DECLARE
  s public.ediel_messages%rowtype;
  p public.metering_permissions%rowtype;
  o gridex_service_permission.origins%rowtype;
- wire jsonb; expected jsonb; proof jsonb; ack_raw text;
+ wire jsonb; original jsonb; expected jsonb; proof jsonb; ack_raw text;
  positive_aperaks uuid[]:=ARRAY[]::uuid[]; positive_contrl boolean:=false;
 BEGIN
  IF NEW.result->'sourceAccepted' IS DISTINCT FROM 'true'::jsonb
@@ -85,8 +85,15 @@ BEGIN
  -- rolls back and can retry; never commit acceptance with a skipped projection.
  LOCK TABLE public.metering_permissions IN ROW EXCLUSIVE MODE NOWAIT;
  SELECT * INTO p FROM public.metering_permissions WHERE id=o.permission_id AND company_id=c.company_id FOR UPDATE;
+ original:=gridex_received_sources.permission_partition_wire_v1(s.raw_payload);
  IF NOT FOUND OR (p.status IN('z13_ready','z13_sent')) IS NOT TRUE
   OR p.source_z13_message_id IS DISTINCT FROM s.id OR p.outbound_z13_message_id IS DISTINCT FROM s.id
+  OR s.customer_id IS NULL OR p.customer_id IS DISTINCT FROM s.customer_id
+  OR o.basis->>'customerId' IS DISTINCT FROM p.customer_id::text
+  OR nullif(btrim(p.rff_li_reference),'') IS NULL
+  OR jsonb_typeof(original->'objects') IS DISTINCT FROM 'array'
+  OR (SELECT count(*) FROM jsonb_array_elements(original->'objects') x WHERE x->>'li'=p.rff_li_reference)<>1
+  OR nullif(p.grid_owner_ediel_id,'') IS NULL OR p.grid_owner_ediel_id IS DISTINCT FROM original->>'receiver'
   OR p.source_z14_message_id IS NOT NULL OR p.inbound_z14_message_id IS NOT NULL OR p.inbound_z15_message_id IS NOT NULL
   OR p.market_state_version IS DISTINCT FROM 0::bigint OR p.permission_reference IS NOT NULL
   OR p.approved_start_date IS NOT NULL OR p.approved_end_date IS NOT NULL
