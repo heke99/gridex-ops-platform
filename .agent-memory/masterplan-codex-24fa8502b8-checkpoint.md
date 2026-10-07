@@ -1049,3 +1049,8 @@ Freshmain600bb/coverage115+178=293/352,59remaining; independentmaincompatibility
 ## Remote preservation of reviewed observer, same packet — 2026-10-07T01:08Z
 
 Normalpush terminal0 andfreshAPI GETMATCH preserve b3dffcf238df069825e3912dd6cfa67870abf90b on auxiliarysamepair branch codex/ediel-z01-observability-24fa8502b8. This supersedes only prior LOCAL_UNPUBLISHED label; actualPR638 staysba8/noexports,648 staysf3507/9/clean+certRUNNING. No newPR/pair/gates/native94/coverage claim. Exactworkflow/twoSOURCEreviews/17+4finite/committed2572source scan retained; rootnext final2green→currenttwoDELIVERY/main13/freeMERGErole component648→mainadoption+authoredcarrier48899350 AFTERdelivery→publishreal638successor/genuinecurrent94/allgates. GEN5holdingrole/file unchanged; sourcepreservedacrossmachines, no heldpathmanualedit.
+
+
+## Return unused local infrastructure window — 2026-10-07T01:13Z
+
+The exclusive operating window granted by c3 in #5306027991877 for shared Docker bd24c086-cac5-4eec-9ce9-3ac8111f5552/ports54320,54321,54322 until01:30 is returned early. Root never pulled/registered/started/stopped/pruned Docker or created any real local stack/container/network/volume/port listener; all21 later shell experiments use explicitly inert ports. The local native2 storage blocker and provenance receipts remain. No root infrastructure resource requires cleanup. This ends only the informal operating window; all13 technical GitHub refs, the Z01 pair and source duties remain held. Next root uses genuine GitHub canonical execution after component648 delivery/carrier adoption. Peers may coordinate their own infrastructure using their existing authorization and actual ownership; no foreign resource is deleted or declared free by root.
