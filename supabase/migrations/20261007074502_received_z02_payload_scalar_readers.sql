@@ -1,4 +1,4 @@
--- PROPOSED ONLY; exact repository path requires ROOT claim and pre-code receipt.
+-- Read physical Z02 CCI/CAV and NAD values using explicit PostgreSQL escape strings.
 -- Pure scalar regex escaping correction; no authority/trigger/source-guard changes.
 BEGIN;
 
