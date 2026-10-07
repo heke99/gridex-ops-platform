@@ -1,3 +1,15 @@
+## Current native result frozen before qualification — 2026-10-07
+
+PR #635's new native workflow completed with FAILURE, and its feedback upload is now officially completed successfully. The first cached job read showed an incomplete upload field; that snapshot is preserved as nonfinal. A fresh official job read establishes completion. No inferred upload result is used.
+
+The original artifact was downloaded once, matched to official size/digest, and copied to a private sealed file. It has not been opened or qualified. Current source and all actual producer inputs were independently enumerated from the workflow and Git; the new test helper is included. Full exact input maps, API bindings, source version and archive receipts stay private.
+
+The existing unchanged verifier retains its earlier complete tool reviews and fixed 34-case oracle. Two fresh independent current-version binding reviews are running. NO USE_GO until both approve and a separate own checkpoint/continuation decision plus fresh source/ownership/API checks are confirmed. No new verifier, producer, native rerun, guard or oracle relaxation.
+
+Next: obtain both binding approvals, document before-use GO, qualify the genuine original and have an independent reviewer qualify the same original with fresh API; compare complete reports. Qualification exit 0 authenticates the reported result and does not make failed native execution green. Whole effects/history/replay/intended negative causes/current full/mandatory checks remain required.
+
+---
+
 ## Additional consumer file reservations confirmed — 2026-10-07
 
 CLAIM AT-Z03L-SUPPLIER + AT-Z03LK-SUPPLIER — codex-20261006T134154Z-c3ae376b9893 — same packet and PR #635. Three additional file reservations were created through the standard authenticated GitData create-if-absent protocol and individually confirmed. Total resources: 23. Exact file scope, resource identifiers and unchanged-tree receipt are recorded in the protocol receipt and private checkpoint. Original reservations remain unchanged; no new pair or coverage authority.
