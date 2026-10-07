@@ -92,6 +92,7 @@ jobs:
             'scripts/helpers/originalMailboxNative.ts','scripts/helpers/syntheticCertificateTrust.ts',
             'scripts/helpers/correctionContextNative.ts','scripts/helpers/native-fixture-company-identity.ts',
             '__tests__/helpers/closureWireFixtures.ts','__tests__/helpers/utiltsNativeSourceFixture.ts',
+            'scripts/helpers/ediel-tr09-native-foreign-image.ts',
             'lib/ediel/transport/exception/previousCrl.ts','lib/ediel/transport/exception/source.ts',
             'lib/ediel/security/certificateTrust.ts','lib/ediel/security/outboundRecipientCertificate.ts',
             'lib/ediel/transport/index.part-1.ts','lib/ediel/transport/index.part-2.ts',

@@ -20,7 +20,7 @@ async function hash(db: PGlite, query: string) {
   const result = await db.exec(query)
   return (result.at(-1)!.rows[0] as {encode: string}).encode
 }
-async function fixture() {
+async function fixture(precreatedGeneratedEmail = false) {
   const db = new PGlite(); databases.push(db)
   // Only the hash adapter is supplied. No production authority function or
   // accepted/readiness state is fabricated; all metadata below is test input.
@@ -32,6 +32,12 @@ async function fixture() {
     CREATE TABLE public.companies(id uuid PRIMARY KEY,name text);
     CREATE TABLE public.price_plans(id uuid PRIMARY KEY,label text);`)
   const original = await hash(db, template)
+  if (precreatedGeneratedEmail) {
+    // Declare an already expanded layout before the unchanged IF NOT EXISTS
+    // migration. Generated metadata is absent from the old fingerprint query.
+    await db.exec(forward.replace('technical_contact_email text NULL',
+      'technical_contact_email text GENERATED ALWAYS AS (technical_contact_name) STORED'))
+  }
   await db.exec(forward)
   return {db, original}
 }
@@ -77,4 +83,10 @@ it.each(['absent', 'duplicate'])('refuses a %s template insertion point without 
     expect(result.stdout).toBe('')
     expect(result.stderr).toContain('profile expansion fingerprint template drift')
   } finally {rmSync(dir, {recursive: true, force: true})}
+})
+
+it('refuses an already expanded generated text field that the original full hash cannot distinguish', async () => {
+  const ordinary = await fixture(), generated = await fixture(true)
+  expect(await hash(generated.db, template)).toBe(await hash(ordinary.db, template))
+  await expect(hash(generated.db, projectedQuery())).rejects.toMatchObject({code: '23514', message: 'ediel_profile_expansion_metadata_drift'})
 })

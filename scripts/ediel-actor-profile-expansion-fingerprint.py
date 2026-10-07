@@ -39,6 +39,7 @@ BEGIN
         AND column_name=ANY(names)
         AND (data_type<>'text' OR udt_name<>'text' OR is_nullable<>'YES'
           OR domain_schema IS NOT NULL OR domain_name IS NOT NULL
+          OR is_generated<>'NEVER' OR generation_expression IS NOT NULL OR is_identity<>'NO'
           OR column_default IS DISTINCT FROM CASE
             WHEN column_name IN ('brp_status','esett_status') THEN '''missing''::text'
             ELSE NULL END))

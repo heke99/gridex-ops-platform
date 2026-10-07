@@ -5,8 +5,9 @@ import {isAbsolute, resolve} from 'node:path'
 import {defineConfig} from 'vitest/config'
 
 // Reconstructed historical composition: BASE source/default alias + snapshot
-// repair + one committed ROOT AGT producer over byte-identical BASE canonical
-// dependencies. Its BASE public creator alone receives a prospective legacy
+// repair + one committed ROOT AGT producer over fixed BASE canonical
+// dependencies. The current kernel is separately pinned to delivered main656.
+// Its BASE public creator alone receives a prospective legacy
 // DTO hint. Two forwards and fresh ROOT owners remain distinct proof phases.
 const root = realpathSync(resolve(__dirname, '..'))
 const phase = process.env.GRIDEX_DB01_NATIVE_PHASE
@@ -24,6 +25,7 @@ const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
   historical_source_basis: {kind: string; default_alias: string;
     module_overrides: Array<GitInput & {specifier: string; path: string; source: string; revision: string}>;
     canonical_dependency_identity: Record<string, {base: GitInput; root: GitInput}>;
+    kernel_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
     public_creator_input: Record<string, string>}
   current_source_basis: string
 }
@@ -60,9 +62,24 @@ if (receipt.required_input_paths?.length !== 40 || new Set(receipt.required_inpu
     Object.keys(basis.canonical_dependency_identity ?? {}).length !== dependencies.length) {
   throw new Error('db01_native_reconstructed_birth_basis_required')
 }
+const kernelPath = 'lib/ediel/core/kernel.ts'
+const kernelRevision = '5b150f18adaf0b8d82ba2651696421d3e34884fe'
+const expectedBaseKernel: GitInput = {mode: '100644', git_blob_oid: 'e768195621f24838e59274ea09b50031d00a978f',
+  sha256: 'e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1'}
+const expectedCurrentKernel: GitInput = {mode: '100644', git_blob_oid: '7b7b5978863269f9ce437f13826d96c4368f6fef',
+  sha256: '6142231362e96ea47479911dd69cc0fb48a6363f03ba2a5742b60bc9640f6eb4'}
+const kernelBasis = basis.kernel_basis
+if (!kernelBasis || Object.keys(kernelBasis).length !== 6 || kernelBasis.source_revision !== kernelRevision ||
+    kernelBasis.path !== kernelPath || kernelBasis.historical_alias !== 'BASE56' || kernelBasis.current_alias !== 'ROOT' ||
+    !sameInput(kernelBasis.base, expectedBaseKernel) || !sameInput(kernelBasis.root, expectedCurrentKernel)) {
+  throw new Error('db01_native_exact_kernel_basis_required')
+}
+execFileSync('git', ['merge-base', '--is-ancestor', kernelRevision, head], {cwd: root})
 for (const path of dependencies) {
   const input = basis.canonical_dependency_identity[path], baseInput = receipt.base_source?.blobs?.[path], rootInput = receipt.root_source?.blobs?.[path]
-  if (!input || !sameInput(input.base, baseInput) || !sameInput(input.root, rootInput) || !sameInput(baseInput, rootInput) ||
+  const exactPair = path === kernelPath ? sameInput(baseInput, expectedBaseKernel) && sameInput(rootInput, expectedCurrentKernel)
+    : sameInput(baseInput, rootInput)
+  if (!input || !sameInput(input.base, baseInput) || !sameInput(input.root, rootInput) || !exactPair ||
       baseInput?.mode !== '100644' || !receipt.required_input_paths.includes(path) || !receipt.required_base_input_paths.includes(path) ||
       fileHash(resolve(receipt.base_path, path)) !== baseInput.sha256 || fileHash(resolve(root, path)) !== rootInput?.sha256) {
     throw new Error(`db01_native_BASE_canonical_dependency_mismatch:${path}`)

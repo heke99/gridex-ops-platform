@@ -147,8 +147,21 @@ jobs:
                   raise RuntimeError('exact SQL source identity changed: '+path)
           if current['blobs'][producer] != {'mode':'100644','git_blob_oid':producer_oid,'sha256':producer_hash}:
               raise RuntimeError('committed canonical AGT producer identity changed')
+          kernel_path = 'lib/ediel/core/kernel.ts'
+          kernel_revision = '5b150f18adaf0b8d82ba2651696421d3e34884fe'
+          expected_base_kernel = {'mode':'100644','git_blob_oid':'e768195621f24838e59274ea09b50031d00a978f',
+            'sha256':'e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1'}
+          expected_current_kernel = {'mode':'100644','git_blob_oid':'7b7b5978863269f9ce437f13826d96c4368f6fef',
+            'sha256':'6142231362e96ea47479911dd69cc0fb48a6363f03ba2a5742b60bc9640f6eb4'}
+          subprocess.run(['git','merge-base','--is-ancestor',kernel_revision,head],check=True)
+          kernel_basis = {'source_revision':kernel_revision,'path':kernel_path,
+            'historical_alias':'BASE56','current_alias':'ROOT',
+            'base':expected_base_kernel,'root':expected_current_kernel}
           for path in canonical_dependencies:
-              if current['blobs'][path] != baseline['blobs'][path]:
+              if path == kernel_path:
+                  if baseline['blobs'][path] != expected_base_kernel or current['blobs'][path] != expected_current_kernel:
+                      raise RuntimeError('exact historical/current kernel identity changed')
+              elif current['blobs'][path] != baseline['blobs'][path]:
                   raise RuntimeError('AGT canonical dependency differs from BASE: '+path)
           receipt = {'purpose':'supplemental_BASE56_plus_snapshot_repair_prebirth_plus_current_AGT_producer_and_prospective_legacy_DTO_then_two_owned_forwards_actual_native',
             'root_path':str(root),'base_path':str(pathlib.Path(os.environ['DB01_BASE_ROOT']).resolve()),
@@ -163,6 +176,7 @@ jobs:
             'historical_source_basis':{'kind':'reconstructed_public_births','default_alias':'BASE56',
               'module_overrides':[{'specifier':'@/lib/ediel/testing/agtEngine','path':producer,'source':'ROOT','revision':head,**current['blobs'][producer]}],
               'canonical_dependency_identity':{p:{'base':baseline['blobs'][p],'root':current['blobs'][p]} for p in canonical_dependencies},
+              'kernel_basis':kernel_basis,
               'public_creator_input':{'source':'BASE56','port':'createEdielMessage','field':'partyAddressId',
                 'when':'historical_AGT_Z09_L7_before_INSERT','value_origin':'existing_prospective_legacy_fixture_UUID',
                 'mutation':'ONLY_partyAddressId','scope':'one_exact_company_actor_profile_route_birth','restore':'finally','authority':'NO_authority_or_accepted_fact'}},
@@ -192,7 +206,8 @@ jobs:
           git archive "$DB01_BASE_SHA" | tar -x -C "$DB01_BASE_ROOT"
           # Identical recorded package/lock/config inputs qualify this shared
           # installation. Historical @ resolves to BASE except the one recorded
-          # committed ROOT AGT producer; that producer's dependencies stay BASE.
+          # committed ROOT AGT producer. Historical kernel remains fixed BASE;
+          # the current phase uses the separately pinned delivered main656 kernel.
           ln -s "$CURRENT_ROOT/node_modules" "$DB01_BASE_ROOT/node_modules"
           update_phase() {
             DB01_PHASE="$1" DB01_EXIT="$2" python3 - <<'PY'
@@ -264,7 +279,7 @@ jobs:
             if [[ "$current_exit" != 0 ]]; then exit "$current_exit"; fi
             qualification_exit=0
             python3 - <<'PY' || qualification_exit=$?
-          import json,os,pathlib,xml.etree.ElementTree as ET
+          import json,os,pathlib,subprocess,xml.etree.ElementTree as ET
           evidence=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).parent
           scope='scripts/ediel-db01-legacy-address-containment-native.test.ts'
           expected_historical={'BASE56 actual public direct and protected H births retain prospective legacy hints before custody; capture upgrade witnesses'}
@@ -320,11 +335,22 @@ jobs:
               set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
               receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
               raise RuntimeError('JUnit qualification requires the exact reconstructed source inventory')
+          expected_kernel_basis={'source_revision':'5b150f18adaf0b8d82ba2651696421d3e34884fe',
+            'path':'lib/ediel/core/kernel.ts','historical_alias':'BASE56','current_alias':'ROOT',
+            'base':{'mode':'100644','git_blob_oid':'e768195621f24838e59274ea09b50031d00a978f',
+              'sha256':'e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1'},
+            'root':{'mode':'100644','git_blob_oid':'7b7b5978863269f9ce437f13826d96c4368f6fef',
+              'sha256':'6142231362e96ea47479911dd69cc0fb48a6363f03ba2a5742b60bc9640f6eb4'}}
+          if basis.get('kernel_basis')!=expected_kernel_basis:
+              raise RuntimeError('JUnit qualification requires exact historical/current kernel basis')
+          subprocess.run(['git','merge-base','--is-ancestor',expected_kernel_basis['source_revision'],receipt['checkout_sha']],check=True)
           for path in dependencies:
               base=receipt['base_source']['blobs'][path]; current_input=receipt['root_source']['blobs'][path]
-              if base!=current_input or basis['canonical_dependency_identity'][path]!={'base':base,'root':current_input} or \
+              exact_pair = base==expected_kernel_basis['base'] and current_input==expected_kernel_basis['root'] \
+                if path==expected_kernel_basis['path'] else base==current_input
+              if not exact_pair or basis['canonical_dependency_identity'][path]!={'base':base,'root':current_input} or \
                   path not in receipt['required_input_paths'] or path not in receipt['required_base_input_paths']:
-                  raise RuntimeError('JUnit qualification requires BASE canonical dependencies: '+path)
+                  raise RuntimeError('JUnit qualification requires exact canonical dependency identities: '+path)
           if receipt.get('unrepaired_BASE_failure')!={'run_id':37542593437,'artifact_id':11448599210,
               'head_sha':'608fd480bea06c2b145e7c95a1d92fe93b256f9b','sqlstate':'42703',
               'message':'record "v_route" has no field "environment_type"','status':'PRESERVED_FAIL'} or \

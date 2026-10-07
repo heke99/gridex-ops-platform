@@ -70,6 +70,7 @@ jobs:
               'supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql',
               'scripts/helpers/originalMailboxNative.ts', 'scripts/helpers/syntheticCertificateTrust.ts',
               'scripts/helpers/correctionContextNative.ts', '__tests__/helpers/closureWireFixtures.ts',
+              'scripts/helpers/ediel-tr09-native-foreign-image.ts',
               '__tests__/helpers/utiltsNativeSourceFixture.ts',
               'scripts/gridex-aud-003-clean-replay.sh', 'scripts/gridex-redact-native-evidence.py',
               'scripts/ediel-actor-profile-expansion-fingerprint.py',

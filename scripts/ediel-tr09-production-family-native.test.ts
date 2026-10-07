@@ -23,6 +23,7 @@ import {recordOriginalMailboxNativeReception, seedOriginalMailboxNative} from '.
 import {publishSyntheticRecipientTrust} from './helpers/syntheticCertificateTrust'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {utiltsNativeSourceFixture} from '../__tests__/helpers/utiltsNativeSourceFixture'
+import {nativeForeignRowArrayImage, type NativeForeignImage} from './helpers/ediel-tr09-native-foreign-image'
 
 const provider = vi.hoisted(() => ({send: vi.fn(), options: vi.fn()}))
 vi.mock('nodemailer', () => ({default: {createTransport: (options: unknown) => {
@@ -136,10 +137,21 @@ async function configureProspectiveProfiles(s: Fixture) {
     'canonical_command_results', 'canonical_audit_events', 'company_provisioning_jobs', 'ediel_test_runs',
     'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state',
     'company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles']
-  const image = (own: boolean) => sql<Record<string, Json[]>>(`SELECT jsonb_build_object(${tables.map(table =>
-    `${literal(table)},${rows(`public.${table}`, `t.company_id${own ? '=' : ' IS DISTINCT FROM '}${literal(s.f.companyId)}`)}`).join(',')})`)
+  const image = () => sql<Record<string, Json[]>>(`SELECT jsonb_build_object(${tables.map(table =>
+    `${literal(table)},${rows(`public.${table}`, `t.company_id=${literal(s.f.companyId)}`)}`).join(',')})`)
+  const foreignImage = () => {
+    const captured = sql<Record<string, NativeForeignImage>>(`SELECT jsonb_build_object(${tables.map(table =>
+      `${literal(table)},${nativeForeignRowArrayImage(rows(`public.${table}`, `t.company_id IS DISTINCT FROM ${literal(s.f.companyId)}`))}`).join(',')})`)
+    expect(Object.keys(captured).sort()).toEqual([...tables].sort())
+    for (const value of Object.values(captured)) {
+      expect(Object.keys(value).sort()).toEqual(['rowCount', 'sha256'])
+      expect(Number.isInteger(value.rowCount)).toBe(true); expect(value.rowCount).toBeGreaterThanOrEqual(0)
+      expect(value.sha256).toMatch(/^[0-9a-f]{64}$/)
+    }
+    return captured
+  }
   const company = () => sql<Json>(`SELECT to_jsonb(c) FROM public.companies c WHERE id=${literal(s.f.companyId)}`)
-  const prior = before(s), oldCompany = company(), old = image(true), foreign = image(false)
+  const prior = before(s), oldCompany = company(), old = image(), foreign = foreignImage()
   const profiles = old.ediel_actor_settings.filter(p => p.is_active === true && (p.role ?? p.actor_role) === 'supplier')
   expect(profiles).toHaveLength(2)
   const testProfile = profiles.find(p => p.environment === 'test'), productionProfile = profiles.find(p => p.environment === 'production')
@@ -161,7 +173,7 @@ async function configureProspectiveProfiles(s: Fixture) {
       console.info('TR09 actual public profile configuration', {status: 'FAIL', errorCode: first.error.code})
       throw first.error
     }
-    const result = first.data as Json, nextCompany = company(), next = image(true)
+    const result = first.data as Json, nextCompany = company(), next = image()
     expect(result).toMatchObject({changed: true, company_id: s.f.companyId, actor_role: 'supplier'})
     expect(nextCompany).toEqual({...oldCompany, actor_role: 'supplier', market_role: 'supplier', ediel_id: s.f.sender,
       test_ediel_id: s.f.sender, production_ediel_id: s.f.sender,
@@ -235,11 +247,11 @@ async function configureProspectiveProfiles(s: Fixture) {
         expect(current).toEqual(expected)
       }
     }
-    expect(image(false)).toEqual(foreign)
+    expect(foreignImage()).toEqual(foreign)
     preserved(s, prior, true)
     const replay = await supabaseService.rpc('canonical_save_ediel_actor_profile', {p_command: command})
     expect(replay.error).toBeNull(); expect(replay.data).toEqual(first.data)
-    expect(company()).toEqual(nextCompany); expect(image(true)).toEqual(next); expect(image(false)).toEqual(foreign)
+    expect(company()).toEqual(nextCompany); expect(image()).toEqual(next); expect(foreignImage()).toEqual(foreign)
     console.info('TR09 actual public profile configuration', {status: 'PASS', profiles: 2, snapshots: snapshots.length,
       revalidationJobs: jobs.length, replayEffects: 0, certificationSupplied: false, liveTransition: false})
   })
