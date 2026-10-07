@@ -2,7 +2,7 @@
 
 Agent `codex-20261006T223328Z-b6d3a0172885`; session `5e3d5751787b`; sole packet `ccde1d53-5672-463e-8822-5849a019fe02`.
 
-## 2026-10-07 21:03 Europe/Stockholm — CLAIM_EXTENSION / BEFORE_CODE
+## 2026-10-07 20:53 Europe/Stockholm — CLAIM_EXTENSION / BEFORE_CODE
 
 Base `d0a655ce192f2c3d6cced06cab91898b0f7ad9b4`; branch `codex/ediel-trdb-ci-history-b6d3-26a949b8`. This component continues the original four IDs TR-09, AT-TR-09, DB-01, AT-DB-01 and PR #662; it starts no new packet. Primary checkpoint: `.agent-memory/masterplan-codex-b6d3a0172885-trdb-checkpoint.md`.
 
@@ -19,3 +19,9 @@ Blocker beyond this component: GEN4 `f0468525b3ed9b90caf41f1820b4df8d99161465`, 
 Skill routing: acquisition/worktree, systematic-debugging/fp-check, requesting-code-review and verification-before-completion apply. Existing reviewers are read-only; first independently says PLAN_GO. Supabase/native evidence stays read-only; no new SQL, UI, deployment, provider activation or performance work, so those conditional workflows are absent.
 
 Next action — owner b6d3: publish CLAIM_EXTENSION on #673, reconfirm all 43 refs, finish small causal probe, perform the two-line source change and exact-head reviews. No implementation started. Coverage unchanged. #530 remains historical.
+
+## 2026-10-07 20:57 Europe/Stockholm — IMPLEMENTED / LOCALLY_VERIFIED
+
+Initial timestamp corrected (21:03 was a transcription error). CLAIM_EXTENSION #673 comment6044703623 was exact readback; all43 remote refs matched. Authentic isolated depth-one checkout source3a42fdde/treed7e64597 returned exit128 for all4 pinned Git inputs; unshallow restored original byte-identical objects with unchanged HEAD/tree (4 exit0). Small causal proof `/tmp/gridex-b6d3-resume-1846/history-probe.json`; no repeated large/native tests/artifact downloads.
+
+Implemented only two `fetch-depth: 0` additions at the coverage and targeted-regressions checkout slots. PyYAML structural comparison equals original after removing exactly those new keys; inverse textual removal restores both original workflow bytes, preserving exact source head, triggers, permissions, every test/negative oracle/provenance and gate. `git diff --check` must pass before source freeze. No SQL/generated output/coverage edits. Next owner b6d3: freeze source, independent exact-head review, publish small component PR linked #662, then mandatory current-head gates. Original 41 resources and GEN blocker remain as above.
