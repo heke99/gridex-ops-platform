@@ -1387,6 +1387,11 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       }))
       const source=await receive(f,raw),before=business(f),history=originalHistory(f),otherBefore=other?business(other):null
       await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+      const negativeDiagnosticReads=await Promise.allSettled([
+        getEdielMessageById(source.id,{companyId:f.companyId}),
+        listEdielMessageEvents(source.id,f.companyId),
+      ] as const)
+      console.info('native_original_negative_gate',JSON.stringify({variant,contrast,diagnostic:projectZ04Diagnostic(f,source,negativeDiagnosticReads)}))
       expect(business(f)).toEqual(before); expect(originalHistory(f)).toEqual(history); noPositiveAperak(f,source.id)
       if (other) expect(business(other)).toEqual(otherBefore)
       noActivation(f)
@@ -1398,6 +1403,11 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     const source=await receive(f,confirmation(f).replaceAll(f.receiver,other.receiver))
     const before=business(f),otherBefore=business(other),history=originalHistory(f)
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+    const negativeDiagnosticReads=await Promise.allSettled([
+      getEdielMessageById(source.id,{companyId:f.companyId}),
+      listEdielMessageEvents(source.id,f.companyId),
+    ] as const)
+    console.info('native_original_negative_gate',JSON.stringify({variant,contrast:'other grid party',diagnostic:projectZ04Diagnostic(f,source,negativeDiagnosticReads)}))
     expect(business(f)).toEqual(before); expect(business(other)).toEqual(otherBefore)
     expect(originalHistory(f)).toEqual(history); noPositiveAperak(f,source.id); noActivation(f)
   })
