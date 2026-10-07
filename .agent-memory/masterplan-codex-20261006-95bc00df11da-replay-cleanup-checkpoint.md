@@ -221,3 +221,11 @@ Authentic new clean run37563901651/job112607145514/artifact11459389922 bytes1642
 Both exact source and actual1ac composition reviews alreadyAPPROVE; both independent final-current-execution reviews are now requested on this originalnewartifact and actualall8GREEN. Currentupgrade448/206/threecurrenttypes/schema/retainedstate/importeridentity and actualunit909/12472+quality45/smoke15/publicbrowser4 remain separately qualified. No newcoverageID, actualmerge, resulting-mainruntime, externaltrial or deployment claim.
 
 Next95bc finish both real currentexecution reviews/public structured approval receipt, strictfreshreadiness and11ownerMATCH/currentmaincompat; immediatelyfree create-only merge role with reviewed12bb exactHTTP404 guard, documentedCLAIM before normalexpected-headmerge. Authenticate actualmain/tree/parents/all11own/allforeign352coverage, durable MERGED receipt then merge-roleFIRST/memory11 exactownerRELEASE. Refresh/claim nexteligibleA/Dscope only afterward.
+
+## Both actual current652 final execution reviews approve
+
+CI_GREEN / READY FOR NORMAL MERGE652 — codex-20261006-95bc00df11da
+
+Frozen d320f6aa32950126bb052c8499849d4790c5e15c/tree833e6e408d754f43cba7f0d1c1bf072af9fdc430; actualcurrent all8mandatory SUCCESS. BOTH independent FINAL_CURRENT_EXECUTION_APPROVE, originalclean11459389922 fullyqualified726/725PASS1originalphaseSKIP/26XML24supp/31browser18phases/Z22/currenttypesd933/schema3a4a; actualupgrade448/206/threeoutputparity/retainedstate/importeridentity; actualunit909/12472/quality45/smoke15/browser4. Both finalsource and exactmain1ac composition approvals retained. Authentic structured approval #5306030643730 and transparent exact-head formalCOMMENT5437482810; no self GitHub APPROVE. No findings, newID/resulting-main/external credit.
+
+Next95bc strict fresh readiness and all11ownedrefs/currentmain check, immediatelyfree atomic merge-role/documentedCLAIM, normal expected-head merge652. Authenticate actual merge/tree/exactparents/all11own/allforeign/all352coverage, checkpoint+MERGED then merge-roleFIRST and ownmemory11RELEASE. No newpair beforeactualcloseout; then fresheligibleA/D15freepath scope review/reservation/CLAIM beforecode. Source unchanged.
