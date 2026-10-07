@@ -1294,3 +1294,20 @@ Next95bc publishMERGED530 withthisexactnormalpushedCP, thenownf10mergerole
 GETMATCH→DELETE→GET404 FIRST (no memoryroleheld); lawfulsharedmirror/handoff
 2c memoryroleb0a thenown12technicalGETMATCH→DELETE404/documentRELEASE.
 Ownconfirmedpreflightcleanup remainsnextresponsibility underfreshfileclaims.
+
+## Actual merge-role release / shared mirror handoff and technical release intent
+
+MERGED actual636/main600bb61e383868000270a13d9bcc1857cea3b744/293of352
+receipt5306028476555/PR6366028476857 CP2997fccc normalpushverified. Owner
+f10e8f31a6161d3faad0a231e846a7abfec3e6da mergerole GETMATCH→DELETEsuccess→
+GET404 at2026-10-07T00:54:02.580029+00:00 FIRST; no role remainsowned95bc.
+Memoryroleb0a6c67c66545654f36a07e341753c836afb52ea remainsowned2c0823a3eed5
+for sharedmetadata; exactlatestGET confirms. Concretehandoff to2c: mirror
+actual636/600/115+178=293/59remaining andoneuniquehandoverline using6028476555,
+source9bc12green/whole39/current705Z22PASS, withoutmain726/externalapproval.
+95bc ownCP isdurable; sharedmirror pendingotherownerrole, no foreignfileedit.
+All12 owntechnicalrefs freshGETMATCH. Z05wholeCODEdelivered/no remaining
+codecriterion; externalmarket remainsseparate/notverified. Next95bc publish
+RELEASEintent/roleactualreceipt/handoff530 thenonlyown12exactGET→DELETE→GET404,
+recordactualresource release andrefreshactualmain/latest530/locks. Confirmed
+own replaypreflightcleanup next underfreshscript+uniquebehavior-test locks.
