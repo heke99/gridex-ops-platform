@@ -9,6 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { nationalRescissionNativeChain } from './helpers/nationalRescissionNative'
 import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
+import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { createBilateralProdatGroundNativeFixture } from './helpers/ediel-bilateral-prodat-profile-native-fixture'
 import { archiveBilateralProdatGround, readBilateralProdatGroundBytes, readBilateralProdatGroundScope, readBilateralProdatGroundArtifact, reviewBilateralProdatGround } from '@/lib/ediel/production/bilateralProdatProfileIntake'
 import { qualifyPersistedBilateralProdatOutboundOriginal } from '@/lib/ediel/production/bilateralProdatOutboundDraft'
@@ -230,6 +231,40 @@ async function selectedInstallationProfile() {
   expect(review.status).toBe('authorized')
   return {...f,profileVersionId:String(review.profileVersionId)}
 }
+function configureProspectiveAcknowledgements(f: Fixture, original: Original) {
+  // Public disposable GIVEN configuration, installed before any incoming birth.
+  // The genuine outgoing original supplies the replies' direction; no source,
+  // validation, capability, business effect or physical ACK is manufactured.
+  expect(original).toMatchObject({ company_id: f.companyId, direction: 'outbound', environment: 'test',
+    message_family: 'PRODAT', message_code: 'Z03', immutable_payload_hash: digest(original.raw_payload!) })
+  const envelope = EdifactEnvelopeCodec.decode(original.raw_payload!), transport = assertEdielSmtpReadiness(),
+    routeId = randomUUID(), profileId = randomUUID(), immutable = sealed(original.id)
+  expect(envelope).toMatchObject({ sender: f.sender, receiver: f.receiver, applicationReference: '23-DDQ-PRODAT' })
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.communication_routes WHERE company_id=${literal(f.companyId)}
+    AND route_scope='ediel_ack' AND environment_type='bilateral_test' AND is_active`)).toBe(0)
+  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+    VALUES(${literal(routeId)},${literal(f.companyId)},'Synthetic prospective H ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,
+      sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,application_reference,is_enabled,is_active,
+      transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
+    VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Synthetic prospective H ACK profile','test','edifact','edifact',
+      ${literal(envelope.sender)},${literal(envelope.receiver)},${literal(envelope.senderSubAddress??null)},${literal(envelope.receiverSubAddress??null)},
+      ${literal(envelope.applicationReference)},true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid',NULL,NULL,
+      ${literal(transport.from)},${literal(transport.host)},${literal(transport.port)})`)
+  const routes = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]') FROM public.communication_routes r
+    WHERE r.company_id=${literal(f.companyId)} AND r.route_scope='ediel_ack' AND r.environment_type='bilateral_test' AND r.is_active`)
+  expect(routes).toEqual([expect.objectContaining({ id: routeId, company_id: f.companyId, route_scope: 'ediel_ack',
+    environment_type: 'bilateral_test', is_active: true, target_email: 'recipient@example.invalid' })])
+  const profiles = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]') FROM public.ediel_route_profiles p
+    WHERE p.company_id=${literal(f.companyId)} AND p.communication_route_id=${literal(routeId)} AND p.is_active AND p.is_enabled`)
+  expect(profiles).toEqual([expect.objectContaining({ id: profileId, company_id: f.companyId, communication_route_id: routeId,
+    environment: 'test', message_standard: 'edifact', payload_format: 'edifact', sender_ediel_id: envelope.sender,
+    receiver_ediel_id: envelope.receiver, sender_sub_address: envelope.senderSubAddress??null,
+    receiver_sub_address: envelope.receiverSubAddress??null, application_reference: '23-DDQ-PRODAT', is_active: true, is_enabled: true,
+    transport_security_mode: 'unencrypted', smtp_to: 'recipient@example.invalid', receiver_email: 'recipient@example.invalid',
+    message_family: null, business_code: null, mailbox: transport.from, smtp_host: transport.host, smtp_port: transport.port })])
+  expect(sealed(original.id)).toEqual(immutable)
+}
 async function sent(selectedInvoicee=false,selectedInstallation=false) {
   const f = selectedInvoicee?await selectedInvoiceeProfile():selectedInstallation?await selectedInstallationProfile():await authorized(), before = business(f), original = await originate(f)
   expect(original).toMatchObject({ direction: 'outbound', environment: 'test', message_family: 'PRODAT', message_code: 'Z03',
@@ -238,6 +273,7 @@ async function sent(selectedInvoicee=false,selectedInstallation=false) {
   const qualification = await qualifyPersistedBilateralProdatOutboundOriginal(original, f.actorUserId)
   expect(qualification.qualification?.objects).toEqual([expect.objectContaining({ profileVersionId: f.profileVersionId,
     process: 'normal_start_h', objectId: f.external, customerId: f.customerId, siteId: f.siteId, contractId: f.contractId })])
+  configureProspectiveAcknowledgements(f, original)
   expect(business(f).periods).toEqual(before.periods)
   const immutable = sealed(original.id), result = await sendEdielMessageViaSmtp(original, { actorUserId: f.actorUserId, smtpMimeMode: 'nodemailer-attachment' })
   expect(result.accepted).toEqual(['recipient@example.invalid']); expect(result.rejected).toEqual([])
@@ -1153,6 +1189,7 @@ describe('H outgoing current-review authority and explicit controlled agreement 
       .toEqual([expect.objectContaining({profileVersionId:f.profileVersionId,sourceHash,sourceGrammarHash:q.sourceGrammarHash,
         contractId:q.contractId,contractHash:q.contractHash,customerId:q.customerId,siteId:q.siteId,objectId:q.objectId,
         lineItemReference:own(f,original).li})])
+    configureProspectiveAcknowledgements(f,original)
     const immutable=sealed(original.id), before=business(f)
     expect(before.periods).toEqual([]);expect(before.activations).toEqual([])
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='inbound' AND message_family IN('CONTRL','APERAK')`)).toBe(0)
