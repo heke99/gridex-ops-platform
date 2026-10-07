@@ -33,6 +33,8 @@ import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatRegisterReadingState } from '@/lib/ediel/prodat/prodatRegisterReadings'
+import { evaluateProdatTransactionReason } from '@/lib/ediel/prodat/prodatTransactionReason'
+import { isQualifiedProdatApplicationError } from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>> & { endMinute: string }
@@ -137,6 +139,54 @@ async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05', subt
     expect(Date.parse(String(receptions[0].received_at))).toBe(Date.parse(retainedMail.received_at))
     return message!
   })
+}
+// Missing physical 223 cannot name a C profile. Observe the real public refusal
+// and national diagnostic on the same retained mail, without inventing a source.
+async function refuseMissingReasonAtPublicIntake(f: Fixture, wire: string) {
+  const receivedAt = new Date().toISOString()
+  const mail = await seedOriginalMailboxNative(sql, literal, { companyId:f.companyId, environment:'test', raw:wire,
+    receivedAt, smtpFrom:assertEdielSmtpReadiness().from })
+  expect(mail.parsed.rawPayload).toBe(wire)
+  const tokens = tokenizeEdifact(mail.parsed.rawPayload)
+  const diagnostic = evaluateProdatTransactionReason({rawSegments:tokens.segments.map(segment=>segment.raw),una:tokens.una,code:'Z05'})
+  expect(diagnostic.code).toBe('Z05')
+  expect(diagnostic.issues).toContainEqual(expect.objectContaining({code:'PRODAT_TRANSACTION_REASON_INVALID',
+    prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'223',errorKind:'missing',
+      occurrence:expect.objectContaining({objectId:f.external,identityAgency:'9'})})}))
+  expect(diagnostic.applicationErrors).toHaveLength(1)
+  expect(diagnostic.applicationErrors[0]).toMatchObject({ercCode:'41',fieldCode:'223',referenceNumber:f.external})
+  expect(isQualifiedProdatApplicationError(diagnostic.applicationErrors[0])).toBe(true)
+  const custody = () => sql(`SELECT jsonb_build_object(
+    'mail',(SELECT to_jsonb(m) FROM public.inbound_email_messages m WHERE company_id=${literal(f.companyId)} AND id=${literal(mail.inboundEmailMessageId)}),
+    'parse',(SELECT to_jsonb(p) FROM public.inbound_ediel_parse_results p WHERE company_id=${literal(f.companyId)} AND id=${literal(mail.parseResultId)}));`)
+  const before = custody()
+  const outboundMatch = await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,
+    inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+  const meteringPointMatch = await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
+  // Call-through observation only: the public creator and its database error
+  // remain real. The spy neither returns a result nor supplies authority.
+  const warning = vi.spyOn(console,'warn')
+  try {
+    const id = await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',
+      inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,
+      parsed:mail.parsed,outboundMatch,meteringPointMatch})
+    expect(id).toBeNull()
+    expect(warning.mock.calls).toContainEqual(['[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message',
+      expect.objectContaining({code:'23514',message:'canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05'})])
+  } finally { warning.mockRestore() }
+  expect(custody()).toEqual(before)
+  const retained = custody() as {mail:{raw_edifact_payload:string;received_at:string};parse:{inbound_email_message_id:string}}
+  expect(retained.mail.raw_edifact_payload).toBe(wire)
+  expect(Date.parse(retained.mail.received_at)).toBe(Date.parse(receivedAt))
+  expect(retained.parse.inbound_email_message_id).toBe(mail.inboundEmailMessageId)
+  const hash = createHash('sha256').update(wire).digest('hex')
+  expect(sql(`SELECT jsonb_build_object(
+    'sources',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND environment='test'
+      AND (inbound_email_message_id=${literal(mail.inboundEmailMessageId)} OR raw_payload=${literal(wire)})),
+    'receptions',(SELECT count(*) FROM gridex_ediel_inbound_receptions.receptions WHERE company_id=${literal(f.companyId)}
+      AND environment='test' AND inbound_email_message_id=${literal(mail.inboundEmailMessageId)}),
+    'contexts',(SELECT count(*) FROM gridex_ediel_inbound_context.receipts WHERE company_id=${literal(f.companyId)}
+      AND environment='test' AND payload_sha256=${literal(hash)}));`)).toEqual({sources:0,receptions:0,contexts:0})
 }
 // Observation only: no resolver, recorder, apply call or authority is added.
 // Emit finite projections; source identities and complete facts stay private.
@@ -499,16 +549,27 @@ describe('actual native supplier cancellation chains', () => {
       return wire.replace(party!.raw,children.join(parsed.una.dataElementSeparator))
     })
     // z05 re-encodes the complete envelope after the single-field omission.
+    if (fieldNumber === '223') {
+      const businessBefore = supplyBusinessState(f), effectsBefore = ownedEffects(f,ending.id)
+      const providerCallsBefore = smtp.mock.calls.length
+      const positiveReplies = () => sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
+        AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)
+      const positiveRepliesBefore = positiveReplies()
+      await refuseMissingReasonAtPublicIntake(f,wire)
+      expect(periods(f)).toEqual(before); expect(permissions(f)).toEqual(permissionBefore)
+      expect(transitions()).toEqual(historyBefore)
+      expect(supplyBusinessState(f)).toEqual(businessBefore); expect(ownedEffects(f,ending.id)).toEqual(effectsBefore)
+      expect(smtp.mock.calls).toHaveLength(providerCallsBefore)
+      expect(positiveReplies()).toBe(positiveRepliesBefore)
+      return
+    }
     const held = await receiveProdat(f,wire,'Z05','C')
     const decision = await resolveCanonicalRuntimeDecisionWithRegistry(held)
     expect(decision.syntaxDecision,JSON.stringify(decision.issues)).toBe('accepted')
     expect(decision.issues).toContainEqual(expect.objectContaining({
       prodatDiagnostic:expect.objectContaining({fieldNumber,...(fieldNumber === '223' ? {errorKind:'missing'} : {})}),
     }))
-    if (fieldNumber === '223') {
-      await expect(processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id}))
-        .rejects.toThrow(/^prodat_subtype_unknown:missing$/)
-    } else await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id})
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id})
     expect(periods(f)).toEqual(before); expect(permissions(f)).toEqual(permissionBefore)
     expect(transitions()).toEqual(historyBefore)
     // A valid syntax CONTRL is permitted; no positive business APERAK is.
