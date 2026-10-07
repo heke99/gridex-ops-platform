@@ -13,6 +13,7 @@ import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { readRegulatedSupplyGroundScope } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import { supabaseService } from '@/lib/supabase/service'
+import { readSourceQualifiedProdatBilateralCapability } from '@/lib/ediel/core/prodatBilateralSourceCapability'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 const smtp = vi.hoisted(() => ({ provider: vi.fn() }))
@@ -55,7 +56,7 @@ async function source(f: Fixture, options: NonNullable<Parameters<typeof product
   expect(original).toMatchObject({ raw_payload: wire, rule_profile_key: 'PRODAT:Z04:D:26.A:r3',
     inbound_email_message_id: mail.inboundEmailMessageId, mailbox_message_id: mail.inboundEmailMessageId })
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(original)
-  return { ...f, sourceId: id!, reference, wire, decision }
+  return { ...f, sourceId: id!, reference, wire, decision, original: structuredClone(original) }
 }
 
 function effects(f: Awaited<ReturnType<typeof source>>) {
@@ -146,6 +147,10 @@ it('actual D intake cannot borrow another customer and company consumption319; b
     'created',created_at,'document',message_created_at,'context',execution_context_snapshot)
     FROM public.ediel_messages WHERE id=${literal(input.sourceId)} AND company_id=${literal(f.companyId)}`)
   const originalBefore = original()
+  expect(await readSourceQualifiedProdatBilateralCapability(input.original)).toBeNull()
+  expect(input.decision.policy).toMatchObject({ family: 'PRODAT', code: 'Z04', subtype: 'D', semantics: { direction: 'inbound' } })
+  expect([input.decision.syntaxDecision, input.decision.applicationDecision, input.decision.functionalDecision])
+    .toEqual(['accepted', 'accepted', 'accepted'])
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   const first = noEffects(input)
   expect(graph(f, f)).toEqual(before)
@@ -195,7 +200,9 @@ it('actual D intake cannot borrow another customer and company consumption319; b
   expect(original()).toEqual(originalBefore)
   expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
   console.info('D_FOREIGN_SOURCE_OBSERVATION', JSON.stringify({ stage: 'public_apply_and_retry_effects_and_both_graphs_preserved' }))
-  expect(applied.data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
+  // D's ordinary canonical policy may accept while its real source owner
+  // refuses the unqualified application/function before any ground partition.
+  expect(applied.data).toEqual({ applied: false, reason: 'supply_complete_own_application_and_function_required' })
 }, 120000)
 
 it('dated supplier role loss before actual D birth holds its genuine ground without consumption or production effects', async () => {
@@ -255,8 +262,14 @@ it('actual D processor rejects a foreign company actor while preserving both gen
   })
   expect(permission.error).toBeNull()
   expect(permission.data).toBe(false)
-  const attempt = () => processInboundEdielMessage({ actorUserId: other.actorUserId, edielMessageId: input.sourceId })
-  await expect(attempt()).rejects.toThrow()
+  const attempt = async () => {
+    const refused = await processInboundEdielMessage({ actorUserId: other.actorUserId, edielMessageId: input.sourceId })
+    // The observed public refusal returns its untouched original. Require
+    // that exact row, then every durable no-effect oracle below and on retry.
+    // An arbitrary result, exception or timeout cannot satisfy this contract.
+    expect(refused).toEqual(input.original)
+  }
+  await attempt()
   const first = noEffects(input)
   expect(first.acks).toEqual([])
   expect(first.outbox).toEqual([])
@@ -272,7 +285,7 @@ it('actual D processor rejects a foreign company actor while preserving both gen
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
   expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(original)
-  await expect(attempt()).rejects.toThrow()
+  await attempt()
   expect(effects(input)).toEqual(first)
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)

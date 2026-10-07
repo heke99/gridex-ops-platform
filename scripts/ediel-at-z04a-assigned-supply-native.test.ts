@@ -18,6 +18,7 @@ import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { readSourceQualifiedProdatBilateralCapability } from '@/lib/ediel/core/prodatBilateralSourceCapability'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 const provider = vi.hoisted(() => vi.fn())
@@ -322,17 +323,38 @@ it('actual A source cannot borrow the archived ground start one minute away', as
   expect(Date.parse(actualStart)).toBe(Date.parse(f.submission.startAt) + 60000)
   expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(f.submission.startAt)}))`)).toBe(true)
   expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(actualStart)}))`)).toBe(false)
+  const own = await supabaseService.from('ediel_messages').select('*').eq('id', f.sourceId).eq('company_id', f.companyId).single()
+  expect(own.error).toBeNull()
+  expect(own.data).toMatchObject({ id: f.sourceId, company_id: f.companyId, direction: 'inbound' })
+  const original = own.data as EdielMessageRow
+  expect(await readSourceQualifiedProdatBilateralCapability(original)).toBeNull()
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(original)
+  expect(decision.policy).toBeNull()
+  expect(decision.syntaxDecision).toBe('accepted')
+  expect(decision.applicationDecision).toBe('manual_review')
+  expect(decision.issues).toContainEqual(expect.objectContaining({
+    code: 'CANONICAL_POLICY_RESOLUTION_FAILED', description: 'prodat_bilateral_capability_required:Z04:A',
+  }))
+  const ruleReceipts = () => sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_source_rules.receipts
+    WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}`)
+  expect(ruleReceipts()).toBe(0)
   await processWithDiagnostics(f)
   holds(f)
+  expect(ruleReceipts()).toBe(0)
   const { data, error } = await supabaseService.rpc('ediel_apply_supply_source_v1', {
     p_company_id: f.companyId, p_source_message_id: f.sourceId, p_actor_user_id: f.actorUserId,
   })
-  expect(error).toBeNull()
-  expect(data).toMatchObject({ applied: false, partition: [expect.objectContaining({ disposition: 'held', reason: 'regulated_supply_authentic_ground_required' })] })
+  // This source never obtained a bilateral policy or frozen rule receipt.
+  // The public effect owner refuses at that exact earlier barrier; it cannot
+  // reach a ground partition. Other errors and timeouts are not this refusal.
+  expect(error).toMatchObject({ code: 'P0001', message: 'ediel_historical_rule_pack_basis_unavailable' })
+  expect(data).toBeNull()
+  expect(ruleReceipts()).toBe(0)
   holds(f)
   const first = state(f)
   await processWithDiagnostics(f)
   expect(state(f)).toEqual(first)
+  expect(ruleReceipts()).toBe(0)
   holds(f)
 }, 120000)
 
