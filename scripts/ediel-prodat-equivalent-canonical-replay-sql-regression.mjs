@@ -3,7 +3,7 @@
 // Original canonical/registry/legal/context admission are explicit finite IO
 // boundaries. This fixture is not native admission, market authority or a
 // concurrent-lock proof. Root's independent PostgreSQL17 probe owns concurrency.
-import {readFileSync} from 'node:fs'
+import {readFileSync,existsSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {pathToFileURL,fileURLToPath} from 'node:url'
 import {createHash} from 'node:crypto'
@@ -28,12 +28,24 @@ export async function createReplayFixture(){
    CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_bilateral_prodat;CREATE SCHEMA gridex_customer_life_events;
    CREATE TABLE public.declared_current_guards(name text PRIMARY KEY,allowed boolean NOT NULL);
    INSERT INTO public.declared_current_guards VALUES('original_bytes',true),('canonical_registry',true);
+   CREATE SEQUENCE public.declared_canonical_validator_calls;
+   -- Minimal declared registry IO rows, including the actual lower authority
+   -- lock targets. They do not constitute native rule-pack admission.
+   CREATE TABLE public.ediel_rule_packs(id uuid PRIMARY KEY,source_hash text NOT NULL);
+   CREATE TABLE public.ediel_message_profiles(id uuid PRIMARY KEY,rule_pack_id uuid NOT NULL,profile_key text NOT NULL);
+   CREATE TABLE public.ediel_rule_pack_sources(id uuid PRIMARY KEY,rule_pack_id uuid NOT NULL,source_hash text NOT NULL);
    CREATE TABLE public.declared_receipt_custody(id uuid PRIMARY KEY,original_hash text NOT NULL);
    CREATE FUNCTION gridex_bilateral_prodat.lock_source_receipts_v1() RETURNS void LANGUAGE plpgsql AS $$BEGIN LOCK TABLE public.user_permissions IN SHARE MODE;END$$;
    CREATE FUNCTION gridex_received_sources.reject_mutation() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'immutable';END$$;
    CREATE FUNCTION public.ediel_require_source_bytes_available_v1(uuid,uuid) RETURNS void LANGUAGE plpgsql AS $$BEGIN
     IF (SELECT allowed FROM public.declared_current_guards WHERE name='original_bytes') IS NOT TRUE OR NOT EXISTS(SELECT FROM public.ediel_messages WHERE company_id=$1 AND id=$2 AND raw_payload IS NOT NULL) THEN RAISE EXCEPTION 'declared_original_bytes_unavailable' USING ERRCODE='23514';END IF;END$$;
    CREATE FUNCTION gridex_received_sources.append_validation(c uuid,env text,source_id uuid,source_hash text,facts text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$DECLARE next_id uuid:=gen_random_uuid();previous uuid;BEGIN
+    -- This nontransactional sequence is an explicit observation of entering
+    -- this finite port, not a substitute for the real V2/V3 validators.
+    PERFORM nextval('public.declared_canonical_validator_calls');
+    LOCK TABLE public.ediel_rule_pack_sources IN SHARE MODE;
+    PERFORM rp.id FROM public.ediel_rule_packs rp WHERE rp.id::text=facts::jsonb#>>'{rulePackEvidence,rulePackId}' AND rp.source_hash=facts::jsonb#>>'{rulePackEvidence,sourceHash}' FOR SHARE;
+    PERFORM mp.id FROM public.ediel_message_profiles mp WHERE mp.id::text=facts::jsonb#>>'{rulePackEvidence,messageProfileId}' AND mp.rule_pack_id::text=facts::jsonb#>>'{rulePackEvidence,rulePackId}' AND mp.profile_key=facts::jsonb#>>'{rulePackEvidence,profileKey}' FOR SHARE;
     IF (SELECT allowed FROM public.declared_current_guards WHERE name='canonical_registry') IS NOT TRUE THEN RAISE EXCEPTION 'declared_current_registry_refusal' USING ERRCODE='23514';END IF;
     IF NOT EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=source_id AND company_id=c AND environment=env AND payload_hash=source_hash) THEN RAISE EXCEPTION 'declared_primary_scope_required';END IF;
     SELECT id INTO previous FROM gridex_received_sources.validation_assessments a WHERE a.company_id=c AND a.source_message_id=source_id AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id);
@@ -53,13 +65,16 @@ export async function createReplayFixture(){
   assert.equal(digest(prosrc),'00c135366cc901cc4dc2ceb14d7a98f7eac34450c30e9dd83154ad96b2bd8cc9')
   const raw="UNB+UNOC:3+54321:14+12345:14+261001:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z04+DOC+9'NAD+FR+54321:160:SVK'NAD+DO+12345:160:SVK'LIN+1++735123456789012345:::9'CCI++Z13'CAV+Z22'RFF+LI:OWN-A'RFF+Z05:TES'NAD+UD+199001011234:SE2:260'DTM+92:202610011200:203'UNT+13+M'UNZ+1+I'"
   const register={objectId:'735123456789012345',identityAgency:'9',messageIndex:0,messageReference:'M',registers:[{lineIndex:0,lineNumber:'1',segmentIndex:5}],disposition:'accepted',reasons:[]}
-  const facts={owner:'canonical-runtime-with-registry-v1',syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',messageReference:'M',reasonCodes:[],rulePackEvidence:{declaredFiniteRegistryOnly:true},registerValidation:{owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[register]}}
+  const facts={owner:'canonical-runtime-with-registry-v1',syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',messageReference:'M',reasonCodes:[],rulePackEvidence:{declaredFiniteRegistryOnly:true,rulePackId:id(80),messageProfileId:id(81),profileKey:'declared-finite-profile',sourceHash:'1'.repeat(64)},registerValidation:{owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[register]}}
   const object={version:1,owner:'canonical-full-prodat-object-validation-v1',coverage:'full_canonical_guide_objects_only',sharedAccepted:true,reasonCodes:[],objects:[{objectId:register.objectId,identityAgency:'9',messageReference:'M',firstLineIndex:0,lineItemReference:'OWN-A',disposition:'accepted',reasons:[],negativeFields:[]}]}
   const response={version:1,sourcePayloadHash:digest(raw),objects:[{id:register.objectId,li:'OWN-A',lineIndex:5,outcome:'positive',registerLineIndices:[5]}],responses:[{scope:'object',ercCode:'100',fieldCode:null,text:'Accepted',id:register.objectId,li:'OWN-A',lineIndex:5}]}
   const {disposition:unusedDisposition,reasons:unusedReasons,...ownScope}=register
   const application={version:1,owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',sourcePayloadHash:digest(raw),headerDecision:'accepted',objects:[{...ownScope,applicationDecision:'accepted',reasonCodes:[]}]}
   void unusedDisposition;void unusedReasons
   await db.query('INSERT INTO companies VALUES($1)',[id(1)])
+  await db.query('INSERT INTO public.ediel_rule_packs VALUES($1,$2)',[id(80),'1'.repeat(64)])
+  await db.query('INSERT INTO public.ediel_message_profiles VALUES($1,$2,$3)',[id(81),id(80),'declared-finite-profile'])
+  await db.query('INSERT INTO public.ediel_rule_pack_sources VALUES($1,$2,$3)',[id(82),id(80),'1'.repeat(64)])
   const insertSource=async(source,bytes,code)=>{
    await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload) VALUES($1,$2,'test','inbound','edifact','PRODAT',$3,$4)",[source,id(1),code,bytes])
    await db.query("INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,payload_hash,raw_payload) VALUES($1,$2,'test',$3,$4)",[source,id(1),digest(bytes),bytes])
@@ -75,7 +90,7 @@ export async function createReplayFixture(){
   const args=[id(1),'test',id(30),digest(raw),JSON.stringify(facts),'[]',JSON.stringify(object),JSON.stringify(response),JSON.stringify(application),null]
   const fullArgs=[id(1),'test',id(31),customerHash,JSON.stringify(facts),'[]',JSON.stringify(object),JSON.stringify({...response,sourcePayloadHash:customerHash}),JSON.stringify({...application,sourcePayloadHash:customerHash}),JSON.stringify(functional)]
   const run=async(input=args)=>(await db.query('SELECT gridex_received_sources.append_prodat_validation_v6($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) x',input)).rows[0].x
-  const tables=['gridex_received_sources.validation_assessments','gridex_received_sources.prodat_ignored_field_facets','gridex_received_sources.prodat_object_validation_facets','gridex_received_sources.prodat_response_facets','gridex_received_sources.prodat_application_facets','gridex_received_sources.prodat_source_function_facets','public.ediel_messages','gridex_received_sources.sources','public.declared_receipt_custody','public.legal_context_fixture','gridex_customer_life_events.inbound_context_receipts','public.ediel_outbox','public.customer_supply_periods']
+  const tables=['gridex_received_sources.validation_assessments','gridex_received_sources.prodat_ignored_field_facets','gridex_received_sources.prodat_object_validation_facets','gridex_received_sources.prodat_response_facets','gridex_received_sources.prodat_application_facets','gridex_received_sources.prodat_source_function_facets','public.ediel_messages','gridex_received_sources.sources','public.declared_receipt_custody','public.legal_context_fixture','gridex_customer_life_events.inbound_context_receipts','public.ediel_outbox','public.customer_supply_periods','public.ediel_rule_packs','public.ediel_message_profiles','public.ediel_rule_pack_sources']
   const snapshot=async()=>Object.fromEntries(await Promise.all(tables.map(async name=>[name,(await db.query(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb) x FROM ${name} t`)).rows[0].x])))
   return {db,args,fullArgs,run,snapshot,id,digest,signature,forward}
  }catch(error){await db.close();throw error}
@@ -85,6 +100,6 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const fixture=await createReplayFixture()
  try{
   if(process.env.EDIEL_EQUIVALENT_REPLAY_PROBE_MODULE)await (await import(pathToFileURL(process.env.EDIEL_EQUIVALENT_REPLAY_PROBE_MODULE).href)).default(fixture)
-  else {const first=await fixture.run(),before=await fixture.snapshot(),again=await fixture.run();assert.equal(again.assessmentId,first.assessmentId);assert.deepEqual(await fixture.snapshot(),before);console.log(JSON.stringify({status:'PASS',native:'NOT_RUN',concurrency:'NOT_RUN',scope:'equivalent current canonical replay preserves exact receipt and custody'}))}
+  else {if(existsSync(forward))await fixture.db.exec(readFileSync(forward,'utf8'));const first=await fixture.run(),before=await fixture.snapshot(),again=await fixture.run();assert.equal(again.assessmentId,first.assessmentId);assert.deepEqual(await fixture.snapshot(),before);console.log(JSON.stringify({status:'PASS',native:'NOT_RUN',concurrency:'NOT_RUN',scope:'equivalent current canonical replay preserves exact receipt and custody'}))}
  }finally{await fixture.db.close()}
 }
