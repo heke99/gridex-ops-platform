@@ -59,3 +59,47 @@ NEXT READ_ONLY SHARED PRODUCER BOUNDARY: actualmain5b150/656 merged; currenthelp
 READ_ONLY_SQL_COMPOSITION / helper1df0f02d. User asks concreteforwardhelp. Actual95all21release6037786738 and2fCORE/canonicalfreshclaim6037818739 resolved oldlockblocker; Hhelper named93, notdonor. Newbounded scope ONLY our reviewedoptionalread50631 + publishedTRsixcolumnexpand a389 at66260ee79dc6058956afae04ebd1d111c56e04e9610: execute BOTH actualmigrationorders in isolatedPostgreSQL fixture, check missingstatus/evidence/tenant/activation/lifecycle/ACL/idempotence remainfailclosed. No repeatednative21/89/96/100 readers, no SQLunioninventory (acc382), no publicprofile replay/legal oracle duplication (b6), no dispatch/source/GEN/coverage edits. Currentmain5b; syntheticexternal evidence/contract/auth isolation explicit, not realmarket/fullunion/nativeproof. Next deliver exactcomponentintegration result to2f+b6 for authentic1108capture/replay; H93/c65 remainsharedproducerauthor/receiver underownfreshclaims. OwnCP beforetest; no technicalresource acquired.
 
 COMPOSITION QUALIFIED/BOUNDARY_REVIEW_APPROVE: actualSQL50631 optionalread +a389 sixcolumnexpand at66260ee in BOTHchronological andrestoration-first orders. 12PASS0FAIL0SKIP, actualdirectNode processEXIT0 (first shelltail was nottrueNodeexit evidence, so one directterminalrepeat retained andconfirmed0). Testscript6efba8b1cac9e37196b68e5e9f0f5399f91745b7a3f0547850cd56a59be0c0a5, firstcomplete12case log541e91c47ea2cf329f34d51a82f1baa645f469a231a50bc9dadac5efb2a778f1. Actual nullabletextshape/defaultmissing, realreadiness/TSauthority/activation/current2layerlifecycleblocked+nomutation, foreigntenantreadycannotfulfillown, companyreadyremovesONLYeSettgate/evidenceremainsfalse, explicitnull/contact/role+allrows/ACL preserved acrossbothreapplies. External evidence/contract/auth syntheticonly; capturednames/types omitunrelatedconstraints. Independentboundaryreview APPROVE scopedproof/no materialsetup/oracle issue, no additionalrun/edit. No native/publicsave/legal/full1108GEN/wholeapproval. Main advanced663 to 0ecf9c60812dea2654da13d0a6ce112c650a0fe4: schema762a574..., pureauthorityc31dcee..., immutableoriginalreadinessa60e8eb... all exactOID equal testsourcee43; no dependency drift for THISisolatedproof. Original666 currentmandatory smoke+verifyFAIL retained/notwaived; owncomponentjobs+capture+upgradeSUCCESS are notallgates. Recipient2f+b6 use exactpaircompatibility in genuinecomposedreplay; source60ee publicprofile/native failure staysb6/readers responsibility. No heldsource/GEN/coverage/locks changed; ownCP only. Next donor supports unassigned requested immutablecomponent integration, avoids H93, CORE2f, SQLinventoryacc382, nativeowners duplicate work.
+
+READ_ONLY_Z02_ENQUEUE_BOUNDARY / helper1df0f02d→sole2f/ac08, actualnative c495 firststop6038011271. Newscope ONLY staticreal catch/queue/originalsnapshot contract and narrowtenant-scoped aggregateSQL diagnostichandoff; no originalartifact/qualifier/packetreview duplication (alreadyassigned), no newnative/fullrun, sourcefix/GEN/sourceinventory or wholeclaim. Actualsource c495 linker eab076... andautomation c06aa... byteidentical currentmain0ec. Catch wraps UUID normalization + exactoriginalsnapshotread + enqueueDBinsert/duplicate lookup + postinsertpersist; blocker_code alone cannot identify DBtrigger cause. Existingnative publicoriginalfixture228–274 alreadyrequires nonsuperseded ORIGINALsnapshot at queuedoperation/request before actualsend result; preserve that proof, do not assume genericmissingfixture. Nextprepare safeboolean/count-only per-company/request snapshot-preflight from actualqueueexactkeys (operation_id/request_kind/customer_data_request/request_reference); qualify querysemantics in isolatedPostgres explicitschema fixtures, notcurrentnativeoutcome. Nativeowner reuses actualpersisted blocker_reason/sourceerror when available; structuredplainDBerror catchString canlosecode. No sourcepatch/rootcause declaration without actualevidence/handoff.
+
+Z02 ENQUEUE DIAGNOSTIC ARTIFACT QUALIFIED: finalreadonly SQL/query tests19PASS0FAIL0SKIP actualNodeEXIT0. First17base controlsPASS; two meaningfulJStrim whitespace extensionsRED17PASS2FAIL (SQLbtrimspace-only mismatch) preserved; correctedonlyephemeralquery to actualECMAScripttrimchars/stringtype/hashfallback, final19PASS. Independentboundaryreview BOUNDED_APPROVE/no materialquery/security/setup flaw, clarified site/hashshape is NOT completeoriginalsnapshot success (duplicates/optionalUUID validations/transporterrors remain); finalname site_hash_shape_count/comment applied, unchanged19 finalPASS. Sourcec495 queue/linker identicalactualmain0ec; publicoriginalfixture requiresnonsuperseded snapshot but not completefrontendshape. Enqueuefailed marker wraps normalize→snapshotquery/shape→jobinsert/duplicate→persist, so no SQLtrigger/rootcause inference from marker/jobCount0. Queryoutputs ONLYboolean/null/count, exactcompany/request/operation/kind/reference; unknownmissingrequest retainednull, foreign/wrongkeys/superseded/duplicates/typed/nonstring/blank cases verified. No native/realcustomer DB run or source/GEN/coverage edit/newlocks. ExistingformatErrorMessage utility found, but donor doesnotchangecatch or classifyplainSQLobjectloss as currentnativecause. Reprohashes {"/tmp/gridex-z02-enqueue-snapshot-preflight.sql": "90bccc8300fd60beb43045b114a9d9c2408a56567a2fca09e68d56dda0e56d01", "/tmp/gridex-z02-enqueue-snapshot-preflight-test.mjs": "ca9373c6a646a1383ca2f545216d8170a233b36acaac2e1e67fd2fb9edbcd66b", "/tmp/gridex-z02-snapshot-preflight-red.log": "2e9e859517c3ae88f43dd76752a98e07ca49e77a5c773715e23d28f5a4457530", "/tmp/gridex-z02-snapshot-preflight-final-green.log": "1c67158e2ba99b3a65736a32376069fc3bec23e8f0861e2cf7e1034e8501286a"}
+Reusable diagnostic SQL (owner supplies actualowncompany/request, existingREAD-only port; parameters neverfixture facts/permissions):
+```sql
+-- Diagnostic only. $1=company UUID, $2=customer-info-request UUID.
+-- No raw identifiers, addresses, hashes, error text or snapshots are returned.
+-- Shape counts do not prove lookup/enqueue success: duplicate rows, optional
+-- UUID validation, transport errors and later DB guards remain independent.
+WITH trim_rule AS (
+  -- ECMAScript String.trim whitespace, matching the actual clean() helper.
+  SELECT U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF' AS chars
+), own_request AS (
+  SELECT operation_id,site_id FROM public.customer_info_requests
+  WHERE company_id=$1::uuid AND id=$2::uuid
+), exact_snapshot AS (
+  SELECT s.snapshot,s.site_address_hash,s.superseded_at,r.site_id AS requested_site_id
+  FROM public.customer_operation_request_snapshots s JOIN own_request r
+    ON s.operation_id=r.operation_id
+  WHERE s.company_id=$1::uuid AND s.request_kind='customer_data_request'
+    AND s.request_reference=$2::text
+), shape AS (
+  SELECT superseded_at,
+    CASE WHEN jsonb_typeof(snapshot->'site_id')='string'
+      THEN nullif(btrim(snapshot->>'site_id',t.chars),'') END AS site,
+    coalesce(nullif(btrim(site_address_hash,t.chars),''),
+      CASE WHEN jsonb_typeof(snapshot->'address_hash')='string'
+        THEN nullif(btrim(snapshot->>'address_hash',t.chars),'') END) AS address_hash,
+    requested_site_id
+  FROM exact_snapshot CROSS JOIN trim_rule t
+)
+SELECT jsonb_build_object(
+  'request_count',(SELECT count(*) FROM own_request),
+  'request_operation_present',(SELECT operation_id IS NOT NULL FROM own_request),
+  'exact_snapshot_count',(SELECT count(*) FROM shape),
+  'active_snapshot_count',(SELECT count(*) FROM shape WHERE superseded_at IS NULL),
+  'active_site_present_count',(SELECT count(*) FROM shape WHERE superseded_at IS NULL AND site IS NOT NULL),
+  'active_address_hash_present_count',(SELECT count(*) FROM shape WHERE superseded_at IS NULL AND address_hash IS NOT NULL),
+  'site_hash_shape_count',(SELECT count(*) FROM shape WHERE superseded_at IS NULL AND site IS NOT NULL AND address_hash IS NOT NULL),
+  'active_site_text_matches_request_count',(SELECT count(*) FROM shape WHERE superseded_at IS NULL AND site=requested_site_id::text)
+) AS result;
+```
+Next rightful2f: alongside retainedactualc49549P40F, inspect genuinepersisted enqueue failure and exactlookup state via ownreviewedobserver/currentproducer; same89oracles/effects mandatory, no snapshotseed/fallback/error-as-success. Donor leaves nativequalifier/packetreview, ROOTmaincomposition and future sourcefix entirely withowner.
