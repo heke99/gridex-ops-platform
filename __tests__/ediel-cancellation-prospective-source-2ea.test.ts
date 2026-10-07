@@ -62,4 +62,11 @@ describe('prospective ordinary Z04 input for cancellation prerequisites', () => 
     expect(segmentComposite(unz, 2, wire.una)).toEqual(segmentComposite(unb, 5, wire.una))
     expect(segmentComposite(segments.find(s => s.tag === 'BGM')!, 1, wire.una)).toEqual(['Z04'])
   })
+
+  it.each(['', "735123456789012399'LIN+2++FOREIGN:::9"])(
+    'refuses a missing or additional physical LIN identity: %s', external => {
+      expect(() => buildCancellationProspectiveZ04({ ...context, external }))
+        .toThrow('native_cancellation_ordinary_l_wire_scope_required')
+    },
+  )
 })
