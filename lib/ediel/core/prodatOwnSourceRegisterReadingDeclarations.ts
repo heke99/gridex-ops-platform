@@ -10,6 +10,7 @@ import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInvent
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {prodatRegisterReadingMarket,prodatRegisterReadingState,prodatRegisterReadingSubtype} from '@/lib/ediel/prodat/prodatRegisterReadings'
 import {resolveCanonicalEdielPolicy,type CanonicalEdielPolicy,type ProdatDependentConditionFacts} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import type {RulebookFieldRule} from '@/lib/ediel/rulebook/fieldMatrix'
 import {stockholmBusinessDate} from './executionContext'
 import {parseCanonicalMessageRow} from './canonicalMessage'
 import {segmentComposite,tokenizeEdifact} from './edifactTokenizer'
@@ -148,19 +149,21 @@ export function sourceProdatOwnRegisterReadingDeclarations(input:{
   if(keys.some(key=>!isDeepStrictEqual(input.policy[key],expected[key]))
     ||expected.guide.guideRevision!=='26-A'||expected.guide.associationAssignedCode!=='E2SE6A'
     ||expected.guide.fieldMatrixStatus!=='certified')throw Error('prodat_own_source_readings_policy_unqualified')
-  const rules=expected.fieldRules.filter(rule=>rule.fieldNumber==='259')
+  const rules=expected.fieldRules.filter((rule):rule is RulebookFieldRule=>'fieldNumber' in rule&&rule.fieldNumber==='259')
   if(rules.length!==1||rules[0].segmentPath!=='CCI++Z16/CAV')
     throw Error('prodat_own_source_readings_policy_unqualified')
   const firstLine=physical.wire.segments.findIndex(token=>token.tag==='LIN')
   const header259=physical.wire.segments.slice(0,firstLine)
     .some(token=>token.tag==='CCI'&&segmentComposite(token,2,physical.wire.una)[0]?.trim().toUpperCase()==='Z16')
   return physical.first.map(own=>{
+    const identityAgency=own.identityAgency
+    if(identityAgency!=='9'&&identityAgency!=='89')throw Error('prodat_own_source_readings_scope_unqualified')
     const state=prodatRegisterReadingState('259',own.segments,physical.wire.una)
     const siblings=physical.groups.filter(group=>group.itemId===own.itemId&&group.identityAgency===own.identityAgency)
     const malformed=siblings.some(group=>!group.validRegisterChain
       ||prodatRegisterReadingState('259',group.segments,physical.wire.una).malformed)
     const allowed=!rules[0].allowedValues||state.value!==null&&rules[0].allowedValues.includes(state.value)
-    return Object.freeze({meteringPointId:own.itemId!,identityAgency:own.identityAgency!,
+    return Object.freeze({meteringPointId:own.itemId!,identityAgency,
       meterReadingsSentInUtilts:!header259&&!malformed&&state.present&&!state.malformed&&state.value&&allowed?true:null})
   })
 }
