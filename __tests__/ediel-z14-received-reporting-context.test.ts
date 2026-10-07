@@ -2,7 +2,7 @@
 // Finite prospective READ transport only: no admitted native original, private
 // classification, accepted receipt, business effect or physical ACK is seeded.
 import {createHash} from 'node:crypto'
-import {beforeEach,describe,expect,it,vi} from 'vitest'
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {permissionAckMessage,permissionAckObject} from './fixtures/prodat-permission-ack'
@@ -113,7 +113,8 @@ function end(body:Parts[],minute:string){
  const at=body.findIndex(p=>p[0]==='DTM'&&Array.isArray(p[1])&&p[1][0]==='90')
  return [...body.slice(0,at+1),['DTM',['91',minute,'203']] as Parts,...body.slice(at+1)]
 }
-beforeEach(()=>{io.reads=[];io.decision=null;io.basis=null;io.error=null})
+beforeEach(()=>{io.reads=[];io.decision=null;io.basis=null;io.error=null;vi.setSystemTime(new Date(received))})
+afterEach(()=>vi.useRealTimers())
 describe('received Z14 known reporting requirements before own APP projection',()=>{
  it('standalone no-actor keeps receiver-local U absence unqualified',()=>{
   const d=resolveCanonicalRuntimeDecision(wire(omitPurpose(permissionAckObject('Z14','S17','A74',null))))
@@ -184,7 +185,8 @@ describe('received Z14 known reporting requirements before own APP projection',(
   expect(resolveCanonicalRuntimeDecision(m,facts).applicationDecision).toBe('accepted');expect(io.reads).toEqual([])
  })
  it('unknown full grammar is rejected before any historical reporting READ',async()=>{
-  const m=wire();m.raw_payload=m.raw_payload!.replace('PRODAT:D:96A:UN','PRODAT:D:99Z:UN')
+  const m=wire();expect(m.raw_payload).toContain('PRODAT:D:97A:UN')
+  m.raw_payload=m.raw_payload!.replace('PRODAT:D:97A:UN','PRODAT:D:99Z:UN')
   expect(m.raw_payload).toContain('PRODAT:D:99Z:UN')
   const d=await canonical(m);expect(d.syntaxDecision).toBe('rejected');expect(io.reads).toEqual([]);noPositive(d)
  })
