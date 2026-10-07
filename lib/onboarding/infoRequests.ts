@@ -1090,11 +1090,13 @@ function dispatchBlockerFromError(
   });
 }
 
-export async function queueCustomerInfoRequestForDispatch(input: {
+/** Qualify current bound authority and persist its exact refusal. This method
+ * cannot create or queue a GODR, outbound request or message. */
+export async function checkCustomerInfoRequestAuthorization(input: {
   companyId: string;
   actorUserId: string;
   requestId: string;
-}): Promise<InfoRequestDispatchResult> {
+}) {
   const companyId = requireUuid(input.companyId, "company_id");
   const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
   const requestId = requireUuid(input.requestId, "customer_info_request_id");
@@ -1154,7 +1156,7 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       payload: { blocker_code: blocker.blocker_code, blocker_details: blocker },
     });
 
-    return {
+    const refusal: InfoRequestDispatchResult = {
       customerInfoRequest: data as CustomerInfoRequestRow,
       gridOwnerDataRequestId: request.grid_owner_data_request_id ?? null,
       outboundRequestId: request.outbound_request_id ?? null,
@@ -1164,7 +1166,20 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       blockerCode: blocker.blocker_code,
       blockerDetails: blocker,
     };
+    return {request, currentAuthorization, refusal};
   }
+  return {request, currentAuthorization, refusal: null};
+}
+
+export async function queueCustomerInfoRequestForDispatch(input: {
+  companyId: string;
+  actorUserId: string;
+  requestId: string;
+}): Promise<InfoRequestDispatchResult> {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const {request, currentAuthorization, refusal} = await checkCustomerInfoRequestAuthorization(input);
+  if (refusal) return refusal;
 
   if (
     requestNeedsSupplierContractAuthorization(request) &&
