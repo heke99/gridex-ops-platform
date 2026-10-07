@@ -258,13 +258,14 @@ function assertOwnReadingWire(f:Fixture,raw:string,declaredTrue:boolean) {
     currentAssociation:segmentComposite(segments[unh],2,wire.una).join(':')==='PRODAT:D:97A:UN:E2SE6A',
     businessHeader:segments.find(value=>value.tag==='BGM')?.elements[1]==='Z04'&&segments.find(value=>value.tag==='BGM')?.elements.slice(3,5).join(':')==='9:AB',
     reverseParties:envelope.sender===originalEnvelope.receiver&&envelope.receiver===originalEnvelope.sender,
+    reverseQualifiers:envelope.senderQualifier===originalEnvelope.receiverQualifier&&envelope.receiverQualifier===originalEnvelope.senderQualifier,
     reverseSubaddresses:envelope.senderSubAddress===originalEnvelope.receiverSubAddress&&envelope.receiverSubAddress===originalEnvelope.senderSubAddress,
     testApplication:envelope.environment==='test'&&envelope.applicationReference==='23-DDQ-PRODAT',
     ownObject:lines.length===1&&segmentComposite(segments[line],3,wire.una)[0]===f.external&&segmentComposite(segments[line],3,wire.una)[3]==='9',
     ownReason:segments.filter(value=>value.tag==='CCI'&&segmentComposite(value,2,wire.una)[0]==='Z13').length===1
       &&segments.some((value,index)=>value.tag==='CCI'&&segmentComposite(value,2,wire.una)[0]==='Z13'&&segmentComposite(segments[index+1],1,wire.una)[0]===(f.variant==='L'?'Z22':'Z23')),
     readingShape}).toEqual({una:true,singleEnvelope:true,counted:true,messageReference:true,interchangeCount:true,interchangeReference:true,
-      currentAssociation:true,businessHeader:true,reverseParties:true,reverseSubaddresses:true,testApplication:true,ownObject:true,ownReason:true,readingShape:true})
+      currentAssociation:true,businessHeader:true,reverseParties:true,reverseQualifiers:true,reverseSubaddresses:true,testApplication:true,ownObject:true,ownReason:true,readingShape:true})
 }
 // All untrusted descriptions are parsed privately. The return contains only
 // fixed enums/booleans/bounded counts; never descriptions, values, IDs or hashes.
@@ -897,15 +898,17 @@ function noActivation(f: NormalSwitchStageNativeFixture) {
   expect(sql(`SELECT jsonb_build_object('periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}),
     'accepted',(SELECT status IN('accepted','confirmed','active','completed') OR inbound_z04_message_id IS NOT NULL OR completed_at IS NOT NULL FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)}))`)).toEqual({ periods:0,accepted:false })
 }
-function encode(f: Fixture, body: string[], inbound=false) {
+function encode(f: Fixture, body: string[], inbound=false, ownReverseOriginalEnvelope=false) {
   const envelope=EdifactEnvelopeCodec.decode(f.original.raw_payload!)
+  if(ownReverseOriginalEnvelope&&(!inbound||!envelope.senderQualifier||!envelope.receiverQualifier))throw Error('native_own_reverse_source_qualifiers_required')
   return EdifactEnvelopeCodec.encode({ sender:inbound?f.receiver:f.sender,receiver:inbound?f.sender:f.receiver,
-    senderQualifier:'14',receiverQualifier:'14',senderSubAddress:inbound?envelope.receiverSubAddress:envelope.senderSubAddress,
+    senderQualifier:ownReverseOriginalEnvelope?envelope.receiverQualifier:'14',receiverQualifier:ownReverseOriginalEnvelope?envelope.senderQualifier:'14',
+    senderSubAddress:inbound?envelope.receiverSubAddress:envelope.senderSubAddress,
     receiverSubAddress:inbound?envelope.senderSubAddress:envelope.receiverSubAddress,applicationReference:'23-DDQ-PRODAT',
     acknowledgementRequest:true,environment:'test',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),
     messages:[{ messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:body }] })
 }
-function confirmation(f: Fixture, change: (body:string[])=>string[]=body=>body) {
+function confirmation(f: Fixture, change: (body:string[])=>string[]=body=>body, ownReverseOriginalEnvelope=false) {
   const selected=ownerSource().raw_payload!.replaceAll(OWNER.external,f.external)
     .replaceAll('12345:160:SVK',`${f.receiver}:160:SVK`).replaceAll('54321:160:SVK',`${f.sender}:160:SVK`)
     .replaceAll('11111:160:SVK',`${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89',`${f.customerIdentity.id}:SE2:260`)
@@ -913,7 +916,7 @@ function confirmation(f: Fixture, change: (body:string[])=>string[]=body=>body) 
     .replaceAll('202610010000',f.requestedStartDate.replaceAll('-','')+'0000').replaceAll('CAV+Z22',`CAV+${f.variant==='L'?'Z22':'Z23'}`)
   const body=tokenizeEdifact(selected).segments.filter(s=>!['UNA','UNB','UNH','UNT','UNZ'].includes(s.tag))
     .map(s=>s.tag==='BGM'?`BGM+Z04+${randomUUID().replaceAll('-','').slice(0,20)}+9+AB`:s.raw)
-  return encode(f,change(body),true)
+  return encode(f,change(body),true,ownReverseOriginalEnvelope)
 }
 async function receive(f: Fixture, raw: string) {
   const mail=await seedOriginalMailboxNative(sql,literal,{ companyId:f.companyId,environment:'test',raw,smtpFrom:'synthetic@example.invalid' })
@@ -1153,7 +1156,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     const acknowledged=await getEdielMessageById(f.original.id,{companyId:f.companyId})
     expect(acknowledged?.status==='acknowledged'&&acknowledged.contrl_status==='received'&&acknowledged.aperak_status==='received'&&acknowledged.failure_reason===null).toBe(true)
     noActivation(f)
-    const raw=confirmation(f,body=>withOwnReadings(body,false))
+    const raw=confirmation(f,body=>withOwnReadings(body,false),true)
     assertOwnReadingWire(f,raw,false)
     const source=await receive(f,raw)
     await assertOwnFieldReception(f,source)
@@ -1265,7 +1268,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     // may confirm a supply period or accept the supplier switch.
     expect(await getEdielMessageById(original.id)).toMatchObject({status:'acknowledged',failure_reason:null})
     noActivation(f)
-    const positiveRaw=confirmation(f,body=>withOwnReadings(body,true))
+    const positiveRaw=confirmation(f,body=>withOwnReadings(body,true),true)
     assertOwnReadingWire(f,positiveRaw,true)
     const source=await receive(f,positiveRaw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
     await assertOwnFieldReception(f,source)
