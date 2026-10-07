@@ -9,6 +9,7 @@ on:
       - 'scripts/**'
       - '__tests__/helpers/**'
       - '__tests__/fixtures/**'
+      - '__tests__/ediel-db-01-current-authority-parity.test.ts'
       - 'docs/ediel/**'
       - 'package*.json'
       - 'tsconfig*.json'
@@ -24,9 +25,9 @@ concurrency:
   group: ediel-db01-current-native-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# Unchanged BASE56 clean + exact snapshot repair before historical births +
-# two exact owned forwards is supplemental composition only. Unrepaired BASE56
-# run 37542593437 remains a genuine 42703 failure, not a successful birth proof.
+# BASE56 clean + snapshot repair + one committed ROOT AGT producer over BASE
+# dependencies/prospective public DTO hint + two forwards is reconstructed
+# supplemental composition only. Original 42703 and AGT 23502 failures remain.
 # Current canonical clean/capture/upgrade and all ordinary OPS gates remain.
 jobs:
   db01-historical-upgrade-native:
@@ -75,11 +76,18 @@ jobs:
                       'supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql']
           repair = 'supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql'
           repair_unit = '__tests__/ediel-test-configuration-route-source.test.ts'
+          producer = 'lib/ediel/testing/agtEngine.ts'
+          producer_unit = '__tests__/ediel-db-01-current-authority-parity.test.ts'
+          producer_hash = '1e92d77dde830f105eebb11277207bd8781f748081e632b359f47674bcfe7b65'
+          producer_oid = '79eeae754fcfd610e1baa82bd6c6be2e930cb506'
+          canonical_dependencies = ['lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
+            'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
+            'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts']
           expected_sql_hashes = {
             repair:'b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb',
             forwards[0]:'de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36',
             forwards[1]:'d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba'}
-          required = [repair,repair_unit] + forwards + ['scripts/ediel-db01-legacy-address-containment-native.test.ts',
+          required = [repair,repair_unit,producer_unit] + forwards + ['scripts/ediel-db01-legacy-address-containment-native.test.ts',
             'scripts/ediel-db01-current-native.config.ts', '.github/workflows/ediel-db01-current-native.yml',
             'lib/ediel/db.ts','lib/ediel/testing/agtEngine.ts',
             'lib/ediel/testing/agtRegistry.ts','lib/ediel/testing/agtRuntime.ts','lib/ediel/systemTestSettings.ts',
@@ -87,7 +95,8 @@ jobs:
             'lib/ediel/production/bilateralProdatOutboundDraft.ts',
             'lib/ediel/production/bilateralProdatProfileIntake.ts',
             'lib/ediel/production/supplyRescissionIntake.ts',
-            'lib/ediel/core/kernel.ts','lib/ediel/core/atomicAckPersistence.ts',
+            'lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
+            'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts','lib/ediel/core/atomicAckPersistence.ts',
             'scripts/helpers/nationalRescissionNative.ts',
             'scripts/helpers/ediel-normal-switch-native-fixture.ts',
             'scripts/helpers/ediel-bilateral-prodat-profile-native-fixture.ts',
@@ -96,7 +105,7 @@ jobs:
             'scripts/helpers/ediel-native-permission-catalog.setup.ts',
             'scripts/gridex-aud-003-clean-replay.sh','scripts/gridex-redact-native-evidence.py',
             'supabase/config.toml','supabase/schema.sql','package.json','package-lock.json','.nvmrc']
-          current_only = {repair,repair_unit,*forwards,'scripts/ediel-db01-legacy-address-containment-native.test.ts',
+          current_only = {repair,repair_unit,producer_unit,*forwards,'scripts/ediel-db01-legacy-address-containment-native.test.ts',
             'scripts/ediel-db01-current-native.config.ts','.github/workflows/ediel-db01-current-native.yml'}
           required_base = [p for p in required if p not in current_only] + [
             'scripts/gridex-aud-003-main-ledger.json','scripts/migration-history-manifest.json',
@@ -121,9 +130,9 @@ jobs:
                   if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
               return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
           current, baseline = inventory(head), inventory(base_sha)
-          if len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+          if len(required) != 38 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
               raise RuntimeError('required input missing or duplicated')
-          if len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
+          if len(required_base) != 33 or len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
               raise RuntimeError('required BASE input missing or duplicated')
           for path in required:
               if hashlib.sha256((root/path).read_bytes()).hexdigest() != current['blobs'][path]['sha256']:
@@ -134,7 +143,12 @@ jobs:
           for path,expected in expected_sql_hashes.items():
               if current['blobs'][path]['sha256'] != expected:
                   raise RuntimeError('exact SQL source identity changed: '+path)
-          receipt = {'purpose':'supplemental_BASE56_plus_snapshot_repair_prebirth_plus_two_owned_forwards_actual_native',
+          if current['blobs'][producer] != {'mode':'100644','git_blob_oid':producer_oid,'sha256':producer_hash}:
+              raise RuntimeError('committed canonical AGT producer identity changed')
+          for path in canonical_dependencies:
+              if current['blobs'][path] != baseline['blobs'][path]:
+                  raise RuntimeError('AGT canonical dependency differs from BASE: '+path)
+          receipt = {'purpose':'supplemental_BASE56_plus_snapshot_repair_prebirth_plus_current_AGT_producer_and_prospective_legacy_DTO_then_two_owned_forwards_actual_native',
             'root_path':str(root),'base_path':str(pathlib.Path(os.environ['DB01_BASE_ROOT']).resolve()),
             'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
             'workflow_run_id':os.environ['GITHUB_RUN_ID'], 'input_authority':'complete_Git_objects_before_BASE_replay_substitution',
@@ -144,9 +158,19 @@ jobs:
             'composition':[{'phase':phase,'path':p,**current['blobs'][p]} for phase,p in zip(
               ['snapshot_repair_prebirth','smime_forward','legacy_address_forward'],[repair,*forwards])],
             'historical_database_basis':'unchanged_BASE56_clean_plus_exact_snapshot_repair_before_public_births',
+            'historical_source_basis':{'kind':'reconstructed_public_births','default_alias':'BASE56',
+              'module_overrides':[{'specifier':'@/lib/ediel/testing/agtEngine','path':producer,'source':'ROOT','revision':head,**current['blobs'][producer]}],
+              'canonical_dependency_identity':{p:{'base':baseline['blobs'][p],'root':current['blobs'][p]} for p in canonical_dependencies},
+              'public_creator_input':{'source':'BASE56','port':'createEdielMessage','field':'partyAddressId',
+                'when':'historical_AGT_Z09_L7_before_INSERT','value_origin':'existing_prospective_legacy_fixture_UUID',
+                'mutation':'ONLY_partyAddressId','scope':'one_exact_company_actor_profile_route_birth','restore':'finally','authority':'NO_authority_or_accepted_fact'}},
+            'current_source_basis':'ROOT_only_no_legacy_hint_wrapper',
             'unrepaired_BASE_failure':{'run_id':37542593437,'artifact_id':11448599210,
               'head_sha':'608fd480bea06c2b145e7c95a1d92fe93b256f9b','sqlstate':'42703',
               'message':'record "v_route" has no field "environment_type"','status':'PRESERVED_FAIL'},
+            'preserved_legacy_AGT_birth_failure':{'run_id':37553765806,'artifact_id':11453387991,
+              'head_sha':'850cb523ab285af00caa081cc563143b54006289','sqlstate':'23502',
+              'message':'canonical_ediel_rule_pack_required','status':'PRESERVED_FAIL'},
             'phases':{'baseline_clean':{'status':'NOT_RUN','exit_code':None},
               'snapshot_repair_prebirth':{'status':'NOT_RUN','exit_code':None},'historical':{'status':'NOT_RUN','exit_code':None},
               'smime_forward':{'status':'NOT_RUN','exit_code':None},'legacy_address_forward':{'status':'NOT_RUN','exit_code':None},
@@ -165,7 +189,8 @@ jobs:
           PY
           git archive "$DB01_BASE_SHA" | tar -x -C "$DB01_BASE_ROOT"
           # Identical recorded package/lock/config inputs qualify this shared
-          # installation; all project source aliases resolve to the phase root.
+          # installation. Historical @ resolves to BASE except the one recorded
+          # committed ROOT AGT producer; that producer's dependencies stay BASE.
           ln -s "$CURRENT_ROOT/node_modules" "$DB01_BASE_ROOT/node_modules"
           update_phase() {
             DB01_PHASE="$1" DB01_EXIT="$2" python3 - <<'PY'
@@ -191,7 +216,8 @@ jobs:
             supabase status -o json > "$GRIDEX_NATIVE_STATUS"
             cd "$CURRENT_ROOT"
             # A separately receipted source repair runs before any historical
-            # birth; BASE replay/source aliases remain byte-exact and unchanged.
+            # birth; BASE replay is unchanged. The receipted AGT module overlay
+            # and bounded public DTO input are reconstructed birth preparation.
             repair_exit=0
             test "$(sha256sum supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql | cut -d ' ' -f 1)" = \
               b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb || repair_exit=$?
@@ -268,6 +294,41 @@ jobs:
                   raise RuntimeError('JUnit failure/error/skip is not a successful proof: '+path.name)
               return {'tests':len(cases),'passed':len(cases),'failures':0,'errors':0,'skipped':0,'unique_cases':identities}
           receipt=json.loads((evidence/'receipt.json').read_text())
+          if receipt.get('purpose')!='supplemental_BASE56_plus_snapshot_repair_prebirth_plus_current_AGT_producer_and_prospective_legacy_DTO_then_two_owned_forwards_actual_native' or \
+              receipt.get('historical_database_basis')!='unchanged_BASE56_clean_plus_exact_snapshot_repair_before_public_births':
+              raise RuntimeError('JUnit qualification requires the explicit reconstructed composition')
+          basis=receipt.get('historical_source_basis',{})
+          producer='lib/ediel/testing/agtEngine.ts'
+          expected_overlay={'specifier':'@/lib/ediel/testing/agtEngine','path':producer,'source':'ROOT','revision':receipt['checkout_sha'],
+            'mode':'100644','git_blob_oid':'79eeae754fcfd610e1baa82bd6c6be2e930cb506',
+            'sha256':'1e92d77dde830f105eebb11277207bd8781f748081e632b359f47674bcfe7b65'}
+          expected_input={'source':'BASE56','port':'createEdielMessage','field':'partyAddressId','when':'historical_AGT_Z09_L7_before_INSERT',
+            'value_origin':'existing_prospective_legacy_fixture_UUID','mutation':'ONLY_partyAddressId',
+            'scope':'one_exact_company_actor_profile_route_birth','restore':'finally','authority':'NO_authority_or_accepted_fact'}
+          if basis.get('kind')!='reconstructed_public_births' or basis.get('default_alias')!='BASE56' or \
+              basis.get('module_overrides')!=[expected_overlay] or basis.get('public_creator_input')!=expected_input or \
+              receipt.get('current_source_basis')!='ROOT_only_no_legacy_hint_wrapper':
+              raise RuntimeError('JUnit qualification requires the declared reconstructed public birth basis')
+          dependencies={'lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
+            'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
+            'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts'}
+          if len(receipt['required_input_paths'])!=38 or len(set(receipt['required_input_paths']))!=38 or \
+              len(receipt['required_base_input_paths'])!=33 or len(set(receipt['required_base_input_paths']))!=33 or \
+              set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
+              receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
+              raise RuntimeError('JUnit qualification requires the exact reconstructed source inventory')
+          for path in dependencies:
+              base=receipt['base_source']['blobs'][path]; current_input=receipt['root_source']['blobs'][path]
+              if base!=current_input or basis['canonical_dependency_identity'][path]!={'base':base,'root':current_input} or \
+                  path not in receipt['required_input_paths'] or path not in receipt['required_base_input_paths']:
+                  raise RuntimeError('JUnit qualification requires BASE canonical dependencies: '+path)
+          if receipt.get('unrepaired_BASE_failure')!={'run_id':37542593437,'artifact_id':11448599210,
+              'head_sha':'608fd480bea06c2b145e7c95a1d92fe93b256f9b','sqlstate':'42703',
+              'message':'record "v_route" has no field "environment_type"','status':'PRESERVED_FAIL'} or \
+              receipt.get('preserved_legacy_AGT_birth_failure')!={'run_id':37553765806,'artifact_id':11453387991,
+              'head_sha':'850cb523ab285af00caa081cc563143b54006289','sqlstate':'23502',
+              'message':'canonical_ediel_rule_pack_required','status':'PRESERVED_FAIL'}:
+              raise RuntimeError('JUnit qualification cannot erase preserved BASE failures')
           for phase in ['baseline_clean','snapshot_repair_prebirth','historical','smime_forward','legacy_address_forward','current']:
               if receipt['phases'][phase]!={'status':'PASS','exit_code':0}:
                   raise RuntimeError('JUnit qualification requires actual successful phase: '+phase)
@@ -276,7 +337,9 @@ jobs:
           if historical['tests']!=1 or current['tests']!=13:
               raise RuntimeError('JUnit expected 1 historical and 13 current cases')
           (evidence/'junit-qualification.json').write_text(json.dumps({'status':'PASS','historical':historical,'current':current,
-            'tests':14,'passed':14,'failures':0,'errors':0,'skipped':0,'proof_basis':'BASE56_plus_snapshot_repair_then_two_forwards'},indent=2)+'\n')
+            'tests':14,'passed':14,'failures':0,'errors':0,'skipped':0,
+            'proof_basis':'BASE56_plus_snapshot_repair_and_committed_AGT_overlay_with_prospective_legacy_DTO_then_two_forwards',
+            'historical_source_basis':basis,'current_source_basis':receipt['current_source_basis']},indent=2)+'\n')
           PY
             update_phase junit_qualification "$qualification_exit"
             exit "$qualification_exit"

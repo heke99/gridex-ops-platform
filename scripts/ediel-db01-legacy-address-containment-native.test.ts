@@ -1,8 +1,9 @@
 // Prospective supplemental DB-01 native upgrade; no approval tag.
-// Historical public births use exact BASE56 source over its unchanged clean
-// stack plus the separately pinned snapshot repair before births; then the two
-// owned forwards run on that stack. Current owners run in a fresh process.
-// Unrepaired BASE56's actual 42703 failure remains preserved separately.
+// Historical reconstructed births use BASE56 source and database plus the
+// pinned snapshot repair and one committed current AGT producer over BASE
+// dependencies. Only its real BASE public creator receives a prospective
+// legacy address UUID before INSERT. Then the two owned forwards run; current
+// owners run in a fresh process. Original 42703/23502 failures stay preserved.
 // Synthetic issuer verifier configuration is explicit fixture input, never an
 // external legal approval. Nodemailer is the sole injected external I/O port.
 import {createHash, randomUUID} from 'node:crypto'
@@ -11,6 +12,7 @@ import {afterEach, beforeEach, expect, it, vi} from 'vitest'
 import type {SupabaseClient} from '@supabase/supabase-js'
 import {supabaseService} from '@/lib/supabase/service'
 import {createEdielMessage, createEdielTestRun, getEdielMessageById} from '@/lib/ediel/db'
+import * as messageDb from '@/lib/ediel/db'
 import {createEdielSupplierAgtOutboundCommand} from '@/lib/ediel/testing/agtEngine'
 import {getEdielAgtRouteName} from '@/lib/ediel/testing/agtRegistry'
 import {saveEdielSystemTestSettings} from '@/lib/ediel/systemTestSettings'
@@ -24,7 +26,7 @@ import {nationalRescissionNativeChain} from '@/scripts/helpers/nationalRescissio
 import {recordOriginalMailboxNativeReception, seedOriginalMailboxNative} from '@/scripts/helpers/originalMailboxNative'
 import {closureFixture} from '@/__tests__/helpers/closureWireFixtures'
 import {utiltsNativeSourceFixture, utiltsTestEnvironmentWire} from '@/__tests__/helpers/utiltsNativeSourceFixture'
-import type {CreateEdielMessageInput} from '@/lib/ediel/types'
+import type {CreateEdielMessageInput, EdielMessageRow} from '@/lib/ediel/types'
 
 const provider = vi.hoisted(() => ({send: vi.fn()}))
 const sourceSession = vi.hoisted(() => ({client: null as SupabaseClient | null}))
@@ -175,7 +177,37 @@ async function configureAgt(otherCompanyId: string) {
   expect(settings.routeProfileId).toBe(profileId)
   return {...f, routeId, routeProfileId: profileId}
 }
-async function agtOriginal(f: {companyId: string; actorUserId: string; profileId: string}, otherCompanyId: string) {
+function assertAgtCanonicalCustody(message: EdielMessageRow, f: {companyId: string; actorUserId: string; profileId: string; routeId: string}, runId: string) {
+  expect(message).toMatchObject({company_id: f.companyId, created_by: f.actorUserId, environment: 'test', direction: 'outbound',
+    message_family: 'PRODAT', message_code: 'Z09', route_profile_id: f.profileId, communication_route_id: f.routeId,
+    rule_profile_key: 'PRODAT:Z09:G:26.A:r3', canonical_rule_pack_id: expect.stringMatching(/^[0-9a-f-]{36}$/i),
+    rule_profile_version_id: expect.stringMatching(/^[0-9a-f-]{36}$/i), rule_profile_version: expect.any(String),
+    rule_pack_checksum: expect.stringMatching(/^[0-9a-f]{64}$/), immutable_payload_hash: sha(message.raw_payload!),
+    immutable_rendered_at: expect.any(String)})
+  expect(message.raw_payload).toContain("CCI++Z13'CAV+E32'")
+  expect(message.raw_payload).toContain("CCI++Z04'CAV+Z03'")
+  expect(message.parsed_payload).toMatchObject({agt: true, agtTestCaseCode: 'L7', agtApprovalVersion: '2026A'})
+  expect(message.validation_report).toMatchObject({lockedSendContext: {source: 'ediel_test_runs', testRunId: runId,
+    testSuite: 'PRODAT', testCaseCode: 'L7', roleCode: 'supplier', routeProfileId: f.profileId, communicationRouteId: f.routeId}})
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_test_run_messages link JOIN public.ediel_test_runs run ON run.id=link.test_run_id
+    WHERE link.ediel_message_id=${literal(message.id)} AND link.company_id=${literal(f.companyId)} AND run.id=${literal(runId)}
+      AND run.company_id=link.company_id AND run.test_suite='PRODAT' AND run.test_case_code='L7' AND run.role_code='supplier'
+      AND run.route_profile_id=${literal(f.profileId)} AND link.expected_direction='outbound' AND link.expected_family='PRODAT' AND link.expected_code='Z09'`)).toBe(1)
+  expect(sql(`SELECT jsonb_build_object('witnesses',count(DISTINCT w.id),'consumptions',count(c.source_message_id),
+    'exact',bool_and(w.company_id=m.company_id AND w.actor_user_id=${literal(f.actorUserId)}::uuid AND w.environment=m.environment
+      AND w.family=m.message_family AND w.code=m.message_code AND w.payload_sha256=m.immutable_payload_hash
+      AND c.company_id=m.company_id AND c.environment=m.environment AND c.payload_sha256=w.payload_sha256
+      AND w.id::text=m.execution_context_snapshot->>'outboundOwnerWitnessId'
+      AND w.evidence->>'rulePackId'=m.canonical_rule_pack_id::text
+      AND w.evidence->>'messageProfileId'=m.rule_profile_version_id::text AND w.evidence->>'profileKey'=m.rule_profile_key
+      AND w.evidence->>'version'=m.rule_profile_version AND w.evidence->>'sourceHash'=m.rule_pack_checksum
+      AND m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')))
+    FROM public.ediel_messages m JOIN gridex_ediel_outbound_owner.consumptions c ON c.source_message_id=m.id
+    JOIN gridex_ediel_outbound_owner.witnesses w ON w.id=c.witness_id
+    WHERE m.id=${literal(message.id)} AND m.company_id=${literal(f.companyId)}`))
+    .toEqual({witnesses: 1, consumptions: 1, exact: true})
+}
+async function agtOriginal(f: {companyId: string; actorUserId: string; profileId: string; routeId: string}, otherCompanyId: string, legacyAddressId?: string) {
   // The current phase reuses the historical role grant without regranting or
   // changing it after the forwards. Both phases call the actual predicate.
   expect(agtSnapshotAuthorization(f, otherCompanyId)).toEqual({authorized: true, platformAdmin: false, otherCompany: false})
@@ -185,7 +217,45 @@ async function agtOriginal(f: {companyId: string; actorUserId: string; profileId
     actorRole: 'supplier', messageFamily: 'PRODAT', businessCode: 'Z09', testCaseCode: 'L7', approvalVersion: 'AGT 2026A', status: 'running',
     startedAt: new Date().toISOString(), routeProfileId: f.profileId, environmentType: 'agt_test', encryptionMode: 'none'})
   expect(run.route_profile_id).toBe(f.profileId)
-  return createEdielSupplierAgtOutboundCommand({companyId: f.companyId, actorUserId: f.actorUserId, testRunId: run.id, testCaseCode: 'L7', balanceResponsibleEdielId: '99876'})
+  const command = () => createEdielSupplierAgtOutboundCommand({companyId: f.companyId, actorUserId: f.actorUserId, testRunId: run.id, testCaseCode: 'L7', balanceResponsibleEdielId: '99876'})
+  if (phase === 'current') {
+    expect(legacyAddressId).toBeUndefined()
+    const message = await command()
+    assertAgtCanonicalCustody(message, f, run.id)
+    return message
+  }
+  expect(legacyAddressId).toMatch(/^[0-9a-f-]{36}$/i)
+  expect(sql(`SELECT to_jsonb(p.party_address_id=${literal(legacyAddressId)}::uuid AND p.communication_route_id=${literal(f.routeId)}::uuid
+    AND EXISTS(SELECT FROM public.ediel_party_addresses a WHERE a.id=p.party_address_id))
+    FROM public.ediel_route_profiles p WHERE p.id=${literal(f.profileId)} AND p.company_id=${literal(f.companyId)}`)).toBe(true)
+  // Explicit reconstructed historical DTO input at the public BASE port.
+  // The canonical producer/owner already made the witness and pins. Change
+  // only this non-authoritative prospective UUID before real SQL custody.
+  const realCreate = messageDb.createEdielMessage.bind(messageDb), inputs: CreateEdielMessageInput[] = []
+  const spy = vi.spyOn(messageDb, 'createEdielMessage').mockImplementation(async input => {
+    expect(inputs).toHaveLength(0)
+    expect(input).toMatchObject({companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test', direction: 'outbound',
+      messageStandard: 'edifact', messageFamily: 'PRODAT', messageCode: 'Z09', routeProfileId: f.profileId, communicationRouteId: f.routeId,
+      canonicalRulePackId: expect.stringMatching(/^[0-9a-f-]{36}$/i), ruleProfileKey: 'PRODAT:Z09:G:26.A:r3',
+      ruleProfileVersionId: expect.stringMatching(/^[0-9a-f-]{36}$/i), ruleProfileVersion: expect.any(String),
+      rulePackChecksum: expect.stringMatching(/^[0-9a-f]{64}$/), executionContextSnapshot: {outboundOwnerWitnessId: expect.stringMatching(/^[0-9a-f-]{36}$/i)},
+      parsedPayload: {agt: true, agtTestCaseCode: 'L7', agtApprovalVersion: '2026A'},
+      validationReport: {lockedSendContext: {source: 'ediel_test_runs', testRunId: run.id, testSuite: 'PRODAT', testCaseCode: 'L7',
+        roleCode: 'supplier', routeProfileId: f.profileId, communicationRouteId: f.routeId}}})
+    expect(input.partyAddressId ?? null).toBeNull()
+    inputs.push(structuredClone(input))
+    return realCreate({...input, partyAddressId: legacyAddressId})
+  })
+  try {
+    const message = await command()
+    expect(inputs).toHaveLength(1)
+    expect(message).toMatchObject({party_address_id: legacyAddressId, raw_payload: inputs[0].rawPayload,
+      canonical_rule_pack_id: inputs[0].canonicalRulePackId, rule_profile_version_id: inputs[0].ruleProfileVersionId,
+      rule_pack_snapshot: JSON.parse(JSON.stringify(inputs[0].rulePackSnapshot)),
+      execution_context_snapshot: JSON.parse(JSON.stringify(inputs[0].executionContextSnapshot))})
+    assertAgtCanonicalCustody(message, f, run.id)
+    return message
+  } finally {spy.mockRestore()}
 }
 async function directWire(f: Authorized, addressId: string) {
   const sourceId = randomUUID()
@@ -272,7 +342,8 @@ if (phase === 'historical') {
     const af = await configureAgt(f.companyId), aold = configureLegacy(af)
     console.info('DB01_STAGE historical_agt_configuration PASS')
     console.info('DB01_STAGE historical_agt_original START')
-    const am = await agtOriginal({companyId: af.companyId, actorUserId: af.actorUserId, profileId: af.routeProfileId}, f.companyId)
+    console.info('DB01_AGT_BASIS reconstructed BASE56 creator/dependencies + committed current AGT producer + prospective legacy UUID before custody')
+    const am = await agtOriginal({companyId: af.companyId, actorUserId: af.actorUserId, profileId: af.routeProfileId, routeId: af.routeId}, f.companyId, aold.addressId)
     expect(am).toMatchObject({party_address_id: aold.addressId, company_id: af.companyId, message_code: 'Z09'})
     console.info('DB01_STAGE historical_agt_original PASS')
     const table = catalog('public.ediel_party_addresses')
