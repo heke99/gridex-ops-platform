@@ -264,3 +264,33 @@ LOCAL unpublished13c3e45a9627082779952d353cb74da39ec5e40c preserves finalmatrix3
 Native read-only lineage diagnosis was authored only after public6028563784; scopedlint/scripts nonincremental TSC EXIT0 emptylogs anddiffPASS. Independent imp finalf536 publicationAPPROVE; root added only read-only data+2logs plus previously qualifiedfirst14oracle, keeping genuine20/all48/strictphysical+business/consumer assertions. Actual receipt/child-state stillawaits newnative; no grant repair inferred. Existing private assessment append intentionally preserves observations rather than automatic supersession, so prospective sourceCurrent lineage change requires exactowner/currentproof adjudication and realqualification first.
 
 Gov now active on owned ACKtest lifecycle adapter; immutableSQL2800 andpurpose10197 remain unchanged. Independent transport+imp finaladapter reviews next. Root next finaladapter/rootchecks, source guards commit and actualmain600 adoption preserving all293rows, exactGEN5 owner carrier request6296028554898, and freshsource/currentnative+mandatoryCI. Parallel imp/Gov read-onlyplan for received321/323 sourcecontext remains before any additionalclaim/code. Same13held/no roles/releases/newpair. Shared role-memory now actually95bc/f838b709; root doesnoteditcommonstatus, latest ownfacts remainhere/530.
+
+## Finished guard source and CLAIM received Z14 known-reporting adapter before coding
+
+ACK closed-capture unit c275b4aaf4fa489c11c5f714a5dda6806fc25d69dafaf8ba1c1503db64b5ed8c/SQL2800 unchanged: actual64PASS0skip EXIT0 log4ec443baaf1393e3ba3eefe6207c1d54723edc85841e45e1ab0fe578ef60b84c, full testsTS/lint0, independent imp+transport final SOURCEAPPROVE. Gov separately independently approves final Rmatrix3b9bf43d/unit8276a88c; rootselfreview done. Root actualNode22 fourownedunits216PASS0FAIL/SKIP EXIT0/35.27s /tmp/c65-final-guards-root-216.log SHAfa2ec14e35610bfeebb499bd1b2625bc2fb042402f0fb5555337307b8004358f, inputs equivalent to localguardcommitb5684c0a. This precedes newmain adoption, not currentcomposed/full/native credit.
+
+Local guards committedb5684c0a; actualmain600 adopted normally intoV166539a8424f8841bfb295ab0255a9c7c0409f08 and ACKsplit6476d9cd03cbf2deb7b11c37ce6f4e7a3fbd856f6f7. Both entire352ledger/meta/order EXACTactualmain293, OWN IDsNOT_EXECUTED. Incoming Nfixture5987a7db and actualZ05end-task source now in both branch histories. Public heads still64487/647f2e pending next normal source publication; no currentCI/merge/capture claim. GEN exact-parent request6296028554898 pending; carrier onf2e remains independently adoptable to current descendant if/when actualowner supplies it.
+
+BEFORE new code, SAME pair/packet now20 resources: new canonical receipt 0dec13122c42c98635c8b8b7a75ae1c1a1db50b4 on actualmain600/tree0d560728. All seven create-only refs and thirteen prior refs individually owner GETMATCH. Official CLI2.101 packagedGo generated filename only isolated/tmp beforeclaim. Exactnewpaths:
+- lib/ediel/prodat/receivedZ14ReportingContext.ts
+- lib/ediel/core/runtimeDecision.ts
+- lib/ediel/flows/inboundProcessing.ts
+- lib/ediel/rulebook/canonicalPolicyFieldValidator.ts
+- supabase/migrations/20261007010849_ediel_received_z14_reporting_source_basis.sql
+- __tests__/ediel-z14-received-reporting-source-basis.test.ts
+- __tests__/ediel-z14-received-reporting-context.test.ts
+Refs:
+- file-012e8ae27bcccbf16de6c07e0ab4dad331568358719be8fafec8b459f081a213
+- file-2768333e008d2cfeac58cd1bfdbb743995b738a8774fd0fc326fe6bb781460b0
+- file-6160109be148beba5c7027d48b7339aaebbf46b99353b82d8c8ba9371872edcc
+- file-8ac0ae0f1d3e4dcab2b6e6223335774e8e01029f21438f894651c096633ee1b5
+- file-a1fe5b64c23c3cfffaed74a5a4fa9d1c6ce4f6c17c7a83c836712ef5f56c130e
+- file-a81ee17605bd977ec7c44037211219c3c5443a669aa672ac733316d66c882f20
+- file-fbc9a5f963bc4fa163e0a5c9b99d88468f58d1a2d1937d780fb990f5ad3da727
+No newpair/role/release or foreignsource takeover. c3 previous core custody explicitly WHOLEreleased6028086835; three exact core refs freshlyFREE thencreate/GETmatched, not inferred from silence. New migration/module/twotests absent and all three existingcorefiles unchanged beforeclaim.
+
+Imp+Gov independently source-planAPPROVE: new service-only READ RPC and opaque WeakMap context qualify born original received row/id/env/hash/clock, actualsealedSENTZ13 unique ownLI/customer fulltuple/full reversedlegal+UNB identities, genuineprivate accepted transport receipt before reception, immutable origin basis and historical scope_versions, original signed archives/reviews/terms/hash with current explicit rejection/issuer revocation and active READ membership. Never call SEND wrappers/current-assignment assessment/current origin recomputation or grant approval. Current assignment/permission lifecycle alone must not invalidate historical known facts. Source basis provides no acceptance of received source. Actual closure lexer required for fullUDqualifier/agency, not lossy permission projection. No NULL original-installation versusincomingpoint equality.
+
+Current receiver actualactor loads fresh READ context aftersyntax then passes opaque sourcebound evidence via runtimeDecision to field validator BEFORE ownapplication projection. Standalone noactor/p119 local-U stays unchanged; unknown authority holds locally, never becomes invented mandatory national field. Known private establishes323; genuine bounded declaration establishes321. ActualSENT request-purpose correspondence retained for nonprivate too; both genuinely absent nonprivate maypass. Require declared end and enforce qualified upper bound where prescribed; do NOT infer universal exact-end/start equality or VH-only321. N/unknownsubtype/gas/othermessages and ownneighbor isolation retained. New native diagnostic must inspect actualpersisted decision after real processing/freshauthorizedread.
+
+Next root posts CLAIM530 BEFORE tests. Transport authors ONLY new received-reporting-context test first, executing existing actual receiver/canonical pipeline with declared finite READ IO port (no nonexistent-module import/setup RED), proving old omissions accepted/missing READ plumbing versus unchanged noactor control. Gov authors ONLY new SQL source-basis test first with declared finiteREAD/transport ports/reallexers and zero-write/custody/security contracts. Production module/threecore/forward remain absent/unchanged until meaningful actualRED is durably recorded here/530 and rootGO. Then source adapters authorunderexactclaimedpaths, independent finalcrossreviews/rootselfreview, GEN registration/genuinecurrentnative/currentmandatory checks. All originalnative52/20/adverse proof preserved, wholeSC14/V remainHOLD/unapproved.
