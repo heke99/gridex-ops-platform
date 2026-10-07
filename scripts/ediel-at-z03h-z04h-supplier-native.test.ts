@@ -167,6 +167,7 @@ async function observeAckTransportRpcErrors<T>(client: object, scope: AckRpcScop
     try { if (observation.errors.length < 16) observation.errors.push(safeAckRpcError(error, rpc, phase)) }
     catch { observation.observerFailed = true }
   }
+  let actionFailed = false
   ackRpcObservationActive = true
   try {
     Object.defineProperty(client, 'rpc', { configurable: true, writable: true, value: function (this: unknown, ...args: unknown[]) {
@@ -204,16 +205,26 @@ async function observeAckTransportRpcErrors<T>(client: object, scope: AckRpcScop
     const result = await action()
     return { result, rpcObservation: observation }
   } catch (error) {
-    console.error('native_ack_rpc_send_threw', JSON.stringify(observation))
+    actionFailed = true
+    try { console.error('native_ack_rpc_send_threw', JSON.stringify(observation)) } catch { /* Keep the original action error. */ }
     throw error
   } finally {
+    let cleanupFailures = 0
     for (const [builder, descriptor] of builders) {
-      if (descriptor) Object.defineProperty(builder, 'then', descriptor)
-      else Reflect.deleteProperty(builder, 'then')
+      try {
+        if (descriptor) Object.defineProperty(builder, 'then', descriptor)
+        else if (!Reflect.deleteProperty(builder, 'then')) throw new Error('native_ack_rpc_cleanup_failed')
+      } catch { cleanupFailures++ }
     }
-    if (rpcDescriptor) Object.defineProperty(client, 'rpc', rpcDescriptor)
-    else Reflect.deleteProperty(client, 'rpc')
-    ackRpcObservationActive = false
+    try {
+      if (rpcDescriptor) Object.defineProperty(client, 'rpc', rpcDescriptor)
+      else if (!Reflect.deleteProperty(client, 'rpc')) throw new Error('native_ack_rpc_cleanup_failed')
+    } catch { cleanupFailures++ }
+    finally { ackRpcObservationActive = false }
+    if (cleanupFailures) {
+      try { console.error('native_ack_rpc_cleanup_failed', JSON.stringify({ cleanupFailures })) } catch { /* Keep primary error identity. */ }
+      if (!actionFailed) throw new Error('native_ack_rpc_cleanup_failed')
+    }
   }
 }
 
