@@ -3954,13 +3954,37 @@
     },
     {
       "id": "AT-Z04A-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts",
+        "lib/ediel/core/prodatBilateralSourceCapability.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-kernel-prodat-direction-before-fields.test.ts",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "scripts/ediel-at-z04a-assigned-supply-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/native-0353a544.zip"
+      ]
     },
     {
       "id": "AT-Z04D-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts",
+        "lib/ediel/core/prodatBilateralSourceCapability.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-kernel-prodat-direction-before-fields.test.ts",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "scripts/ediel-at-z04d-production-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/native-0353a544.zip"
+      ]
     },
     {
       "id": "AT-Z03H-SUPPLIER",
