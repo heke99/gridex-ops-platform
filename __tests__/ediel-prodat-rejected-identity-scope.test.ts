@@ -3,7 +3,7 @@ import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPo
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
 import {prodatAckObjectScopes} from '@/lib/ediel/prodat/prodatAckMessageFunction'
-import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import {isQualifiedProdatApplicationError, projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
@@ -133,3 +133,24 @@ it('refuses missing LI, unsupported reason and repeated register authority', () 
   expect(value.evidence.objects[0].disposition).toBe('unavailable')
   expect(() => negativeScopes(value)).toThrow('requested_scope_unqualified')
 })
+
+
+it.each([{kind: 'present' as const, value: 'FOREIGN-CUSTOMER'}, {kind: 'absent' as const}, {kind: 'unavailable' as const}])(
+  'binds missing209 fallback customer state to the physical own source: %j', customerId => {
+    const body = object(); body[0] = ['LIN', '1']
+    const value = assess(body), diagnostic = value.errors[0].prodatFieldDiagnostic
+    if (diagnostic?.kind !== 'field' || !diagnostic.occurrence.ownReferences) throw Error('actual209_diagnostic_required')
+    expect(diagnostic.occurrence.ownReferences.customerId).toEqual({kind: 'present', value: '199001011234'})
+    const changed = {...diagnostic, occurrence: {...diagnostic.occurrence,
+      ownReferences: {...diagnostic.occurrence.ownReferences, customerId}}}
+    const recomposed = projectProdatDiagnostics([{severity: 'error', blocking: true, code: 'FIELD_MATRIX_FIELD_REQUIRED',
+      title: 'Actual missing209 with substituted customer reference', description: 'Negative source-binding control',
+      prodatDiagnostic: changed}]).applicationErrors
+    // Genuine recomposition passes the existing syntax/text qualifier. The new
+    // source guard must still reject references absent from its physical NAD.
+    expect(recomposed).toHaveLength(1)
+    expect(isQualifiedProdatApplicationError(recomposed[0])).toBe(true)
+    if (customerId.kind === 'present') expect(recomposed[0].text).toContain('kundid=FOREIGN-CUSTOMER')
+    expect(() => negativeScopes(value, recomposed)).toThrow('requested_scope_unqualified')
+  },
+)

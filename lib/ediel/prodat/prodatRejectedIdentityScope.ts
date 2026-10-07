@@ -54,7 +54,9 @@ export function hasProdatRejectedIdentityDiagnostic(input: Input, diagnostic: Pr
     [], diagnostic.occurrence.scope, input.group.lineIndex)
   return !!actual && (['scope', 'messageReference', 'lineIndex', 'lineNumber', 'registerPosition', 'objectId', 'identityAgency', 'lineItemReference'] as const)
     .every(key => diagnostic.occurrence[key] === actual[key])
-    && diagnostic.occurrence.ownReferences?.objectId.kind === 'absent'
-    && diagnostic.occurrence.ownReferences?.lineItemReference.kind === 'present'
-    && diagnostic.occurrence.ownReferences.lineItemReference.value === actual.lineItemReference
+    && (['objectId', 'lineItemReference', 'customerId'] as const).every(key => {
+      const submitted = diagnostic.occurrence.ownReferences?.[key], physical = actual.ownReferences?.[key]
+      return !!submitted && !!physical && submitted.kind === physical.kind
+        && (submitted.kind !== 'present' || physical.kind === 'present' && submitted.value === physical.value)
+    })
 }
