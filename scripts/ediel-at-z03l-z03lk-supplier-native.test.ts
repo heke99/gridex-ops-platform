@@ -322,14 +322,15 @@ async function assertOwnFieldReception(f:Fixture,source:EdielMessageRow) {
   ])
   const received=parseSourceReceiptInstant(reception.receivedAt)
   const hash=createHash('sha256').update(source.raw_payload!,'utf8').digest('hex')
-  expect({first:reception.classification==='first_reception'&&reception.status==='observed'&&!reception.isReplay,
+  // Reading the saved receipt replays the observation; its first-reception classification stays immutable.
+  expect({first:reception.classification==='first_reception'&&reception.status==='observed',readReplay:reception.isReplay===true,
     exactSource:reception.companyId===f.companyId&&reception.sourceMessageId===source.id&&reception.inboundEmailMessageId===mailId,
     exactHash:reception.canonicalPayloadHash===hash&&reception.receivedPayloadHash===hash,
     noAuthority:reception.businessEffectAuthorized===false&&reception.responseRequestId===null&&reception.reason===null,
     mail:!mailRead.error&&mailRead.data?.id===mailId&&mailRead.data.company_id===f.companyId&&mailRead.data.environment==='test'&&mailRead.data.raw_edifact_payload===source.raw_payload,
     parse:!parseRead.error&&parseRead.data?.id===reception.parseResultId&&parseRead.data.company_id===f.companyId&&parseRead.data.inbound_email_message_id===mailId&&parseRead.data.raw_payload===source.raw_payload&&parseRead.data.parse_status==='parsed',
     clock:received!==null&&received===parseSourceReceiptInstant(mailRead.data?.received_at)&&received===parseSourceReceiptInstant(source.message_received_at)})
-    .toEqual({first:true,exactSource:true,exactHash:true,noAuthority:true,mail:true,parse:true,clock:true})
+    .toEqual({first:true,readReplay:true,exactSource:true,exactHash:true,noAuthority:true,mail:true,parse:true,clock:true})
 }
 function projectOwnReadingObservation(f:Pick<Fixture,'companyId'|'variant'>,source:EdielMessageRow,messageRead:PromiseSettledResult<EdielMessageRow|null>,immutableHash:unknown,applicationValue:unknown,arm:'declared_true'|'omitted_unknown') {
   const message=messageRead.status==='fulfilled'?messageRead.value:null
