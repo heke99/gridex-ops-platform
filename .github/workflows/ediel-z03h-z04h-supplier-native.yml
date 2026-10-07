@@ -1,0 +1,127 @@
+name: Ediel Z03H Z04H bilateral contract feedback
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/**'
+      - 'e2e/production/helpers/**'
+      - 'docs/ediel/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ediel-z03h-z04h-supplier-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z03h-z04h-supplier-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental source-pinned feedback. Catalog selection confers no bilateral
+# permission or transition authority. Whole acceptance needs genuine public
+# originals, current reviewed profiles, physical ACKs and durable effects.
+# Ordinary OPS clean/upgrade/native/browser and parity gates remain mandatory.
+jobs:
+  z03h-z04h-supplier-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute bilateral H catalog and whole proposals after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p z03h-z04h-supplier-native-working
+          native_tests=(scripts/ediel-at-z03h-z04h-supplier-native.test.ts)
+          export H_SWITCH_NATIVE_TEST_SCOPE
+          H_SWITCH_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          export H_SWITCH_NATIVE_INPUT_HASHES="$RUNNER_TEMP/z03h-z04h-supplier-input-hashes.json"
+          # Capture exact checkout inputs before replay temporarily moves migrations.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          test_scope = os.environ['H_SWITCH_NATIVE_TEST_SCOPE'].splitlines()
+          paths = test_scope + [
+              'scripts/ediel-at-z03h-z04h-supplier-native.config.ts',
+              '.github/workflows/ediel-z03h-z04h-supplier-native.yml',
+              'scripts/ediel-source-owner-native.config.ts',
+              'lib/inbound-mail/bilateralSwitchBirthProfile.ts',
+              '__tests__/ediel-bilateral-switch-birth-profile.test.ts',
+              'package.json', 'package-lock.json', 'tsconfig.scripts.json',
+              'tsconfig.tests.json', 'tsconfig.json',
+          ]
+          # Include the complete tracked application/helper/schema/doc input
+          # roots, regardless of extension. A finite hand-list cannot capture
+          # transitive imports or every SQL input consumed by clean replay.
+          tracked = subprocess.check_output([
+              'git', 'ls-files', '-z', '--', 'lib', 'types', 'supabase',
+              'scripts', '__tests__',
+              'e2e/production/helpers', 'docs/ediel',
+          ]).decode().split('\0')
+          paths = sorted(set(paths) | {p for p in tracked if p})
+          hashes = {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}
+          pathlib.Path(os.environ['H_SWITCH_NATIVE_INPUT_HASHES']).write_text(json.dumps(hashes)+'\n')
+          PY
+          # The canonical replay retains its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z03h-z04h-supplier-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z03h-z04h-supplier-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-at-z03h-z04h-supplier-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=z03h-z04h-supplier-native-working/native-junit.xml \
+            > z03h-z04h-supplier-native-working/native.log 2>&1 || native_exit=$?
+          export H_SWITCH_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          test_scope = os.environ['H_SWITCH_NATIVE_TEST_SCOPE'].splitlines()
+          receipt = {
+              'purpose': 'supplemental_actual_native_feedback',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['H_SWITCH_NATIVE_EXIT']),
+              'input_sha256': json.loads(pathlib.Path(os.environ['H_SWITCH_NATIVE_INPUT_HASHES']).read_text()),
+              'test_scope': test_scope,
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('z03h-z04h-supplier-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root z03h-z04h-supplier-native-working
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv z03h-z04h-supplier-native-working z03h-z04h-supplier-native-evidence
+          cat z03h-z04h-supplier-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z03h-z04h-supplier-native-${{ github.event.pull_request.head.sha }}
+          path: z03h-z04h-supplier-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
