@@ -1,3 +1,11 @@
+## Immediately-free merge role confirmed for metadata678 — 2026-10-07
+
+PR678 expectedhead c0ab68a5a09b5ad92e9b07fff42f74e578817c5b now READY, eight current mandatory SUCCESS and source reviews5445515362/5445517162; actualmain4fd34b8f8bc0debdacc706628e9a3e6324b2e929, tree1ce9b1f707c074511dc0e8cdce4b46121a869864, nonoverlapping2docs from reviewedbaseFF50. Exact role-merge GET returned404 immediately; canonical singleparent/unchangedmain-tree packet3b98ff4b-73e5-4c53-93f7-16c74bd6a00b, receiptfba56466987856a878620cb18a80f2ceba1cb39b, create-if-absent and separate GET MATCH. Memory3 stays owned fdcd6f46 until actual delivery, no waiting while roles held.
+
+Next ROOT: fresh expectedhead/current8gates/roleown receipt before normal merge; record actual PR and main commit. Release merge role FIRST after actual delivery documentation, then matching memory3 after explicit RELEASE docs, retain technical25. No code/coverage/native/external promotion.
+
+---
+
 ## Current status-only delivery gate after environment restart — 2026-10-07
 
 Same codex-20261006T134154Z-c3ae376b9893, sole AT-Z03L-SUPPLIER/AT-Z03LK-SUPPLIER, all25 technical refs and separate memory3 officially GET MATCH after restart. Source preview remains clean c0f939e2a6b0aad427589f79445e24ace50ebbf7; published technical635 remains7fbb6aaca9ec15756f712bb2e4bf4c253f714fc5. Actual main4fd34b8f8bc0debdacc706628e9a3e6324b2e929 only adds AGENTS board routing and its owner's checkpoint versus ff50: new receipts on673, historical530 unchanged. Existing memory/technical scope preserved.
