@@ -179,10 +179,23 @@ jobs:
           work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
           receipt=json.loads((work/'receipt.json').read_text())
           frozen=json.loads((work/'frozen-source.json').read_text())
-          def notice(title,value):
+          def encoded(value):
               message=json.dumps(value,ensure_ascii=True,separators=(',',':'))
-              message=message.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
-              print('::notice title='+title+'::'+message)
+              return message.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+          def fits(value):return len(encoded(value).encode('utf8'))<=3800
+          def notice(title,value):
+              if not fits(value):raise ValueError('native_annotation_identity_budget_exceeded')
+              print('::notice title='+title+'::'+encoded(value))
+          def bounded_cases(bundle):
+              # GitHub truncates messages at 4096 bytes. Keep every complete
+              # identity/disposition; only presentation text may shrink.
+              while not fits(bundle):
+                  fields=[(case,key) for case in bundle for key in ('message','detail') if case[key]]
+                  if not fields:raise ValueError('native_annotation_identity_budget_exceeded')
+                  case,key=max(fields,key=lambda field:len(encoded(field[0][field[1]])))
+                  case[key]=case[key][:len(case[key])//2]
+                  case['presentation_truncated']=True
+              return bundle
           summary={k:receipt[k] for k in ('checkout_sha','checkout_tree','expected_source_sha',
               'workflow_run_id','workflow_run_attempt','stage','component_exit_code','native_exit_code',
               'junit_counts','source_frozen_before_execution','source_unchanged_after_cleanup')}
@@ -201,7 +214,7 @@ jobs:
                       'detail':(failure.text or '')[-2000:] if failure is not None else None})
           # GitHub stores at most ten notices per step. Two bounded bundles
           # retain all fourteen dispositions alongside receipt/diagnostics.
-          for offset in range(0,len(cases),7):notice('Gridex native cases '+str(offset//7+1),cases[offset:offset+7])
+          for offset in range(0,len(cases),7):notice('Gridex native cases '+str(offset//7+1),bounded_cases(cases[offset:offset+7]))
           log=work/'native.log'
           if log.exists():
               observations=[]
@@ -218,7 +231,12 @@ jobs:
                   # GitHub rewrites ANSI escapes inside JSON annotations.
                   # Remove presentation codes only; retain the redacted log.
                   excerpt=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',diagnostic.read_text(errors='replace'))[-3500:]
-                  notice('Gridex native diagnostic',{'stage':receipt['stage'],'excerpt':excerpt})
+                  presentation={'stage':receipt['stage'],'excerpt':excerpt}
+                  while not fits(presentation):
+                      if not presentation['excerpt']:raise ValueError('native_annotation_identity_budget_exceeded')
+                      presentation['excerpt']=presentation['excerpt'][len(presentation['excerpt'])//2:]
+                      presentation['presentation_truncated']=True
+                  notice('Gridex native diagnostic',presentation)
           PY
           mv "$Z13_NATIVE_WORK" z13-request-ack-native-evidence
           if test -f z13-request-ack-native-evidence/native.log; then

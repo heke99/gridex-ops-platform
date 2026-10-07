@@ -110,7 +110,7 @@ function configureProspectiveAckRoute(f:Fixture){
   AND ((p.transport_profile_id IS NULL AND p.smtp_host=${lit(smtp.host)} AND p.smtp_port=${lit(smtp.port)})
    OR(tp.id IS NOT NULL AND tp.is_active AND tp.transport_channel='smtp' AND tp.direction IN ('outbound','both')
     AND tp.sender_email=${lit(smtp.from)} AND tp.host=${lit(smtp.host)} AND tp.port=${lit(smtp.port)}
-    AND (p.smtp_host IS NULL OR p.smtp_host=${lit(smtp.host)}) AND (p.smtp_port IS NULL OR p.smtp_port=${lit(smtp.port)}))))`)).toBe(1)
+    AND (p.smtp_host IS NULL OR p.smtp_host=${lit(smtp.host)}) AND (p.smtp_port IS NULL OR p.smtp_port=${lit(smtp.port)})))`)).toBe(1)
 }
 
 // Full row images, not count-only absence assertions. Journal/status deltas
