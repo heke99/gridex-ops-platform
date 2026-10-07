@@ -286,14 +286,14 @@ for(const declaration of ['absent','malformed'] as const)it('public H04 '+declar
  expect(after.acks.filter(row=>row.message_family==='APERAK'&&row.ack_outcome==='positive')).toEqual(before.acks.filter(row=>row.message_family==='APERAK'&&row.ack_outcome==='positive'))
  expect(provider).toHaveBeenCalledTimes(f.providerBefore)
  const persisted=(await getEdielMessageById(f.received.sourceId))!
- expect(persisted.status).toMatch(/review|held|failed/)
+ expect(persisted).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',raw_payload:f.received.wire,immutable_payload_hash:hash(f.received.wire)})
  const leaf=sql<{facts:{syntaxDecision:string;registerValidation:{objects:Array<{objectId:string;identityAgency:string;disposition:string;reasons:string[]}>}}}>(`SELECT jsonb_build_object('facts',a.facts_text::jsonb) FROM gridex_received_sources.validation_assessments a WHERE a.company_id=${literal(f.companyId)} AND a.source_message_id=${literal(f.received.sourceId)} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id)`)
  expect(leaf.facts.syntaxDecision).toBe('accepted')
  // A syntactically valid header is not own-register acceptance. Observe the
  // actual physical object's serialized REG disposition, never header globals.
  expect(leaf.facts.registerValidation.objects).toHaveLength(1)
  expect(leaf.facts.registerValidation.objects[0]).toMatchObject({objectId:f.external,identityAgency:'9'})
- expect(leaf.facts.registerValidation.objects[0].disposition).not.toBe('accepted')
+ expect(leaf.facts.registerValidation.objects[0].disposition,JSON.stringify({technicalStatus:persisted.status,physicalReadings:f.physicalReadings})).not.toBe('accepted')
  if(declaration==='absent')expect(leaf.facts.registerValidation.objects[0]).toMatchObject({disposition:'unavailable',reasons:expect.arrayContaining(['PRODAT_DEPENDENT_CONDITION_UNDETERMINED'])})
  const retained={graph:graph(),effects:effects(f.companyId),custody:custody(f.received.sourceId),original:custody(f.originalZ03.id)}
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.received.sourceId})
