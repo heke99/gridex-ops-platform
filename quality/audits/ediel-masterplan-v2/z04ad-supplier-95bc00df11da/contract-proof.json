@@ -33,7 +33,8 @@
     "wholeATApproved": false,
     "externalVerified": false,
     "preserved_archive": "native-0353a544.zip",
-    "archive_bytes": 787007
+    "archive_bytes": 787007,
+    "qualification_scope": "Artifact qualifier reports wholeATApproved=false because it authenticates execution only. The separately attributed independent whole-code reviews above approve both literal contracts at executed0353; final PR-head composition/native/CI are still required."
   },
   "literal_criteria": {
     "AT-Z04A-SUPPLIER": [
@@ -121,7 +122,7 @@
     "AT-Z04D-SUPPLIER": [
       {
         "clause": "given SUPPLIER",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Real company supplier identity/dated role/native scope selectors and actual source legal context. TEN05 common role from process/application reference; genuine D dated supplier role loss before birth holds original without effect, plus actor permission/reviewer loss controls.",
         "source_anchors": [
           "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts:27-58",
           "scripts/ediel-at-z04d-production-native.test.ts:297-398",
@@ -130,7 +131,7 @@
       },
       {
         "clause": "given not only microproduction",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Public published signed production contract versions require general production terms and buy injected electricity, archived PDF/source and separate review. No capacity or micro-eligibility restriction exists in the selected production ground/consumer path; production product L641Q is solar/quarter-hour/daily settlement, not a capacity threshold. Literal does not require manufacturing a capacity-certified producer to prove absence of a capacity guard.",
         "source_anchors": [
           "scripts/helpers/ediel-z04d-production-native-fixture.ts:262-375,443-461",
           "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:85-90,258-264"
@@ -138,14 +139,14 @@
       },
       {
         "clause": "given no general Z03 guard or consumption activation",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Production-point own Z03 count0 before/after positive effect and actual retry; real consumption Z03/L belongs to existing required consumption precondition. Distinct production period ID, production_receipt_obligation process, no normal confirmations, full original consumption/customer/contract/switch/point and production contract/point graphs preserved. Do not require company-wide zeroZ03 because real consumption precondition correctly has one.",
         "source_anchors": [
           "scripts/ediel-at-z04d-production-native.test.ts:142-178,520-591"
         ]
       },
       {
         "clause": "when production receipt obligation in applicable production flow",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Actual signed production contract/PDF, public current scope/archive/separate source review, current legal actor/DSO/bilateral/grid/own production-point binding; actual mailbox parse/adapter birth, canonical decision, real public processor and transactional supply ports commit only the matching reviewed current ground.",
         "source_anchors": [
           "scripts/helpers/ediel-z04d-production-native-fixture.ts:379-431",
           "scripts/ediel-at-z04d-production-native.test.ts:53-80,142-178",
@@ -154,7 +155,7 @@
       },
       {
         "clause": "expected 23-DDQ-PRODAT / BGM Z04 / field223 Z70",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Actual independent physical wire carries DDQ, unsuffixed BGM Z04 and object CCI Z13/CAV Z70; actual birth binds PRODAT:Z04:D:26.A:r3, policy/classification and completed D effects. Unchanged ENV06 transaction owner and TEN05 tests reject invalid process/function combinations.",
         "source_anchors": [
           "scripts/helpers/ediel-z04d-production-native-fixture.ts:434-467",
           "lib/ediel/rulebook/prodatSubtypeRegistry.ts:51-60",
@@ -165,14 +166,14 @@
       },
       {
         "clause": "expected CONTRL and applicable APERAK",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Healthy D exact positive APERAK100/ownLI/Z07 and CONTRL, route/profile/company/source-bound queued outbox with exact stored ACK IDs and SHA256UTF8; decoded CONTRL UCI matches original reference/full parties/action1, UCM correlation checked if present. Required-field negative witnesses produce exact scoped typed41/42 own APERAK plus CONTRL. Unknown original259 and wrong319 applicability hold ownAPP/noAPERAK, rather than inventing a positive business receipt; foreign execution actor refuses before all ACK/outbox writers.",
         "source_anchors": [
           "scripts/ediel-at-z04d-production-native.test.ts:100-139,142-219,346-398,448-496,520-591"
         ]
       },
       {
         "clause": "expected separate production/receipt relation linked via319",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "One distinct production relation with exact company/customer/production point/process/start/current ground and own actual consumption external; one effect/partition/transition and zero normal confirmations. Same-company other healthy customer319 contrast now completes full negative/current ground/both graphs/four full consumption source rows/no supply effect/public refusal/retry followed by fresh own319 successful control.",
         "source_anchors": [
           "scripts/ediel-at-z04d-production-native.test.ts:142-178,222-295,520-591",
           "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:192-199,242-265"
@@ -180,7 +181,7 @@
       },
       {
         "clause": "prohibited wrong role/direction",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "D actual supplier-role loss, revoked separate reviewer, real public outbound owner exact source-direction refusal before draft/outbox/provider effects, and trusted actual foreign actor42501 before status/tenant/domain/output writers; full source/graphs/public apply/provider and actual second foreign refusal pass.",
         "source_anchors": [
           "scripts/ediel-at-z04d-production-native.test.ts:297-445",
           "lib/ediel/flows/inboundProcessing.ts:93-115,915-985"
@@ -188,7 +189,7 @@
       },
       {
         "clause": "prohibited missing applicable required/dependent fields",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "D invokes all-scope canonical shared field/specialized owners before accepted ownAPP/effect authority. Exact native319, required217 with retained genuine capability, physical259TRUE-driven214/218 negatives prove actual D field diagnostic/effect/ACK/retry integration; actual own259 absence preserves UNKNOWN/null/local warning/held durableAPP/no-effects/onlyCONTRL/retry. Missing319 shows national D policy can still project typed missing own field when capabilityNULL; D subtype is national and not A bilateral-only policy. Current shared field/date/register/party/invoicee owners and retained actual N/Z15 common header omissions support unchanged owner reuse.",
         "source_anchors": [
           "lib/ediel/core/runtimeDecision.ts:165-225,715-727",
           "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:60-230",
@@ -198,7 +199,7 @@
       },
       {
         "clause": "prohibited incorrect correlation or mutation",
-        "proof": "Actual0353 D16/16 completed under composed R210 runtime; exactsharedD/SQL/native/producer source preserved except bounded A-only owner additions. No505 outcome borrowed.",
+        "proof": "Complete opaque own physical/source metadata/hash/PG-clock/birth-context qualification; actual common native point/customer/grid/identity/ground predicates; real foreign-company319 plus isolated same-company319; raw/direction/clock attempted rewrites rejected with full source row/graphs unchanged, full SQL foreignactor source equality preserved; all cases custody/output/provider/retry reached. Real final partition fault rolls back production/effects/partition/transition before positive business ACK and preserves consumption on retry.",
         "source_anchors": [
           "lib/ediel/core/prodatBilateralSourceCapability.ts:17-53",
           "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:192-199,213-265",
