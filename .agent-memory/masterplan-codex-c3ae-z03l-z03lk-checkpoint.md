@@ -1,3 +1,9 @@
+## Independent 32-proof qualifier hardening scoped — 2026-10-07
+
+Same soleL14refs/no sourceextension. Beforetoolauthoring independenth100_publication_review assigned ONLYnew/tmp version of existing32artifact qualifier; preserveoldqualifier/qualifiedf9/ZIP/head/native26/6 receipts. Verify/add everyJUnit suite/rootcensus, unique32identities/noerrors/skips, exactAPI/head/run/tree/completeGitinputs/nativeexit/CRC/3members; validoriginalf9 replay plusdeclaredadversarialmalformedproof fixtures, no currenthead/nativecredit. No repo/DB/GH/ref edits. Root adoptsnewtool onlyafterindependentreview, retains strict originalrequirements; this is qualificationhardening notproduct/oracle waiver. Nativeauthorcurrentlycorrecting ONLYdocumentedappendaudit sourceoverconstraint under6030137579; helper2c7007 remainsneededforeigncarrier, no takeover. Nextroot correctedsourcefreeze+reviews/newtoolreview/helpercarrier/currentproof.
+
+---
+
 ## Native audit oracle review CHANGES_REQUIRED; precise correction BEFORE code — 2026-10-07
 
 SoleLpair14refs66a70/LOCALbd2314aa/remote635a360/sourceproposal70a2d88b45b10690a3954f313a2042b7b7aae14c7018247173be64002bd0a1bc/702lines. Originalbf3f preserved/32identities+143oldassertions retained; firstproposal+28/-2/diffd085/lint0/staticparse0/schema12sourcechecks sourceONLY, no native. Root appTS actualEXIT0/113.461996s/emptylog supersedes precedingrunninglabel. Transientexec transportoffline resolvednextreadonlygit/head/nativeSHAMATCH, no source loss/repeatedcompletedchecks.
