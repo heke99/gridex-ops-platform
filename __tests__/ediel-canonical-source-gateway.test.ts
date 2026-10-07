@@ -8,6 +8,7 @@ import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {deathBody,deathRaw,deathSelection} from './fixtures/prodat-death-status'
 import {characteristic} from './fixtures/prodat-register'
 import {isQualifiedDeathStatusContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 const io=vi.hoisted(()=>({actor:vi.fn(),replay:vi.fn(),rpc:vi.fn(),registryDispatch:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn(),positiveRead:vi.fn(),positiveMatch:vi.fn(),positivePrepare:vi.fn(),negativeRead:vi.fn(),negativeMatch:vi.fn(),negativePrepare:vi.fn(),commonRead:vi.fn(),commonPrepare:vi.fn(),commonRoute:vi.fn(),aiOriginal:vi.fn(),version:vi.fn(),references:vi.fn(),ackReferences:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>io.rpc.getMockImplementation()?io.rpc(name,args):io.replay(name,args)}}))
 vi.mock('@/lib/ediel/config',()=>({getEdielRouteRuntimeByCommunicationRouteId:vi.fn()}))
@@ -234,7 +235,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
  })
  it('consumes a qualified negative original token only alongside the same ordinary canonical owner seal',async()=>{
   const q={kind:'source_qualified_negative_fixture',registrationId:'protected-negative-registration',companyId:company}
-  io.negativeRead.mockReturnValue(q);io.negativeMatch.mockReturnValue(true);io.negativePrepare.mockResolvedValue({witnessId:'one-use-negative-token',qualification:q});io.validation.mockResolvedValue({issues:[{severity:'error',code:'SOURCE-DECLARED-NEGATIVE',description:'declared probe diagnostic'}],canonicalPolicy:{family:'PRODAT',code:'Z01',environment:'test',referenceDate:'2026-09-30'},fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
+  io.negativeRead.mockReturnValue(q);io.negativeMatch.mockReturnValue(true);io.negativePrepare.mockResolvedValue({witnessId:'one-use-negative-token',qualification:q});io.validation.mockResolvedValue({issues:[{severity:'error',code:'SOURCE-DECLARED-NEGATIVE',description:'declared probe diagnostic'}],canonicalPolicy:resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z01',subtypeOrReasonCode:'L',direction:'outbound',referenceDate:'2026-09-30',applicationReference:'23-DDQ-PRODAT',mode:'parse'}),fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
   await createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})
   expect(io.witness).toHaveBeenCalledWith(expect.objectContaining({sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token',rulePackEvidence:expect.objectContaining({rulePackId:'pack'})}))
   expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token',executionContext:expect.objectContaining({companyId:company,senderActorId:'supplier-profile',senderRole:'supplier',legalActorEdielId:'LOCAL',senderEdielId:'LOCAL',applicationReference:'23-DDQ-PRODAT'})}})}))
