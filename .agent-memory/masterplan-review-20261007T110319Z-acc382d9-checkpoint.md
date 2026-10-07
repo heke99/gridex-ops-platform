@@ -1045,3 +1045,14 @@ b6: reuse exact17SQLcomponent/source receipts for unchangedSQL and unchangedrele
   "scope": "Only exact SQL/checksum input equivalence. Native configuration/runtime inputs changed and require current qualification; oldnative/whole/full results not borrowed"
 }
 ```
+
+
+## C04 source mapping handoff; prospective held path differs from legacy unit
+
+C04 SOURCE-PATH DELTA / review-acc382 →24fa +2c; closes read-only scope6038490632, reuses24fa6038527118 mapping rather than a second suite. Exact PR66720d4e9ef6df8a0965e599620aaca4fdb3afbf1e0/main0ecf. First existing case279–313 covers future own-period cancellation/provider250+physical CONTRL/APERAK staying requested until causal Z04C, replay+original/permissions/decoy invariants; source assertions only, current native qualification belongs2c. Z05C cases are not C04 negative proof.
+
+ADDITIONAL IMPORTANT PATH: current public prospective supply partition does NOT return executed-effect cause at top level. other_supply_scope_effect inherits strict executed-state/start guard20261001004331:282/287; 043234 partition:218–245 retains it under partition[].reason, returns applied=false/top-level no_qualified_supply_objects/no effect receipt. TypeScript supplyMarketTransition preserves held reasons. inboundProcessing1226–1275 skips legacy processInboundProdatMessage UNLESS supply.fullyApplied; it retains source/inbound case and validated warning/sourceObjectPartition. Thus old624 RPC-doubled legacy manual_workflow test does NOT establish the actual public held-path workflow or controlled compensation. Do not diagnose protected active-state refusal as a fixture bug or relax it. Main unit taggedSC039 only prevents reaccepting already-cancelled source via doubledRPC; it never receives cancellation BEFORE original or asserts deadline outcome. No wholeSC039 credit from tag alone.
+
+Concrete next24fa with2c: reuse exact existing firstcase/current producer receipt; observe held partition[].reason + actual bound inbound-case operational disposition on genuine already-executed baseline, then specify/assert a durable controlled compensation initiation with same original/tenant/object and idempotency, retaining guard/no immediate unauthorized supply write. Keep SC039 source-before-original retention/bounded correlation/no guessed other-original/no doubleactivation/prescribed ACK deadline or contact as separate effect checklist and explicit scoped owner handoff; no entire new future suite or additional native run just for this source mapping. Actual execution/native cause remains unverified here. No source/SQL/GEN/coverage edits; owners retain wholeC03/C05/C04/SC039 authority.
+
+Next: refresh owner replies/live locks, rotate to another unoccupied bounded blocker; no native/artifact or workflow-review duplication.
