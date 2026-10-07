@@ -71,8 +71,10 @@ function physicalSource(source:EdielMessageRow) {
 export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,actorUserId:string):Promise<ProdatOwnSourceReadingContext|null> {
   const identity=sourceIdentity(source)
   if(!identity||!isEvidenceUuid(actorUserId)||!physicalSource(source))return null
-  await assertEdielTenantActor({companyId:source.company_id!,actorUserId,permissionAnyOf:['communication.read','ediel.read']})
-  const stored=await getEdielMessageById(source.id,{companyId:source.company_id})
+  // Keep the validated READ principal stable across the actor guard's await.
+  const messageId=source.id,companyId=source.company_id!
+  await assertEdielTenantActor({companyId,actorUserId,permissionAnyOf:['communication.read','ediel.read']})
+  const stored=await getEdielMessageById(messageId,{companyId})
   if(!stored||sourceIdentity(stored)!==identity)return null
   const physical=physicalSource(stored)
   if(!physical)return null
