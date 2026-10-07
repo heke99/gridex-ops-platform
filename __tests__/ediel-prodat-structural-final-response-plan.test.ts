@@ -1,3 +1,4 @@
+// masterplan: AT-Z06E-SUPPLIER
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({data:null as unknown,rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))

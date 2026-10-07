@@ -1,3 +1,4 @@
+// masterplan: AT-Z06E-SUPPLIER, AT-Z09E-SUPPLIER
 import {createHash} from 'node:crypto'
 import {existsSync,readFileSync} from 'node:fs'
 import {PGlite} from '@electric-sql/pglite'

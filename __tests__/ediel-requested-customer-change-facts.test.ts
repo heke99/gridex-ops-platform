@@ -1,3 +1,4 @@
+// masterplan: AT-Z09E-SUPPLIER
 // Real gateway and register evidence; declared source/catalog/queue ports.
 // Native tests separately qualify issuer, review, SQL and actual send effects.
 import type {CustomerLifeEventBasis} from '@/lib/ediel/production/lifeEventSource'

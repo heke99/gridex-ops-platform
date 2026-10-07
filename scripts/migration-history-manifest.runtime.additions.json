@@ -139,6 +139,9 @@
     "20261006210116_ediel_db01_legacy_address_containment.sql": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
     "20261006213222_ediel_public_supplier_route_column_contract.sql": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
     "20261006214250_ediel_requested_change_owned_site_origin.sql": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
-    "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b"
+    "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
+    "20261006225500_customer_info_requests_z01_status_compatibility.sql": "f7848962bfbee52b0da34eb0f293827f8d3a6d8f88751ccaf41b3dd6b33b4cca",
+    "20261006231000_ediel_confirmed_death_final_response.sql": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e",
+    "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd"
   }
 }

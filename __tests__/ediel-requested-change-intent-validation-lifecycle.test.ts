@@ -1,3 +1,4 @@
+// masterplan: AT-Z09E-SUPPLIER
 import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
