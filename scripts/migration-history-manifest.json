@@ -858,7 +858,8 @@
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20261006234527_ediel_z14_original_purpose_correspondence.sql": "10197f9880077561358483af089305f86df7f12b4b1b90d4a1516178902cd671",
     "20261007000503_ediel_technical_ack_long_reference_prefix.sql": "2800d3c35da6edf5ef4f3715b2876bd96fe8d05fd55e921f8c7ca4704316d22e",
-    "20261007010849_ediel_received_z14_reporting_source_basis.sql": "9f923e87cbf973441f934ac8a86924b5aa0586be741ceeb6949cce3d763cc4f1"
+    "20261007010849_ediel_received_z14_reporting_source_basis.sql": "9f923e87cbf973441f934ac8a86924b5aa0586be741ceeb6949cce3d763cc4f1",
+    "20261007035644_ediel_received_reporting_command_clock.sql": "d3959a96d7c7c1b8b38d322b8681be3244cfe4777904fc55d9189eaab546521c"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

@@ -5,7 +5,7 @@
   "sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",
   "latest_migration": "20261007010849_ediel_received_z14_reporting_source_basis.sql",
   "latest_migration_schema_effect": "Byte-exact authentic v original capture-only source 9a57280f8cb0c7d243b2a080ece928c00cd19b9d with 1097 tracked SQL files. Requested parent d8d31750a2c79d31ed1e50e4fd0692d1c9ce65ae has identical complete SQL inventory and all eight original capture inputs. This is input equivalence, not a new capture run or native/whole/current-head gate approval.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-07T03:03:10.775427+00:00",
@@ -285,7 +285,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "FALSE only for this authentic original capture and exact requested-parent SQL/input equivalence. NOT proof of any changed future tail, resulting-head ordinary/native/parity gates, whole contract or external acceptance.",
+  "composition_capture_pending_scope": "Current source has1098 SQL files and new20261007035644 command-clock forward; the retained authentic9a1097 capture is historical, fresh current-tail capture and resulting-head gates required.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -740,7 +740,7 @@
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
-  "source_latest_migration": "20261007010849_ediel_received_z14_reporting_source_basis.sql",
+  "source_latest_migration": "20261007035644_ediel_received_reporting_command_clock.sql",
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -4371,5 +4371,27 @@
       },
       "composition_capture_pending_scope": "False only for authenticated1094 qualified_source complete-tail capture imported byte-exact; current native, resulting-head mandatory gates, whole software and external acceptance are separate."
     }
+  },
+  "pre_received_reporting_clock_pending_active_state": {
+    "composition_capture_pending": false,
+    "composition_capture_pending_scope": "FALSE only for this authentic original capture and exact requested-parent SQL/input equivalence. NOT proof of any changed future tail, resulting-head ordinary/native/parity gates, whole contract or external acceptance.",
+    "source_latest_migration": "20261007010849_ediel_received_z14_reporting_source_basis.sql"
+  },
+  "current_received_reporting_clock_capture_pending": {
+    "status": "CAPTURE_PENDING",
+    "source_parent": "10622fb38f49223bae63205d188d0ba6534ee802",
+    "source_parent_tree": "3b30b166295a59e24fa7463ac7f5480eb72d6edc",
+    "sql_files": 1098,
+    "new_forward": {
+      "path": "supabase/migrations/20261007035644_ediel_received_reporting_command_clock.sql",
+      "sha256": "d3959a96d7c7c1b8b38d322b8681be3244cfe4777904fc55d9189eaab546521c"
+    },
+    "historical_capture_source": "9a57280f8cb0c7d243b2a080ece928c00cd19b9d",
+    "historical_capture_run": "37564664301",
+    "native": "NOT_RUN",
+    "browser": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "historical_upgrade": "NOT_RUN",
+    "note": "Original historical capture object and rawoutputs unchanged; this pending record claims no current execution or whole approval."
   }
 }
