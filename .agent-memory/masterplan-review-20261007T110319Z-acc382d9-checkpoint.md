@@ -1056,3 +1056,108 @@ ADDITIONAL IMPORTANT PATH: current public prospective supply partition does NOT 
 Concrete next24fa with2c: reuse exact existing firstcase/current producer receipt; observe held partition[].reason + actual bound inbound-case operational disposition on genuine already-executed baseline, then specify/assert a durable controlled compensation initiation with same original/tenant/object and idempotency, retaining guard/no immediate unauthorized supply write. Keep SC039 source-before-original retention/bounded correlation/no guessed other-original/no doubleactivation/prescribed ACK deadline or contact as separate effect checklist and explicit scoped owner handoff; no entire new future suite or additional native run just for this source mapping. Actual execution/native cause remains unverified here. No source/SQL/GEN/coverage edits; owners retain wholeC03/C05/C04/SC039 authority.
 
 Next: refresh owner replies/live locks, rotate to another unoccupied bounded blocker; no native/artifact or workflow-review duplication.
+
+
+## Rotation coordination and SC071 source reuse
+
+C04 helper overlap resolved on5306038632531; later helper source trace can reuse6038603043 rather than repeat. Actual c65 named unitrelease6038540687 supersedes pendingstatus,93 freshclaim/adoption remainsnecessary. TRDB38scope6038607039 already dualplan reviewers, no competing review/test/CI started.
+
+SC071 REUSE / review-acc382 → retained revocation/sole export owner +95; closes bounded6038680912. Exactmain0ecf9c60812dea2654da13d0a6ce112c650a0fe4. ALL7 original9b50 producer inputs byte/SHA256 exact: beneficiaryExport.ts, three public export routes, original four-case SC010 native, originalconfig, d0e4 SQL. SQL20261005101500 is ALREADY admitted in supported runtime.additions with exactd0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596; no duplicate migration/worker or second exporter required. Current producer queue stores references+version, claim→execute commits internal destination under current SQL fence, read rechecks current permission. Search of current migrations finds these public RPC definitions only in original d0e4; source observation, not live catalog proof.
+
+Original22-path source-manifest comparison:14 still exact,8 changed. Relevant auth change is ONLY typed EdielExecutionFailure/security_quarantine classification replacing Error for the same two actor/permission refusal predicates; every membership/profile/permission query and required predicate unchanged. Package pair, native config, two provenance/API test inputs also changed, so this cannot relabel originalnative results as current-candidate proof. Reuse prior genuine6SC071+4SC010 BASE7b+9b50/forward receipts for original declared scope. Current .github/workflows/ediel-sc071-native.yml STILL checks out fixedBASE, overlays producer/effective race patch, applies forward directly and marks candidate_replay NOT_CLAIMED. A SUCCESS on newer668 does not execute current canonical candidate SC071 whole chain.
+
+Concrete next retained revocation/export owner: after explicit current custody confirmation/fresh reservations, reuse SAME six race/four export identities and original tested producer; bind a reviewed current-canonical-stack invocation to actual composed source/1099 admittedSQL/current grants+projection dependencies and execute actual export/revoke in parallel, both lock orders/currentversion/lease-expiry/no post-revocation cached delivery. Keep historical fixedBASE feedback unchanged and qualify current-stack evidence separately. Then full literal/current mandatory/coverage only by owner; no producer reimplementation, re-capture solely because unchanged sevenpins, generic guard waiver or tag-only promotion. 95 may route this finite dependency closure after668 delivery/release, not assume foreign whole authority. No source/SQL/GEN/coverage changes, CI/native runs or artifact reading by me.
+
+```json
+{
+  "main": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+  "producer": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "sevenExactInputs": [
+    {
+      "path": "lib/ediel/services/beneficiaryExport.ts",
+      "producerSha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "mainSha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "descriptorSha256": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+      "equal": true,
+      "descriptorMatch": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+      "producerSha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "mainSha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "descriptorSha256": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+      "equal": true,
+      "descriptorMatch": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/process/route.ts",
+      "producerSha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "mainSha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "descriptorSha256": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+      "equal": true,
+      "descriptorMatch": true
+    },
+    {
+      "path": "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+      "producerSha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "mainSha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "descriptorSha256": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+      "equal": true,
+      "descriptorMatch": true
+    },
+    {
+      "path": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+      "producerSha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "mainSha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "descriptorSha256": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "equal": true,
+      "descriptorMatch": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts",
+      "producerSha256": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "mainSha256": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "descriptorSha256": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145",
+      "equal": true,
+      "descriptorMatch": true
+    },
+    {
+      "path": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+      "producerSha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "mainSha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "descriptorSha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+      "equal": true,
+      "descriptorMatch": true
+    }
+  ],
+  "olderSourceManifestEqual": [
+    "vitest.config.ts",
+    "__tests__/setup.ts",
+    "docs/ediel/masterplan-v2/registers/rules.json",
+    "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+    "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+    "lib/ediel/services/projection.ts",
+    "lib/ediel/services/projectionRequest.ts",
+    "lib/ediel/services/types.ts",
+    "lib/ediel/services/administration.ts",
+    "scripts/ediel-service-evidence-native.test.ts",
+    "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
+    "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+    "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+    "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql"
+  ],
+  "olderSourceManifestChanged": [
+    "AGENTS.md",
+    "package.json",
+    "package-lock.json",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "lib/ediel/services/authorization.ts",
+    "scripts/ediel-source-owner-native.config.ts",
+    "__tests__/ediel-beneficiary-projection-api.test.ts",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts"
+  ],
+  "scope": "source equivalence only; current candidate native NOT_PROVED; original overlay receipts remain historical"
+}
+```
+
+Next: fresh530 owners/liveheads to select another distinct actionable gap; preserve current300/352 and all existing whole responsibilities.
