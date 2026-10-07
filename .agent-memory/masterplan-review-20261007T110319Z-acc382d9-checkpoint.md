@@ -957,3 +957,91 @@ H_REUSE_CHECK / currentmain0ec after663 — review-acc382; follow6037947983. Ind
   "scope": "Source equivalence supports original isolated H unit receipt reuse; not resultingmain native/runtime/whole/currentmandatory approval"
 }
 ```
+
+
+## Z02 and C source-owner support: distinguish enqueue failure stages
+
+ERROR_STAGE_HANDOFF / actual Z02enqueue branch — review-acc382 / owners2f+2c. Exactc495 source/currentmain0ec equivalence verified for onboarding/inboundEdielLinking.ts, automation.part-1.ts, UUIDnormalizer and operationevents. No originalartifact/native reader duplicated; authenticc49549P40F/zero ownmessagejobcount6038011271 reused as ownerqualifiedevidence.
+
+Concrete classification: updater2c is publicbirth/status dependency, but z02_processing_enqueue_failed is generated at onboarding/inboundEdielLinking248–282 around automation807–870. Four possiblefailedstages are (1) UUIDnormalization; (2) originalCustomerDataSnapshot READ + active site_id/address_hash guard; (3) enqueue INSERT or23505duplicate lookup; (4) subsequentpersistOperationSnapshot upsert. zero jobCount is a company/type/payload-message FILTER, not proof ofwhichstage or absenceofalljob/history writes. Originalfixture proves active matching snapshot row atorigination267–271, notatlaterfailedcallback; preserve it, don'tclassifyasabsentfixture withoutactualfailuretime read.
+
+Confirmed conditional diagnosticloss: automation originalsnapshot/insert/duplicate/upsert can throw rawreturnederror; onboarding uses only instanceofError?message:String(error), discarding structuredcode/details for plainnon-Error objects. A normalplainerror becomes [object Object]. missingSchema also deliberately substitutes fixedmissing-schema message for42P01/42703/PGRST205. Native currentpositive projection312 reports blockerCode only, omits blocker_reason/eventpayload.error and error.code/stage. Thus existinggeneric marker cannot establishactualSQLSTATE/triggerconstraint or justify updater repair. Actualnative thrownshape/code remainsUNKNOWN; no businessrootcause isclaimedfromstatictrace.
+
+Minimum next owner2f diagnostic: first inspect/read EXACT owncompany/request/operation/snapshot/currentmessage context atfailure and classify existing CIR.blocker_reason / manual_note payload.error against finite FIXEDguardstrings only (no rawtext/row export). If error is alreadyknown Errorguard, existingstoredreceipt mayresolvephase without anotherbusinessinvocation. If structurederrorwaslost, capture actualfailedSDK operation result code +identifier-onlyobject/constraint +phase on nextgenuine ownnative attempt, retaining originalrequestguard21/89oracles and no extra re-enqueue/insert/retry/facts. Preserve allfourfailurephases includingpostinsertfailure; neverconvertunknown tosuccess or reclassifySQLstate fromfinitefixtures.
+
+Beforeany sourcefix allocation, owner2f+2c coordinate actualwriter scope: live onboarding and automation files are presentlyFREE; updater remains2c99b6. Freedom isnotauthoringGO or packettransfer; exacthandoff/freshreservation/CP530 required. Existingassigned native/artifact andsource-cause reviewers keep theirscope. If confirmedfaultis snapshotprecondition/queue producer, route boundedrepair to its correctlyreservedowner ratherthanediting updater simplybecauseitcreatedtheinboundmessage. Thissourcehandoff isnot instruction to duplicate a sourceobserver or implement diagnostic inheldfiles.
+
+```json
+{
+  "source": "c495b05a9d0c6820959a141f07427126296349b7",
+  "main": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+  "files": {
+    "lib/onboarding/inboundEdielLinking.ts": {
+      "c495": "eab0763c655586889e2de894da2d6ad8037dc2d2",
+      "main0ec": "eab0763c655586889e2de894da2d6ad8037dc2d2",
+      "equal": true
+    },
+    "lib/customer-operations/automation.part-1.ts": {
+      "c495": "c06aa719c2923394541ce910a962284908f1bc64",
+      "main0ec": "c06aa719c2923394541ce910a962284908f1bc64",
+      "equal": true
+    },
+    "lib/validation/uuid.ts": {
+      "c495": "460516c194654df922a3d4ebbb982d1224c4059c",
+      "main0ec": "460516c194654df922a3d4ebbb982d1224c4059c",
+      "equal": true
+    },
+    "lib/customers/customerOperationEvents.ts": {
+      "c495": "30f8a47276a7039ae968a62b1c97c4d0b3ea8de2",
+      "main0ec": "30f8a47276a7039ae968a62b1c97c4d0b3ea8de2",
+      "equal": true
+    }
+  },
+  "phaseClassification": [
+    "normalization",
+    "original snapshot read/guard",
+    "insert/duplicate",
+    "postinsert snapshot upsert"
+  ],
+  "diagnosticScope": "conditional plainerror data loss confirmed; actualnative code/stage unknown; no execution/artifact/resultingmain proof"
+}
+```
+
+
+## TR owner support: new published source preserves frozen SQL inputs
+
+TR_OWNER_HELP immutableSQL reuse — review-acc382 / b6TRDB +2fGEN. New PR662 exact981697d840af0c0cd1509d243fb4d7b1f1eff0da independently fetched: migration subtreeebf8de0646b77c01b8be743fe576672874331f1f +ALL3 supportedmanifests OIDs IDENTICAL reviewed/published60ee. FiveSQL hashes and prior1104source /1108composed inventory6037627313 remain valid afternativeconstructor and deliveredAD/C sourceintegration, PROVIDEDotherunionSQL sources unchanged. Currentmain0ec SQLsubtree still1099 and byteidentical5b. No recomputedfullinventory/capture/run fromme.
+
+b6: reuse exact17SQLcomponent/source receipts for unchangedSQL and unchangedrelevantfixture/normalizer inputs; ordinary/native/configuration inputs DIDchange (current21constructor/workflows/mainCORE), so oldnative60ee failure or older full/type receipts cannot approve981. Existing currentnative readers and SOURCEcomposition reviewers remainowners, no duplicateoriginalartifact qualification. Current producedtypes MUST stillinclude sixgenuine restoredcolumns fromauthenticcurrentunionCLI output; no oldmain/isolated666 typedpostimage reused asnewcolumnproof.
+
+2f: currentSQLsource981 may replace frozen60ee label in1108 inputmap byexactidentity, preserving originalsourceversion evidence. ActualcomposedGithead/tree and result artifacts must bindnewcurrentversion; immutableDBinputequivalence isnot whole/runtime/mandatorygreen or currentheadartifact relabeling. Existingdonoroptionalread/orderreview6037872445 andcurrentnative/captureoriginalreaders continueunchanged. No competingnative/capture/heldsource/GEN/coverage edit. Concrete next owner b6: genuine currentconstructor21 + actualfirststop/lifecycle/configeffects; owner2f: own1108sourcefreeze/authenticGEN/upgrade/parity/currentgates.
+
+```json
+{
+  "priorSource": "60ee79dc6058956afae04ebd1d111c56e04e9610",
+  "currentSource": "981697d840af0c0cd1509d243fb4d7b1f1eff0da",
+  "SQLAndManifests": {
+    "supabase/migrations": {
+      "oldOID": "ebf8de0646b77c01b8be743fe576672874331f1f",
+      "currentOID": "ebf8de0646b77c01b8be743fe576672874331f1f",
+      "equal": true
+    },
+    "scripts/migration-history-manifest.json": {
+      "oldOID": "b41a69a48e637d6cbe82c2b0a72f4a93f6bf8c5f",
+      "currentOID": "b41a69a48e637d6cbe82c2b0a72f4a93f6bf8c5f",
+      "equal": true
+    },
+    "scripts/migration-history-manifest.additions.json": {
+      "oldOID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49",
+      "currentOID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49",
+      "equal": true
+    },
+    "scripts/migration-history-manifest.runtime.additions.json": {
+      "oldOID": "3ee9964a8f36e49302234537d4d847de915624db",
+      "currentOID": "3ee9964a8f36e49302234537d4d847de915624db",
+      "equal": true
+    }
+  },
+  "scope": "Only exact SQL/checksum input equivalence. Native configuration/runtime inputs changed and require current qualification; oldnative/whole/full results not borrowed"
+}
+```
