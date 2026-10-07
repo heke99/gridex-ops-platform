@@ -32,3 +32,171 @@ Two boundedseven-source PLAN approvals Govb72ec1ae9ff21ed8a21fc282ae8da4c459b334
 
 NEXT root afterthisCP/673readbacks: reuse EXACT4ownedBBproductionpostimages and existing9-line switch-readiness queryportupdate, keepingnew2tests byteexact and oldassertions. Currentmain APIs/schema/source7supportsubsetwithoutolderSQLGENruntime/policy/helpers; allforeign684workers/685source preserved. Actual41+oldreadiness+canonical scheduler+automationcallers+routeapproval/security tests; appropriate3nonincrementaltypes/lint/diff; completeSOURCE2/self/currentmaincomposition and smallNEWPRlinked635. Explicitenvironment paths and durablecurrentrequest scheduler semantics are repaired; omittedautomationenvironment retains existing production-readiness/test-producer mismatch, gateAlreadyChecked remains trustedexistingbypass (commentnotnewenforcement), neitherclaimedfixed. No guards/tests/limits weakened; no whole/SC037/currentnative/externalcredit/coverage change.
 
+
+
+## 2026-10-07T22:24:54.864960+00:00 — docs(ediel): record Z03 current-main repair and terminal verification
+
+READY COMPONENT / ACTUAL CURRENT-MAIN REGRESSION REPAIRED — codex-20261007T221051Z-c65z03route-a66abf9a / packet a66abf9a-d69a-41ea-95dc-bdabd563fd3c / AT-Z03L-SUPPLIER + AT-Z03LK-SUPPLIER.
+
+Fresh official main a63526adeff2aa71d5c7a12c910183d70e69d576 and ALL9 original receipt GET_MATCH 6cf7ad3b090a9858a95b7d79af4b36119303d2ef. No foreign ownership changed. Exact frozen source c6dfa2264f710b4a1f911746f32e5f54065622b5, seven released original635BB postimages byte/mode/OID exact; 9401 foreign base entries unchanged, only seven owned paths plus own checkpoint differ.
+
+Actual test-only a8a9afa1acdedb34ba763a3fffd35b072039afaa: 41=33 assertionFAIL+8PASS/0ERROR/0SKIP, trueEXIT1; logSHA157585e536ec50a0d026f1936d833652ca88ae04c42aff22ad09123382f46ac7. Confirmed pre-production GO97cfbad/6736047939997. Current c6dfa affected14files193PASS/0FAIL/0SKIP trueEXIT0. Nonincremental app/tests/scripts TSC, all-seven-path lint, large-file budget, service-role tenant ratchet all trueEXIT0; no baseline suppression.
+
+Repair: explicit environment reaches real route approval, stored selected-request ID/date/status/type/subtype/point reaches canonical scheduler after exact company/customer/site query, absent/error fails before POA healing; initial producer receives same explicit environment. Existing switch-readiness unit only supplies now-required scoped saved row; all assertions remain. Current684 worker authorization and ordinary/cancellation/tenant tests retained.
+
+Two complete independent exact-source reviews APPROVE/no findings: Gov b38c633135886e3e553e1e0ba5bb74978a43f41b708cede75011d96f6ffabe63; Transport0b75f3af1b624c4e07ab12fbde11d19927c26b3a2e3071c8903786969d195c89. Rootself fullchecks/source/foreign/locks review11ab5f77a71a12a1592a65d762553be9a91357c4001f138f47a8d38be178264b. Reviewers did not duplicate test/CI/native/artifact runs.
+
+Limits: tests execute actual consumers/canonical scheduler under declared finite IO ports, not native SQL/RLS/legal/source/certification. Omitted-env production-readiness/test-producer mismatch and existing trusted gateAlreadyChecked remain; no new bypass authority or universal continue-route enforcement claim. Whole Z03 physical APP/BGM/reason/ACK/Z04/correlation/timers/no-active-supply remain NOT_EXECUTED. No coverage/schema/GEN/runtimeDecision/messagePolicy/privateREAD/helper/native34 edits or borrowed old green. Existing 2f CORE/GEN and original remaining consumer/acceptance obligations retain their own custody; this delivered component alone will not approve either whole ID.
+
+Next ROOT: publish small new PR linked original635 (old27path stack not reopened); bind both independent reviews to exact published PR-head and complete mandatory current-head CI. Acquire merge role only when immediately deliverable, expected-head merge, verify actual main/PR and unchanged coverage, document actual delivery, release own9+role, then refresh/select next genuinely feasible pair. Shared-memory writer please reconcile these finite facts under your own role; no shared-file takeover.
+
+Frozen postimages:
+```json
+{
+  "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+  "origin": "bb2dfea62659282b77c080b7508cef3505afc3ad",
+  "base": "a63526adeff2aa71d5c7a12c910183d70e69d576",
+  "all7ExactOrigin": true,
+  "posts": {
+    "lib/customer-operations/customerProcessRouteReadiness.ts": "3cdb5dc49cb146bd16fbbaab51982e0f2db8edda97b724661b93fd2e32fe592b",
+    "lib/customer-operations/switchReadiness.ts": "b7423e0dc2e179d9ac90a0cbc55e1c9684851e30970ea36386acafae4de43ce4",
+    "lib/operations/edielAutomation.ts": "cea99753618d3d21afce99e5eb156fc813e74ca9f460852627f42e0e5d3cbadc",
+    "lib/operations/types.ts": "598065b7206119a35895e8a776c594fdb229b5f9f0bfaa04bf8c1fef5a359b16",
+    "__tests__/ediel-z03-route-context.test.ts": "0cd39c177b9bd3d9003911e430bc154c9c11dea97f88032f3eff53930dccda32",
+    "__tests__/ediel-z03-dispatch-window.test.ts": "61642e9f92224711ad016d45e4bbb9cd4b67a4604137939989f5770ee56ea21d",
+    "__tests__/switch-readiness.test.ts": "4496308eae626a3d64f5088222fe8f898691bd4ff94a507c72fe394e89aaa58e"
+  }
+}
+```
+
+Actual terminal verification receipts:
+```json
+{
+  "affected-green": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "kind": "unit",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "__tests__/ediel-z03-route-context.test.ts",
+      "__tests__/ediel-z03-dispatch-window.test.ts",
+      "__tests__/switch-readiness.test.ts",
+      "__tests__/supplier-switch-activation-sweep.test.ts",
+      "__tests__/ediel-z01-worker-authorization-order.test.ts",
+      "__tests__/ediel-z01-api-original-first.test.ts",
+      "__tests__/operations-foundation-contract-lifecycle.test.ts",
+      "__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts",
+      "__tests__/ediel-switch-outbound-reuse-environment.test.ts",
+      "__tests__/ediel-normal-switch-intent-gateway.test.ts",
+      "__tests__/ediel-normal-switch-birth-profile.test.ts",
+      "__tests__/ediel-bilateral-prodat-switch-preparation.test.ts",
+      "__tests__/ediel-route-matrix-grid-owner.test.ts",
+      "__tests__/ediel-tenant-read-authority.test.ts"
+    ],
+    "exit": 0,
+    "started": "2026-10-07T22:17:15.763047+00:00",
+    "completed": "2026-10-07T22:17:38.834970+00:00",
+    "log": "/tmp/c65-z03-current-main-affected-green.log",
+    "sha256": "1a75afdc795469b33a399ff93a01d1b11cc22aad9f056d1a149324ef5ff92de6"
+  },
+  "app-typecheck": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "kind": "app",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false",
+      "-p",
+      "tsconfig.app.json"
+    ],
+    "exit": 0,
+    "started": "2026-10-07T22:17:18.414949+00:00",
+    "completed": "2026-10-07T22:20:45.201379+00:00",
+    "log": "/tmp/c65-z03-current-main-app-typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "tests-typecheck": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "kind": "tests",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false",
+      "-p",
+      "tsconfig.tests.json"
+    ],
+    "exit": 0,
+    "started": "2026-10-07T22:17:19.671001+00:00",
+    "completed": "2026-10-07T22:19:52.697504+00:00",
+    "log": "/tmp/c65-z03-current-main-tests-typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scripts-typecheck": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "kind": "scripts",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "--incremental",
+      "false",
+      "-p",
+      "tsconfig.scripts.json"
+    ],
+    "exit": 0,
+    "started": "2026-10-07T22:17:15.760252+00:00",
+    "completed": "2026-10-07T22:18:46.417562+00:00",
+    "log": "/tmp/c65-z03-current-main-scripts-typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "lint": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "node_modules/eslint/bin/eslint.js",
+      "lib/customer-operations/customerProcessRouteReadiness.ts",
+      "lib/customer-operations/switchReadiness.ts",
+      "lib/operations/edielAutomation.ts",
+      "lib/operations/types.ts",
+      "__tests__/ediel-z03-route-context.test.ts",
+      "__tests__/ediel-z03-dispatch-window.test.ts",
+      "__tests__/switch-readiness.test.ts"
+    ],
+    "exit": 0,
+    "log": "/tmp/c65-z03-current-main-lint.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "large-budget": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "scripts/check-large-source-file-budget.cjs"
+    ],
+    "exit": 0,
+    "log": "/tmp/c65-z03-current-main-large-budget.log",
+    "sha256": "c5b7be1855aed509b812437c2629bbdea81153965d977e7738bfece7e7e2a1a3"
+  },
+  "tenant-ratchet": {
+    "head": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "headAfter": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+    "cmd": [
+      "/tmp/gridex-aa4f29-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+      "scripts/check-service-role-tenant-ratchet.cjs"
+    ],
+    "exit": 0,
+    "log": "/tmp/c65-z03-current-main-tenant-ratchet.log",
+    "sha256": "ac48a00549d68e77e7e9aad6aefb916b2116447f8b269dc3a883f06be8361a4c"
+  }
+}
+```
