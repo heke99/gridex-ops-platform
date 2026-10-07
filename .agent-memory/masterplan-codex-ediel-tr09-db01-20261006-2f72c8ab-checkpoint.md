@@ -47,3 +47,9 @@ Both independent FINAL CURRENT MAIN COMPOSITION reviews APPROVE preview043000159
 78e full log reports914 files/12707PASS/0fail/253.22s (SHAa5f43fd44b76cc1c64ee08d865f6c512af977abaaacf5688f99f16f2ac17e7c0). Execution environment replacement lost tool session20223; its process exit cannot be recovered, so no trueEXIT0 claim. Preserve log and re-run final suite once on actual resulting composed head with durable exit receipt; no guard/worker/timeout weakening.
 
 ROOT GO after CP/#530 and fresh4refs+actualmain69/head78e/clean checks: normal no-FF main69 adoption, assert exact043000 tree and orderedparents78e+69, ONLY11 incoming memory paths/runtimeinputs unchanged. Record actual resulting commit, run final full suite with durable process exit and migration/generated checks, then documented normal publication. No sharedmemory authoring, borrowed resulting CI/native/whole or newpair. If actualmain advances, reconcile before mutation.
+
+## Actual current-main adoption
+
+Normal local merge completed: HEAD04750f2b5045327ec788cde989be37793dd2e85f, exact reviewed tree0430001593172128422ca0d604d3a40926cf591e, orderedparents78e65e756a452f329f54a5d51f1b7a031beb9574+69dcbbaa2e9d3e4527dce61a9f7bfa2d31b10c9a. AllCP/#5306030851963/fourrefs/currentmain readbacks MATCH before mutation. Clean working copy; only11 incoming memory paths, all runtime/source/capture unchanged. PR640 still published e21f.
+
+Actual resulting0475 full supportedNode22/default workers/unchanged canonical refusal preload and db:migrations:check started with logs+durable EXIT files outsideGit. Sessions95273/61128; no result yet. Logs0475-current-full-unit.log and0475-current-migration-generated-check.log; command writes process exit to corresponding .exit before returning. Next ROOT collect real final exits/results, fresh main/locks and documented normal source publication; preserve every original prior proof/failure and four unapproved IDs.
