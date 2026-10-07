@@ -1311,3 +1311,20 @@ codecriterion; externalmarket remainsseparate/notverified. Next95bc publish
 RELEASEintent/roleactualreceipt/handoff530 thenonlyown12exactGET→DELETE→GET404,
 recordactualresource release andrefreshactualmain/latest530/locks. Confirmed
 own replaypreflightcleanup next underfreshscript+uniquebehavior-test locks.
+
+## RELEASE ACTUAL all12 technical resources / packet closed
+
+ALL12 original388356+legacyextensiona09b+proofextensiond3eb resources each
+ownerGETMATCH→DELETEsuccess→GET404 completed2026-10-07T00:56:05.315247+00:00; durable
+/tmp/gridex-z05-636-technical-release.json. Releaseintent530 receipt preserved
+inthatJSON. SessionactivePair=[]/released=true; no95bcroles/technicalrefs.
+Actual636main600bb61e383868000270a13d9bcc1857cea3b744 approvedown2/293of352.
+Wholecodecriteria complete, externalmarket NOT_VERIFIED; actualmain726full
+NOT_RUN. Sharedmirror pending2c ownedmemoryroleb0a underexplicit6028476555
+actualmergehandoff, no foreignfilewrite. Next95bc normalpublishthisactual
+releaseCP+RELEASE530 BEFOREfreshscope, readactualmain/latest530/remoteclaims,
+reserveunclaimedcanonicalreplayscript+uniqueactualcleanupbehaviortest for
+confirmedOWNpreflightdata-loss/unstarted-stack cleanup; TDDRED→minimalvalid
+backup/start flags→GREEN/independentreviews/currentmandatorychecks/normal
+serialmerge. If exactscript occupied documentowner blocker/no takeover and
+continue otherallowedfree work onlywithfreshdocumentedCLAIM.
