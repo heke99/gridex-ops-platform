@@ -2021,6 +2021,105 @@
         "deployment": "NOT_CLAIMED",
         "nextAction": "Root completes bounded metadata reviews/current checks and normal expected-head merge only under immediately-free merge role; records actualmain then releases own merge before memory/file. Continue same V pair and genuine producer qualification without new assignment."
       }
+    },
+    {
+      "label": "SUPERSEDED currentObservation before actual668/TRDB source-only observation",
+      "observation": {
+        "recordedAt": "2026-10-07T12:37:33.769902+00:00",
+        "actualMain": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+        "actualTree": "bb01da21316cf0fba279c6b820b49da9a1ed9e62",
+        "coverageSha256": "51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a",
+        "rules": {
+          "total": 121,
+          "approved": 115,
+          "remaining": 6,
+          "statuses": {
+            "VERIFIED": 115,
+            "PARTIAL": 2,
+            "NOT_VERIFIED": 4
+          },
+          "remainingIds": [
+            "P-08",
+            "TR-08",
+            "TR-09",
+            "DB-01",
+            "DB-05",
+            "OPS-04"
+          ]
+        },
+        "acceptanceContracts": {
+          "total": 231,
+          "approved": 185,
+          "remaining": 46,
+          "statuses": {
+            "PASSED": 185,
+            "NOT_EXECUTED": 34,
+            "PARTIAL": 12
+          },
+          "remainingIds": [
+            "SC-023",
+            "SC-031",
+            "SC-035",
+            "SC-037",
+            "SC-038",
+            "SC-039",
+            "SC-046",
+            "SC-047",
+            "SC-052",
+            "SC-053",
+            "SC-054",
+            "SC-070",
+            "SC-071",
+            "AT-P-08",
+            "AT-TR-08",
+            "AT-TR-09",
+            "AT-DB-01",
+            "AT-DB-05",
+            "AT-OPS-04",
+            "AT-Z01L-SUPPLIER",
+            "AT-Z02L-SUPPLIER",
+            "AT-Z03L-SUPPLIER",
+            "AT-Z04L-SUPPLIER",
+            "AT-Z01LK-SUPPLIER",
+            "AT-Z02LK-SUPPLIER",
+            "AT-Z03LK-SUPPLIER",
+            "AT-Z04LK-SUPPLIER",
+            "AT-Z03C-SUPPLIER",
+            "AT-Z04C-SUPPLIER",
+            "AT-Z05C-SUPPLIER",
+            "AT-Z03H-SUPPLIER",
+            "AT-Z04H-SUPPLIER",
+            "AT-Z05H-SUPPLIER",
+            "AT-Z08H-SUPPLIER",
+            "AT-Z06F-SUPPLIER",
+            "AT-Z09F-SUPPLIER",
+            "AT-Z06G-SUPPLIER",
+            "AT-Z09G-SUPPLIER",
+            "AT-Z09B-SUPPLIER",
+            "AT-Z09D-SUPPLIER",
+            "AT-Z10M-SUPPLIER",
+            "AT-Z13V-ESCO",
+            "AT-Z15V-ESCO",
+            "AT-Z13VH-ESCO",
+            "AT-Z14VH-ESCO",
+            "AT-Z15VH-ESCO"
+          ]
+        },
+        "total": 352,
+        "approved": 300,
+        "remaining": 52,
+        "technicalMergedPr": 656,
+        "technicalSourceHead": "0ce626981423dc077e9c5ab36043dad74649e06a",
+        "technicalMergeMain": "5b150f18adaf0b8d82ba2651696421d3e34884fe",
+        "technicalSourceRequiredSuccess": 18,
+        "technicalReleaseReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6037786738",
+        "technical21Released": true,
+        "mergeRoleReleasedFirst": true,
+        "resultingMainRuntime": "NOT_VERIFIED",
+        "externalMarket": "NOT_VERIFIED",
+        "scope": "Stored software-approval rows; source0ce genuine execution and actual656 tree/parent/custody delivery, plus source-only663 delivery. No whole-current-main runtime, deployment or market acceptance.",
+        "nextAction": "95bc completes only reserved actual656/main300 shared closeout: two final metadata reviews, exact-head eight mandatory checks, normal expected-head merge only with immediately free role-merge; release memory-role before waiting for another role. Authenticate actual delivery and release merge-role FIRST then owner-only memory resources. Refresh main, coverage, original/legacy custody, #530 and live locks; select/reserve next eligible work autonomously. Other owners retain their existing packets."
+      }
     }
   ],
   "campaignComplete": false,
@@ -2034,9 +2133,9 @@
     }
   ],
   "currentObservation": {
-    "recordedAt": "2026-10-07T12:37:33.769902+00:00",
-    "actualMain": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
-    "actualTree": "bb01da21316cf0fba279c6b820b49da9a1ed9e62",
+    "recordedAt": "2026-10-07T14:36:01.128254+00:00",
+    "actualMain": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+    "actualTree": "dc6054286223af01da4ad1130719506a3c8a5f4e",
     "coverageSha256": "51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a",
     "rules": {
       "total": 121,
@@ -2126,8 +2225,41 @@
     "mergeRoleReleasedFirst": true,
     "resultingMainRuntime": "NOT_VERIFIED",
     "externalMarket": "NOT_VERIFIED",
-    "scope": "Stored software-approval rows; source0ce genuine execution and actual656 tree/parent/custody delivery, plus source-only663 delivery. No whole-current-main runtime, deployment or market acceptance.",
-    "nextAction": "95bc completes only reserved actual656/main300 shared closeout: two final metadata reviews, exact-head eight mandatory checks, normal expected-head merge only with immediately free role-merge; release memory-role before waiting for another role. Authenticate actual delivery and release merge-role FIRST then owner-only memory resources. Refresh main, coverage, original/legacy custody, #530 and live locks; select/reserve next eligible work autonomously. Other owners retain their existing packets."
+    "scope": "Actual metadata668 delivery and source-bound TRDB observation; no acceptance promotion; this new reconciliation is proposed until delivery",
+    "nextAction": "ROOTb6d3 qualify current21/14+mandatory; GEN2f adopt selected-source outputs/manifest and strictclean/upgrade or exact scoped release; preserve other original-owner custody",
+    "memoryCloseout": {
+      "pr": 668,
+      "actualMain": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+      "releaseReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6039708993",
+      "delivered": true
+    },
+    "trdb": {
+      "owner": "codex-20261006T223328Z-b6d3a0172885",
+      "packet": "ccde1d53-5672-463e-8822-5849a019fe02",
+      "pr": 662,
+      "publishedSource": "d1f4598ffe20b4924f6f7ff3637b5c95b991a4bd",
+      "sourceReview": "TWO_INDEPENDENT_SOURCE_APPROVE",
+      "nativeCurrent": "RUNNING_OR_QUEUED_NOT_QUALIFIED",
+      "currentNativeRuns": [
+        37637416978,
+        37637416821,
+        37637416994
+      ],
+      "prior81cTr": "18_PASS_3_FAIL_CANONICAL_AND_SUPPLEMENTAL",
+      "prior81cDb": "14_PASS_SUPPLEMENTAL_ONLY",
+      "prior81cOrdinary": "935_FILES_14472_PASS",
+      "capture": "1104_SQL_CAPTURE_ONLY_NOT_PARITY",
+      "genOwner": "2f72",
+      "genNextAction": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6040132225",
+      "fourRows": "UNCHANGED_UNAPPROVED",
+      "resultingMainRuntime": "NOT_VERIFIED",
+      "externalAcceptance": "NOT_VERIFIED"
+    },
+    "proposedReconciliation": {
+      "owner": "b6d3",
+      "roleReceipt": "3185e725e2734fd5ee164f29c004663bd1437103",
+      "delivery": "PENDING_CURRENT_HEAD_REVIEW_CHECKS"
+    }
   },
   "latestHContinuationObservation": {
     "recordedAt": "2026-10-07T04:10:44.059281+00:00",
