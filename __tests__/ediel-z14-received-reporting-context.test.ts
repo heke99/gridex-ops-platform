@@ -121,6 +121,34 @@ function end(body:Parts[],minute:string){
 beforeEach(()=>{io.reads=[];io.decision=null;io.basis=null;io.error=null;io.throwAfterMs=null;vi.setSystemTime(new Date(received))})
 afterEach(()=>{vi.restoreAllMocks();vi.useRealTimers()})
 describe('received Z14 known reporting requirements before own APP projection',()=>{
+ for(const [path,run]of [['sync',resolveCanonicalRuntimeDecision],['async',resolveCanonicalRuntimeDecisionWithRegistry]]as const){
+  it.each(['deathStatusContext','actorUserId','receivedReportingContext']as const)
+  (`getter boundary: ${path} rejects syntax before reading caller %s`,async key=>{
+   const m=wire();m.raw_payload=m.raw_payload!.replace(/UNT\+[0-9]+/,'UNT+999')
+   expect(m.raw_payload).toContain('UNT+999')
+   const facts=Object.defineProperty({},key,{enumerable:true,get(){throw Error(`PRE_SYNTAX_GETTER:${key}`)}})
+   const d=await run(m,facts)
+   expect(d.syntaxDecision).toBe('rejected');expect(d.applicationDecision).toBe('not_applicable')
+   noPositive(d);expect(io.reads).toEqual([])
+  })
+ }
+ it('getter boundary: sync ignores a caller reporting-token getter on valid syntax',()=>{
+  const facts={get receivedReportingContext():never{throw Error('CALLER_REPORTING_CONTEXT_ACCESS')}}
+  expect(resolveCanonicalRuntimeDecision(wire(),facts).applicationDecision).toBe('accepted')
+  expect(io.reads).toEqual([])
+ })
+ it('getter boundary: async noactor ignores a caller reporting-token getter on valid syntax',async()=>{
+  const facts={get receivedReportingContext():never{throw Error('CALLER_REPORTING_CONTEXT_ACCESS')}}
+  expect((await resolveCanonicalRuntimeDecisionWithRegistry(wire(),facts)).applicationDecision).toBe('accepted')
+  expect(io.reads).toEqual([])
+ })
+ it('getter boundary: async captures actor once and uses only its fresh READ despite a caller token getter',async()=>{
+  const m=wire(omitPurpose(permissionAckObject('Z14','S17','A74',null)));io.basis=basis(m);let actorReads=0
+  const facts={get actorUserId(){if(++actorReads!==1)throw Error('EXECUTION_ACTOR_RE_READ');return actor},
+   get receivedReportingContext():never{throw Error('CALLER_REPORTING_CONTEXT_ACCESS')}}
+  refusedField(await resolveCanonicalRuntimeDecisionWithRegistry(m,facts),'323')
+  expect(actorReads).toBe(1)
+ })
  it('standalone no-actor keeps receiver-local U absence unqualified',()=>{
   const d=resolveCanonicalRuntimeDecision(wire(omitPurpose(permissionAckObject('Z14','S17','A74',null))))
   expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision).toBe('accepted')

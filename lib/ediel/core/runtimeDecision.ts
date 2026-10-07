@@ -431,12 +431,12 @@ function buildResult(params: {
 
 export type CanonicalRuntimeSourceFacts=EdielMessageTimeOptions&{deathStatusContext?:DeathStatusValidationContext;actorUserId?:string;receivedReportingContext?:ReceivedZ14ReportingContext}
 export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):CanonicalRuntimeDecision {
-  return resolveCanonicalRuntimeDecisionCore(message,{...facts,receivedReportingContext:undefined})
+  return resolveCanonicalRuntimeDecisionCore(message,facts)
 }
 /** Registry admission freezes the whole guide before consuming its actual
  * issuer owner. Explicit observed time and opaque source capabilities survive
  * that selection without caller-provided success facts. */
-function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean}):CanonicalRuntimeDecision {
+function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string}):CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -587,7 +587,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     utiltsHeaderValidation = utilts.utiltsHeaderValidation
     utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
-    const prodat = applyProdatPolicyDecision({ rawPayload:message.raw_payload,receivedReportingContext:receivedZ14ReportingContextForMessage(facts.receivedReportingContext,message,facts.actorUserId)??heldReceivedZ14ReportingContextForMessage(facts.receivedReportingContext,message,facts.actorUserId),sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    const prodat = applyProdatPolicyDecision({ rawPayload:message.raw_payload,receivedReportingContext:receivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId)??heldReceivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId),sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
     prodatSourceFunctionValidation=prodat.prodatSourceFunctionValidation
     prodatApplicationValidation=prodat.prodatApplicationValidation
     prodatRegisterValidation = prodat.prodatRegisterValidation
@@ -717,12 +717,16 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 }
 
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):Promise<CanonicalRuntimeDecision> {
-  facts={...facts,receivedReportingContext:undefined}
-  if(facts.actorUserId && validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
-    const receivedReportingContext=await loadReceivedZ14ReportingContext(message,facts.actorUserId)
-    facts={...facts,receivedReportingContext}
+  let receivedReportingContext:ReceivedZ14ReportingContext|undefined
+  let receivedReportingActorUserId:string|undefined
+  // Caller facts stay lazy until syntax qualifies. Only this invocation's
+  // fresh READ and captured actor can enter the private reporting-context port.
+  if(validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
+    receivedReportingActorUserId=facts.actorUserId
+    if(receivedReportingActorUserId)receivedReportingContext=await loadReceivedZ14ReportingContext(message,receivedReportingActorUserId)
   }
-  let base=resolveCanonicalRuntimeDecisionCore(message,facts,{deferUtiltsRuntime:message.direction==='inbound'})
+  const options={deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId}
+  let base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
   // Never read a bilateral authority for an unknown or invalid full grammar.
   // A/D/H, or their reason code (Z26/Z70/Z25) where the national grammar has
   // no such subtype for this message code (bilateral Z04/Z05 H carry Z25).
@@ -730,7 +734,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   if(needsCapability&&base.syntaxDecision==='accepted'){
     try{
       const capability=await readSourceQualifiedProdatBilateralCapability(message)
-      if(capability)base=resolveCanonicalRuntimeDecisionCore(message,{...facts,prodatSourceCapability:capability})
+      if(capability)base=resolveCanonicalRuntimeDecisionCore(message,{admissionAt:facts.admissionAt,replayAt:facts.replayAt,deathStatusContext:facts.deathStatusContext,prodatSourceCapability:capability},options)
     }catch{return base}
   }
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
