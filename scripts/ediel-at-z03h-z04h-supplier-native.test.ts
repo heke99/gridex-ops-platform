@@ -15,6 +15,7 @@ import { qualifyPersistedBilateralProdatOutboundOriginal } from '@/lib/ediel/pro
 import { readSourceQualifiedProdatBilateralCapability } from '@/lib/ediel/core/prodatBilateralSourceCapability'
 import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
+import { readPersistedEdielTechnicalContrlBasis } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
@@ -955,6 +956,15 @@ describe('H original ACK receipt and current archive authority proposals',()=>{
     const archive=()=>({profiles:rows('gridex_bilateral_prodat.profile_versions',f.companyId),artifacts:rows('gridex_bilateral_prodat.artifacts',f.companyId),
       origins:rows('gridex_bilateral_prodat.origins',f.companyId,'ground_id'),reviews:rows('gridex_bilateral_prodat.reviews',f.companyId)})
     const history=archive(), originalBefore=sealed(original.id), controlBefore=sealed(control.message.id), before=business(f)
+    // Observe every physical outbound/custody row, including held or orphan
+    // candidates. The public business reader cannot authorize this H source.
+    const physical=()=>({messages:rows('public.ediel_messages',f.companyId).filter(m=>m.direction==='outbound'),
+      outboxes:rows('public.ediel_outbox',f.companyId),witnesses:rows('gridex_ediel_outbound_owner.witnesses',f.companyId),
+      consumptions:rows('gridex_ediel_outbound_owner.consumptions',f.companyId,'witness_id'),
+      responses:rows('gridex_ediel_ack_guide.prodat_response_owner_bindings',f.companyId,'witness_id'),
+      structural:rows('gridex_ediel_ack_guide.prodat_structural_response_bindings',f.companyId,'witness_id')})
+    const physicalBefore=physical(),operatorCanWrite=()=>sql<boolean>(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.write'))`)
+    expect(f.actorUserId).not.toBe(f.reviewer);expect(operatorCanWrite()).toBe(true)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review' AND effect='allow'`)).toBe(1)
     sql(`UPDATE public.user_permissions SET effect='deny' WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review'`)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review' AND effect='deny'`)).toBe(1)
@@ -968,8 +978,49 @@ describe('H original ACK receipt and current archive authority proposals',()=>{
     expect(decision.validationReport.failureDisposition,JSON.stringify(decision)).toMatchObject({kind:'internal_failure',code:'EDIEL_INTERNAL_EXECUTION_FAILURE'})
     expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
     await observedStage('withdrawal_actual_processor',()=>processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id}))
-    expect((await observedStage('withdrawal_list_business_ack',()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'})))
-      .filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
+    await expect(observedStage('withdrawal_list_business_ack',()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'})))
+      .rejects.toMatchObject({code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'})
+    expect(operatorCanWrite()).toBe(true)
+    const after=physical(),technicalIds=new Set<unknown>(),technicalOutboxIds=new Set<unknown>(),
+      baselineIds=new Set(physicalBefore.messages.map(m=>m.id)),sourceWire=tokenizeEdifact(message.raw_payload!),
+      sourceEnvelope=EdifactEnvelopeCodec.decode(message.raw_payload!),sourceUnb=sourceWire.segments.find(t=>t.tag==='UNB')!
+    expect(after.messages.filter(m=>!baselineIds.has(m.id)).length).toBeLessThanOrEqual(1)
+    // Only an actually qualified NEW technical reply may coexist with this
+    // business refusal. Never hide a row by its outcome, status or family.
+    for(const ack of after.messages.filter(m=>!baselineIds.has(m.id))) {
+      expect(ack).toMatchObject({direction:'outbound',company_id:f.companyId,environment:'test',message_family:'CONTRL',related_message_id:message.id})
+      expect(typeof ack.raw_payload).toBe('string')
+      const raw=String(ack.raw_payload),wire=tokenizeEdifact(raw),envelope=EdifactEnvelopeCodec.decode(raw),
+        only=(tag:string)=>{const found=wire.segments.filter(t=>t.tag===tag);expect(found).toHaveLength(1);return found[0]}
+      const unb=only('UNB'),unh=only('UNH'),uci=only('UCI'),unt=only('UNT'),unz=only('UNZ'),
+        first=wire.segments.indexOf(unh),last=wire.segments.indexOf(unt)
+      expect(first).toBeGreaterThan(wire.segments.indexOf(unb));expect(wire.segments.indexOf(uci)).toBeGreaterThan(first)
+      expect(last).toBeGreaterThan(wire.segments.indexOf(uci));expect(wire.segments.indexOf(unz)).toBe(wire.segments.length-1)
+      expect(wire.segments.indexOf(unz)).toBe(last+1)
+      expect(segmentComposite(unh,2,wire.una)[0]).toBe('CONTRL')
+      expect(segmentComposite(unt,1,wire.una)).toEqual([String(last-first+1)])
+      expect(segmentComposite(unt,2,wire.una)).toEqual(segmentComposite(unh,1,wire.una))
+      expect(segmentComposite(unz,1,wire.una)).toEqual(['1'])
+      expect(segmentComposite(unz,2,wire.una)).toEqual([envelope.interchangeReference])
+      expect(segmentComposite(unb,2,wire.una)).toEqual(segmentComposite(sourceUnb,3,sourceWire.una))
+      expect(segmentComposite(unb,3,wire.una)).toEqual(segmentComposite(sourceUnb,2,sourceWire.una))
+      expect(envelope).toMatchObject({environment:'test',testIndicator:'1',applicationReference:sourceEnvelope.applicationReference})
+      expect(segmentComposite(uci,1,wire.una)).toEqual([sourceEnvelope.interchangeReference!.slice(0,14)])
+      for(const i of [2,3])expect(segmentComposite(uci,i,wire.una)).toEqual(segmentComposite(sourceUnb,i,sourceWire.una))
+      expect(segmentComposite(uci,4,wire.una)).toEqual(['1'])
+      expect(ack.immutable_payload_hash).toBe(digest(raw))
+      const qualified=await readPersistedEdielTechnicalContrlBasis({companyId:f.companyId,environment:'test',
+        ackMessageId:String(ack.id),expectedRawPayload:raw,actorUserId:f.actorUserId,phase:'read'})
+      expect(qualified.evidence).toMatchObject({sourceMessageId:message.id,sourceHash:digest(message.raw_payload!),companyId:f.companyId,environment:'test',syntaxDecision:'accepted'})
+      const outboxes=after.outboxes.filter(o=>o.ediel_message_id===ack.id)
+      expect(outboxes).toHaveLength(1)
+      expect(outboxes[0]).toMatchObject({company_id:f.companyId,environment:'test',source_message_id:message.id,
+        message_family:'CONTRL',immutable_payload_hash:digest(raw),created_by:f.actorUserId})
+      expect(physicalBefore.outboxes.some(o=>o.id===outboxes[0].id)).toBe(false)
+      technicalIds.add(ack.id);technicalOutboxIds.add(outboxes[0].id)
+    }
+    expect({...after,messages:after.messages.filter(m=>!technicalIds.has(m.id)),
+      outboxes:after.outboxes.filter(o=>!technicalOutboxIds.has(o.id))}).toEqual(physicalBefore)
     expect(business(f)).toEqual(before);expect(archive()).toEqual(history)
     expect(sealed(original.id)).toEqual(originalBefore);expect(sealed(control.message.id)).toEqual(controlBefore)
   })
