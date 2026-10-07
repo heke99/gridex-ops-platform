@@ -1,0 +1,23 @@
+# Shared readiness dependency component
+
+Status: scope verification; no implementation.
+Agent: codex-shared-readiness-20261007-1df0f02d; packet: 1df0f02d-4469-4299-bb6d-320bd48251d8.
+Branch: codex/shared-readiness-20261007; worktree: /workspace/gridex-readiness-component.
+Base main: c401ae989f8add2f73912746936ced6be2d02708; actual coverage115/121 +183/231 =298/352.
+Whole ID ownership: none. This is an optional-field read compatibility subcomponent of existing TR09/DB01 readiness work, not a separate whole packet.
+
+Startup: read AGENTS/memory in order, workflow/reservations/domain/decisions/failures, retained register, current main/coverage, open PRs and all127 actual resource refs/28 receipts. Foreign whole owners b6d3 TR09/DB01 (#662), 2f72 GEN4/Z02 (#658),95 A/D (#656),c65 H05/H08 (#665),2c C03/C05 (#663),93 shared memory (#664),24fa Z01 (#638) retain custody. Relevant retained #545/#536 and current #640 transport source belongs to original/current transport owner; no extraction of those changes.
+
+Own planned exact files: supabase/migrations/20261007110303_company_readiness_optional_esett.sql, scripts/ediel-company-readiness-sql-regression.mjs, scripts/migration-history-manifest.ediel.additions.json, .github/workflows/ediel-company-readiness-component.yml. No foreign file edits. Checkpoint is uniquely owned. Exact reservation receipt/comment pending.
+
+Already exists: main public.gridex_company_go_live_readiness full canonical function and production-readiness/tenant-activation consumers; prior migration20260815162500 and ACL convergence20260904120000 remain immutable. Captured company schema lacks esett_status; function directly accesses it. Independent runtime reproduction via PGlite0.3.14, actual captured fn and column shapes: SQLSTATE42703 record c has no field esett_status at line215; original reproduction saved /tmp/gridex-readiness-reproduce.mjs. This does not establish precise native37608327974 failure cause, which ownerb6d3 diagnoses. Owner notice #5306036550224.
+
+Scope: replace ONLY optional company status read with to_jsonb(c)->>'esett_status'; preserve lower/coalesce and missing-status blocker, all canonical evidence/test gates, tenant filters, SECURITY DEFINER/search_path/stability and ACLs. No added column or fallback authority, production status or coverage. Helps canonical dry-run/production-readiness error handling and tenant activation/onboarding consumers while true eSett/external/capability prerequisites remain.
+
+Skill routing: using-superpowers/startup, using-git-worktrees/isolation (project protocol authorizes), systematic-debugging/rootcause, TDD/RED-GREEN, Supabase and Postgres practices/function+forward, requesting-code-review/independent readonly reviewer, verification-before-completion/evidence. Conditional receiving-code-review and finishing-branch at review/delivery. Skip repository-wide acquire-codebase-knowledge and quality-playbook audit: this is a narrow function dependency, not a repository audit. No UI/React/API/auth/product architecture change, no new performance/security/supplychain initiative.
+
+Verification plan: unchanged function RED at missing captured field; unchanged oracle GREEN after single-read forward; absent/null/missing/nonready/ready legacy values with true residual blockers; foreign-company status cannot fulfill current tenant; current negative authority; real production-readiness authority evaluator and SQL activation consumers; ACL preservation for anon/authenticated/service and transaction/no writes; checksum guard. Preserve all prior RED results. Full native clean/upgrade/capture/mandatory CI and final review required before merge; held GEN4 composition must come from owner.
+
+Next: atomically reserve exact4 files on freshly fetched main; confirm allrefs/checkpoint/CLAIM before implementation; finish independent scope review; RED-first test then minimal forward; update checkpoint530. Shared summaries await role-memory; no role sought now.
+
+Atomic reservation confirmed b43eb5612d42440bb8440f65c5a5f9e59b9da322; all4 exact file refs official GETMATCH. Independent prospective review conditionalGO for this read only; confirms blocked semantics and real consumers, no native/rootcause/whole approval borrowed.
