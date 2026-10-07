@@ -111,3 +111,39 @@ C04_PATH_REVIEW_GO + SOURCE_CORRECTION: initialscope/comment6038563371 said curr
 H_UNIT_RELEASE_RELAY: actualc65explicitfile-onlyRELEASE_COMPLETE5306038540687 nowpublished; donorofficialGET exactfile5d23159 at13:xx returnsHTTP404 (priorcached5c54 locksnapshothistorical). Agent93latest6038567691 stillsayspending; relayactualrelease+freshclaimrequirement to93, doNOTclaim/deletetheirfileourselves. Unitbefd199line/SHA6937... remainsimmutable; c65wholeH05/H08+other9 retaincustody. Newlocalproducer/fullordinaryfailureNodePATH diagnosis remainssole93, no finiteunitpass/fullgreen conflation.
 
 C04_CURRENT_PUBLIC_EVENT_LOCATED beforequeryuse: actualmain inboundProcessing1267–1274 validatedevent carries sourceObjectPartition evenifall-held; legacyonlycalledfullyApplied+singleobject. Therefore existing667 observer partition-tablecounts canbezero while exactreturnedrefusal isalreadyin sourcecompany/message-bound validatedevent. Boundedexecutablehelper ONLY /tmp/gridex-c04-event-refusals.sql aggregates finite whitelistedC04reason counts fromtheseevents; no rawobject/ID/date/error/address/hash output, no secondapply/writer. $1company,$2source,$3expectedimmutablepayloadhash; currenthashcheckboolean, eventscontainnoindependenthashbinding (explicitlimitation). Countsare evententries notdistinctobjects/currentadmission, replayduplicationvisible; malformedpartition/otherreason/unexpecteddispositioncount retained. Sourcepredicateclassificationstillnotexecutedactivation/compensationproof. NextisolatedPG minimalactualcolumnshapes checks foreigncompany/wrongsource/malformed/repeatedevents/finiteprojection; no genuineDB/native run. Exactquery andqualifier durablyavailableafterreview; ownersmayreuseviaownapprovedreadonlyport/originalobserver scope, notblindborrowauthority.
+
+C04_EVENT_DIAGNOSTIC_DELIVERABLE / independentboundaryBOUNDED_GO no materialflaw. Actualpublicvalidatedevent payload.sourceObjectPartition retainsallheldreturnedcauses ifprocessreaches+successfullyINSERTsevent (priorACK/casefailure canpreventevent). ExactSQLfunctionroute reviewedall8substrcurrentcapturedschema; no newnative execution or sourcefinding. TwelveisolatedPGcontrols actualNodeEXIT0/12PASS0FAIL0SKIP toolterminalchunkafb22e duration250.7ms; notrawlogfile/independentlyrerun. Firstfixtureincorrectexpectedconstantdigest RED11P1F retained; nativePGbuiltinSHAexecuted despitefixturepublicstandin, correctedfixtureNodecryptoactualhash andremovedunusedstub, SQLunchanged. Foreigncompany/source/typefilters, no sourceunknownhash, mismatchedhashfalse, malformed/nullpartition, missingeventfield, repeatedentries, fivefinitecauses/unknownreason/disposition andno rawvalueexport qualified. Isolatedminimalshapes, not genuinecustomerDB/native/authorizationproof. Hashes {"/tmp/gridex-c04-event-refusals.sql": "488b55a4b8b9df3e8e54734c71fa971eb331dd51447a8fe72c2b5043b301daee", "/tmp/gridex-c04-event-refusals-test.mjs": "cc2dff30e1552e0750fea5aa6f0b9653adf666dccc2e31094edf329f2499b48d", "/tmp/gridex-c04-event-refusals-first-red.log": "f1348278725fc1c56285cf0cf6390749ccfb13b5c0975b8ba3fbf6e146aff83f"}; actualmain sourceOIDs {"supabase/schema.sql": "762a574163ba39c60fef6386912c79b83ed53f9d", "lib/ediel/flows/inboundProcessing.ts": "79e1e928b1c48114777598d46a59f164510d53b7", "lib/ediel/flows/supplyMarketTransition.ts": "12eb1c04e2af1caf1c539107f2a948c034dba346", "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts": "fb9e90139230b30f28f301e48624eda0cbf4bf3d", "__tests__/ediel-at-z04c-supplier-acceptance.test.ts": "4236a0fd6f15f8e3782312157c6ca283ef960f95"}.
+ReusableSQL only throughrightfulownerapprovedREAD-onlyport, $1company/$2source/$3expectedcurrentimmutablepayloadhash; no secondapply or rawexport. Eventcount isnotcurrentadmission/uniqueobjects; eventpayloadnoindependenthash, genuineimmutableeventsourceverification remainsowner.
+```sql
+-- Diagnostic only: $1 company UUID, $2 source UUID, $3 expected payload SHA256.
+-- Counts summarize event entries, not unique objects or current admission.
+-- Current message hash is checked; events carry no independent payload hash.
+WITH source AS (
+ SELECT id,company_id,encode(sha256(convert_to(raw_payload,'UTF8')),'hex')=$3::text AS current_hash_matches
+ FROM public.ediel_messages WHERE company_id=$1::uuid AND id=$2::uuid
+), events AS (
+ SELECT e.payload->'sourceObjectPartition' AS partition
+ FROM public.ediel_message_events e JOIN source s ON e.company_id=s.company_id AND e.ediel_message_id=s.id
+ WHERE e.event_type='validated' AND e.payload ? 'sourceObjectPartition'
+), entries AS (
+ SELECT x.value FROM events e CROSS JOIN LATERAL jsonb_array_elements(
+   CASE WHEN jsonb_typeof(e.partition)='array' THEN e.partition ELSE '[]'::jsonb END) x
+)
+SELECT jsonb_build_object(
+ 'source_count',(SELECT count(*) FROM source),
+ 'current_hash_matches',(SELECT current_hash_matches FROM source),
+ 'partition_event_count',(SELECT count(*) FROM events),
+ 'malformed_partition_event_count',(SELECT count(*) FROM events WHERE jsonb_typeof(partition) IS DISTINCT FROM 'array'),
+ 'held_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held'),
+ 'compensation_required_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held' AND value->>'reason'='z04c_effect_already_executed_compensation_required'),
+ 'exact_original_unavailable_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held' AND value->>'reason'='z04c_exact_original_unavailable'),
+ 'locked_original_mismatch_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held' AND value->>'reason'='z04c_locked_original_mismatch'),
+ 'original_cohort_changed_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held' AND value->>'reason'='supply_original_cohort_changed'),
+ 'conflicting_periods_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held' AND value->>'reason'='z04c_conflicting_periods'),
+ 'other_held_entry_count',(SELECT count(*) FROM entries WHERE value->>'disposition'='held' AND (value->>'reason' IN (
+   'z04c_effect_already_executed_compensation_required','z04c_exact_original_unavailable','z04c_locked_original_mismatch',
+   'supply_original_cohort_changed','z04c_conflicting_periods')) IS NOT TRUE),
+ 'unexpected_disposition_entry_count',(SELECT count(*) FROM entries WHERE (value->>'disposition' IN ('held','applied')) IS NOT TRUE)
+) AS diagnostic;
+```
+Next24fa/2c reuseexisting667futurestartcase andfinitevalidatedevent reasoncounts toselectactualstop withoutnew suite. Compensation markeralonecannotproveexecutedactivation orfulfillcontrolledcompensation; original SC039 reversearrival retention/deadlines remainsretainedparentcustody. Existingcomponentunit mocksRPC andcannotproveSQL/native. Currentpublicall-held skipslegacy, so legacymanualreviewunit doesnotproveactualpublicwarning/compensation event. No heldfiles/coverage/GEN/locks touched. Separately Hhandoffavailable6038657845 afterfresh404;93 mustfreshclaim, fullNodePATH failure remainsown. Donor nextrefreshofficialmain/ownerfeedback andchooseotherunassignedboundeddependency.
