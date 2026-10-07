@@ -222,9 +222,9 @@ function projectZ04Diagnostic(f:Fixture,source:EdielMessageRow,reads:readonly [P
 }
 // Inherited optional JSON.stringify(decision.issues) assertion messages remain
 // unchanged: an old privacy limit, not a whole-artifact finite-output guarantee.
-// Minimal prospective field ingress reproduction: only the original two positives
-// and two fresh omission contrasts use these helpers. Field259 declares future
-// UTILTS TRUE only; absence remains UNKNOWN. No metadata/inventory/APP authority.
+// Physical reading fixtures serve positive cases, omission contrasts and
+// correlation-negative cases. Field259 declares future UTILTS TRUE only;
+// absence remains UNKNOWN. No metadata/inventory/APP authority.
 const ownReadingCodes = ['PRODAT_DEPENDENT_CONDITION_UNDETERMINED','PRODAT_REGISTER_READING_INVALID',
   'PRODAT_REGISTER_READING_SCOPE_INVALID','PRODAT_DEPENDENT_FIELD_MISSING','FIELD_MATRIX_REQUIRED_FIELD_MISSING',
   'FIELD_MATRIX_FIELD_FORMAT_INVALID','FIELD_MATRIX_FIELD_LENGTH_INVALID','FIELD_MATRIX_CODE_LIST_INVALID',
@@ -1270,7 +1270,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     noActivation(f)
     const positiveRaw=confirmation(f,body=>withOwnReadings(body,true),true)
     assertOwnReadingWire(f,positiveRaw,true)
-    const source=await receive(f,positiveRaw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+    const source=await receive(f,positiveRaw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:f.actorUserId})
     await assertOwnFieldReception(f,source)
     const providerBeforeZ04=smtp.mock.calls.length
     expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
@@ -1377,7 +1377,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     it(`refuses a counted received Z04 with wrong ${contrast}`,async()=>{
       const f=await seed(variant); await send(f)
       const other=contrast==='object'?await seed(variant):null
-      const raw=confirmation(f,body=>body.map(segment=>{
+      const raw=confirmation(f,body=>withOwnReadings(body.map(segment=>{
         if (contrast==='line reference'&&segment.startsWith('RFF+LI:')) {
           const wrongLineReference=randomUUID().replaceAll('-','')
           expect(wrongLineReference).not.toBe(f.li)
@@ -1388,7 +1388,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
         if (contrast==='start date'&&segment.startsWith('DTM+92:')) return `DTM+92:${days(f.requestedStartDate,1).replaceAll('-','')}0000:203`
         if (contrast==='opposite subtype'&&segment.startsWith('CAV+'+(variant==='L'?'Z22':'Z23'))) return 'CAV+'+(variant==='L'?'Z23':'Z22')
         return segment
-      }))
+      }),true))
       const source=await receive(f,raw),before=business(f),history=originalHistory(f),otherBefore=other?business(other):null
       await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
       const negativeDiagnosticReads=await Promise.allSettled([
@@ -1404,7 +1404,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
 
   it('refuses a genuine other grid party using the same own LI and object',async()=>{
     const f=await seed(variant),other=await seed(variant); await send(f)
-    const source=await receive(f,confirmation(f).replaceAll(f.receiver,other.receiver))
+    const source=await receive(f,confirmation(f,body=>withOwnReadings(body,true)).replaceAll(f.receiver,other.receiver))
     const before=business(f),otherBefore=business(other),history=originalHistory(f)
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
     const negativeDiagnosticReads=await Promise.allSettled([
