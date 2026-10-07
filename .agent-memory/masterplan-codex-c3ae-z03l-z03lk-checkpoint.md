@@ -1,3 +1,15 @@
+## AUTHORGO bounded direct consumer fixture repair — 2026-10-07
+
+Same sole L/LK, technical25 retained, no merge/memory role. Source clean c0f939e2a6b0aad427589f79445e24ace50ebbf7/treeb491b3279b4b5458147bd6e5aa325aca263c2a4f, preview/worktree /workspace/gridex-c3ae-l-consumer-preview. Actual main8f884fb884cd10e30432eb9aa69cd7b916a675a7, metadata678 completed/released, source dependency bytes unchanged.
+
+ROOT authorizes ONLY __tests__/ediel-source-owner-runtime.test.ts, __tests__/ediel-received-prodat-response-validation.test.ts and existing owned __tests__/helpers/prodatOwnSourceReadingFixture.ts per frozen plan218d6479b07c732a558eb428e57130b394664f337b4d2808957c63d975ee2253. Two full independent PLANAPP literal9ec31328e5fb55b80e954004cb806b8a8b9871aea21c27cbb20a718ae7160ca2 + FPa3c616f44b25ea30cd4a486951b1c4627e37ba2091c3b7e6548a68cd26d97501 have0findings; root final addendum9ad10d1d84fc238d9a777283899eb97711f966675b81b93d1400f88c76fcaf35 rehashes exactplan/reviews/all20 actualsources and confirms cleanHEAD. Existing root full-source selfreviewc4f3d471 preserved.
+
+Author may start ONLY after complete checkpoint/673 exactreadbacks and fresh25 ownGETMATCH. Delivered opt-in ownerSource reading declarations constructed before birth; real READ loader/partialoriginal DB, actor50/Sep22/actual immutable row and11READ4RPC7tables explicit scope/predicate trace. Original business SDK/calls/thenables/abortSignal unchanged; no clearing/filtering/hiding business IO. Preserve all59 identities/94old lexicalexpects,22unselectedresponse bodies/default97/source wires/old error and permission controls. No private context/issuer/authority mocks, ambientTRUE/FALSE, foreign edits or coverage approval. Actual unchanged meaningful RED baseline59=52P7F already executed inside full14308P16F, no redundant rerun.
+
+Next author: bounded optional SDK configuration and explicit actual READ setup; run current meaningful affected tests and report exactscope/checks/noassertweakening preservation. No commit/publication/GitHub/locks or native execution by author. ROOT independently verify238affected/source/default preservation/lint/3types and two complete current-source reviews before freeze/publication. Native late-observation mechanism remains separate plan-only/noGO. Whole/current native later effects and named runtime/auth229/252 integration remain blocked with existing owners.
+
+---
+
 ## RELEASE CONFIRMED status-only678 operation — 2026-10-07
 
 Actual metadata678/main8f884fb884cd10e30432eb9aa69cd7b916a675a7 documented53055271/6736044224484. Exact owner GETMATCH→DELETE exit0→official GET404 completed in order: role-merge fba56466987856a878620cb18a80f2ceba1cb39b FIRST; then two memory file refs and role-memory fdcd6f46b337f6e14fd3911a63cdf7102c561ccd. No foreign resource touched; technical25 retained. Memory operationaf612a7c COMPLETE, no merge/memory role held.
