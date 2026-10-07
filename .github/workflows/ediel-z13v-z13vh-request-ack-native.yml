@@ -70,6 +70,7 @@ jobs:
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z13-request-ack-status.json"
           export Z13_NATIVE_STAGE="$RUNNER_TEMP/z13-request-ack-stage"
           export Z13_NATIVE_EXIT_FILE="$RUNNER_TEMP/z13-request-ack-test-exit"
+          export Z13_NATIVE_SESSION_LOG="$RUNNER_TEMP/z13-request-ack-session.log"
           # Freeze the exact Git blob catalog before execution, and refuse
           # working bytes/modes that differ from that immutable checkout.
           python3 - <<'PY'
@@ -93,7 +94,7 @@ jobs:
           # The child retains canonical errexit and its own EXIT cleanup trap.
           # Replay/status/credentials remain in RUNNER_TEMP, never artifacts.
           component_exit=0
-          bash <<'NATIVE' > "$RUNNER_TEMP/z13-request-ack-session.log" 2>&1 || component_exit=$?
+          bash <<'NATIVE' > "$Z13_NATIVE_SESSION_LOG" 2>&1 || component_exit=$?
           set -euo pipefail
           printf clean_replay > "$Z13_NATIVE_STAGE"
           source scripts/gridex-aud-003-clean-replay.sh
@@ -111,7 +112,7 @@ jobs:
           NATIVE
           export Z13_COMPONENT_EXIT="$component_exit"
           python3 - <<'PY'
-          import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          import hashlib,json,os,pathlib,re,subprocess,xml.etree.ElementTree as ET
           work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
           stage=pathlib.Path(os.environ['Z13_NATIVE_STAGE'])
           native_exit=pathlib.Path(os.environ['Z13_NATIVE_EXIT_FILE'])
@@ -126,6 +127,18 @@ jobs:
               if (mode,hashlib.sha256(data).hexdigest())!=(row['mode'],row['sha256']):
                   raise RuntimeError('native_candidate_source_changed: '+row['path'])
           physical_sql=[r for r in source if r['path'].startswith('supabase/migrations/') and r['path'].endswith('.sql')]
+          if int(os.environ['Z13_COMPONENT_EXIT'])!=0 and not native_exit.exists():
+              # Publish only classified error lines, never raw replay/status.
+              # The existing redactor processes this subset before publication.
+              session=pathlib.Path(os.environ['Z13_NATIVE_SESSION_LOG'])
+              errors=[line for line in session.read_text(errors='replace').splitlines()
+                  if re.search(r'(^|\s)(ERROR:|Error:|RuntimeError:|Traceback)',line)
+                  and not re.search(r'authorization|password|secret|token|anon_key|service_role',line,re.I)]
+              # Replay can fail before local status exists; its DB URI contains
+              # userinfo that the status-key redactor cannot yet discover.
+              errors=[re.sub(r'([A-Za-z][A-Za-z0-9+.-]*://)[^\s]*@',
+                  r'\1[REDACTED_URI_USERINFO]@',line) for line in errors]
+              (work/'replay-failure.log').write_text('\n'.join(errors[-12:])+'\n')
           junit=work/'native-junit.xml'
           counts=None
           if junit.exists():
@@ -159,6 +172,38 @@ jobs:
             # No replay/session log is present in the publishable directory.
             python3 scripts/gridex-redact-native-evidence.py --root "$Z13_NATIVE_WORK"
           fi
+          # Source-bound, already-redacted summaries remain readable through
+          # the first-party check API when archive storage is unavailable.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,xml.etree.ElementTree as ET
+          work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
+          receipt=json.loads((work/'receipt.json').read_text())
+          frozen=json.loads((work/'frozen-source.json').read_text())
+          def notice(title,value):
+              message=json.dumps(value,ensure_ascii=True,separators=(',',':'))
+              message=message.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+              print('::notice title='+title+'::'+message)
+          summary={k:receipt[k] for k in ('checkout_sha','checkout_tree','expected_source_sha',
+              'workflow_run_id','workflow_run_attempt','stage','component_exit_code','native_exit_code',
+              'junit_counts','source_frozen_before_execution','source_unchanged_after_cleanup')}
+          summary['frozen_source_sha256']=hashlib.sha256(json.dumps(frozen,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          junit=work/'native-junit.xml'
+          summary['redacted_junit_sha256']=hashlib.sha256(junit.read_bytes()).hexdigest() if junit.exists() else 'NOT_PROVIDED'
+          notice('Gridex native receipt',summary)
+          if junit.exists():
+              for case in ET.parse(junit).getroot().findall('.//testcase'):
+                  failure=case.find('failure')
+                  if failure is None:failure=case.find('error')
+                  status='failed' if failure is not None else 'skipped' if case.find('skipped') is not None else 'passed'
+                  notice('Gridex native case',{'name':case.get('name'),'status':status,
+                      'message':failure.get('message','')[:1000] if failure is not None else None,
+                      'detail':(failure.text or '')[-2000:] if failure is not None else None})
+          # Import/config failures can have no testcase; retain their redacted
+          # diagnostics. A failed replay remains explicitly native NOT_RUN.
+          if receipt['component_exit_code']!=0:
+              diagnostic=work/'native.log' if (work/'native.log').exists() else work/'replay-failure.log'
+              if diagnostic.exists():notice('Gridex native diagnostic',{'stage':receipt['stage'],'excerpt':diagnostic.read_text(errors='replace')[-3500:]})
+          PY
           mv "$Z13_NATIVE_WORK" z13-request-ack-native-evidence
           if test -f z13-request-ack-native-evidence/native.log; then
             cat z13-request-ack-native-evidence/native.log
