@@ -96,3 +96,13 @@ WHOLE remaining exact dependency: currentmain still lacks authentic owner2f/ac08
 
 Next ROOT: individual6 GETMATCH→DELETE0→official404 and publish actual release, signal caretaker; fresh main/coverage/board/live locks/legacy then claim released AT-Z04L-SUPPLIER + AT-Z04LK-SUPPLIER and unique forward/unit. Current Z04 legacy automatic+manual activation paths omit canonical confirmation guard; bounded meaningful RED required before fix. GEN/type-manifest integration is independently held by2f, documented source handoff required; no false two-file mandatory-green promise. @role-memory owner24fa/f660: mirror actual handover/release and future receipts under your retained role, preserve all historical530 evidence.
 
+
+
+## 2026-10-07T21:02:34.870070+00:00 — docs(ediel): confirm all six Z01 reservations released
+
+RELEASE COMPLETE — c65 Z01 packet1a8250da, after publishedCP f507979516286ea707b418669ebb58b799bfd288 and explicit sourceDELIVERY_PENDING/wholeBLOCKED handover6046781054. ALL SIX c89415318a36abe3c3542d2928d1b3943ed937d6 own resources individually officialGET_MATCH→DELETEexit0→officialHTTP404; receipt /tmp/c65-z01-six-actual-release.json. ZERO rootZ01/merge reservations retained. Original638/4389/native94 historical90P4F and small684544/source2/216/unit regressions remain preserved; whole rows NOT_EXECUTED, coverage300/352 unchanged. No current CI_GREEN/merge inferred.
+
+Accepted caretaker /root/gov04_contract_review now receives immutable684544 component ONLY, IDs[]; fresh create-only FOUR file locks + uniqueCP/CLAIM required before any delivery. Root stops684 CI/log reads; caretaker sole exact-current-head verifier, all mandatory selected successes +source/delivery review+merge role+expectedhead+actualmainproof+documentation+own release. No source/head changes/native94 rerun/whole coverage promotion. Whole claimant later needs freshIDs after actual owner2f scalar/correlation/choseninputGEN parity delivery or explicit bounded handoff. Existing helper1df retains assigned scalar request.
+
+Next ROOT refresh currentmain/coverage/board/live locks/retainedZ04 requirements and freshclaim released AT-Z04L-SUPPLIER+AT-Z04LK-SUPPLIER unique guard forward/unit BEFORE coding. Currentsharedmemory owner24fa/f660 may mirror actual release; historical530 receipts preserved.
+
