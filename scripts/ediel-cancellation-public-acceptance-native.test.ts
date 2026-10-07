@@ -96,8 +96,9 @@ function z05(f: Fixture, reason = 'Z22', mutate: (wire: string) => string = wire
     .replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`).replaceAll('RFF+Z05:NET-1', `RFF+Z05:${f.gridAreaCode}`)
   return envelope(f, mutate(wire), 'Z05')
 }
-// Reuses PR627/ac264's exact 30-case body. Only the public intake adapter
-// replaces its private catalog INSERT and asserted-false reading facts.
+// Preserves PR627/ac264's 30 case identities and original effect controls.
+// Public intake replaces private catalog/false-reading setup; committed healthy
+// period premises and literal missing223 refusal keep each boundary truthful.
 // A failure keeps its original cause; later contract suffixes remain NOT_REACHED.
 async function nativePhase<T>(phase: string, run: () => Promise<T>): Promise<T> {
   try { return await run() }
