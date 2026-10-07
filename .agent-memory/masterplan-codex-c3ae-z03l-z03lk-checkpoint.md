@@ -1,3 +1,15 @@
+## Reviewed immutable fixture reuse BEFORE adoption / native v3 frozen — 2026-10-07 03:31 UTC
+
+SoleL/LK14refs66a70/localbd2314aa/remote635a360/currentmain1ac295, no roles/newpair. Originalowner2c explicit5306030219724 authorizes ONLYTWO exactpostimages from publishedcarrier8952fb6c69d7f166c226d95bf09dcc4dd245de0f/tree411ae6a4/soleparent1ac: scripts/helpers/ediel-normal-switch-native-fixture.ts SHAe9db6c06d2885a911b0b3349a2d3feab0ec0e48d7f9110f7b72492d950fcb964, __tests__/ediel-ops-03-code-release-evidence.test.ts SHA5e977563254a4d3e470f9feaab2e0a110d3aba68beeeddb1d6befb7488ebf013. ActualAPIremoteSHA/Gitblobs and digests independently readbackMATCH; owner110PASS/tests+scriptsTS/lint0/twoSOURCEAPP are preserved source evidence only. Faithfully reuse BOTH exactbytes via gitrestore --source8952 -- two paths; DO NOT importownerCP/wholebranch, modifyforeignpostimages or take7007/2319locks. Hbilling/binding defaults and originala360 optionalcallback composed byrightfulowner. Own resultingcomposition full/types/currentnative/CI stillrequired. This authorization changes blockedhelperdependency to immutable reuse, not custody or wholeapproval.
+
+Nativeauthorv3 frozen793078336164f85a76cf781b9731b981d8d4bb5fdfc822f8a884fdc8ab2d8039/848lines; originalrelative5aac67d5 +175/-3;0d736correction70aba1a6 +91/-2. All32identities/prior143businessprohibitedsemantics retained,196currentassertions, lint0/parse0/schema14eventcols+protectedtableschecked; native/full/typesNOT_RUN. Twofresh fork-none independent reviewers l32_v3_literal_review/l32_v3_receipt_review dispatched againstexactfreeze/actualrequirements/runtime/SQL; approvals pending. No furthernativeedit while review.
+
+OutsideGitqualifierv3 b637cd6412f9a6fcaf7e645a657018e2991478d4f3038457a6f863a7d5ef8757 usesencoding-independentExpatdeclarationrefusal +positiveexactintartifactID only, preservedoldtools/evidence. Author116fixtures113refusal3declaredcontrols actualexpected; originalf9 actual3372/32/26PASS6FAIL/native1 remainsRED. Freshindependentreviewer rerunningbeforeuse; no currentproof credit. Receipt766f68b7de55817502a5a7296bf42761a4fd97858f8758f80a9d2ac67b13cf04.
+
+Nextroot publishthisCP/530beforeimmutableadoption; fresh14GETMATCH, exacttwofilematerialization/digest+scopecheck and actualOPS110; allthree currentnonincrementaltypes/full/defaultguard/finalreview/commit/push/new32authenticmandatoryCI. Common65327ae stillunmerged/currentgatespending; actualmain1ac unchanged. Sharedwriter95bc mirrorsactualstate underownrole; rootnoforeign/sharededits.
+
+---
+
 ## Qualified exact replay audit projection/event plan BEFORE native correction — 2026-10-07
 
 SoleL14refs66a70/sourceLOCALbd2314aa/remote635a360/currentproposal0d7361 frozen. Twofresh finalreviews l32_final_literal_review (receipt25713666...) and l32_final_receipt_review (fcb1bdcc...) CHANGES_REQUIRED:0Critical2Important PRE-EXISTINGoracle mismatches, no productdefect/nativefailure. Allold143business/prohibited-effect semantics remain required; only lawful exactaudit changes maybenormalized afterindependentvalidations. No currentnative/full/wholegreen.
