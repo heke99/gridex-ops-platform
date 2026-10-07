@@ -36,3 +36,8 @@ Next concrete implementation unlock: original owner or explicitly handed-off imp
 Checks: complete current-main source reads, complete original PR file inventories read; current PR states/head reads; complete recursive tree nontruncated; current remote locks; main unchanged. No test execution, DB connection, native producer, artifact fetch, source edit or CI rerun. PR680 exact98779 metadata observed clean-migration-replay and pr-certificate still IN_PROGRESS; no green/merge inferred and original1df owns delivery. Other CORE/GEN/current native owners remain active on673.
 
 Status: REVIEW_COMPLETE / HANDOVER_READY, no reservations or role locks held. Reviewer may resume on explicit retained-owner handoff or a current ready review not already assigned; implementation stays with its confirmed owner. No claim that the Masterplan or current code is wholly accepted. Coverage300/352 unchanged.
+
+
+## E5 resumption — before source comparison
+
+Scope: unresolved own E5 atomic request-payload/hash equivalence review only, main d0a655ce; before-task6736044762283. Original processor/selector review stays complete. No source/ID/role custody or producer/test/artifact duplication. Next trace exact registered final SQL and command consumers for production transition, first-live-send, provision, actor profile and user access; report genuine equivalence/gap and native proof boundary. SOURCE_REVIEW_IN_PROGRESS.
