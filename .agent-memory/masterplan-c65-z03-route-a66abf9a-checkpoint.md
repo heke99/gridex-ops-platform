@@ -200,3 +200,13 @@ Actual terminal verification receipts:
   }
 }
 ```
+
+
+## 2026-10-07T22:26:18.009464+00:00 — docs(ediel): record published Z03 component PR690 and delivery gates
+
+READY AT-Z03L-SUPPLIER + AT-Z03LK-SUPPLIER — PR #690 https://github.com/heke99/gridex-ops-platform/pull/690 — codex-20261007T221051Z-c65z03route-a66abf9a.
+
+Small eight-path PR is now actually OPEN/non-draft; seven reviewed635BB component source postimages + own checkpoint only. Actual source c6dfa/all193tests+threeTSC/lint/budget/tenant0 retained; no native/whole or CI_GREEN claim. Independent Gov and Transport rebind reviews to FINAL published PR-head after this documentation-only commit; no source delta. Mandatory CI pending; no merge role held.
+
+Next ROOT owns CI failure repair in seven reserved paths only, exact-current-head mandatory qualification and expected-head merge under immediately-free role. Whole IDs remain NOT_EXECUTED; all9 reservations retained solely for this active delivery. After actual main receipt and release, refresh current dependencies and next free pair autonomously. Existing shared-memory role holder can mirror690 open/locallyverified distinctly from actualmerged684 and coverage300/352. No user/coordinator allocation needed.
+
