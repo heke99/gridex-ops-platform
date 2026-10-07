@@ -255,3 +255,136 @@ Next c3: freeze published exact READ module and map an actual failed positive ca
 Next publish this exact map to c3/2f/2c, request one immutable positive case and bounded original-owner fixture assignment, then continue another unassigned blocker while private runtime integration/mandatory results mature. No free-tag inference or global common() mutation; donor technical refs still released.
 
 FIXTURE_MAP_DELIVERED #5306039763754 / immutableCP9737cf29178f06e55fcc798569453960c2a5de91. Next unassigned READ-ONLY reuse dependency: preserved596 SC046 late-older-E66 contrast and current metering fixture/processor path, relevant retainedSC046 and M10/F09/G09 E66 receiving/history consumers. Existing596 original owner custody/failed metering-conflict stays retained; no package takeover. Other helper acc382 currently handles Z10 reading-declaration applicability, SC071/SC047/F-G field306 inventories; do not duplicate these. Scope only compare old596 native fixture delta vs current delivered late-version implementation/actual shared metering prerequisites to identify reusable existing positive/late-version proof or exact owner prerequisite. No currentM2 observer/ZIP/CI reader, no new suite/fixture factory, source/test/oracle changes, genuine execution/whole or coverage claims. First inspect frozen literal/register/retainedhead source and actual current source; finish only finite new finding, else report no additional source gap and choose another dependency. No technical locks required for read-only source comparison.
+
+SC046_REUSE_MAP BOUNDED_GO / independent reviewer verified all7 old/current pairs, exact six unchanged non-native inputs. Corrected BEFORE delivery internal initial two-hunk wording: standard Git diff hasTHREE hunks/TWO change categories, import/use vs omitted original case. No product results erased/test executed. SHA 0ba8ef0f48eea4a606f131a3aa8a4f7d852dfc11d9a0b0fb65198432d52acb03 map / 8011099c678b7dd5acd389fe20a648646feeb1f9a6b5338e596d08bde641956c identityJSON.
+Preserved SC046 source-only reuse map. Whole custody remains original596 author, no new package/source/test/coverage ownership. No runtime/SQL/native/tests executed here. Old metering-conflict failure remains unqualified execution history, not green. Current main9b013631 metadata-only successor.
+
+The original retained late-older E66 native case is preserved in596 source5d45640c scripts/ediel-utilts-consumption-native.test.ts755–765; it is absent from current main's1790-line file. Old file1800 lines vs current1790: standard Git diff has three hunks in two change categories, current assertUtiltsConsumptionPartiesBound import/use replacing former broad substring check, plus omission of the original11-line late-version case. No need to author a parallel SC046 suite or copy old entire helper/native file. Reuse the original case only under original owner assignment/fresh reservation and preserve today's actual party validator.
+
+Original case consumes newer own512 via realSinks first (700), then late older own512 (500), demands positive APERAK/no ERR, newer current/older history, full consumed snapshot unchanged and replay unchanged. This is genuine intended full-processor contrast, not a SQL-only storage probe; stored older version and ACK response do not authorize fresh sink writes. Scope contains real metering/billing ports, mocked createCanonicalAckMessage plus event/status/completion/readiness ports; physical ACK persistence/transport is NOT proven by that double; no external/live proof.
+
+FrozenSC046 literal allows field512 OR532 and forbids rebilling merely from arrival order. Current focused scripts/ediel-utilts-late-version-sql-regression.mjs already covers both512-only and532-only accepted series positive response/currentness mechanics, explicitly reduced PGlite schema and synthetic source. Existing596 case specifically exercises512 and consumer effects/replay; focused script alone cannot replace complete public ACK and no-effect proof. No rerun/new SQL fixture is justified just to repeat existing reduced mechanics.
+
+Read-only current path distinction: 20261003150200 late-version SQL guarded rewrite preserves late older series as non-current history using own latestUpdateDate/registrationDate and no supersedes. consumptionPreparation86–106 selects write/skip from accepted source and matched scoped attribution; consumptionSinks13–19/25–44 filters persisted accepted positive-APERAK then acts on immutable contract.metering.capability, and billing46–54 on contract.billing.capability. transactionPersistence86–113 validates returned contract against exact prepared content; no direct currentness field is used in these inspected boundary checks. Source equality matters: the six compared non-native files are unchanged between retained596 and current9b. This does NOT prove all transitive source/SQL/native inputs unchanged or claim the observed historical failure's exact cause, nor justify caller skip flag / relaxing contract equality.
+
+Exact original existing_metering_conflict exception is in protected content-identity SQL181/187 with P0U01; keep it, never drop conflict check or replace realSinks with mocks. If owner authentic current case still reaches that stop, identify the first actual downstream contract/sink classification from original receipt. Any repair must supply immutable source-backed version/consumption authority through rightful contract/SQL owner, preserving accepted positive ACK and older retained history, refusing forbidden metering/billing effects and replay changes. Immutable raw source/time and same object/register boundaries still required.
+
+Shared use: M10's later E66/history contrast and F/G metering-version consumers can reuse this existing full-consumer snapshot/replay pattern after genuine appropriate source composition, not borrow SC046 whole approval or identify it with Z10 reading-declaration problem. Other helper's Z10 declaration applicability, M2 observer, field306 and active native/artifact readers are untouched. Next retained596 owner: provide exact existing authoritative run/case first failure and narrowly released native insertion/contract scope. Next24fa M: use existing historical snapshot/no-rebilling oracle when eventual actual Z10 producer reaches its E66 consumers, after current pre-case blocker; not an M completion claim. Original row staysPARTIAL.
+
+```json
+[
+  {
+    "path": "scripts/ediel-utilts-consumption-native.test.ts",
+    "unchanged": false,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "e622bbccc65491b8dbd34adab17bafbccaf88ac0",
+        "sha256": "b7954331f4dcfa1981cd24ee7b7b91252d0b336ea4fcef14c5b84b2eb23433ad"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "b75f48439f79188c2deaf5cfe992da976f65c2c1",
+        "sha256": "c689f3db90e7840217b51dcdc5b31a88bb71410e22a6ba5fd99a60ca69d78df8"
+      }
+    ]
+  },
+  {
+    "path": "lib/ediel/utilts/consumptionPreparation.ts",
+    "unchanged": true,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+        "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+        "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8"
+      }
+    ]
+  },
+  {
+    "path": "lib/ediel/utilts/transactionPersistence.ts",
+    "unchanged": true,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "05c1667a9168cab37d7dcc3466e536b964eb3cfd",
+        "sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "05c1667a9168cab37d7dcc3466e536b964eb3cfd",
+        "sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0"
+      }
+    ]
+  },
+  {
+    "path": "lib/ediel/utilts/consumptionSinks.ts",
+    "unchanged": true,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "a02499646425d830ee9a3d5b67837c0bf456b29a",
+        "sha256": "900d75e530a320558f3ce1452fa9af24e146a3ac7aea24b2521bcc156558657f"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "a02499646425d830ee9a3d5b67837c0bf456b29a",
+        "sha256": "900d75e530a320558f3ce1452fa9af24e146a3ac7aea24b2521bcc156558657f"
+      }
+    ]
+  },
+  {
+    "path": "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+    "unchanged": true,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "73b587392d510cd0d08bbf6792676c6196cb1ec9",
+        "sha256": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "73b587392d510cd0d08bbf6792676c6196cb1ec9",
+        "sha256": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05"
+      }
+    ]
+  },
+  {
+    "path": "supabase/migrations/20260923191510_ediel_utilts_consumer_content_identity.sql",
+    "unchanged": true,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "9812e108c46cd1025e8870ef848b1c311079fa8f",
+        "sha256": "63efd369d81a1a36a29ab4e7d8b9cc63904e9dc83579d17eb585189da09266b9"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "9812e108c46cd1025e8870ef848b1c311079fa8f",
+        "sha256": "63efd369d81a1a36a29ab4e7d8b9cc63904e9dc83579d17eb585189da09266b9"
+      }
+    ]
+  },
+  {
+    "path": "scripts/ediel-utilts-late-version-sql-regression.mjs",
+    "unchanged": true,
+    "versions": [
+      {
+        "source": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+        "oid": "0a718b39c0d289059288cbfd99e1c01fa28e710e",
+        "sha256": "0297ca8ae761507dba874b956dd8d451a1ef9cf81c42f7825752091c6cf9913b"
+      },
+      {
+        "source": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+        "oid": "0a718b39c0d289059288cbfd99e1c01fa28e710e",
+        "sha256": "0297ca8ae761507dba874b956dd8d451a1ef9cf81c42f7825752091c6cf9913b"
+      }
+    ]
+  }
+]
+```
+NEXTROTATION new c3 concrete fixture proposal6039786759 is now available: independently assess original helper custody, immutable63552 private issuer/source and existing finite ports, fresh free constructor file scope only after twoPLANreviews/atomicCLAIM. Preserve noarg original UNKNOWN/absent bytes; excludeall10consumer edits/privateissuer/runtime. No blankethelper changes or guessed realcase cause. Source-onlySC046 delivery precedes that new implementation selection.
