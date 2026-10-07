@@ -1,3 +1,6 @@
+import {readRequestedCustomerChangeFacts,requestedCustomerChangeRegisterFacts} from '@/lib/ediel/production/requestedCustomerChangeFacts'
+import {createProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {supabaseService} from '@/lib/supabase/service'
 import {getEdielMessageIntentById,evaluateIntentValidation,updateIntentLifecycle} from './intentEngine'
 import {finalizeCanonicalOutboundDraft,type resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
@@ -17,6 +20,9 @@ export async function renderAndQueueCustomerLifeEvent(input:{companyId:string;ev
  const selector={companyId:input.companyId,eventId:input.eventId,actorUserId:input.actorUserId}
  const basis=await readCustomerLifeEventSource(selector)
  if(basis.status==='held')return basis
+ const selectedScope={...selector,basis}
+ const selected=await readRequestedCustomerChangeFacts(selectedScope)
+ if(selected?.status==='held')return selected
  const context=customerLifeEventContext(basis,input.routeContext,intent.id)
  let reservation=await reserveCustomerLifeEventSource({...selector,intentId:intent.id,outboundRequestId:input.outboundRequestId})
  if(reservation.status==='held')return reservation
@@ -37,6 +43,10 @@ export async function renderAndQueueCustomerLifeEvent(input:{companyId:string;ev
    senderEdielId:route.senderEdielId,senderName:route.senderName,senderSubAddress:route.senderSubAddress,receiverEdielId:route.receiverEdielId,receiverName:route.receiverName,receiverSubAddress:route.receiverMessageSubAddress??route.receiverSubAddress,receiverEmail:route.receiverEmail,communicationRouteId:route.route.id,
    outboundRequestId:reservation.outboundRequestId,customerId:basis.customerId,siteId:basis.siteId,meteringPointId:basis.meteringPointId,externalReference:basis.documentReference,interchangeReference:basis.interchangeReference,transactionReference:basis.transactionReference,applicationReference:route.applicationReference,
    rawPayload:basis.rawPayload,subject:`PRODAT Z09 ${basis.documentReference}`,mimeType:'application/edifact',parsedPayload:{draftType:'customer_life_event',actorRole:'supplier',prodatVariant:'E',reasonForTransaction:'E34',customerLifeEventId:basis.eventId},syntaxCheckStatus:'not_checked',functionalCheckStatus:'not_checked',...deriveEdielAckDefaults({family:'PRODAT',code:'Z09'})}
+  if(selected){
+   const wire=tokenizeEdifact(basis.rawPayload)
+   draft.parsedPayload={...draft.parsedPayload,prodatEngine:{registerEvidence:createProdatRegisterEvidence({code:'Z09',rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:requestedCustomerChangeRegisterFacts(selected,selectedScope)})}}
+  }
   const parameters={actorUserId:input.actorUserId,requestType:'customer_masterdata' as const,routeContext:route,draft,outboundRequestId:reservation.outboundRequestId,deathStatusContext:context,
    duplicateCheck:{sourceType:'manual',sourceId:intent.id,messageFamily:'PRODAT',messageCode:'Z09',receiverEdielId:basis.legalReceiverId}}
   try{message=await finalizeCanonicalOutboundDraft(parameters)}catch(error){
