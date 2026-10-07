@@ -52,6 +52,8 @@ function graph(f: Awaited<ReturnType<typeof createConsumptionPrecondition>>, pro
 
 async function source(f: Fixture, options: NonNullable<Parameters<typeof productionReceiptWire>[2]> = {}) {
   const providerBefore = smtp.provider.mock.calls.length
+  const companyPeriodCountBeforeBirth = sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}`)
+  expect(companyPeriodCountBeforeBirth).toBe(f.sameCompanyContrast ? 2 : 1)
   const reference = `D${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
   const wire = productionReceiptWire(f, reference, options)
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
@@ -71,7 +73,7 @@ async function source(f: Fixture, options: NonNullable<Parameters<typeof product
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(original)
   expect(smtp.provider).toHaveBeenCalledTimes(providerBefore)
   return { ...f, sourceId: id!, reference, wire, decision, original: structuredClone(original),
-    sourceGuard: readSourceGuard(id!, f.companyId, wire), providerBefore }
+    sourceGuard: readSourceGuard(id!, f.companyId, wire), providerBefore, companyPeriodCountBeforeBirth }
 }
 
 function effects(f: Awaited<ReturnType<typeof source>>) {
@@ -130,13 +132,14 @@ function noEffects(f: Awaited<ReturnType<typeof source>>) {
   const result = effects(f)
   expect(result).toMatchObject({ periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
   assertOwnedAckOutputs(f, result)
-  expect(result.companyPeriodCount).toBe(1)
+  expect(result.companyPeriodCount).toBe(f.companyPeriodCountBeforeBirth)
+  if (!f.sameCompanyContrast) expect(result.companyPeriodCount).toBe(1)
   expect(result.acks.some(ack => ack.family === 'APERAK' && ack.wire.includes('ERC+100'))).toBe(false)
   return result
 }
 
-it('actual D intake commits a distinct production relation through its reviewed ground and own319, preserving consumption on retry', async () => {
-  const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
+async function assertProductionEffects(f: Fixture) {
+  const before = graph(f, f)
   const input = await source(f)
   const productionZ03Count = () => sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND metering_point_id=${literal(f.productionPointId)} AND message_code='Z03'`)
   expect(productionZ03Count()).toBe(0)
@@ -147,7 +150,8 @@ it('actual D intake commits a distinct production relation through its reviewed 
   assertOwnedAckOutputs(input, first)
   expect(first).toMatchObject({ effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
-  expect(first.companyPeriodCount).toBe(2)
+  expect(first.companyPeriodCount).toBe(input.companyPeriodCountBeforeBirth + 1)
+  if (!f.sameCompanyContrast) expect(first.companyPeriodCount).toBe(2)
   expect(first.periods[0]).toMatchObject({ company: f.companyId, customer: f.customerId, point: f.productionPointId,
     process: 'production_receipt_obligation', status: 'confirmed_by_grid_owner', ground: f.authorized.groundId, consumptionPoint: f.external })
   expect(first.periods[0].id).not.toBe(f.periodId)
@@ -167,6 +171,13 @@ it('actual D intake commits a distinct production relation through its reviewed 
   assertOwnedAckOutputs(input, effects(input))
   expect(productionZ03Count()).toBe(0)
   expect(graph(f, f)).toEqual(before)
+  return { input, first }
+}
+
+it('actual D intake commits a distinct production relation through its reviewed ground and own319, preserving consumption on retry', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport())
+  const { first } = await assertProductionEffects(f)
+  expect(first.companyPeriodCount).toBe(2)
 }, 120000)
 
 it.each([
@@ -496,4 +507,67 @@ it('actual D final partition failure rolls back production and preserves consump
     assertOwnedAckOutputs(input, effects(input))
     expect(graph(f, f)).toEqual(before)
   } finally { sql(`ALTER TABLE gridex_received_sources.supply_object_partitions DROP CONSTRAINT ${constraint}`) }
+}, 120000)
+
+it('actual D intake cannot borrow another customer consumption319 within the same company and still accepts its own healthy319', async () => {
+  const f = await createProductionReceiptNativeFixture(externalTransport(), { sameCompanyContrast: true })
+  const other = f.sameCompanyContrast
+  expect(other).not.toBeNull()
+  if (!other) throw Error('same_company_genuine_consumption_required')
+  expect(other.companyId).toBe(f.companyId)
+  expect(other.customerId).not.toBe(f.customerId)
+  expect(other.pointId).not.toBe(f.pointId)
+  expect(other.external).not.toBe(f.external)
+  const before = graph(f, f), otherBefore = graph(other)
+  const consumptionSources = () => sql(`SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m
+    WHERE company_id=${literal(f.companyId)} AND id IN(${[f.originalZ03.id,f.consumptionSourceId,other.originalZ03.id,other.consumptionSourceId].map(literal).join(',')})`)
+  const sourcesBefore = consumptionSources()
+  const ground = () => sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.productionPointId)},${literal(f.selector.startAt)}::timestamptz))`)
+  expect(ground()).toBe(true)
+  const input = await source(f, { consumptionPoint: other.external })
+  expect(input.companyPeriodCountBeforeBirth).toBe(2)
+  expect(await readSourceQualifiedProdatBilateralCapability(input.original)).toBeNull()
+  expect(input.decision.policy).toMatchObject({ family: 'PRODAT', code: 'Z04', subtype: 'D', semantics: { direction: 'inbound' } })
+  expect([input.decision.syntaxDecision, input.decision.applicationDecision, input.decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
+  expect(input.decision.prodatApplicationValidation).toMatchObject({ headerDecision: 'held', objects: [{ applicationDecision: 'held' }] })
+  expect(readReceivedCanonicalProdatResponseValidation(input.decision, input.original)).toMatchObject({ objects: [{ outcome: 'held' }], responses: [] })
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  const application = await supabaseService.rpc('ediel_read_prodat_application_objects_v1', {
+    p_company_id: f.companyId, p_source_message_id: input.sourceId,
+  })
+  expect(application.error).toBeNull()
+  expect(application.data).toMatchObject({ headerDecision: 'held',
+    sourcePayloadHash: createHash('sha256').update(input.wire, 'utf8').digest('hex'),
+    assessmentId: expect.any(String), objects: [{ applicationDecision: 'held', reasonCodes: ['PRODAT_DEPENDENT_CONDITION_UNDETERMINED'] }] })
+  const first = noEffects(input)
+  expect(first.acks.map(ack => ack.family)).toEqual(['CONTRL'])
+  expect(first.acks.every(ack => ack.company === f.companyId && ack.route === f.ackRoute && ack.profile === f.ackProfile)).toBe(true)
+  const applied = await supabaseService.rpc('ediel_apply_supply_source_v1', { p_company_id: f.companyId, p_source_message_id: input.sourceId, p_actor_user_id: f.actorUserId })
+  expect(applied.error).toBeNull()
+  expect(applied.data).toMatchObject({ applied: false, reason: 'supply_complete_own_application_and_function_required' })
+  expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  expect(consumptionSources()).toEqual(sourcesBefore)
+  expect(ground()).toBe(true)
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
+  expect(noEffects(input)).toEqual(first)
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  expect(consumptionSources()).toEqual(sourcesBefore)
+  expect(ground()).toBe(true)
+  // Same genuine source ground; correct only319 in a fresh prospective original.
+  // Healthy processing follows the completed negative/retry proof, so an existing
+  // production period cannot confound the customer-isolation contrast.
+  const healthy = await assertProductionEffects(f)
+  expect(healthy.first.companyPeriodCount).toBe(3)
+  expect(effects(input)).toEqual({ ...first, companyPeriodCount: 3 })
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
+  expect(graph(f, f)).toEqual(before)
+  expect(graph(other)).toEqual(otherBefore)
+  expect(consumptionSources()).toEqual(sourcesBefore)
+  expect(ground()).toBe(true)
 }, 120000)

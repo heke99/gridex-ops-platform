@@ -6,7 +6,7 @@ import { expect } from 'vitest'
 import { ownerSource } from '../../__tests__/helpers/sourceOwnerFixtures'
 import { guideOrderedFixtureRaw } from '../../__tests__/helpers/prodatGuideOrderedFixture'
 import { characteristic, line, qty, type Parts } from '../../__tests__/fixtures/prodat-register'
-import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal, nativeActorRoleSql } from './ediel-normal-switch-native-fixture'
+import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal, nativeActorRoleSql, normalSwitchNetworkRegistry } from './ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './originalMailboxNative'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
@@ -20,6 +20,18 @@ import { buildAgreementPdfAttachment, type AgreementPdfLegalVersion } from '@/li
 import { archiveSignedCustomerContractPdf } from '@/lib/customer-contracts/documents'
 import { readRegulatedSupplyGroundScope, archiveRegulatedSupplyGround, reviewRegulatedSupplyGround, type RegulatedSupplySelector, type RegulatedSupplySubmission } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+
+import { onboardCustomerGraph } from '@/lib/customers/canonicalOnboarding'
+import { createTenantContext } from '@/lib/tenant/context'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import { savePowerOfAttorney } from '@/lib/operations/db'
+import { ensureAuthorizationDocumentFromPowerOfAttorney } from '@/lib/legal/authorizationChain'
+import { powerOfAttorneyCoverageFromScopes } from '@/lib/operations/powerOfAttorneyWorkflow'
+import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
+import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
+import { getEdielMessageById } from '@/lib/ediel/db'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { readNetworkRegistrySourceArtifact } from '@/lib/ediel/production/networkRegistrySource'
 
 type Provider = (email: string) => void
 
@@ -41,7 +53,10 @@ function stampOriginal(wire: string, sender: string, receiver: string, document:
  * ownerSource parsed-payload control supplies its declared local readings fact.
  * No private context, validation, source witness or period is inserted. */
 export async function createConsumptionPrecondition(provider: Provider) {
-  const f = await seedNormalSwitchNativeFixture({ requestedStartDate: futureNativeSupplyDate(), external: freshGsrn(), provider })
+  return acceptConsumptionPrecondition(await seedNormalSwitchNativeFixture({ requestedStartDate: futureNativeSupplyDate(), external: freshGsrn(), provider }))
+}
+
+async function acceptConsumptionPrecondition(f: Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>>) {
   const retained = ownerSource(), sourceId = randomUUID(), document = `L${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
   const raw = retained.raw_payload!
     .replaceAll('735123456789012345', f.external)
@@ -80,6 +95,140 @@ export async function createConsumptionPrecondition(provider: Provider) {
   const periods = sql<{ id: string; contract: string; source: string; process: string; status: string }[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'contract',customer_contract_id,'source',source_message_id,'process',source_process,'status',status)),'[]') FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(sourceId)}`)
   expect(periods).toEqual([{ id: expect.any(String), contract: f.contractId, source: sourceId, process: 'supplier_switch_confirmation', status: 'confirmed_by_grid_owner' }])
   return { ...f, consumptionSourceId: sourceId, periodId: periods[0].id }
+}
+
+
+/** A second real customer in the existing company. No protected signature,
+ * accepted source, context, witness, receipt or period is cloned or seeded. */
+async function createAdditionalSameCompanyConsumption(base: Awaited<ReturnType<typeof createConsumptionPrecondition>>, provider: Provider) {
+ const {companyId,actorUserId,sender,receiver,gridId,routeId,routeProfileId,brpEdielId,requestedStartDate}=base
+ const retainedGraph=()=>sql(`SELECT jsonb_build_object(
+  'customer',(SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(base.customerId)}),
+  'site',(SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(base.siteId)}),
+  'point',(SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(base.pointId)}),
+  'contract',(SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(base.contractId)}),
+  'switch',(SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(base.switchId)}),
+  'period',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(base.periodId)}),
+  'original',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(base.originalZ03.id)}),
+  'confirmation',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(base.consumptionSourceId)}))`)
+ const before=retainedGraph()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.admin_users WHERE user_id=${literal(actorUserId)}`)).toBe(0)
+ await assertEdielTenantActor({companyId,actorUserId,permission:'customers.write'})
+ const permissions=['customers.write','contracts.read','contracts.write','communication.read','communication.write','communication.send','metering.read','metering.write']
+ for(const permission of permissions){
+  const checked=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:companyId,p_permission:permission})
+  expect(checked.error).toBeNull();expect(checked.data).toBe(true)
+ }
+ const binding=sql<Record<string,unknown>>(`SELECT jsonb_build_object(
+  'contract_offer_id',c.contract_offer_id,'contract_publication_version_id',v.id,
+  'contract_product_id',p.contract_product_id,'contract_product_version_id',v.contract_product_version_id,
+  'price_plan_id',v.price_plan_id,'price_plan_version_id',v.price_plan_version_id,
+  'price_book_id',v.price_book_id,'legal_bundle_version_id',v.legal_bundle_version_id,
+  'offer_reference',v.offer_reference,'commercial_snapshot',p.commercial_snapshot,'legal_snapshot',l.rendered_snapshot)
+  FROM public.customer_contracts c JOIN public.contract_publication_versions v ON v.id=c.contract_publication_version_id
+  JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
+  JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id AND l.company_id=c.company_id
+  WHERE c.id=${literal(base.contractId)} AND c.company_id=${literal(companyId)} AND c.status IN('signed','active')
+  AND v.status='published' AND v.locked_at IS NOT NULL AND v.energy_direction='consumption'
+  AND p.status='approved' AND p.locked_at IS NOT NULL AND p.energy_direction='consumption'
+  AND l.status='published' AND l.locked_at IS NOT NULL AND cardinality(l.unresolved_variables)=0`)
+ expect(binding).toMatchObject({contract_publication_version_id:expect.any(String),contract_product_version_id:expect.any(String),legal_bundle_version_id:expect.any(String)})
+ const external=freshGsrn(),switchId=randomUUID(),customerIdentity='199002011238',customerName='Synthetic Same Company Contrast'
+ const marker={test_center:{kind:'invoice_test_customer'}}
+ const context=createTenantContext({companyId,actorType:'user',actorId:actorUserId,sourceChannel:'admin',permissions})
+ const created=await onboardCustomerGraph({company_id:companyId,actor_user_id:actorUserId,channel:'admin',idempotency_key:randomUUID(),matching_policy:'create_only',update_existing:false,
+  customer:{first_name:'Synthetic',last_name:'Contrast',name:customerName,personal_number:customerIdentity,email:`synthetic-${switchId}@example.invalid`,source:'invoice_test_center',is_test_data:true,metadata:marker},
+  site:{site_name:'Synthetic same company consumption',facility_id:external,grid_owner_id:gridId,grid_area_code:base.gridAreaCode,price_area_code:'SE3',status:'active',is_test_data:true,metadata:marker},
+  metering_point:{meter_point_id:external,metering_point_id:external,ediel_metering_point_id:external,grid_owner_id:gridId,grid_owner_ediel_id:receiver,grid_area_code:base.gridAreaCode,price_area_code:'SE3',status:'active',reading_frequency:'hourly',measurement_type:'consumption',product_direction:'consumption',is_settlement_relevant:true,is_test_data:true,metadata:marker},
+  contract:{...binding,status:'draft',contract_version:'v1',contract_type:'variable_hourly',energy_direction:'consumption',source_type:'manual_override',contract_name:'Synthetic same company consumption',starts_at:requestedStartDate,requested_start_date:requestedStartDate,metadata:marker,created_by:actorUserId}},context)
+ expect(created).toMatchObject({ok:true,code:'customer_onboarding_committed',created_new_customer:true,operation_id:expect.any(String),application_id:expect.any(String),outbox_event_id:expect.any(String),customer_id:expect.any(String),site_id:expect.any(String),metering_point_id:expect.any(String),contract_id:expect.any(String)})
+ if(!created.ok||!created.site_id||!created.metering_point_id||!created.contract_id)throw Error('same_company_canonical_graph_required')
+ const customerId=created.customer_id,siteId=created.site_id,pointId=created.metering_point_id,contractId=created.contract_id
+ expect(customerId).not.toBe(base.customerId);expect(siteId).not.toBe(base.siteId);expect(pointId).not.toBe(base.pointId);expect(contractId).not.toBe(base.contractId);expect(external).not.toBe(base.external)
+ await signInvoiceTestContractCanonically({companyId,customerId,contractId,actorUserId})
+ const organizationNumber=sql<string>(`SELECT to_jsonb(organization_number) FROM public.companies WHERE id=${literal(companyId)}`)
+ const signed=sql<Record<string,unknown>>(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(contractId)}`)
+ const legalVersions=sql<{type:string;title:string;version:string;id:string;body:string}[]>(`SELECT jsonb_agg(jsonb_build_object('type',module_key,'title',title,'version',coalesce(template_version,left(content_sha256,12)),'id',id,'body',rendered_body)) FROM public.legal_bundle_version_documents WHERE legal_bundle_version_id=${literal(signed.legal_bundle_version_id)}`)
+ const attachment=buildAgreementPdfAttachment({companyName:'Synthetic Archive AB',organizationNumber,customerName,customerEmail:`synthetic-${switchId}@example.invalid`,customerNumber:customerId,contractNumber:String(signed.contract_number??contractId),contractName:'Synthetic native hourly',contractType:'variable_hourly',signedAt:String(signed.signed_at),startsAt:requestedStartDate,offerReference:String(signed.offer_reference),contractPublicationVersionId:String(signed.contract_publication_version_id),pricePlanVersionId:String(signed.price_plan_version_id),legalBundleVersionId:String(signed.legal_bundle_version_id),signatureSnapshotSha256:String(signed.signature_snapshot_sha256),legalVersions,monthlyFeeSek:49,spotMarkupOrePerKwh:4})
+ const pdfBuffer=Buffer.from(attachment.content,'base64'),documentSha256=createHash('sha256').update(pdfBuffer).digest('hex')
+ await archiveSignedCustomerContractPdf({companyId,customerContractId:contractId,pdfBuffer,documentSha256,generationSnapshot:{schema:'gridex_signed_contract_document_v1',contract_id:contractId,signature_snapshot_sha256:signed.signature_snapshot_sha256,synthetic:true}})
+ const bound=await supabaseService.from('customer_contracts').update({document_sha256:documentSha256}).eq('id',contractId).eq('company_id',companyId).is('document_sha256',null);expect(bound.error).toBeNull()
+ const registry=normalSwitchNetworkRegistry(companyId);expect(registry).toBeDefined()
+ const currentRegistry=await readNetworkRegistrySourceArtifact({companyId,actorUserId:registry!.reviewerId,artifactId:registry!.artifact.artifactId})
+ expect(currentRegistry).toMatchObject({status:'authorized',missing:[],networkActorId:base.marketActorId,networkEdielId:receiver,sourceHash:registry!.artifact.sourceHash,claimsHash:registry!.artifact.claimsHash})
+ const grounds=sql<string[]>(`SELECT coalesce(jsonb_agg(id),'[]') FROM gridex_brp_changes.registry_grounds
+  WHERE company_id=${literal(companyId)} AND environment='test' AND dso_ediel_id=${literal(receiver)}
+  AND brp_ediel_id=${literal(brpEdielId)} AND grid_area_code=${literal(base.gridAreaCode)}`)
+ expect(grounds).toHaveLength(1);const registryGroundId=grounds[0]
+ const {createBilateralSourceOperator}=await import('./ediel-bilateral-customer-native-fixture')
+ const brpUploader=await createBilateralSourceOperator(companyId,['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write'])
+ const brpReviewer=await createBilateralSourceOperator(companyId,['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review'])
+ const brpSelector={environment:'test' as const,contractId,registryGroundId,identityAgency:'9' as const}
+ const brpScope=await brpUploader.client.rpc('ediel_signed_brp_declaration_scope_v1',{p_company_id:companyId,p_actor_user_id:brpUploader.id,p_selector:{...brpSelector,agreementHash:documentSha256}})
+ expect(brpScope.error,JSON.stringify(brpScope.error)).toBeNull();expect(brpScope.data).toMatchObject({status:'scope_available'})
+ const brpKey=randomUUID(),brpRepresentation=randomUUID(),brpSecret=Buffer.from('SYNTHETIC BRP declaration issuer key '+brpKey),brpLegal='SYNTHETIC BRP DECLARATION ISSUER ONLY',brpRepresentationLegal='SYNTHETIC BRP DECLARATION REPRESENTATION ONLY'
+ sql(`INSERT INTO gridex_brp_declaration_intake.issuer_keys(id,company_id,environment,issuer_code,legal_source_reference,legal_source_sha256,signing_key,valid_from,valid_to) VALUES(${literal(brpKey)},${literal(companyId)},'test','SYNTHETIC',${literal(brpLegal)},${literal(createHash('sha256').update(brpLegal).digest('hex'))},decode(${literal(brpSecret.toString('hex'))},'hex'),'2020-01-01','2099-01-01');
+ INSERT INTO gridex_brp_declaration_intake.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,purpose,legal_source_reference,legal_source_sha256,valid_from,valid_to) VALUES(${literal(brpRepresentation)},${literal(companyId)},'test',${literal(brpKey)},${literal((brpScope.data as {claims:{legalActorId:string}}).claims.legalActorId)},'signed_contract_brp_declaration',${literal(brpRepresentationLegal)},${literal(createHash('sha256').update(brpRepresentationLegal).digest('hex'))},'2020-01-01','2099-01-01')`)
+ const brpSource=Buffer.from('SYNTHETIC signed BRP declaration source '+contractId),brpSourceReference='SYNTHETIC-native-brp-'+contractId
+ const brpClaimsHash=(brpScope.data as {claimsHash:string}).claimsHash,issuedAt=new Date(Date.now()-60000).toISOString(),expiresAt=new Date(Date.now()+86400000).toISOString()
+ const brpPayload=Buffer.from(JSON.stringify({format:'ediel_signed_brp_declaration_receipt_v1',purpose:'signed_contract_brp_declaration',companyId,environment:'test',issuerCode:'SYNTHETIC',receiptId:randomUUID(),issuerLegalReference:brpLegal,representationLegalReference:brpRepresentationLegal,claimsHash:brpClaimsHash,agreementHash:documentSha256,sourceHash:createHash('sha256').update(brpSource).digest('hex'),sourceReference:brpSourceReference,sourceVersion:'1',issuedAt,expiresAt}))
+ const brpArchive=await brpUploader.client.rpc('ediel_archive_signed_brp_declaration_v1',{p_company_id:companyId,p_actor_user_id:brpUploader.id,p_submission:{...brpSelector,agreementBase64:pdfBuffer.toString('base64'),sourceBase64:brpSource.toString('base64'),sourceReference:brpSourceReference,sourceVersion:'1',issuerReceipt:{keyId:brpKey,representationId:brpRepresentation,payloadBase64:brpPayload.toString('base64'),signatureHex:createHmac('sha256',brpSecret).update(brpPayload).digest('hex')}}})
+ expect(brpArchive.error,JSON.stringify(brpArchive.error)).toBeNull();expect(brpArchive.data).toMatchObject({status:'archived',issuerQualified:true})
+ const archivedBrp=brpArchive.data as {artifactId:string;agreementHash:string;sourceHash:string;claimsHash:string}
+ const brpReview=await brpReviewer.client.rpc('ediel_review_signed_brp_declaration_v1',{p_company_id:companyId,p_actor_user_id:brpReviewer.id,p_artifact_id:archivedBrp.artifactId,p_review:{agreementHash:archivedBrp.agreementHash,sourceHash:archivedBrp.sourceHash,claimsHash:archivedBrp.claimsHash,decision:'approve',reason:'SYNTHETIC separate review of the signed BRP declaration',clause:{locator:'page1 synthetic',quote:'SYNTHETIC balance responsible party declaration'}}})
+ expect(brpReview.error,JSON.stringify(brpReview.error)).toBeNull();expect(brpReview.data).toMatchObject({status:'authorized'})
+ // End-user UD masterdata for a dated (future) switch day cannot come from
+ // today's registered address. Bind a declared SYNTHETIC signed masterdata
+ // declaration to this exact signed contract (same agreement bytes, revision
+ // and production contract hash). It is a fixture fact, never real approval.
+ const declarationSource=Buffer.from('SYNTHETIC signed customer masterdata declaration '+contractId)
+ sql(`INSERT INTO gridex_customer_masterdata.signed_declarations(company_id,customer_id,environment,contract_id,contract_revision,contract_hash,agreement_original,agreement_sha256,valid_from,customer_identity,end_user_masterdata,source_reference,source_version,source_original,source_sha256,approved_by,approved_at)
+  SELECT c.company_id,c.customer_id,'test',c.id,c.signed_version,gridex_received_sources.production_contract_hash_v1(c),decode(${literal(pdfBuffer.toString('hex'))},'hex'),${literal(documentSha256)},'2026-01-01T00:00:00Z',
+  jsonb_build_object('id',${literal(customerIdentity)},'qualifier','SE2','agency','260'),
+  jsonb_build_object('nameParts',jsonb_build_array(${literal(customerName)}),'streetParts',jsonb_build_array('Testgatan 1'),'postalCode','123 45','city','Teststad','country','SE'),
+  ${literal('SYNTHETIC-native-masterdata-'+contractId)},'1',decode(${literal(declarationSource.toString('hex'))},'hex'),${literal(createHash('sha256').update(declarationSource).digest('hex'))},${literal(actorUserId)},clock_timestamp()
+  FROM public.customer_contracts c WHERE c.id=${literal(contractId)} AND c.company_id=${literal(companyId)}`)
+ // The new agreement's requested metering method is its own signed source.
+ // Bind a declared SYNTHETIC method declaration to the same contract bytes and
+ // the point/grid/legal header actually seeded above (hourly Z04).
+ const methodSource=Buffer.from('SYNTHETIC signed new-agreement requested method '+contractId)
+ sql(`INSERT INTO gridex_metering_method_changes.contract_request_declarations(company_id,environment,contract_id,contract_revision,protected_contract_hash,customer_id,site_id,metering_point_id,legal_actor_id,legal_sender_id,legal_receiver_id,point_id,identity_agency,grid_area_code,requested_method,agreement_original,agreement_sha256,source_reference,source_version,source_original,source_sha256,approved_by,approved_at)
+  SELECT c.company_id,'test',c.id,c.signed_version,gridex_received_sources.production_contract_hash_v1(c),c.customer_id,coalesce(c.customer_site_id,c.site_id),c.metering_point_id,
+  (gridex_ai_processing.header_company_basis_v1(c.company_id,'test',${literal(sender)},p.grid_owner_ediel_id)->>'legalActorId')::uuid,${literal(sender)},p.grid_owner_ediel_id,
+  coalesce(nullif(p.ediel_metering_point_id,''),nullif(p.meter_point_id,'')),'9',p.grid_area_code,'Z04',decode(${literal(pdfBuffer.toString('hex'))},'hex'),${literal(documentSha256)},
+  ${literal('SYNTHETIC-native-method-'+contractId)},'1',decode(${literal(methodSource.toString('hex'))},'hex'),${literal(createHash('sha256').update(methodSource).digest('hex'))},${literal(actorUserId)},clock_timestamp()
+  FROM public.customer_contracts c JOIN public.metering_points p ON p.id=c.metering_point_id WHERE c.id=${literal(contractId)} AND c.company_id=${literal(companyId)}`)
+ // Explicit test-only manual authorization is created by its existing public
+ // admin writer and exact chain helper. It is a declared synthetic legal fact,
+ // never a private owner receipt or claim of real customer authentication.
+ const poaReference=`POA${switchId.replace(/-/g,'').slice(0,12).toUpperCase()}`
+ const poa=await savePowerOfAttorney(supabaseService,{customer_id:customerId,site_id:siteId,companyId,reference:poaReference,scope:'supplier_switch',status:'draft',signed_at:null,valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:customerName,signer_identity_number:customerIdentity,accepted_at:null,accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
+ const poaLink=await supabaseService.from('powers_of_attorney').update({contract_id:contractId,customer_contract_id:contractId}).eq('id',poa.id).eq('company_id',companyId);expect(poaLink.error).toBeNull()
+ await savePowerOfAttorney(supabaseService,{id:poa.id,customer_id:customerId,site_id:siteId,companyId,reference:poaReference,scope:'supplier_switch',status:'signed',signed_at:new Date().toISOString(),valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:customerName,signer_identity_number:customerIdentity,accepted_at:new Date().toISOString(),accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
+ const poaScopes=['supplier_switch','grid_owner_data','metering_data']
+ const authorization=await ensureAuthorizationDocumentFromPowerOfAttorney({companyId,customerId,powerOfAttorneyId:poa.id,siteId,meteringPointId:pointId,contractId,coverage:powerOfAttorneyCoverageFromScopes(poaScopes),signedScopes:poaScopes})
+ const authorizationDocumentId=authorization.authorizationDocumentId;expect(authorizationDocumentId).toBeTruthy()
+ expect(sql(`SELECT to_jsonb(switch_ready) FROM public.customer_contract_lifecycle_readiness_v WHERE customer_contract_id=${literal(contractId)}`)).toBe(true)
+ // P26.A: the invoicee is an independent caller selection, never inferred.
+ // The synthetic selection names the end user at the same address.
+ const invoiceeAddress={lines:['Testgatan 1','',''],postalCode:'123 45',city:'Teststad',country:'SE',representation:{convention:'original',reference:'SYNTHETIC',mode:1}}
+ const invoiceeSnapshot={portalData:{powerOfAttorneyReference:poaReference,dependentConditionFacts:{invoiceeObjects:[{meteringPointId:external,identityAgency:'9',
+  endUser:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},address:invoiceeAddress},
+  invoicee:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},nameLines:[customerName],address:invoiceeAddress,availability:'available'},
+  event:{state:'none',reference:`fixture-invoicee:${switchId}`},source:{kind:'caller_selection',companyId,reference:`fixture-invoicee:${switchId}`}}]}}}
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked,validation_snapshot) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal('L')},${literal('Z22')},false,${literal(JSON.stringify(invoiceeSnapshot))}::jsonb);`)
+ const stage={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:base.marketActorId,customerIdentity:{id:customerIdentity,qualifier:'SE2' as const,agency:'260' as const},requestedStartDate,brpEdielId,gridAreaCode:base.gridAreaCode,documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
+ const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:switchId,communicationRouteId:routeId,environment:'test'})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.switch_originals WHERE message_id=${literal(queued.id)}`)).toBe(1)
+ provider('recipient@example.invalid');await sendEdielMessageViaSmtp(queued,{actorUserId,smtpMimeMode:'nodemailer-attachment'})
+ const originalZ03=await getEdielMessageById(queued.id);expect(originalZ03).not.toBeNull()
+ const tokenized=tokenizeEdifact(originalZ03!.raw_payload!),li=tokenized.segments.find(t=>t.tag==='RFF'&&segmentComposite(t,1,tokenized.una)[0]==='LI'),caseReference=li?segmentComposite(li,1,tokenized.una)[1]:null;expect(caseReference).toBeTruthy()
+ expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(queued.id)}`)).toBe(true)
+ const result=await acceptConsumptionPrecondition({...stage,caseReference:caseReference!,originalZ03:originalZ03!})
+ expect(retainedGraph()).toEqual(before)
+ expect(result.companyId).toBe(base.companyId);expect(result.periodId).not.toBe(base.periodId)
+ expect(result.consumptionSourceId).not.toBe(base.consumptionSourceId);expect(result.originalZ03.id).not.toBe(base.originalZ03.id);expect(result.caseReference).not.toBe(base.caseReference)
+ return result
 }
 
 async function createProductionContract(f: Awaited<ReturnType<typeof createConsumptionPrecondition>>) {
@@ -225,8 +374,10 @@ async function createProductionContract(f: Awaited<ReturnType<typeof createConsu
   return { productionPointId, productionSiteId, productionContractId, productionExternal }
 }
 
-export async function createProductionReceiptNativeFixture(provider: Provider) {
-  const f = await createConsumptionPrecondition(provider), production = await createProductionContract(f)
+export async function createProductionReceiptNativeFixture(provider: Provider, options: { sameCompanyContrast?: boolean } = {}) {
+  const f = await createConsumptionPrecondition(provider)
+  const sameCompanyContrast = options.sameCompanyContrast ? await createAdditionalSameCompanyConsumption(f, provider) : null
+  const production = await createProductionContract(f)
   const reviewer = randomUUID(), agreement = randomUUID(), keyId = randomUUID(), representationId = randomUUID()
   const key = Buffer.from('SYNTHETIC D verifier boundary; no real legal authority')
   sql(`INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
@@ -242,6 +393,14 @@ export async function createProductionReceiptNativeFixture(provider: Provider) {
   const selector: RegulatedSupplySelector = { environment: 'test', kind: 'production_receipt_obligation', contractId: production.productionContractId,
     meteringPointId: production.productionPointId, identityAgency: '9', bilateralAgreementId: agreement,
     startAt: `${new Date(Date.parse(`${f.requestedStartDate}T00:00:00Z`) - 3600000).toISOString()}`, consumptionSupplyPeriodId: f.periodId }
+  if (sameCompanyContrast) {
+    for (const consumption of [f, sameCompanyContrast]) {
+      const basis = sql(`SELECT gridex_received_sources.supply_period_source_basis_v1(${literal(f.companyId)},${literal(consumption.periodId)},${literal(selector.startAt)}::timestamptz,${literal(selector.startAt)}::timestamptz+interval '1 minute')`)
+      expect(basis).toMatchObject({ qualified: true, companyId: f.companyId, periodId: consumption.periodId,
+        customerId: consumption.customerId, meteringPointId: consumption.pointId, switchId: consumption.switchId,
+        sourceMessageId: consumption.consumptionSourceId, originalMessageId: consumption.originalZ03.id, originalAcceptedAt: expect.any(String) })
+    }
+  }
   const owner = { companyId: f.companyId, actorUserId: f.actorUserId }, scoped = await readRegulatedSupplyGroundScope({ ...owner, ...selector })
   expect(scoped.status, JSON.stringify(scoped)).toBe('scoped')
   expect(scoped.scope).toMatchObject({ contractId: production.productionContractId, point: production.productionExternal, consumptionPoint: f.external,
@@ -269,7 +428,7 @@ export async function createProductionReceiptNativeFixture(provider: Provider) {
     VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic D ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
     VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic D ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted',${literal(smtp.from)},${literal(smtp.host)},${smtp.port},'recipient@example.invalid','recipient@example.invalid');`)
-  return { ...f, ...production, selector, scoped, authorized, reviewer, ackRoute, ackProfile }
+  return { ...f, ...production, selector, scoped, authorized, reviewer, ackRoute, ackProfile, sameCompanyContrast }
 }
 
 export function productionReceiptWire(f: Awaited<ReturnType<typeof createProductionReceiptNativeFixture>>, reference: string,
