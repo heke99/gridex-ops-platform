@@ -1,3 +1,9 @@
+## Actual full H reservation release confirmed — 2026-10-07
+
+After durablec56ae2a9/#5306029953943, all FIVE remaining e3cea refs independently ownerGETMATCH, DELETEexit0, GET404; /tmp/gridex-c3ae-h-full-release-receipt.json. Together with prior producer2 actualrelease6028728205, all seven original root resources are released; zero root H/merge/memory locks. Common be209 producer2 claims are foreign valid ownership and were untouched. PR650 body now records actual10046/54 RED, exactsource8cf/draft/strict blockers and explicitremainingrelease. Source still8cf CLEAN/allproof preserved; no whole coverage/merge credit. Root next refresh actualmain/orderedmemory/530/coverage/legacy/openPR/live refs, compare own original635 sourcea360 to actualdeliveredmain1ac, select ONLY remaining own L/LK pair ifexactscopefree andfreshclaim/documentbeforecode. No silenttakeover/newworkbeforeconfirmedrelease.
+
+---
+
 ## Authentic H100 RED; explicit remaining-scope BLOCKED/RELEASE — 2026-10-07
 
 Sole H packet35000282/session codex-20261006T134154Z-c3ae376b9893. Published PR650 remains OPEN/DRAFT, exact source8cf0289e0f35991f26b2b70d5343044f7ec30f65/tree076187e04aaa21367b620fdc2e15c89634335492/native SHAa6908ebc51b1bd03446cc059a7d2ea4e44453539efd8d23f22e282810dd5df6b. Source unchanged/CLEAN. Actual main1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a/tree45ea1533702665b11b8f1a7eafeef96162d14227 now stores115/121 rules+180/231 contracts=295/352; both H rows remain unapproved. Old293/missing213222/E-auth waiting statements above are SUPERSEDED by actual629/651 delivery. Exact213222/4ed3 SQL, genuine1094 GEN and normal L/LK birth are delivered; no duplicate carrier/SQL needed.
