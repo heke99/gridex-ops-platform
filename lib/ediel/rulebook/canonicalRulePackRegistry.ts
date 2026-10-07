@@ -211,7 +211,7 @@ function requiredProfileText(profile: Record<string, unknown>, key: string): str
   return value.trim()
 }
 
-function assertPolicyDirection(policy: CanonicalEdielPolicy, direction: EdielDirection): void {
+export function assertPolicyDirection(policy: CanonicalEdielPolicy, direction: EdielDirection): void {
   const canonicalDirection = policy.semantics.direction
   if (canonicalDirection !== 'both' && canonicalDirection !== direction) {
     throw new Error(`canonical_source_direction_not_allowed:${policy.code}:${direction}:${canonicalDirection}`)

@@ -1,0 +1,323 @@
+{
+  "scope": "Whole internal code-contract proof at the executed source below. Current PR-head mandatory checks and final composition review remain required; external market activation and resulting-main execution are separate.",
+  "agent": "codex-20261006-95bc00df11da",
+  "packet": "91549426-9018-443a-9657-6a154d1e2145",
+  "ids": [
+    "AT-Z04A-SUPPLIER",
+    "AT-Z04D-SUPPLIER"
+  ],
+  "original_pr": 630,
+  "executed_source": "0353a544851550542bef2d4c3032233f16f8644d",
+  "executed_tree": "c6d91d93167e7cdabeabcdfe2cbd7dc32caff2ea",
+  "frozen_acceptance_register_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+  "native_execution": {
+    "head": "0353a544851550542bef2d4c3032233f16f8644d",
+    "tree": "c6d91d93167e7cdabeabcdfe2cbd7dc32caff2ea",
+    "run": 37596728404,
+    "job": 112711078144,
+    "artifact": 11471521423,
+    "zipSHA256": "165205abe16c0cdffe37b022c7747817e62e980e9302e3ab0ac18ff8977dcbf9",
+    "zipCRCQualified": true,
+    "allSourceBlobsQualified": true,
+    "inputCount": 9362,
+    "requiredInputCount": 64,
+    "exactNativeCaseIdentitiesQualified": true,
+    "nativeExit": 0,
+    "tests": 34,
+    "passed": 34,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "failures": [],
+    "ordinaryGatesQualified": false,
+    "wholeATApproved": false,
+    "externalVerified": false,
+    "preserved_archive": "native-0353a544.zip",
+    "archive_bytes": 787007,
+    "qualification_scope": "Artifact qualifier reports wholeATApproved=false because it authenticates execution only. The separately attributed independent whole-code reviews above approve both literal contracts at executed0353; final PR-head composition/native/CI are still required."
+  },
+  "literal_criteria": {
+    "AT-Z04A-SUPPLIER": [
+      {
+        "clause": "SUPPLIER and documented assignment in right grid area",
+        "proof": "Actual signed own contract/PDF, current legal supplier/DSO identities, own point/customer/grid, enabled dated PRODAT:Z04:A bilateral agreement, authenticated synthetic issuer representation/source archive and separate current review are checked by public scope/current ground and immutable native mint.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:34-57,98-128",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:58-102,142-151,192-199",
+          "supabase/migrations/20261001013034_ediel_bilateral_prodat_archived_profile_review.sql:209-231"
+        ]
+      },
+      {
+        "clause": "requires no own Z03",
+        "proof": "Explicit actual normal-stage deferOriginal:true and no originalZ03 property, company Z03count0 before ground/birth/effects/retry; actual public unmatched adapter then full assigned effects/ACK/custody/graphs/provider/retry. Retained legacy unsent Z03 case proves no usable sent original separately.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:34-57,210-246,280-311"
+        ]
+      },
+      {
+        "clause": "grid-owner assignment while actor authorized assigned supplier",
+        "proof": "Original FR/DO, inbound immutable reception/transport/legal context, current native actor/dated supplier and reviewed ground permissions are actual public owners. No arbitrary global actor role/context booleans grant authority.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:60-128,210-233,425-438,459-475",
+          "lib/ediel/flows/inboundProcessing.ts:915-985",
+          "lib/ediel/prodat/receivedZ04RequiredStartRejection.ts:50-106"
+        ]
+      },
+      {
+        "clause": "23-DDQ-PRODAT / BGM Z04 / field223 Z26",
+        "proof": "Independent A wire gives unsuffixed physical Z04 and own CCI Z13/CAV Z26, actual adapter binds PRODAT:Z04:A:26.A:r3; sole source-controlled subtype mapping and unchanged TEN05/ENV06 owners enforce exact role/transaction semantics.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:60-95,210-233",
+          "lib/ediel/rulebook/prodatSubtypeRegistry.ts:51-60",
+          "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+        ]
+      },
+      {
+        "clause": "CONTRL and applicable APERAK",
+        "proof": "Retained healthy exact APERAK100 with ownLI/Z07, CONTRL routed company/profile, queued outbox exact ACK-ID set/SHAUTF8, decoded UCI original reference/parties/action1 plus optionalUCM; required-field negatives retain national41/42 own errors and no effects. R210 source now provides only protected negative facet via real ledger/capture/normal ACK gateway.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:174-209,280-311,340-375",
+          "lib/ediel/core/runtimeDecision.ts:741-766",
+          "lib/ediel/core/receivedProdatResponseValidation.ts:18-61",
+          "lib/ediel/flows/inboundProcessing.ts:356-380,1028-1035"
+        ]
+      },
+      {
+        "clause": "assigned process and correct start",
+        "proof": "Native positive period belongs exact company/customer/point/process assigned_supply/ground/start/status, count1 and one effect/partition/transition with zero normal confirmation; customer/contract/point/switch graphs stable. Prospective one-minute wrong start holds real current archived ground at correct minute but source at wrong minute has NULLcapability/policy and no effects/rule receipt; exact earlier public historical-basis refusal and real retry retained. No ground start substituted for missing210.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:280-311,383-423",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:242-257,334-348"
+        ]
+      },
+      {
+        "clause": "wrong role/direction shall not execute",
+        "proof": "Actual supplier role loss before birth, revoked current separate reviewer, and real public outbound owner exact source-direction refusal before draft/outbox/effects/provider. Shared actual actor stop before subtype dispatch is preserved; current A210 loader additionally requires genuine actor communication.read and rethrows trusted security failures.",
+        "source_anchors": [
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:425-475",
+          "lib/ediel/prodat/receivedZ04RequiredStartRejection.ts:50-104",
+          "lib/ediel/flows/inboundProcessing.ts:93-115,915-985"
+        ]
+      },
+      {
+        "clause": "missing applicable R/D shall not execute",
+        "proof": "Full selected shared base/specialized field owners and owned physical259 source qualify applicable states before own APP/function/domain effect. Actual A213/physicalIV250/TRUE214/218 negatives were passing505; currentR210 repairs only lost physical required210 diagnosis/negative response ownership, never accepts a missing event time.",
+        "source_anchors": [
+          "lib/ediel/core/runtimeDecision.ts:165-225,525-544,720-767",
+          "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:60-230",
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:340-375"
+        ]
+      },
+      {
+        "clause": "incorrect correlation/mutation shall not execute",
+        "proof": "Exact immutable source bytes/hash/company/env/clocks/born-context and whole physical point/agency/index/LI scope; native ground matches customer identity/grid/point/process; one-minute wrong start, real public raw/direction/clock mutation refusal with full row equality, exact ACK-to-source/queued-output hashes, graphs/provider invariants. Real final partition CHECK rolls back period/effect/partition/transition and prevents positive ownAPERAK.",
+        "source_anchors": [
+          "lib/ediel/core/prodatBilateralSourceCapability.ts:17-53",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:192-199,213-257",
+          "scripts/ediel-at-z04a-assigned-supply-native.test.ts:315-339,383-423,477-496"
+        ]
+      }
+    ],
+    "AT-Z04D-SUPPLIER": [
+      {
+        "clause": "given SUPPLIER",
+        "proof": "Real company supplier identity/dated role/native scope selectors and actual source legal context. TEN05 common role from process/application reference; genuine D dated supplier role loss before birth holds original without effect, plus actor permission/reviewer loss controls.",
+        "source_anchors": [
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts:27-58",
+          "scripts/ediel-at-z04d-production-native.test.ts:297-398",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:74-95,231-264"
+        ]
+      },
+      {
+        "clause": "given not only microproduction",
+        "proof": "Public published signed production contract versions require general production terms and buy injected electricity, archived PDF/source and separate review. No capacity or micro-eligibility restriction exists in the selected production ground/consumer path; production product L641Q is solar/quarter-hour/daily settlement, not a capacity threshold. Literal does not require manufacturing a capacity-certified producer to prove absence of a capacity guard.",
+        "source_anchors": [
+          "scripts/helpers/ediel-z04d-production-native-fixture.ts:262-375,443-461",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:85-90,258-264"
+        ]
+      },
+      {
+        "clause": "given no general Z03 guard or consumption activation",
+        "proof": "Production-point own Z03 count0 before/after positive effect and actual retry; real consumption Z03/L belongs to existing required consumption precondition. Distinct production period ID, production_receipt_obligation process, no normal confirmations, full original consumption/customer/contract/switch/point and production contract/point graphs preserved. Do not require company-wide zeroZ03 because real consumption precondition correctly has one.",
+        "source_anchors": [
+          "scripts/ediel-at-z04d-production-native.test.ts:142-178,520-591"
+        ]
+      },
+      {
+        "clause": "when production receipt obligation in applicable production flow",
+        "proof": "Actual signed production contract/PDF, public current scope/archive/separate source review, current legal actor/DSO/bilateral/grid/own production-point binding; actual mailbox parse/adapter birth, canonical decision, real public processor and transactional supply ports commit only the matching reviewed current ground.",
+        "source_anchors": [
+          "scripts/helpers/ediel-z04d-production-native-fixture.ts:379-431",
+          "scripts/ediel-at-z04d-production-native.test.ts:53-80,142-178",
+          "supabase/migrations/20261001013034_ediel_bilateral_prodat_archived_profile_review.sql:209-231"
+        ]
+      },
+      {
+        "clause": "expected 23-DDQ-PRODAT / BGM Z04 / field223 Z70",
+        "proof": "Actual independent physical wire carries DDQ, unsuffixed BGM Z04 and object CCI Z13/CAV Z70; actual birth binds PRODAT:Z04:D:26.A:r3, policy/classification and completed D effects. Unchanged ENV06 transaction owner and TEN05 tests reject invalid process/function combinations.",
+        "source_anchors": [
+          "scripts/helpers/ediel-z04d-production-native-fixture.ts:434-467",
+          "lib/ediel/rulebook/prodatSubtypeRegistry.ts:51-60",
+          "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:142-151",
+          "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+          "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+        ]
+      },
+      {
+        "clause": "expected CONTRL and applicable APERAK",
+        "proof": "Healthy D exact positive APERAK100/ownLI/Z07 and CONTRL, route/profile/company/source-bound queued outbox with exact stored ACK IDs and SHA256UTF8; decoded CONTRL UCI matches original reference/full parties/action1, UCM correlation checked if present. Required-field negative witnesses produce exact scoped typed41/42 own APERAK plus CONTRL. Unknown original259 and wrong319 applicability hold ownAPP/noAPERAK, rather than inventing a positive business receipt; foreign execution actor refuses before all ACK/outbox writers.",
+        "source_anchors": [
+          "scripts/ediel-at-z04d-production-native.test.ts:100-139,142-219,346-398,448-496,520-591"
+        ]
+      },
+      {
+        "clause": "expected separate production/receipt relation linked via319",
+        "proof": "One distinct production relation with exact company/customer/production point/process/start/current ground and own actual consumption external; one effect/partition/transition and zero normal confirmations. Same-company other healthy customer319 contrast now completes full negative/current ground/both graphs/four full consumption source rows/no supply effect/public refusal/retry followed by fresh own319 successful control.",
+        "source_anchors": [
+          "scripts/ediel-at-z04d-production-native.test.ts:142-178,222-295,520-591",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:192-199,242-265"
+        ]
+      },
+      {
+        "clause": "prohibited wrong role/direction",
+        "proof": "D actual supplier-role loss, revoked separate reviewer, real public outbound owner exact source-direction refusal before draft/outbox/provider effects, and trusted actual foreign actor42501 before status/tenant/domain/output writers; full source/graphs/public apply/provider and actual second foreign refusal pass.",
+        "source_anchors": [
+          "scripts/ediel-at-z04d-production-native.test.ts:297-445",
+          "lib/ediel/flows/inboundProcessing.ts:93-115,915-985"
+        ]
+      },
+      {
+        "clause": "prohibited missing applicable required/dependent fields",
+        "proof": "D invokes all-scope canonical shared field/specialized owners before accepted ownAPP/effect authority. Exact native319, required217 with retained genuine capability, physical259TRUE-driven214/218 negatives prove actual D field diagnostic/effect/ACK/retry integration; actual own259 absence preserves UNKNOWN/null/local warning/held durableAPP/no-effects/onlyCONTRL/retry. Missing319 shows national D policy can still project typed missing own field when capabilityNULL; D subtype is national and not A bilateral-only policy. Current shared field/date/register/party/invoicee owners and retained actual N/Z15 common header omissions support unchanged owner reuse.",
+        "source_anchors": [
+          "lib/ediel/core/runtimeDecision.ts:165-225,715-727",
+          "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:60-230",
+          "lib/ediel/rulebook/prodatSubtypeRegistry.ts:55-60",
+          "scripts/ediel-at-z04d-production-native.test.ts:183-219,448-496"
+        ]
+      },
+      {
+        "clause": "prohibited incorrect correlation or mutation",
+        "proof": "Complete opaque own physical/source metadata/hash/PG-clock/birth-context qualification; actual common native point/customer/grid/identity/ground predicates; real foreign-company319 plus isolated same-company319; raw/direction/clock attempted rewrites rejected with full source row/graphs unchanged, full SQL foreignactor source equality preserved; all cases custody/output/provider/retry reached. Real final partition fault rolls back production/effects/partition/transition before positive business ACK and preserves consumption on retry.",
+        "source_anchors": [
+          "lib/ediel/core/prodatBilateralSourceCapability.ts:17-53",
+          "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:192-199,213-265",
+          "scripts/ediel-at-z04d-production-native.test.ts:222-295,346-398,422-445,499-518,520-591"
+        ]
+      }
+    ]
+  },
+  "effects": {
+    "A": "Documented scoped archived independently reviewed designated-supply agreement; samecompany/customer/point/DSO/grid/current supplier and exactstart. Real unmatchedadapter zeroownZ03 positive commits exactlyone assigned_supply period/effect/partition/transition, zero normalconfirmations, exactstart/ground/status and queued routedACKs. Raw/direction/clock refusal and minute/role/reviewer guards preserve noeffects; finalpartition fault rollsback beforepositive ownACK. Genuine customer/contract/point/switch and sourcecustody/provider/retry guards complete.",
+    "D": "General production-receipt obligation has no capacity/micro-only predicate; productioncontract and productionpoint remain separate from realaccepted own consumption precondition. ProductionpointZ03count0, no generic Z03guard or consumption activation. Actual positive creates one distinct production_receipt_obligation relation linked to samecustomer ownconsumptionPoint319, exactstart/ground/effect/partition/transition and routedACKs. Wrong319 crosscompany and isolated samecompanydifferentcustomer hold actualownAPP/noeffect before anylaterpartition; correct319healthy control then completes. Role/reviewer/direction/currentactor/mutation/UNKNOWN259/finalrollback/retry guards complete.",
+    "sharedSecurity": "Actual source-retaining currentactor technical endpoint/publicactor gate runs before subtype dispatch. Current D typedtrusted42501/fullbirth/pre-postSQL/noeffects/noACKoutbox/bothgraphs/directpublicrefusal/actualretry establishes this shared seam; no redundant newA foreignactor case required without an A-specific bypass. ActualA210 adds protected communication.read before even diagnostics and retains alltyped oldactor refusal source. No arbitrary Error labels/copy/publicJSON authority.",
+    "sharedFieldPolicy": "Real WithRegistry invokes all-scope base and specialized sourceconditioned field/transaction/register/party/date/IV owners. Accepted ownAPP/function and full exactphysical partition are required before domaincount and nativeeffect. SQL independently checks current actor/original/legal/currentground and owncomplete application/function. Numericfields emitted from typed descriptors/source components, never regex over DTM/RFF text.",
+    "R210Rejection": "Actual authenticated opaque missingA210 owner qualifies only realimmutableborn/currentactor/legal/namedwitness/freshstructure and exact210/ERC41 negativeplan; policyNULL/apprejected/functionnotapplicable/noAPP-FUNCTION-fullobject/noSourceOwnerSession/no businessstart. Realv6COMMIT→separate sourcecapture→normalnativeACK/outbox/replay source-bound prerequisites reached under unchanged strictA210 body.",
+    "ACK": "Applicable positive and nationalnegative outputs retain properownscopes/correlation/route/company/source and exactqueue/hash binding. UNKNOWN/unavailableownAPP yields CONTRL-only/noAPERAK; foreignactor yields nooutputs. DecodedUCI sameUNBreference/parties/action1 and optionalUCM originalUNH reference/type are actual assertions; optionalUCM presence is not invented."
+  },
+  "shared_required_dependent_fields": {
+    "source_rows": 48,
+    "scope": "Shared applicable header/party/date/quantity/register/IV/group owners with P01/TEN05/ENV06 behavior and actual A/D dispatch; no claim of 48 distinct native omission cases or unproduced FALSE/inventory facts."
+  },
+  "shared_behaviour_verification": {
+    "source": "2e5b9d4cc3dbd771fcb92b7b883f1f4f807e2986",
+    "source_equivalence": "All executed-source posts except own checkpoint unchanged",
+    "tests": 13682,
+    "files": 918,
+    "true_exit": 0,
+    "selected_owner_suites": [
+      {
+        "file": "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "passed": 868,
+        "sha256": "a3035639605dbdbeeb43972ae67edc291df99c2e5d7326fd9127cce623208fc8"
+      },
+      {
+        "file": "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+        "passed": 11,
+        "sha256": "90022776c966421f21fc7df95c1ff4f7fea44af9aa23844a32dd5b235b479fb2"
+      },
+      {
+        "file": "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "passed": 30,
+        "sha256": "faaf4c1597a6259c04130437aa5ddeecf599daa585a26db8b92b97bc24f50d93"
+      },
+      {
+        "file": "__tests__/ediel-prodat-register-conditions.test.ts",
+        "passed": 52,
+        "sha256": "6c15b2e263a5776e897f718d365c1632dadbc154a578b0e86836fbc4758797ba"
+      },
+      {
+        "file": "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "passed": 143,
+        "sha256": "c52b954f13b8287e29ca03dce3ed76a877cea928c604400ebc836c5067a192a5"
+      },
+      {
+        "file": "__tests__/ediel-prodat-invoicee.test.ts",
+        "passed": 117,
+        "sha256": "a605278f25af348fba9b91317a1312d5f4ce4533d62b386a9fd1051b410f16d2"
+      },
+      {
+        "file": "__tests__/ediel-prodat-source-register-reading-declarations.test.ts",
+        "passed": 19,
+        "sha256": "91cd9d540da3cd02c81fef543146708b654ddd45e38664ccbdd6871516c5b19d"
+      },
+      {
+        "file": "__tests__/ediel-prodat-bilateral-source-capability.test.ts",
+        "passed": 51,
+        "sha256": "d31b6220e2aee219be8f6d72c296972383886791e475149b2d6f2c8e9c01f97f"
+      },
+      {
+        "file": "__tests__/ediel-z04-required-start-rejection.test.ts",
+        "passed": 46,
+        "sha256": "af509f29be9bd447b39666bd683319e755c4efae6f1ebad3dc1d0ee6821ada3d"
+      }
+    ]
+  },
+  "field210_precision": {
+    "directDecision210": true,
+    "directRawACKERC41Or42AndOwnCorrelation": true,
+    "directDecodedACKFTX210NativeAssertion": false,
+    "sourceGuardQualification": "Owner requires exactactual physical210 diagnostic+ERC41 error; actual response projection renders then parses FTX fieldCode/text and binds facet to source physicalpartition. SQL prodat_wire_responses_v1 schema9300 extracts FTX fieldCode/text; validate_response_for_message_v1 schema9949 compares entire physical ownresponse against exact committed facet, including fieldCode210/text/id/li/ERC/scope; protected normalprepare/persistence still require this gateway. That source-bound chain supports field210 fidelity of exercised negativeACK, but nativebody does not independently decode stored rawFTX210, so do not label that a direct rawFTX assertion.",
+    "remainingProofLimit": "A separately decoded storedACKFTX field210 assertion would be an additive observation if explicitly desired for future stronger isolated output evidence. No confirmed weakening/source bug or whole blocker established merely by absence, given preserved realSQL facet/physical equality. No code or assertion edits made."
+  },
+  "limits": [
+    "Stored rawAPERAK FTX210 is not independently decoded in nativebody. Exactnumeric210 diagnostic and ERC41/42/LI/Z07 rawACK are directlyasserted; sourcebound actualrenderedfacet/nativeSQL compares fullphysicalfieldCode/text/id/li/ERCscope against committedfacet. This supports exactR210 provenance without advertising a nonexistent directFTX assertion; no literalclause requires another decoder invocation.",
+    "A source custody afterprocessing is immutable SQLprojection, not fullmutablepublicrow equality; ownbusinessgraphs preserve switch/contract/customer/point. Dforeignactor source and allfour consumptionoriginalrows have fullSQL equality. Bothtenantgraph credit belongsactualDcases, not everyAcase.",
+    "Successful physical259 declaresfutureUTILTS readingsTRUE only. Absent259 isNULLUNKNOWN. No authentic receiverFALSE/complete independentmeterinventory/knownabsentaddress capabilityclaimed. Literal applicability is evaluated from legitimate incoming scopes, not inventedroot flags.",
+    "Syntheticissuer/legal/signature/PDF/manualPOA/L/provider prerequisites prove internalmechanisms via realpubliccommands/schema, not external entitlement or market delivery. Microproduction absence is sourced no capacityrestriction, not a fabricatedcapacity-qualifiedtest.",
+    "Current0353 source inventory all9362 matched is inputidentity, not universal executedcoverage. Native34 alone doesnot coverallgrammar/role/race/futureoptional/business contexts; sharedowner behavior covers unchangedselected mechanisms."
+  ],
+  "historical_failures": "Earlier50533/1,73331/3,9d31/2 and older original630 feedback remain exacthistorical evidence; completed0353 bodies close only currentexercised defects. No relabeling/waived assertion/borrowedfuture source result.",
+  "independent_whole_reviews": [
+    {
+      "reviewer": "ad_native_facit",
+      "head": "0353a544851550542bef2d4c3032233f16f8644d",
+      "reportSHA256": "1bbeaacdfba5f72b680dc0a960b015fe12ed3130a9e59251568c38dabc0eec42",
+      "reviewId": 5440298977,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/656#pullrequestreview-5440298977",
+      "state": "COMMENTED",
+      "verdict": "WHOLE_CODE_CONTRACT_APPROVE"
+    },
+    {
+      "reviewer": "ad_native_boundary",
+      "head": "0353a544851550542bef2d4c3032233f16f8644d",
+      "reportSHA256": "742dbbc54a1053e3c6c706f31bf60035941c8c1de18585ceff87e9bf0c518364",
+      "reviewId": 5440299260,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/656#pullrequestreview-5440299260",
+      "state": "COMMENTED",
+      "verdict": "WHOLE_CODE_CONTRACT_APPROVE"
+    }
+  ],
+  "current_head_delivery": "Fresh composed-head native34, final two independent reviews and all applicable mandatory CI still required; no earlier execution transferred to future main.",
+  "composed_main_regression": {
+    "main": "fc3a8c1ec7af485325e2cd2c8e1dd03ae1c47d40",
+    "source": "209f549468408d4e254e236470444653f5187856",
+    "tree": "8b7e93f1c58a07e188bf688e69e2d553e836a389",
+    "foreign_incoming_postimages_preserved": 9,
+    "full_tests": 13754,
+    "true_exit": 0,
+    "json_sha256": "86a7baa043486744d167c85191498d6d04ece0ba65ab5a3c345a8caac791b870",
+    "scope": "Actual ordinary source at main661 composition. Packaging changes only comments/tags/own2 coverage/proof; final published native and mandatory checks remain required."
+  }
+}
