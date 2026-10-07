@@ -1,3 +1,15 @@
+## Three-path consumer source committed; root checks in progress — 2026-10-07
+
+Same L/LK pair and 23 reservations. The isolated preview normally adopted current main's six new metadata postimages, preserving each mode/OID and file byte, then committed exactly the three approved consumer/test-fixture paths. All 9400 other tracked paths match its parent. The published primary source remains frozen. Exact commits, reviewed plan, source hashes and full author/self-review receipts are retained privately.
+
+Author and root actual targeted runs both pass all 165 tests; scoped lint passes. Every original 68-case identity and 160 assertion lines remains in order. The nine unselected application cases and entire 57-case batch tail are preserved; the shared helper's inverse restores all original bytes. The opt-in ports feed the real issuer/source adapter and preserve original permissions/defaults and ledger-before-capture; no runtime/private authority/foreign fixture/native/policy/coverage changes.
+
+Root additional compatibility scope has 300 tests across 14 shared-fixture consumers. Unchanged baseline: 270 passed/30 failed, exit 1. Installed change: 299 passed/1 failed, exit 1. The same SC012 positive dual-role test remains failed; no compatibility-green or closure is inferred. Three nonincremental typechecks and two complete installed-source reviews are in progress.
+
+Next root: finish types and both reviews, preserve/document the actual SC012 blocker with its owner, then separately decide any source-only publication after confirmed documentation/fresh custody/version checks. Native remains authenticated 32 passed/2 failed; whole effects/history/replay/intended negative causes/current mandatory checks remain required. No merge, coverage or new pair.
+
+---
+
 ## Current native independently authenticated; consumer baseline executed — 2026-10-07
 
 Same L/LK pair, PR #635 and 23 reservations; primary published source stays clean and frozen. Root and independent reviewer ran the same unchanged reviewed reader on the same original with independently refreshed official API. Both authentication processes exit 0 and the complete reports are byte-for-byte identical. Actual native: 34 tests, 32 passed, 2 failed, no errors/skips, native exit 1. Later positive business effects/history/replay remain unreached. The negative no-effect checks retain UNKNOWN causes; their intended specific denial is not proved. No whole, coverage, CI-green or merge credit. Exact committed source, archive/API/report/review bindings remain private.
