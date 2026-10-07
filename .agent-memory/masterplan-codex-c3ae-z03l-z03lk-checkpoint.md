@@ -1,3 +1,11 @@
+## Actual169 source checks: current1631 GREEN / scriptsTSC FAILED2 — 2026-10-07
+
+Samec3ae/5b7d/17refs/soleLpair/main0ec300/PR635fbunchanged. LOCAL169 consumer77GREEN retained. Current24file preservation actual1631PASS0FAIL0SKIP/trueEXIT0/65.126558889s/cleanprepost169, log758a40f2699f42a67a842ccae12b3f6945ee50f45e7c10025716628ecce4e4b3; notfull/CI/nativeapproval. Scoped3pathlint0/6.040s/oneunitunused_columns warning. SupportedNode22 scriptsNONincrementalTSC actualEXIT2/89.472362783s/b136ea2e675c8ddbacfa3817c43e058b0fdc003c029065cb7d0df6166c79954a: fieldRules UtiltsFieldRule|RulebookFieldRule notnarrowed beforefieldNumber/allowedValues, actualvalidatedidentityAgency typedstring vs9|89. Tests/app notrunafterfirstfailure; noalltypesgreenclaim.
+
+Next ROOT minimalownmodule typedRulebookFieldRule predicate (in operator/actualfieldNumber259) + explicitsame9/89 sourceguard before output; noany/oracle/domain/fixturechange. Replay actual77 then nonincremental3types/lint; current1631behavior alreadyverified169, broadenonlyaffectednewtypechange. Twoindependent reviewers informed; old169analysis preserved but FINALAPPmustbindsuccessor. PublishedCPb33/5306038797188 prioractualGREEN retained. Rootsourcepublish+2fporthandoff waitsfinalchecks/reviews, actualwhole/runtime/native/history/negativeeffects stillunproved; owncoverageNOT_EXECUTED/no role/newpair/external.
+
+---
+
 ## ACTUAL own declaration implemented / 77 GREEN / final review pending — 2026-10-07
 
 Same c3ae5b7d L/LKsolepair/17resources/main0ec300/352/ownNOT_EXECUTED, public635fb332/authentic32P2F unchanged. BEFORE_CONSUMER CPbf8968bc and5306038726730 BOTHexactremoteMATCH before installation. Only ownmodule a82cabf09f8fcf60be496f6b557b4e44b4b4f265c1be0e0c0ed21ae2878feb3f installed LOCAL169e915073f79db3b024a428c90da751abd080b1/tree4ed8ac92933780f363621d4d189872c333355031/CLEAN; fullbranch delta fromdaa onlyroot3 paths (495add/4delete), root/Hhelper/CORE/sourceCP/coverage unchanged.
