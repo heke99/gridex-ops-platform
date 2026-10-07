@@ -638,7 +638,7 @@ it.each(['nodemailer-attachment','ediel-multipart-validation-base64','ediel-sing
  }finally{vi.unstubAllEnvs()}
 })
 async function nativeTechnicalAck(){
- const f=await outboundSeed(),sourceId=randomUUID(),route=randomUUID(),profile=randomUUID()
+ const f=await outboundSeed(),sourceId=randomUUID()
  smtpFixture()
  const {utiltsNativeSourceFixture}=await import('../__tests__/helpers/utiltsNativeSourceFixture')
  const incoming=closureFixture({reason:'Z24',document:`D${sourceId.replaceAll('-','').slice(0,13)}`}).wire
@@ -652,13 +652,6 @@ async function nativeTechnicalAck(){
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key IN('communication.write','communication.read') ON CONFLICT DO NOTHING;
- INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
-  VALUES(${literal(route)},${literal(f.companyId)},'Native technical response route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
- INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,
-  sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
-  VALUES(${literal(profile)},${literal(f.companyId)},${literal(route)},'Native technical response profile','test','edifact','edifact',
-   ${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid','CONTRL','CONTRL',
-   ${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});
  -- Pin the enabled C registry profile like seed(): code/date inference sees
  -- L, LK, C and H as Z05 candidates and cannot choose from parsed facts.
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,
@@ -678,10 +671,46 @@ async function nativeTechnicalAck(){
   sourceHash:createHash('sha256').update(wire).digest('hex'),syntaxDecision:'accepted',reasonCodes:[],execution:{actorUserId:f.actorUserId,phase:'prepare'}})
  const evidence=await captureEdielTechnicalSyntaxAckEvidence(f.companyId,sourceId,{actorUserId:f.actorUserId,phase:'prepare'})
  expect(evidence.sourceHash).toBe(createHash('sha256').update(wire).digest('hex'))
+ // The genuine H prerequisite already configured the reply route. Adding a
+ // second matching CONTRL profile would violate the production exact-one guard.
+ const {readTechnicalSyntaxAckRoute}=await import('@/lib/ediel/ack/technicalSyntaxRoute')
+ let route:Awaited<ReturnType<typeof readTechnicalSyntaxAckRoute>>
+ try{route=await readTechnicalSyntaxAckRoute({evidence,actorUserId:f.actorUserId})}
+ catch(error){
+  try{
+   const cause=error instanceof Error?error.cause:null
+   const details=cause&&typeof cause==='object'?cause as {code?:unknown;message?:unknown}:null
+   const message=typeof details?.message==='string'?details.message:''
+   const count=/^ediel_technical_ack_route_count:([0-9]{1,6})$/.exec(message)
+   const guards=['ediel_original_mailbox_source_required','ediel_original_mailbox_smtp_custody_required','ediel_tenant_actor_forbidden']
+   console.error('H_SHARED_NATIVE_ROUTE_FAILURE',JSON.stringify({stage:'existing_configured_route_control',
+    sqlstate:typeof details?.code==='string'&&/^[0-9A-Z]{5}$/.test(details.code)?details.code:null,
+    guard:count?'ediel_technical_ack_route_count':guards.includes(message)?message:null,
+    count:count?Number(count[1]):null}))
+  }catch{/* Failure feedback must never replace the actual protected-reader error. */}
+  throw error
+ }
+ const {EdifactEnvelopeCodec}=await import('@/lib/ediel/core/edifactEnvelopeCodec')
+ const envelope=EdifactEnvelopeCodec.decode(wire)
+ expect(route).toMatchObject({kind:'technical_syntax_ack_route',companyId:f.companyId,environment:'test',
+  sourceMessageId:source.id,sourceHash:createHash('sha256').update(wire).digest('hex'),authorizesBusinessEffect:false,
+  senderEdielId:envelope.receiver,senderQualifier:envelope.receiverQualifier??null,senderSubAddress:envelope.receiverSubAddress??null,
+  receiverEdielId:envelope.sender,receiverQualifier:envelope.senderQualifier??null,receiverSubAddress:envelope.senderSubAddress??null,
+  receiverMessageSubAddress:envelope.senderSubAddress??null,applicationReference:envelope.applicationReference,
+  senderEmail:smtp.from,mailbox:smtp.from,receiverEmail:'recipient@example.invalid',smtpHost:smtp.host,smtpPort:smtp.port})
+ expect(route.route).toMatchObject({company_id:f.companyId,route_scope:'ediel_ack',is_active:true,target_email:'recipient@example.invalid'})
+ expect(route.routeRuntime).toMatchObject({company_id:f.companyId,communication_route_id:route.route.id,
+  environment:'test',is_enabled:true,is_active:true,message_standard:'edifact',payload_format:'edifact'})
+ expect(route.route.id).toMatch(/^[0-9a-f-]{36}$/)
+ expect(route.routeRuntime.route_profile_id).toMatch(/^[0-9a-f-]{36}$/)
  const {buildContrlDraft}=await import('@/lib/ediel/ack')
  const {createCanonicalAckMessage}=await import('@/lib/ediel/core/kernel')
  const ack=await createCanonicalAckMessage({actorUserId:f.actorUserId,sourceMessage:source,ackFamily:'CONTRL',outcome:'positive',
   draft:buildContrlDraft({actorUserId:f.actorUserId,sourceMessage:source,outcome:'positive'})})
+ expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'CONTRL',
+  communication_route_id:route.route.id,route_profile_id:route.routeRuntime.route_profile_id,related_message_id:source.id,
+  mailbox:route.mailbox,sender_ediel_id:route.senderEdielId,receiver_ediel_id:route.receiverEdielId,application_reference:route.applicationReference})
+ expect(ack.immutable_payload_hash).toBe(createHash('sha256').update(ack.raw_payload!).digest('hex'))
  return {f,source,ack,evidence}
 }
 it('native actual fresh CONTRL binds protected syntax before generic entry, observes once and repairs retry without SMTP',async()=>{
