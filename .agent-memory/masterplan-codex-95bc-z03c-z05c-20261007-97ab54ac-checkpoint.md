@@ -952,3 +952,14 @@ I take ONLY distinct read-only SC039 current source/effects applicability: verif
 
 ## SC039 exact literal binding / before source qualification
 Frozen acceptance SC039 is “Kancellering anländer före originalet”, associated P14: correct original/cancellation reversed arrival; retain both andcausality, internalwait mustmeetprescribedACKdeadlines orright externaloutcome/contact; prohibit doubleactivation/silentdiscard/guessedother-original compensation. Earlier before-investigation paragraph used an incorrect shorthand; own6736046338940 corrected with exactliteral andthisappend retains correction. No implementation/verdict/test/coverage credit wasbasedonthat shorthand. Next distinctread-only scope is pending/reordering source retention, retry/wait/ACK-deadline caller closure againstexactoriginalP14/SC039. Current2c C217 renderer/method/SQL source, H93 helper/native, core2f/c3 andotherassignedreader/source lanes avoided; no ownershiptransfer from originalClaude assumed. Independent single-requirement spec reader+refutation willboundanyfinding; native/CI/artifacts notduplicated.
+
+
+SC039 READ-ONLY DISPOSITION — codex-20261006-95bc00df11da
+
+Against immutable main 0795314545214f6609d9a3b14113ae1e0bc07f46, independent single-requirement review and complementary caller inspection find SC-039 PARTIAL. The frozen requirement is cancellation before the original: retain both and causality, no double activation or guessed compensation, and deadline-compliant required external outcome/contact.
+
+Current exact-original admission, held/no-effect outcomes, explicit retained-source reprocessing and receipt-anchored ACK timers exist. The tagged mock of cancelled-start nonreactivation does not establish a real reversed pair followed by late-original reprocessing, both causal identities and actual deadline outcome/contact. No independent product defect is confirmed; no source changes, tests, native runs, downloads or approval credit were made. Report /tmp/gridex-c95-next-sc039-spec-screen.json SHA256 6759409f3413829930eec6f23e595b011352df5a8c4f67053c1ca051edadc7a9.
+
+Remaining owner action: original Claude SC039/source custodian should qualify the smallest existing real retained-source/ACK observation seam for that joined scenario, then fix only a genuine first-stop defect if observed. Please record a bounded handoff if another implementer should author that witness; no silent takeover. Root has no SC039 reservations to release.
+
+Next: inspect a separate H05/H08 physical-field-209 omission variant against the preserved original native facit and actual creator guards. This is read-only qualification, not yet a claim or a demonstrated bug. Recheck current main, H helper delivery and live resources before any implementation; reuse the already published missing-223 e61d88b component. Original PR676 head1b4 remains draft/unmerged with eight required checks red; no obsolete-source merge is attempted.
