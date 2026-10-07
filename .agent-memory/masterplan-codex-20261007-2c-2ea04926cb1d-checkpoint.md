@@ -136,104 +136,10 @@ Durable copies below preserve already executed redacted evidence and genuine rev
 
 Original local artifact `/tmp/gridex-2ea-c-native-qualifier/qualify_native.py`, SHA256 `6c5e720891f4d9c816442ff2c728cbfae8622dae2db2611f1e701787d0e77482`.
 
-```python
-import sys,json,pathlib,zipfile,hashlib,subprocess,collections,xml.etree.ElementTree as ET,datetime,io
-if not __debug__: raise RuntimeError('optimized_python_disallowed')
-archive,official,checkout,out,expected_head,expected_run,expected_job=sys.argv[1:]
-APPROVED_HEAD='80384cf5f8b5754fdfcde18634738b059205d1f6'
-APPROVED_TREE='a920d21780242dcef24751fe519fb03940306851'
-APPROVED_BRANCH='codex/c-prospective-source-2ea-41dd26fb'
-HARDENED_SOURCE='1b4be1fb5b78a6ef357f16b304f112ad939ab6ed'
-assert expected_head==APPROVED_HEAD, 'unreviewed_candidate_head'
-assert expected_run.isdecimal() and expected_job.isdecimal(), 'invalid_official_ids'
-assert int(expected_run)>0 and int(expected_job)>0
-APPROVED_INPUTS={'.github/workflows/ediel-cancellation-public-acceptance-native.yml': ('100644', '02f52e83f9208f81e5adfcb9f2047e309013e112'), 'scripts/ediel-cancellation-public-acceptance-native.config.ts': ('100644', '1cf8c95750e6e24122a27aa77951a87d05928322'), 'scripts/ediel-cancellation-public-acceptance-native.test.ts': ('100644', '4a31a161ade1cf6bd54ee4f1205954946dc995e8'), 'scripts/helpers/ediel-cancellation-prospective-source-2ea.ts': ('100644', '947b30241773a0e087cee291117992eb8b442f1b'), '__tests__/ediel-cancellation-prospective-source-2ea.test.ts': ('100644', '5d95f98dbbe73e0b196db7ece45c24ec7eb9df5a'), '__tests__/helpers/sourceOwnerFixtures.ts': ('100644', 'aeac4986152d720172d96bb543cabfada43c8938')}
-APPROVED_NATIVE_SHA256='ba82157aea9e794ecdde3b5e7f417e666f20fc97e585d40828db22609c83f140' 
-def unique(items):
- d={}
- for k,v in items:
-  assert k not in d,('duplicate_json_key',k)
-  d[k]=v
- return d
-def read_json(p):return json.loads(pathlib.Path(p).read_text(),object_pairs_hook=unique)
-o=read_json(official);run,job=o['run'],o['job'];artifacts=o['artifacts']['artifacts']
-assert run['head_sha']==expected_head and run['id']==int(expected_run) and job['id']==int(expected_job)
-assert run['path']=='.github/workflows/ediel-cancellation-public-acceptance-native.yml'
-assert run['event']=='pull_request' and run['head_branch']==APPROVED_BRANCH, 'wrong_candidate_producer'
-assert type(run['run_attempt']) is int and run['run_attempt']>0
-instant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))
-current_artifacts=[a for a in artifacts if instant(job['started_at'])<=instant(a['created_at'])<=instant(job['completed_at'])]
-assert len(current_artifacts)==1,('current_job_window_artifact_count',len(current_artifacts));artifact=current_artifacts[0]
-assert artifact['name']=='ediel-cancellation-public-acceptance-native-'+expected_run
-assert run['repository']['full_name']=='heke99/gridex-ops-platform' and run['repository']['id']==1190539955
-assert run['head_repository']['full_name']==run['repository']['full_name'] and run['head_repository']['id']==artifact['workflow_run']['repository_id']==artifact['workflow_run']['head_repository_id']==1190539955
-assert job['run_id']==run['id'] and job['head_sha']==run['head_sha'] and job['run_attempt']==run['run_attempt']
-assert run['status']==job['status']=='completed'
-assert artifact['workflow_run']['id']==run['id'] and artifact['workflow_run']['head_sha']==run['head_sha'] and not artifact['expired']
-zip_bytes=pathlib.Path(archive).read_bytes();digest=hashlib.sha256(zip_bytes).hexdigest();assert len(zip_bytes)==artifact['size_in_bytes'] and artifact['digest']=='sha256:'+digest
-instant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))
-assert instant(job['started_at'])<=instant(artifact['created_at'])<=instant(job['completed_at'])
-with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
- names=z.namelist();assert len(names)==len(set(names));assert set(names)=={'native.log','native-junit.xml','receipt.json'};assert z.testzip() is None
- raw={name:z.read(name) for name in names}
-r=json.loads(raw['receipt.json'],object_pairs_hook=unique)
-assert r['purpose']=='supplemental_actual_native_feedback' and r['checkout_sha']==run['head_sha']
-assert r['repository']=='heke99/gridex-ops-platform' and r['repository_id']=='1190539955' and r['workflow_run_id']==str(run['id']) and r['workflow_run_attempt']==str(run['run_attempt'])
-assert r['input_identity']=='immutable_checkout_before_replay' and r['test_scope']==['scripts/ediel-cancellation-public-acceptance-native.test.ts']
-for key,value in {'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_c03_c05':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}.items():assert r[key]==value
-sha=r['checkout_sha'];git=lambda *args:subprocess.check_output(['git',*args],cwd=checkout,stderr=subprocess.DEVNULL)
-assert git('rev-parse',sha+'^{tree}').decode().strip()==r['checkout_tree']==APPROVED_TREE
-entries={}
-for line in git('ls-tree','-rz','--full-tree',sha).split(b'\0'):
- if not line:continue
- info,path=line.split(b'\t',1);mode,kind,oid=info.decode().split();assert kind=='blob';name=path.decode();assert name not in entries;entries[name]=(mode,oid)
-assert set(entries)==set(r['source_blobs'])==set(r['input_sha256'])
-assert len(entries)==9409, 'reviewed_candidate_source_census_changed'
-for name,identity in APPROVED_INPUTS.items(): assert entries[name]==identity, ('reviewed_source_pin_changed',name)
-process=subprocess.Popen(['git','cat-file','--batch'],cwd=checkout,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
-for name,(mode,oid) in entries.items():
- process.stdin.write((oid+'\n').encode());process.stdin.flush();header=process.stdout.readline().decode().split();assert header[:2]==[oid,'blob'];body=process.stdout.read(int(header[2]));assert process.stdout.read(1)==b'\n';digest_body=hashlib.sha256(body).hexdigest();assert r['source_blobs'][name]=={'mode':mode,'oid':oid,'sha256':digest_body};assert r['input_sha256'][name]==digest_body
-process.stdin.close();assert process.wait()==0
-assert r['runtime_generated_input_sha256']=={},'unexpected_runtime_input_drift_requires_individual_review'
-xml=raw['native-junit.xml'];assert b'<!DOCTYPE' not in xml and b'<!ENTITY' not in xml
-root=ET.fromstring(xml);cases=list(root.iter('testcase'));identities=collections.Counter((x.get('classname'),x.get('name')) for x in cases)
-# Expected identities derive independently from the preserved original source,
-# never from the candidate artifact's executed JUnit.
-legacy='ac26467f2285a0f6c738e8ebbfbc55a495363272'
-old=git('show',legacy+':scripts/ediel-at-z03c-z05c-supplier-native.test.ts').decode()
-new=git('show',sha+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()
-marker="describe('actual native supplier cancellation chains'"
-# Original case identities remain independently pinned to ac264. The reviewed
-# 676 successor strengthens premises/223 checks; it is intentionally not the
-# original byte-equal body. Admit only this independently SOURCE-approved body
-# and the exact current full source, never arbitrary candidate/JUnit content.
-hardened=git('show',HARDENED_SOURCE+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()
-assert hashlib.sha256(new.encode()).hexdigest()==APPROVED_NATIVE_SHA256, 'unreviewed_native_source'
-assert hardened[hardened.index(marker):]==new[new.index(marker):], 'reviewed_hardened30_body_changed'
-original_body_equal=old[old.index(marker):]==new[new.index(marker):]
-assert not original_body_equal, 'unexpected_original_body_claim' 
-import re
-body=old[old.index(marker):]
-expected_names=re.findall(r"\bit\('([^']+)'",body)
-for values,template in re.findall(r"it\.each\(\[([^\]]+)\]\)\('([^']+)'",body):
- assert template.count('%s')==1
- for value in re.findall(r"'([^']+)'",values):expected_names.append(template.replace('%s',value))
-assert len(expected_names)==len(set(expected_names))==30
-names=['actual native supplier cancellation chains > '+name for name in expected_names]
-expected=collections.Counter(('scripts/ediel-cancellation-public-acceptance-native.test.ts',name) for name in names)
-assert len(cases)==30 and identities==expected,'exact_original_strict30_identities_required'
+Exact original UTF-8 bytes encoded as a JSON string (decode with JSON; preserves two original trailing spaces):
 
-failed=sum(x.find('failure') is not None for x in cases);errors=sum(x.find('error') is not None for x in cases);skipped=sum(x.find('skipped') is not None for x in cases);passed=len(cases)-failed-errors-skipped
-for suite in root.iter('testsuite'):
- if list(suite.iter('testsuite'))!=[suite]:continue
- own=suite.findall('testcase');assert int(suite.get('tests','-1'))==len(own)
- for tag,attr in [('failure','failures'),('error','errors'),('skipped','skipped')]:assert int(suite.get(attr,'0'))==sum(c.find(tag) is not None for c in own)
-assert skipped==0 and all(sum(c.find(tag) is not None for tag in ['failure','error','skipped'])<=1 for c in cases)
-assert type(r['native_exit_code']) is int and r['native_exit_code'] in [0,1]
-if r['native_exit_code']==0:assert passed==30 and failed==errors==skipped==0 and job['conclusion']=='success'
-else:assert failed+errors>0 and job['conclusion']=='failure'
-result={'classification':'AUTHENTIC_CURRENT_NATIVE_EXECUTION_NOT_WHOLE_APPROVAL','head':sha,'tree':r['checkout_tree'],'run':run['id'],'attempt':run['run_attempt'],'job':job['id'],'artifact':artifact['id'],'artifactBytes':len(zip_bytes),'artifactSha256':digest,'allOriginalGitBlobsMatched':len(entries),'runtimeGeneratedDrift':{},'bootstrap':'PASSED','nativeExit':r['native_exit_code'],'testsExecuted':len(cases),'passed':passed,'failed':failed,'errors':errors,'skipped':skipped,'exactOriginalStrict30Identities':True,'originalStrict30BodyByteEqual':False,'approvedHardened676BodyByteEqual':True,'approvedHardenedSource':HARDENED_SOURCE,'approvedNativeSourceSha256':APPROVED_NATIVE_SHA256,'originalSource':legacy,'wholeApproval':False,'marketEvidenceProvided':False,'failures':[{'name':c.get('name'),'message':c.find('failure').get('message','')[:400]} for c in cases if c.find('failure') is not None]}
-pathlib.Path(out).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({k:v for k,v in result.items() if k!='failures'}))
+```json
+"import sys,json,pathlib,zipfile,hashlib,subprocess,collections,xml.etree.ElementTree as ET,datetime,io\nif not __debug__: raise RuntimeError('optimized_python_disallowed')\narchive,official,checkout,out,expected_head,expected_run,expected_job=sys.argv[1:]\nAPPROVED_HEAD='80384cf5f8b5754fdfcde18634738b059205d1f6'\nAPPROVED_TREE='a920d21780242dcef24751fe519fb03940306851'\nAPPROVED_BRANCH='codex/c-prospective-source-2ea-41dd26fb'\nHARDENED_SOURCE='1b4be1fb5b78a6ef357f16b304f112ad939ab6ed'\nassert expected_head==APPROVED_HEAD, 'unreviewed_candidate_head'\nassert expected_run.isdecimal() and expected_job.isdecimal(), 'invalid_official_ids'\nassert int(expected_run)>0 and int(expected_job)>0\nAPPROVED_INPUTS={'.github/workflows/ediel-cancellation-public-acceptance-native.yml': ('100644', '02f52e83f9208f81e5adfcb9f2047e309013e112'), 'scripts/ediel-cancellation-public-acceptance-native.config.ts': ('100644', '1cf8c95750e6e24122a27aa77951a87d05928322'), 'scripts/ediel-cancellation-public-acceptance-native.test.ts': ('100644', '4a31a161ade1cf6bd54ee4f1205954946dc995e8'), 'scripts/helpers/ediel-cancellation-prospective-source-2ea.ts': ('100644', '947b30241773a0e087cee291117992eb8b442f1b'), '__tests__/ediel-cancellation-prospective-source-2ea.test.ts': ('100644', '5d95f98dbbe73e0b196db7ece45c24ec7eb9df5a'), '__tests__/helpers/sourceOwnerFixtures.ts': ('100644', 'aeac4986152d720172d96bb543cabfada43c8938')}\nAPPROVED_NATIVE_SHA256='ba82157aea9e794ecdde3b5e7f417e666f20fc97e585d40828db22609c83f140' \ndef unique(items):\n d={}\n for k,v in items:\n  assert k not in d,('duplicate_json_key',k)\n  d[k]=v\n return d\ndef read_json(p):return json.loads(pathlib.Path(p).read_text(),object_pairs_hook=unique)\no=read_json(official);run,job=o['run'],o['job'];artifacts=o['artifacts']['artifacts']\nassert run['head_sha']==expected_head and run['id']==int(expected_run) and job['id']==int(expected_job)\nassert run['path']=='.github/workflows/ediel-cancellation-public-acceptance-native.yml'\nassert run['event']=='pull_request' and run['head_branch']==APPROVED_BRANCH, 'wrong_candidate_producer'\nassert type(run['run_attempt']) is int and run['run_attempt']>0\ninstant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))\ncurrent_artifacts=[a for a in artifacts if instant(job['started_at'])<=instant(a['created_at'])<=instant(job['completed_at'])]\nassert len(current_artifacts)==1,('current_job_window_artifact_count',len(current_artifacts));artifact=current_artifacts[0]\nassert artifact['name']=='ediel-cancellation-public-acceptance-native-'+expected_run\nassert run['repository']['full_name']=='heke99/gridex-ops-platform' and run['repository']['id']==1190539955\nassert run['head_repository']['full_name']==run['repository']['full_name'] and run['head_repository']['id']==artifact['workflow_run']['repository_id']==artifact['workflow_run']['head_repository_id']==1190539955\nassert job['run_id']==run['id'] and job['head_sha']==run['head_sha'] and job['run_attempt']==run['run_attempt']\nassert run['status']==job['status']=='completed'\nassert artifact['workflow_run']['id']==run['id'] and artifact['workflow_run']['head_sha']==run['head_sha'] and not artifact['expired']\nzip_bytes=pathlib.Path(archive).read_bytes();digest=hashlib.sha256(zip_bytes).hexdigest();assert len(zip_bytes)==artifact['size_in_bytes'] and artifact['digest']=='sha256:'+digest\ninstant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))\nassert instant(job['started_at'])<=instant(artifact['created_at'])<=instant(job['completed_at'])\nwith zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:\n names=z.namelist();assert len(names)==len(set(names));assert set(names)=={'native.log','native-junit.xml','receipt.json'};assert z.testzip() is None\n raw={name:z.read(name) for name in names}\nr=json.loads(raw['receipt.json'],object_pairs_hook=unique)\nassert r['purpose']=='supplemental_actual_native_feedback' and r['checkout_sha']==run['head_sha']\nassert r['repository']=='heke99/gridex-ops-platform' and r['repository_id']=='1190539955' and r['workflow_run_id']==str(run['id']) and r['workflow_run_attempt']==str(run['run_attempt'])\nassert r['input_identity']=='immutable_checkout_before_replay' and r['test_scope']==['scripts/ediel-cancellation-public-acceptance-native.test.ts']\nfor key,value in {'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_c03_c05':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}.items():assert r[key]==value\nsha=r['checkout_sha'];git=lambda *args:subprocess.check_output(['git',*args],cwd=checkout,stderr=subprocess.DEVNULL)\nassert git('rev-parse',sha+'^{tree}').decode().strip()==r['checkout_tree']==APPROVED_TREE\nentries={}\nfor line in git('ls-tree','-rz','--full-tree',sha).split(b'\\0'):\n if not line:continue\n info,path=line.split(b'\\t',1);mode,kind,oid=info.decode().split();assert kind=='blob';name=path.decode();assert name not in entries;entries[name]=(mode,oid)\nassert set(entries)==set(r['source_blobs'])==set(r['input_sha256'])\nassert len(entries)==9409, 'reviewed_candidate_source_census_changed'\nfor name,identity in APPROVED_INPUTS.items(): assert entries[name]==identity, ('reviewed_source_pin_changed',name)\nprocess=subprocess.Popen(['git','cat-file','--batch'],cwd=checkout,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)\nfor name,(mode,oid) in entries.items():\n process.stdin.write((oid+'\\n').encode());process.stdin.flush();header=process.stdout.readline().decode().split();assert header[:2]==[oid,'blob'];body=process.stdout.read(int(header[2]));assert process.stdout.read(1)==b'\\n';digest_body=hashlib.sha256(body).hexdigest();assert r['source_blobs'][name]=={'mode':mode,'oid':oid,'sha256':digest_body};assert r['input_sha256'][name]==digest_body\nprocess.stdin.close();assert process.wait()==0\nassert r['runtime_generated_input_sha256']=={},'unexpected_runtime_input_drift_requires_individual_review'\nxml=raw['native-junit.xml'];assert b'<!DOCTYPE' not in xml and b'<!ENTITY' not in xml\nroot=ET.fromstring(xml);cases=list(root.iter('testcase'));identities=collections.Counter((x.get('classname'),x.get('name')) for x in cases)\n# Expected identities derive independently from the preserved original source,\n# never from the candidate artifact's executed JUnit.\nlegacy='ac26467f2285a0f6c738e8ebbfbc55a495363272'\nold=git('show',legacy+':scripts/ediel-at-z03c-z05c-supplier-native.test.ts').decode()\nnew=git('show',sha+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()\nmarker=\"describe('actual native supplier cancellation chains'\"\n# Original case identities remain independently pinned to ac264. The reviewed\n# 676 successor strengthens premises/223 checks; it is intentionally not the\n# original byte-equal body. Admit only this independently SOURCE-approved body\n# and the exact current full source, never arbitrary candidate/JUnit content.\nhardened=git('show',HARDENED_SOURCE+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()\nassert hashlib.sha256(new.encode()).hexdigest()==APPROVED_NATIVE_SHA256, 'unreviewed_native_source'\nassert hardened[hardened.index(marker):]==new[new.index(marker):], 'reviewed_hardened30_body_changed'\noriginal_body_equal=old[old.index(marker):]==new[new.index(marker):]\nassert not original_body_equal, 'unexpected_original_body_claim' \nimport re\nbody=old[old.index(marker):]\nexpected_names=re.findall(r\"\\bit\\('([^']+)'\",body)\nfor values,template in re.findall(r\"it\\.each\\(\\[([^\\]]+)\\]\\)\\('([^']+)'\",body):\n assert template.count('%s')==1\n for value in re.findall(r\"'([^']+)'\",values):expected_names.append(template.replace('%s',value))\nassert len(expected_names)==len(set(expected_names))==30\nnames=['actual native supplier cancellation chains > '+name for name in expected_names]\nexpected=collections.Counter(('scripts/ediel-cancellation-public-acceptance-native.test.ts',name) for name in names)\nassert len(cases)==30 and identities==expected,'exact_original_strict30_identities_required'\n\nfailed=sum(x.find('failure') is not None for x in cases);errors=sum(x.find('error') is not None for x in cases);skipped=sum(x.find('skipped') is not None for x in cases);passed=len(cases)-failed-errors-skipped\nfor suite in root.iter('testsuite'):\n if list(suite.iter('testsuite'))!=[suite]:continue\n own=suite.findall('testcase');assert int(suite.get('tests','-1'))==len(own)\n for tag,attr in [('failure','failures'),('error','errors'),('skipped','skipped')]:assert int(suite.get(attr,'0'))==sum(c.find(tag) is not None for c in own)\nassert skipped==0 and all(sum(c.find(tag) is not None for tag in ['failure','error','skipped'])<=1 for c in cases)\nassert type(r['native_exit_code']) is int and r['native_exit_code'] in [0,1]\nif r['native_exit_code']==0:assert passed==30 and failed==errors==skipped==0 and job['conclusion']=='success'\nelse:assert failed+errors>0 and job['conclusion']=='failure'\nresult={'classification':'AUTHENTIC_CURRENT_NATIVE_EXECUTION_NOT_WHOLE_APPROVAL','head':sha,'tree':r['checkout_tree'],'run':run['id'],'attempt':run['run_attempt'],'job':job['id'],'artifact':artifact['id'],'artifactBytes':len(zip_bytes),'artifactSha256':digest,'allOriginalGitBlobsMatched':len(entries),'runtimeGeneratedDrift':{},'bootstrap':'PASSED','nativeExit':r['native_exit_code'],'testsExecuted':len(cases),'passed':passed,'failed':failed,'errors':errors,'skipped':skipped,'exactOriginalStrict30Identities':True,'originalStrict30BodyByteEqual':False,'approvedHardened676BodyByteEqual':True,'approvedHardenedSource':HARDENED_SOURCE,'approvedNativeSourceSha256':APPROVED_NATIVE_SHA256,'originalSource':legacy,'wholeApproval':False,'marketEvidenceProvided':False,'failures':[{'name':c.get('name'),'message':c.find('failure').get('message','')[:400]} for c in cases if c.find('failure') is not None]}\npathlib.Path(out).write_text(json.dumps(result,indent=2)+'\\n');print(json.dumps({k:v for k,v in result.items() if k!='failures'}))\n"
 ```
 
 <!-- END:C41DD_CURRENT_READER -->
@@ -632,3 +538,6 @@ Original local artifact `/tmp/gridex-2ea-c-native-qualifier/root-self-actual-pro
 ```
 
 <!-- END:C41DD_ROOT_SELF -->
+
+
+Evidence-storage correction: the original reader has two trailing spaces. Its first literal fenced copy triggered `git diff --check`; that failure is preserved in local output and was not a source error or green check. Store the same exact bytes as a JSON string instead of trimming reviewed evidence; SHA6c5e unchanged. No PR691 code or reader changed. Final checkpoint diff-check must pass before publication.
