@@ -337,6 +337,27 @@ async function sent(selectedInvoicee=false,selectedInstallation=false) {
     AND direction='inbound' AND message_family IN('CONTRL','APERAK')`)).toBe(0)
   return { f, original }
 }
+// A qualified immutable outgoing original is a prospective premise, not an
+// incoming invoicee-availability receipt or a billing-address signature claim.
+async function selectedInvoiceeOriginal(f: Fixture, original: Original) {
+  const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
+  expect(qualified.qualification).toMatchObject({companyId:f.companyId,environment:'test',actorUserId:f.actorUserId,
+    messageCode:'Z03',payloadHash:digest(original.raw_payload!),objects:[expect.objectContaining({
+      objectId:f.external,identityAgency:'9',process:'normal_start_h',profileVersionId:f.profileVersionId,
+      customerId:f.customerId,siteId:f.siteId,contractId:f.contractId,lineItemReference:own(f,original).li,sourceHash:f.sourceHash})]})
+  const wire=tokenizeEdifact(original.raw_payload!),groups=prodatRegisterGroups(wire.segments,wire.una).groups.filter(g=>g.validRegisterChain&&g.lineIndex===g.firstLineIndex)
+  expect(groups).toHaveLength(1);expect(groups[0]).toMatchObject({itemId:f.external,identityAgency:'9',firstLineIndex:qualified.qualification!.objects[0].firstLineIndex})
+  const invoicee=groups[0].segments.filter(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='IV')
+  expect(invoicee).toHaveLength(1);expect(segmentComposite(invoicee[0],2,wire.una)).toEqual(['5561234567','SE1','260'])
+  expect(segmentComposite(invoicee[0],4,wire.una)[0]).toBe('Synthetic Different Invoicee')
+  expect(segmentComposite(invoicee[0],5,wire.una)[0]).toBe('Invoice Street')
+  expect(segmentComposite(invoicee[0],6,wire.una)[0]).toBe('Invoice Town')
+  expect(segmentComposite(invoicee[0],8,wire.una)[0]).toBe('54321');expect(segmentComposite(invoicee[0],9,wire.una)[0]).toBe('SE')
+  const persisted=(await getEdielMessageById(original.id,{companyId:f.companyId}))!
+  expect(persisted).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_code:'Z03',
+    raw_payload:original.raw_payload,immutable_payload_hash:digest(original.raw_payload!)})
+  return sealed(original.id)
+}
 async function intake(f: Fixture, raw: string, environment: 'test' | 'production' = 'test', missingAssociation = false) {
   const mailbox = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment, raw,
     smtpFrom: 'synthetic@example.invalid', senderEmail: 'recipient@example.invalid' }), parsed = mailbox.parsed
@@ -772,7 +793,7 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   })
 
   it.each(['250','251','252','253','317','318'])('selected actual Z04 IV parent activates child %s and refuses its omission', async field => {
-    const {f,original}=await sent(), refs=references(), complete=reply(f,original,replyBody(f,original,refs,true),refs)
+    const {f,original}=await sent(true), selectedOriginal=await selectedInvoiceeOriginal(f,original), refs=references(), complete=reply(f,original,replyBody(f,original,refs,true),refs)
     const baseline=await ready(f,original,complete)
     expect(baseline.decision.policy).toBeDefined(); const policy=baseline.decision.policy!
     expect(validateCanonicalPolicyFields({policy,rawPayload:complete,rawSegments:tokenizeEdifact(complete).segments.map(s=>s.raw)}).filter(i=>i.blocking||i.severity==='error')).toEqual([])
@@ -781,6 +802,7 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(issues.some(i=>(i.blocking||i.severity==='error')&&i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field),JSON.stringify(issues)).toBe(true)
     expect(business(f)).toEqual(before)
     await actualIncomingOmission(f,original,field,complete,baseline)
+    expect(await selectedInvoiceeOriginal(f,original)).toEqual(selectedOriginal)
   })
 
   it.each(['233','234'])('actual source-selected Z03 IT makes child %s mandatory before another original can persist',async field=>{
