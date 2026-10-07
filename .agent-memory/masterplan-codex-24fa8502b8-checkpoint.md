@@ -94,3 +94,9 @@ PR648 actual merged main9908978d628d8f0da5388f9f80fe2a134908fa8c/tree5294e59e044
 ## Actual merge role RELEASE — 2026-10-07T01:28Z
 
 Owner-only DELETE and GET404 confirmed for refs/tags/agent-claims/masterplan/role-merge receipt5bf8ebb1bc49fef0b2c6183f3d506c355943c138. No roles held; all13 technical refs retained. Actual648 delivery is recorded in checkpoint b3ded3bca and #5306028950617. Root now refreshes main/latest530 before whole638 main/carrier adoption.
+
+## Whole638 source adoption GO before mutation — 2026-10-07T01:37Z
+
+Both independent current composition reviews APPROVE source adoption ONLY: z04 receipt1651500b36875d50a72d5712e4f735b1bb2a415cb679c28c8573bade174e2aed and z10 receipt31a5708ca05fc6e2736ecd642403af9c410bf05448a6358077499518d70f035a. Exact b3+actualmain990 preview c0a0f424e53ab31e0f357ae799fbf271f879150f preserves all9299foreignmain mode/type/blob tuples, coverage293 bytes, guard3 identical648, own9 native additions including d153 observer and original94 unchanged. Z05 supply_terminated followup and foreignESCO/LK/nationalend fixtures do not change actual Z01 consumers; source-native include remains own single file.
+
+All13 technical ownerGETMATCH freshly qualified receipt9f5ea7bc985c9484b2197552251e45bde9ee3065caa1769cc48ea424e9f71748; no roles held. Exact GEN5 carrier488993502ea3672387d4789fefbd83853b084dde now authorized after actual648; manifest currentmain/preview equals carrierparent, only225500=f784 insertion, old bytes preserved. No held manifest authoring/raw3 borrowing. Root next freshmainGET still990 then normalLOCAL merge main (require actualtreec0a0), exact authorized carrier cherry-pick with preserved authorship, complete migration/input scan and relevant current types/lint/consumer/full checks. Then normal638 successor publication/current94 and gates. Native/whole remain NOT_RUN/UNAPPROVED; no next pair.
