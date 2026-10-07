@@ -1,3 +1,4 @@
+// masterplan: AT-Z06E-SUPPLIER
 // Real physical token scopes and catalog selection; declared DB catalog port.
 // This is not durable source admission or business acceptance evidence.
 import {beforeEach,expect,it,vi} from 'vitest'

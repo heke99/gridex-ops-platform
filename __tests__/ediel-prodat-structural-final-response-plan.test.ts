@@ -1,3 +1,4 @@
+// masterplan: AT-Z06E-SUPPLIER
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({data:null as unknown,rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
@@ -67,6 +68,29 @@ it('an unsupported primary effect kind cannot qualify a positive reply',async()=
   const f=fixture()
   io.data={version:1,sourceMessage:f.message,responseFacet:{...f.facet,assessmentId:uuid(3),effectScopes:[{...f.effect,effectKind:'caller_acceptance'}]}}
   expect(await readReceivedProdatFinalResponsePlan({companyId:f.message.company_id,sourceMessageId:f.message.id,rawPayload:f.message.raw_payload!})).toBeNull()
+})
+
+it('a committed confirmed death version retains its real receipt without inventing a modern object assessment',async()=>{
+ const f=fixture()
+ const effect={...f.effect,objectAssessmentId:null,effectKind:'confirmed_customer_version',effectReceiptId:f.message.id,effectFactsHash:'d'.repeat(64)}
+ io.data={...f.data,responseFacet:{...f.data.responseFacet,effectScopes:[effect]}}
+ const result=await readReceivedProdatFinalResponsePlan({companyId:f.message.company_id,sourceMessageId:f.message.id,rawPayload:f.message.raw_payload!})
+ expect(result?.plans).toHaveLength(1)
+ expect(result?.plans[0]).toMatchObject({effectKind:'confirmed_customer_version',objectAssessmentId:null,effectReceiptId:f.message.id,effectFactsHash:'d'.repeat(64)})
+ expect(receivedProdatFinalResponseQualification({plan:result!.plans[0],sourceMessage:f.message})).toEqual([f.effect.lineIndex])
+ expect(receivedProdatFinalResponseQualification({plan:structuredClone(result!.plans[0]),sourceMessage:f.message})).toBeNull()
+ for(const invalid of [
+  {...effect,objectAssessmentId:uuid(4)},
+  {...effect,effectReceiptId:uuid(99)},
+  {...effect,effectFactsHash:null},
+  {...effect,effectFactsHash:'not-a-receipt-hash'},
+ ]){
+  io.data={...f.data,responseFacet:{...f.data.responseFacet,effectScopes:[invalid]}}
+  expect(await readReceivedProdatFinalResponsePlan({companyId:f.message.company_id,sourceMessageId:f.message.id,rawPayload:f.message.raw_payload!})).toBeNull()
+ }
+ const wrongSource={...f.message,message_code:'Z10',raw_payload:f.message.raw_payload!.replace('BGM+Z06','BGM+Z10')}
+ io.data={version:1,sourceMessage:wrongSource,responseFacet:{...f.data.responseFacet,sourcePayloadHash:evidenceHash(wrongSource.raw_payload),effectScopes:[effect]}}
+ expect(await readReceivedProdatFinalResponsePlan({companyId:wrongSource.company_id,sourceMessageId:wrongSource.id,rawPayload:wrongSource.raw_payload})).toBeNull()
 })
 
 it.each([['Z04','supply'],['Z05','supply'],['Z14','metering_permission'],['Z15','metering_permission']] as const)(

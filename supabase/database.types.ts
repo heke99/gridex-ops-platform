@@ -8413,9 +8413,12 @@ export type Database = {
           market_party_role: string | null
           metadata: Json | null
           notes: string | null
+          route_group: string | null
           route_name: string
           route_scope: string
           route_type: string
+          supported_message_codes: Json
+          supported_message_families: Json
           supported_payload_version: string | null
           target_email: string | null
           target_system: string | null
@@ -8438,9 +8441,12 @@ export type Database = {
           market_party_role?: string | null
           metadata?: Json | null
           notes?: string | null
+          route_group?: string | null
           route_name: string
           route_scope?: string
           route_type?: string
+          supported_message_codes?: Json
+          supported_message_families?: Json
           supported_payload_version?: string | null
           target_email?: string | null
           target_system?: string | null
@@ -8463,9 +8469,12 @@ export type Database = {
           market_party_role?: string | null
           metadata?: Json | null
           notes?: string | null
+          route_group?: string | null
           route_name?: string
           route_scope?: string
           route_type?: string
+          supported_message_codes?: Json
+          supported_message_families?: Json
           supported_payload_version?: string | null
           target_email?: string | null
           target_system?: string | null
@@ -41562,13 +41571,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ediel_messages_party_address_id_fkey"
-            columns: ["party_address_id"]
-            isOneToOne: false
-            referencedRelation: "ediel_party_addresses"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ediel_messages_party_id_fkey"
             columns: ["party_id"]
             isOneToOne: false
@@ -42297,102 +42299,6 @@ export type Database = {
           visible_to_customer_flow?: boolean
         }
         Relationships: []
-      }
-      ediel_party_addresses: {
-        Row: {
-          business_code: string | null
-          certificate_required: boolean
-          created_at: string
-          created_by: string | null
-          ediel_id: string
-          environment: string
-          id: string
-          last_verified_at: string | null
-          message_family: string
-          message_type: string | null
-          metadata: Json
-          party_id: string
-          qualifier: string
-          receiver_certificate_id: string | null
-          requires_subaddress: boolean
-          smtp_address: string
-          source: string
-          status: string
-          subaddress: string | null
-          transport_security_mode: string
-          updated_at: string
-          updated_by: string | null
-          valid_from: string | null
-          valid_to: string | null
-        }
-        Insert: {
-          business_code?: string | null
-          certificate_required?: boolean
-          created_at?: string
-          created_by?: string | null
-          ediel_id: string
-          environment: string
-          id?: string
-          last_verified_at?: string | null
-          message_family: string
-          message_type?: string | null
-          metadata?: Json
-          party_id: string
-          qualifier?: string
-          receiver_certificate_id?: string | null
-          requires_subaddress?: boolean
-          smtp_address: string
-          source?: string
-          status?: string
-          subaddress?: string | null
-          transport_security_mode?: string
-          updated_at?: string
-          updated_by?: string | null
-          valid_from?: string | null
-          valid_to?: string | null
-        }
-        Update: {
-          business_code?: string | null
-          certificate_required?: boolean
-          created_at?: string
-          created_by?: string | null
-          ediel_id?: string
-          environment?: string
-          id?: string
-          last_verified_at?: string | null
-          message_family?: string
-          message_type?: string | null
-          metadata?: Json
-          party_id?: string
-          qualifier?: string
-          receiver_certificate_id?: string | null
-          requires_subaddress?: boolean
-          smtp_address?: string
-          source?: string
-          status?: string
-          subaddress?: string | null
-          transport_security_mode?: string
-          updated_at?: string
-          updated_by?: string | null
-          valid_from?: string | null
-          valid_to?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ediel_party_addresses_party_id_fkey"
-            columns: ["party_id"]
-            isOneToOne: false
-            referencedRelation: "ediel_parties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ediel_party_addresses_receiver_certificate_id_fkey"
-            columns: ["receiver_certificate_id"]
-            isOneToOne: false
-            referencedRelation: "ediel_certificates"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       ediel_permission_cases: {
         Row: {
@@ -44205,6 +44111,9 @@ export type Database = {
           dynamic_receiver_strategy: string | null
           encryption_mode: string | null
           environment: string
+          environment_type:
+            | Database["public"]["Enums"]["ediel_environment_type"]
+            | null
           id: string
           imap_host: string | null
           imap_port: number | null
@@ -44293,6 +44202,9 @@ export type Database = {
           dynamic_receiver_strategy?: string | null
           encryption_mode?: string | null
           environment?: string
+          environment_type?:
+            | Database["public"]["Enums"]["ediel_environment_type"]
+            | null
           id?: string
           imap_host?: string | null
           imap_port?: number | null
@@ -44381,6 +44293,9 @@ export type Database = {
           dynamic_receiver_strategy?: string | null
           encryption_mode?: string | null
           environment?: string
+          environment_type?:
+            | Database["public"]["Enums"]["ediel_environment_type"]
+            | null
           id?: string
           imap_host?: string | null
           imap_port?: number | null
@@ -44594,13 +44509,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "ediel_route_profiles_party_address_id_fkey"
-            columns: ["party_address_id"]
-            isOneToOne: false
-            referencedRelation: "ediel_party_addresses"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ediel_route_profiles_party_id_fkey"
@@ -49542,8 +49450,10 @@ export type Database = {
           certificate_status: string | null
           company_id: string | null
           contact_name: string | null
+          contract_email: string | null
           created_at: string
           created_by: string | null
+          customer_service_email: string | null
           ediel_id: string | null
           email: string | null
           id: string
@@ -49558,6 +49468,7 @@ export type Database = {
           phone: string | null
           platform_market_actor_id: string | null
           route_status: string | null
+          switching_email: string | null
           technical_owner_only: boolean
           updated_at: string
           updated_by: string | null
@@ -49566,6 +49477,7 @@ export type Database = {
           verification_reasons: string[]
           verification_status: string | null
           verified_for_customer_flow: boolean
+          website: string | null
         }
         Insert: {
           actor_registry_status?: string
@@ -49573,8 +49485,10 @@ export type Database = {
           certificate_status?: string | null
           company_id?: string | null
           contact_name?: string | null
+          contract_email?: string | null
           created_at?: string
           created_by?: string | null
+          customer_service_email?: string | null
           ediel_id?: string | null
           email?: string | null
           id?: string
@@ -49589,6 +49503,7 @@ export type Database = {
           phone?: string | null
           platform_market_actor_id?: string | null
           route_status?: string | null
+          switching_email?: string | null
           technical_owner_only?: boolean
           updated_at?: string
           updated_by?: string | null
@@ -49597,6 +49512,7 @@ export type Database = {
           verification_reasons?: string[]
           verification_status?: string | null
           verified_for_customer_flow?: boolean
+          website?: string | null
         }
         Update: {
           actor_registry_status?: string
@@ -49604,8 +49520,10 @@ export type Database = {
           certificate_status?: string | null
           company_id?: string | null
           contact_name?: string | null
+          contract_email?: string | null
           created_at?: string
           created_by?: string | null
+          customer_service_email?: string | null
           ediel_id?: string | null
           email?: string | null
           id?: string
@@ -49620,6 +49538,7 @@ export type Database = {
           phone?: string | null
           platform_market_actor_id?: string | null
           route_status?: string | null
+          switching_email?: string | null
           technical_owner_only?: boolean
           updated_at?: string
           updated_by?: string | null
@@ -49628,6 +49547,7 @@ export type Database = {
           verification_reasons?: string[]
           verification_status?: string | null
           verified_for_customer_flow?: boolean
+          website?: string | null
         }
         Relationships: [
           {
@@ -86565,13 +86485,6 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
           {
-            foreignKeyName: "ediel_route_profiles_party_address_id_fkey"
-            columns: ["party_address_id"]
-            isOneToOne: false
-            referencedRelation: "ediel_party_addresses"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ediel_route_profiles_party_id_fkey"
             columns: ["party_id"]
             isOneToOne: false
@@ -96142,6 +96055,14 @@ export type Database = {
           p_actor_user_id: string
           p_artifact_id: string
           p_company_id: string
+        }
+        Returns: Json
+      }
+      ediel_requested_customer_change_selected_facts_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
         }
         Returns: Json
       }

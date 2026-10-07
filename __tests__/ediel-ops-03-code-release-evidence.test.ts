@@ -112,6 +112,22 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/fixtures/ediel-service-evidence-native.ts') {
     const originalDigest = "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
     if (sha256(bytes) === originalDigest) return bytes
+    // Undo only the known pending-Z13 extraction within this historical Git
+    // port. This never admits current-head native evidence or alters its pins.
+    if (sha256(bytes) === "5987a7db027c99efd353dd56a810d3c4fc96d3af1b4628a9fe1b50d25e1993e8") {
+      const extraction: [string, string][] = [
+        ["type NativeEscoFixture=Awaited<ReturnType<typeof seedNativeEscoFixture>>\ntype NativeEscoTermination={reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}\nasync function approveNativeEscoAssignment(f:NativeEscoFixture,termination?:NativeEscoTermination){\n", "export async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedNativeEscoFixture>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},termination?:{reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}){\n"],
+        [" return {hash,receiptIds,artifacts}\n}\nasync function sendNativeEscoPermissionRequest(f:NativeEscoFixture){\n const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route})\n expect(prepared,JSON.stringify(prepared)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})\n const queued=prepared.message as EdielMessageRow;expect(queued.raw_payload).toBeTruthy()\n const sendsBefore=nativeEscoExternal.send.mock.calls.length\n await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sendsBefore+1)\n const z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent');expect(nativeEscoSql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${nativeEscoLiteral(z13.id)}`)).toBe(true)\n const permission=nativeEscoSql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${nativeEscoLiteral(f.ids.company)} AND source_z13_message_id=${nativeEscoLiteral(z13.id)}`)\n expect(permission.id).toMatch(/^[0-9a-f-]{36}$/)\n return {permission,z13}\n}\n// A real archived/reviewed assignment and sent Z13; no Z14 or access grant yet.\nexport async function prepareNativeEscoPermissionFixture(f:NativeEscoFixture,termination?:NativeEscoTermination){\n const evidence=await approveNativeEscoAssignment(f,termination)\n const {permission,z13}=await sendNativeEscoPermissionRequest(f)\n return {permissionId:permission.id,li:permission.li,z13,representationIds:evidence.receiptIds,artifacts:evidence.artifacts,hash:evidence.hash}\n}\nexport async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedNativeEscoFixture>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},termination?:{reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}){\n const {hash,receiptIds,artifacts}=await approveNativeEscoAssignment(f,termination)\n", ""],
+        [" const request=await sendNativeEscoPermissionRequest(f)\n permission=request.permission;z13=request.z13\n", " const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route})\n expect(prepared,JSON.stringify(prepared)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})\n const queued=prepared.message as EdielMessageRow;expect(queued.raw_payload).toBeTruthy()\n const sendsBefore=nativeEscoExternal.send.mock.calls.length\n await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sendsBefore+1)\n z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent');expect(nativeEscoSql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${nativeEscoLiteral(z13.id)}`)).toBe(true)\n permission=nativeEscoSql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${nativeEscoLiteral(f.ids.company)} AND source_z13_message_id=${nativeEscoLiteral(z13.id)}`)\n expect(permission.id).toMatch(/^[0-9a-f-]{36}$/)\n"],
+      ]
+      let previous = bytes.toString('utf8')
+      for (const [current, original] of extraction) {
+        if (previous.split(current).length !== 2) throw Error('fixture_reviewed_esco_extraction_not_unique')
+        previous = previous.replace(current, original)
+      }
+      bytes = Buffer.from(previous)
+      if (sha256(bytes) !== "7b80b1fcd3555d7261e2fcdabd310eddc9c937d7b25a921ec4c23ed0a0efeb71") throw Error('fixture_reviewed_esco_pre_extraction_digest_mismatch')
+    }
     if (sha256(bytes) !== "7b80b1fcd3555d7261e2fcdabd310eddc9c937d7b25a921ec4c23ed0a0efeb71") throw Error('fixture_reviewed_esco_source_unavailable')
     const corrections: [string, string][] = [
       [" const insert=async(raw:string,family:'PRODAT'|'UTILTS'|'CONTRL'|'APERAK',code:string,profileKey?:string,mail?:{inboundEmailMessageId:string})=>{\n", " const insert=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profileKey?:string)=>{\n"],
@@ -130,7 +146,7 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     return restored
   }
   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
-    ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n"]
+    ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n", "    'scripts/ediel-at-z14n-esco-native.test.ts',\n"]
     : file === '.github/workflows/ops-hardening.yml'
       ? ['staff-onboarding-acceptance-regression', 'staff-external-identity-binding-regression'].map(name =>
         `          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/${name}.sql; then\n` +

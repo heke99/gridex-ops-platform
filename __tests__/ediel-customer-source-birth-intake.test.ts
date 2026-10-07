@@ -1,3 +1,4 @@
+// masterplan: AT-Z06E-SUPPLIER
 // Real parser/intake and declared catalog/database ports. This finite test
 // proves prospective caller chronology; native proves physical admission.
 import {beforeEach,expect,it,vi} from 'vitest'
