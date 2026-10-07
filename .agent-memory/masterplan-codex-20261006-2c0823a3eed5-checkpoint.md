@@ -1570,3 +1570,94 @@ First unchanged2file test invocation at15:44:07 in ownCP WT4b27 returned5PASS bu
 Fresh own isolatedWT /workspace/gridex-sc052-readonly-2c-741bf3/branchcodex/sc052-readonly-2c-20261007-741bf3 HEAD EXACT9b013631afed0b7de5f704fdc759bc68624d92b5, no tracked/untracked sourcechanges; ignoredown dependency symlink reusesexistingNode_modules, no packageinstallation. Actual Node22.23.3/Vitest4.1.9/canonicalNODE_OPTIONS loopbackboundary/unchangeddefaultworkers, existingSC052+U06 testfiles15:46:08 genuine2files5PASS/trueEXIT0, log /tmp/gridex-sc052-exact-main9b.log SHA3503d16161dd6dead514ae7ed6b0f222c14f9a1623bd8a0fa3e9212dde69160c. This proves onlyactual resolver AppRef/negative mapping, notphysical503/ESCOGIVEN/publicrequest/native/admission/consumer/whole. No broadrepeat/rerunjustified.
 ROOT actualnine source/test files modeOID/currentworkingbytes/gitHEAD fullSHA matched, sourcequalified /tmp/gridex-sc052-main9b-source-qualified.json SHA6e966103f3b244eb15e44eb5c02e82f93da99fddf4f615bcafcdab90cc4b32cb. First bookkeepingmanifest raised FileNotFoundError for mistakenproduction/qualifiedCustomerStructure path before output; actual sources/qualifiedCustomerStructure located and corrected, no authoredsource/test relaxation. Python-only verification actualEXIT0 confirms nine currentinputs. Exactmainz18 revalidation and independentfinal source/spec refutation running; original503finding plausiblecurrent until final returnedreadings. Renderer utilts396–483/fieldmatrix143/immutable UFrequest503 U64, fullmessage/codecandfreshsend gates read; ROOT no actualdraft/send/native onthisscenarioclaimed.
 Own read-only CP4b27 normalpublished/refMATCH, before-work own5306040245152 preserveappend/readbackMATCH. Printed17:44/17:45 planlabels are minute headings, not authoritativeAPI/testchronology; actual tests/commit/readback lineage retainedabove. OriginalClaude599049/5992830290 whole/source/coverageownership untouched. NotechnicalID/file/role reservation/newproducer. NextROOT fullcurrentreadings+self+twoindependentbounded verdicts→originalowner precise remaining internalformat/positivechain action or obsoleteproof; no SC052approval/foreignedit/mainmerge. Sharedb6memory3185 remainsoccupied.
+
+### 2026-10-07 17:50 Europe/Stockholm (15:50 UTC) — SC052 current-main revalidation COMPLETE / original owner handoff
+READ_ONLY_COMPLETE, contract remainsPARTIAL/coverageunchanged, zero roottechnicalreservations. ROOTself fullcurrentrenderer/planner/envelope/guide/currentfreshsend route agrees with TWO independent exactmain source/spec reviews z18+final APPROVE_BOUNDED_STATIC/PARTIAL. Both re-read exact9b tree dc6054286223af01da4ad1130719506a3c8a5f4e after oldCP-basecorrection; z18 previousoldtransitive review superseded, previousoldtest NOTcurrent proof. Existingfive resolver assertions onactualmain true0 preserved, no whole/native/full green claim. No newsource/test/protocol/gateauthoring.
+Implementedboundedresolvercontrol: explicitE66 plus23-DGI-E66-S/T target, genericE73ref/S02DGI mismatchrefused. Confirmed INTERNALrenderingrest: utilts.ts396–483 buildsE73segments, onlyheaderRFF+TN438 and E73STS/FTX477–480; requestedMessageCode delivered byutiltsSupplierRequest.ts218 is never rendered as transactionrequested-type503. RequiredfrozenUF-request-503-64/guideU64 andmatrix143 SG6/RFF/C506/1153. messages.ts36 businessSegments→EdifactEnvelopeCodec does not add this field. Rendererblobd31719181c83d137d40d9308ac0e83c352958da1/planner7c1a638d889745ecbec0fe2f7fc629a9c99a3282/matrixf9922d687e18e78169ed6674a703568a5abfc994 exactcurrentmain. This is qualified STATIC candidate-format omission, not an executed malformeddelivery/native503failure or successfulunlawfulsend.
+WrongESCO→S02production inference remainsUNPROVED/refuted fororiginal tracedpath: realplanner requireDataRequestStructure→qualifiedCustomerStructure sources26 needs owned actualsupply_baseline; currentSMTP transport/index.part-2.ts389 calls scopedcapability; scopedCapabilityReadiness.ts62 requiresESCOassignment/currentboundscope. Preserveall currenttenant/source/permission/bilateral/currentness/admissionrefusals. These refutations do not proveallS02 paths globallysafe or rule out a lawfulformer-supplier-historycandidate. Pure reference/string/payloadrequestedtype are not physical503 or authorizedESCOGIVEN.
+OriginalClaude5990498953 retainsSC052 whole/product/tests/coverage; historicalreview5992830290 requestedthissamegap, currentrevalidation confirms it persists, not newcustody. MINIMUMnextoriginalowner: encode prescribed503 fromactualqualifiedE66request in correcttransactiongroup, preserve explicitDGIreference and negatives; establish realESCOscope/applicablepermission/verifiedbilateral provenance throughactualpublicplanner→renderedrawparse→actualadmission→consumer/effects/replay. Reusefive resolverproofcases and earlierretainedsource, do not change globalauthority/supply_baseline/assignmentrequirement to makefixturepass. Internalcode/effectproof remainsownerwork, not blanketexternalpermission blocker. Need currentcandidate/mandatory/whole source review and owned rowpromotion onlyafterfullSC052 proof; no rootrowchange or merge.
+Public reusable currentnine-input source receipt and exactexistingtestlog embedded below to avoid separate-machine /tmp-only evidence. ReportSHA6e966103f3b244eb15e44eb5c02e82f93da99fddf4f615bcafcdab90cc4b32cb; logSHA3503d16161dd6dead514ae7ed6b0f222c14f9a1623bd8a0fa3e9212dde69160c. Old manifest wrongpath/firstoldbase failures preserved inreport/memory; correctedsource/test/run are exactmain. No newnative/artifact/CIreader. NextROOT normalownCPpublication/source-and-scope readback→namedoriginalcustodian530/673 handoff→freshmain/custodyeligibility; sharedsummaryforeignb6role3185, requestmirroronlyunderholder'sscope.
+
+SC052_EXACT_MAIN_SOURCE_RECEIPT_BEGIN
+```json
+{
+  "main": "9b013631afed0b7de5f704fdc759bc68624d92b5",
+  "checkout": "/workspace/gridex-sc052-readonly-2c-741bf3",
+  "scope": "unchanged exact-main/source+resolver-tests only; no physical/emitted/ESCO/native whole approval",
+  "sourceIdentities": [
+    {
+      "path": "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+      "gitEntry": "100644 blob fa0e617e008f4bdace3121153bcc7980764dcc02\t__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+      "sha256": "5482025f74d19d45d5ee767e2a101f1e1a16f3a7c13346698a8f5363605a1d05"
+    },
+    {
+      "path": "__tests__/ediel-u-06-request-application-reference.test.ts",
+      "gitEntry": "100644 blob 26093b793c76ae64ede75da71a94b9763e485406\t__tests__/ediel-u-06-request-application-reference.test.ts",
+      "sha256": "4ee980390a8f2bc76ca5776308734c55ededec2c6567a08aacec3a7fb6effec2"
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "gitEntry": "100644 blob d31719181c83d137d40d9308ac0e83c352958da1\tlib/ediel/utilts.ts",
+      "sha256": "c4bf1caecd6607783860072d3ddd2ca606516b46ecb32c34c7c4044c396a3740"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "gitEntry": "100644 blob 7c1a638d889745ecbec0fe2f7fc629a9c99a3282\tlib/ediel/flows/utiltsSupplierRequest.ts",
+      "sha256": "582b94d6a3613ffbd28192568d5fdf7eac7447c827fba723f40aac100ca40237"
+    },
+    {
+      "path": "lib/ediel/messages.ts",
+      "gitEntry": "100644 blob 021a5fa870482ca3c67a20b48c38b6634d5795c7\tlib/ediel/messages.ts",
+      "sha256": "1bcfe177db9e7fad4a25342ce82a7c9b1cc5904428df26e2cf84ab9a9d02faa1"
+    },
+    {
+      "path": "lib/ediel/scopedCapabilityReadiness.ts",
+      "gitEntry": "100644 blob 5d7e2eaad32eeceb6cee5559a252b3fd77349f47\tlib/ediel/scopedCapabilityReadiness.ts",
+      "sha256": "6de2e7c01718a6ea142affd96f047f1c7b2c870daf08a961508a508bfd2465fd"
+    },
+    {
+      "path": "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "gitEntry": "100644 blob a216cc1e24eb108904dfc4dedc342439a6dbac50\tlib/ediel/sources/qualifiedCustomerStructure.ts",
+      "sha256": "98613562644608c7f0bd026dcfc34c57d5cc650757684db9a455dea402231a24"
+    },
+    {
+      "path": "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+      "gitEntry": "100644 blob f9922d687e18e78169ed6674a703568a5abfc994\tlib/ediel/rulebook/utiltsFieldMatrix.ts",
+      "sha256": "44fc23edb0e96cbb004a912b956b65823df6042b586c1b03224a05876c61d1a0"
+    },
+    {
+      "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+      "gitEntry": "100644 blob d909b4918756b08122ca8bd6c35f2b7477d1b844\tlib/ediel/core/edifactEnvelopeCodec.ts",
+      "sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed"
+    }
+  ],
+  "execution": {
+    "exit": 0,
+    "files": 2,
+    "passed": 5,
+    "logSha256": "3503d16161dd6dead514ae7ed6b0f222c14f9a1623bd8a0fa3e9212dde69160c",
+    "time": "2026-10-07T15:46:08Z",
+    "node": "22.23.3",
+    "vitest": "4.1.9",
+    "configuration": "unchanged defaultworkers canonical loopback boundary"
+  },
+  "firstOldCheckpointRun": "/tmp/gridex-sc052-existing-main9b.log historical/retracted current-main label",
+  "actualCurrentRun": "/tmp/gridex-sc052-exact-main9b.log",
+  "bookkeepingFailure": "First source manifest raised FileNotFoundError for mistaken production/qualifiedCustomerStructure path before writing report; corrected actual sources path, no tests/source changed."
+}
+```
+SC052_EXACT_MAIN_SOURCE_RECEIPT_END
+
+SC052_EXACT_MAIN_EXISTING_TEST_LOG_BEGIN
+```text
+
+ RUN  v4.1.9 /workspace/gridex-sc052-readonly-2c-741bf3
+
+
+ Test Files  2 passed (2)
+      Tests  5 passed (5)
+   Start at  15:46:08
+   Duration  445ms (transform 263ms, setup 44ms, import 307ms, tests 11ms, environment 0ms)
+
+```
+SC052_EXACT_MAIN_EXISTING_TEST_LOG_END
