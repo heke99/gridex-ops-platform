@@ -680,11 +680,12 @@ async function nativeTechnicalAck(){
   try{
    const cause=error instanceof Error?error.cause:null
    const details=cause&&typeof cause==='object'?cause as {code?:unknown;message?:unknown}:null
-   const message=typeof details?.message==='string'?details.message:''
+   const code=details?.code,messageValue=details?.message
+   const message=typeof messageValue==='string'?messageValue:''
    const count=/^ediel_technical_ack_route_count:([0-9]{1,6})$/.exec(message)
    const guards=['ediel_original_mailbox_source_required','ediel_original_mailbox_smtp_custody_required','ediel_tenant_actor_forbidden']
    console.error('H_SHARED_NATIVE_ROUTE_FAILURE',JSON.stringify({stage:'existing_configured_route_control',
-    sqlstate:typeof details?.code==='string'&&/^[0-9A-Z]{5}$/.test(details.code)?details.code:null,
+    sqlstate:typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code)?code:null,
     guard:count?'ediel_technical_ack_route_count':guards.includes(message)?message:null,
     count:count?Number(count[1]):null}))
   }catch{/* Failure feedback must never replace the actual protected-reader error. */}
