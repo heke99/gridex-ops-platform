@@ -121,7 +121,8 @@ try {
     wire(line() + line(2, ':::9', 'L1')), wire(line().replace('RFF+LI:L1', 'RFF+LI:')),
     wire(line().replace('RFF+LI:L1', 'NAD+UD+FOREIGN\'RFF+LI:L1')),
     wire(line().replace('LIN+1++:::9', 'LIN+1++:::9+1:1')),
-    wire(line()).replace('PRODAT:D', 'UTILTS:D'), wire(line()).replace('UNH+DOC', 'UNH+FOREIGN')]) {
+    wire(line()).replace('PRODAT:D', 'UTILTS:D'), wire(line()).replace('UNH+DOC', 'UNH+FOREIGN'),
+    wire(line()).replace('LIN+1', "CCI++Z13'CAV+Z25'LIN+1")]) {
     await refused(await input(raw), 'received_register_unvalidated_scope')
   }
   await refused(required, 'received_register_unvalidated_scope', {purged: true})
@@ -141,13 +142,23 @@ try {
     assert.equal((await db.query("SELECT has_function_privilege($1,'gridex_received_sources.rejected_identity_scope_v1(text,jsonb)','execute') ok", [role])).rows[0].ok, false)
     checks++
   }
+  const physical = required.facts.registerValidation.objects[0]
+  for (const [raw, scope] of [[null, physical], ['not EDIFACT', physical], [required.raw, null],
+    [required.raw, {...physical, objectId: 'BORROWED-POINT'}], [required.raw, {...physical, disposition: 'accepted'}]]) {
+    assert.equal((await db.query('SELECT gridex_received_sources.rejected_identity_scope_v1($1,$2) ok', [raw, scope])).rows[0].ok, false)
+    checks++
+  }
   const after = await catalog()
   // Unknown predecessor: mutate an unrelated body byte in a private transaction,
   // remove only the new helper and exercise the actual forward's strict guard.
   await db.exec('BEGIN')
   await db.exec('DROP FUNCTION gridex_received_sources.rejected_identity_scope_v1(text,jsonb)')
-  const currentDefinition = (await db.query('SELECT pg_get_functiondef($1::regprocedure) def', [signature])).rows[0].def
-  await db.exec(currentDefinition.replace('-- Lock per source', '-- Unknown predecessor Lock per source'))
+  // Restore the recognized OLD guard before changing an unrelated body byte:
+  // otherwise the new guard itself would already cause a stale-body refusal.
+  const unknownDefinition = definition('append_validation_before_reference_profile_v1')
+    .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
+    .replace('-- Lock per source', '-- Unknown predecessor Lock per source')
+  await db.exec(unknownDefinition)
   await assert.rejects(db.exec(readFileSync(new URL(forwardPath, import.meta.url), 'utf8')),
     {code: '23514', message: 'rejected_identity_append_owner_changed'})
   await db.exec('ROLLBACK')
