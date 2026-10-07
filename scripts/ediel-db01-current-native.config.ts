@@ -34,8 +34,8 @@ if (receipt.root_path !== root || receipt.checkout_sha !== head || receipt.base_
   throw new Error('db01_native_source_identity_mismatch')
 }
 const producerPath = 'lib/ediel/testing/agtEngine.ts'
-const producerHash = '1e92d77dde830f105eebb11277207bd8781f748081e632b359f47674bcfe7b65'
-const producerOid = '79eeae754fcfd610e1baa82bd6c6be2e930cb506'
+const producerHash = '42b157970dff6cfb094c7f8e683f0b0e41adbd20c00e152fe3a01dffbc25af9a'
+const producerOid = 'b156d14903c6c14d450d4b8c4088a3e14ea42997'
 const dependencies = ['lib/ediel/core/kernel.ts', 'lib/ediel/core/kernelLegacy.ts', 'lib/ediel/core/outboundOwnerWitness.ts',
   'lib/ediel/rulebook/canonicalEdielFacade.ts', 'lib/ediel/testing/tgtCanonicalDraftRoute.ts',
   'lib/ediel/testing/agtRuntime.ts', 'lib/ediel/testing/agtRegistry.ts']
