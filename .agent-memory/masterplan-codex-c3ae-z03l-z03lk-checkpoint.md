@@ -1,3 +1,15 @@
+## Actual local native prerequisites installed on currentmain composition — 2026-10-07
+
+After1c0e919e/#5306039890495 BOTHexactreadbacks+fresh17/main9b/public63552/primarydaa/native66942/candidate15e36, ROOT actualprimaryFFdaa→52 then normalmain9b merge e7d3e68ca7a2704151efdd11645764da3d38c61f (parents52+9b). All12newmain metadata MODEOID andALLown52executable posts preserved. First local comparison accidentally recomputed same fulltree repeatedly; ownsession stoppedEXIT130 AFTERclean e7d BEFOREnativecopy, no sourcecheck credited/no guard relaxed. Correctedcachedtreereads verify exactpreservation then ENTIREreviewednative15e36 ONLYinstalled inownednativepath.
+
+LOCAL primary HEAD78ae0ef97e6528b8dbbfb8f8db01c26c17557c2a/tree3159cce4af1683898604f43f25b166fcd7fd793d CLEAN/9401tracked; singleparent e7d,9400 other tracked allparentpaths exceptnative MODEOIDexact. Receipt /tmp/gridex-c3ae-l-native-v2-install-receipt.json recordsactualparents/entirecandidate hash/cleanbefore-after/onlynativechanged. All273originalassertions/fixed34 andcontrasts/defaultUNKNOWN/fullpositivehistoryreplay tails retained; prospectiveactor+physical12negativeprereqs no execution/P2/authoritycredit.
+
+Currentownnative scopedlint+scriptsNONincrementalTSC RUNNING session31346/Node22 seals78ae. Two finalcomplete installedSOURCEreviews delegated independently; no pass inferred. ROOTproducerWT52 unchangedclean; PUBLIC635still52 OPEN/DRAFT/native37634118704 lastQUEUED/no newsourcepush, sourceport6586039782217/helper6666039786759 retained. Prior52source78targeted/types3/lint0+source2APP exact3postimages remainunchanged on78ae, prior5cFULL50FAIL retained1fixednormative+1timeout+48 unresolvedbehaviors. Currentnativeexecution/realprivateCOREhook/whole/full/mandatory NOTGREEN. Named2f/privateREADORauth+helper1df truthfulfinitefixtureinputs still rightfulowners; rootonlyownednative/module/policy/unit.
+
+NEXT ROOT actualscopedchecks+twoinstalledreviews/self, finiteCP530 currentresults. Keep newlocalnativeunpublisheduntilseparatepublicationGO andactualrightful runtime/helper availability. Finish fullnative34tails/12specificnegativecauses/effects/history/replay/currentFULL/currentCI/finalWHOLE→merge iff allgreen/freeownmerge-role; no coverage/newpair/sharedrole/mainmerge/externalcredit. Actualmain9b300/352/52remain/ownNOT_EXECUTED/all17retained.
+
+---
+
 ## BEFORE_LOCAL_INSTALL GO — reviewed own native prerequisites/current-main composition — 2026-10-07
 
 Samec3 soleL/LK17/635published52/main9b300/352/ownNOT_EXECUTED; no roles/newpair. Current published52 source port stays frozen for named2f reuse; no runtime/H/helper/auth/GEN authoring by root. Actual52 native input union3427 has exact committedGit/workingbytes/122actualproducer explicitpaths; maps250c5de42191322c4ebb7b30d20a233e791b8b852655a35a92a2f9d70a6abd7a/f32e990c1b83714a897ad256f247658819ea595263da36657bb92364c9986e57. Actual importclosure728/3695edges/0missing/0uncovered; static ONLY/no native outcome. Whole34 genuinecurrentrun37634118704 queued atlastread; future qualification only actualterminal/API/artifact tuple, unchanged dual-reviewed strictv4b2d60 reused/no secondreader.
