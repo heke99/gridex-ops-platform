@@ -39,7 +39,7 @@ type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>> & { end
 type Period = { id: string; company_id: string; customer_id: string; metering_point_id: string;
   status: string; start_date: string; end_date: string | null; market_end_at: string | null;
   source_message_id: string; source_end_message_id: string | null; metadata: Record<string, unknown>; market_state_version: number }
-afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs() })
+afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs(); confirmedSupplyWitnesses.clear() })
 function configureSmtp(email = 'recipient@example.invalid') {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid',
     EDIEL_APP_DKIM_ENABLED: 'false', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'synthetic@example.invalid',
@@ -233,6 +233,25 @@ async function process(f: Fixture, source: EdielMessageRow) {
   return (await getEdielMessageById(source.id))!
 }
 const periods = (f: Fixture) => sql<Period[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.customer_supply_periods p WHERE company_id=${literal(f.companyId)};`)
+
+// Test-only witnesses come from committed public processing, never source facts.
+const confirmedSupplyWitnesses = new Map<string, Readonly<{periodId:string;confirmationId:string}>>()
+function assertConfirmedSupplyPrecondition(f:Fixture, confirmation:EdielMessageRow) {
+  const actual = periods(f)
+  expect(actual, 'native_cancellation_confirmed_supply_precondition').toHaveLength(1)
+  expect(actual[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,
+    metering_point_id:f.pointId,status:'confirmed_by_grid_owner',source_message_id:confirmation.id})
+  confirmedSupplyWitnesses.set(f.companyId,Object.freeze({periodId:actual[0].id,confirmationId:confirmation.id}))
+}
+function assertEndingSupplyPrecondition(f:Fixture, ending:EdielMessageRow) {
+  const confirmed = confirmedSupplyWitnesses.get(f.companyId)
+  if (!confirmed) throw Error('native_cancellation_confirmed_supply_witness_required')
+  const actual = periods(f)
+  expect(actual, 'native_cancellation_ending_supply_precondition').toHaveLength(1)
+  expect(actual[0]).toMatchObject({id:confirmed.periodId,company_id:f.companyId,customer_id:f.customerId,
+    metering_point_id:f.pointId,status:'ending',source_message_id:confirmed.confirmationId,source_end_message_id:ending.id})
+}
+
 const switchState = (f: Fixture) => sql<{ status: string; original: string; li: string; inbound: string | null; completed: string | null }>(`SELECT jsonb_build_object('status',status,'original',outbound_z03_message_id,'li',rff_li_reference,'inbound',inbound_z04_message_id,'completed',completed_at) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
 const permissions = (f: Fixture) => sql(`SELECT jsonb_build_object('permissions',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}),'sites',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.metering_permission_sites p WHERE company_id=${literal(f.companyId)}));`)
 async function createOwnPermissionDraft(f: Fixture) {
@@ -305,7 +324,7 @@ describe('actual native supplier cancellation chains', () => {
   it('keeps requested after actual provider250 and physical ACKs; only causal Z04C completes the own future start', async () => {
     const f = await seed(), decoy = await seed(), decoyOriginal = original(decoy), decoySwitch = switchState(decoy)
     const confirmation = await receiveProdat(f, z04(f), 'Z04', 'L')
-    await process(f, confirmation)
+    await process(f, confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
     const [period] = periods(f); expect(period).toMatchObject({ company_id: f.companyId, customer_id: f.customerId,
       metering_point_id: f.pointId, status: 'confirmed_by_grid_owner', source_message_id: confirmation.id })
     const beforeOriginal = original(f), beforePermission = permissions(f)
@@ -341,9 +360,9 @@ describe('actual native supplier cancellation chains', () => {
   it('restores the same native period from its exact ordinary Z05 end, preserves original history and replays without duplicate replies', async () => {
     const f = await seed(), decoy = await seed(), decoyOriginal = original(decoy), decoySwitch = switchState(decoy)
     const confirmation = await receiveProdat(f,z04(f),'Z04','L')
-    await process(f,confirmation)
+    await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
     const [baseline] = periods(f), beforeOriginal = original(f), beforePermission = permissions(f)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     expect(periods(f)).toHaveLength(1); expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: 'ending', source_end_message_id: ending.id })
     await sendOwnAcks(f,ending.id)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'); await process(f,continuation)
@@ -362,9 +381,9 @@ describe('actual native supplier cancellation chains', () => {
 
   it('restoration, physical replies and replay preserve a real nonempty same-tenant permission draft', async () => {
     const f = await seed(), permissionBefore = await createOwnPermissionDraft(f), beforeOriginal = original(f)
-    const confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
     const [baseline] = periods(f); expect(permissions(f)).toEqual(permissionBefore)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const [endingPeriod] = periods(f)
     expect(endingPeriod).toMatchObject({id:baseline.id,status:'ending',source_end_message_id:ending.id})
     expect(permissions(f)).toEqual(permissionBefore)
@@ -385,8 +404,8 @@ describe('actual native supplier cancellation chains', () => {
 
   it('final partition failure preserves the real nonempty permission draft and rolls back all supply business state', async () => {
     const f = await seed(), permissionBefore = await createOwnPermissionDraft(f)
-    const confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     expect(permissions(f)).toEqual(permissionBefore)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'), before = supplyBusinessState(f)
     const constraint = 'z05c_draft_final_partition_'+randomUUID().replaceAll('-','')
@@ -404,16 +423,16 @@ describe('actual native supplier cancellation chains', () => {
 
   it('a stale cancellation of restored end A cannot restore the current distinct end B', async () => {
     const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L')
-    await process(f,confirmation)
+    await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
     const [baseline] = periods(f)
-    const endingA = await receiveProdat(f,z05(f),'Z05','L'); await process(f,endingA)
+    const endingA = await receiveProdat(f,z05(f),'Z05','L'); await process(f,endingA); assertEndingSupplyPrecondition(f, endingA)
     expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: 'ending', source_end_message_id: endingA.id })
     const restorationA = await receiveProdat(f,z05(f,'Z24'),'Z05','C'); await process(f,restorationA)
     expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: baseline.status, source_end_message_id: null })
     const endBMinute = new Date(Date.UTC(Number(f.endMinute.slice(0,4)),Number(f.endMinute.slice(4,6))-1,
       Number(f.endMinute.slice(6,8))+1)).toISOString().slice(0,10).replaceAll('-','')+'0000'
     expect(endBMinute).not.toBe(f.endMinute)
-    const endingB = await receiveProdat(f,z05({...f,endMinute:endBMinute}),'Z05','L'); await process(f,endingB)
+    const endingB = await receiveProdat(f,z05({...f,endMinute:endBMinute}),'Z05','L'); await process(f,endingB); assertEndingSupplyPrecondition(f, endingB)
     expect(periods(f)[0]).toMatchObject({ id: baseline.id, status: 'ending', source_end_message_id: endingB.id })
     const before = periods(f), permissionBefore = permissions(f)
     const transitionCount = sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(f.companyId)};`)
@@ -426,8 +445,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it('refuses raw and direction rewrites of a genuinely received Z05C without changing source, reception or effects', async () => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'); await process(f,continuation)
     const retained = () => sql(`SELECT jsonb_build_object('message',(SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(continuation.id)} AND company_id=${literal(f.companyId)}),
       'source',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)}),
@@ -448,8 +467,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it.each(['226','260','223','227','228','232','231','316','233','234','262'])('holds individually omitted required Z05C field %s with its actual national diagnostic', async fieldNumber => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const before = periods(f), permissionBefore = permissions(f)
     const transitions = () => sql(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.source_message_id),'[]') FROM gridex_received_sources.supply_source_transitions t WHERE company_id=${literal(f.companyId)};`)
     const historyBefore = transitions()
@@ -497,9 +516,9 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it('concurrent invocation of the same received C restores once with one transition and one reply per family', async () => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
     const [baseline] = periods(f)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const [endingPeriod] = periods(f), beforeOriginal = original(f), permissionBefore = permissions(f)
     const endingHistory = () => sql(`SELECT to_jsonb(t) FROM gridex_received_sources.supply_source_transitions t WHERE source_message_id=${literal(ending.id)} AND company_id=${literal(f.companyId)};`)
     const historyBefore = endingHistory()
@@ -537,8 +556,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it('a receiver supplier role expired after genuine C reception cannot restore the ending period', async () => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'), before = supplyBusinessState(f)
     expect(sql(`WITH changed AS (UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier' AND valid_to IS NULL RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
@@ -547,8 +566,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it('a genuine foreign execution actor cannot apply the own fresh C source', async () => {
-    const f = await seed(), foreign = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), foreign = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
     const before = supplyBusinessState(f), foreignBefore = supplyBusinessState(foreign), effectsBefore = ownedEffects(f,continuation.id)
     expect(await applySupplyMarketSource({actorUserId:foreign.actorUserId,message:continuation}))
@@ -559,8 +578,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it('a sender grid-owner role revoked before fresh C reception cannot restore the ending period', async () => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const before = supplyBusinessState(f)
     expect(sql(`WITH changed AS (UPDATE public.platform_actor_roles SET is_active=false WHERE actor_id=${literal(f.marketActorId)} AND actor_role='grid_owner' AND is_active RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
@@ -570,8 +589,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it('failure at the final C partition insert rolls back restoration and receipts and records the named held warning', async () => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C'), before = supplyBusinessState(f)
     const constraint = 'z05c_final_partition_'+randomUUID().replaceAll('-','')
     // A stricter disposable CHECK rejects only this own final INSERT. It
@@ -589,8 +608,8 @@ describe('actual native supplier cancellation chains', () => {
   }, 180000)
 
   it.each(['li','point','stop','required-date','required-user','selected-invoicee'])('holds Z05C %s without restoring its real ending decision', async variant => {
-    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation)
-    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending)
+    const f = await seed(), confirmation = await receiveProdat(f,z04(f),'Z04','L'); await process(f,confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L'); await process(f,ending); assertEndingSupplyPrecondition(f, ending)
     const before = periods(f), permissionBefore = permissions(f)
     const wire = z05(f,'Z24', wire => variant === 'li' ? wire.replace(`RFF+LI:${f.caseReference}`, 'RFF+LI:UNRELATED')
       : variant === 'point' ? wire.replaceAll(f.external, CLOSURE_OBJECT)
