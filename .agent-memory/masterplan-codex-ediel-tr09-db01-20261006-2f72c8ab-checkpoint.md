@@ -88,3 +88,10 @@ Full original details live in8ce410 ancestor. Never rewrite old results or quali
 6. Continue already activated project workflow/debugging/TDD/review/verification/worktree/Supabase skills recorded in immutable journal; cloud runtime skill and networking reference were read after restart. User authorization supersedes generic pause; no external traffic/evidence authority fabricated. Node22 binary `/workspace/gridex-2f72-session-state/npm-cache/_npx/d18f28baf1132559/node_modules/node/bin`; preserve inherited proxy/CA/auth and canonical preload.
 
 Next concrete owner action: ROOT documents current final147/source reviews, verifies29+CP/#530 readbacks, commits only exactCJS, freezes/publishes truthfully, then finishes fresh full and genuine current CI/native/capture qualifications. No new allocation or prompt needed.
+
+
+## Actual local exact-pin commit / next full verification
+
+AfterCP30b202/#5306029992337 andALL29+CP/comment actualMATCH, normal local commit `3a7322c89853e946a2dafa4e900f139e37b2a4f0`, tree `3bd18a475a58b66ab4a8f8540c296186b50343d7`, sole5978 parent. ONLY CJS +1/-1, exactapproved c56/inverse03e1; actual CLEAN. Published PR640 remains5978 until normal next push. All other source/generated/coverage/native bytes unchanged. Original focused147 PASS and two final source reviews stand for exactpostimage, no newfull/native/CI credit.
+
+Next ROOT starts new full3a7322 with same supportedNode22/canonicalnetworkguard;3NONincremental types already passed5978 and no typed-source inputs changed, mandatory current CI reruns normal checks after publication. Read authentic pending5978 DB14/TR21/capture originals with exactorigin; qualifyactualoutcomes and preserveallfailedorcancelledruns. Afterterminalnewfull/or documentedfailure, source-only normalpush/readback andcurrentmandatory genuine checks. Independentz04a_spec rechecks lawful genuine softwareproductioncapability proof path against currentmain, without fabricated approvals or externalveto. No owncoveragepromotion/roles/mainmerge/newpair.
