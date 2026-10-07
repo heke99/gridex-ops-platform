@@ -1,4 +1,7 @@
-// Bounded D-native feedback; no whole-contract coverage tag or market approval.
+// masterplan: AT-Z04D-SUPPLIER
+// Whole code-contract evidence is recorded in
+// quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json.
+// Current-head mandatory checks and external market activation remain separate.
 // Consumption uses the retained declared synthetic L control. D intake uses
 // actual mailbox parsing, adapter, processor, ground, effect and ACK owners.
 import { createHash, randomUUID } from 'node:crypto'

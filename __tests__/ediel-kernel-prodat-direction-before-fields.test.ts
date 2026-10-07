@@ -1,3 +1,6 @@
+// masterplan: AT-Z04A-SUPPLIER, AT-Z04D-SUPPLIER
+// Supporting direction-refusal component; full native/shared proof is recorded
+// in quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json.
 // Real public kernel, parser, national field validator and canonical policy.
 // Only tenant database actor/authorization and persistence ports are declared
 // unit boundaries. No native custody, independent inventory or market proof.

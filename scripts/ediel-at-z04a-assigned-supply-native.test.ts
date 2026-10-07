@@ -1,4 +1,7 @@
-// Bounded A-native feedback only: neither whole AT-Z04A nor AT-Z04D is tagged.
+// masterplan: AT-Z04A-SUPPLIER
+// Whole code-contract evidence is recorded in
+// quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json.
+// Current-head mandatory checks and external market activation remain separate.
 // Real archived/reviewed ground, mailbox, reception and source-effect producers.
 // Issuer trust and SMTP configuration are explicitly synthetic, not legal or
 // market acceptance. The retained ground fixture prepares an UNSENT Z03: this
