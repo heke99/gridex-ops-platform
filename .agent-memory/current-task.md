@@ -1,3 +1,13 @@
+## Actual campaign observation — 2026-10-07T12:37:33.769902+00:00
+
+95bc completes only reserved actual656/main300 shared closeout: two final metadata reviews, exact-head eight mandatory checks, normal expected-head merge only with immediately free role-merge; release memory-role before waiting for another role. Authenticate actual delivery and release merge-role FIRST then owner-only memory resources. Refresh main, coverage, original/legacy custody, #530 and live locks; select/reserve next eligible work autonomously. Other owners retain their existing packets.
+
+Actual main 0ecf9c60812dea2654da13d0a6ce112c650a0fe4; **115 VERIFIED rules +185 PASSED contracts =300/352;52 remain**. Actual A/D656 delivery5b/source0ce and source-only663 are separate; resulting-main runtime/deployment/external acceptance NOT_VERIFIED. Receipts6037593233/6037786738.
+
+ROOT95 only owns memorycloseout f6c8d7dc/c947:ten common files+role-memory, [CLAIM6037712691](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6037712691). This snapshot is a pending metadata change, not a merged memory PR or current candidate CI success. Earlier dated observations below are historical and do not override this observation. Original #664 remains OPEN/unmerged under93 retained resumable delivery responsibility after its explicit five-resource release6037289088; this own656 closeout neither resumes/closes664 nor imports foreign checkpoints.
+
+Earlier dated entries below are historical. This own metadata update is proposed; current-head review/CI/delivery remain required.
+
 ## Actual campaign observation — 2026-10-07T02:40:35.459682+00:00
 
 Observed actual main 1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a (tree 45ea1533702665b11b8f1a7eafeef96162d14227), coverage SHA256 31fc286d62354e9632d576c4b5cc40f04b76ef112887e5ba241b34418bdd402e: **115/121 VERIFIED rules + 180/231 PASSED contracts = 295/352; 57 remain**. Actual PR #629 delivered ed7c0980 from4b131b8a with nineteen non-skipped source checks SUCCESS and its two E contracts accepted in main. PR #651 merged at2026-10-07T02:36:55Z frombfa77190; exactparents ed7c0980+bfa77190 and exact reviewed tree45ea153 authenticated. Its scoped cleanup and dated636/released649/645 metadata are delivered; no ID is promoted by651. Earlier dated snapshots and the old GEN213222 missing-column blocker are SUPERSEDED by these actual observations.
