@@ -349,7 +349,7 @@ function replyBody(f: Fixture, original: Original, refs = references(), invoicee
     ...rawParts(originalAckLegalNadSegment('FR', parties.legalReceiver) + "'"),
     ...rawParts(originalAckLegalNadSegment('DO', parties.legalSender) + "'"),
     line('1', f.external, undefined, '9'), qty('1000'), ...common(f.external, 'Synthetic Own Customer', observed.start),
-    ...characteristic('Z07', 'E22'), ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'D'),
+    ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'D'),
     // Prospective own readings declaration, before physical mail birth. This
     // does not assert actual UTILTS delivery or supply a policy condition fact.
     ...characteristic('Z02', '10', 3), ...characteristic('Z05', '8', 3), ...characteristic('Z16', 'E01', 3),
@@ -504,6 +504,31 @@ async function intake(f: Fixture, raw: string, environment: 'test' | 'production
 }
 async function ready(f: Fixture, original: Original, raw = reply(f, original), expectedLi = own(f, original).li,
   expectedRegisters: 1 | 2 = 1) {
+  // Original field306 declares installation status on the first object.
+  // Qualify its prospective positive premise before immutable mailbox birth.
+  expect(sql(`SELECT jsonb_build_object('pointStatus',p.status,'siteStatus',s.status,
+    'companyId',p.company_id,'customerId',p.customer_id,'siteId',p.site_id,
+    'customerSiteId',p.customer_site_id,'external',p.ediel_metering_point_id)
+    FROM public.metering_points p JOIN public.customer_sites s ON s.id=p.site_id
+    AND s.company_id=p.company_id AND s.customer_id=p.customer_id
+    WHERE p.id=${literal(f.pointId)} AND p.company_id=${literal(f.companyId)}
+    AND p.customer_id=${literal(f.customerId)} AND s.id=${literal(f.siteId)}`)).toEqual({
+      pointStatus:'active',siteStatus:'active',companyId:f.companyId,customerId:f.customerId,
+      siteId:f.siteId,customerSiteId:f.siteId,external:f.external})
+  const installationWire=tokenizeEdifact(raw)
+  const firstLineIndex=installationWire.segments.findIndex(s=>s.tag==='LIN')
+  expect(firstLineIndex).toBeGreaterThanOrEqual(0)
+  const firstLine=installationWire.segments[firstLineIndex]
+  expect(segmentComposite(firstLine,3,installationWire.una)[0]).toBe(f.external)
+  expect(segmentComposite(firstLine,3,installationWire.una)[3]).toBe('9')
+  const boundary=installationWire.segments.slice(firstLineIndex+1).findIndex(s=>s.tag==='LIN'||s.tag==='UNT')
+  expect(boundary).toBeGreaterThanOrEqual(0)
+  const firstObject=installationWire.segments.slice(firstLineIndex,firstLineIndex+1+boundary)
+  const installationCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z07')
+  expect(installationCharacteristics).toHaveLength(1)
+  const installationValue=firstObject[firstObject.indexOf(installationCharacteristics[0])+1]
+  expect(installationValue?.tag).toBe('CAV')
+  expect(segmentComposite(installationValue,1,installationWire.una)).toEqual(['Z12'])
   const received = await intake(f, raw)
   expect(received.tenant, JSON.stringify(received)).toMatchObject({ status: 'resolved', companyId: f.companyId })
   expect(received.id, JSON.stringify(received)).not.toBeNull()
