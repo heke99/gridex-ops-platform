@@ -1,3 +1,13 @@
+## AUTHORGO native V3 late-observation mechanism only — 2026-10-07
+
+Same sole L/LK/25 technical refs, no merge/memory role. Unchanged native/source paths onHEADc0f939e2a6b0aad427589f79445e24ace50ebbf7; ROOT freshly rehashed all22 V3 bindings. Frozen plan84b52c436d9859af75b4aaf687283dd0cd62b90b056736f8fbe0c55e12b72b6d has independent full conditional PLANAPP contractdcda8cb637fd794be7eb19f93f00cb1dc6545974d4593e911f06120c723ffba1 and FP577e658af6c1cd9b6ed14c93c060281da8b82f3ecbde1c8595b6653efe4674a8,0findings. Existing root fullsourcec4f3d471 and new finalmechanism addendum retained privately.
+
+ROOT authorizes ONLY scripts/ediel-at-z03l-z03lk-supplier-native.test.ts AFTER exact checkpoint/673 readbacks/fresh25. Transparent one-real-call pernegative spy with sameinput/return/error/localfinally, plain immutable READ DTO before/after, fixed latecause/isolatedpredicate/actualv6leaf/fullphysicalscope/event binding. Helper AFTERoldbusiness/noeffectstails preserves originalfirstfailure. Wrong-object exactpreselected supply_original_cohort_changed from real owncompany receivedobject outercohort empty and ownLI inneroriginal outside it; no sentfilter assumption, othercompany rows excluded. Earlierrefusal route0 has NONE_APPROVED descriptors and must remain fail/inconclusive; never force APPaccepted or manually callowner. No callback/SELECT invokes issuer/recorder/resolver/apply or privatebrand authority. No mutable baselinegreen/order flag. Native34 cases/273 old assertions/48 oldhelpers/12 oldmarkers/fullTRUEtails/UNKNOWN/wires/timeouts/workers remain preserved with exactinverse.
+
+Disjoint author scopes same pair: directauthor only2tests+ownedSDKfixture, nativeauthor onlyscript. HEAD staysfixed; noauthorcommit/push/lock/GitHub/nativeexecution/artifactreading. If native needs new helper path or grows beyond2000lines, stop at concrete bounded split proposal before any unclaimed file edit; ROOT acquires needed scope/reviews. Staticchecks coordinated to avoid redundant/contending fulltypes. Existing native32P2F is unchangedhistorical/currentpublished source, not currentcandidate result. Next ROOT fullcandidatepreservation/privacy/source2reviews/currenttypedchecks before freeze/publication; genuinecurrentwhole/twoTRUEtails/12causes and named runtime/auth229/252 owners still required.
+
+---
+
 ## AUTHORGO bounded direct consumer fixture repair — 2026-10-07
 
 Same sole L/LK, technical25 retained, no merge/memory role. Source clean c0f939e2a6b0aad427589f79445e24ace50ebbf7/treeb491b3279b4b5458147bd6e5aa325aca263c2a4f, preview/worktree /workspace/gridex-c3ae-l-consumer-preview. Actual main8f884fb884cd10e30432eb9aa69cd7b916a675a7, metadata678 completed/released, source dependency bytes unchanged.
