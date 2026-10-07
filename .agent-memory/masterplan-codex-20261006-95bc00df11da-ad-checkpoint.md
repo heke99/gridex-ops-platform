@@ -1,0 +1,76 @@
+# Masterplan A/D checkpoint — codex-20261006-95bc00df11da
+
+Session codex-20261006-95bc00df11da; packet 91549426-9018-443a-9657-6a154d1e2145; branch codex/z04ad-95bc00df11da-20261007-91549426; worktree /workspace/gridex-ediel-ad-95bc00df11da-20261007; base 69dcbbaa2e9d3e4527dce61a9f7bfa2d31b10c9a. PRECLAIM_READONLY, no implementation or approval.
+
+Existing95bc responsibility COMPLETE: actual651main1ac, actual652main69dcbbaa/tree833 at04:03:19Z; bothsource/currentexecution/composition reviews/all8mandatorySUCCESS; actualmerge/allforeign352coverage verified. Merge-roleFIRST04:04:32Z thenmemory11ownerGETDELETEHTTP404; durableRELEASE5306030692261/checkpoint1ec0b27c. No priortechnicalpair/roles remain.
+
+Selected unapproved contracts AT-Z04A-SUPPLIER and AT-Z04D-SUPPLIER; associatedTEN-05/P-01/ENV-06 alreadyapproved, no foreignrulecoverage edits. Remainingfree rulecards P08/transport/legal/counterparty remain retained/external prerequisites; TR09/DB01 andSC014 heldbyoriginalroots. Fresh69main/coverage295/352/latest530/openPRs/legacyregister read. Original630wholeRELEASE6024728636 permits newboundedcurrentmainreuse; preserve original70c/native24PASS4FAIL/full12046 SOURCEONLY, notcurrentwholecredit. Five unique core proposals and five freeunit/four native/oneworkflow paths remain absentmain; actualGEN629213222/currentpublicbirth delivered, no repeat/wide oldstack.
+
+Exact candidate owned files beforeatomicclaim:
+- .github/workflows/ediel-z04a-assigned-supply-native.yml
+- __tests__/ediel-canonical-source-gateway.test.ts
+- __tests__/ediel-kernel-prodat-direction-before-fields.test.ts
+- __tests__/ediel-prodat-bilateral-source-capability.test.ts
+- __tests__/ediel-prodat-date-event-actions.test.ts
+- __tests__/ediel-prodat-source-register-reading-declarations.test.ts
+- lib/ediel/core/kernel.ts
+- lib/ediel/core/messagePolicy.ts
+- lib/ediel/core/prodatBilateralSourceCapability.ts
+- lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts
+- lib/ediel/rulebook/canonicalRulePackRegistry.ts
+- scripts/ediel-at-z04a-assigned-supply-native.config.ts
+- scripts/ediel-at-z04a-assigned-supply-native.test.ts
+- scripts/ediel-at-z04d-production-native.test.ts
+- scripts/helpers/ediel-z04d-production-native-fixture.ts
+
+Foreign exclusions/dependencies: assignedSupplyBirthProfile/inboundStatusUpdater/assignedbirthunit owned93e35c; inboundProcessing ownedc650dec, currentactorfinite-IO RED/correction belongssoleowner/new888 test. Preserve actualmain bytes; realactor domain effects CURRENT_RUNTIME_UNVERIFIED, not mandatoryhandoff before boundedcorework; strictcurrentnative decides andowner supplies exactfix/handoff ifviolation. GenericoldGEN629/621/cycle blockers superseded. OldA210/minute/D319 unsupportedreason/partition oracles require literal-current qualification; do not weaken denied-effects/ACK/original/replay controls. Currentcommon65327ae OPEN/notdelivered; no source borrowing without actualdelivery or explicitboundedimmutable owner authorization.
+
+Skill routing: existing42inventory inspected; using-superpowers/worktrees/plans/executing/spec-to-code/code-review/differential-review/requesting+receiving-review/verification-before-completion/quality-playbook/finishing/TDD/systematic-debugging/fp-check/tenant-source supabase/code-security/sharp-edges apply to scopedsource/callgraph/negativeeffects/currentnative proof. Property-based/variant-analysis activate for source-clock/parser findings; newSQL/migration/capture/tools only ifactualownedneed. UI/React/performance/writing-skills/hooks and broadunrelatedscans skipped: no UI/performance/dependency/hookchange or broadrepoaudit inthispair. No secrets/privateproductiondata.
+
+Plan/next95bc: Atomically claim own two unapproved A/D contracts and all15free paths; confirm ALL17, durable owncheckpoint/CLAIM530 BEFOREcode. Reuse unique630 physical259/source-clock/context/direction-diagnostic changes and retained tests/native/currentGHA; preserve deliveredGEN/birth/updater and foreignprocessor0dec. Whole contracts need strict current public/native effects, role/direction/fields/correlation/actor/mutation/ACK/replay, no unsupported old exception or partition oracle and no coverage until fullproof.
+
+## Atomic all17 claim confirmed before code
+
+CLAIM AT-Z04A-SUPPLIER, AT-Z04D-SUPPLIER — codex-20261006-95bc00df11da — packet 91549426-9018-443a-9657-6a154d1e2145 — branch codex/z04ad-95bc00df11da-20261007-91549426
+
+Atomic receipt 94b8514b6a38838293d76eb7e36c84aad2e3d3e0; all17 sorted create-only POST and individual finalGETMATCH confirmed 2026-10-07T04:08:41.281348+00:00. Baseactualmain 69dcbbaa2e9d3e4527dce61a9f7bfa2d31b10c9a, bothcontractrows unapproved. Prior652 fullyMERGED/RELEASED6030692261; ownactiveONLYthispair, no roles.
+
+Exact owned15paths:
+- .github/workflows/ediel-z04a-assigned-supply-native.yml
+- __tests__/ediel-canonical-source-gateway.test.ts
+- __tests__/ediel-kernel-prodat-direction-before-fields.test.ts
+- __tests__/ediel-prodat-bilateral-source-capability.test.ts
+- __tests__/ediel-prodat-date-event-actions.test.ts
+- __tests__/ediel-prodat-source-register-reading-declarations.test.ts
+- lib/ediel/core/kernel.ts
+- lib/ediel/core/messagePolicy.ts
+- lib/ediel/core/prodatBilateralSourceCapability.ts
+- lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts
+- lib/ediel/rulebook/canonicalRulePackRegistry.ts
+- scripts/ediel-at-z04a-assigned-supply-native.config.ts
+- scripts/ediel-at-z04a-assigned-supply-native.test.ts
+- scripts/ediel-at-z04d-production-native.test.ts
+- scripts/helpers/ediel-z04d-production-native-fixture.ts
+
+Exact confirmed resources:
+- refs/tags/agent-claims/masterplan/file-0781aede9532f2e04c91e0ad27b160c5063c1ee3095cf657bf46b5f24b19ff01
+- refs/tags/agent-claims/masterplan/file-1019911fd1ef4ed62e2365945c159af4f2551c62e04d6bb5df172a0f9de09123
+- refs/tags/agent-claims/masterplan/file-11aa26031eef1daa4fd484f7e4151831978853092be7361aec9b89b4676a9c90
+- refs/tags/agent-claims/masterplan/file-12d0141e1b58f941cd4998a898658d704fc07b7b2a4e3821041b74ab78027f67
+- refs/tags/agent-claims/masterplan/file-178fd9901e0b805f6ae403f83a8a504c61fb5331f882952c9d3f2d6117877766
+- refs/tags/agent-claims/masterplan/file-5f087fcd55ed4f6539103c83d51e9e6d3e6ee52a0c91ecc637af231cad8ced42
+- refs/tags/agent-claims/masterplan/file-7ae85ea8dc72699cc1f0a42b5bd54a8f37849ff1b6ac5f3f8c3f0769748c91f5
+- refs/tags/agent-claims/masterplan/file-7fbe6f2d6499c68f93e094e2ec4b69ef71a0016430960994375685929b9c0de4
+- refs/tags/agent-claims/masterplan/file-9c706890c7a04457ffae8e72bcbd6ef402b94584cfd0ec5c249c68e913da819d
+- refs/tags/agent-claims/masterplan/file-a96f37f7aead3301480ea1903e88a121fd8df28bd0f1c80a798b37042460f3f5
+- refs/tags/agent-claims/masterplan/file-b945b3f48f6499f07ab2e083bda3994543f8973df877979bafd6baa6ce44bbda
+- refs/tags/agent-claims/masterplan/file-c042114d24cd735da0d25ae7f8c5f7cf3192f691c1808156b75ca819e986ee0a
+- refs/tags/agent-claims/masterplan/file-eabf9308434b00adbd7003c1a3cb3b753cb04e3d739bec117edc4352f98f7a90
+- refs/tags/agent-claims/masterplan/file-f1f4ae8e124925ae5c548ec8ac647a92fe4135cad8dbd7719f545e16e047392b
+- refs/tags/agent-claims/masterplan/file-f6d281a2d7c2224b95e7b657e5ddbe2dcea9056ccd9628d96abffe293243d881
+- refs/tags/agent-claims/masterplan/id-AT-Z04A-SUPPLIER
+- refs/tags/agent-claims/masterplan/id-AT-Z04D-SUPPLIER
+
+Original63070c/explicitwholeRELEASE6024728636 reused afteractualmaincomparison; actualGEN629/birth/types delivered, no wholesaleoldstack. Foreign93e birth/intake/assignedbirthunit andc650dec processor excluded. Actor effects CURRENT_RUNTIME_UNVERIFIED; c65 owns currenttyped-refusal regression/correction. Publiccurrentnative/ACK/original/bothtenantgraphs/replay controls remain strict; old24/4/source-only12046 no currentwholecredit. No coverage edits until fullclaimedID proved.
+
+Checkpoint .agent-memory/masterplan-codex-20261006-95bc00df11da-ad-checkpoint.md in isolated /workspace/gridex-ediel-ad-95bc00df11da-20261007. Next95bc: existingretainedtests first againstcurrentbase formeaningfulRED; thenonlyunique5core/source259/context/PGprecisionclock/directionprecedence changes, actualpublicnative28 andcurrentallmandatorychecks/twoindependentwhole reviews. Qualifywrongdate/319/actor againstliteralcontracts preserving allnegativeeffects; exactforeignownerhandoff onlyif freshproofrequiresit. No userallocation/permission needed.
