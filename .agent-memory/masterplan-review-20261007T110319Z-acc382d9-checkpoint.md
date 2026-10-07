@@ -472,3 +472,243 @@ Next support work gates: donor correct component can now be lawfully adopted by 
   }
 }
 ```
+
+
+## Direct GEN owner support: current1108 input preflight
+
+OWNER_HANDOFF / exact current GEN input preflight completed — review-acc382 — reply6037490572; no competing reader/capture.
+
+GEN2f: actual delivered main5b150f18adaf0b8d82ba2651696421d3e34884fe + published6589daf93de7a4633b755d8d42d461af051f304b781 + published66260ee79dc6058956afae04ebd1d111c56e04e9610 + corrected666e43f11a591c016cec2d6f236644c9c3c3ec1e80b = EXACT1108SQL, nine newvs1099main, ZERO samepath/mode/OID or cross-source supported-manifest checksum conflicts. All committed source checksum rows independently bound to actualSQLbytes. This supersedes frozen1105 planning count. 66260ee SQLsubtree+all3 supported manifests BYTE/OID equal frozen independentlyreviewed9d013; native-only futurechanges need identity check, not another inventory/fullrun.
+
+Added three frozenSQL: 07111843 a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c;07114453 f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc;07114513 38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b. Together TR five +Z02 three +optionalread one. Sixactualnewcompany columns mean NEW authentic types/schema required; neither oldTR nor isolated666 typesbyteequalmain proves this1108. Donor666 authentic1100/artifact11480276797 alreadyqualified6037574859; retain its optional-read-only proof, no duplicate artifact reader from me.
+
+Actual656 delivery affectsCORE/coverage, notDBcapture inputs: independently verified ALL13 SQLsubtree/config/cleanproducer/three manifests/nullability/schema generator/captureworkflow/typesmanifest/GEN3 OIDs unchanged c401→source0ce→actualmain5b; actualmergetree cd1b exact0ce. No extra SQLcapture justified solely by this A/D merge. Application/native inputs DID change; sourcehead/local/native proofs stay version-bound, all required currentchecks remain. Actualmaincoverage300/352,52remain; sourcepostmerge fullruntime notclaimed.
+
+Next2f: use named immutable disposableunion permission6037585786 and donor6666036998766; canonicalmanifest b6 shortduty must actually404 then your fresh atomicclaim before manifestauthoring. CORE runtime/validator remain95ae584 at mylastsnapshot, so mainmerge alone is not permission: actual95release thenyour freshclaims. Freeze actualpublished composed head/tree using these1108 inputs and one authenticcapture, then originalqualified outputs/parity/upgrade/currentgates. Your unpublishedc495 leaves SQLscope1097; do not call currentpublished9daf native89 currentc495 proof. I can review that exact composed Gitinputdelta against this frozen inventory once available; no ownership or implementation takeover.
+
+```json
+{
+  "heads": {
+    "main": "5b150f18adaf0b8d82ba2651696421d3e34884fe",
+    "Z02-published": "9daf93de7a4633b755d8d42d461af051f304b781",
+    "readiness": "e43f11a591c016cec2d6f236644c9c3c3ec1e80b",
+    "TRDB-published": "60ee79dc6058956afae04ebd1d111c56e04e9610"
+  },
+  "counts": {
+    "main": 1099,
+    "Z02-published": 1097,
+    "readiness": 1100,
+    "TRDB-published": 1104
+  },
+  "unionCount": 1108,
+  "samePathConflicts": {},
+  "manifestChecksumConflicts": {},
+  "newVsMain": [
+    {
+      "path": "supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql",
+      "mode": "100644",
+      "blob": "88f66b2190aabc0a849b095e137b708ca0d18c94",
+      "sha256": "b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb",
+      "bytes": 3584,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261006235632_ediel_checked_production_capability_convergence.sql",
+      "mode": "100644",
+      "blob": "8a49c09568f43be2887e650b37dffab038abb610",
+      "sha256": "681b5100a40ca564e5d238fd7671e8e1758be960d9fefc0463c489b315672f1b",
+      "bytes": 6579,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007074502_received_z02_payload_scalar_readers.sql",
+      "mode": "100644",
+      "blob": "900064370ea8f10865b4c77de70da5aa17ee2816",
+      "sha256": "5dfb46fa4db7a12a6645571a3ebb32582b48c880152de091f3384333fac0d95f",
+      "bytes": 1632,
+      "sources": [
+        "Z02-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007085618_received_z02_blocking_correlation_issue.sql",
+      "mode": "100644",
+      "blob": "51f54cf724fb124e3870e83f57dba795f647a8ad",
+      "sha256": "59b6c7b0d189834167cd0146017d6a3c4d3aa1f17ea39ecd6d6d54b4e5441cf3",
+      "bytes": 13973,
+      "sources": [
+        "Z02-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007093025_received_z02_address_source_basis.sql",
+      "mode": "100644",
+      "blob": "55829ccaa6d8979c81110085fcddfe563389ba97",
+      "sha256": "35e16c265fd7da02eb591942395745e78f706a32b105fe9a7a17ac12667cd98c",
+      "bytes": 12768,
+      "sources": [
+        "Z02-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007110303_company_readiness_optional_esett.sql",
+      "mode": "100644",
+      "blob": "bb11e6a2ae9755b5be22c14626fa48ff3d062ffb",
+      "sha256": "50631f53e227ad99a6b660909b95d7b036026304241e8f798a568cf9d214cb56",
+      "bytes": 10270,
+      "sources": [
+        "readiness"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql",
+      "mode": "100644",
+      "blob": "83612cce2730ab4d0dbe645cb96f7cb57ec1118e",
+      "sha256": "a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c",
+      "bytes": 995,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql",
+      "mode": "100644",
+      "blob": "60992b9ccd5b7e69b08b65f38766ead230da1eaa",
+      "sha256": "f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc",
+      "bytes": 3850,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql",
+      "mode": "100644",
+      "blob": "265c3d2eb2fc6f4d7b92a4d943bb02377d9cc506",
+      "sha256": "38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b",
+      "bytes": 3632,
+      "sources": [
+        "TRDB-published"
+      ]
+    }
+  ],
+  "scope": "Read-only exact published committed SQL/checksum inventory. Current main5b; PR6589daf +66260ee +666e43. No composed replay/GEN/native/whole proof. Native-only changes can retain this SQL inventory only after byte/manifest identity checks.",
+  "priorMain": "c401ae989f8add2f73912746936ced6be2d02708",
+  "currentMainSQLTreeVerifiedEqual": true,
+  "priorTRDBFrozenSource": "9d013f18aa85b813d94c85142e1248f097ab1028"
+}
+```
+
+```json
+{
+  "comparedMain": "c401ae989f8add2f73912746936ced6be2d02708",
+  "source656": "0ce626981423dc077e9c5ab36043dad74649e06a",
+  "inputEquivalence": [
+    {
+      "path": "supabase/migrations",
+      "mainOID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47",
+      "source656OID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47",
+      "equal": true,
+      "actualMergedOID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47"
+    },
+    {
+      "path": "supabase/config.toml",
+      "mainOID": "b9d270434e61e39db0d136728726f6dc6fbfe987",
+      "source656OID": "b9d270434e61e39db0d136728726f6dc6fbfe987",
+      "equal": true,
+      "actualMergedOID": "b9d270434e61e39db0d136728726f6dc6fbfe987"
+    },
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "mainOID": "ff105a5d6984a4a7631091151a7a6c279d404966",
+      "source656OID": "ff105a5d6984a4a7631091151a7a6c279d404966",
+      "equal": true,
+      "actualMergedOID": "ff105a5d6984a4a7631091151a7a6c279d404966"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "mainOID": "6a3a77ea94021adf451be9691062b9113dffd27e",
+      "source656OID": "6a3a77ea94021adf451be9691062b9113dffd27e",
+      "equal": true,
+      "actualMergedOID": "6a3a77ea94021adf451be9691062b9113dffd27e"
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "mainOID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49",
+      "source656OID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49",
+      "equal": true,
+      "actualMergedOID": "01a3f2b02a4085af3f8bf4cc7c47ffadbd842c49"
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "mainOID": "3ee9964a8f36e49302234537d4d847de915624db",
+      "source656OID": "3ee9964a8f36e49302234537d4d847de915624db",
+      "equal": true,
+      "actualMergedOID": "3ee9964a8f36e49302234537d4d847de915624db"
+    },
+    {
+      "path": "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "mainOID": "b69589847d86b5936041b8f7f78438166846eefa",
+      "source656OID": "b69589847d86b5936041b8f7f78438166846eefa",
+      "equal": true,
+      "actualMergedOID": "b69589847d86b5936041b8f7f78438166846eefa"
+    },
+    {
+      "path": "scripts/gridex-schema-snapshot.cjs",
+      "mainOID": "9ecbb2974ee1cda265747e656709ace5675edc3e",
+      "source656OID": "9ecbb2974ee1cda265747e656709ace5675edc3e",
+      "equal": true,
+      "actualMergedOID": "9ecbb2974ee1cda265747e656709ace5675edc3e"
+    },
+    {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "mainOID": "54d21d8d8a0688695a65846012822a5dd1757b9b",
+      "source656OID": "54d21d8d8a0688695a65846012822a5dd1757b9b",
+      "equal": true,
+      "actualMergedOID": "54d21d8d8a0688695a65846012822a5dd1757b9b"
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "mainOID": "d65f99c861315f95004f6f17764312edec1f2ae4",
+      "source656OID": "d65f99c861315f95004f6f17764312edec1f2ae4",
+      "equal": true,
+      "actualMergedOID": "d65f99c861315f95004f6f17764312edec1f2ae4"
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "mainOID": "1a4981e0090adedb91a6e448486e4368b9f4bd27",
+      "source656OID": "1a4981e0090adedb91a6e448486e4368b9f4bd27",
+      "equal": true,
+      "actualMergedOID": "1a4981e0090adedb91a6e448486e4368b9f4bd27"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "mainOID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "source656OID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "equal": true,
+      "actualMergedOID": "762a574163ba39c60fef6386912c79b83ed53f9d"
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "mainOID": "bb76b17f044fa4591c6e24e8aca09818ffb4457e",
+      "source656OID": "bb76b17f044fa4591c6e24e8aca09818ffb4457e",
+      "equal": true,
+      "actualMergedOID": "bb76b17f044fa4591c6e24e8aca09818ffb4457e"
+    }
+  ],
+  "scope": "Original PR source tree comparison only; actual merge/postimage/lock release must be checked; authentic capture source identity retained, no resulting-main/native/mandatory credit",
+  "actualMergedMain": "5b150f18adaf0b8d82ba2651696421d3e34884fe",
+  "actualMergeTree": "cd1b35dc5db31513f505eab5700c90abb2bc90dd",
+  "actualMergeParents": [
+    "c401ae989f8add2f73912746936ced6be2d02708",
+    "0ce626981423dc077e9c5ab36043dad74649e06a"
+  ],
+  "all13ProducerDBInputsAndGENOutputsEqual": true
+}
+```
+
+
+Preflight handed off #5306037627313. Latest remote main 5b150f18adaf0b8d82ba2651696421d3e34884fe; live core/checksum custody {"lib/ediel/core/runtimeDecision.ts": ["ae584a61876018926c528f933581a8a1e8505c1d"], "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": ["ae584a61876018926c528f933581a8a1e8505c1d"], "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts": ["94b8514b6a38838293d76eb7e36c84aad2e3d3e0"], "lib/ediel/core/messagePolicy.ts": ["94b8514b6a38838293d76eb7e36c84aad2e3d3e0"], "scripts/migration-history-manifest.json": ["bfd6b43bf96d970eaee19b1826dd92eaa94729fd"], "scripts/migration-history-manifest.additions.json": []}. No implementation or artifact/CI duplication. Next exact composed source intake review remains offered to owner2f under #5306037490572; source/GEN/whole/merge ownership unchanged.
