@@ -1,3 +1,13 @@
+## Before qualification of current native feedback — 2026-10-07
+
+Same sole L/LK pair, PR #635 and 23 confirmed reservations. Two independent complete current-version binding reviews approve the unchanged strict reader with zero findings. Exact commits, arguments, API windows, source/input maps, original archive and review receipts remain in the private session record. Main and the clean published source version are unchanged. The native execution failed; the completed upload is independently confirmed. No artifact has been opened yet.
+
+USE_GO only after this checkpoint and a new continuation receipt have exact confirmed readbacks plus fresh ownership/source/API checks: run the unchanged reviewed reader with the frozen arguments on the once-downloaded original. Set private output permissions before execution; retain the actual exit and complete report. An independent reviewer then qualifies that same original with fresh official API and the same reader; compare complete reports. Stop on any refusal. No reader, producer, guard, oracle, source or archive changes.
+
+Qualification authenticates the reported result only. No native-green, whole, coverage, merge or external approval is granted. Next responsible: root qualification followed by independent full comparison; the two amended consumer-plan reviews continue independently without author GO. Original rejected plan and historical results remain preserved.
+
+---
+
 ## Current native result frozen before qualification — 2026-10-07
 
 PR #635's new native workflow completed with FAILURE, and its feedback upload is now officially completed successfully. The first cached job read showed an incomplete upload field; that snapshot is preserved as nonfinal. A fresh official job read establishes completion. No inferred upload result is used.
