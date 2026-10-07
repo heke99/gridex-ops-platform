@@ -1,6 +1,6 @@
 # Masterplan checkpoint — root24fa
 
-Updated 2026-10-07T01:27Z. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All13 technical refs are held; merge role `5bf8ebb1bc49fef0b2c6183f3d506c355943c138` is held ONLY for current648 delivery; no memory role. Do not start another pair.
+Updated 2026-10-07T01:27Z. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All13 technical refs are held; merge role `5bf8ebb1bc49fef0b2c6183f3d506c355943c138` actually ownerGET/DELETE/GET404 released after648 delivery; no roles held. Do not start another pair.
 
 ## Current sources and next action
 
@@ -90,3 +90,7 @@ Both actualfinalreviews5436507822+5436512055 COMMENTED explicitFINAL_COMPONENT_D
 ## Actual component delivery — 2026-10-07T01:26:17Z
 
 PR648 actual merged main9908978d628d8f0da5388f9f80fe2a134908fa8c/tree5294e59e044a4a124f2d72403ee858e4d9415db5 with ordered parents600,f350. Normal gh merge exited0; authenticated merged:true and fresh git main match. Exact three guard blobs preserved and delta only these paths; coverage unchanged293/352. Receipt15649320a2a723c380b23ab047b65e319c3fdaee69825a060291821b7b44e51a. This is component delivery, no whole Z01 approval. All13 held. Root next ownerGET/DELETE/404 merge-role5bf8 immediately, then resume whole638 main/carrier/current94; no memory role.
+
+## Actual merge role RELEASE — 2026-10-07T01:28Z
+
+Owner-only DELETE and GET404 confirmed for refs/tags/agent-claims/masterplan/role-merge receipt5bf8ebb1bc49fef0b2c6183f3d506c355943c138. No roles held; all13 technical refs retained. Actual648 delivery is recorded in checkpoint b3ded3bca and #5306028950617. Root now refreshes main/latest530 before whole638 main/carrier adoption.
