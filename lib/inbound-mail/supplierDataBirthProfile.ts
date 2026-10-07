@@ -61,6 +61,7 @@ export async function resolveSupplierDataBirthProfile(input: SupplierDataBirthPr
   if (evaluateProdatTransactionReason({ rawSegments: canonical.rawSegments, una, code: 'Z02' }).issues.length) return null
   const received = new Date(input.receivedAt)
   if (!Number.isFinite(received.getTime())) throw new Error('supplier_data_birth_receipt_clock_invalid')
+  if (canonical.version === null) return null
   const evidence = await resolveCanonicalRulePack({ family: 'PRODAT', messageCode: 'Z02', transactionSubtype: reason,
     applicationReference: canonical.applicationReference, direction: 'inbound', businessDate: stockholmBusinessDate(received) })
   if (canonical.version !== evidence.unhAssociationCode) throw new Error('supplier_data_birth_association_mismatch')

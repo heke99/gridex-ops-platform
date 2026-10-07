@@ -7,6 +7,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { raw, line, characteristic, type Parts } from '../__tests__/fixtures/prodat-register'
 import { createHash, randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import * as positiveStructuredNodeUtil from 'node:util'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
@@ -350,6 +351,77 @@ function observeZ02EnqueueFailureProjection(value: unknown): void {
   }
 }
 
+// Separate finite metadata projection. Missing capability or untrusted shape
+// never enters the legacy observer's error, count or string-classification path.
+const positiveStructuredSqlStates = ['23502', '23503', '23505', '23514', '42501', '42P01', '42703', 'P0001', '22P02', '42883', 'unknown'] as const
+const positiveStructuredPublicLabels = [...positiveEnqueueThrowClasses.slice(0, 4).map(([, category]) => category), 'unknown'] as const
+const positiveStructuredEvidenceClasses = ['classified', 'missing_metadata', 'malformed_metadata', 'conflicting_copies'] as const
+function positiveStructuredObject(value: unknown): object {
+  // Check the trusted namespace before even a descriptor on the new outer key.
+  if (typeof positiveStructuredNodeUtil.types?.isProxy !== 'function'
+    || value === null || typeof value !== 'object'
+    || positiveStructuredNodeUtil.types.isProxy(value) || Array.isArray(value)) throw Error('observation_shape_unavailable')
+  return value
+}
+function positiveStructuredData(value: unknown, key: string): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(positiveStructuredObject(value), key)
+  if (!descriptor || !('value' in descriptor)) throw Error('observation_shape_unavailable')
+  return descriptor.value
+}
+function positiveStructuredShape(value: unknown, keys: readonly string[]): void {
+  const object = positiveStructuredObject(value), names = Reflect.ownKeys(object)
+  if (names.length !== keys.length || names.some(key => typeof key !== 'string' || !keys.includes(key))) throw Error('observation_shape_unavailable')
+  for (const key of keys) positiveStructuredData(object, key)
+}
+function positiveStructuredBins(value: unknown, keys: readonly string[]) {
+  positiveStructuredShape(value, keys)
+  const bins: Record<string, number> = Object.create(null)
+  let total = 0
+  for (const key of keys) {
+    const count = positiveProjectionCount(positiveStructuredData(value, key))
+    if (count === null || count > 64) throw Error('observation_shape_unavailable')
+    bins[key] = count; total += count
+  }
+  return {bins, total}
+}
+function positiveStructuredEnqueueFailureProjection(observation: unknown) {
+  const value = positiveStructuredData(observation, 'enqueueFailureClassification')
+  positiveStructuredShape(value, ['schemaVersion', 'requestCount', 'eventCount', 'eventOverflow', 'copiesAgree', 'evidenceBins', 'sqlStateBins', 'publicLabelBins'])
+  const eventCount = positiveProjectionCount(positiveStructuredData(value, 'eventCount'))
+  const copiesAgree = positiveStructuredData(value, 'copiesAgree')
+  const eventOverflow = positiveStructuredData(value, 'eventOverflow')
+  if (positiveStructuredData(value, 'schemaVersion') !== 1 || positiveStructuredData(value, 'requestCount') !== 1
+    || eventCount === null || eventCount > 65 || typeof eventOverflow !== 'boolean'
+    || (eventCount === 0 ? copiesAgree !== null : typeof copiesAgree !== 'boolean')) throw Error('observation_shape_unavailable')
+  const evidenceInput = positiveStructuredData(value, 'evidenceBins')
+  const sqlStateInput = positiveStructuredData(value, 'sqlStateBins')
+  const publicLabelInput = positiveStructuredData(value, 'publicLabelBins')
+  if (eventCount === 65) {
+    if (!eventOverflow || evidenceInput !== null || sqlStateInput !== null || publicLabelInput !== null) throw Error('observation_shape_unavailable')
+    return Object.assign(Object.create(null), {observed: false, reason: 'observation_unavailable', eventOverflow: true})
+  }
+  if (eventOverflow) throw Error('observation_shape_unavailable')
+  const evidence = positiveStructuredBins(evidenceInput, positiveStructuredEvidenceClasses)
+  const sqlState = positiveStructuredBins(sqlStateInput, positiveStructuredSqlStates)
+  const publicLabel = positiveStructuredBins(publicLabelInput, positiveStructuredPublicLabels)
+  if (evidence.total !== eventCount || sqlState.total !== evidence.bins.classified || publicLabel.total !== evidence.bins.classified
+    || copiesAgree === true && evidence.bins.conflicting_copies !== 0
+    || copiesAgree === false && evidence.bins.conflicting_copies === 0) throw Error('observation_shape_unavailable')
+  return Object.assign(Object.create(null), {observed: true, schemaVersion: 1, requestCount: 1, eventCount,
+    eventOverflow: false, copiesAgree, evidenceBins: evidence.bins, sqlStateBins: sqlState.bins, publicLabelBins: publicLabel.bins})
+}
+function observeZ02StructuredEnqueueFailureProjection(observation: unknown): void {
+  const stage = 'positive.pre606.enqueue_structured_classification'
+  const emit = (value: unknown) => {
+    try { console.info('Z02_NATIVE_ENQUEUE_STRUCTURED_CLASSIFICATION', JSON.stringify(value)) } catch { /* Preserve the original native oracle. */ }
+  }
+  try {
+    emit(Object.assign(Object.create(null), {stage}, positiveStructuredEnqueueFailureProjection(observation)))
+  } catch {
+    emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
+  }
+}
+
 function observeZ02PositiveProjection(f: Fixture, original: Original, received: Received): void {
   const stage = 'positive.pre606.public_projection'
   const emit = (value: unknown) => { try { console.info('Z02_NATIVE_POSITIVE_PROJECTION', JSON.stringify(value)) } catch { /* Diagnostic failure cannot replace assertion606. */ } }
@@ -384,6 +456,25 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
           OR payload IS DISTINCT FROM event_payload THEN 'conflicting_evidence'
           WHEN jsonb_typeof(payload->'error') IS DISTINCT FROM 'string' THEN 'unclassified'
           ELSE ${enqueueClass("payload->>'error'")} END AS category FROM enqueue_events
+    ), enqueue_structured_metadata AS (
+      SELECT payload,event_payload,payload IS NOT DISTINCT FROM event_payload AS copies_agree,
+        payload->'enqueueFailureClassification' AS metadata,
+        CASE WHEN jsonb_typeof(payload->'enqueueFailureClassification')='object' THEN
+          (SELECT count(*) FROM jsonb_object_keys(payload->'enqueueFailureClassification'))=3
+          AND (payload->'enqueueFailureClassification') ?& ARRAY['schemaVersion','sqlState','publicLabel']::text[]
+          AND payload->'enqueueFailureClassification'->'schemaVersion'='1'::jsonb
+          AND jsonb_typeof(payload->'enqueueFailureClassification'->'sqlState')='string'
+          AND payload->'enqueueFailureClassification'->>'sqlState' IN (${positiveStructuredSqlStates.map(literal).join(',')})
+          AND jsonb_typeof(payload->'enqueueFailureClassification'->'publicLabel')='string'
+          AND payload->'enqueueFailureClassification'->>'publicLabel' IN (${positiveStructuredPublicLabels.map(literal).join(',')})
+          ELSE false END AS metadata_valid FROM enqueue_events
+    ), enqueue_structured AS (
+      SELECT copies_agree,metadata->>'sqlState' AS sql_state,metadata->>'publicLabel' AS public_label,
+        CASE WHEN jsonb_typeof(event_payload) IS DISTINCT FROM 'object'
+          OR event_payload->>'customerInfoRequestId' IS DISTINCT FROM ${literal(original.requestId)}
+          OR payload IS DISTINCT FROM event_payload THEN 'conflicting_copies'
+          WHEN NOT (payload ? 'enqueueFailureClassification') THEN 'missing_metadata'
+          WHEN metadata_valid THEN 'classified' ELSE 'malformed_metadata' END AS category FROM enqueue_structured_metadata
     ) SELECT jsonb_build_object(
       'message', (SELECT jsonb_build_object(
         'originalMatches', m.related_message_id IS NOT DISTINCT FROM ${literal(original.originalZ01.id)}::uuid,
@@ -425,7 +516,18 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
         'eventCount', (SELECT least(count(*),65) FROM enqueue_classified),
         'copiesAgree', (SELECT bool_and(copies_agree) FROM enqueue_classified),
         'bins', (SELECT jsonb_build_object(${positiveEnqueueClasses.map(category =>
-          `${literal(category)},least(count(*) FILTER (WHERE category=${literal(category)}),65)`).join(',')}) FROM enqueue_classified)))`
+          `${literal(category)},least(count(*) FILTER (WHERE category=${literal(category)}),65)`).join(',')}) FROM enqueue_classified)),
+      'enqueueFailureClassification', jsonb_build_object(
+        'schemaVersion',1,'requestCount',(SELECT count(*) FROM enqueue_request),
+        'eventCount',(SELECT least(count(*),65) FROM enqueue_structured),
+        'eventOverflow',(SELECT count(*)>=65 FROM enqueue_structured),
+        'copiesAgree',(SELECT bool_and(copies_agree) FROM enqueue_structured),
+        'evidenceBins',(SELECT CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveStructuredEvidenceClasses.map(category =>
+          `${literal(category)},count(*) FILTER (WHERE category=${literal(category)})`).join(',')}) END FROM enqueue_structured),
+        'sqlStateBins',(SELECT CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveStructuredSqlStates.map(code =>
+          `${literal(code)},count(*) FILTER (WHERE category='classified' AND sql_state=${literal(code)})`).join(',')}) END FROM enqueue_structured),
+        'publicLabelBins',(SELECT CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveStructuredPublicLabels.map(label =>
+          `${literal(label)},count(*) FILTER (WHERE category='classified' AND public_label=${literal(label)})`).join(',')}) END FROM enqueue_structured)))`
     // Explicit pipes keep psql error text (including SQL identifiers) out of logs.
     if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
     const stdout = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
@@ -446,9 +548,11 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
         ['originalMatches', 'responseMatches', 'pointMatches'], ['status'], ['blockerCode']), jobs})
     emit(output)
     observeZ02EnqueueFailureProjection(positiveProjectionData(observation, 'enqueueFailure'))
+    observeZ02StructuredEnqueueFailureProjection(observation)
   } catch {
     emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
     observeZ02EnqueueFailureProjection(undefined)
+    observeZ02StructuredEnqueueFailureProjection(undefined)
   }
 }
 

@@ -9,6 +9,8 @@ import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierDataBirthProfile'
 import type { CanonicalRulePackResolution } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 
 const catalog = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry', () => ({ resolveCanonicalRulePack: catalog }))
@@ -179,4 +181,76 @@ it.each([0, 2])('propagates actual catalog evidence count %s without inventing a
   const failure = Error(`canonical_rule_pack_evidence_count:${count}:PRODAT:Z02:L`)
   catalog.mockRejectedValue(failure)
   await expect(resolveSupplierDataBirthProfile({ rawPayload: wire(), receivedAt: receipt })).rejects.toBe(failure)
+})
+
+// Field 312 is the physical UNH/S009/0057 association code. Keep the real
+// message, objects, receipt clock and parser; only the declared catalog is a port.
+type PhysicalAlphabet = typeof alphabets[number]
+type MissingAssociation = 'absent' | 'empty' | 'blank'
+function physicalAssociationWire(reason: 'Z22' | 'Z23', alphabet: PhysicalAlphabet, association: string | null) {
+  const complete = raw(object(reason), 'Z02', alphabet)
+  const original = tokenizeEdifact(complete)
+  const originalHeaders = original.segments.filter(token => token.tag === 'UNH')
+  expect(originalHeaders).toHaveLength(1)
+  const [component, element, release] = alphabet
+  const separators: readonly string[] = alphabet
+  const encode = (value: string) => [...value].map(char => separators.includes(char) ? release + char : char).join('')
+  const associationComponent = association === null ? '' : component + encode(association)
+  const replacement = `UNH${element}M${element}PRODAT${component}D${component}97A${component}UN${associationComponent}`
+  const payload = complete.replace(originalHeaders[0].raw, replacement)
+  expect(payload).toContain(replacement + alphabet[3])
+  const physical = tokenizeEdifact(payload)
+  expect(physical.una).toEqual(original.una)
+  expect(physical.segments).toHaveLength(original.segments.length)
+  expect(physical.segments.filter(token => token.tag !== 'UNH').map(token => token.raw))
+    .toEqual(original.segments.filter(token => token.tag !== 'UNH').map(token => token.raw))
+  const headers = physical.segments.filter(token => token.tag === 'UNH')
+  expect(headers).toHaveLength(1)
+  expect(segmentComposite(headers[0], 2, physical.una))
+    .toEqual(association === null ? ['PRODAT', 'D', '97A', 'UN'] : ['PRODAT', 'D', '97A', 'UN', association.trim()])
+  return payload
+}
+const missingAssociations: readonly [MissingAssociation, string | null][] = [
+  ['absent', null], ['empty', ''], ['blank', '   '],
+]
+const missingAssociationCases = (['Z22', 'Z23'] as const).flatMap(reason =>
+  alphabets.flatMap((alphabet, index) => missingAssociations.map(([missing, association]) =>
+    ({ reason, alphabet, alphabetName: `UNA-${index + 1}`, missing, association }))))
+
+it.each(missingAssociationCases)('returns no witness and does not query the catalog for physical missing312 $reason/$missing/$alphabetName', async ({ reason, alphabet, association }) => {
+  const payload = physicalAssociationWire(reason, alphabet, association)
+  const canonical = parseCanonicalEdielPayload({ rawPayload: payload, direction: 'inbound', standardHint: 'edifact' })
+  expect(canonical.family).toBe('PRODAT')
+  expect(canonical.messageCode).toBe('Z02')
+  expect(canonical.applicationReference).toBe('23-DDQ-PRODAT')
+  expect(canonical.version).toBeNull()
+  const chosen = selected(reason)
+  const originalSnapshot = structuredClone(chosen.originalSnapshot)
+  catalog.mockResolvedValue(chosen)
+  const outcome = await Promise.allSettled([resolveSupplierDataBirthProfile({ rawPayload: payload, receivedAt: receipt })])
+  expect.soft(catalog).not.toHaveBeenCalled()
+  expect.soft(outcome).toEqual([{ status: 'fulfilled', value: null }])
+  expect(chosen.originalSnapshot).toEqual(originalSnapshot)
+})
+
+const associationCounterCases = (['Z22', 'Z23'] as const).flatMap(reason =>
+  alphabets.map((alphabet, index) => ({ reason, alphabet, alphabetName: `UNA-${index + 1}` })))
+it.each(associationCounterCases)('retains receipt-clock failure before missing312 fallback for $reason/$alphabetName', async ({ reason, alphabet }) => {
+  const payload = physicalAssociationWire(reason, alphabet, null)
+  expect(parseCanonicalEdielPayload({ rawPayload: payload, direction: 'inbound', standardHint: 'edifact' }).version).toBeNull()
+  await expect(resolveSupplierDataBirthProfile({ rawPayload: payload, receivedAt: 'invalid' }))
+    .rejects.toThrow('supplier_data_birth_receipt_clock_invalid')
+  expect(catalog).not.toHaveBeenCalled()
+})
+
+const nonemptyAssociationCases = associationCounterCases.flatMap(testCase =>
+  ['E2SE5A', 'E2SE6B', 'UNKNOWN'].map(association => ({ ...testCase, association })))
+it.each(nonemptyAssociationCases)('does not treat nonempty wrong physical312 as missing: $reason/$association/$alphabetName', async ({ reason, alphabet, association }) => {
+  const payload = physicalAssociationWire(reason, alphabet, association)
+  expect(parseCanonicalEdielPayload({ rawPayload: payload, direction: 'inbound', standardHint: 'edifact' }).version).toBe(association)
+  catalog.mockResolvedValue(selected(reason))
+  await expect(resolveSupplierDataBirthProfile({ rawPayload: payload, receivedAt: receipt }))
+    .rejects.toThrow('supplier_data_birth_association_mismatch')
+  expect(catalog).toHaveBeenCalledExactlyOnceWith({ family: 'PRODAT', messageCode: 'Z02',
+    transactionSubtype: reason, applicationReference: '23-DDQ-PRODAT', direction: 'inbound', businessDate: '2026-10-07' })
 })
