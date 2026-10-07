@@ -1245,3 +1245,24 @@ fromexpandedmain726; no resultingmainfullclaim. Same12refs/sourcefrozen/
 terminalcurrent705/Z22/24supplementals/browser31/types thenfreshall12/main/
 resources/threads/expected9bcserialmerge, actualreceipt/role-firstrelease/
 lawfulsharedmirror/technicalrelease, owncleanupfreshfileclaims.
+
+## CI_GREEN actual final9bc / authentic full clean Z22 PASS
+
+ALL12 mandatorycurrent9bc SUCCESS, certificate112554707164/run37546257752
+SUCCESS/artifact11453592296. Authenticclean37546257732/job112550878070 SUCCESS,
+originalartifact11453713438/16424520B SHAd4989132f4de9c8ccebc7d9d9ccdb41dbddee103d214b207cfb90c81844a6c01;
+API exacthead/tree/run/job/artifact/attempt1/uploadwindow/digest-size/CRC57
+qualified. Native705=704PASS/1existingexplicitpostbrowserSKIP/0FAILERROR,
+unchangeddirectZ22 closurefinaltaskPASS; all24separateJUnitreports complete
+(counts/identities/complementaryincidentvariants),31browserPASS,18phases
+complete, clean-generatedtypes BYTEEXACT9bc SHAaa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a.
+Types/schema/parity/tenant gatesactualSUCCESS. Originalc726 failure preserved.
+Report/tmp/gridex-z05-9bc-current-clean-qualified.json. Current39/all9284/both
+WHOLE approvals6027800764 andfreshmain60ff composition0d560728 approval remain
+valid; finalreadonlyguardALL12ownedrefs/statuses/head/sourceCLEAN/all350foreign
+rows preserved/prospective293 PASS at2026-10-07T00:49:39.411757+00:00. No roles/MERGED/external
+orresultingmain726fullapproval. Next95bc freshguard/freeatomicmerge role,
+CLAIMCP+530beforeexpected9bc normalmerge, actualmain/PR/tree/parents/coverage
+receipt, mergerole releaseFIRST. Memoryroleb0a heldby2c so lawfulmirror only
+underownrole whenfree orconcretehandoff2c; own12technicalreleaseafteractual
+deliverydocumentation. Thenownconfirmedcleanupmaintenance freshfileclaims.
