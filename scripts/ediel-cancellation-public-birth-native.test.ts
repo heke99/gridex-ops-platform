@@ -10,6 +10,7 @@ import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchOutboundRequestForInbound,matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {getEdielMessageById} from '@/lib/ediel/db'
+import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {cancellationPublicBirthWire} from './helpers/ediel-cancellation-public-birth-wire'
 const hash=(raw:string|Buffer)=>createHash('sha256').update(raw).digest('hex')
@@ -30,7 +31,7 @@ async function receive(f:Ground,raw:string,actor=f.actorUserId,company=f.company
  const source=(await getEdielMessageById(id!))!
  expect(source).toMatchObject({company_id:company,environment:'test',direction:'inbound',raw_payload:raw,inbound_email_message_id:mail.inboundEmailMessageId})
  expect(source.message_received_at).toBeTruthy()
- return{...mail,sourceId:id!,source,wire:raw}
+ return{...mail,sourceId:id!,source,wire:raw,outboundMatch}
 }
 function graph(){return sql<Record<string,Record<string,unknown>[]>>(`SELECT jsonb_build_object(
  'periods',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM public.customer_supply_periods x),
@@ -65,7 +66,16 @@ for(const code of ['Z04','Z05'] as const)it('SOURCE_ONLY actual public '+code+'/
   'permissions',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}),
   'permissionSites',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permission_sites p WHERE company_id=${literal(f.companyId)}))`)})
  const before=business(),originalsBefore=protectedOriginals(),m=await receive(f,raw)
- expect(m.source.transaction_reference).toBe(li)
+ // Public mailbox transaction identity is UNH/0062; LI is a separate RFF.
+ const physical=tokenizeEdifact(m.source.raw_payload),unh=physical.segments.filter(segment=>segment.tag==='UNH')
+ expect(unh).toHaveLength(1)
+ const reference=segmentComposite(unh[0],1,physical.una)
+ expect(reference).toHaveLength(1);expect(reference[0]).toMatch(/^[a-f0-9]{14}$/)
+ expect(m.parsed.transactionReference).toBe(reference[0]);expect(m.source.transaction_reference).toBe(reference[0])
+ const physicalLi=physical.segments.filter(segment=>segment.tag==='RFF').map(segment=>segmentComposite(segment,1,physical.una)).filter(parts=>parts[0]==='LI')
+ expect(physicalLi).toEqual([['LI',li]]);expect(m.parsed.references.LI).toEqual([li])
+ expect(m.parsed.lineGroups.filter(group=>group.references.LI?.includes(li))).toHaveLength(1)
+ expect(m.outboundMatch).toMatchObject({status:'missing',entityType:null,entityId:null,candidates:[]})
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)).toBe(0)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}`)).toBe(0)
  const proof=sql<{catalog:{pack:Row;profile:Row;guideSources:Row[]};captured:Row;mail:Row;parse:Row;context:Row;receptions:Row[]}>(`SELECT jsonb_build_object(
