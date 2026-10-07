@@ -313,9 +313,10 @@ jobs:
               raise RuntimeError('JUnit qualification requires the declared reconstructed public birth basis')
           dependencies={'lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
             'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
-            'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts'}
-          if len(receipt['required_input_paths'])!=38 or len(set(receipt['required_input_paths']))!=38 or \
-              len(receipt['required_base_input_paths'])!=33 or len(set(receipt['required_base_input_paths']))!=33 or \
+            'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts',
+            'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts'}
+          if len(receipt['required_input_paths'])!=40 or len(set(receipt['required_input_paths']))!=40 or \
+              len(receipt['required_base_input_paths'])!=35 or len(set(receipt['required_base_input_paths']))!=35 or \
               set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
               receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
               raise RuntimeError('JUnit qualification requires the exact reconstructed source inventory')
