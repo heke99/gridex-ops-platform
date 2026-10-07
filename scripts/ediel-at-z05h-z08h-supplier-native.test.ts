@@ -95,6 +95,7 @@ async function receive(f:Ground,raw:string,actor=f.actorUserId,company=f.company
   if(omittedField&&selectors.includes(omittedField)&&(message==='canonical_ediel_rule_pack_required'||omittedField==='312'&&message==='supply_end_birth_association_mismatch'))throw new ExpectedPhysicalBirthRefusal(message)
   throw error
  }
+ expect(typeof id,JSON.stringify({phase:'public_inbound_birth',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,omittedField:omittedField??null})).toBe('string')
  expect(id).toMatch(/^[a-f0-9-]{36}$/)
  const source=(await getEdielMessageById(id!))!
  expect(source).toMatchObject({company_id:company,environment:'test',direction:'inbound',raw_payload:raw,inbound_email_message_id:mail.inboundEmailMessageId})
