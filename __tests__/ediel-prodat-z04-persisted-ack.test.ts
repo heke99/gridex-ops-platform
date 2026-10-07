@@ -12,6 +12,7 @@ import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import {withProdatFixtureInsertContext,prodatFixtureSourceRpc} from './helpers/prodatInboundSourceFixture'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition'
 
 // The persisted test lane declares test_flag=1. Its physical UNB must carry
 // that same indicator, requested technical ACK and explicit transport agency;
@@ -28,7 +29,7 @@ const raw:typeof rawFixture=(body,code='Z04',alphabet=[':', '+', '?', "'"])=>{
 // are replaced. This synthetic adapter does not prove native SQL/RLS constraints;
 // the native companion must run in the separate fixed-candidate test phase.
 const state=vi.hoisted(()=>({source:null as EdielMessageRow|null,original:null as EdielMessageRow|null,actorActive:true,protectedSourceAvailable:true,syntaxFacetAvailable:true,authorityCalls:[] as {name:string;args:Record<string,unknown>}[],ownerWitnesses:new Map<string,{raw:string;source:string}>(),messages:[] as Record<string,unknown>[],outbox:[] as Record<string,unknown>[],events:[] as Record<string,unknown>[],effects:[] as string[],routeAvailable:true,sourceReads:[] as Record<string,unknown>[],
- messageReads:[] as {columns:string;conditions:Record<string,unknown>;memberships:Record<string,readonly unknown[]>;order:{column:string;ascending:boolean}|null}[]}))
+ mutationPorts:[] as string[],messageReads:[] as {columns:string;conditions:Record<string,unknown>;memberships:Record<string,readonly unknown[]>;order:{column:string;ascending:boolean}|null}[]}))
 // This declared DB adapter keeps an immutable prospective original separate
 // from mutable processor metadata. The synthetic protected syntax port derives
 // its declared owner result from the real syntax owner over those exact bytes.
@@ -81,6 +82,7 @@ function physicalReceipt(requested:string,ack:Record<string,unknown>){
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'configured@example.invalid',host:'smtp.example.invalid',port:465})}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>{
  state.authorityCalls.push({name,args:structuredClone(args)})
+ if(['gridex_record_prodat_source_validation_v6','gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1','ediel_create_outbound_ack_atomic_v1','ediel_create_outbound_ack_scope_atomic_v2','ediel_record_technical_syntax_facet_v2','ediel_capture_technical_syntax_ack_basis_v2','ediel_prepare_outbound_owner_witness_v1'].includes(name))state.mutationPorts.push(name)
  if(name==='gridex_actor_has_company_permission'){
   expect(args.p_actor_user_id).toBe(fixtureActor);expect(args.p_company_id).toBe(fixtureCompany)
   return {data:state.actorActive&&['communication.write','communication.read','ediel_testing.write'].includes(String(args.p_permission)),error:null}
@@ -204,7 +206,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
     return {data:Object.entries(conditions).every(([key,value])=>row[key as keyof typeof row]===value)?row:null,error:null}
    }}
  }
- if(table==='ediel_messages')return {insert(row:Record<string,unknown>){return {select(){return {single:async()=>{const witness=state.ownerWitnesses.get(String((row.execution_context_snapshot as {outboundOwnerWitnessId?:string})?.outboundOwnerWitnessId));if(row.message_family==='APERAK'){expect(witness).toEqual({raw:row.raw_payload,source:storedOriginal().id});expect(row.related_message_id).toBe(storedOriginal().id)}const saved={...row,id:`00000000-0000-4000-8000-${String(state.messages.length+100).padStart(12,'0')}`,created_at:new Date(Date.parse('2026-09-30T12:00:00Z')+state.messages.length).toISOString()};state.messages.push(saved);return {data:saved,error:null}}}}}},
+ if(table==='ediel_messages')return {insert(row:Record<string,unknown>){state.mutationPorts.push('ediel_messages.insert');return {select(){return {single:async()=>{const witness=state.ownerWitnesses.get(String((row.execution_context_snapshot as {outboundOwnerWitnessId?:string})?.outboundOwnerWitnessId));if(row.message_family==='APERAK'){expect(witness).toEqual({raw:row.raw_payload,source:storedOriginal().id});expect(row.related_message_id).toBe(storedOriginal().id)}const saved={...row,id:`00000000-0000-4000-8000-${String(state.messages.length+100).padStart(12,'0')}`,created_at:new Date(Date.parse('2026-09-30T12:00:00Z')+state.messages.length).toISOString()};state.messages.push(saved);return {data:saved,error:null}}}}}},
    select(columns:string){const conditions:Record<string,unknown>={},memberships:Record<string,readonly unknown[]>={}
     const read={columns,conditions,memberships,order:null as {column:string;ascending:boolean}|null};state.messageReads.push(read)
     const matches=(item:Record<string,unknown>)=>Object.entries(conditions).every(([k,v])=>item[k]===v)&&Object.entries(memberships).every(([k,v])=>v.includes(item[k]))
@@ -212,19 +214,19 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
      async order(column:string,options:{ascending:boolean}){read.order={column,ascending:options.ascending};return {data:state.messages.filter(matches).sort((a,b)=>String(a[column]).localeCompare(String(b[column]))*(options.ascending?1:-1)),error:null}},
      maybeSingle:async()=>({data:state.messages.find(matches)??null,error:null})}
    }}
- if(table==='ediel_message_events')return {insert(row:Record<string,unknown>){return {select(){return {single:async()=>{state.events.push(row);return {data:row,error:null}}}}}}}
+ if(table==='ediel_message_events')return {insert(row:Record<string,unknown>){state.mutationPorts.push('ediel_message_events.insert');return {select(){return {single:async()=>{state.events.push(row);return {data:row,error:null}}}}}}}
  if(table==='ediel_outbox')return {
-   upsert(row:Record<string,unknown>,options:{ignoreDuplicates?:boolean}){return {select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>item.lock_key===row.lock_key);if(old&&options.ignoreDuplicates)return {data:null,error:null};const saved={...row,id:`00000000-0000-4000-8000-${String(state.outbox.length+200).padStart(12,'0')}`};state.outbox.push(saved);return {data:saved,error:null}}}}}},
+   upsert(row:Record<string,unknown>,options:{ignoreDuplicates?:boolean}){state.mutationPorts.push('ediel_outbox.upsert');return {select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>item.lock_key===row.lock_key);if(old&&options.ignoreDuplicates)return {data:null,error:null};const saved={...row,id:`00000000-0000-4000-8000-${String(state.outbox.length+200).padStart(12,'0')}`};state.outbox.push(saved);return {data:saved,error:null}}}}}},
    select(){const conditions:Record<string,unknown>={};const matches=(item:Record<string,unknown>)=>Object.entries(conditions).every(([k,v])=>item[k]===v);return {eq(k:string,v:unknown){conditions[k]=v;return this},limit:async(count:number)=>({data:state.outbox.filter(matches).slice(0,count),error:null}),maybeSingle:async()=>({data:state.outbox.find(matches)??null,error:null})}},
-   update(patch:Record<string,unknown>){const conditions:Record<string,unknown>={};let allowed:string[]=[];return {eq(k:string,v:unknown){conditions[k]=v;return this},in(_k:string,v:string[]){allowed=v;return this},select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>Object.entries(conditions).every(([k,v])=>item[k]===v)&&allowed.includes(String(item.status)));if(!old)return {data:null,error:null};Object.assign(old,patch);return {data:old,error:null}}}}}},
+   update(patch:Record<string,unknown>){state.mutationPorts.push('ediel_outbox.update');const conditions:Record<string,unknown>={};let allowed:string[]=[];return {eq(k:string,v:unknown){conditions[k]=v;return this},in(_k:string,v:string[]){allowed=v;return this},select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>Object.entries(conditions).every(([k,v])=>item[k]===v)&&allowed.includes(String(item.status)));if(!old)return {data:null,error:null};Object.assign(old,patch);return {data:old,error:null}}}}}},
  }
  throw Error(`unexpected external table ${table}`)
 }}}))
 vi.mock('@/lib/ediel/db',async original=>{
  const actual=await original<typeof import('@/lib/ediel/db')>()
  return {...actual,getEdielMessageById:async(id:string)=>id===state.source?.id?(storedOriginal(),state.source):state.messages.find(row=>row.id===id)??null,
-  updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{state.source={...state.source!,status:p.status,parsed_payload:p.parsedPayload??{},validation_report:p.validationReport??{}} as EdielMessageRow;return state.source},
-  createEdielMessageEvent:async(event:Record<string,unknown>)=>{state.events.push(event);return null},linkEdielMessage:async()=>{state.effects.push('link')},
+  updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{state.mutationPorts.push('updateEdielMessageStatus');state.source={...state.source!,status:p.status,parsed_payload:p.parsedPayload??{},validation_report:p.validationReport??{}} as EdielMessageRow;return state.source},
+  createEdielMessageEvent:async(event:Record<string,unknown>)=>{state.mutationPorts.push('createEdielMessageEvent');state.events.push(event);return null},linkEdielMessage:async()=>{state.mutationPorts.push('linkEdielMessage');state.effects.push('link')},
   listAckMessagesForSource:async({sourceMessageId,ackFamily}:{sourceMessageId:string;ackFamily?:string})=>state.messages.filter(row=>row.related_message_id===sourceMessageId&&(!ackFamily||row.message_family===ackFamily)),
   getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[]}
 })
@@ -257,7 +259,7 @@ import {classifyCanonicalInboundAck} from '@/lib/ediel/ack/inboundAckOutcome'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
 
-beforeEach(()=>{state.original=null;state.actorActive=true;state.protectedSourceAvailable=true;state.syntaxFacetAvailable=true;state.authorityCalls=[];state.ownerWitnesses.clear();state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.messageReads=[];state.sourceReads=[];state.routeAvailable=true;state.source={...source(raw(mixedZ04Parts(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
+beforeEach(()=>{state.original=null;state.actorActive=true;state.protectedSourceAvailable=true;state.syntaxFacetAvailable=true;state.authorityCalls=[];state.ownerWitnesses.clear();state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.mutationPorts=[];state.messageReads=[];state.sourceReads=[];state.routeAvailable=true;state.source={...source(raw(mixedZ04Parts(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
  canonical_rule_pack_id:'00000000-0000-4000-8000-000000000033',rule_profile_key:'PRODAT:Z04:L:26.A:r3',rule_profile_version_id:'00000000-0000-4000-8000-000000000032',rule_profile_version:'26.A:r3',rule_pack_checksum:'a'.repeat(64),rule_pack_snapshot:{profileKey:'PRODAT:Z04:L:26.A:r3',profileVersionId:'00000000-0000-4000-8000-000000000032',version:'26.A:r3',checksum:'a'.repeat(64)},parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow})
 afterEach(()=>{for(const read of state.messageReads.filter(item=>item.order)){
  expect(read.columns).toBe('*')
@@ -793,10 +795,17 @@ it('rechecks current tenant membership before any retained ACK/outbox replay eff
  await processInboundEdielMessage(input)
  expect(state.messages.map(row=>row.message_family)).toEqual(['CONTRL','APERAK'])
  const retained=structuredClone({messages:state.messages,outbox:state.outbox})
+ const snapshot=()=>({source:state.source,original:state.original,events:state.events,effects:state.effects,witnesses:[...state.ownerWitnesses]})
+ const before=structuredClone(snapshot()),mutationCount=state.mutationPorts.length
  state.actorActive=false
- await processInboundEdielMessage(input)
+ // Revoked execution authority stops before a new diagnostic or ACK attempt;
+ // the first authorized audit and both immutable replies remain retained.
+ const failure:unknown=await processInboundEdielMessage(input).then(()=>null,error=>error)
  expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
- expect(state.events.filter(row=>String(row.message).includes('ediel_tenant_actor_forbidden')).map(row=>(row.payload as {ackFamily:string}).ackFamily)).toEqual(['CONTRL','CONTRL','APERAK'])
+ expect(snapshot()).toEqual(before)
+ expect(state.mutationPorts.slice(mutationCount)).toEqual([])
+ expect(failure).toBeInstanceOf(EdielExecutionFailure)
+ expect(failure).toMatchObject({message:'ediel_tenant_actor_forbidden',disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_ACTOR_FORBIDDEN'}})
  expect(state.effects).toEqual([])
 })
 
