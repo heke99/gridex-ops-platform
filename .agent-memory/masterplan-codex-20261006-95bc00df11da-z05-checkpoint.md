@@ -1266,3 +1266,15 @@ CLAIMCP+530beforeexpected9bc normalmerge, actualmain/PR/tree/parents/coverage
 receipt, mergerole releaseFIRST. Memoryroleb0a heldby2c so lawfulmirror only
 underownrole whenfree orconcretehandoff2c; own12technicalreleaseafteractual
 deliverydocumentation. Thenownconfirmedcleanupmaintenance freshfileclaims.
+
+## CLAIM role-merge before actual delivery
+
+Owner95bc atomically acquired+twiceGETconfirmed role-merge
+f10e8f31a6161d3faad0a231e846a7abfec3e6da, packet9be291fa-2dd0-4bb2-a39d-fb4010a4d2ae, exactmain60fftree
+singleparentreceipt. ALL12current9bcmandatorySUCCESS/authenticwhole39+clean
+705Z22+bothreviews/freshmaincomposition+all12technicalrefs/sourceCLEAN final
+guardPASS. No memoryrole held; 2c ownsb0a. Source9bc OPENREADY/unmerged.
+Next95bc publishthisexactCP+CLAIM530, freshunder-role guard+threads/head/main,
+normalexpected9bc merge, authenticateactualmain/PR/tree/orderedparents/own2
+coverage, CP+MERGED530 THEN owner-onlymergeroleDELETE404FIRST; lawfulshared
+mirror/handoff2c andmatched12technicalrelease, owncleanupfreshscope afterward.
