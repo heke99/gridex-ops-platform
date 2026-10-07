@@ -5,6 +5,9 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import {ownerRulePack} from './helpers/sourceOwnerFixtures'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {alphabets,characteristic,line,raw,type Parts} from './fixtures/prodat-register'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {resolveBilateralSwitchBirthProfile} from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
@@ -122,4 +125,18 @@ it('propagates a real catalog port failure',async()=>{
 it('refuses a catalog original witness whose profile belongs to a foreign pack',async()=>{
   const row=registry();row.original_snapshot.messageProfile.rule_pack_id='foreign';io.rpc.mockResolvedValue({data:[row],error:null})
   await expect(resolve(wire())).rejects.toThrow('canonical_original_rule_witness_scope_mismatch')
+})
+
+it.each([
+  {label:'missing identity agency',identity:[point,'','']},
+  {label:'unknown identity agency',identity:[point,'','','XYZ']},
+  {label:'object ID exceeds25 characters',identity:['7'.repeat(26),'','','9']},
+  {label:'forbidden C212/1131 populated',identity:[point,'BAD','','9']},
+])('refuses malformed own field209: $label',async({identity})=>{
+  const payload=wire([['LIN','1','',identity],...characteristic('Z13','Z25'),['RFF',['LI','OWN']]])
+  expect(validateEdifactEnvelope(payload).syntaxOk).toBe(true)
+  const tokens=tokenizeEdifact(payload),field=prodatRegisterFieldState('209',tokens.segments,tokens.una)
+  expect(field).toMatchObject({present:true,malformed:true})
+  expect(await resolve(payload)).toBeNull()
+  expect(io.rpc).not.toHaveBeenCalled()
 })

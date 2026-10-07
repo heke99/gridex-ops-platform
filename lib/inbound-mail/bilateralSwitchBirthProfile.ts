@@ -3,6 +3,7 @@ import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenize
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {stockholmBusinessDate} from '@/lib/ediel/core/executionContext'
 import {prodatCharacteristicValues} from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {prodatRegisterGroups,prodatRegisterRuleScopes} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import {resolveCanonicalRulePack,type OriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
@@ -36,7 +37,10 @@ export async function resolveBilateralSwitchBirthProfile(input: {
   const canonical=parseCanonicalEdielPayload({rawPayload:input.rawPayload,direction:'inbound',standardHint:'edifact'})
   if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.applicationReference!=='23-DDQ-PRODAT') return null
   const grouping=prodatRegisterGroups(segments,una,'Z04')
-  if(grouping.problems.length||!grouping.groups.length||grouping.groups.some(group=>!group.itemId||!group.validRegisterChain)) return null
+  if(grouping.problems.length||!grouping.groups.length||grouping.groups.some(group=>{
+    const identity=prodatRegisterFieldState('209',group.segments,una)
+    return !group.validRegisterChain||!identity?.present||identity.malformed
+  })) return null
   const scopes=prodatRegisterRuleScopes('223',segments,una,'Z04')??[]
   // Count physical qualifiers as well as semantic values: header and later
   // empty/malformed pairs cannot disappear into the inheritance projection.
