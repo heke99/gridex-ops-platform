@@ -12,7 +12,7 @@ const {PGlite} = require('@electric-sql/pglite')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const signature = 'public.gridex_ediel_received_z02_address_source_basis_v1(uuid,uuid)'
-const migration = path.join(__dirname, '../supabase/migrations/20261007050001_received_z02_address_source_basis.sql')
+const migration = path.join(__dirname, '../supabase/migrations/20261007093025_received_z02_address_source_basis.sql')
 const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const hash = value => createHash('sha256').update(value).digest('hex')
 const literal = value => `'${String(value).replaceAll("'", "''")}'`
