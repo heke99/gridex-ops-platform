@@ -2,6 +2,7 @@ import {tokenizeEdifact, segmentComposite} from '@/lib/ediel/core/edifactTokeniz
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import {isProdatIdentityOmissionScope} from '@/lib/ediel/prodat/prodatIdentityOmissionScope'
+import {isProdatRejectedIdentityScope} from '@/lib/ediel/prodat/prodatRejectedIdentityScope'
 import {isEvidenceRecord} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
 function keys(value: unknown, expected: string[]): value is Record<string, unknown> {
@@ -57,7 +58,9 @@ export function bindReceivedRegisterValidation(value: unknown, raw: string): Pro
           && isProdatIdentityOmissionScope(codes.get(object.messageIndex as number)??'',group,tokens.una))) return null
       if(!text(object.objectId)&&object.disposition==='rejected'
         && !groups.some(group=>group.lineIndex===first.lineIndex
-          && isProdatIdentityOmissionScope(codes.get(object.messageIndex as number)??'',group,tokens.una)))return null
+          && (isProdatIdentityOmissionScope(codes.get(object.messageIndex as number)??'',group,tokens.una)
+            || isProdatRejectedIdentityScope({code: codes.get(object.messageIndex as number)??'', group,
+              rawSegments: tokens.segments.map(token=>token.raw), una: tokens.una}))))return null
       const key=JSON.stringify([object.messageIndex,object.objectId,object.identityAgency,object.objectId ? null : first.lineIndex])
       const physical=expected.get(key)
       if (!physical || seen.has(key) || physical.length!==object.registers.length || object.messageReference!==(references.get(object.messageIndex as number) ?? null)) return null

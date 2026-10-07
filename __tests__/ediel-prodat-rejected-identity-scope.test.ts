@@ -81,9 +81,55 @@ it('does not select an unrelated or forged negative diagnostic', () => {
   expect(() => negativeScopes(value, [{...error, prodatOccurrence: {...error.prodatOccurrence!, lineIndex: 1}}])).toThrow('requested_scope_unqualified')
 })
 
-it('preserves ordinary non-null register identity and excludes the new path from positive scope', () => {
+it('preserves ordinary non-null register identity', () => {
   const value = assess(object('1', '735123456789012345'))
   expect(value.errors).toEqual([])
   expect(value.evidence.objects[0]).toMatchObject({objectId: '735123456789012345', identityAgency: '9', disposition: 'accepted'})
   expect(bindReceivedRegisterValidation(value.evidence, value.raw)).toEqual(value.evidence)
+})
+
+it('keeps a complete sibling register unchanged beside the own rejected null identity', () => {
+  const value = assess([...object('1', '735123456789012345'), ...object('2', '', 'OWN-END-2')])
+  expect(value.evidence.objects.map(own => [own.objectId, own.disposition])).toEqual([
+    ['735123456789012345', 'accepted'], [null, 'rejected'],
+  ])
+  expect(negativeScopes(value).map(own => [own.objectId, own.lineItemReference])).toEqual([[null, 'OWN-END-2']])
+})
+
+it('distinguishes an actually absent required C212 from submitted invalid :::9', () => {
+  const body = object(); body[0] = ['LIN', '1']
+  const value = assess(body)
+  expect(value.errors).toMatchObject([{ercCode: '41', fieldCode: '209', referenceQualifier: null, referenceNumber: null,
+    lineItemReference: 'OWN-END-1', prodatFieldDiagnostic: {errorKind: 'missing'}}])
+  expect(value.evidence.objects[0]).toMatchObject({objectId: null, identityAgency: null, disposition: 'rejected'})
+  expect(bindReceivedRegisterValidation(value.evidence, value.raw)).toEqual(value.evidence)
+  expect(negativeScopes(value)).toMatchObject([{objectId: null, identityAgency: null, lineItemReference: 'OWN-END-1'}])
+})
+
+it('requires submitted failure content and the original kind, message, agency and LI', () => {
+  const value = assess(), error = value.errors[0], diagnostic = error.prodatFieldDiagnostic
+  if (diagnostic?.kind !== 'field') throw Error('actual209_diagnostic_required')
+  expect(diagnostic.failureEvidence?.length).toBeGreaterThan(0)
+  const substitutions = [
+    {...diagnostic, errorKind: 'missing' as const},
+    {...diagnostic, failureEvidence: diagnostic.failureEvidence!.map(own => ({...own, content: 'BORROWED'}))},
+    {...diagnostic, occurrence: {...diagnostic.occurrence, messageReference: 'FOREIGN'}},
+    {...diagnostic, occurrence: {...diagnostic.occurrence, identityAgency: '89'}},
+    {...diagnostic, occurrence: {...diagnostic.occurrence, lineItemReference: 'FOREIGN'}},
+  ]
+  for (const changed of substitutions) expect(() => negativeScopes(value, [{...error, prodatFieldDiagnostic: changed}]))
+    .toThrow('requested_scope_unqualified')
+})
+
+it('refuses missing LI, unsupported reason and repeated register authority', () => {
+  for (const body of [object().filter(part => part[0] !== 'RFF' || !Array.isArray(part[1]) || part[1][0] !== 'LI'),
+    [...object().map(part => part[0] === 'LIN' ? ['LIN', '1', '', ['', '', '', '9'], ['1', '1']] as Parts : part)],
+  ]) {
+    const value = assess(body)
+    expect(value.evidence.objects[0].disposition).toBe('unavailable')
+    expect(() => negativeScopes(value)).toThrow('requested_scope_unqualified')
+  }
+  const value = assess(object('1', '', 'OWN-END-1', 'Z24'))
+  expect(value.evidence.objects[0].disposition).toBe('unavailable')
+  expect(() => negativeScopes(value)).toThrow('requested_scope_unqualified')
 })
