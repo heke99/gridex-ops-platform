@@ -85,7 +85,9 @@ export async function seedNativeEscoFixture(mode:'V'|'VH'='V'){
  const effects=()=>nativeEscoSql<Record<string,number>>(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${nativeEscoLiteral(ids.company)}),'businessReferences',(SELECT count(*) FROM public.ediel_business_references WHERE company_id=${nativeEscoLiteral(ids.company)}),'creationReceipts',(SELECT count(*) FROM gridex_ediel_ack_replay.creation_receipts WHERE company_id=${nativeEscoLiteral(ids.company)}),'consumptions',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE company_id=${nativeEscoLiteral(ids.company)}),'namespace',(SELECT count(*) FROM gridex_ediel_wire_namespace.coverage WHERE company_id=${nativeEscoLiteral(ids.company)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${nativeEscoLiteral(ids.company)}),'intents',(SELECT count(*) FROM public.ediel_message_intents WHERE company_id=${nativeEscoLiteral(ids.company)}),'series',(SELECT count(*) FROM public.meter_reading_series WHERE company_id=${nativeEscoLiteral(ids.company)}),'values',(SELECT count(*) FROM public.meter_reading_values WHERE company_id=${nativeEscoLiteral(ids.company)}),'contracts',(SELECT count(*) FROM gridex_utilts_binding.contracts WHERE company_id=${nativeEscoLiteral(ids.company)}),'bindings',(SELECT count(*) FROM gridex_utilts_binding.receipts WHERE company_id=${nativeEscoLiteral(ids.company)}),'reservations',(SELECT count(*) FROM public.ediel_ack_transaction_results WHERE company_id=${nativeEscoLiteral(ids.company)}),'acks',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${nativeEscoLiteral(ids.company)} AND direction='outbound' AND related_message_id IS NOT NULL),'witnesses',(SELECT count(*) FROM gridex_ediel_outbound_owner.witnesses WHERE company_id=${nativeEscoLiteral(ids.company)}),'scopeReceipts',(SELECT count(*) FROM gridex_ediel_ack_replay.positive_service_scope_receipts WHERE company_id=${nativeEscoLiteral(ids.company)}),'events',(SELECT count(*) FROM public.ediel_message_events WHERE company_id=${nativeEscoLiteral(ids.company)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${nativeEscoLiteral(ids.company)}))`)
  return {ids,sender,receiver,point,product,app,mode,fields,assignment,command,current,insert,utilts,effects}
 }
-export async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedNativeEscoFixture>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},termination?:{reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}){
+type NativeEscoFixture=Awaited<ReturnType<typeof seedNativeEscoFixture>>
+type NativeEscoTermination={reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}
+async function approveNativeEscoAssignment(f:NativeEscoFixture,termination?:NativeEscoTermination){
  const pdf=Buffer.from('%PDF-1.7\nSYNTHETIC DISPOSABLE ESCO EVIDENCE. NOT EXTERNAL LEGAL APPROVAL.\n%%EOF'),hash=createHash('sha256').update(pdf).digest('hex'),key=Buffer.alloc(32,0x59),receiptIds:string[]=[],artifacts:string[]=[]
  nativeEscoSql(`INSERT INTO gridex_ediel_services.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${nativeEscoLiteral(f.ids.key)},${nativeEscoLiteral(f.ids.company)},'test','synthetic-native-issuer','SYNTHETIC EXTERNAL REGISTRY INPUT ONLY',${nativeEscoLiteral(hash)},decode(${nativeEscoLiteral(key.toString('hex'))},'hex'),'2000-01-01','2099-01-01')`)
  const baseTerms={valid_from:'2000-01-01T00:00:00Z',valid_to:'2099-01-01T00:00:00Z',permission_purpose_code:'B72',permission_reporting_frequency:'D',permission_request_grid_area:'TES',permission_reporting_term_kind:f.mode==='V'?'indefinite':'bounded',permission_customer_classification:'private'}
@@ -116,20 +118,35 @@ export async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedN
  expect(nativeEscoSql(`SELECT public.ediel_service_assignment_assessment_v1(${nativeEscoLiteral(f.ids.company)},${nativeEscoLiteral(f.assignment)})`)).toEqual({status:'held',missing:['assignment_not_active']})
  // Every evidence term is qualified; only the still-pending approval itself holds it.
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'approved_waiting_permission'})
+ return {hash,receiptIds,artifacts}
+}
+async function sendNativeEscoPermissionRequest(f:NativeEscoFixture){
+ const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route})
+ expect(prepared,JSON.stringify(prepared)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})
+ const queued=prepared.message as EdielMessageRow;expect(queued.raw_payload).toBeTruthy()
+ const sendsBefore=nativeEscoExternal.send.mock.calls.length
+ await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sendsBefore+1)
+ const z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent');expect(nativeEscoSql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${nativeEscoLiteral(z13.id)}`)).toBe(true)
+ const permission=nativeEscoSql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${nativeEscoLiteral(f.ids.company)} AND source_z13_message_id=${nativeEscoLiteral(z13.id)}`)
+ expect(permission.id).toMatch(/^[0-9a-f-]{36}$/)
+ return {permission,z13}
+}
+// A real archived/reviewed assignment and sent Z13; no Z14 or access grant yet.
+export async function prepareNativeEscoPermissionFixture(f:NativeEscoFixture,termination?:NativeEscoTermination){
+ const evidence=await approveNativeEscoAssignment(f,termination)
+ const {permission,z13}=await sendNativeEscoPermissionRequest(f)
+ return {permissionId:permission.id,li:permission.li,z13,representationIds:evidence.receiptIds,artifacts:evidence.artifacts,hash:evidence.hash}
+}
+export async function qualifyNativeEscoFixture(f:Awaited<ReturnType<typeof seedNativeEscoFixture>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},termination?:{reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}){
+ const {hash,receiptIds,artifacts}=await approveNativeEscoAssignment(f,termination)
  let permission:{id:string;li:string},z13:EdielMessageRow,z14:EdielMessageRow
  if(shared){
   expect(await coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'})).toMatchObject({status:'reuse_permission',permissionId:shared.permissionId})
   permission=nativeEscoSql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${nativeEscoLiteral(f.ids.company)} AND id=${nativeEscoLiteral(shared.permissionId)}`)
   z13=shared.z13;z14=shared.z14
  }else{
- const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route})
- expect(prepared,JSON.stringify(prepared)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})
- const queued=prepared.message as EdielMessageRow;expect(queued.raw_payload).toBeTruthy()
- const sendsBefore=nativeEscoExternal.send.mock.calls.length
- await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sendsBefore+1)
- z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent');expect(nativeEscoSql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${nativeEscoLiteral(z13.id)}`)).toBe(true)
- permission=nativeEscoSql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${nativeEscoLiteral(f.ids.company)} AND source_z13_message_id=${nativeEscoLiteral(z13.id)}`)
- expect(permission.id).toMatch(/^[0-9a-f-]{36}$/)
+ const request=await sendNativeEscoPermissionRequest(f)
+ permission=request.permission;z13=request.z13
  const rendered=renderProdat({code:'Z14',variant:f.mode,mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version:{selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'},context:{code:'Z14',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:permission.li,senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,customerName:'Synthetic Customer',customerId:'199001011234',customerIdCodeListQualifier:'SE2',customerIdAgency:'260',customerCountry:'SE',meterPointId:f.point,gridAreaId:'TES',reasonForTransaction:f.mode==='V'?'S17':'S18',permissionStatus:'A74',permissionPurpose:'B72',permissionId:'SYNTHETIC-PERMISSION-'+permission.id.slice(0,8),permissionTimestamp:new Date().toISOString(),reportStartDate:f.fields.data_start,reportEndDate:f.fields.data_end,reportingFrequency:'D',energyProductId:f.product,
   // P26.A Z14 fields 508/217/513/234: the grid owner's answer mirrors the requested method/direction.
   observationLength:'60',observationLengthFormat:'806',meteringMethod:'Z04',installationDirection:'E19',
