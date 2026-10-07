@@ -622,3 +622,46 @@ Complete independent receipt:
 }
 
 ```
+
+
+## 2026-10-07T22:43:30.441423+00:00 — docs(ediel): preserve final PR690 checkpoint-only correction and exact-head gates
+
+FINAL PR690 343f4bd1083d108ada6115183aa517f8d1af69fa / CHECKPOINT WHITESPACE CORRECTED — samea66/ALL9. Root actual entirePR diffcheck196 EXIT2 found one newblanklineEOF onlyownCP; corrected singleline deletion, actualentirePR diffcheck343 EXIT0. Earlier sourcec6 verification/source2 remains version-bound truthful193/3TSC/lint/budgets0; no source/config/programinput changes and no repeatedlocaltests. The failed196 diffcheck is preserved below ratherthan relabelledgreen.
+
+OfficialPR690 currenthead343 and all9 original refs GETMATCH confirmed. Gov and Transport exact metadata-successor reviews nowrequested; previous196reviews and CI remainhistorical. New mandatory343CI must trulycomplete, no borrowed196green/cancellation/manualrerun. No merge role held. All future documentation uses separate ownCP-only branch so that reviewedPRhead remainsstable; no additionalPRhead mutation planned without genuinefailure repair.
+
+Next root: current343source2 andmandatory13, immediatelyfree merge-role/expectedhead merge, actualmain/postimages/coverage receipt/release. Readonlynextsource eligibilitymapping stillpendingindependent Gov, no newclaim/sourceedit. Sharedmemory2c retainsrole, wholeZ03 unapproved/main300.
+
+Correction evidence:
+```json
+{
+  "utc": "2026-10-07T22:43:28.784606+00:00",
+  "oldPRHead": "196e8e88e26530233cf0c843996b38f832ace8e8",
+  "newPRHead": "343f4bd1083d108ada6115183aa517f8d1af69fa",
+  "sourceFrozen": "c6dfa2264f710b4a1f911746f32e5f54065622b5",
+  "oldFullPRDiffcheck": {
+    "exit": 2,
+    "stdout": ".agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md:212: new blank line at EOF.\n",
+    "stderr": ""
+  },
+  "newFullPRDiffcheck": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "delta": "Only one trailing empty EOF line in ownCP deleted; all seven production/test source posts and actual verification program inputs unchanged.",
+  "all9GETMATCH": {
+    "file-261a244500f47e95c672099f3746a2912a7362b85b665288155a9f602cc871e6": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "file-7af0834476d1950295594da9674f868349641282a0bde2d47dc4a88795e83fc3": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "file-804ba788945394526beb9e10a9e545c71de6938b7758ca886b4be6879e6478fc": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "file-cd1d84868494956365ef1a754cf9b97904a36415cde41f04bcf4c8d9b13334ca": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "file-eeb21400f3daa67dc0ea82435a08b88e77afe04c4fe59f5f06d74b1804dc83ef": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "file-fa14e631dd2ba5dff84de95c3a6ea28b171d66b4ac740e415231061641473441": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "file-fcda285af25fd5bfee7f7cc55b3e346967bde435b611ce0514362fe87e83f425": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "id-AT-Z03L-SUPPLIER": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef",
+    "id-AT-Z03LK-SUPPLIER": "6cf7ad3b090a9858a95b7d79af4b36119303d2ef"
+  },
+  "reviewStatus": "Old196 independentreviews archived, exact343 metadata-successor review requested; no oldCI green credit.",
+  "verificationLimit": "193tests/threeTSC/lint/budgets bound exact c6 source; compile/unit inputs unchanged through343. Mandatory CI must match343."
+}
+```
