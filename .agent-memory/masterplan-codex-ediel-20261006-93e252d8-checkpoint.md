@@ -1,3 +1,11 @@
+## OWN93 accepted P2 ACK observer cleanup finding — 2026-10-07T17:29Z
+
+Same soleH88aa and7 ownresources retained. Provisional observer source ae63cc3846abab84010b505c1768331e7f838882 adds only115lines/-2 ownnative, scriptsnonincrementalTS/lint/diff0 and actual installedSDK finitefetch87checks15requests PASS; changednative100UNEXECUTED. Supabase currentRPC docs fetched supportedHTML aftermarkdown404; installed2.103.0 sourceverified, noDB/version/cloudchanges. Source-only677current023d still mandatorycoverageFAILED/clean+certificateRUNNING, initialrerun403notaccepted. Shared roleforeignc3; no sharededits/newpair/merge.
+
+Independent implementation review CONFIRMED P2: finallyrestorationstoppedonfirstdescriptorrestoreexception, couldmaskoriginalactionerror/leaveclientwrapped+activeflagtrue. Accepted; sourceNOT_FINAL_APPROVED. Next93 narrowownnativecorrection attemptsEVERYbuilderrestore independently, alwaysclientrestore/activeflagreset, keep originalactionerror primary/byidentity and emit onlyfixed safe cleanupfailurecount; otherwise success becomes explicitfixedcleanupfailure. No RPC/send/options/response/error/authority changes. Add declared finitefetch success/observerfault/cleanupfault controls; request independent final exactsource reviews after corrected static/whole100preservation and durable checkpoint.
+
+WholeH rowsNOT_EXECUTED and1afauth80/20 remainhistoricalsourcebound. Conditional252/229 productiondependenciesforeign2f/c3 handoff6736042761990; extra IVpositivepremise not availabilityproof. Nextseparate677singlejobretry onlyafterterminal; no weakened gates or sourceCIrestart.
+
 ## OWN93 actual ACK RPC observation plan — 2026-10-07T17:20Z
 
 Own H03/H04 packet88aa62fd remains the only active pair; same7 resource refs and exact proof HEAD8393536d749d11734b6637ff59584a2da4a9fe14 are checked before this receipt. Actual mainff50, native657head1af genuine100 authenticated80PASS20FAIL; whole acceptance NOT_PROVED. PR677source023d has two exact source approvals and57unitPASS but coverage failure with no recorded steps/log; first job-rerun request403 workflow still running, NOT_ACCEPTED. No merge-role held. Shared role-memory remains foreignc3; no common-file writes.
