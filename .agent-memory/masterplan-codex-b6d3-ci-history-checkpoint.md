@@ -1,0 +1,39 @@
+# TR-09 / DB-01 — bounded CI-history component
+
+Agent `codex-20261006T223328Z-b6d3a0172885`; session `5e3d5751787b`; sole packet `ccde1d53-5672-463e-8822-5849a019fe02`.
+
+## 2026-10-07 20:53 Europe/Stockholm — CLAIM_EXTENSION / BEFORE_CODE
+
+Base `d0a655ce192f2c3d6cced06cab91898b0f7ad9b4`; branch `codex/ediel-trdb-ci-history-b6d3-26a949b8`. This component continues the original four IDs TR-09, AT-TR-09, DB-01, AT-DB-01 and PR #662; it starts no new packet. Primary checkpoint: `.agent-memory/masterplan-codex-b6d3a0172885-trdb-checkpoint.md`.
+
+Ownership: original 41 resources remain confirmed. Extension receipt `e0a33dedec34c946b4d31c6a50b793a70e621b7d` owns only `.github/workflows/full-e2e.yml` (`file-64c8adaf70f3676e153b2922213fb75fa5e638d61296275872899440e3a9428e`) and `.github/workflows/ediel-masterplan-v2.yml` (`file-aeaf5c93f114da23478f5948aff060cf9d6e751bb7b96f1f3085ad89223a3ae0`). Both create-if-absent refs have exact GET matches. No merge/memory role held. Unique checkpoint needs no shared file lock.
+
+Actual prior work: PR #662 source `3a42fddeeb75ce9170215ffb0b76004e44e67dfc` has independently reviewed bounded native TR 21 PASS, DB 14 PASS and authenticated capture/upgrade evidence. It remains draft/unmerged, with original failure observations retained. Current-head quality passed 936 files / 14513 cases; mandatory coverage failed five suites before their cases because fixed historical Git objects were unavailable in shallow checkout. Targeted regression likewise failed. Quality success does not qualify coverage or whole rules. Upgrade failed committed generated-types comparison, despite bounded inverse/expanded and upgraded-versus-clean equality.
+
+Exact historical inputs: `c401ae989f8add2f73912746936ced6be2d02708:supabase/schema.sql`; `56e58b95518ec4d5eef210ba16ba46228afb40ac:supabase/schema.sql` and `:lib/ediel/core/kernel.ts`; `9b013631afed0b7de5f704fdc759bc68624d92b5:supabase/schema.sql`. The immutable five tests and baselines will remain unchanged. Original workflow checkout refs stay exact current PR head.
+
+Plan: authentic depth-one Git checkout at source #662, demonstrate missing pinned inputs, then restore full history without changing HEAD and demonstrate all pinned inputs available. Add only `fetch-depth: 0` to coverage and targeted checkout slots; structurally verify the exact two-line diff. Obtain two independent exact-head source reviews, all mandatory current-head CI and merge role before actual delivery. Release only the two extension refs after delivery; retain original 41 until their whole packet is delivered or explicitly handed over.
+
+Blocker beyond this component: GEN4 `f0468525b3ed9b90caf41f1820b4df8d99161465`, manifest `41a87fe18c0900aa5b5c65ad6adb1f303e2927c4`, runtime overlay `cde7aa8811e0230f79d11adb7af9d87d649fcd80` are foreign reserved. Owner 2f31 PR #658 at `9d9292f2d60af236162f818de803ebb7fe88d071` has native 67 PASS / 22 FAIL and is not delivered. Need explicit custody handoff/adoption of the preserved six SQL/raw outputs and clean/current-tail generated outputs before primary CI can be qualified. Do not overwrite occupied paths. #653 is already delivered; it is no longer the blocker.
+
+Skill routing: acquisition/worktree, systematic-debugging/fp-check, requesting-code-review and verification-before-completion apply. Existing reviewers are read-only; first independently says PLAN_GO. Supabase/native evidence stays read-only; no new SQL, UI, deployment, provider activation or performance work, so those conditional workflows are absent.
+
+Next action — owner b6d3: publish CLAIM_EXTENSION on #673, reconfirm all 43 refs, finish small causal probe, perform the two-line source change and exact-head reviews. No implementation started. Coverage unchanged. #530 remains historical.
+
+## 2026-10-07 20:57 Europe/Stockholm — IMPLEMENTED / LOCALLY_VERIFIED
+
+Initial timestamp corrected (21:03 was a transcription error). CLAIM_EXTENSION #673 comment6044703623 was exact readback; all43 remote refs matched. Authentic isolated depth-one checkout source3a42fdde/treed7e64597 returned exit128 for all4 pinned Git inputs; unshallow restored original byte-identical objects with unchanged HEAD/tree (4 exit0). Small causal proof `/tmp/gridex-b6d3-resume-1846/history-probe.json`; no repeated large/native tests/artifact downloads.
+
+Implemented only two `fetch-depth: 0` additions at the coverage and targeted-regressions checkout slots. PyYAML structural comparison equals original after removing exactly those new keys; inverse textual removal restores both original workflow bytes, preserving exact source head, triggers, permissions, every test/negative oracle/provenance and gate. `git diff --check` must pass before source freeze. No SQL/generated output/coverage edits. Next owner b6d3: freeze source, independent exact-head review, publish small component PR linked #662, then mandatory current-head gates. Original 41 resources and GEN blocker remain as above.
+
+## 2026-10-07 21:12 Europe/Stockholm — exact consumer dependency / before final verification
+
+Initial head3bbf7793 targeted112962097420 and coverage112962097313 FAILED after correct fail-closed stale reviewed coverage workflow descriptor. Originalpin42a35b matches d0 workflow, reviewednewworkflow4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31. Both reviewers independently PLAN_GO the exact new literal only, no fixture/whitelist/test relaxation. Consumer extension scripts/gridex-full-production-e2e.cjs/file-7fa4ba5888a9b32d8b5c10633f91e34e2ce312fce32143a6e2b7d791463223b5 receipt8359f08524c720ef070dccdf441ec7d3b9f4d35d, all44GET_MATCH, beforecode primaryCP7b1d83f0 remoteMATCH and #6736044903408 exactreadback.
+
+Real Node22.23.3 bounded original positive test reproduces NOT_VERIFIED versus expected CODE_VERIFIED (1FAIL/109unselected), evidence ops03-node22-ipc-red.json; no changed tests. Initial default-sandbox Node24/full and Node22/single runners could not progress (0CPU; no reports) and were explicitly interrupted EXIT130, not counted as passing or case failures. The same Node22 test with authorized local worker IPC completed in0.7s and meaningful RED. All local verification below uses that worker permission, no external/provider call.
+
+Only production change is exact literal adoption; every sourceMatches/API/currenthead/tree/run/attempt/job/artifact/XML/nativeinputsb83/exception/ledger predicate and originaltest unchanged. Actual source pin remains candidate Git-object hash equality; future changedworkflow_source remains refused. Previous3bb reviews/greens do not qualify newhead. Next ownerb6d3: unchanged110-case OPS03 full suite underNode22, syntax/lint/inverse diff, two exactfinal source reviews/currentfresh8mandatory; no whole/TRDB/nativeGEN acceptance inferred. Component release includes3refs (2workflow+1consumer), original41 stay retained.
+
+## 2026-10-07 21:11:56 Europe/Stockholm — final bounded local verification
+
+Original unchanged OPS03 consumer/release tests: 147PASS/0FAIL/0SKIP under Node22.23.3, original workflow_source/source/head/native-input and all other negative oracles retained. JSON /tmp/gridex-b6d3-resume-1846/ops03-after-pin-node22.json; true runnerEXIT0. A subsequent reporting wrapper expected136 incorrectly and failed; actual JSON independently read gives110+37=147, no runner repetition or invented count. Earlier real22 positiveRED1FAIL is preserved; default-sandbox interrupted runners130 are not results. Node22 --check source EXIT0 and exact one-literal inverse+diffcheck PASS. ESLint invocation produced ignored-file warning (0errors); CJS excluded by existing configuration, so no lint qualification claimed for that file. Next ownerb6d3: freeze exactcurrent source, two independent finalreviews, publish changedhead and allfresh mandatory gates; maintain original3bb failures and no whole/native/GENapproval.

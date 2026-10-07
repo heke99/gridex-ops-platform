@@ -133,7 +133,7 @@ const coverageCaseBindings = [
     name: 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval',
     classes: ['TGT'], qualification: 'code_modelling', ports: { stateMachine: 'real_product_function', messages: 'synthetic', portal: 'not_entered' } },
 ]
-const coverageWorkflowSha256 = '42a35bb82504b2fe8b54692212464b22b85271040d0388ed9c66318f71eecefa'
+const coverageWorkflowSha256 = '4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31'
 const documentBinding = { id: 'coverage_document_integrity', sourceFile: 'scripts/check-ediel-masterplan-v2.cjs',
   sourceSha256: '4ed209736d9aa05ca07e56943bb043b62e36f26069a96771c34d03f90a96591c',
   classes: ['document'], qualification: 'specification_integrity_and_evidence_references_only', ports: { filesystem: 'real_local' } }
