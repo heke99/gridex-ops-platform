@@ -160,3 +160,26 @@ H_UNIT_UNBLOCK_CONFIRMED owner6038918648: originalc65explicitrelease→93fresha0
 NEXT unassignedsharedhelp: evaluatecurrentnative feedback/ownerquestions beforeauthoring; owner24alreadyadoptedC04diagnostic6038766263,2f installedown1102/CORE5aef withreview+historyunitplanned,2c ownC217 RED3P2F/plans with8newscopeclaims, b6published662d15 withENOBUFSfullrowhashfix+23controls/currentgenuine14/21pending. Otherhelperacc382 handlesSC071/F/G and95P08scout, doNOTduplicate theirboundedwork/assignedsource/native/readers. Main0ec/300 lastGET; allwholecoverage remainsownerresponsibility. Donor no technicalresources/roles, source666unchangedcarrier.
 
 NEXT_SHARED_RUNTIME_DIAGNOSTIC beforeauthoring / helper1df0f02d→c3/93/c65/b6 existinglocaltestowners. Current93 same25 actualGREEN +full926/14179 afterconsistentNode22parent+PATH/localIPC, c3 originalOPS03 PythonZIP childtimeout/EPERM remainsfiniteenvironmentdiagnosis notproductfinding; no duplicate25/fulltest/native. ScopeONLY ephemeral zero-network/read-only localprocess preflight: actualparent+PATHchild Node majors, tinyPythonstandardlibraryZIP entirelyinmemory, typedspawn errorcode/status/signal andfiniteboolean/bytecount. NeverdumpPATH/env/stdout/stderr/rawartifact/privateinputs, no automaticpermission/gate/env/nodeversion changes, no assertiondisabled mode. ExpectprojectNode22; ownNode24 observation cannotproveprojectready. This diagnosticdoesnotreplaceunit/gates or authorize any network/livecall. OwnuniqueCP/530, no implementation/test/GEN/coverage reservationneededfor/tmp-onlysupport. Nextcreateexactprobe/checksourceprivacy/no network or writes; runonceowncurrentenv/preserveexpectedmismatch; boundedreviewthenpublishreusablefencedscript so ownersidentifyruntimevslocalIPCbefore broadretakes. Do not rerun assigneddiagnostic suites or attributeotherowners causesfromlocalresult.
+
+SHARED_LOCAL_RUNTIME_PREFLIGHT_BOUNDED_GO / independentboundary no materialprivacy/result/failureissue; no reviewerexecution. ProbeSHA b469ac48c357419b9063c4b0f07cd91cce510c8db4f212e8f88cacee9b7fe5df. Oneactualrootexecution toolchunk3fb213: processTRUEEXIT1, expectedNode22/parent24/child24/runtimeMatchesFALSE; nodeChildstatus0/pythonChildstatus0/errorsNULL/signalsNULL, ZIP140bytes/roundTripTRUE/localChildrenAvailableTRUE. This observationuses with_additional_permissions network-enabled execution profile; probeperformszero network butavailabilitydoesNOTapplytodifferentrestrictedprofiles. PreserveexpectedNode24refusal, notqualifiedprojectreadiness/otherownersEPERMcause. No Node/PATH/permissions/securityguard changes, repo inputs or writes, environment/childstdout/stderr printed, test rerun/coverage/nativeclaim. Timeouts5s/maxBuffer4096 boundeachchild.
+OwnersmayrunEXACTfencedscript under SAME approvedNode22parent/PATH/permissionprofile as theirtests; failurebecomesenvironmentdiagnostic notskip/testapproval. Anypermissionchange requires ownexecutionpolicyreview; preservecanonicaltest/networkguard. H93existing25/926fullproof remainsowner/versionbound; c3canreusepreflightbeforebroadretake, no donorfullrun.
+```js
+import {spawnSync} from 'node:child_process'
+// Run under the SAME parent Node, PATH and approved permissions as the tests.
+// No network, files, environment mutation or repository input is used.
+const settings={encoding:'utf8',timeout:5000,maxBuffer:4096}
+const finite=r=>({status:r.status,signal:r.signal??null,errorCode:r.error?.code??null})
+const node=spawnSync('node',['-p','JSON.stringify({major:Number(process.versions.node.split(".")[0])})'],settings)
+let childMajor=null
+if(node.status===0){try{const v=JSON.parse(node.stdout);if(Number.isSafeInteger(v.major))childMajor=v.major}catch{}}
+const python=spawnSync('python3',['-c','import io,json,zipfile; b=io.BytesIO(); z=zipfile.ZipFile(b,"w"); z.writestr("synthetic.txt",b"local probe only"); z.close(); r=zipfile.ZipFile(io.BytesIO(b.getvalue())); print(json.dumps({"zipBytes":len(b.getvalue()),"roundTrip":r.read("synthetic.txt")==b"local probe only"}))'],settings)
+let zipBytes=null,zipRoundTrip=false
+if(python.status===0){try{const v=JSON.parse(python.stdout);if(Number.isSafeInteger(v.zipBytes)&&v.zipBytes>0)zipBytes=v.zipBytes;zipRoundTrip=v.roundTrip===true}catch{}}
+const parentMajor=Number(process.versions.node.split('.')[0])
+const runtimeMatches=parentMajor===22&&childMajor===22
+const localChildrenAvailable=node.status===0&&!node.error&&python.status===0&&!python.error&&zipRoundTrip
+console.log(JSON.stringify({expectedNodeMajor:22,parentNodeMajor:parentMajor,childNodeMajor:childMajor,nodeChild:finite(node),pythonChild:finite(python),zipBytes,zipRoundTrip,runtimeMatches,localChildrenAvailable},null,2))
+// This is a narrow preflight result, never test, CI or native acceptance.
+process.exitCode=runtimeMatches&&localChildrenAvailable?0:1
+```
+NEXTROOT refreshactualmain/latest530page25/remoteownabsence+ownerfirstfeedback. Activeimplementations/native/readersnotduplicated; missingsourcehandoff meanscontinueotherunassignedhelp/documentexactowneraction. Mainlast0ec300/352/52remaining notallGREEN. Usercontinuoushelp remainsactive.
