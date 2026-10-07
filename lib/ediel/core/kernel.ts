@@ -295,10 +295,12 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     bilateralDraftQualification,bilateralDraft:params.draft,bilateralDraftActorUserId:params.actorUserId,
   })
 
-  // A source-ineligible direction needs no independent register inventory.
-  // Reuse the registry's refusal from the actual resolved policy before
-  // selecting a field blocker; permitted directions retain every field gate.
-  if (params.draft.direction === 'outbound' && validation.canonicalPolicy?.family === 'PRODAT') {
+  // Inbound-only Z04 A/D need no independent register inventory to refuse
+  // an outbound draft. Other policies retain their established first blocker;
+  // every qualified draft still requires the registry's direction check.
+  if (params.draft.direction === 'outbound' && validation.canonicalPolicy?.family === 'PRODAT'
+    && validation.canonicalPolicy.code === 'Z04'
+    && (validation.canonicalPolicy.subtype === 'A' || validation.canonicalPolicy.subtype === 'D')) {
     assertPolicyDirection(validation.canonicalPolicy, 'outbound')
   }
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
