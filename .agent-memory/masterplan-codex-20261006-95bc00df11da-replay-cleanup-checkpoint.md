@@ -26,3 +26,9 @@ TDDRED beforeminimalbackup/startflagfix; reuseONLY10releasedmetadatafiles
 from649de0 andrefreshactual293/636receipt preservingforeignCP/history,
 independentfinalreviews/currentmandatoryCI/normalmerge/actualreceipt/roles
 release/own13release andfreshnextpairselection.
+
+## Meaningful executed TDD RED before production change
+
+Source TESTONLY d44be3838401e372f8f0c8242a8ebdf831d36183/base600; canonical script unchanged SHAfd28ec70. Node22.23.3/Vitest4.1.9 with canonical unit-loopback preload, authorized subprocess execution: 9 actually executed=6FAIL3PASS/EXIT1/1.26s. Exact log /tmp/gridex-replay-cleanup-tdd-red-executed.log SHAe020929f70e210b3e9c0f1e850e6f3444ce7adb6cffa89818c14283eb8051829. Fail1-5 delete original SQL or empty/partial seed; fail6 stops a stack before start. Controls failed-start existing/absent PostgreSQL pin and poststart psql failure already preserve sources/pin/ownstop. Real shell+Python+filesystem; externalCLI confined stand-ins, no DB/native/external credit. Initial default sandbox EPERM collection0tests log0897b376 is execution failure only, not RED.
+
+All13refs retained/no mergerole/coveragechange. Next95bc publish CP +530 RED before minimal production flags: SOURCE_RESTORE_REQUIRED=0, arm after BOTHsuccessfulbackups immediatelybefore destructive staging; LOCAL_STACK_START_ATTEMPTED=0, arm immediatelybefore local start; gate cleanup source restoration and ownstackstop. Preserve source-on-success EXIT lifecycle, PostgreSQLpin, SQL/gates/historical hashes. Exact unchanged9tests GREEN then independent review/sharedmetadata closeout/currentCI.
