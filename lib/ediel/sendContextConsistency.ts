@@ -143,11 +143,12 @@ function routeAllowsNonProdatSmime(routeProfile: EdielRouteProfileRow | null): b
 
 function applyMessageFamilyEncryptionPolicy(params: {
   messageFamily?: string | null
+  environment?: string | null
   encryptionMode: 'none' | 'smime'
   routeProfile: EdielRouteProfileRow | null
 }): 'none' | 'smime' {
   const family = String(params.messageFamily ?? '').toUpperCase()
-  if (family === 'PRODAT') return params.encryptionMode
+  if (family === 'PRODAT' || params.environment === 'production') return params.encryptionMode
   if (params.encryptionMode === 'smime' && !routeAllowsNonProdatSmime(params.routeProfile)) return 'none'
   return params.encryptionMode
 }
@@ -170,6 +171,7 @@ export async function validateEdielSendContext(params: {
   const resolvedSmtpMimeMode = resolveSmtpMimeMode(resolvedEncryptionMode, params.smtpMimeModeOverride)
   const finalEncryptionMode: 'none' | 'smime' = applyMessageFamilyEncryptionPolicy({
     messageFamily: params.message.message_family,
+    environment: params.message.environment,
     encryptionMode: resolvedSmtpMimeMode === 'ediel-smime-enveloped' ? 'smime' : 'none',
     routeProfile,
   })
@@ -243,11 +245,11 @@ export async function validateEdielSendContext(params: {
   }
   if (
     params.message.environment === 'production' &&
-    String(params.message.message_family ?? '').toUpperCase() === 'PRODAT' &&
-    finalEncryptionMode !== 'smime' &&
-    routeProfile?.allow_unencrypted_production !== true
+    finalEncryptionMode !== 'smime'
   ) {
-    addIssue(blockingIssues, 'production_prodat_requires_smime', 'Sending blocked: real grid owner PRODAT requires required_encrypted/S/MIME.')
+    addIssue(blockingIssues,
+      String(params.message.message_family ?? '').toUpperCase() === 'PRODAT' ? 'production_prodat_requires_smime' : 'production_requires_smime',
+      'Sending blocked: production Ediel traffic requires S/MIME; plaintext needs an approved, journaled transport exception.')
   }
 
   return {

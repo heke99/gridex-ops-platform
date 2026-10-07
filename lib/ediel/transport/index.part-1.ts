@@ -589,11 +589,12 @@ export function routeAllowsNonProdatSmime(routeProfile: Awaited<ReturnType<typeo
 
 export function applyMessageFamilyEncryptionPolicy(params: {
   messageFamily?: string | null
+  environment?: string | null
   requestedEncryptionMode: string | null
   routeProfile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null
 }): 'none' | 'smime' | 'pgp' | string | null {
   const family = String(params.messageFamily ?? '').toUpperCase()
-  if (family === 'PRODAT') return params.requestedEncryptionMode
+  if (family === 'PRODAT' || params.environment === 'production') return params.requestedEncryptionMode
   if (params.requestedEncryptionMode === 'smime' && !routeAllowsNonProdatSmime(params.routeProfile)) {
     return 'none'
   }
@@ -644,7 +645,7 @@ export async function assertRouteTransportSecurity(params: {
     encryptionMode: effectiveEncryptionMode,
   })
   const family = String(message.message_family ?? routeProfile?.message_family ?? '').toUpperCase()
-  const nonProdatSmimeAllowed = family === 'PRODAT' || routeAllowsNonProdatSmime(routeProfile)
+  const nonProdatSmimeAllowed = message.environment === 'production' || family === 'PRODAT' || routeAllowsNonProdatSmime(routeProfile)
   const agtPortalUnencryptedAllowed =
     effectiveEncryptionMode === 'none' &&
     routeProfile?.allow_unencrypted_test === true &&
@@ -668,12 +669,12 @@ export async function assertRouteTransportSecurity(params: {
   }
 
   if (
-    String(message.message_family ?? '').toUpperCase() === 'PRODAT' &&
     message.environment === 'production' &&
-    effectiveEncryptionMode !== 'smime' &&
-    routeProfile?.allow_unencrypted_production !== true
+    effectiveEncryptionMode !== 'smime'
   ) {
-    throw new Error('Sändning stoppad: real grid owner PRODAT i produktion kräver required_encrypted/S/MIME.')
+    throw new Error(family === 'PRODAT'
+      ? 'Sändning stoppad: real grid owner PRODAT i produktion kräver required_encrypted/S/MIME.'
+      : 'Sändning stoppad: Ediel i produktion kräver required_encrypted/S/MIME för alla meddelandefamiljer.')
   }
 
   if (message.environment !== 'production') {
