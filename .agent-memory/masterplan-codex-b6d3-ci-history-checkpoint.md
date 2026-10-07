@@ -1,0 +1,21 @@
+# TR-09 / DB-01 — bounded CI-history component
+
+Agent `codex-20261006T223328Z-b6d3a0172885`; session `5e3d5751787b`; sole packet `ccde1d53-5672-463e-8822-5849a019fe02`.
+
+## 2026-10-07 21:03 Europe/Stockholm — CLAIM_EXTENSION / BEFORE_CODE
+
+Base `d0a655ce192f2c3d6cced06cab91898b0f7ad9b4`; branch `codex/ediel-trdb-ci-history-b6d3-26a949b8`. This component continues the original four IDs TR-09, AT-TR-09, DB-01, AT-DB-01 and PR #662; it starts no new packet. Primary checkpoint: `.agent-memory/masterplan-codex-b6d3a0172885-trdb-checkpoint.md`.
+
+Ownership: original 41 resources remain confirmed. Extension receipt `e0a33dedec34c946b4d31c6a50b793a70e621b7d` owns only `.github/workflows/full-e2e.yml` (`file-64c8adaf70f3676e153b2922213fb75fa5e638d61296275872899440e3a9428e`) and `.github/workflows/ediel-masterplan-v2.yml` (`file-aeaf5c93f114da23478f5948aff060cf9d6e751bb7b96f1f3085ad89223a3ae0`). Both create-if-absent refs have exact GET matches. No merge/memory role held. Unique checkpoint needs no shared file lock.
+
+Actual prior work: PR #662 source `3a42fddeeb75ce9170215ffb0b76004e44e67dfc` has independently reviewed bounded native TR 21 PASS, DB 14 PASS and authenticated capture/upgrade evidence. It remains draft/unmerged, with original failure observations retained. Current-head quality passed 936 files / 14513 cases; mandatory coverage failed five suites before their cases because fixed historical Git objects were unavailable in shallow checkout. Targeted regression likewise failed. Quality success does not qualify coverage or whole rules. Upgrade failed committed generated-types comparison, despite bounded inverse/expanded and upgraded-versus-clean equality.
+
+Exact historical inputs: `c401ae989f8add2f73912746936ced6be2d02708:supabase/schema.sql`; `56e58b95518ec4d5eef210ba16ba46228afb40ac:supabase/schema.sql` and `:lib/ediel/core/kernel.ts`; `9b013631afed0b7de5f704fdc759bc68624d92b5:supabase/schema.sql`. The immutable five tests and baselines will remain unchanged. Original workflow checkout refs stay exact current PR head.
+
+Plan: authentic depth-one Git checkout at source #662, demonstrate missing pinned inputs, then restore full history without changing HEAD and demonstrate all pinned inputs available. Add only `fetch-depth: 0` to coverage and targeted checkout slots; structurally verify the exact two-line diff. Obtain two independent exact-head source reviews, all mandatory current-head CI and merge role before actual delivery. Release only the two extension refs after delivery; retain original 41 until their whole packet is delivered or explicitly handed over.
+
+Blocker beyond this component: GEN4 `f0468525b3ed9b90caf41f1820b4df8d99161465`, manifest `41a87fe18c0900aa5b5c65ad6adb1f303e2927c4`, runtime overlay `cde7aa8811e0230f79d11adb7af9d87d649fcd80` are foreign reserved. Owner 2f31 PR #658 at `9d9292f2d60af236162f818de803ebb7fe88d071` has native 67 PASS / 22 FAIL and is not delivered. Need explicit custody handoff/adoption of the preserved six SQL/raw outputs and clean/current-tail generated outputs before primary CI can be qualified. Do not overwrite occupied paths. #653 is already delivered; it is no longer the blocker.
+
+Skill routing: acquisition/worktree, systematic-debugging/fp-check, requesting-code-review and verification-before-completion apply. Existing reviewers are read-only; first independently says PLAN_GO. Supabase/native evidence stays read-only; no new SQL, UI, deployment, provider activation or performance work, so those conditional workflows are absent.
+
+Next action — owner b6d3: publish CLAIM_EXTENSION on #673, reconfirm all 43 refs, finish small causal probe, perform the two-line source change and exact-head reviews. No implementation started. Coverage unchanged. #530 remains historical.
