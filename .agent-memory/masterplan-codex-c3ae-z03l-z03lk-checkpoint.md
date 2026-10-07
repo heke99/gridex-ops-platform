@@ -1,3 +1,13 @@
+## ACTUAL owned finite-observer installation fb332b77; checks/reviews RUNNING — 2026-10-07
+
+After actualCPd25646bd/#5306037015283 BOTHGETMATCH and immediate14MATCH66a70/mainc401/6352652, ROOT installed exact3e7c candidate +ENTIREownCPd256 only. LOCAL fb332b77e1c92abf3d606bcf724121e723c1050f/tree03cf9d611c300818e5d0ea5e82ab50eaddb951a4/parent2652 CLEAN. Root exactinverse restores1197; full9378entries/9376other MODEOID unchanged, only10native lines+ownCP. Installedscope99afa13e3ae21261b8aef349602f092e95de4396b11e55fca3e117cbc749690d; prospective7388/1996 reviews retained. Original processing/oracles/cases/fixtures/helpers/fullpositive suffix untouched; marker diagnostic-only/P2 remainsopen. No producer/SQL/GEN/coverage/role/sharedwrites.
+
+Actual supportedNode22 sequential NONincrementalscriptsTSC4096 and nativeESLint RUNNING46576 using /tmp/gridex-c3ae-l-v9-appropriate-checks.py, cleanHEAD/native seals before/after mandatory. Two finalinstalled SOURCE reviews requested against actualfb332/tree/native/exactentireCP/fullforeign complement; prospectivePLANAPP notsubstitute. Current public635 remains2652 genuinequalified2ee85d authentic32PASS2FAIL/native1; UNKNOWNfullDEFINEDnoeffectsPASS, TRUE fullUCIprefixPASS thenfirstfieldoracle387 via1331 unknown1each failsbeforepositivebusiness/provider/replay. Newfb332 native NOT_RUN/currentmandatory fullCI NOT_RUN.
+
+Next ROOT collect actualchecks and two installedreviews, fix only confirmed own findings, freeze refreshed3416map/staticclosure then documentREADY before normalFFsame635/newgenuine34. Readonlyproducerplanv2 amendment running after64e8/26e6 changes-required; 95 adapter/policy94b/runtimeae held, ownerdelivery→explicitrelease→fresh2f sequence retained. OwnIDsNOT_EXECUTED/wholeNOT_APPROVED/main298/352/noCI_GREEN/merge/external/newpair.
+
+---
+
 ## GENUINE2652 32PASS2FAIL / BEFORE_SOURCE GO finite original-negative observations — 2026-10-07
 
 Same sole c3ae L/LK5b7d/all14 retained66a70; current published6352652/treeb2ce/native1197 CLEAN. Authentic run37612330238/attempt1/job112762318313 terminalFAILURE, ExecuteFAIL/uploadSUCCESS. Originalartifact11479251728/178160B/ZIP02a9080c5d3b78129f74f7e944e317c5d0c0a26fbb410a8e8ca06e83ac2c9503. ROOT strict unchanged2d60 session87184 actualEXIT0 and independent qualification byteequalSHA2ee85d833f726618c8c1830cec3948a4acd2fe4fe939238a98a4b8bfc913d1f5: all3416 MODEOID/SHA/fixed32+2/34identities/fullAPI/head/tree/source/windows/CRC3 MATCH, nativeEXIT1/34=32PASS2FAIL0ERROR0SKIP. Rootfinite receipt6cfb9a5fe6b18ef9674b3f80de6ff5ffa7e02dbdbb14f4df26f7bb8a8d865d31; original ZIP/fullqualified/log/XML/privateAPI retained0600.
