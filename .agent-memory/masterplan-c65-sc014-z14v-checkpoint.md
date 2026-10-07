@@ -796,3 +796,18 @@ The current six-case fixture has no declared authenticated legal/A-born guide wi
 
 PR647 and PR644 are now actually marked ready for review at unchanged4b95/de7. Current SC verify/quality/targeted are SUCCESS; clean/upgrade/certificate remain pending. These are current-head gate observations, not delivery. Main remains actualedf0b9d2, 296/352 approved. No role or foreign lock is taken.
 
+
+
+### 2026-10-07T06:57:17.817502+00:00 — docs: preserve actor adjacent RED and authorize stronger retained ACK oracle
+TEST CONSUMER COMPOSITION GO — same c65 packet and existing owned actor producer responsibility.
+
+Current actor carrier5357ecceeea55868cdd55815b1a493b58b133d8f: original13 security cases PASS/exit0, log SHAb1e619c1dc2e0a8d25bce77397ceba392b64dc420c96e6f7b5ef173a5e2fb162; two independent Gov/transport SOURCE approvals of the full early protected-endpoint/actual-actor/error-cause/security-stop path. This remains local source evidence; publication/native/whole A/D delivery is separate.
+
+Adjacent five suites genuinely produced 134 PASS / 1 FAIL, exit1, log SHAd60baf4c02c9a8baf175bacd42e2a17abe2884c9bb078bcc21a9d7d2a04e1c2b. Sole failure is the old revoked-membership fixture expecting three new forbidden-actor diagnostic writes and a fulfilled call. Both independent reviewers confirm these are fixture expectations, not a contractual audit obligation. The strict security boundary must reject before new writes while preserving authorized history.
+
+Reuse only root-owned retained persisted-ACK unit __tests__/ediel-prodat-z04-persisted-ack.test.ts, receipt ab9dbcb686d0881513b8f61ad48cd1cf6aab9e62. Exact reviewed de7 postimage SHA d76a8e13e37c36e5e9831bf5bbca64bcee359b0659a01196cf3bee272e7f3fd5 adds mutation-port traces and strengthens the revoked-membership oracle: exact typed quarantine, unchanged source/original/events/effects/witnesses, zero new writer attempts, retained physical CONTRL/APERAK/outbox. All other testcase bodies remain byte-identical.
+
+Count correction: the inherited suite already executes 34 cases (27 declarations with parameterization); this adoption adds no testcase. Earlier prospective prose saying original33 plus an extra control was inaccurate. The original failed execution is preserved. No test, native oracle or security gate is weakened.
+
+Carrier scope now exactly three previously held paths: inboundProcessing.ts, actor-boundary unit, persisted-ACK unit. Wait for all running5357 typechecks to finish before changing HEAD; then adopt the one reviewed unit postimage, run fresh successor actor13+all135 adjacent cases, nonincremental typechecks and scoped lint, request both final exact-head reviews, publish normal unique branch and hand off only these three immutable postimages to rightful95. No runtime/V/helper/native/SQL/GEN/foreign coverage edits. Actual native actor/ACK/effect proof remains95's whole-acceptance gate after adoption; R210 remains separately test-only.
+
