@@ -291,6 +291,9 @@ async function ready(f: Fixture, original: Original, raw = reply(f, original), e
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message)
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify(decision))
     .toEqual(['accepted', 'accepted', 'accepted'])
+  expect(decision.policy?.prodatDependentFacts?.registerObjects).toEqual([
+    { meteringPointId: f.external, identityAgency: '9', meterReadingsSentInUtilts: true },
+  ])
   expect(record(sealed(message.id)).inbound).toMatchObject({ status: 'ready', reason: null })
   return { ...received, message, decision, capability }
 }
