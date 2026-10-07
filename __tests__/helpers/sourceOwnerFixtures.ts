@@ -22,17 +22,26 @@ export function ownerRulePack() {
 }
 /** Fixed synthetic wire. The real canonical engine must accept it, not a stub
  * of its output. Receiver-local reading facts are explicit fixture input. */
-export function ownerSource(options?:{readingDeclarations:true;environment?:'test'|'production'}):EdielMessageRow {
+export function ownerSource(options?:{readingDeclarations:true;environment?:'test'|'production';sourceCodes?:{
+  installationStatus:'Z11'|'Z12';settlementMethod:'Z31'|'Z32'
+}}):EdielMessageRow {
   const own=common('1','Synthetic')
   // Explicit synthetic physical inputs only; no private READ or UTILTS receipt.
   // Keep the original no-argument wire and its UNKNOWN readings unchanged.
   const optedIn=options?.readingDeclarations===true
+  // Complete caller-selected controls only; no inferred installation or tariff
+  // facts, and no claim that the unchanged synthetic register111 is qualified.
+  const sourceCodes=optedIn?options?.sourceCodes:undefined
+  if(sourceCodes!==undefined&&(sourceCodes===null||
+    !['Z11','Z12'].includes(sourceCodes.installationStatus)||!['Z31','Z32'].includes(sourceCodes.settlementMethod))){
+    throw new RangeError('sourceCodes requires Z11/Z12 installationStatus and Z31/Z32 settlementMethod')
+  }
   const readings=optedIn?[...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','111',3)]:[]
   const environment=optedIn?(options.environment??'test'):'test'
   // Original D97A group8: own dates, quantity, characteristics, references, parties.
   let wire=raw([...head(),line('1',OWNER.external,undefined,'9'),...own.filter(p=>p[0]==='DTM'),qty('1000'),
     ...own.filter(p=>p[0]==='CCI'||p[0]==='CAV'),
-    ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),
+    ...characteristic('Z07',sourceCodes?.installationStatus??'E22'),...characteristic('Z12','D',3),...characteristic('Z15',sourceCodes?.settlementMethod??'D'),
     ['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
     ...readings,
     ...own.filter(p=>p[0]==='RFF'),...own.filter(p=>p[0]==='NAD'),

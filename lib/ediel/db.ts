@@ -483,7 +483,8 @@ export async function createEdielMessage(
     execution_context_snapshot: ensureJson(input.executionContextSnapshot),
     intent_id: input.intentId ?? null,
     party_id: input.partyId ?? null,
-    party_address_id: input.partyAddressId ?? null,
+    // Preserve legacy IDs on historical reads; fresh messages use canonical routes.
+    party_address_id: null,
     transport_security_mode: input.transportSecurityMode ?? null,
     route_transport_security_mode: input.routeTransportSecurityMode ?? null,
     was_smime_encrypted: input.wasSmimeEncrypted ?? null,

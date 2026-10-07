@@ -190,7 +190,7 @@ export function evaluateProductionTransportSecurity(params: {
         ? 'none'
         : sanitize(runtime.encryption_mode)?.toLowerCase()
 
-  if (runtime.environment !== 'production' || runtime.message_standard !== 'edifact') {
+  if (runtime.environment !== 'production') {
     return {
       ok: true,
       issues,
@@ -199,11 +199,11 @@ export function evaluateProductionTransportSecurity(params: {
     }
   }
 
-  if (family === 'PRODAT' && encryptionMode !== 'smime' && !overrideActive) {
+  if (encryptionMode !== 'smime' && !overrideActive) {
     issues.push({
-      key: 'production_prodat_smime_required',
+      key: family === 'PRODAT' ? 'production_prodat_smime_required' : 'production_smime_required',
       severity: 'error',
-      label: 'Produktion PRODAT kräver S/MIME',
+      label: family === 'PRODAT' ? 'Produktion PRODAT kräver S/MIME' : 'Produktion Ediel kräver S/MIME',
       resolution: 'Koppla ett giltigt mottagarcertifikat och sätt encryption_mode=smime. Ett klartextundantag kräver styrkt normativ grund och behörigt beslut.',
     })
   }
