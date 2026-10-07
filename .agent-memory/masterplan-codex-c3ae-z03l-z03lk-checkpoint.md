@@ -1,3 +1,13 @@
+## Actual interrupted full receipt; all3types GREEN / serial run next — 2026-10-07T08:00:28.258172+00:00
+
+Corrects immediateprior91cf/#5306033604154 temporalclaim: firstownSIGINT preflight stopped with PermissionError reading/proc286147/cwd, NOsignal was sent then. Subsequent authorized exactcmdline+parent285996/rootrunnerhead/native guard PASSED andos.kill286147 SIGINT actualEXIT0. OnlyownfullVitest signalled, noforeigntasks. Genuineinitialfull terminalEXIT130/492.428s/sha c461c39ba4c9c3c184c42e7505f382ac07935f58d8601a4ea556ff28896290a3; partialtimeouts preserved/no fullcensus. Its runnerpostseal FALSE remains originalunexplained, notoverwritten orborrowedgreen. Fresh independent postinterruption sourcea762/tree152/nativee561/CLEAN MATCH receipt /tmp/gridex-c3ae-l-v6-post-interruption-seal.json; laterappsameheadpostsealTRUE. No observedsourcechanges. Newserial run requiresownfreshbothseals.
+
+All3actualNONincrementaltypes trueEXIT0/emptylogs/sourcepostsealTRUE: scripts274.369s/tests394.922s/app512.220s. Lint0. Initialfocused actual1283P5timeoutFAIL0skip/EXIT1 remainsred. Rootinitialsixrunner overallEXIT1 expectednotgreen. Installedsource review74e976f1b8e8cec442851adb2c362317949aac1fb8b0c3f5a66e413c71734a43 SOURCE_ONLY_APPROVE_EXACT_A762/0blocking, independently verifiesall214/34/all10foreign/all13retained/actualSC014SQL. Finalboundaryreview stillRUNNING FS-onlysemantic, no currentnative34/whole/runtimecredit.
+
+GO afterthisCP/#530readback andownsemanticreviewcompilerterminal: run NEW serial defaultFULL then serial affected11 onUNCHANGEDequalconfig/workers/timeouts/canonicalloopbackpreload/Node22/heada762/nativee561/network; preserveoldv6logs/receipts/newserialseals. This isenvironment-contention hypothesis test, notautomaticfailurewaiver. Exact3404 static/allfrozen/migrationPASS remainsvalidsamea762. Freshsuccessfulruntime +twoinstalledsource reviews/currentreadbacks needed beforepublish635; officialnew34/wholecriteria/mandatory stillremain. SoleL14/main185297/ownrowsNOT_EXECUTED/published50730P2F/no roles/CI_GREEN/merge/external.
+
+---
+
 ## Serial verification correction; partial full timeout run preserved — 2026-10-07T07:57:54.449595+00:00
 
 Actuala762 unchanged/CLEAN/allmain185foreignposts/nativee561. Initialdefaultfull is NOTterminalgreen: first completedfiles show4failures in ediel-db02-profile-periods and1 in ediel-generic-requested-change-current-bridge while concurrentfull+focused+three semanticcompilers consume resources. Exactcause notestablished; fullpartialfailure mustnotbecalledterminal5FAIL orcontractdefect. Originalprivatefull log andfocused1283P5F receipt preserved. Node currenttypes scripts trueEXIT0/274.368sec; app/tests RUNNING. Lint0 andstaticintegrity3404 unchanged.
