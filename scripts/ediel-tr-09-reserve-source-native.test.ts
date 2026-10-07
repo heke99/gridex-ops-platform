@@ -125,6 +125,27 @@ const journal=(s:Seed)=>sql(`SELECT jsonb_build_object(
  'events',(SELECT jsonb_agg(kind ORDER BY captured_at) FROM gridex_transport_exception.events WHERE message_id=${literal(s.m.id)}),
  'exact',(SELECT bool_and(binding->>'sourceDigest'=${literal(sha(JSON.stringify(s.source)))} AND binding->>'approvalDigest'=${literal(sha(JSON.stringify(s.approval)))}) FROM gridex_transport_exception.operations WHERE message_id=${literal(s.m.id)}),
  'alarm',(SELECT bool_and(responsible_user_id=${literal(s.reviewer)}::uuid AND facts->>'mandatoryTls'='true' AND facts->>'administratorAlarm'='true' AND facts->>'case'=${literal(s.source.case)}) FROM gridex_transport_exception.alarms WHERE message_id=${literal(s.m.id)}));`)
+// Read-only full-row multisets retain cardinality without exposing payloads.
+// Reservation/revocation scope comes from their actual message/approval keys.
+const rowHashes=(table:string,where:string)=>`(SELECT jsonb_build_object('count',count(*),'rows',
+ coalesce(jsonb_agg(encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') ORDER BY to_jsonb(t)::text),'[]'::jsonb)) FROM ${table} t WHERE ${where})`
+const transportTables=['gridex_ediel_transport.attempts','gridex_transport_exception.approvals',
+ 'gridex_transport_exception.operations','gridex_transport_exception.events','gridex_transport_exception.alarms']
+const scopeTables=[...transportTables,'public.ediel_messages','public.ediel_message_events','public.ediel_message_payloads',
+ 'public.ediel_outbox','public.ediel_message_intents','public.supplier_switch_requests','public.customer_supply_periods',
+ 'public.customers','public.customer_sites','public.customer_contracts','public.metering_points','public.outbound_requests',
+ 'public.grid_owner_data_requests','public.customer_info_requests','public.ediel_business_expectations',
+ 'public.ediel_route_profiles','public.communication_routes','public.ediel_certificates',
+ 'public.ediel_test_runs','public.ediel_test_run_messages','public.ediel_business_references',
+ 'gridex_ediel_outbound_owner.witnesses','gridex_ediel_outbound_owner.consumptions','gridex_ediel_source_rules.receipts',
+ 'gridex_ediel_inbound_context.receipts','gridex_received_sources.sources','gridex_ediel_inbound_receptions.receptions',
+ 'gridex_bilateral_prodat.outbound_operations','gridex_bilateral_prodat.outbound_receipts','gridex_bilateral_prodat.artifacts',
+ 'gridex_bilateral_prodat.profile_versions','gridex_bilateral_prodat.origins','gridex_business_expectations.bindings',
+ 'gridex_outbound_dispatch.attempts','gridex_outbound_dispatch.events','gridex_outbound_dispatch.witnesses']
+const scopeGraph=(s:Seed,tables=scopeTables)=>sql<Record<string,unknown>>(`SELECT jsonb_build_object(
+ ${tables.map(table=>`${literal(table)},${rowHashes(table,`t.company_id=${literal(s.f.companyId)}`)}`).join(',')},
+ 'gridex_ediel_transport.reservations',${rowHashes('gridex_ediel_transport.reservations',`t.message_id IN(SELECT id FROM public.ediel_messages WHERE company_id=${literal(s.f.companyId)})`)},
+ 'gridex_transport_exception.revocations',${rowHashes('gridex_transport_exception.revocations',`t.approval_id IN(SELECT id FROM gridex_transport_exception.approvals WHERE company_id=${literal(s.f.companyId)})`)})`)
 const ownerMembers=()=>sql(`SELECT to_jsonb(count(*)) FROM pg_auth_members x JOIN pg_roles r ON r.oid=x.roleid
  WHERE r.rolname IN('gridex_ediel_transport_exception_owner','gridex_ediel_certificate_authority_owner') AND (x.inherit_option OR x.set_option)`)
 const tlsContinues=()=>expect(smtp.options).toHaveBeenLastCalledWith(expect.objectContaining({requireTLS:true,tls:{rejectUnauthorized:true,minVersion:'TLSv1.2'}}))
@@ -173,7 +194,7 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  await expect(sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId})).rejects.toThrow('mottagarens publika S/MIME-certifikat')
  expect(effects(s)).toEqual(beforeSend);expect(smtp.send).not.toHaveBeenCalled()
  smtp.send.mockResolvedValue(accepted(s))
- await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})
+ const delivered=await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})
  expect(smtp.send).toHaveBeenCalledTimes(1);tlsContinues()
  const raw=smtp.send.mock.calls[0][0].raw as Buffer
  expect(raw.toString('ascii')).toContain('Content-Type: application/EDIFACT')
@@ -184,6 +205,90 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  expect(journal(s)).toEqual({events:['prepared','entered','observed'],exact:true,alarm:true});originalUnchanged(s,before)
  const alarms=await rpc('ediel_transport_exception_alarms_v1',{p_company_id:s.f.companyId,p_actor_user_id:s.reviewer})
  expect(alarms).toMatchObject({error:null,data:[expect.objectContaining({messageId:s.m.id,responsibleUserId:s.reviewer,facts:expect.objectContaining({case:s.source.case,mandatoryTls:true,administratorAlarm:true})})]})
+
+ // The same valid selector consumes the actual accepted receipt. It cannot
+ // spend another budget operation, alarm or SMTP entry. Public projection
+ // repair and fresh preparation archives do not invent a second delivery.
+ const acceptedJournal=scopeGraph(s,transportTables),acceptedWire=original(s)
+ expect(await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).toEqual(delivered)
+ expect(smtp.send).toHaveBeenCalledTimes(1);expect(scopeGraph(s,transportTables)).toEqual(acceptedJournal)
+ expect(exactSourceCustody(s,id)).toBe(true);originalUnchanged(s,acceptedWire)
+
+ // A separate canonical original exercises the prepared-attempt budget. Safe
+ // public release cancels each reservation before SMTP; it does not refund
+ // the already journaled bounded exception operation.
+ const budget=await seed(),budgetWire=original(budget),budgetId=publish(budget)
+ expect(budget.f.companyId).not.toBe(s.f.companyId);expect(budget.m.id).not.toBe(s.m.id)
+ expect(budget.m.raw_payload).not.toBe(s.m.raw_payload);expect(exactSourceCustody(budget,budgetId)).toBe(true)
+ const prepares:Array<Record<string,unknown>>=[],actions:string[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((async(name:string,args:Record<string,unknown>)=>{
+  const input=args.p_input as Record<string,unknown>|undefined
+  if(name!=='gridex_ediel_transport_attempt_v1'||input?.messageId!==budget.m.id)return rpc(name,args)
+  expect(input).toMatchObject({companyId:budget.f.companyId,environment:'test',actorUserId:budget.f.actorUserId})
+  actions.push(String(input.action))
+  if(input.action==='enter'){
+   const prepare=prepares.find(value=>value.attemptId===input.attemptId)
+   expect(prepare).toBeDefined()
+   const beforeReplay=scopeGraph(budget)
+   const replay=await rpc(name,{p_input:prepare})
+   expect(replay.error).toBeNull();expect(replay.data).toEqual({proceed:false,state:'prepared',classification:null,providerReceipt:null,observedAt:null})
+   expect(scopeGraph(budget)).toEqual(beforeReplay)
+   const release={companyId:input.companyId,environment:input.environment,messageId:input.messageId,
+    actorUserId:input.actorUserId,attemptId:input.attemptId,action:'release'}
+   const released=await rpc(name,{p_input:release})
+   expect(released.error).toBeNull();expect(released.data).toEqual({proceed:true,state:'released'})
+  }
+  const beforeHeld=input.action==='enter'||input.action==='observe'?scopeGraph(budget):null
+  // The module-bound original RPC forwards real results, never fabricated
+  // authority or a replacement receipt, and cannot recurse through this spy.
+  const result=await rpc(name,args)
+  if(input.action==='prepare'){
+   expect(result.error).toBeNull();expect(result.data).toEqual({proceed:true,state:'prepared'})
+   expect(input.owner).toEqual({kind:'direct'})
+   expect(input.binding).toMatchObject({originalHash:sha(budget.m.raw_payload!),routeId:budget.m.communication_route_id,
+    to:budget.m.receiver_email,mimeMode:'ediel-singlepart-base64',transportException:{approvalId:budgetId,
+     sourceDigest:sha(JSON.stringify(budget.source)),approvalDigest:sha(JSON.stringify(budget.approval))}})
+   expect(input.attemptId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+   expect(prepares.some(value=>value.attemptId===input.attemptId)).toBe(false)
+   prepares.push(structuredClone(input))
+  }else if(input.action==='enter'){
+   expect(result.error).toBeNull();expect(result.data).toEqual({proceed:false,state:'released'})
+   expect(scopeGraph(budget)).toEqual(beforeHeld)
+  }else if(input.action==='observe'){
+   expect(result).toMatchObject({data:null,error:{code:'P0001',message:'ediel_transport_result_invalid'}})
+   expect(scopeGraph(budget)).toEqual(beforeHeld)
+  }
+  return result
+ }) as unknown as typeof supabaseService.rpc)
+ const transportCount=smtp.options.mock.calls.length
+ for(const count of [1,2]){
+  const beforeReservation=original(budget)
+  await expect(sendEdielMessageViaSmtp(budget.m,{actorUserId:budget.f.actorUserId,temporarySecurityExceptionId:budgetId})).rejects.toMatchObject({
+   code:'ediel_delivery_uncertain',cause:expect.objectContaining({message:'ediel_transport_entry_denied'})})
+  expect(prepares).toHaveLength(count);expect(smtp.send).toHaveBeenCalledTimes(1)
+  expect(smtp.options).toHaveBeenCalledTimes(transportCount+count);tlsContinues()
+  expect(effects(budget)).toEqual({approvals:1,operations:count,alarms:count,attempts:count,entries:0})
+  expect(journal(budget)).toEqual({events:Array.from({length:count},()=>['prepared','released']).flat(),exact:true,alarm:true})
+  expect(sql(`SELECT jsonb_build_object('state',r.state,'attempt',r.attempt_id,
+   'unentered',bool_and(a.entered_at IS NULL AND a.observed_at IS NULL AND a.classification IS NULL AND a.provider_result IS NULL))
+   FROM gridex_ediel_transport.reservations r JOIN gridex_ediel_transport.attempts a ON a.message_id=r.message_id
+   WHERE r.message_id=${literal(budget.m.id)} GROUP BY r.state,r.attempt_id`)).toEqual({state:'released',attempt:prepares[count-1].attemptId,unentered:true})
+  expect(exactSourceCustody(budget,budgetId)).toBe(true);originalUnchanged(budget,beforeReservation)
+ }
+ expect(actions).toEqual(['prepare','enter','observe','prepare','enter','observe'])
+ const thirdAttempt=randomUUID(),thirdPrepare={...prepares[1],attemptId:thirdAttempt}
+ expect(prepares.some(value=>value.attemptId===thirdAttempt)).toBe(false)
+ // Reuse only the actual sender's qualified archived binding. Changing one
+ // prospective UUID reaches the real third public prepare without another
+ // high-level send's legitimate pre-prepare archive/event writes.
+ const beforeBudgetRefusal=scopeGraph(budget)
+ const refused=await rpc('gridex_ediel_transport_attempt_v1',{p_input:thirdPrepare})
+ expect(refused).toMatchObject({data:null,error:{code:'P0001',message:'transport_exception_bounded_attempt_budget_exhausted'}})
+ expect(scopeGraph(budget)).toEqual(beforeBudgetRefusal);expect(smtp.send).toHaveBeenCalledTimes(1)
+ expect(scopeGraph(s,transportTables)).toEqual(acceptedJournal)
+ expect(effects(budget)).toEqual({approvals:1,operations:2,alarms:2,attempts:2,entries:0})
+ expect(exactSourceCustody(budget,budgetId)).toBe(true);originalUnchanged(budget,budgetWire);originalUnchanged(s,acceptedWire)
+ expect(ownerMembers()).toBe(0)
 },120000)
 
 it('native reserve publisher rejects incomplete directory search, invented cases, foreign bindings, TLS downgrade and unbounded approval without effects',async()=>{
