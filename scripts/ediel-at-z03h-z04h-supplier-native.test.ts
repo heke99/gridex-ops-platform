@@ -96,7 +96,12 @@ function effectFailureDiagnostic(companyId: string, sourceId: string) {
         AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id)),
       'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(companyId)} AND source_message_id=${literal(sourceId)}),
       'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${literal(companyId)} AND source_message_id=${literal(sourceId)}),
-      'capabilityReceipts',(SELECT count(*) FROM gridex_bilateral_prodat.source_capability_receipts WHERE company_id=${literal(companyId)} AND source_message_id=${literal(sourceId)}))`)
+      'capabilityReceipts',(SELECT count(*) FROM gridex_bilateral_prodat.source_capability_receipts WHERE company_id=${literal(companyId)} AND source_message_id=${literal(sourceId)}),
+      'blockedAckGuards',(SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'family',e.event_payload->>'ackFamily','guard',left(e.message,512))),'[]')
+        FROM public.ediel_message_events e WHERE e.company_id=${literal(companyId)} AND e.ediel_message_id=${literal(sourceId)}
+        AND e.event_type='manual_note' AND e.event_status='warning'
+        AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard'))`)
   } catch (error) { return {stage:'diagnostic_select_failed',message:record(error).message ?? String(error)} }
 }
 async function observedStage<T>(stage: string, action: () => Promise<T>): Promise<T> {
@@ -300,7 +305,8 @@ async function ready(f: Fixture, original: Original, raw = reply(f, original), e
 async function acknowledgements(f: Fixture, original: Original, sourceId: string, raw: string) {
   const acks = await listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: sourceId,
     actorUserId: f.actorUserId, environment: 'test' })
-  expect(acks.map(a => a.message_family).sort()).toEqual(['APERAK', 'CONTRL'])
+  expect(acks.map(a => a.message_family).sort(),acks.length===2 ? undefined
+    : JSON.stringify(effectFailureDiagnostic(f.companyId,sourceId))).toEqual(['APERAK', 'CONTRL'])
   const source = tokenizeEdifact(raw), envelope = EdifactEnvelopeCodec.decode(raw), parties = originalAckPartyIdentities({ rawPayload: raw })
   const sourceSegment = (tag: string) => source.segments.find(s => s.tag === tag)!
   for (const ack of acks) {
@@ -564,7 +570,8 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
       switch_id:f.switchId,original_payload_hash:digest(original.raw_payload!) })])
     expect(after.transitions).toHaveLength(1); expect(after.activations).toEqual(before.activations)
     const capabilities=rows('gridex_bilateral_prodat.source_capability_receipts',f.companyId,'source_message_id')
-    expect(capabilities).toEqual([expect.objectContaining({source_message_id:received.message.id,company_id:f.companyId,
+    expect(capabilities,capabilities.length===1 ? undefined
+      : JSON.stringify(effectFailureDiagnostic(f.companyId,received.message.id))).toEqual([expect.objectContaining({source_message_id:received.message.id,company_id:f.companyId,
       environment:'test',source_payload_hash:digest(received.message.raw_payload!),
       positive_objects:[expect.objectContaining({profileVersionId:f.profileVersionId,process:'normal_start_h',
         objectId:f.external,pointId:f.pointId,lineItemReference:own(f,original).li,
