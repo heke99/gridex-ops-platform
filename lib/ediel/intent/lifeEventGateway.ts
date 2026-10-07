@@ -23,7 +23,7 @@ export async function renderAndQueueRequestedChange(input:{companyId:string;even
  await assertRequestedChangeSendSource(message,input.actorUserId)
  if(message.intent_id!==intent.id||message.outbound_request_id!==input.outboundRequestId)throw Error('requested_change_final_message_conflict')
  if(message.status!=='draft')return{status:'existing' as const,message}
- await updateIntentLifecycle(intent.id,{renderStatus:'rendered',edielMessageId:message.id,outboundRequestId:input.outboundRequestId,actorUserId:input.actorUserId})
+ await updateIntentLifecycle(intent.id,{validationStatus:validation.status,validationResult:{...validation},blockingReasons:validation.blockingReasons,renderStatus:'rendered',edielMessageId:message.id,outboundRequestId:input.outboundRequestId,actorUserId:input.actorUserId})
  await queuePreparedEdielMessage({actorUserId:input.actorUserId,messageId:message.id,outboundRequestId:input.outboundRequestId,intentId:intent.id,payload:{requestedChangeEventId:b.eventId,intentId:intent.id,operationId:b.eventId,messageFamily:'PRODAT',messageCode:'Z09',routeId:input.routeContext.route.id}})
  await updateIntentLifecycle(intent.id,{outboxStatus:'queued',actorUserId:input.actorUserId});return{status:'queued' as const,message}
 }

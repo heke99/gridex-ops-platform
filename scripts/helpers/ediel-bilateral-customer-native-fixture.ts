@@ -15,6 +15,10 @@ import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSour
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {BilateralCustomerSourceSubmission} from '@/lib/ediel/production/bilateralCustomerSource'
+import {seedOriginalMailboxNative} from './originalMailboxNative'
+import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 
 export const bilateralSourceOperatorPermissions=['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review']
 export async function createBilateralSourceOperator(companyId:string,keys=bilateralSourceOperatorPermissions){
@@ -38,10 +42,41 @@ export async function createBilateralSourceOperator(companyId:string,keys=bilate
 export function customerChangeMinute(requestedStartDate:string){
  const date=new Date(`${requestedStartDate}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+2);return `${date.toISOString().slice(0,10).replaceAll('-','')}0000`
 }
-export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string}={}){
- const sourceMessageId=randomUUID(),wire=bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...options})
+export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string;physicalBirth?:boolean;sourceWire?:string}={}){
+ const {physicalBirth,sourceWire,...wireOptions}=options
+ let sourceMessageId:string=randomUUID()
+ let wire=sourceWire??bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...wireOptions})
+ if(physicalBirth&&sourceWire===undefined){
+  // A new physical interchange must not share the baseline Z04's UNB5=I.
+  // Construct the original before custody; explicit caller originals stay exact.
+  const original=EdifactEnvelopeCodec.decode(wire),unh=original.segments.findIndex(s=>s.tag==='UNH'),unt=original.segments.findIndex(s=>s.tag==='UNT')
+  expect(original.messageCount).toBe(1);expect(unh).toBeGreaterThan(-1);expect(unt).toBeGreaterThan(unh)
+  const message=original.segments[unh]
+  wire=EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,senderQualifier:original.senderQualifier,receiverQualifier:original.receiverQualifier,
+   senderSubAddress:original.senderSubAddress,receiverSubAddress:original.receiverSubAddress,applicationReference:original.applicationReference,
+   interchangeReference:randomUUID().replaceAll('-','').slice(0,14).toUpperCase(),acknowledgementRequest:original.acknowledgementRequest==='1',environment:original.environment,
+   una:original.una,messages:[{messageReference:message.elements[1],messageTypeToken:message.elements[2],businessSegments:original.segments.slice(unh+1,unt).map(s=>s.raw)}]})
+ }
+ if(physicalBirth){
+  // Prospective custody: the actual parser/intake owns the source birth. No
+  // graph matches, frozen profile or mailbox selector is patched afterward.
+  const smtp=assertEdielSmtpReadiness(),envelope=EdifactEnvelopeCodec.decode(wire),ackRoute=randomUUID(),ackProfile=randomUUID()
+  // Public prospective configuration for both prescribed replies. One generic
+  // profile avoids ambiguous transport selection; no source/effect fact is seeded.
+  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+   VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic physical customer ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,application_reference,is_enabled,is_active,transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
+   VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic physical customer ACK profile','test','edifact','edifact',${literal(envelope.receiver)},${literal(envelope.sender)},${literal(envelope.receiverSubAddress??null)},${literal(envelope.senderSubAddress??null)},${literal(envelope.applicationReference)},true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid',NULL,NULL,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});`)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.communication_routes r JOIN public.ediel_route_profiles p ON p.communication_route_id=r.id AND p.company_id=r.company_id WHERE r.id=${literal(ackRoute)} AND r.company_id=${literal(f.companyId)} AND r.route_scope='ediel_ack' AND r.is_active AND p.is_active AND p.is_enabled AND p.mailbox=${literal(smtp.from)} AND p.smtp_host=${literal(smtp.host)} AND p.smtp_port=${literal(smtp.port)} AND p.message_family IS NULL AND p.business_code IS NULL`)).toBe(1)
+  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})
+  const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed})
+  expect(id).toBeTruthy()
+  if(!id)throw new Error('actual_bilateral_physical_source_birth_required')
+  sourceMessageId=id
+ }else{
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(sourceMessageId)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},'test','inbound','edifact','PRODAT','Z06','received',${literal(wire)},'{}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z06:E:26.A:r3' AND profile.is_enabled`)
+ }
  const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceMessageId).single();expect(saved.error).toBeNull()
  const message=saved.data as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
@@ -52,13 +87,17 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
  return {sourceMessageId,message,wire}
 }
 
-export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void){
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true})
+export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void,options:{physicalBirth?:boolean;repeatRegister?:boolean;existingSupply?:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>;sourceWire?:string}={}){
+ const f=options.existingSupply??await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:options.repeatRegister??true,invoicee:true,physicalBirth:options.physicalBirth,sourceWire:options.sourceWire})
  const uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  // The actual original structural review qualifies only a post-ledger future
  // supply anchor. It cannot backfill the old default September start.
- const baselineReview=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
- expect(baselineReview).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ // A reused supply has its genuine review already bound into outgoing
+ // signed claims. Re-reviewing that baseline would change its assessment.
+ if(!options.existingSupply){
+  const baselineReview=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
+  expect(baselineReview).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ }
  const counterpartyActorId=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)
  expect(counterpartyActorId).toBeTruthy()
  const agreementId=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),authorityHash=createHash('sha256').update('SYNTHETIC EXTERNAL BILATERAL MANDATE ONLY').digest('hex'),secret=Buffer.from('SYNTHETIC issuer key only 012345678901234567890123456789')

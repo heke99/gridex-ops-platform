@@ -7,7 +7,7 @@ import {evidenceHash,isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/d
 export type ReceivedProdatFinalResponsePlan=Readonly<{
  outcome:'positive';objectLineIndices:readonly number[];acknowledgedReferences:readonly string[];
  canonicalAssessmentId:string;objectAssessmentId:string|null;effectReceiptId:string|null;effectFactsHash:string|null;
- effectAppliedAt:string;effectKind:'structural'|'customer_version'|'supply'|'metering_permission';
+ effectAppliedAt:string;effectKind:'structural'|'customer_version'|'confirmed_customer_version'|'supply'|'metering_permission';
 }>
 const owners=new WeakMap<ReceivedProdatFinalResponsePlan,{companyId:string;environment:string;sourceMessageId:string;sourceHash:string}>()
 
@@ -33,13 +33,14 @@ export async function readReceivedProdatFinalResponsePlan(input:{companyId:strin
   if(!isEvidenceRecord(effect)||!Number.isSafeInteger(effect.lineIndex)||!isEvidenceUuid(effect.canonicalAssessmentId)
    ||typeof effect.appliedAt!=='string'||!Number.isFinite(Date.parse(effect.appliedAt))||plans.some(plan=>plan.objectLineIndices[0]===effect.lineIndex))return null
   const effectKind=effect.effectKind===undefined?'structural':effect.effectKind
-  const domainEffect=effectKind==='supply'||effectKind==='metering_permission'
+  const domainEffect=effectKind==='supply'||effectKind==='metering_permission'||effectKind==='confirmed_customer_version'
   if(domainEffect){
    // A distinct native owner supplies its real effect receipt. It does not
    // fabricate a structural/object-assessment UUID to fit this projection.
    if(effect.objectAssessmentId!==null||!isEvidenceUuid(effect.effectReceiptId)||typeof effect.effectFactsHash!=='string'
     ||!/^[a-f0-9]{64}$/.test(effect.effectFactsHash)
-    ||!(effectKind==='supply'?['Z04','Z05']:['Z14','Z15']).includes(source.message_code))return null
+    ||!(effectKind==='supply'?['Z04','Z05']:effectKind==='metering_permission'?['Z14','Z15']:['Z06']).includes(source.message_code)
+    ||(effectKind==='confirmed_customer_version'&&effect.effectReceiptId!==source.id))return null
   }else if(!isEvidenceUuid(effect.objectAssessmentId)
    ||!(effectKind==='structural'?['Z06','Z10']:effectKind==='customer_version'?['Z06']:[]).includes(source.message_code))return null
   const own=facet.objects.find(object=>object.lineIndex===effect.lineIndex),responses=facet.responses.filter(response=>response.lineIndex===effect.lineIndex)
