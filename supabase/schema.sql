@@ -68555,7 +68555,7 @@ CREATE TABLE public.customer_info_requests (
     next_required_action text,
     automation_origin text,
     automation_key text,
-    CONSTRAINT customer_info_requests_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'missing_authorization'::text, 'ready_to_send'::text, 'sent_to_grid_owner'::text, 'waiting_for_contrl'::text, 'waiting_for_aperak'::text, 'waiting_for_z02'::text, 'z02_received'::text, 'negative_aperak'::text, 'manual_review_required'::text, 'missing_binding_info'::text, 'missing_termination_info'::text, 'ready_for_switch'::text, 'cancelled'::text, 'rejected'::text, 'completed'::text, 'blocked'::text])))
+    CONSTRAINT customer_info_requests_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'missing_authorization'::text, 'ready_to_send'::text, 'z01_prepared'::text, 'route_missing'::text, 'sent_to_grid_owner'::text, 'waiting_for_contrl'::text, 'waiting_for_aperak'::text, 'waiting_for_z02'::text, 'z02_received'::text, 'negative_aperak'::text, 'manual_review_required'::text, 'missing_binding_info'::text, 'missing_termination_info'::text, 'ready_for_switch'::text, 'cancelled'::text, 'rejected'::text, 'completed'::text, 'blocked'::text])))
 );
 
 --
