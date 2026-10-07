@@ -13,7 +13,10 @@ export function sourceProdatRegisterReadingDeclarations(input:{
  message:EdielMessageRow;qualification?:SourceQualifiedProdatBilateralCapability|null;policy:CanonicalEdielPolicy;admissionAt?:string|Date
 }):ProdatDependentConditionFacts['registerObjects']|null{
  const {message,policy}=input,qualification=sourceQualifiedProdatBilateralCapability(message,input.qualification)
- if(!qualification||qualification.owner!=='immutable-regulated-supply-ground-v1'||!['A','D'].includes(qualification.subtype)
+ const regulated=qualification?.owner==='immutable-regulated-supply-ground-v1'&&['A','D'].includes(qualification.subtype)
+ const bilateralStart=qualification?.owner==='immutable-bilateral-prodat-profile-v1'&&qualification.subtype==='H'
+  &&qualification.objects.every(own=>own.process==='normal_start_h')
+ if(!qualification||!(regulated||bilateralStart)
   ||message.message_code!=='Z04'||policy.family!=='PRODAT'||policy.code!=='Z04'||policy.subtype!==qualification.subtype)return null
  const explicit=input.admissionAt instanceof Date?input.admissionAt.toISOString():input.admissionAt
  if(explicit!==undefined&&explicit!==''&&parseSourceReceiptInstant(explicit)!==parseSourceReceiptInstant(message.message_received_at))throw Error('prodat_source_readings_admission_clock_mismatch')
