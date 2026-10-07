@@ -2885,12 +2885,12 @@
     "active_item": "Reconcile delivered286/352 and continue current reserved whole-contract packets"
   },
   "current_main_ledger_observation": {
-    "recordedAt": "2026-10-07T09:23:00Z",
+    "recordedAt": "2026-10-07T09:52:00Z",
     "agent": "codex-ediel-20261006-93e252d8",
     "observationScope": "DATED_ACTUAL_MAIN_AND_SOURCE_RECEIPTS_NOT_WHOLE_APPROVAL_OR_RESULTING_MAIN_EXECUTION",
-    "actualMain": "fc3a8c1ec7af485325e2cd2c8e1dd03ae1c47d40",
-    "actualTree": "1c2098f20d6030bccd91031600541ea0aa49b2ad",
-    "coverageSha256": "812aef63619eb61d548065c15caad0e4814edfb5b4bedcf2bc8e2f2c958b5716",
+    "actualMain": "c401ae989f8add2f73912746936ced6be2d02708",
+    "actualTree": "f46429362cb9bf47ff23f9aa3ef001e862c8cdec",
+    "coverageSha256": "aa1755d0fc59001626e1c15b9a5079244e1f301bff26b5c3aa41b1078c4610eb",
     "rules": {
       "total": 121,
       "approved": 115,
@@ -2911,11 +2911,11 @@
     },
     "acceptanceContracts": {
       "total": 231,
-      "approved": 182,
-      "remaining": 49,
+      "approved": 183,
+      "remaining": 48,
       "statuses": {
-        "PASSED": 182,
-        "NOT_EXECUTED": 37,
+        "PASSED": 183,
+        "NOT_EXECUTED": 36,
         "PARTIAL": 12
       },
       "remainingIds": [
@@ -2963,7 +2963,6 @@
         "AT-Z09D-SUPPLIER",
         "AT-Z10M-SUPPLIER",
         "AT-Z13V-ESCO",
-        "AT-Z14V-ESCO",
         "AT-Z15V-ESCO",
         "AT-Z13VH-ESCO",
         "AT-Z14VH-ESCO",
@@ -2971,8 +2970,8 @@
       ]
     },
     "total": 352,
-    "approved": 297,
-    "remaining": 55,
+    "approved": 298,
+    "remaining": 54,
     "campaignComplete": false,
     "actualDeliveries": [
       {
@@ -3003,6 +3002,14 @@
         "scope": "DATED_STATUS_ONLY_NO_COVERAGE_PROMOTION",
         "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034887197",
         "ownerRelease": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034896490"
+      },
+      {
+        "pr": 644,
+        "actualMain": "c401ae989f8add2f73912746936ced6be2d02708",
+        "source": "824574f30b01d333c88fe7a12851971fe1b51330",
+        "scope": "AT-Z14V-ESCO_PASSED_ONLY_ALL351_OTHER_ROWS_PRESERVED",
+        "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6035067716",
+        "mergeRoleReleasedFirst": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6035091361"
       }
     ],
     "ownHContinuation": {
@@ -3014,15 +3021,18 @@
       "receipt": "7eb1b713a6c9cd86b1594a44d2a2e01cf5e581fe",
       "heldResources": 5,
       "draftPr": 657,
-      "source": "309c53c0a226eb6c418a05fa3bb694380c1e0b43",
-      "sourceTree": "066c5e84637f5c05d6f7371b8e3707ba84fe19d0",
+      "source": "19bcf261edadafd63c53c9546ec845f4e11d8a80",
+      "sourceTree": "a7b7c2bb00e5d49831c575b25180ff6282e912b6",
       "sourceReview": "THREE_CURRENT_SOURCE_COMPOSITION_APPROVE",
-      "sourceLocalChecks": "NONINCREMENTAL_SCRIPTS_TSC_LINT_DIFF_EXIT0",
-      "nativeRun": 37599424154,
-      "nativeJob": 112719873072,
-      "nativeStartedAt": "2026-10-07T09:16:13Z",
-      "nativeStatus": "IN_PROGRESS_NOT_QUALIFIED",
-      "predecessor": {
+      "sourceLocalChecks": "NONINCREMENTAL_SCRIPTS_TSC_LINT_DIFF_EXIT0_AFFECTED3_SUITES125_PASS",
+      "nativeRun": 37603249786,
+      "nativeJob": null,
+      "nativeStartedAt": null,
+      "nativeStatus": "QUEUED_OR_RUNNING_NOT_YET_QUALIFIED",
+      "wholeApproval": false,
+      "durableAbsenceOnSuccessor": "NOT_VERIFIED",
+      "nextOwnerAction": "93e authenticates exact19bc native100 after delivered V shared-consumer adoption; no oracle/product/SQL changes. Then finish owned evidenced work or document literal remaining blockers and own-only release before another pair.",
+      "predecessor857": {
         "source": "85708fbda9f1e2b45eb9eda25902197ad20b7fe9",
         "run": 37593694698,
         "artifact": 11470034833,
@@ -3037,9 +3047,26 @@
         "phase97": "FINAL_PUBLIC_ACK_LIST_P0001_HISTORICAL_RULE_BASIS_UNAVAILABLE",
         "qualification": "ROOT_PLUS_TWO_INDEPENDENT_ORIGINAL_ARTIFACT_QUALIFICATIONS"
       },
-      "wholeApproval": false,
-      "durableAbsenceOnSuccessor": "NOT_VERIFIED",
-      "nextOwnerAction": "93e authenticate new original100/allinputs/exit and actual97 physical-effect prohibition, independent exactresult review, preserve strictsource/effect/birth blockers; wholeH stays unapproved until complete."
+      "predecessor": {
+        "source": "309c53c0a226eb6c418a05fa3bb694380c1e0b43",
+        "tree": "066c5e84637f5c05d6f7371b8e3707ba84fe19d0",
+        "run": 37599424154,
+        "job": 112719873072,
+        "artifact": 11472628157,
+        "zipBytes": 229493,
+        "zipSha256": "5c685ce2e598d23c4d1e74c38518b890f7416674cd3ae39420d990a8d529dfa8",
+        "pass": 56,
+        "fail": 44,
+        "error": 0,
+        "skip": 0,
+        "nativeExit": 1,
+        "trackedInputs": 4324,
+        "sqlInputs": 1095,
+        "case97": "SOLE_NEW_PASS_ALL_UNCONDITIONAL_PROHIBITIONS_EXECUTED",
+        "conditionalTechnicalReply": "ZERO_OR_ONE_ALLOWED_EXISTENCE_NOT_RECORDED",
+        "qualification": "ROOT_PLUS_TWO_INDEPENDENT_ORIGINAL_ARTIFACT_QUALIFICATIONS",
+        "scope": "PRE_V_SOURCE_ONLY_NOT_CURRENT_MAIN_EXECUTION"
+      }
     },
     "retainedTrDbContinuation": {
       "owner": "codex-20261006T223328Z-b6d3a0172885",
@@ -3057,7 +3084,39 @@
     "currentMemoryClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034963171",
     "resultingMainRuntime": "NOT_VERIFIED",
     "externalAcceptance": "NOT_VERIFIED",
-    "deployment": "NOT_CLAIMED"
+    "deployment": "NOT_CLAIMED",
+    "explicitCustodyUpdates": {
+      "H05_H08": {
+        "status": "ALL16_EXPLICITLY_RELEASED_WHOLE_REQUIREMENTS_UNAPPROVED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034839762",
+        "remaining": "Delivered660 Z05 birth reused; genuine H04 baseline, reading214218259 and downstream bilateral/legal/end/watch/timer/ACK/effect criteria still required."
+      },
+      "C03_C05": {
+        "status": "FOREIGN_NEW_ATOMIC_CLAIM_SOURCE_COMPONENT_NOT_WHOLE_APPROVAL",
+        "owner": "codex-20261006-2c0823a3eed5",
+        "receipt": "99b6a5982454e2856a52c92b110db06f183b18f7",
+        "claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6035086238",
+        "resources": 10
+      },
+      "TRDB": {
+        "status": "FOREIGN_RETAINED_SUPPORTED_PUBLIC_PRODUCER_NOT_BLANKET_EXTERNAL_ABSENCE",
+        "originalResources": 22,
+        "extendedResources": 4,
+        "extension": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6035102946"
+      }
+    },
+    "provisionalEligibility": {
+      "foreignRetained": 46,
+      "releasedBlocked": 6,
+      "ownHActive": 2,
+      "totalRemaining": 54,
+      "selection": "NO_NEXT_PAIR_WHILE_OWN_H_AND_MEMORY_OPERATION_ACTIVE",
+      "releasedBlockers": [
+        "OPS04 agreed authentic LIVE input plus explicit LIVE mandate",
+        "C04/M qualified reading/history/replacement/timer sources",
+        "H05/H08 genuine H04 baseline plus downstream full bilateral/legal effects"
+      ]
+    }
   },
   "replay_cleanup_95bc_current": {
     "source": "bfa77190123d2211a02f53c5eeea848da9d558da",
@@ -3332,6 +3391,181 @@
       "incomingActual629": "ed7c0980/4b131b8a;19currentnon-skippedSUCCESS; actualATZ06E+Z09E PASSED in ledger; current1094/12newSQL incl213222",
       "incomingActual648": "9908978d; publicZ01currentauthorization delivered; whole638 remains retained",
       "nextAction": "95bc finishes already-owned memory-only closeout of actual651/GEN295: two final metadata reviews, source-freeze/current-head required checks, normal expected-head merge only under immediately free role-merge (otherwise release own memory role before waiting), actual receipt/merge-roleFIRST release, all11 owner-only memory refs release and durable checkpoint530. Then refresh actualmain/coverage/latest530/open+retainedlegacy/originalcustody/dependencies/live refs and autonomously reserve two eligible IDs. Delivered213222 supplier/route columns must be reassessed for released635 Z03L/LK; old blanket GEN-column blocker is superseded, no old success borrowed."
+    },
+    {
+      "recordedAt": "2026-10-07T09:23:00Z",
+      "agent": "codex-ediel-20261006-93e252d8",
+      "observationScope": "DATED_ACTUAL_MAIN_AND_SOURCE_RECEIPTS_NOT_WHOLE_APPROVAL_OR_RESULTING_MAIN_EXECUTION",
+      "actualMain": "fc3a8c1ec7af485325e2cd2c8e1dd03ae1c47d40",
+      "actualTree": "1c2098f20d6030bccd91031600541ea0aa49b2ad",
+      "coverageSha256": "812aef63619eb61d548065c15caad0e4814edfb5b4bedcf2bc8e2f2c958b5716",
+      "rules": {
+        "total": 121,
+        "approved": 115,
+        "remaining": 6,
+        "statuses": {
+          "VERIFIED": 115,
+          "PARTIAL": 2,
+          "NOT_VERIFIED": 4
+        },
+        "remainingIds": [
+          "P-08",
+          "TR-08",
+          "TR-09",
+          "DB-01",
+          "DB-05",
+          "OPS-04"
+        ]
+      },
+      "acceptanceContracts": {
+        "total": 231,
+        "approved": 182,
+        "remaining": 49,
+        "statuses": {
+          "PASSED": 182,
+          "NOT_EXECUTED": 37,
+          "PARTIAL": 12
+        },
+        "remainingIds": [
+          "SC-023",
+          "SC-031",
+          "SC-035",
+          "SC-037",
+          "SC-038",
+          "SC-039",
+          "SC-046",
+          "SC-047",
+          "SC-052",
+          "SC-053",
+          "SC-054",
+          "SC-070",
+          "SC-071",
+          "AT-P-08",
+          "AT-TR-08",
+          "AT-TR-09",
+          "AT-DB-01",
+          "AT-DB-05",
+          "AT-OPS-04",
+          "AT-Z01L-SUPPLIER",
+          "AT-Z02L-SUPPLIER",
+          "AT-Z03L-SUPPLIER",
+          "AT-Z04L-SUPPLIER",
+          "AT-Z01LK-SUPPLIER",
+          "AT-Z02LK-SUPPLIER",
+          "AT-Z03LK-SUPPLIER",
+          "AT-Z04LK-SUPPLIER",
+          "AT-Z03C-SUPPLIER",
+          "AT-Z04C-SUPPLIER",
+          "AT-Z05C-SUPPLIER",
+          "AT-Z04A-SUPPLIER",
+          "AT-Z04D-SUPPLIER",
+          "AT-Z03H-SUPPLIER",
+          "AT-Z04H-SUPPLIER",
+          "AT-Z05H-SUPPLIER",
+          "AT-Z08H-SUPPLIER",
+          "AT-Z06F-SUPPLIER",
+          "AT-Z09F-SUPPLIER",
+          "AT-Z06G-SUPPLIER",
+          "AT-Z09G-SUPPLIER",
+          "AT-Z09B-SUPPLIER",
+          "AT-Z09D-SUPPLIER",
+          "AT-Z10M-SUPPLIER",
+          "AT-Z13V-ESCO",
+          "AT-Z14V-ESCO",
+          "AT-Z15V-ESCO",
+          "AT-Z13VH-ESCO",
+          "AT-Z14VH-ESCO",
+          "AT-Z15VH-ESCO"
+        ]
+      },
+      "total": 352,
+      "approved": 297,
+      "remaining": 55,
+      "campaignComplete": false,
+      "actualDeliveries": [
+        {
+          "pr": 646,
+          "actualMain": "edf0b9d241b2d07c48209ec8ba62f43150543cfa",
+          "scope": "AT-P-01_PASSED_ONLY",
+          "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6032384702",
+          "ownerTechnicalRelease": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6032424242"
+        },
+        {
+          "pr": 647,
+          "actualMain": "9bffe292813c23ec61efadd79d12f6bd072f7c6f",
+          "scope": "SC-014_PASSED_ONLY"
+        },
+        {
+          "pr": 653,
+          "actualMain": "6135d88a54ab4d7296ca920760ce17587ff396f1",
+          "scope": "STRICT_PHYSICAL_BIRTH_PREREQUISITE_COMPONENT_NO_WHOLE_H_OR_Z02_APPROVAL"
+        },
+        {
+          "pr": 660,
+          "actualMain": "1aef94be4758260e134bdc195a69312901bf8cb2",
+          "scope": "Z05_PUBLIC_BIRTH_COMPONENT_NO_WHOLE_H05_H08_APPROVAL"
+        },
+        {
+          "pr": 661,
+          "actualMain": "fc3a8c1ec7af485325e2cd2c8e1dd03ae1c47d40",
+          "scope": "DATED_STATUS_ONLY_NO_COVERAGE_PROMOTION",
+          "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034887197",
+          "ownerRelease": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034896490"
+        }
+      ],
+      "ownHContinuation": {
+        "ids": [
+          "AT-Z03H-SUPPLIER",
+          "AT-Z04H-SUPPLIER"
+        ],
+        "packet": "d4e6dd88-c164-4666-85fe-60a60d119e8f",
+        "receipt": "7eb1b713a6c9cd86b1594a44d2a2e01cf5e581fe",
+        "heldResources": 5,
+        "draftPr": 657,
+        "source": "309c53c0a226eb6c418a05fa3bb694380c1e0b43",
+        "sourceTree": "066c5e84637f5c05d6f7371b8e3707ba84fe19d0",
+        "sourceReview": "THREE_CURRENT_SOURCE_COMPOSITION_APPROVE",
+        "sourceLocalChecks": "NONINCREMENTAL_SCRIPTS_TSC_LINT_DIFF_EXIT0",
+        "nativeRun": 37599424154,
+        "nativeJob": 112719873072,
+        "nativeStartedAt": "2026-10-07T09:16:13Z",
+        "nativeStatus": "IN_PROGRESS_NOT_QUALIFIED",
+        "predecessor": {
+          "source": "85708fbda9f1e2b45eb9eda25902197ad20b7fe9",
+          "run": 37593694698,
+          "artifact": 11470034833,
+          "zipBytes": 229445,
+          "zipSha256": "dcebd8f39ebae023b287b72d1aa3637674972f3cad3419aab61440526ca94288",
+          "pass": 55,
+          "fail": 45,
+          "error": 0,
+          "skip": 0,
+          "trackedInputs": 4320,
+          "sqlInputs": 1095,
+          "phase97": "FINAL_PUBLIC_ACK_LIST_P0001_HISTORICAL_RULE_BASIS_UNAVAILABLE",
+          "qualification": "ROOT_PLUS_TWO_INDEPENDENT_ORIGINAL_ARTIFACT_QUALIFICATIONS"
+        },
+        "wholeApproval": false,
+        "durableAbsenceOnSuccessor": "NOT_VERIFIED",
+        "nextOwnerAction": "93e authenticate new original100/allinputs/exit and actual97 physical-effect prohibition, independent exactresult review, preserve strictsource/effect/birth blockers; wholeH stays unapproved until complete."
+      },
+      "retainedTrDbContinuation": {
+        "owner": "codex-20261006T223328Z-b6d3a0172885",
+        "ids": [
+          "TR-09",
+          "DB-01",
+          "AT-TR-09",
+          "AT-DB-01"
+        ],
+        "receipt": "921335732b47ea03842be65da62cc0e3d691d07f",
+        "heldResources": 22,
+        "claimReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034874403",
+        "scope": "OWNER_RECLAIMED_EXPLICITLY_RELEASED_PRIOR_WORK_NOT_FREE_FOR_OTHERS"
+      },
+      "currentMemoryClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6034963171",
+      "resultingMainRuntime": "NOT_VERIFIED",
+      "externalAcceptance": "NOT_VERIFIED",
+      "deployment": "NOT_CLAIMED"
     }
   ]
 }
