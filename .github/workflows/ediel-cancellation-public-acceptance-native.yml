@@ -5,8 +5,8 @@ on:
     paths:
       - 'scripts/ediel-cancellation-public-acceptance-native.test.ts'
       - 'scripts/ediel-cancellation-public-acceptance-native.config.ts'
-      - '__tests__/ediel-cancellation-public-acceptance-profile.test.ts'
-      - '__tests__/ediel-inbound-cancellation-public-acceptance-intake.test.ts'
+      - '__tests__/ediel-cancellation-birth-profile.test.ts'
+      - '__tests__/ediel-inbound-cancellation-birth-intake.test.ts'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/fixtures/**'
       - 'scripts/helpers/**'
