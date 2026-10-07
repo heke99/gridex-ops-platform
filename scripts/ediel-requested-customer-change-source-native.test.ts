@@ -149,14 +149,23 @@ it('genuine reviewed death event qualifies only its own physical Z06 confirmed f
  await expect(createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId})).rejects.toMatchObject({message:'prodat_confirmed_death_response_current_owner_required'})
  expect(replies()).toEqual({contrl:1,aperak:0});expect(state()).toEqual(beforeRefusedReply);expect(deathBusiness(f)).toEqual(before)
  sql(`UPDATE public.user_permission_overrides SET valid_to=now()-interval '1 second' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer.id)} AND permission_key='ediel.source.review' AND effect='deny'`)
- const final=await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceMessageId,rawPayload:wire})
+ // Failure-only observation of the actual immutable owner graph. Export only
+ // counts/booleans; retain the original exception and every behaviour oracle.
+ const diagnoseFailure=(stage:'final_plan'|'first_aperak',error:unknown):never=>{
+  try{
+   const metadata=sql(`SELECT jsonb_build_object('canonicalLeafMatchesVersion',NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id),'canonicalDecisionsAccepted',a.facts_text::jsonb@>'{"syntaxDecision":"accepted","applicationDecision":"accepted","functionalDecision":"accepted"}'::jsonb,'applicationFacetCount',(SELECT count(*) FROM gridex_received_sources.prodat_application_facets p WHERE p.assessment_id=a.id),'applicationFacetHashMatches',coalesce((SELECT bool_and(p.company_id=m.company_id AND p.environment=m.environment AND p.source_message_id=m.id AND p.source_payload_hash=v.payload_hash AND p.application_facts_hash=encode(sha256(convert_to(p.application_facts_text,'UTF8')),'hex')) FROM gridex_received_sources.prodat_application_facets p WHERE p.assessment_id=a.id),false),'functionFacetCount',(SELECT count(*) FROM gridex_received_sources.prodat_source_function_facets p WHERE p.assessment_id=a.id),'functionFacetHashMatches',coalesce((SELECT bool_and(p.company_id=m.company_id AND p.environment=m.environment AND p.source_message_id=m.id AND p.source_payload_hash=v.payload_hash AND p.function_facts_hash=encode(sha256(convert_to(p.function_facts_text,'UTF8')),'hex')) FROM gridex_received_sources.prodat_source_function_facets p WHERE p.assessment_id=a.id),false),'functionFacetValidatorAccepts',coalesce((SELECT bool_and(gridex_received_sources.validate_prodat_source_function_v1(m.company_id,m.id,m.raw_payload,a.facts_text::jsonb,p.function_facts_text::jsonb)) FROM gridex_received_sources.prodat_source_function_facets p WHERE p.assessment_id=a.id),false),'modernContextReceiptCount',(SELECT count(*) FROM gridex_customer_life_events.inbound_context_receipts r WHERE r.company_id=m.company_id AND r.source_message_id=m.id)) FROM gridex_requested_changes.confirmed_customer_versions v JOIN public.ediel_messages m ON m.id=v.source_message_id AND m.company_id=v.company_id AND m.environment=v.environment JOIN gridex_received_sources.validation_assessments a ON a.id=v.canonical_assessment_id WHERE v.source_message_id=${literal(source.sourceMessageId)} AND v.company_id=${literal(f.companyId)}`)
+   console.warn('confirmed_death_response_failure',JSON.stringify({stage,metadata}))
+  }catch{console.warn('confirmed_death_response_failure',JSON.stringify({stage,metadata:'unavailable'}))}
+  throw error
+ }
+ const final=await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceMessageId,rawPayload:wire}).catch(error=>diagnoseFailure('final_plan',error))
  expect(final).not.toBeNull()
  if(!final)throw Error('actual_reviewed_death_final_response_required')
  expect(final.plans).toHaveLength(1)
  const plan=final.plans[0]
  expect(plan).toMatchObject({effectKind:'confirmed_customer_version',objectAssessmentId:null,effectReceiptId:source.sourceMessageId,effectFactsHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
  expect(sql(`SELECT jsonb_build_object('reviewerSend',public.gridex_actor_has_company_permission(${literal(f.reviewer.id)},${literal(f.companyId)},'communication.send'),'dispatcherSend',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.send'))`)).toEqual({reviewerSend:false,dispatcherSend:true})
- const ids=await createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId})
+ const ids=await createReceivedProdatCommittedEffectAcks({actorUserId:f.actorUserId,companyId:f.companyId,sourceMessageId:source.sourceMessageId}).catch(error=>diagnoseFailure('first_aperak',error))
  expect(ids).toHaveLength(1)
  const ack=await getEdielMessageById(ids[0])
  expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_family:'APERAK',related_message_id:source.sourceMessageId,ack_outcome:'positive',application_reference:'23-DDQ-PRODAT'})
