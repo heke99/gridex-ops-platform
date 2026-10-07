@@ -3,6 +3,7 @@
 // agreement/mail inputs and one external SMTP double; all owners and consumers
 // are production code. Future activation and market certification are separate.
 import { createHash, randomUUID } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
@@ -94,9 +95,19 @@ function diagnosticEvent(event:EdielMessageEventRow|undefined, f:Fixture, source
   const scope={companyMatches:event.company_id===f.companyId,sourceMatches:event.ediel_message_id===source.id}
   if (!scope.companyMatches || !scope.sourceMatches) return {read:'scope_unqualified',scope}
   const p=diagnosticRecord(event.payload),partition=p.sourceObjectPartition
+  const ackPrefix=typeof p.ackFamily==='string'&&['CONTRL','APERAK','UTILTS_ERR'].includes(p.ackFamily)?p.ackFamily+' skapades inte: ':null
+  const warningReason=p.reason??(ackPrefix&&typeof event.message==='string'&&event.message.startsWith(ackPrefix)?event.message.slice(ackPrefix.length).split(' · ')[0]:undefined)
   return {read:'available',scope,eventType:diagnosticEnum(event.event_type,diagnosticEventTypes),eventStatus:diagnosticEnum(event.event_status,diagnosticEventStatuses),
     syntax:diagnosticEnum(p.syntaxDecision,diagnosticDecisions),application:diagnosticEnum(p.applicationDecision,diagnosticDecisions),functional:diagnosticEnum(p.functionalDecision,diagnosticDecisions),
     disposition:diagnosticEnum(diagnosticRecord(p.prodatProcessingDisposition).kind,diagnosticDispositions),
+    blockedBy:diagnosticEnum(p.blockedBy,['canonical_inbound_ack_guard'] as const),
+    ackFamily:diagnosticEnum(p.ackFamily,['CONTRL','APERAK','UTILTS_ERR'] as const),
+    automationPipeline:diagnosticEnum(p.automationPipeline,['trace_failed_non_blocking'] as const),
+    reason:diagnosticEnum(warningReason,[...diagnosticHeldReasons,...diagnosticRollbackReasons,...diagnosticApplicationReasons,
+      'duplicate_same_outcome','conflicting_outcome','duplicate_same_family','prodat_application_original_owner_unavailable',
+      'prodat_application_original_rule_witness_mismatch','prodat_structural_response_own_effect_unavailable'] as const),
+    reasonHash:warningReason==null?'absent':diagnosticHash(warningReason),errorHash:p.error==null?'absent':diagnosticHash(p.error),
+    messageHash:event.message==null?'absent':diagnosticHash(event.message),
     tenantResolutionStatus:diagnosticEnum(p.tenantResolutionStatus,['tenant_resolved','tenant_not_found','tenant_ambiguous'] as const),
     supplySourceApply:diagnosticEnum(p.supplySourceApply,['rolled_back'] as const),
     ...(p.supplySourceApply==='rolled_back'?{rollback:diagnosticRollback(p.reason)}:{}),
@@ -109,6 +120,75 @@ function diagnosticEvent(event:EdielMessageEventRow|undefined, f:Fixture, source
     }):partition==null?'absent':'unknown',
     committedEffectReceiptCount:Array.isArray(p.committedEffectReceiptIds)?p.committedEffectReceiptIds.length:'absent'}
 }
+function diagnosticSql(input:string):unknown {
+  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
+  const output=execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],
+    {input,encoding:'utf8',timeout:10000,maxBuffer:2_000_000,stdio:'pipe'}).trim()
+  return output?JSON.parse(output):undefined
+}
+const diagnosticApplicationReasons = ['PRODAT_APPLICATION_INVOCATION_INCOMPLETE','REGISTER_MESSAGE_NOT_VALIDATED','REGISTER_SCOPE_UNAVAILABLE'] as const
+function diagnosticCount(value:unknown) { return typeof value==='number'&&Number.isSafeInteger(value)&&value>=0&&value<=2_097_152?value:'unknown' }
+function projectDiagnosticApplication(value:unknown) {
+  const p=diagnosticRecord(value)
+  return {read:'available',assessmentCount:diagnosticCount(p.assessmentCount),facetCount:diagnosticCount(p.facetCount),
+    headerDecision:diagnosticEnum(p.headerDecision,['accepted','rejected','held'] as const),
+    ...Object.fromEntries(['objectCount','accepted','held','rejected','registerObjectCount','registerAccepted','registerUnavailable','registerRejected',
+      'incompleteInvocationReasons','registerMessageNotValidatedReasons','registerScopeUnavailableReasons','unknownReasonCount'].map(key=>[key,diagnosticCount(p[key])])),
+    unknownReasonHashes:Array.isArray(p.unknownReasonHashes)?p.unknownReasonHashes.slice(0,16).map(hash=>typeof hash==='string'&&/^[a-f0-9]{64}$/.test(hash)?hash:diagnosticHash(hash)):[]}
+}
+/** Read the exact persisted invocation, never revalidate or select a newer
+ * assessment. Facet absence is diagnostic only; it proves no opaque result. */
+function readDiagnosticApplication(f:Fixture,source:EdielMessageRow,message:EdielMessageRow|null) {
+  if(!message||message.id!==source.id||message.company_id!==f.companyId||message.environment!=='test'
+    ||message.direction!=='inbound'||message.message_standard!=='edifact'||message.message_family!=='PRODAT'||message.message_code!=='Z04')return {read:'scope_unqualified'}
+  const evidence=diagnosticRecord(message.validation_report?.receivedSourceValidationEvidence)
+  if(evidence.status!=='recorded'||typeof evidence.assessmentId!=='string'||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(evidence.assessmentId)
+    ||typeof evidence.factsHash!=='string'||!/^[a-f0-9]{64}$/.test(evidence.factsHash))return {read:'assessment_unqualified'}
+  try {
+    return projectDiagnosticApplication(diagnosticSql(`WITH canonical AS (
+      SELECT a.id,a.company_id,a.environment,a.source_message_id,a.source_payload_hash,a.facts_text::jsonb AS facts
+      FROM public.ediel_messages m
+      JOIN gridex_received_sources.sources s ON s.source_message_id=m.id AND s.company_id=m.company_id AND s.environment=m.environment
+        AND s.origin='database_insert' AND s.payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+        AND s.payload_hash=encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')
+      JOIN gridex_received_sources.validation_assessments a ON a.source_message_id=s.source_message_id AND a.company_id=s.company_id
+        AND a.environment=s.environment AND a.source_payload_hash=s.payload_hash
+      WHERE m.id=${literal(source.id)}::uuid AND m.company_id=${literal(f.companyId)}::uuid
+        AND m.environment='test' AND m.direction='inbound' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.message_code='Z04'
+        AND m.validation_report#>>'{receivedSourceValidationEvidence,status}'='recorded'
+        AND m.validation_report#>>'{receivedSourceValidationEvidence,assessmentId}'=${literal(evidence.assessmentId)}
+        AND m.validation_report#>>'{receivedSourceValidationEvidence,factsHash}'=${literal(evidence.factsHash)}
+        AND a.id=${literal(evidence.assessmentId)}::uuid AND a.owner='canonical-runtime-with-registry-v1'
+        AND a.facts_hash=${literal(evidence.factsHash)} AND a.facts_hash=encode(sha256(convert_to(a.facts_text,'UTF8')),'hex')
+    ), facet AS (
+      SELECT f.application_facts_text::jsonb AS app FROM canonical a
+      JOIN gridex_received_sources.prodat_application_facets f ON f.assessment_id=a.id AND f.company_id=a.company_id
+        AND f.environment=a.environment AND f.source_message_id=a.source_message_id AND f.source_payload_hash=a.source_payload_hash
+      WHERE f.application_facts_hash=encode(sha256(convert_to(f.application_facts_text,'UTF8')),'hex')
+    ), objects AS (
+      SELECT o FROM facet f CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(f.app->'objects')='array' THEN f.app->'objects' ELSE '[]'::jsonb END)o
+    ), registers AS (
+      SELECT o FROM canonical a CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(a.facts#>'{registerValidation,objects}')='array' THEN a.facts#>'{registerValidation,objects}' ELSE '[]'::jsonb END)o
+    ), reasons AS (
+      SELECT r#>>'{}' AS reason FROM objects CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o->'reasonCodes')='array' THEN o->'reasonCodes' ELSE '[]'::jsonb END)r
+      UNION ALL SELECT r#>>'{}' FROM registers CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o->'reasons')='array' THEN o->'reasons' ELSE '[]'::jsonb END)r
+    ), unknown_reasons AS (
+      SELECT DISTINCT encode(sha256(convert_to(reason,'UTF8')),'hex') AS hash FROM reasons
+      WHERE reason IS NOT NULL AND reason NOT IN(${diagnosticApplicationReasons.map(literal).join(',')})
+    ) SELECT jsonb_build_object(
+      'assessmentCount',(SELECT count(*) FROM canonical),'facetCount',(SELECT count(*) FROM facet),
+      'headerDecision',(SELECT CASE WHEN app->>'headerDecision' IN('accepted','rejected','held') THEN app->>'headerDecision' ELSE 'unknown' END FROM facet),
+      'objectCount',(SELECT count(*) FROM objects),'accepted',(SELECT count(*) FROM objects WHERE o->>'applicationDecision'='accepted'),
+      'held',(SELECT count(*) FROM objects WHERE o->>'applicationDecision'='held'),'rejected',(SELECT count(*) FROM objects WHERE o->>'applicationDecision'='rejected'),
+      'registerObjectCount',(SELECT count(*) FROM registers),'registerAccepted',(SELECT count(*) FROM registers WHERE o->>'disposition'='accepted'),
+      'registerUnavailable',(SELECT count(*) FROM registers WHERE o->>'disposition'='unavailable'),'registerRejected',(SELECT count(*) FROM registers WHERE o->>'disposition'='rejected'),
+      'incompleteInvocationReasons',(SELECT count(*) FROM reasons WHERE reason='PRODAT_APPLICATION_INVOCATION_INCOMPLETE'),
+      'registerMessageNotValidatedReasons',(SELECT count(*) FROM reasons WHERE reason='REGISTER_MESSAGE_NOT_VALIDATED'),
+      'registerScopeUnavailableReasons',(SELECT count(*) FROM reasons WHERE reason='REGISTER_SCOPE_UNAVAILABLE'),
+      'unknownReasonCount',(SELECT count(*) FROM unknown_reasons),
+      'unknownReasonHashes',(SELECT coalesce(jsonb_agg(hash ORDER BY hash),'[]'::jsonb) FROM (SELECT hash FROM unknown_reasons ORDER BY hash LIMIT 16)h));`))
+  } catch(error) { return {read:'read_unavailable',reasonHash:diagnosticHash(error)} }
+}
 function projectZ04Diagnostic(f:Fixture,source:EdielMessageRow,reads:readonly [PromiseSettledResult<EdielMessageRow|null>,PromiseSettledResult<EdielMessageEventRow[]>]) {
   try {
     const [messageRead,eventRead]=reads
@@ -117,7 +197,7 @@ function projectZ04Diagnostic(f:Fixture,source:EdielMessageRow,reads:readonly [P
     const report=scope?.companyMatches&&scope.sourceMatches&&scope.environmentMatches?diagnosticRecord(message?.validation_report):{}
     const evidence=diagnosticRecord(report.receivedSourceValidationEvidence)
     const ownEvents=eventRead.status==='fulfilled'?eventRead.value.filter(event=>event.company_id===f.companyId&&event.ediel_message_id===source.id):[]
-    return {cause:'UNKNOWN',message:messageRead.status==='rejected'?{read:'read_unavailable',reasonHash:diagnosticHash(messageRead.reason)}:
+    return {cause:'UNKNOWN',application:readDiagnosticApplication(f,source,message),message:messageRead.status==='rejected'?{read:'read_unavailable',reasonHash:diagnosticHash(messageRead.reason)}:
       !message?{read:'not_found'}:{read:scope?.companyMatches&&scope.sourceMatches&&scope.environmentMatches?'available':'scope_unqualified',scope,
         status:scope?.companyMatches&&scope.sourceMatches&&scope.environmentMatches?diagnosticEnum(message.status,diagnosticMessageStatuses):'unknown',
         syntax:diagnosticEnum(report.syntaxDecision,diagnosticDecisions),application:diagnosticEnum(report.applicationDecision,diagnosticDecisions),functional:diagnosticEnum(report.functionalDecision,diagnosticDecisions),
@@ -126,6 +206,8 @@ function projectZ04Diagnostic(f:Fixture,source:EdielMessageRow,reads:readonly [P
       events:eventRead.status==='rejected'?{read:'read_unavailable',reasonHash:diagnosticHash(eventRead.reason)}:{read:'available',
         allCompanyMatches:eventRead.value.every(event=>event.company_id===f.companyId),allSourceMatches:eventRead.value.every(event=>event.ediel_message_id===source.id),
         latest:diagnosticEvent(eventRead.value[0],f,source),
+        ackGuard:diagnosticEvent(ownEvents.find(event=>event.event_type==='manual_note'&&diagnosticRecord(event.payload).blockedBy==='canonical_inbound_ack_guard'),f,source),
+        automationPipeline:diagnosticEvent(ownEvents.find(event=>event.event_type==='manual_note'&&diagnosticRecord(event.payload).automationPipeline==='trace_failed_non_blocking'),f,source),
         runtime:diagnosticEvent(ownEvents.find(event=>event.event_type==='validated'&&'syntaxDecision' in diagnosticRecord(event.payload)),f,source),
         domain:diagnosticEvent(ownEvents.find(event=>event.event_type==='validated'&&'sourceObjectPartition' in diagnosticRecord(event.payload)),f,source),
         rollback:diagnosticEvent(ownEvents.find(event=>event.event_type==='manual_note'&&diagnosticRecord(event.payload).supplySourceApply==='rolled_back'),f,source),
