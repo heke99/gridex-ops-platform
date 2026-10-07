@@ -3,16 +3,19 @@
 // current capability, kernel, effect receipts and ACK originals are real.
 // A blocked producer/birth fails its case; later assertions are NOT REACHED.
 // Z08H legal rescission and ordinary L/LK timers are separate contracts.
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash, createHmac, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { nationalRescissionNativeChain } from './helpers/nationalRescissionNative'
 import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { createBilateralProdatGroundNativeFixture } from './helpers/ediel-bilateral-prodat-profile-native-fixture'
-import { archiveBilateralProdatGround, readBilateralProdatGroundBytes, reviewBilateralProdatGround } from '@/lib/ediel/production/bilateralProdatProfileIntake'
+import { archiveBilateralProdatGround, readBilateralProdatGroundBytes, readBilateralProdatGroundScope, readBilateralProdatGroundArtifact, reviewBilateralProdatGround } from '@/lib/ediel/production/bilateralProdatProfileIntake'
 import { qualifyPersistedBilateralProdatOutboundOriginal } from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import { readSourceQualifiedProdatBilateralCapability } from '@/lib/ediel/core/prodatBilateralSourceCapability'
+import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
+import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
+import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
@@ -32,6 +35,8 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { loadCustomerMasterdataValidationContext, prepareCustomerMasterdataSource } from '@/lib/ediel/production/customerMasterdataSource'
+import { applyCustomerSiteAddressCandidate } from '@/lib/customer-sites/addressIntake'
+import { qualifyBilateralProdatSwitchPreparation } from '@/lib/ediel/production/bilateralProdatSwitchPreparation'
 import { updateSupplierSwitchValidationSnapshot } from '@/lib/operations/db'
 import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
@@ -152,23 +157,47 @@ function reply(f: Fixture, original: Original, body = replyBody(f, original), re
   return frame(body, envelope.receiver!, envelope.sender!, refs, environment)
 }
 async function selectedInvoiceeProfile() {
-  const f=await createBilateralProdatGroundNativeFixture(await prospective())
-  const snapshot=sql<Row>(`SELECT validation_snapshot FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)}`)
+  const staged=await prospective()
+  const snapshot=sql<Row>(`SELECT validation_snapshot FROM public.supplier_switch_requests WHERE id=${literal(staged.switchId)}`)
   const portal=record(snapshot.portalData), facts=record(portal.dependentConditionFacts)
   const originalSelection=record((facts.invoiceeObjects as unknown[])[0]), invoicee=record(originalSelection.invoicee)
   const selection={...originalSelection,invoicee:{...invoicee,identity:{id:'5561234567',qualifier:'SE1',agency:'260'},
     nameLines:['Synthetic Different Invoicee'],address:{...record(invoicee.address),lines:['Invoice Street','',''],postalCode:'54321',city:'Invoice Town',country:'SE'}}}
-  const desired={...snapshot,portalData:{...portal,dependentConditionFacts:{...facts,invoiceeObjects:[selection]}}}
-  const written=await updateSupplierSwitchValidationSnapshot(supabaseService,{requestId:f.switchId,validationSnapshot:desired})
+  const renderInvoicee={id:'5561234567',idCodeListQualifier:'SE1',idAgency:'260',name:'Synthetic Different Invoicee',
+    nameLines:['Synthetic Different Invoicee'],address:'Invoice Street',addressLines:['Invoice Street','',''],
+    postalCode:'54321',city:'Invoice Town',country:'SE'}
+  const desired={...snapshot,portalData:{...portal,invoicee:renderInvoicee,dependentConditionFacts:{...facts,invoiceeObjects:[selection]}}}
+  const written=await updateSupplierSwitchValidationSnapshot(supabaseService,{requestId:staged.switchId,validationSnapshot:desired})
   expect(written.validation_snapshot).toEqual(desired)
+  expect(sql<Row>(`SELECT validation_snapshot FROM public.supplier_switch_requests WHERE id=${literal(staged.switchId)}`)).toEqual(desired)
+  // Both caller selection facts and actual render context precede the signed scope.
+  const f=await createBilateralProdatGroundNativeFixture(staged)
   const artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
   const review=await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId),
     sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Separate review; caller invoicee is prospective protocol input, not authority'})
   expect(review.status).toBe('authorized')
   return {...f,profileVersionId:String(review.profileVersionId)}
 }
-async function sent(selectedInvoicee=false) {
-  const f = selectedInvoicee?await selectedInvoiceeProfile():await authorized(), before = business(f), original = await originate(f)
+async function selectedInstallationProfile() {
+  const staged=await prospective(), reference='SYNTHETIC H own-site caller address '+randomUUID()
+  const address=await applyCustomerSiteAddressCandidate({companyId:staged.companyId,customerId:staged.customerId,siteId:staged.siteId,
+    address:{street:'Installation Street 1',postalCode:'12345',city:'Installation Town',country:'SE',
+      source:'manual_intake',sourceReference:reference,actorUserId:staged.actorUserId}})
+  expect(address).toMatchObject({status:'updated',siteId:staged.siteId,addressHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+  expect(sql<Row>(`SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(staged.siteId)}
+    AND company_id=${literal(staged.companyId)} AND customer_id=${literal(staged.customerId)}`))
+    .toMatchObject({street:'Installation Street 1',postal_code:'12345',city:'Installation Town',country:'SE',
+      address_hash:address.addressHash,address_source:'manual_intake',address_source_reference:reference})
+  // Stage the public site address before deriving the actual legal/registry scope.
+  const f=await createBilateralProdatGroundNativeFixture(staged)
+  const artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
+  const review=await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId),
+    sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Separate review of prospective own site address'})
+  expect(review.status).toBe('authorized')
+  return {...f,profileVersionId:String(review.profileVersionId)}
+}
+async function sent(selectedInvoicee=false,selectedInstallation=false) {
+  const f = selectedInvoicee?await selectedInvoiceeProfile():selectedInstallation?await selectedInstallationProfile():await authorized(), before = business(f), original = await originate(f)
   expect(original).toMatchObject({ direction: 'outbound', environment: 'test', message_family: 'PRODAT', message_code: 'Z03',
     immutable_payload_hash: digest(original.raw_payload!) })
   expect(EdifactEnvelopeCodec.decode(original.raw_payload!).applicationReference).toBe('23-DDQ-PRODAT')
@@ -418,7 +447,8 @@ async function actualOutboundOmission(f:Fixture,original:Original,field:string,m
   catch(error){refusal=error}
   expect(refusal,`R${field} must not persist`).toBeDefined()
   const message=refusal instanceof Error?refusal.message:String(record(refusal).message??'')
-  expect(message).toMatch(/^(bilateral_prodat_outbound_current_profile_required|customer_masterdata_source_context_mismatch|prodat_register_evidence_invalid|prodat_subtype_unknown:missing|Outbound PRODAT Z03 blockerades av canonical Ediel-policy:)/)
+  if(field==='314')expect(message).toBe('bilateral_prodat_outbound_whole_physical_scope_required')
+  else expect(message).toMatch(/^(bilateral_prodat_outbound_current_profile_required|customer_masterdata_source_context_mismatch|prodat_register_evidence_invalid|prodat_subtype_unknown:missing|Outbound PRODAT Z03 blockerades av canonical Ediel-policy:)/)
   expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(originalBefore)
   expect(rows('public.ediel_messages',f.companyId)).toEqual(messages); expect(rows('public.ediel_outbox',f.companyId)).toEqual(outboxes)
 }
@@ -572,8 +602,11 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   })
 
   it.each(['233','234'])('actual source-selected Z03 IT makes child %s mandatory before another original can persist',async field=>{
-    const {f,original}=await sent(), body=rawParts(original.raw_payload!)
-    expect(body.filter(p=>p[0]==='NAD'&&component(p,1)==='IT')).toHaveLength(1)
+    const {f,original}=await sent(false,true), body=rawParts(original.raw_payload!)
+    const it=body.filter(p=>p[0]==='NAD'&&component(p,1)==='IT')
+    expect(it).toHaveLength(1);expect(component(it[0],2)).toBe(f.external)
+    expect(component(it[0],5)).toBe('Installation Street 1')
+    expect(component(it[0],6)).toBe('Installation Town');expect(component(it[0],8)).toBe('12345')
     await actualOutboundOmission(f,original,field,omit(original.raw_payload!,field))
   })
   it.each(['250','251','252','253','317','318'])('public caller selection renders Z03 IV%s and blocks a malformed derivative original',async field=>{
@@ -677,7 +710,8 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   it.each(['raw_payload','direction','environment'] as const)('rejects immutable original %s mutation at its actual public SQL guard', async field => {
     const {f,original}=await sent(), before=business(f), immutable=sealed(original.id)
     const result=await supabaseService.from('ediel_messages').update({[field]:field==='raw_payload'?original.raw_payload+' ':field==='direction'?'inbound':'production'}).eq('id',original.id)
-    expect(result.error).toMatchObject({code:'23514'})
+    expect(result.error).toMatchObject(field==='raw_payload'?{code:'23514',message:'immutable_ediel_payload_cannot_change'}
+      :{code:'P0001',message:'switch_original_bound_message_immutable'})
     expect(sealed(original.id)).toEqual(immutable); expect(business(f)).toEqual(before)
   })
 
@@ -688,10 +722,24 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   })
 
   it('the same archived test profile cannot authorize a production-environment original', async()=>{
-    const f=await authorized(), before=business(f)
-    await expect(prepareAndQueueEdielZ03({actorUserId:f.actorUserId,switchRequestId:f.switchId,communicationRouteId:f.routeId,environment:'production'}))
-      .rejects.toThrow('bilateral_prodat_switch_current_profile_required')
+    const f=await authorized(), before=business(f), sends=smtp.send.mock.calls.length
+    const scope={companyId:f.companyId,switchId:f.switchId,actorUserId:f.actorUserId,environment:'test' as const}
+    const qualified=await qualifyBilateralProdatSwitchPreparation(scope)
+    expect(qualified).toMatchObject({companyId:f.companyId,switchId:f.switchId,profileVersionId:f.profileVersionId,environment:'test'})
+    await expect(qualifyBilateralProdatSwitchPreparation({...scope,environment:'production'}))
+      .rejects.toThrow(/^bilateral_prodat_switch_current_profile_required$/)
+    expect(await qualifyBilateralProdatSwitchPreparation(scope)).toEqual(qualified)
+    let refusal:unknown
+    try {await prepareAndQueueEdielZ03({actorUserId:f.actorUserId,switchRequestId:f.switchId,communicationRouteId:f.routeId,environment:'production'})}
+    catch(error){refusal=error}
+    expect(refusal).toBeDefined()
+    const routeError=refusal instanceof Error?refusal.message:String(record(refusal).message??'')
+    // Actual production route refusal precedes the separately proved profile
+    // environment guard. A locked production route remains locked.
+    for(const reason of ['production_send_locked','route_profile_missing','missing_receiver_subaddress'])expect(routeError).toContain(reason)
     expect(business(f)).toEqual(before); expect(rows('public.ediel_messages',f.companyId)).toEqual([])
+    expect(rows('public.ediel_outbox',f.companyId)).toEqual([]);expect(rows('gridex_ediel_transport.attempts',f.companyId)).toEqual([])
+    expect(smtp.send.mock.calls.length).toBe(sends)
   })
 
   it.each(['LI','customer','start'] as const)('fresh Z04 with wrong own %s cannot borrow the accepted H original', async facet=>{
@@ -757,3 +805,247 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
 // A negotiated H business deadline needs explicit archived agreement evidence;
 // current normal_start_h scope binds grammar/validity without a dedicated timer.
 // Public birth also needs the retained common-owner H adapter integration.
+
+// Two additional whole branches. The counterparty port only renders physical
+// bytes from our actual sent original; it cannot persist remote authority.
+describe('H original ACK receipt and current archive authority proposals',()=>{
+  it('receives physical CONTRL and APERAK for the SMTP-accepted own Z03 without confirming supply, then replays immutable receipts',async()=>{
+    const {f,original}=await sent(), immutable=sealed(original.id)
+    // ACK may advance request status to submitted; it grants no market effect.
+    const market=()=>Object.fromEntries(Object.entries(business(f)).filter(([key])=>key!=='switches')), before=market()
+    const accepted=await readAcceptedEdielTransportProjection({companyId:f.companyId,environment:'test',actorUserId:f.actorUserId,messageId:original.id})
+    expect(accepted).toMatchObject({status:'accepted_projection',messageId:original.id,originalHash:digest(original.raw_payload!),
+      businessExpectationPlan:null,authorizesProviderEntry:false,deliveryProven:false})
+    const attempt=sql<{plan:Row;policy:Row}>(`SELECT jsonb_build_object('plan',binding->'technicalExpectationPlan',
+      'policy',jsonb_build_object('guideRevision',binding#>'{admissionDecision,guide,guideRevision}',
+        'referenceDate',binding#>'{admissionDecision,referenceDate}','profileKey',binding#>'{admissionDecision,profileKey}',
+        'sourceTrace',binding#>'{admissionDecision,sourceTrace}')) FROM gridex_ediel_transport.attempts
+      WHERE id=${literal(accepted!.attemptId)} AND company_id=${literal(f.companyId)} AND message_id=${literal(original.id)}
+      AND environment='test' AND classification='accepted' AND observed_at=${literal(accepted!.observedAt)}::timestamptz`)
+    expect(attempt.plan).toEqual({version:1,ruleId:'TM-CONTRL',offset:EDIEL_ACK_DEADLINE_MINUTES,unit:'minutes',
+      anchor:'actual_accepted_smtp_observed_at',timerKind:'internal_sender_watch',remoteReceiptKnown:false,policy:attempt.policy})
+    expect(attempt.policy).toMatchObject({guideRevision:expect.any(String),referenceDate:expect.any(String),profileKey:expect.any(String),sourceTrace:expect.any(Array)})
+    const projected=(await getEdielMessageById(original.id))!
+    expect(Date.parse(projected.message_sent_at!)).toBe(Date.parse(accepted!.observedAt))
+    for(const date of [projected.ack_due_at,projected.contrl_due_at]) expect(Date.parse(date!)).toBe(Date.parse(accepted!.observedAt)+EDIEL_ACK_DEADLINE_MINUTES*60000)
+    const ids:string[]=[], originalWire=tokenizeEdifact(original.raw_payload!), envelope=EdifactEnvelopeCodec.decode(original.raw_payload!)
+    const parties=originalAckPartyIdentities({rawPayload:original.raw_payload!})
+    for(const family of ['CONTRL','APERAK'] as const) {
+      // DSO view is solely the pure renderer input. Only actual mail intake
+      // below produces the received source, context and validation receipts.
+      const input={actorUserId:f.actorUserId,sourceMessage:{...original,direction:'inbound' as const},outcome:'positive' as const}
+      const raw=(family==='CONTRL'?buildContrlDraft(input):buildAperakDraft(input)).rawPayload!
+      const wire=tokenizeEdifact(raw)
+      expect(EdifactEnvelopeCodec.decode(raw)).toMatchObject({sender:envelope.receiver,receiver:envelope.sender,
+        environment:'test',applicationReference:envelope.applicationReference})
+      if(family==='CONTRL') {
+        const uci=wire.segments.filter(t=>t.tag==='UCI');expect(uci).toHaveLength(1)
+        expect(segmentComposite(uci[0],1,wire.una)[0]).toBe(envelope.interchangeReference!.slice(0,14))
+        expect(segmentComposite(uci[0],4,wire.una)[0]).toBe('1')
+        for(const i of [2,3])expect(segmentComposite(uci[0],i,wire.una)).toEqual(segmentComposite(originalWire.segments.find(t=>t.tag==='UNB')!,i,originalWire.una))
+        // The real renderer acknowledges the whole interchange with UCI.
+        // Any optional message-level UCM must still name the exact own UNH.
+        for(const ucm of wire.segments.filter(t=>t.tag==='UCM')) {
+          expect(segmentComposite(ucm,1,wire.una)[0]).toBe(segmentComposite(originalWire.segments.find(t=>t.tag==='UNH')!,1,originalWire.una)[0])
+          expect(segmentComposite(ucm,3,wire.una)[0]).toBe('1')
+        }
+      } else {
+        for(const [role,party] of [['FR',parties.legalReceiver],['DO',parties.legalSender]] as const) {
+          const nad=wire.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,wire.una)[0]===role)
+          expect(nad).toHaveLength(1);expect(segmentComposite(nad[0],2,wire.una)).toEqual(party.identityComponents)
+        }
+        expect(wire.segments.filter(t=>t.tag==='ERC').map(t=>segmentComposite(t,1,wire.una))).toEqual([['100','','260']])
+        for(const [qualifier,value] of [['ACW',segmentComposite(originalWire.segments.find(t=>t.tag==='BGM')!,2,originalWire.una)[0]],['LI',own(f,original).li],['Z07',f.external]]) {
+          const refs=wire.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,wire.una)[0]===qualifier)
+          expect(refs).toHaveLength(1);expect(segmentComposite(refs[0],1,wire.una)).toEqual([qualifier,value])
+        }
+      }
+      const staged=await intake(f,raw)
+      expect(staged.id,JSON.stringify(staged)).not.toBeNull()
+      const message=(await getEdielMessageById(staged.id!))!
+      expect(message).toMatchObject({message_family:family,direction:'inbound',company_id:f.companyId,raw_payload:raw,immutable_payload_hash:digest(raw)})
+      const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+      expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision)).toEqual(['accepted','accepted','accepted'])
+      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id})
+      const current=(await getEdielMessageById(message.id))!, receipt=await readCommittedInboundAck({actorUserId:f.actorUserId,message:current})
+      expect(receipt).toMatchObject({kind:'exact_receipt',sourceMessageId:original.id,result:{outcome:'positive',
+        sourceMessage:{id:original.id,raw_payload:original.raw_payload,immutable_payload_hash:digest(original.raw_payload!)}}})
+      expect(current).toMatchObject({ack_outcome:'positive'})
+      ids.push(message.id)
+      expect(sql<Row>(`SELECT to_jsonb(c) FROM gridex_ack_authority.source_correlations c WHERE ack_message_id=${literal(message.id)}`))
+        .toMatchObject({company_id:f.companyId,environment:'test',source_message_id:original.id,
+          source_payload_hash:digest(original.raw_payload!),ack_message_id:message.id,ack_payload_hash:digest(raw),ack_family:family,ack_outcome:'positive'})
+      expect(market()).toEqual(before);expect(sealed(original.id)).toEqual(immutable)
+    }
+    expect(await getEdielMessageById(original.id)).toMatchObject({contrl_status:'received',aperak_status:'received'})
+    const latest=await readCommittedInboundAck({actorUserId:f.actorUserId,message:(await getEdielMessageById(ids[1]))!})
+    expect(latest).toMatchObject({kind:'exact_receipt',result:{finalAckReached:true,sourceAccepted:true,wholeSourceRejected:false}})
+    const receiptRows=()=>sql(`SELECT jsonb_build_object(
+      'correlations',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.ack_message_id),'[]') FROM gridex_ack_authority.source_correlations c WHERE company_id=${literal(f.companyId)}),
+      'receipts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.ack_message_id),'[]') FROM gridex_ack_authority.applied_receipts r JOIN gridex_ack_authority.source_correlations c USING(ack_message_id) WHERE c.company_id=${literal(f.companyId)}),
+      'outcomes',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.ack_family,o.ack_scope,o.source_reference),'[]') FROM gridex_ack_authority.scope_outcomes o WHERE source_message_id=${literal(original.id)}))`)
+    const snapshot=()=>({durable:durable(f,original,ids[0]),second:sealed(ids[1]),receipts:receiptRows()})
+    const frozen=snapshot()
+    for(const id of ids)await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:id})
+    expect(snapshot()).toEqual(frozen)
+    const concurrent=await Promise.allSettled(ids.flatMap(id=>[1,2].map(()=>processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:id}))))
+    expect(concurrent.filter(r=>r.status==='rejected'),JSON.stringify(concurrent)).toEqual([])
+    expect(snapshot()).toEqual(frozen)
+    expect(await getEdielMessageById(original.id)).toMatchObject({contrl_status:'received',aperak_status:'received'})
+  })
+
+  it('denying the public separate reviewer grant removes current profile authority for a fresh H source without rewriting archive or history',async()=>{
+    const {f,original}=await sent(), control=await ready(f,original), origin=sql<Row>(`SELECT to_jsonb(o) FROM gridex_bilateral_prodat.origins o WHERE ground_id=${literal(f.profileVersionId)}`)
+    const scope={companyId:f.companyId,actorUserId:f.actorUserId,artifactId:String(origin.artifact_id)}
+    expect(await readBilateralProdatGroundArtifact(scope)).toMatchObject({status:'authorized',sourceHash:f.sourceHash})
+    const archive=()=>({profiles:rows('gridex_bilateral_prodat.profile_versions',f.companyId),artifacts:rows('gridex_bilateral_prodat.artifacts',f.companyId),
+      origins:rows('gridex_bilateral_prodat.origins',f.companyId,'ground_id'),reviews:rows('gridex_bilateral_prodat.reviews',f.companyId)})
+    const history=archive(), originalBefore=sealed(original.id), controlBefore=sealed(control.message.id), before=business(f)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review' AND effect='allow'`)).toBe(1)
+    sql(`UPDATE public.user_permissions SET effect='deny' WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review'`)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review' AND effect='deny'`)).toBe(1)
+    expect(await readBilateralProdatGroundArtifact(scope)).toMatchObject({status:'held',sourceHash:f.sourceHash})
+    expect(await readSourceQualifiedProdatBilateralCapability((await getEdielMessageById(control.message.id))!)).toBeNull()
+    const fresh=await intake(f,freshPhysicalIdentity(control.message.raw_payload!))
+    expect(fresh.id,JSON.stringify(fresh)).not.toBeNull();expect(fresh.id).not.toBe(control.message.id)
+    const message=(await getEdielMessageById(fresh.id!))!
+    expect(await readSourceQualifiedProdatBilateralCapability(message)).toBeNull()
+    const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+    expect(decision.validationReport.failureDisposition,JSON.stringify(decision)).toMatchObject({kind:'internal_failure',code:'EDIEL_INTERNAL_EXECUTION_FAILURE'})
+    expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id})
+    expect((await listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
+      .filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
+    expect(business(f)).toEqual(before);expect(archive()).toEqual(history)
+    expect(sealed(original.id)).toEqual(originalBefore);expect(sealed(control.message.id)).toEqual(controlBefore)
+  })
+})
+
+// The already sent original is a lawful baseline, never an authority shortcut
+// for a fresh public producer call after loss of its real SUPPLIER role.
+describe('H outgoing supplier role proposal',()=>{
+  it('requires the current scoped SUPPLIER role before H qualification or original idempotent reuse',async()=>{
+    const {f,original}=await sent()
+    const snapshot=()=>({durable:durable(f,original,original.id),intents:rows('public.ediel_message_intents',f.companyId),
+      requests:rows('public.outbound_requests',f.companyId),
+      original:sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(original.id)} AND company_id=${literal(f.companyId)}`)})
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)} AND environment='test'
+      AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier' AND valid_from<=clock_timestamp() AND(valid_to IS NULL OR clock_timestamp()<valid_to)`)).toBe(1)
+    const before=snapshot()
+    sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND environment='test'
+      AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier'`)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)} AND environment='test'
+      AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier' AND valid_from<=clock_timestamp() AND(valid_to IS NULL OR clock_timestamp()<valid_to)`)).toBe(0)
+    await expect(originate(f)).rejects.toThrow(new RegExp('^tenant_market_roles_missing:'+f.companyId+':test$'))
+    expect(snapshot()).toEqual(before)
+  })
+})
+
+// These two additional branches do not alter the earlier 98 case criteria.
+describe('H outgoing current-review authority and explicit controlled agreement proposals',()=>{
+  it('withdrawal of the public reviewer grant prevents fresh H qualification and origination while preserving the sent original',async()=>{
+    const {f,original}=await sent(), origin=sql<Row>(`SELECT to_jsonb(o) FROM gridex_bilateral_prodat.origins o WHERE ground_id=${literal(f.profileVersionId)}`)
+    const artifactScope={companyId:f.companyId,actorUserId:f.actorUserId,artifactId:String(origin.artifact_id)}, scope={companyId:f.companyId,actorUserId:f.actorUserId,switchId:f.switchId,environment:'test' as const}
+    expect(await readBilateralProdatGroundArtifact(artifactScope)).toMatchObject({status:'authorized',sourceHash:f.sourceHash})
+    expect(await qualifyBilateralProdatSwitchPreparation(scope)).toMatchObject({profileVersionId:f.profileVersionId,sourceHash:f.sourceHash})
+    const snapshot=()=>({durable:durable(f,original,original.id),intents:rows('public.ediel_message_intents',f.companyId),requests:rows('public.outbound_requests',f.companyId),
+      original:sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(original.id)} AND company_id=${literal(f.companyId)}`)})
+    const before=snapshot()
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review' AND effect='allow'`)).toBe(1)
+    sql(`UPDATE public.user_permissions SET effect='deny' WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review'`)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(f.reviewer)} AND company_id=${literal(f.companyId)} AND permission_key='ediel.bilateral_profile.review' AND effect='deny'`)).toBe(1)
+    expect(await readBilateralProdatGroundArtifact(artifactScope)).toMatchObject({status:'held',missing:['actual_current_qualified_ground'],sourceHash:f.sourceHash})
+    await expect(qualifyBilateralProdatSwitchPreparation(scope)).rejects.toThrow(/^bilateral_prodat_switch_current_profile_required$/)
+    await expect(originate(f)).rejects.toThrow(/^bilateral_prodat_switch_current_profile_required$/)
+    expect(snapshot()).toEqual(before)
+  })
+
+  it('archives newly signed explicit controlled H agreement bytes and executes their current technical watches and own confirmation transition',async()=>{
+    const staged=await prospective(), address=await applyCustomerSiteAddressCandidate({companyId:staged.companyId,customerId:staged.customerId,siteId:staged.siteId,
+      address:{street:'Agreed Installation Street 1',postalCode:'12345',city:'Agreed Town',country:'SE',source:'manual_intake',sourceReference:'SYNTHETIC controlled H agreement',actorUserId:staged.actorUserId}})
+    expect(address).toMatchObject({status:'updated',siteId:staged.siteId})
+    expect(sql<Row>(`SELECT to_jsonb(s) FROM public.customer_sites s WHERE company_id=${literal(staged.companyId)} AND id=${literal(staged.siteId)}`))
+      .toMatchObject({customer_id:staged.customerId,street:'Agreed Installation Street 1',postal_code:'12345',city:'Agreed Town',address_hash:address.addressHash})
+    const configured=await createBilateralProdatGroundNativeFixture(staged), selector={environment:configured.submission.environment,kind:configured.submission.kind,
+      rulePackId:configured.submission.rulePackId,bilateralAgreementId:configured.submission.bilateralAgreementId,gridAreaCode:configured.submission.gridAreaCode,
+      validFrom:configured.submission.validFrom,validTo:configured.submission.validTo}
+    const current=await readBilateralProdatGroundScope({companyId:configured.companyId,actorUserId:configured.actorUserId,...selector})
+    expect(current).toMatchObject({status:'scoped',scope:configured.scoped.scope,scopeHash:configured.scoped.scopeHash})
+    expect(current.scope).toMatchObject({companyId:configured.companyId,environment:'test',kind:'normal_start_h',legalSenderId:configured.sender,
+      legalReceiverId:configured.receiver,gridArea:configured.gridAreaCode,rulePackId:selector.rulePackId,bilateralAgreementId:configured.agreement})
+    // The actual RPC scope hashes legal/agreement/registry grammar and validity.
+    // Public site/invoicee staging is not misrepresented as hashed by that RPC.
+    const contractHash=sql<string>(`SELECT to_jsonb(gridex_received_sources.production_contract_hash_v1(c)) FROM public.customer_contracts c
+      WHERE c.id=${literal(configured.contractId)} AND c.company_id=${literal(configured.companyId)} AND c.customer_id=${literal(configured.customerId)} AND c.metering_point_id=${literal(configured.pointId)}`)
+    expect(contractHash).toMatch(/^[a-f0-9]{64}$/)
+    const sourceReference=String(record(record(current.scope).agreementBinding).source_reference)
+    expect(sourceReference).toBe(configured.submission.source.reference)
+    expect(EDIEL_ACK_DEADLINE_MINUTES).toBe(30)
+    const agreement={format:'SYNTHETIC_CONTROLLED_H_AGREEMENT_V1',boundary:'Declared issuer mechanism only; no real legal acceptance',scope:current.scope,
+      ownOperation:{customerId:configured.customerId,siteId:configured.siteId,pointId:configured.pointId,objectId:configured.external,contractId:configured.contractId,contractHash,requestedStartDate:configured.requestedStartDate},
+      original:{code:'Z03',reason:'Z25',requiredPhysicalReplies:['CONTRL','APERAK']},
+      watches:{outgoing:{minutes:30,anchor:'actual_accepted_smtp_observed_at'},incoming:{minutes:30,anchor:'retained_message_received_at'},businessDeadline:null,nationalSubstitutions:[]},
+      transition:{confirmation:'Z04',reason:'Z25',state:'confirmed_by_grid_owner',effectiveEvent:'own DTM92 at requestedStartDate',activation:'only after actual confirmation, current profile and effective event'}}
+    const bytes=Buffer.from(JSON.stringify(agreement,null,2),'utf8'), sourceHash=createHash('sha256').update(bytes).digest('hex'), version='explicit-controlled-h-agreement-v1'
+    const keyId=sql<string>(`SELECT to_jsonb(issuer_key_id) FROM gridex_bilateral_prodat.issuer_representations WHERE id=${literal(configured.representationId)} AND company_id=${literal(configured.companyId)}`)
+    const payload=Buffer.from(JSON.stringify({format:'ediel_bilateral_prodat_ground_receipt_v1',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:configured.companyId,environment:'test',
+      scope:current.scope,sourceHash,sourceReference,sourceVersion:version,legalDecisionReference:'SYNTHETIC DECLARED MECHANISM ONLY',issuedAt:new Date(Date.now()-1000).toISOString(),expiresAt:'2100-01-01T00:00:00Z'}))
+    // GIVEN verifier key is the existing fixture's declared synthetic constant.
+    // New JSON bytes/hash/receipt/signature are produced; no PDF signature reused.
+    const artifact=await archiveBilateralProdatGround({companyId:configured.companyId,actorUserId:configured.actorUserId,...selector,
+      source:{bytesBase64:bytes.toString('base64'),mimeType:'application/json',reference:sourceReference,version},
+      issuerReceipt:{keyId,representationId:configured.representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',Buffer.from('SYNTHETIC bilateral issuer verifier mechanism fixture only')).update(payload).digest('hex')}})
+    expect(artifact).toMatchObject({status:'archived',sourceHash,scopeHash:current.scopeHash})
+    const review=await reviewBilateralProdatGround({companyId:configured.companyId,actorUserId:configured.reviewer,artifactId:String(artifact.artifactId),sourceHash,scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Separate controlled review adopts explicit source clauses; synthetic mechanism only'})
+    expect(review.status,JSON.stringify(review)).toBe('authorized')
+    const f={...configured,profileVersionId:String(review.profileVersionId),bytes,sourceHash}, artifactScope={companyId:f.companyId,actorUserId:f.actorUserId,artifactId:String(artifact.artifactId)}
+    const retained=await readBilateralProdatGroundBytes(artifactScope)
+    expect(retained).toMatchObject({mimeType:'application/json',sourceHash});expect(Buffer.from(retained.bytes)).toEqual(bytes)
+    expect(createHash('sha256').update(retained.bytes).digest('hex')).toBe(sourceHash)
+    expect(retained.bytes.byteLength).toBe(bytes.byteLength);expect(JSON.parse(Buffer.from(retained.bytes).toString('utf8'))).toEqual(agreement)
+    expect(await readBilateralProdatGroundArtifact(artifactScope)).toMatchObject({status:'authorized',profileVersionId:f.profileVersionId,sourceHash,scopeHash:current.scopeHash,scope:current.scope,byteLength:bytes.byteLength,missing:[]})
+    const q=await qualifyBilateralProdatSwitchPreparation({companyId:f.companyId,actorUserId:f.actorUserId,switchId:f.switchId,environment:'test'})
+    expect(q).toMatchObject({profileVersionId:f.profileVersionId,sourceHash,sourceGrammarHash:record(current.scope).sourceGrammarHash,
+      customerId:agreement.ownOperation.customerId,siteId:agreement.ownOperation.siteId,pointId:agreement.ownOperation.pointId,contractId:agreement.ownOperation.contractId,contractHash:agreement.ownOperation.contractHash,objectId:agreement.ownOperation.objectId,requestedStartDate:agreement.ownOperation.requestedStartDate})
+    const original=await originate(f), physical=tokenizeEdifact(original.raw_payload!), dtm=physical.segments.filter(t=>t.tag==='DTM'&&segmentComposite(t,1,physical.una)[0]==='92')
+    expect(dtm).toHaveLength(1);expect(segmentComposite(dtm[0],1,physical.una)).toEqual(['92',f.requestedStartDate.replaceAll('-','')+'0000','203'])
+    expect(original).toMatchObject({requires_contrl:true,requires_aperak:true})
+    expect((await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)).qualification?.objects)
+      .toEqual([expect.objectContaining({profileVersionId:f.profileVersionId,sourceHash,sourceGrammarHash:q.sourceGrammarHash,
+        contractId:q.contractId,contractHash:q.contractHash,customerId:q.customerId,siteId:q.siteId,objectId:q.objectId,
+        lineItemReference:own(f,original).li})])
+    const immutable=sealed(original.id), before=business(f)
+    expect(before.periods).toEqual([]);expect(before.activations).toEqual([])
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='inbound' AND message_family IN('CONTRL','APERAK')`)).toBe(0)
+    expect((await sendEdielMessageViaSmtp(original,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})).accepted).toEqual(['recipient@example.invalid'])
+    const accepted=await readAcceptedEdielTransportProjection({companyId:f.companyId,actorUserId:f.actorUserId,messageId:original.id,environment:'test'})
+    expect(accepted).toMatchObject({status:'accepted_projection',originalHash:digest(original.raw_payload!),businessExpectationPlan:null,deliveryProven:false,authorizesProviderEntry:false})
+    const sentRow=(await getEdielMessageById(original.id))!
+    expect(Date.parse(sentRow.message_sent_at!)).toBe(Date.parse(accepted!.observedAt))
+    for(const deadline of [sentRow.ack_due_at,sentRow.contrl_due_at])expect(Date.parse(deadline!)).toBe(Date.parse(accepted!.observedAt)+agreement.watches.outgoing.minutes*60000)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_business_expectations WHERE company_id=${literal(f.companyId)} AND environment='test' AND source_message_id=${literal(original.id)}`)).toBe(0)
+    expect(sql<Row>(`SELECT binding->'technicalExpectationPlan' FROM gridex_ediel_transport.attempts WHERE id=${literal(accepted!.attemptId)} AND company_id=${literal(f.companyId)}`))
+      .toMatchObject({ruleId:'TM-CONTRL',offset:agreement.watches.outgoing.minutes,unit:'minutes',anchor:agreement.watches.outgoing.anchor,remoteReceiptKnown:false})
+    expect(business(f).periods).toEqual([]);expect(sealed(original.id)).toEqual(immutable)
+    // Archive/preparation/original/SMTP watch assertions above execute before
+    // the retained common H mail-birth dependency. No downstream credit if blocked.
+    const received=await ready(f,original)
+    expect(received.capability!.objects).toEqual([expect.objectContaining({profileVersionId:f.profileVersionId,sourceHash,sourceGrammarHash:q.sourceGrammarHash})])
+    expect(business(f).periods).toEqual([]);expect(business(f).activations).toEqual([])
+    expect(Date.parse(f.requestedStartDate+'T00:00:00Z')).toBeGreaterThan(Date.now())
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.message.id})
+    const after=business(f)
+    expect(after.periods).toEqual([expect.objectContaining({source_message_id:received.message.id,source_switch_request_id:f.switchId,customer_id:f.customerId,metering_point_id:f.pointId,contract_id:f.contractId,start_date:f.requestedStartDate,status:agreement.transition.state})])
+    expect(after.confirmations).toEqual([expect.objectContaining({source_message_id:received.message.id,original_message_id:original.id})]);expect(after.activations).toEqual([])
+    expect(after.bilateral).toEqual([expect.objectContaining({source_message_id:received.message.id,payload_hash:digest(received.message.raw_payload!),
+      profiles:[expect.objectContaining({profileVersionId:f.profileVersionId,process:'normal_start_h',sourceHash})]})])
+    const timers=sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY timer_type),'[]') FROM public.ediel_sla_timers t WHERE ediel_message_id=${literal(received.message.id)}`)
+    expect(timers.map(t=>t.timer_type).sort()).toEqual(['aperak_due','contrl_due'])
+    for(const timer of timers)expect(Date.parse(String(timer.due_at))).toBe(Date.parse(received.message.message_received_at!)+agreement.watches.incoming.minutes*60000)
+    await acknowledgements(f,original,received.message.id,received.message.raw_payload!)
+    const frozen=durable(f,original,received.message.id)
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.message.id});expect(durable(f,original,received.message.id)).toEqual(frozen)
+    const repeated=await Promise.allSettled([1,2].map(()=>processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.message.id})))
+    expect(repeated.filter(r=>r.status==='rejected'),JSON.stringify(repeated)).toEqual([]);expect(durable(f,original,received.message.id)).toEqual(frozen)
+  })
+})
