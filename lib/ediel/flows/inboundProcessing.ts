@@ -326,7 +326,7 @@ async function applyCanonicalRuntimeDecision(params: {
     try{deathStatusContext=await loadCustomerLifeEventValidationContext(params.message,params.actorUserId)}
     catch(error){lifeEventSourceReadFailure=formatErrorMessage(error,'Kundhändelsens skyddade källa kunde inte läsas.')}
   }
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext});
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext,actorUserId:params.actorUserId});
   // Only the opaque result of this exact rule invocation may keep independent
   // good own scopes moving past a sibling's internal hold. Public JSON cannot.
   const authorizedPartialOwner=hasReceivedCanonicalProdatPartialOwner(decision,params.message);
