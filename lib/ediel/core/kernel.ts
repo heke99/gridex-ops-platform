@@ -13,6 +13,7 @@ import {
   findOutboundEdielMessageDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import { assertPolicyDirection } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
@@ -294,6 +295,12 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     bilateralDraftQualification,bilateralDraft:params.draft,bilateralDraftActorUserId:params.actorUserId,
   })
 
+  // A source-ineligible direction needs no independent register inventory.
+  // Reuse the registry's refusal from the actual resolved policy before
+  // selecting a field blocker; permitted directions retain every field gate.
+  if (params.draft.direction === 'outbound' && validation.canonicalPolicy?.family === 'PRODAT') {
+    assertPolicyDirection(validation.canonicalPolicy, 'outbound')
+  }
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
   const qualifiedNegative = validation.canonicalPolicy && !blocking.some(issue => issue.code.startsWith('CANONICAL_') || issue.scope === 'prodat_register' || issue.scope === 'prodat_dependent')
     && sourceQualifiedNegativeFixtureMatchesDraft({ draft: params.draft, diagnosticCodes: blocking.map(issue => issue.code), qualification: params.negativeFixture })
