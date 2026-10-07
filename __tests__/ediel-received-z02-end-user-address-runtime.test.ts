@@ -175,3 +175,20 @@ it.each(['count', 'message reference'] as const)('malformed Z02 physical UNT %s 
  expect(io.rpc).not.toHaveBeenCalled()
  expect(decision.responsePlan.some(response=>response.family==='APERAK')).toBe(false)
 })
+
+// OUTSIDE-GIT finite composition input control; no native/source authority.
+it('FINITE composition retains one actual actor observation for valid Z02',async()=>{
+ const f=fixture();let reads=0
+ const facts=Object.defineProperty({},'actorUserId',{get(){reads++;return id(10)}})
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.message,facts)
+ expect(decision.applicationDecision).toBe('accepted')
+ expect(reads).toBe(1)
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='gridex_ediel_received_z02_address_source_basis_v1')).toHaveLength(1)
+})
+it('FINITE composition does not consume actor getter before physical subtype qualification',async()=>{
+ const f=fixture();f.message.raw_payload=f.message.raw_payload!.replace('CAV+Z22','CAV+UNKNOWN');let reads=0
+ const facts=Object.defineProperty({},'actorUserId',{get(){reads++;return id(10)}})
+ await resolveCanonicalRuntimeDecisionWithRegistry(f.message,facts)
+ expect(reads).toBe(0)
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='gridex_ediel_received_z02_address_source_basis_v1')).toHaveLength(0)
+})

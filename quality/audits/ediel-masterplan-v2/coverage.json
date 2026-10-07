@@ -1842,8 +1842,13 @@
     },
     {
       "id": "SC-014",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-014-unattributed-reception.test.ts",
+        "scripts/ediel-sc014-technical-intake-native.test.ts",
+        "scripts/gridex-aud-003-clean-replay.sh",
+        ".agent-memory/masterplan-c65-sc014-z14v-checkpoint.md"
+      ]
     },
     {
       "id": "SC-015",
@@ -3949,13 +3954,37 @@
     },
     {
       "id": "AT-Z04A-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts",
+        "lib/ediel/core/prodatBilateralSourceCapability.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-kernel-prodat-direction-before-fields.test.ts",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "scripts/ediel-at-z04a-assigned-supply-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/native-0353a544.zip"
+      ]
     },
     {
       "id": "AT-Z04D-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts",
+        "lib/ediel/core/prodatBilateralSourceCapability.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-kernel-prodat-direction-before-fields.test.ts",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+        "__tests__/ediel-env06-wire-transaction-reason.test.ts",
+        "scripts/ediel-at-z04d-production-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z04ad-supplier-95bc00df11da/native-0353a544.zip"
+      ]
     },
     {
       "id": "AT-Z03H-SUPPLIER",
@@ -4083,8 +4112,15 @@
     },
     {
       "id": "AT-Z14V-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z14v-esco-profile.test.ts",
+        "scripts/ediel-at-z14v-current-effects-native.test.ts",
+        "scripts/helpers/ediel-z14v-current-native-fixture.ts",
+        "lib/ediel/prodat/receivedZ14ReportingContext.ts",
+        "supabase/migrations/20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
+        ".agent-memory/masterplan-c65-sc014-z14v-checkpoint.md"
+      ]
     },
     {
       "id": "AT-Z15V-ESCO",

@@ -13,6 +13,7 @@ import {
   findOutboundEdielMessageDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import { assertPolicyDirection } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
@@ -294,6 +295,14 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     bilateralDraftQualification,bilateralDraft:params.draft,bilateralDraftActorUserId:params.actorUserId,
   })
 
+  // Inbound-only Z04 A/D need no independent register inventory to refuse
+  // an outbound draft. Other policies retain their established first blocker;
+  // every qualified draft still requires the registry's direction check.
+  if (params.draft.direction === 'outbound' && validation.canonicalPolicy?.family === 'PRODAT'
+    && validation.canonicalPolicy.code === 'Z04'
+    && (validation.canonicalPolicy.subtype === 'A' || validation.canonicalPolicy.subtype === 'D')) {
+    assertPolicyDirection(validation.canonicalPolicy, 'outbound')
+  }
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
   const qualifiedNegative = validation.canonicalPolicy && !blocking.some(issue => issue.code.startsWith('CANONICAL_') || issue.scope === 'prodat_register' || issue.scope === 'prodat_dependent')
     && sourceQualifiedNegativeFixtureMatchesDraft({ draft: params.draft, diagnosticCodes: blocking.map(issue => issue.code), qualification: params.negativeFixture })

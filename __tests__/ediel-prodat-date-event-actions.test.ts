@@ -10,7 +10,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from,rpc:
 // Explicit synthetic native registry boundary. Actual canonical/date policy,
 // current actor reader, positive-source WeakMap, one-use prepare port and both
 // real manual/autopilot consumers still run; this is not native approval proof.
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({databaseProfileKey:'SYNTHETIC-Z09D',profileKey:'SYNTHETIC-Z09D',messageProfileId:'00000000-0000-4000-8000-000000000013',originalVersion:'26.A:r3',sourceHash:'a'.repeat(64),originalSnapshot:{rulePack:{id:'00000000-0000-4000-8000-000000000012',source_hash:'a'.repeat(64),guide_version:'26.A',guide_revision:3},messageProfile:{id:'00000000-0000-4000-8000-000000000013',profile_key:'SYNTHETIC-Z09D'},guideSources:[]}})}))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async original=>({...await original<object>(),resolveCanonicalRulePack:async()=>({databaseProfileKey:'SYNTHETIC-Z09D',profileKey:'SYNTHETIC-Z09D',messageProfileId:'00000000-0000-4000-8000-000000000013',originalVersion:'26.A:r3',sourceHash:'a'.repeat(64),originalSnapshot:{rulePack:{id:'00000000-0000-4000-8000-000000000012',source_hash:'a'.repeat(64),guide_version:'26.A',guide_revision:3},messageProfile:{id:'00000000-0000-4000-8000-000000000013',profile_key:'SYNTHETIC-Z09D'},guideSources:[]}})}))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/admin/guards', () => ({ requireCompanyScopedActionAccess: io.company, isPlatformAdminContext: () => false, requirePlatformAdminActionAccess: io.access }));
 vi.mock('@/lib/ediel/actionAccess', () => ({ requireEdielWriteActionAccess: io.access, requireEdielSendActionAccess: io.access }));

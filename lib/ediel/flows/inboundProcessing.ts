@@ -3,11 +3,14 @@ import {createReceivedSourceOwnerSession, type SourceOwnerSession} from '@/lib/e
 import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence';
+import {hasReceivedZ04RequiredStartRejection,assertReceivedZ04RequiredStartActor} from '@/lib/ediel/prodat/receivedZ04RequiredStartRejection';
+import {observeReceivedZ04RequiredStart} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator';
 import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry';
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
 import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision,technicalSyntaxAckQualification} from '@/lib/ediel/ack/technicalSyntaxAuthority';
 import {createHash} from 'node:crypto';
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
+import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
 import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
@@ -86,6 +89,30 @@ function hasInboundAckParties(message: EdielMessageRow): boolean {
   return Boolean(
     message.sender_ediel_id?.trim() && message.receiver_ediel_id?.trim(),
   );
+}
+
+function inboundActorRefusal(cause:unknown):EdielExecutionFailure {
+  const failure=new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_INBOUND_EXECUTION_ACTOR_FORBIDDEN'},
+    'ediel_inbound_execution_actor_forbidden');
+  Object.defineProperty(failure,'cause',{value:cause,enumerable:false,writable:true,configurable:true});
+  return failure;
+}
+
+function technicalActorRefusal(error:unknown):EdielExecutionFailure|null {
+  if(error instanceof EdielExecutionFailure && error.disposition.kind==='security_quarantine')return error;
+  // Technical RPC adapters retain trusted PostgREST errors in Error.cause.
+  // Public payloads, message text and outer error labels are not authority.
+  const seen=new Set<object>();let current=error;
+  for(let depth=0;depth<8;depth++){
+    if(!(current instanceof Error)||seen.has(current))return null;
+    seen.add(current);
+    const property=Object.getOwnPropertyDescriptor(current,'cause');
+    const cause:unknown=property&&'value' in property?property.value:undefined;
+    if(!cause||typeof cause!=='object'||seen.has(cause))return null;
+    if(Object.getOwnPropertyDescriptor(cause,'code')?.value==='42501')return inboundActorRefusal(error);
+    current=cause;
+  }
+  return null;
 }
 
 async function createAckBlockedEvent(params: {
@@ -344,11 +371,12 @@ async function applyCanonicalRuntimeDecision(params: {
   });
   const registryIncidentReview = decision.prodatProcessingDisposition?.kind==='internal_review' &&
     receivedOriginalRulePackWitness(decision.validationReport.rulePackEvidence)===null;
-  if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && decision.policy && !registryIncidentReview) {
+  const requiredStartRejection=hasReceivedZ04RequiredStartRejection(decision,params.message,params.actorUserId);
+  if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && (decision.policy||requiredStartRejection) && !registryIncidentReview) {
     if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
     await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
   }
-  const sourceOwnerSession = createReceivedSourceOwnerSession(sourceValidationEvidence);
+  const sourceOwnerSession = requiredStartRejection?null:createReceivedSourceOwnerSession(sourceValidationEvidence);
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
   const validationReportBeforeRuntime = params.message.validation_report ?? {};
@@ -893,12 +921,28 @@ export async function processInboundEdielMessage(params: {
   // Syntax belongs to the actual wire and transport endpoint. It precedes
   // legal tenant routing and grants no business attribution or guide approval.
   let acceptedTechnicalAcknowledgementCompanyId: string | null = null;
+  // A grammar-qualified physical A210 refusal must precede even diagnostic
+  // tenant writes. NULL technical endpoints remain lawful for other sources;
+  // this current actor READ grants no response or business capability.
+  if(selectedSyntax.ok&&message.message_family==='PRODAT'&&message.message_code==='Z04'&&message.company_id&&message.raw_payload){
+    const wire=tokenizeEdifact(message.raw_payload);
+    if(observeReceivedZ04RequiredStart({rawSegments:wire.segments.map(row=>row.raw),una:wire.una}).length
+      &&!await assertReceivedZ04RequiredStartActor(message,actorUserId))return message;
+  }
   if(message.message_family!=='CONTRL') {
     try {
       const endpoint=await readEdielTechnicalSourceEndpoint(message.id,{actorUserId,phase:'prepare'});
       if(endpoint) {
         if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
-        await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
+        try {
+          await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
+        } catch(error) {
+          if(error instanceof EdielExecutionFailure && error.disposition.kind==='security_quarantine')throw error;
+          // A direct PostgREST permission error is trusted only at this actual
+          // actor-check stage; keep every other actor/read error unchanged.
+          if(error&&typeof error==='object'&&Object.getOwnPropertyDescriptor(error,'code')?.value==='42501')throw inboundActorRefusal(error);
+          throw error;
+        }
         const syntax=selectedSyntax;
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
           syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
@@ -917,6 +961,8 @@ export async function processInboundEdielMessage(params: {
         }
       }
     } catch(error) {
+      const securityRefusal=technicalActorRefusal(error);
+      if(securityRefusal)throw securityRefusal;
       await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'CONTRL',
         reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
     }
@@ -975,6 +1021,17 @@ export async function processInboundEdielMessage(params: {
     resolvedCompanyId: tenantResolution.companyId,
   });
   const runtimeMessage = canonicalRuntime.message;
+
+  // Only this same-invocation negative owner may precede the unavailable
+  // bilateral automatic policy. Real canonical capture above and the normal
+  // protected negative ACK gateway remain mandatory; no business path follows.
+  if(hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
+    const plan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative');
+    if(!plan?.applicationErrors?.length)throw new Error('prodat_required_start_negative_owner_unavailable');
+    await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',outcome:'negative',
+      messageText:plan.reason,applicationErrors:plan.applicationErrors});
+    return runtimeMessage;
+  }
 
   await recordBackendAutomationPipelineTrace({
     actorUserId,

@@ -1,6 +1,10 @@
 import {redeemReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {validateReceivedZ14ReportingContext,type ReceivedZ14ReportingContext} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
 import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
+import {prodatDateState} from '@/lib/ediel/prodat/prodatDateFields'
+import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {prodatEndUserWireSubtype} from './prodatEndUserPolicy'
 import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
@@ -50,6 +54,45 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
 function asRulebookFieldRule(value: unknown): RulebookFieldRule {
   return value as RulebookFieldRule
+}
+
+/** Physical R210 observation can precede an unavailable A business ground.
+ * It supplies neither that ground nor any response or business capability. */
+export function observeReceivedZ04RequiredStart(input:{rawSegments:readonly string[];una?:EdifactServiceStringAdvice}):EdielRulebookIssue[] {
+ const una=input.una??DEFAULT_UNA,groups=prodatRegisterGroups(input.rawSegments,una,'Z04').groups
+ const rule=canonicalProdat26AFieldRules('Z04').find(rule=>rule.fieldNumber==='210')
+ if(rule?.requirement!=='required')return []
+ return groups.filter(group=>group.messageIndex===0&&group.validRegisterChain&&group.registerPosition===1
+  &&prodatEndUserWireSubtype('Z04',group.segments,una)==='A'&&!prodatDateState('210',group.segments,una).present).map(group=>({
+   code:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',severity:'error',blocking:true,title:'Obligatoriskt PRODAT-fält saknas',
+   description:'Eget fält 210 DTM+92 saknas enligt P26.A §2.2.',fieldPath:rule.segmentPath,
+   prodatDiagnostic:prodatFieldDiagnostic('210','missing',{code:'Z04',rawSegments:input.rawSegments,una},group.segments.map(row=>row.raw),
+    'PRODAT26A:§2.2:Z04:210',group.lineIndex,'object'),
+  }))
+}
+
+/** Actual structural-only register invocation. No operational policy, local
+ * inventory, APP or source-function projection is selected or manufactured. */
+export function validateReceivedZ04RequiredStartStructure(input:{rawSegments:readonly string[];una?:EdifactServiceStringAdvice}) {
+ const una=input.una??DEFAULT_UNA,rules=canonicalProdat26AFieldRules('Z04').filter(rule=>prodatRegisterFieldScope(rule.fieldNumber??'')==='local')
+ const base=validateFieldMatrixPayload({family:'PRODAT',code:'Z04',direction:'inbound',mode:'parse',rawSegments:input.rawSegments,una},rules)
+ const register=validateProdatRegisterPolicy({code:'Z04',direction:'inbound',rawSegments:input.rawSegments,una,rules,requireIndependentInventory:false})
+ const evidence=projectProdatRegisterValidation({code:'Z04',rawSegments:input.rawSegments,una,registerIssues:register.issues,fieldIssues:base,
+  handledFields:register.handledFields,completeRuleSelection:canonicalProdat26AFieldRules('Z04')
+   .filter(rule=>prodatRegisterFieldScope(rule.fieldNumber??'')==='local').every(expected=>rules.some(rule=>rule.fieldNumber===expected.fieldNumber))})
+ requiredStartStructures.set(evidence,{wire:requiredStartStructureWire(input.rawSegments,una),facts:evidenceHash(JSON.stringify(evidence)),at:Date.now()})
+ return {evidence,issues:[...base,...register.issues]}
+}
+const requiredStartStructures=new WeakMap<object,{wire:string;facts:string;at:number}>()
+const requiredStartStructureWire=(segments:readonly string[],una:EdifactServiceStringAdvice)=>evidenceHash(JSON.stringify([segments,serializeUna(una)]))
+/** Only the actual fresh structural invocation can hand off its own result.
+ * Register JSON, mutation, copies and repeat redemptions provide no proof. */
+export function consumeReceivedZ04RequiredStartStructure(evidence:unknown,raw:string):boolean {
+ if(!evidence||typeof evidence!=='object')return false
+ const actual=requiredStartStructures.get(evidence);requiredStartStructures.delete(evidence)
+ const wire=tokenizeEdifact(raw)
+ return Boolean(actual&&actual.wire===requiredStartStructureWire(wire.segments.map(row=>row.raw),wire.una)
+  &&actual.facts===evidenceHash(JSON.stringify(evidence))&&Date.now()>=actual.at&&Date.now()-actual.at<=2000)
 }
 
 /** Original availability decides received229 presence; reply values may change.
@@ -112,6 +155,7 @@ export function validateCanonicalPolicyFields(input: {
   onSourceFunctionObjects?:(evidence:ReceivedProdatSourceFunctionValidation)=>void
   onApplicationObjects?: (evidence: ProdatApplicationObjectValidation) => void
   reportingContext?: ExpectedContext
+  receivedReportingContext?:ReceivedZ14ReportingContext
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
   rawPayload?: string | null
@@ -305,6 +349,8 @@ export function validateCanonicalPolicyFields(input: {
     }
   }
 
+  if(input.policy.direction==='inbound')issues.push(...validateReceivedZ14ReportingContext({code:input.policy.code,
+    rawPayload:input.rawPayload,rawSegments:input.rawSegments,una:input.una,context:input.receivedReportingContext}))
   input.onApplicationObjects?.(projectProdatApplicationObjects({register:registerEvidence,issues,
     completeInvocation:input.scope!=='dependent_only' && input.policy.direction==='inbound'
       && canonicalProdat26AFieldRules(input.policy.code).every(expected=>input.policy.fieldRules.map(asRulebookFieldRule).some(rule=>rule.fieldNumber===expected.fieldNumber)),
