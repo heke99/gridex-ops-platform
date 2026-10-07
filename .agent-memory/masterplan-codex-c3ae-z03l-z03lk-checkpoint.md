@@ -1,3 +1,12 @@
+## TWO PLAN APPROVALS / OWN TEST-FIRST GO — 2026-10-07
+
+Same L/LK26/6357f, unique isolated READORbranch ba2eb728/current b5563257 normallyadopts actual751; four unchanged preimages and delivered auth/readtest postimages checked. ROOT self full component-path preservation/FP no findings; private plan79e056e7/proposal70d59dde. Independent literal PLANAPP e31f435a (24source bindings) and independent FP finite PLANAPP delivered in agent message; its bound report follows. Both explicitly restrict TS+declaredSDK evidence and current native reception SQL blocker, with TDD/finalsource gates; no source/native/ZIP execution by reviewers.
+
+GO ROOT only: copy exact12-control proposal appended after whole97-case275line prefix into soleowned producer test, leave product two guards unchanged, execute actual109 tests with canonicalguard/defaults/Node22. Preserve intended behavior RED/source/log before implementation. Then document actual failure cause and minimally replace both READ arguments COMMfirst OR ediel.read plus author-added two direct tracehelpers13 preserving every original business case/assertion. Do not edit sourcefixture/nativehelper/auth/SQL/CORE/coverage. Already documented actual ceb complete ordinary14315PASS9FAIL and existing owner handoff6586045872116 remain unchanged. Exact changed new head needs SOURCE2/TSC/lint/currentwholechecks/native qualification; no borrowed old-source PASS.
+
+
+---
+
 ## CURRENT COMPLETE ORDINARY RED / ISOLATED MAIN ADOPTION — 2026-10-07
 
 Same sole L/LK26 custody; no new pair. Supported unchanged canonical loopbackguard/Node22/default workers/timeouts complete ordinary run ACTUALLY FINISHED: 931 files,927passed/4failed;14324 tests,14315passed/9failed;exit1,534.677893s; sourceceb30a83/tree08b94f9f stayed clean before/after. Original log SHA8231ab2450836b9a742134dea3b433d0cce4cba26d58b17930d561491f834321 retained privately. Previous default interrupted130 was not a completed census. No blanket environment excuse; actual nine code failures retained.
