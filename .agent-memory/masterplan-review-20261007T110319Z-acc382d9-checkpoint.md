@@ -272,3 +272,203 @@ Custody: scoped6036810433 is READ/PLAN only, all donor locks retained; authoring
 
 
 Latest #530 loader confirmation: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6036951303. Live lock list refreshed: 137 refs; additions owner68c5d8eeeb0cdec7920d25d4b168d90f75b68a87, donor ediel additions b43eb; GEN f046 retained. No source edits/locks/extra verification by this reviewer.
+
+
+## Bounded composition and chronology classification
+
+READ_ONLY_COMPOSITION_CHECK / exact frozen6589daf +662e68 +666121 / mainc401 — review-20261007T110319Z-acc382d9. No parallel authoring or native/CI reader.
+
+Six new SQL targets are disjoint: TR capture_test_configuration_snapshot; TR unchecked+checked productiontransition; Z02 CCI/CAV+NAD scalar readers; Z02 inbound_operation_job gate; Z02 address_source_basis table+RPC; optional company_go_live_readiness. Independently scanned all8 actualmain SQL files later than TR20261006235632: ZERO mentions of its three target functions. Thus no source-level target overwrite found in this inventory; no claim of compositional semantics or successful guarded patches.
+
+Chronology classified precisely: a NEW ad-hoc prepare --base c401 on the proposed union would reject the two olderTR additions as non_forward; that is NOT the configured mandatory CI failure. Actual gridex-ediel-upgrade-replay.sh:13/33 uses approved53bf989b0ad402bb2ce151c186eea31f1ec9cf03, unchanged644inputs/tail20260927160000. ALL SIX new names are strictly later. Existing applied-txt branch qualification remains an ADDITIONAL fixedcontract path after ordinaryupgrade/independentclean, not a bypass or substitute. No basepin/ledger/timestamps/requirements should change for this union. No costly rerun was started for this ruled-out concern.
+
+Next rightful GEN2f: after donor666 correctedhead and explicitrelease+freshreservation, bind actualcurrent composed Githead/tree and supportedmanifests; run unchanged preparers against their configured approved bases, then qualify actual original capture/clean/upgrade/native/parity at that exactversion. Preflight counts1105 refer to inventory only; currentmain/refchanges require revalidation. Donor owns manifest correction6036879458; earlier6036951303 preserves originalfailure/custody and forbids parallelfourth-loader implementation. Shared H COREconsumer remains95→2f lawfulhandoff after656delivery; no transfer here.
+
+```json
+{
+  "main": "c401ae989f8add2f73912746936ced6be2d02708",
+  "heads": {
+    "main": "c401ae989f8add2f73912746936ced6be2d02708",
+    "Z02-658": "9daf93de7a4633b755d8d42d461af051f304b781",
+    "TRDB-662": "e68a63522a02ae76f6a5cbd93766231175011f72",
+    "readiness": "121750a7270d6085f3e5364e159b1a9508965782"
+  },
+  "targets": {
+    "TR_snapshot": [
+      "canonical_capture_ediel_test_configuration_snapshot"
+    ],
+    "TR_transition": [
+      "canonical_transition_ediel_production_v1_unchecked",
+      "canonical_transition_ediel_production"
+    ],
+    "Z02_scalars": [
+      "gridex_edifact_cci_cav_value",
+      "gridex_edifact_nad_element"
+    ],
+    "Z02_gate": [
+      "gridex_gate_inbound_z02_operation_job"
+    ],
+    "Z02_address": [
+      "z02_address_source_basis_v1",
+      "gridex_ediel_received_z02_address_source_basis_v1"
+    ],
+    "readiness": [
+      "gridex_company_go_live_readiness"
+    ]
+  },
+  "mainMigrationsAfterTR": [
+    "supabase/migrations/20261007000503_ediel_technical_ack_long_reference_prefix.sql",
+    "supabase/migrations/20261007010849_ediel_received_z14_reporting_source_basis.sql",
+    "supabase/migrations/20261007035644_ediel_received_reporting_command_clock.sql",
+    "supabase/migrations/20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
+    "supabase/migrations/Batch 1+2.sql",
+    "supabase/migrations/batch 3.sql",
+    "supabase/migrations/batch 4+5+6.sql",
+    "supabase/migrations/ediel_rules.sql"
+  ],
+  "transportTargetMentionsInLaterMain": [],
+  "mandatoryUpgradeBase": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "mandatoryBaseInputCount": 644,
+  "mandatoryBaseTail": "20260927160000",
+  "allSixAfterMandatoryBaseTail": true,
+  "scope": "static source/inventory only; no composed execution/native/parity/metadata/order proof"
+}
+```
+
+
+## Corrected readiness handover independently confirmed
+
+PR666 now e43f11a591c016cec2d6f236644c9c3c3ec1e80b. Compared old121 exact: SQL migration subtree remains e81fdd2d9c6f705814d1490251408d3617a35f95. One supported additions checksum row inverses to old file BYTEEXACT, all264 original entries and metadata retained; unused ediel.additions removed. No readiness SQL/script/workflow/authority semantic delta. Authentic execution/GEN and currentmandatory not independently qualified here; owner21PASS and one-forward1099historical receipts reused as owner evidence only, no repeated tests.
+
+Donor explicit handover6036998766 + actual individual GETMATCH/DELETE/4046037011252. Independent current matching-refs list confirms ALL5 relevant file refs absent at snapshot (not a reservation for recipients). Named b6 TRDB and2f GEN may adopt e43 component AFTER fresh atomic reservation/CP530. Entire current frozen union remains1105SQL/no conflicts, readiness supported additions row replaces obsolete registration. This exact inventory does not yet include b6 newly reserved prospective20261007111843 actor-profile-current-authority SQL or unpublished Z02/H work; recalculate on actual published committed source changes.
+
+b6 new actor-profile authority extension6037014201 independently distinct from optional eSett read: newSQL+ownunit+canonicalmanifest under bfd6; no source implementation or coverage proof yet. b6 retains full original native failure qualification, required real public save/read/lifecycle controls, canonical manifest custody. GEN f046 stays2f; no assumption optional component settles production authority/certification.
+
+Next support work gates: donor correct component can now be lawfully adopted by named owners; actual current composed GEN postimage and immutable capture receipt permit a bounded independent input/hash/parity review on an unassigned scope. H positive field-stage evidence/current c65h and93 native remains their assigned readers, next helper handoff95 only after656 delivered/released and2f fresh claim. C663 and metadata664 current CI/delivery readers remain assigned; no duplicate readers/reruns. No independent implementation authorization, no packet or merge role transferred to reviewer. Current source/coverage untouched; unique checkpoint only.
+
+```json
+{
+  "main": "c401ae989f8add2f73912746936ced6be2d02708",
+  "heads": {
+    "main": "c401ae989f8add2f73912746936ced6be2d02708",
+    "Z02-658": "9daf93de7a4633b755d8d42d461af051f304b781",
+    "TRDB-662": "e68a63522a02ae76f6a5cbd93766231175011f72",
+    "readiness": "e43f11a591c016cec2d6f236644c9c3c3ec1e80b"
+  },
+  "sqlCounts": {
+    "main": 1099,
+    "Z02-658": 1097,
+    "TRDB-662": 1101,
+    "readiness": 1100
+  },
+  "unionCount": 1105,
+  "samePathConflicts": {},
+  "newRelativeToMain": [
+    {
+      "path": "supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql",
+      "mode": "100644",
+      "type": "blob",
+      "blob": "88f66b2190aabc0a849b095e137b708ca0d18c94",
+      "sources": [
+        "TRDB-662"
+      ],
+      "sha256": "b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb",
+      "bytes": 3584,
+      "checksumSources": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261006235632_ediel_checked_production_capability_convergence.sql",
+      "mode": "100644",
+      "type": "blob",
+      "blob": "8a49c09568f43be2887e650b37dffab038abb610",
+      "sources": [
+        "TRDB-662"
+      ],
+      "sha256": "681b5100a40ca564e5d238fd7671e8e1758be960d9fefc0463c489b315672f1b",
+      "bytes": 6579,
+      "checksumSources": [
+        "scripts/migration-history-manifest.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007074502_received_z02_payload_scalar_readers.sql",
+      "mode": "100644",
+      "type": "blob",
+      "blob": "900064370ea8f10865b4c77de70da5aa17ee2816",
+      "sources": [
+        "Z02-658"
+      ],
+      "sha256": "5dfb46fa4db7a12a6645571a3ebb32582b48c880152de091f3384333fac0d95f",
+      "bytes": 1632,
+      "checksumSources": [
+        "scripts/migration-history-manifest.runtime.additions.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007085618_received_z02_blocking_correlation_issue.sql",
+      "mode": "100644",
+      "type": "blob",
+      "blob": "51f54cf724fb124e3870e83f57dba795f647a8ad",
+      "sources": [
+        "Z02-658"
+      ],
+      "sha256": "59b6c7b0d189834167cd0146017d6a3c4d3aa1f17ea39ecd6d6d54b4e5441cf3",
+      "bytes": 13973,
+      "checksumSources": [
+        "scripts/migration-history-manifest.runtime.additions.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007093025_received_z02_address_source_basis.sql",
+      "mode": "100644",
+      "type": "blob",
+      "blob": "55829ccaa6d8979c81110085fcddfe563389ba97",
+      "sources": [
+        "Z02-658"
+      ],
+      "sha256": "35e16c265fd7da02eb591942395745e78f706a32b105fe9a7a17ac12667cd98c",
+      "bytes": 12768,
+      "checksumSources": [
+        "scripts/migration-history-manifest.runtime.additions.json"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007110303_company_readiness_optional_esett.sql",
+      "mode": "100644",
+      "type": "blob",
+      "blob": "bb11e6a2ae9755b5be22c14626fa48ff3d062ffb",
+      "sources": [
+        "readiness"
+      ],
+      "sha256": "50631f53e227ad99a6b660909b95d7b036026304241e8f798a568cf9d214cb56",
+      "bytes": 10270,
+      "checksumSources": [
+        "scripts/migration-history-manifest.additions.json"
+      ]
+    }
+  ],
+  "missingFromRecipient658": [
+    "supabase/migrations/20261006234527_ediel_z14_original_purpose_correspondence.sql",
+    "supabase/migrations/20261007000503_ediel_technical_ack_long_reference_prefix.sql",
+    "supabase/migrations/20261007010849_ediel_received_z14_reporting_source_basis.sql",
+    "supabase/migrations/20261007035644_ediel_received_reporting_command_clock.sql",
+    "supabase/migrations/20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
+    "supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql",
+    "supabase/migrations/20261006235632_ediel_checked_production_capability_convergence.sql",
+    "supabase/migrations/20261007110303_company_readiness_optional_esett.sql"
+  ],
+  "manifestSourceConflicts": {},
+  "crossHeadChecksumConflicts": {},
+  "supersedesReadinessHead": "121750a7270d6085f3e5364e159b1a9508965782",
+  "manifestRegistrationInverseByteExact": true,
+  "custodySnapshot": {
+    "supabase/migrations/20261007110303_company_readiness_optional_esett.sql": [],
+    "scripts/ediel-company-readiness-sql-regression.mjs": [],
+    "scripts/migration-history-manifest.ediel.additions.json": [],
+    ".github/workflows/ediel-company-readiness-component.yml": [],
+    "scripts/migration-history-manifest.additions.json": []
+  }
+}
+```
