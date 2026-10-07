@@ -139,8 +139,13 @@ async function retained(f:Fixture,raw:string){
  return{companyId:f.ids.company,actorUserId:f.ids.actor,environment:'test',parsed:mail.parsed,
   inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,outboundMatch}
 }
+function fullOutbox(f:Fixture){
+ return sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id IN (${lit(f.ids.company)},${lit(f.ids.beneficiary)})`)
+}
 async function intake(f:Fixture,p:Pending,raw:string){
+ const queuedBefore=fullOutbox(f)
  const input=await retained(f,raw),id=await createInboundEdielMessage(input)
+ expect(fullOutbox(f)).toEqual(queuedBefore)
  expect(id).toBeTruthy();if(!id)throw new Error('native_esco_physical_intake_required')
  const message=(await getEdielMessageById(id))!
  expect(message).toMatchObject({company_id:f.ids.company,direction:'inbound',environment:'test',raw_payload:raw,
@@ -149,11 +154,10 @@ async function intake(f:Fixture,p:Pending,raw:string){
  return message
 }
 async function consume(f:Fixture,message:EdielMessageRow){
- const outbox=()=>sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id IN (${lit(f.ids.company)},${lit(f.ids.beneficiary)})`)
- const before=outbox()
+ const before=fullOutbox(f)
  const committed=await readCommittedInboundAck({actorUserId:f.ids.actor,message})
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:message.id})
- const after=outbox()
+ const after=fullOutbox(f)
  // APERAK receives its own syntax CONTRL through the real public processor.
  // Preserve every old/foreign queue row; admit only that one source-bound
  // technical response. A replay and CONTRL itself create no queue entry.
@@ -232,22 +236,26 @@ for(const mode of ['V','VH'] as const){
   it(`${mode}: ${defect} is refused at the public intake boundary with no ACK effect`,async()=>{
    const{f,p,checkSentinel}=await request(mode),input=await retained(f,counterpart(p,'APERAK'))
    const before=business(f,p),stable=ackState(f,p),pending=await permission(f,p)
+   const queuedBefore=fullOutbox(f)
    await expect(createInboundEdielMessage({...input,...(defect==='wrongTenant'?{companyId:f.ids.beneficiary}:{actorUserId:f.ids.reviewer})}))
     .rejects.toMatchObject({name:'EdielExecutionFailure',disposition:{kind:'security_quarantine',
      code:defect==='wrongTenant'?'EDIEL_TENANT_ACTOR_FORBIDDEN':'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
    expect(ackState(f,p)).toEqual(stable);expect(await permission(f,p)).toEqual(pending)
+   expect(fullOutbox(f)).toEqual(queuedBefore)
    expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
   },120000)
  }
  it(`${mode}: a received ACK cannot mutate its frozen physical original before processing`,async()=>{
   const{f,p,checkSentinel}=await request(mode),message=await intake(f,p,counterpart(p,'APERAK'))
   const before=business(f,p),stable=ackState(f,p),pending=await permission(f,p)
+  const queuedBefore=fullOutbox(f)
   const changed=message.raw_payload!.replace('RFF+LI:'+p.li,'RFF+LI:UNKNOWN')
   expect(changed).not.toBe(message.raw_payload)
   const result=await supabaseService.from('ediel_messages').update({raw_payload:changed}).eq('id',message.id).select('id')
   expect(result.error).toMatchObject({code:'23514',message:'immutable_received_ack_source_cannot_change'})
   expect((await getEdielMessageById(message.id))!).toEqual(message)
   expect(ackState(f,p)).toEqual(stable);expect(await permission(f,p)).toEqual(pending)
+  expect(fullOutbox(f)).toEqual(queuedBefore)
   expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
  },120000)
 }
