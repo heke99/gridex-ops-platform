@@ -3992,13 +3992,53 @@
     },
     {
       "id": "AT-Z06E-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "lib/ediel/production/confirmedCustomerSource.ts",
+        "lib/ediel/production/confirmedCustomerHistory.ts",
+        "lib/ediel/safeApplyReview.ts",
+        "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+        "supabase/migrations/20261006231000_ediel_confirmed_death_final_response.sql",
+        "supabase/migrations/20261006235000_ediel_confirmed_death_application_scope.sql",
+        "__tests__/ediel-customer-source-birth-profile.test.ts",
+        "__tests__/ediel-customer-source-birth-intake.test.ts",
+        "__tests__/ediel-confirmed-customer-final-response.test.ts",
+        "__tests__/ediel-prodat-structural-final-response-plan.test.ts",
+        "__tests__/ediel-generic-requested-change-current-bridge.test.ts",
+        "scripts/ediel-at-z06e-physical-intake-native.test.ts",
+        "scripts/ediel-at-z06e-primary-effect-native.test.ts",
+        "scripts/ediel-confirmed-customer-bilateral-native.test.ts",
+        "scripts/ediel-requested-customer-change-source-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/original-native-f367.zip",
+        "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/qualified-native-f367.json"
+      ]
     },
     {
       "id": "AT-Z09E-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatRequestedCustomerChange.ts",
+        "lib/ediel/intent/customerLifeEventGateway.ts",
+        "lib/ediel/production/requestedCustomerChangeSource.ts",
+        "lib/ediel/production/requestedChangeSource.ts",
+        "lib/ediel/production/requestedChangeIntake.ts",
+        "lib/inbound-mail/inboundMatcher.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "lib/ediel/production/confirmedCustomerSource.ts",
+        "lib/ediel/production/confirmedCustomerHistory.ts",
+        "__tests__/ediel-requested-customer-change-facts.test.ts",
+        "__tests__/ediel-requested-change-intent-validation-lifecycle.test.ts",
+        "__tests__/ediel-requested-change-owned-site-origin.test.ts",
+        "__tests__/ediel-generic-requested-change-current-bridge.test.ts",
+        "scripts/ediel-requested-customer-change-source-native.test.ts",
+        "scripts/ediel-at-z09e-received-ack-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/original-native-f367.zip",
+        "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/qualified-native-f367.json"
+      ]
     },
     {
       "id": "AT-Z06F-SUPPLIER",
