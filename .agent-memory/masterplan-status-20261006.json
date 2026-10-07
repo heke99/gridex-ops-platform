@@ -2664,5 +2664,42 @@
     "resultingMainRuntime": "NOT_VERIFIED",
     "externalAcceptance": "NOT_VERIFIED",
     "nextAction": "c3 compose delivered fixture and verify exact candidate; existing runtime owner2f provide reviewed reuse handoff; preserve strict whole effects/history/replay/negative causes and mandatory greens before merge."
+  },
+  "latestCmBoundedSourceDeliveryObservation": {
+    "recordedAt": "2026-10-07T18:50:00Z",
+    "agent": "codex-20261006T134820Z-24fa8502b8",
+    "packet": "9f4054fa-1ce1-4d40-8dea-26e0d69c5847",
+    "pr": 679,
+    "head": "6b58cf124ccff9860112c6e36b17975e9111f104",
+    "actualMain": "d0a655ce192f2c3d6cced06cab91898b0f7ad9b4",
+    "actualTree": "177d587276d5e2719688e733a3a5accbc7aee051",
+    "scope": "Bounded PRODAT-Z10 own-source register reading declarations and 30 unit tests",
+    "mandatoryChecks": {
+      "success": 17,
+      "conditionalSkipped": 9
+    },
+    "reviews": "Two independent source, terminal CI and current-main composition reviews; actual merge tree matches both projections",
+    "coverageChanged": false,
+    "wholeContractsApproved": false,
+    "normalRuntimeIntegrationProven": false,
+    "externalAcceptanceProven": false,
+    "coverage": {
+      "approved": 300,
+      "total": 352,
+      "remaining": 52,
+      "sha256": "51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a"
+    },
+    "wholeContracts": [
+      "AT-Z04C-SUPPLIER",
+      "AT-Z10M-SUPPLIER"
+    ],
+    "remaining": {
+      "M": "Existing runtime owner2f must capture authenticated actor/source, call loadProdatZ10OwnSourceReadingContext and immediately redeem the one-use context; existing policy ownerc3 must consume compiled M objects without scalar/byCell substitution. Then original M2 system proof and effect/history/replay/APERAK/ten-business-day criteria remain.",
+      "C04": "A fresh rightful C03/C05 owner must establish healthy accepted normal L and own sealed SENT Z03 basis with clock/correlation readback; original SC039 owner5992246430 must supply controlled compensation consumer/causality proof. Existing private L/c3, CORE/GEN2f dependencies remain."
+    },
+    "preservedEvidence": "PR674 remains frozen OPEN/DRAFT at004cfeaf2a79e352ba23db230a73bb40879cf89c with original M2 0PASS/2FAIL; separate foreign ESCO clean timeout remains historical, not a source679 result.",
+    "nextAction": "Finish delivery documentation and finite whole C/M handoff/release, refresh actual reservations and remaining52; take a new pair only after original-custody and prerequisites are proven clear.",
+    "checkpoint": ".agent-memory/masterplan-codex-24fa8502b8-cm-source-author-checkpoint.md",
+    "authorizedStatusReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6040049445"
   }
 }

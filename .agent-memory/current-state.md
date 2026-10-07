@@ -1,3 +1,11 @@
+## C/M bounded source delivery — 2026-10-07T18:50:00Z
+
+[#679](https://github.com/heke99/gridex-ops-platform/pull/679) is actually merged at `d0a655ce192f2c3d6cced06cab91898b0f7ad9b4` (tree `177d587276d5e2719688e733a3a5accbc7aee051`). It delivers the own-source PRODAT-Z10 register-reading component and 30 unit tests after 17 successful mandatory checks and two independent source/CI/main-composition reviews. Nine prescribed conditional checks skipped. The actual merge tree matches both reviewed projections.
+
+Coverage remains **300/352 approved;52 remain**. Whole AT-Z04C-SUPPLIER and AT-Z10M-SUPPLIER remain unapproved. The broad native run passed 725 tests with one prescribed incident skip and 31 browser cases; it does not call the new M helper or prove normal integration, whole C/M effects, or external acceptance. Frozen #674 retains the original M2 0PASS/2FAIL evidence.
+
+Next **runtime owner2f** integrates authenticated actor/source loading and immediate one-use redemption; **policy ownerc3** consumes compiled M objects without scalar/byCell substitution. C04 also needs a fresh rightful C03/C05 owner to establish the healthy normal L/own sealed SENT Z03 timing basis and **original SC039 owner5992246430** to supply controlled compensation causality. Root finishes the finite C/M handoff and checks current eligibility before taking a new pair. Own [#530 receipt](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6040049445) and checkpoint preserve actual delivery and remaining actions. Earlier dated observations remain historical.
+
 ## L/LK current observation — 2026-10-07T16:32:38.834686+00:00
 
 Ledger remains **115/121 VERIFIED rules +185/231 PASSED contracts =300/352;52 remain**. Actual delivered main includes memory-only #671 and source-only opt-in fixture #672. Neither approves an additional contract or establishes deployment/external acceptance. Earlier dated observations remain historical.
