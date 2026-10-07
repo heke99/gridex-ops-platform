@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto'
 import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import type {RulebookFieldRule} from '@/lib/ediel/rulebook/fieldMatrix'
 import {loadProdatOwnSourceReadingContext,sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {parseCanonicalMessageRow} from '@/lib/ediel/core/canonicalMessage'
@@ -176,7 +177,7 @@ for(const variant of ['L','LK'] as const)for(const declaration of ['missing','du
 for(const variant of ['L','LK'] as const){
  it(`${variant}: current non-enumerated259 accepts own E01 and creates no inventory`,async()=>{
   const {row,context}=await loaded({variant,value259:'E01'}),selected=policy(row,context)
-  expect(selected.fieldRules.find(r=>r.fieldNumber==='259')?.allowedValues).toBeUndefined()
+  expect(selected.fieldRules.find((r):r is RulebookFieldRule=>'fieldNumber' in r&&r.fieldNumber==='259')?.allowedValues).toBeUndefined()
   expect(selected.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:true}])
   expect(selected.prodatDependentFacts?.registerObjects?.[0]?.expectedRegisterCount).toBeUndefined()
  })
@@ -294,7 +295,7 @@ for(const mismatch of ['guide','fieldRules','referenceDate','association'] as co
  // not a way to construct private context or claim new policy authority.
  const altered={...selected,
   ...(mismatch==='guide'?{guide:{...selected.guide,guideRevision:'25-A'}}:{}),
-  ...(mismatch==='fieldRules'?{fieldRules:selected.fieldRules.filter(rule=>rule.fieldNumber!=='259')}:{}),
+  ...(mismatch==='fieldRules'?{fieldRules:selected.fieldRules.filter(rule=>!('fieldNumber' in rule)||rule.fieldNumber!=='259')}:{}),
   ...(mismatch==='referenceDate'?{referenceDate:'2026-10-02'}:{}),
   ...(mismatch==='association'?{associationAssignedCode:'E2SE5A'}:{}),
  }
