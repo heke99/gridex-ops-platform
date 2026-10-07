@@ -13,6 +13,7 @@ import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater
 import {matchOutboundRequestForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {renderContrl2Ediel2} from '@/lib/ediel/contrlEngine'
 import {renderAperakEdiel} from '@/lib/ediel/aperakEngine'
@@ -83,7 +84,6 @@ function business(f:Fixture,p:Pending){
   'permissionTransitions',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 r WHERE company_id IN ${companies}),
   'origins',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.intent_id),'[]') FROM gridex_service_permission.origins r WHERE company_id IN ${companies}),
   'transportAttempts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_transport.attempts r WHERE company_id IN ${companies}),
-  'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id IN ${companies}),
   'sealedOriginal',(SELECT jsonb_build_object('id',id,'company',company_id,'environment',environment,'direction',direction,
    'family',message_family,'code',message_code,'standard',message_standard,'raw',raw_payload,'hash',immutable_payload_hash,
    'rendered',immutable_rendered_at,'sent',message_sent_at,'sender',sender_ediel_id,'receiver',receiver_ediel_id,
@@ -149,7 +149,29 @@ async function intake(f:Fixture,p:Pending,raw:string){
  return message
 }
 async function consume(f:Fixture,message:EdielMessageRow){
+ const outbox=()=>sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id IN (${lit(f.ids.company)},${lit(f.ids.beneficiary)})`)
+ const before=outbox()
+ const committed=await readCommittedInboundAck({actorUserId:f.ids.actor,message})
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:message.id})
+ const after=outbox()
+ // APERAK receives its own syntax CONTRL through the real public processor.
+ // Preserve every old/foreign queue row; admit only that one source-bound
+ // technical response. A replay and CONTRL itself create no queue entry.
+ for(const row of before)expect(after.find(candidate=>candidate.id===row.id)).toEqual(row)
+ const added=after.filter(row=>!before.some(previous=>previous.id===row.id))
+ if(message.message_family==='APERAK'&&!committed){
+  expect(added).toHaveLength(1)
+  const queued=added[0]
+  expect(queued).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:message.id,
+   message_family:'CONTRL',ack_outcome:'positive',status:'queued',attempts:0})
+  const response=(await getEdielMessageById(String(queued.ediel_message_id)))!
+  expect(response).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',
+   message_family:'CONTRL',related_message_id:message.id})
+  const physical=readPhysicalAckSourceCorrelation(response,message)
+  expect(physical).toMatchObject({scope:'interchange',classification:{outcome:'positive'}})
+  expect(physical.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(message.raw_payload!).interchangeReference])
+  expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${lit(response.id)}`)).toBe(hash(response.raw_payload!))
+ }else expect(added).toEqual([])
  const stored=(await getEdielMessageById(message.id))!
  expect(stored.raw_payload).toBe(message.raw_payload)
  return readCommittedInboundAck({actorUserId:f.ids.actor,message:stored})
