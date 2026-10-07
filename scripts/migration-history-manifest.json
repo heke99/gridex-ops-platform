@@ -863,7 +863,9 @@
     "20261007010849_ediel_received_z14_reporting_source_basis.sql": "9f923e87cbf973441f934ac8a86924b5aa0586be741ceeb6949cce3d763cc4f1",
     "20261007035644_ediel_received_reporting_command_clock.sql": "d3959a96d7c7c1b8b38d322b8681be3244cfe4777904fc55d9189eaab546521c",
     "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f",
-    "20261007111843_ediel_actor_profile_current_authority.sql": "a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c"
+    "20261007111843_ediel_actor_profile_current_authority.sql": "a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c",
+    "20261007114453_ediel_actor_profile_immutable_replay.sql": "f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc",
+    "20261007114513_ediel_actor_profile_legal_noop_preservation.sql": "ecec168cbb1e295beb52e0b85e4dc485e5052ef09ff99b207d9ad6003af8c368"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

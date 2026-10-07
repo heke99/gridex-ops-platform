@@ -11,6 +11,8 @@ import {afterAll, beforeAll, expect, it} from 'vitest'
 const source = 'c401ae989f8add2f73912746936ced6be2d02708'
 const schema = execFileSync('git', ['show', `${source}:supabase/schema.sql`], {encoding: 'utf8', maxBuffer: 32 * 1024 * 1024})
 const forward = 'supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql'
+const producerForwards = ['supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql',
+  'supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql']
 const fields = ['market_role', 'brp_name', 'brp_status', 'esett_status', 'technical_contact_name', 'technical_contact_email']
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const databases: PGlite[] = []
@@ -72,6 +74,17 @@ async function setup(withLegalTrigger = false) {
     for (const name of ['gridex_normalize_postal_code', 'gridex_build_canonical_address', 'gridex_company_legal_profile_defaults',
       'gridex_tenant_legal_profile_readiness_status', 'gridex_legal_missing_field_details', 'gridex_rebuild_company_legal_profile',
       'gridex_sync_company_legal_profile_trigger']) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
+    for (const name of ['gridex_jsonb_valid_email', 'gridex_jsonb_valid_phone', 'gridex_contact_address',
+      'gridex_address_complete', 'gridex_legal_contact_complete', 'gridex_billing_information_complete', 'gridex_dispute_information_complete',
+      'gridex_luhn_valid', 'gridex_tenant_legal_profile_missing_fields',
+      'gridex_refresh_legal_profile_completeness']) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
+    const completeness = schema.match(/CREATE TRIGGER tenant_legal_profiles_completeness [^;]+;/)
+    if (!completeness) throw new Error('captured_legal_profile_completeness_trigger_missing')
+    await db.exec(completeness[0])
+    await db.exec(declaration('CREATE FUNCTION', 'gridex_canonicalize_company_org_number(', '\n--\n'))
+    const orgTrigger = schema.match(/CREATE TRIGGER companies_canonical_org_number [^;]+;/)
+    if (!orgTrigger) throw new Error('captured_company_org_number_trigger_missing')
+    await db.exec(orgTrigger[0])
     const trigger = schema.match(/CREATE TRIGGER gridex_companies_legal_profile_sync [^;]+;/)
     if (!trigger) throw new Error('captured_company_legal_profile_sync_trigger_missing')
     await db.exec(trigger[0])
@@ -81,7 +94,7 @@ async function setup(withLegalTrigger = false) {
   }
   return db
 }
-async function apply(db: PGlite) {if (existsSync(forward)) await db.exec(readFileSync(forward, 'utf8'))}
+async function apply(db: PGlite) {for (const path of [forward, ...producerForwards]) if (existsSync(path)) await db.exec(readFileSync(path, 'utf8'))}
 async function state(db: PGlite) {
   const rows: Record<string, unknown> = {}
   for (const name of [...tables, 'permissions', 'roles', 'role_permissions', 'user_roles', 'company_memberships']) {
@@ -149,12 +162,23 @@ it('lets the unchanged public producer persist both independent environment iden
 })
 it('does not change existing columns, data, authorization or public function metadata, and a second application is inert', async () => {
   const db = await setup(), before = await state(db)
-  const metadata = async () => (await db.query(`SELECT to_jsonb(p) metadata FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' ORDER BY p.oid`)).rows
+  const metadata = async () => (await db.query(`SELECT CASE WHEN p.proname IN ('canonical_save_ediel_actor_profile','canonical_save_ediel_actor_profile_v1_unchecked')
+    THEN to_jsonb(p)-'prosrc' ELSE to_jsonb(p) END metadata FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' ORDER BY p.oid`)).rows
   const originalMetadata = await metadata()
   await apply(db)
   const after = await state(db)
   after.companies = (after.companies as Array<{value: Record<string, unknown>}>).map(row => ({value: Object.fromEntries(Object.entries(row.value).filter(([key]) => !fields.includes(key)))}))
   expect(after).toEqual(before); expect(await metadata()).toEqual(originalMetadata)
+  // Only the two declared source-slot transformations are allowed, byte for
+  // byte. Their inverse restores each captured original function body.
+  for (const [index, name] of ['canonical_save_ediel_actor_profile', 'canonical_save_ediel_actor_profile_v1_unchecked'].entries()) {
+    const sql = readFileSync(producerForwards[index], 'utf8')
+    const oldSlots = [...sql.matchAll(/\$oldslot\$([\s\S]*?)\$oldslot\$/g)].map(match => match[1])
+    const newSlots = [...sql.matchAll(/\$newslot\$([\s\S]*?)\$newslot\$/g)].map(match => match[1])
+    let expected = declaration('CREATE FUNCTION', `${name}(`, '\n--\n').split('AS $$')[1].split('$$;')[0]
+    for (const [slot, old] of oldSlots.entries()) {expect(expected.split(old)).toHaveLength(2); expected = expected.replace(old, newSlots[slot])}
+    expect(await one(db, 'SELECT prosrc body FROM pg_proc WHERE oid=$1::regprocedure', [`public.${name}(jsonb)`])).toEqual({body: expected})
+  }
   const expanded = await state(db)
   await apply(db); expect(await state(db)).toEqual(expanded); expect(await metadata()).toEqual(originalMetadata)
 })
@@ -212,10 +236,45 @@ it('keeps another tenant untouched and enforces the public identity/payload-boun
   expect(await one(db, 'SELECT to_jsonb(c) company FROM companies c WHERE id=$1', [uid(2)])).toEqual(foreign)
   await refused(db, command({production_application_reference: 'CONTRL'}), {message: 'idempotency_key_payload_mismatch'})
 })
+it('replays only the historical receipt after current defaults change, without current rebinding or new effects', async () => {
+  const db = await setup(); await apply(db)
+  const first = await save(db)
+  await db.exec(`UPDATE companies SET test_mailbox='changed-current@example.invalid' WHERE id='${uid(1)}';
+    UPDATE ediel_actor_settings SET actor_ediel_id='13579' WHERE company_id='${uid(1)}' AND environment='test';
+    DELETE FROM canonical_ediel_profile_identities WHERE company_id='${uid(1)}'`)
+  const before = await state(db)
+  expect(await save(db)).toEqual(first); expect(await state(db)).toEqual(before)
+  for (const extra of [{test_profile_id: uid(999)}, {production_primary_route_id: uid(999)}, {test_mailbox: 'changed-request@example.invalid'}]) {
+    await refused(db, command(extra), {message: 'idempotency_key_payload_mismatch'})
+  }
+})
+it('still requires current permission and the original actor before returning a historical result', async () => {
+  const db = await setup(); await apply(db); await save(db)
+  await db.exec(`INSERT INTO company_memberships VALUES('${uid(1)}','${uid(4)}','active',true);
+    INSERT INTO user_roles VALUES('${uid(4)}','${uid(20)}','${uid(1)}',true,'active',NULL)`)
+  await refused(db, command({actor_user_id: uid(4)}), {message: 'idempotency_actor_mismatch'})
+  await db.exec('DELETE FROM role_permissions')
+  await refused(db, command(), {message: 'actor_not_authorized_for_ediel_profile'})
+})
 it('preserves the actual legal projection on an Ediel-only public save with unchanged company legal fields', async () => {
   const db = await setup(true); await apply(db)
   const projection = () => one(db, 'SELECT to_jsonb(t) legal FROM tenant_legal_profiles t WHERE company_id=$1', [uid(1)])
   const before = await projection()
   await save(db)
   expect(await projection()).toEqual(before)
+})
+it('still invokes the enabled legal projection and completeness triggers on a real legal-field change', async () => {
+  const db = await setup(true); await apply(db)
+  const before = await one<{hash: string}>(db, 'SELECT source_company_snapshot_sha256 hash FROM tenant_legal_profiles WHERE company_id=$1', [uid(1)])
+  await save(db, command({support_email: 'changed-legal@example.invalid'}))
+  const row = await one<{email: string; hash: string; status: string; reviewed_at: unknown; review_required: boolean}>(db,
+    'SELECT customer_service_email email,source_company_snapshot_sha256 hash,completeness_status status,reviewed_at,review_required FROM tenant_legal_profiles WHERE company_id=$1', [uid(1)])
+  expect(row).toMatchObject({email: 'changed-legal@example.invalid', status: 'incomplete', reviewed_at: null, review_required: false})
+  expect(row.hash).not.toBe(before.hash)
+  expect(await one(db, 'SELECT org_number,organization_number,support_email FROM companies WHERE id=$1', [uid(1)]))
+    .toEqual({org_number: null, organization_number: null, support_email: 'changed-legal@example.invalid'})
+})
+it('rolls back an actual changed legal projection together with profile/identity/snapshot/audit/receipt on late failure', async () => {
+  const db = await setup(true); await apply(db)
+  await refused(db, command({support_email: 'changed-legal@example.invalid', production_default_charset: null}), {code: '23502'})
 })
