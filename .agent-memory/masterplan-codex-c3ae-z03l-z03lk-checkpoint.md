@@ -1,3 +1,9 @@
+## Before current complete unit verification — 2026-10-07
+
+Same sole L/LK pair and 23 reservations. The local reviewed consumer composition is clean and remains unmodified. Its bounded 179 tests/lint/three types pass; the broader compatibility failure remains explicit. Root now authorizes only an ordinary complete unit run on this exact frozen local version, using the canonical loopback guard and unchanged test workers, timeouts and assertions. No source authoring or publication during that run. Preserve actual process result, full source/check binding and failures privately; historical 50 failures cannot stand in for a current result. Native plan is sealed read-only and two independent PLAN reviews are underway; no authoring GO. Status-only PR #678 has current mandatory gates pending and no merge role held. Next root: authenticate actual full result, finish plan reviews, current metadata delivery/release when all mandatory greens are real, then document the next bounded source transition.
+
+---
+
 ## Actual metadata publication and completed consumer composition — 2026-10-07
 
 Same sole technical AT-Z03L-SUPPLIER/AT-Z03LK-SUPPLIER pair; all 23 reservations retained. Status-only draft PR #678 is actually published at the reviewed version. Both official current-head SOURCE COMMENT reviews are confirmed; current mandatory checks are progressing, not green. The separate memory operation retains its three resources until delivery or explicit handover. No merge role is held. No technical source publication, coverage or external acceptance is credited.
