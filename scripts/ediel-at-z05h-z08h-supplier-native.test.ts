@@ -49,6 +49,8 @@ import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy
 import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import {readSupplyRescissionMandate} from '@/lib/ediel/production/supplyRescissionOperation'
+import {isSupplyEndProfileResolutionRefusal} from './helpers/ediel-supply-end-null-birth-refusal'
+import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 
 const {originate,actualNationalSourceSession,nationalNativeOperator}=nationalRescissionNativeChain({provider,sourceSession})
 async function authorized(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
@@ -87,6 +89,30 @@ async function receive(f:Ground,raw:string,actor=f.actorUserId,company=f.company
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:company,environment:'test',raw,smtpFrom:edielSmtpConfig().from})
  const outboundMatch=await matchOutboundRequestForInbound({companyId:company,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:company,parsed:mail.parsed})
+ if(omittedField==='223'){
+  const custody=()=>sql<{mail:{raw_edifact_payload:string;received_at:string};parse:{inbound_email_message_id:string}}>(`SELECT jsonb_build_object(
+   'mail',(SELECT to_jsonb(m) FROM public.inbound_email_messages m WHERE company_id=${literal(company)} AND environment='test' AND id=${literal(mail.inboundEmailMessageId)}),
+   'parse',(SELECT to_jsonb(p) FROM public.inbound_ediel_parse_results p WHERE company_id=${literal(company)} AND id=${literal(mail.parseResultId)}));`)
+  const before=custody()
+  expect(before.mail.raw_edifact_payload).toBe(raw)
+  expect(before.parse.inbound_email_message_id).toBe(mail.inboundEmailMessageId)
+  const effectiveDate=sql<string>(`SELECT to_jsonb(received_at::date::text) FROM public.inbound_email_messages WHERE company_id=${literal(company)} AND environment='test' AND id=${literal(mail.inboundEmailMessageId)}`)
+  expect(effectiveDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  // Observation only: the public creator, database and warning remain real.
+  // Generic NULL, unrelated SQL errors and failures before birth must fail.
+  const warning=vi.spyOn(console,'warn')
+  try{
+   const id=await createInboundEdielMessage({companyId:company,actorUserId:actor,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
+   expect(id).toBeNull()
+   expect(warning.mock.calls.some(call=>isSupplyEndProfileResolutionRefusal(call,effectiveDate))).toBe(true)
+  }finally{warning.mockRestore()}
+  expect(custody()).toEqual(before)
+  expect(sql(`SELECT jsonb_build_object(
+   'sources',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(company)} AND environment='test' AND (inbound_email_message_id=${literal(mail.inboundEmailMessageId)} OR raw_payload=${literal(raw)})),
+   'receptions',(SELECT count(*) FROM gridex_ediel_inbound_receptions.receptions WHERE company_id=${literal(company)} AND environment='test' AND inbound_email_message_id=${literal(mail.inboundEmailMessageId)}),
+   'contexts',(SELECT count(*) FROM gridex_ediel_inbound_context.receipts WHERE company_id=${literal(company)} AND environment='test' AND payload_sha256=${literal(hash(raw))}));`)).toEqual({sources:0,receptions:0,contexts:0})
+  throw new ExpectedPhysicalBirthRefusal('missing_223_public_profile_resolution_refused')
+ }
  let id:string|null
  try{id=await createInboundEdielMessage({companyId:company,actorUserId:actor,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})}
  catch(error){
@@ -497,6 +523,12 @@ async function rejectPhysicalEnd(f:Awaited<ReturnType<typeof hEndGround>>,raw:st
  const typed=validateCanonicalPolicyFields({policy:policy!,rawPayload:raw,rawSegments:tokens.segments.map(x=>x.raw),una:tokens.una})
  const expected=field==='UD'?['227','228']:field==='IT'?['233','234']:[field]
  expect(typed.some(x=>x.prodatDiagnostic?.kind==='field'&&expected.includes(x.prodatDiagnostic.fieldNumber)),JSON.stringify(typed)).toBe(true)
+ if(field==='223')expect(projectProdatDiagnostics(typed).applicationErrors).toContainEqual(expect.objectContaining({
+  ercCode:'41',fieldCode:'223',referenceQualifier:'Z07',referenceNumber:f.external,lineItemReference:f.li,
+  prodatFieldDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'223',errorKind:'missing',occurrence:expect.objectContaining({
+   objectId:f.external,lineItemReference:f.li,ownReferences:expect.objectContaining({objectId:{kind:'present',value:f.external},lineItemReference:{kind:'present',value:f.li}}),
+  })}),
+ }))
  let m:Awaited<ReturnType<typeof receive>>|undefined,birthError:unknown
  try{m=await receive(f,raw,f.actorUserId,f.companyId,field)}catch(error){if(!(error instanceof ExpectedPhysicalBirthRefusal))throw error;birthError=error}
  if(m){
