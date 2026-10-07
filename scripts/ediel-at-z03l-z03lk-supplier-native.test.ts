@@ -1378,7 +1378,11 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       const f=await seed(variant); await send(f)
       const other=contrast==='object'?await seed(variant):null
       const raw=confirmation(f,body=>body.map(segment=>{
-        if (contrast==='line reference'&&segment.startsWith('RFF+LI:')) return 'RFF+LI:'+randomUUID()
+        if (contrast==='line reference'&&segment.startsWith('RFF+LI:')) {
+          const wrongLineReference=randomUUID().replaceAll('-','')
+          expect(wrongLineReference).not.toBe(f.li)
+          return 'RFF+LI:'+wrongLineReference
+        }
         if (contrast==='object') return segment.replaceAll(f.external,other!.external)
         if (contrast==='grid area'&&segment.startsWith('RFF+Z05:')) return 'RFF+Z05:OTHER'
         if (contrast==='start date'&&segment.startsWith('DTM+92:')) return `DTM+92:${days(f.requestedStartDate,1).replaceAll('-','')}0000:203`
