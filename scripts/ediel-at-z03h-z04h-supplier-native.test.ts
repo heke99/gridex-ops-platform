@@ -285,9 +285,11 @@ async function sent(selectedInvoicee=false,selectedInstallation=false) {
     AND direction='inbound' AND message_family IN('CONTRL','APERAK')`)).toBe(0)
   return { f, original }
 }
-async function intake(f: Fixture, raw: string, environment: 'test' | 'production' = 'test') {
+async function intake(f: Fixture, raw: string, environment: 'test' | 'production' = 'test', missingAssociation = false) {
   const mailbox = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment, raw,
     smtpFrom: 'synthetic@example.invalid', senderEmail: 'recipient@example.invalid' }), parsed = mailbox.parsed
+  if (missingAssociation) expect(parsed).toMatchObject({ messageFamily: 'PRODAT', messageCode: 'Z04',
+    messageTypeVersion: { directoryVersion: 'D', release: '97A', controllingAgency: 'UN', associationAssignedCode: null } })
   const [outboundMatch, meteringPointMatch] = await Promise.all([
     matchOutboundRequestForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
     matchMeteringPointForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }) ])
@@ -444,7 +446,13 @@ function omit(raw: string, field: string) {
       copy[position] = position === 2 ? ['', ...((typeof p[position] === 'string' ? [p[position]] : p[position]) as string[]).slice(1)] : ''
       removed++
     } else if (field === '311' && p[0] === 'UNB') { copy[7] = ''; removed++ }
-    else if (field === '312' && p[0] === 'UNH') { copy[2] = ''; removed++ }
+    else if (field === '312' && p[0] === 'UNH') {
+      const association = p[2]
+      expect(association).toEqual(['PRODAT', 'D', '97A', 'UN', expect.any(String)])
+      if (typeof association === 'string') throw Error('actual_312_composite_required')
+      expect(association[4]).not.toBe('')
+      copy[2] = [...association.slice(0,4), '']; removed++
+    }
     else if (['202','203','313'].includes(field) && p[0] === 'BGM') { copy[{ '202':1,'203':2,'313':4 }[field]!]= ''; removed++ }
     else if (['314','209'].includes(field) && p[0] === 'LIN') {
       copy[field === '314' ? 1 : 3] = field === '314' ? '' : ['', '', '', component(p,3,3)]; removed++
@@ -454,7 +462,14 @@ function omit(raw: string, field: string) {
   expect(removed, `physical field ${field} must exist in baseline`).toBe(1)
   const unh = out.findIndex(p => p[0] === 'UNH'), unt = out.findIndex(p => p[0] === 'UNT')
   const count: (string | readonly string[])[] = [...out[unt]]; count[1] = String(unt - unh + 1); out[unt] = count
-  return "UNA:+.? '" + out.map(render).join("'") + "'"
+  const malformed = "UNA:+.? '" + out.map(render).join("'") + "'"
+  if (field === '312') {
+    // 0057 alone is the national version. Family/directory/agency and all
+    // other physical components, including UNT, remain the genuine control.
+    expect(rawParts(malformed)).toEqual(parts.map(p => p[0] === 'UNH'
+      ? [p[0], p[1], ['PRODAT', 'D', '97A', 'UN', ''], ...p.slice(3)] : p))
+  }
+  return malformed
 }
 function freshPhysicalIdentity(raw:string) {
   const refs=references()
@@ -478,12 +493,24 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   expect(control.message.raw_payload).toBe(complete)
   await reread(f,control)
   const originalBefore=sealed(original.id), controlBefore=sealed(control.message.id)
-  const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f), received=await intake(f,malformed)
+  const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f), received=await intake(f,malformed,'test',field==='312')
   if(received.id===null) {
     // No fabricated canonical source for a missing family/code/tenant header.
     // The positive before/after source and exact physical omission constrain
     // the actual first public owner; unrelated arbitrary errors never qualify.
-    if(field==='312')expect(received.mailbox.parsed.messageFamily).not.toBe('PRODAT')
+    if(field==='312') {
+      // Exact missing-version input has no prospective catalog witness. This
+      // proves only its actual public birth refusal, never a born-source ACK.
+      // The binder uses the retained receipt's database date, not Stockholm.
+      const binderDate=sql<string>(`SELECT to_jsonb(received_at::date) FROM public.inbound_email_messages
+        WHERE id=${literal(received.mailbox.inboundEmailMessageId)} AND company_id=${literal(f.companyId)}
+          AND raw_edifact_payload=${literal(malformed)}`)
+      expect(binderDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(received.birthErrors).toEqual([expect.objectContaining({code:'23514',
+        message:`canonical_inbound_rule_profile_resolution_failed:PRODAT:Z04:${binderDate}:6`})])
+      expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages
+        WHERE company_id=${literal(f.companyId)} AND raw_payload=${literal(malformed)}`)).toBe(0)
+    }
     else if(field==='202')expect(received.mailbox.parsed.messageCode).toBeFalsy()
     else {
       expect(['311','207','208','223','226','209','210','260']).toContain(field)
