@@ -432,8 +432,10 @@ async function reread(f:Fixture,control:Awaited<ReturnType<typeof ready>>) {
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision)).toEqual(['accepted','accepted','accepted'])
   expect(record(sealed(row.id)).inbound).toMatchObject({status:'ready',reason:null})
 }
-async function actualIncomingOmission(f:Fixture,original:Original,field:string,complete:string) {
-  const control=await ready(f,original,complete), originalBefore=sealed(original.id), controlBefore=sealed(control.message.id)
+async function actualIncomingOmission(f:Fixture,original:Original,field:string,complete:string,control:Awaited<ReturnType<typeof ready>>) {
+  expect(control.message.raw_payload).toBe(complete)
+  await reread(f,control)
+  const originalBefore=sealed(original.id), controlBefore=sealed(control.message.id)
   const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f), received=await intake(f,malformed)
   if(received.id===null) {
     // No fabricated canonical source for a missing family/code/tenant header.
@@ -632,8 +634,10 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(issues,JSON.stringify(issues)).toEqual(expect.arrayContaining([expect.objectContaining({prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field})})]))
     expect(issues.some(i=>(i.blocking||i.severity==='error')&&i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field)).toBe(true)
     expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(immutable); expect(smtp.send.mock.calls.length).toBe(sends)
-    if(code==='Z04')await actualIncomingOmission(f,original,field,baselineRaw)
-    else await actualOutboundOmission(f,original,field,malformed)
+    if(code==='Z04') {
+      if(!('decision' in baseline))throw Error('actual_h_incoming_control_required')
+      await actualIncomingOmission(f,original,field,baselineRaw,baseline)
+    } else await actualOutboundOmission(f,original,field,malformed)
   })
 
   it.each(['250','251','252','253','317','318'])('selected actual Z04 IV parent activates child %s and refuses its omission', async field => {
@@ -645,7 +649,7 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     const issues=validateCanonicalPolicyFields({policy,rawPayload:missing,rawSegments:tokenizeEdifact(missing).segments.map(s=>s.raw)})
     expect(issues.some(i=>(i.blocking||i.severity==='error')&&i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field),JSON.stringify(issues)).toBe(true)
     expect(business(f)).toEqual(before)
-    await actualIncomingOmission(f,original,field,complete)
+    await actualIncomingOmission(f,original,field,complete,baseline)
   })
 
   it.each(['233','234'])('actual source-selected Z03 IT makes child %s mandatory before another original can persist',async field=>{
