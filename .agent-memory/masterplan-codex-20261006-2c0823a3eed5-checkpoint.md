@@ -1695,3 +1695,132 @@ Session codex-20261006-2c0823a3eed5; task671f4972-92da-4764-974a-933a0f3ed6d0; R
 Actual fetched main d0a655ce192f2c3d6cced06cab91898b0f7ad9b4 now includes source679 plus status678. Current coverage exactSHA51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a,115VERIFIED+185PASSED=300/352. Ordered current memory/AGENTS/workflow/reservations/legacy/ownCP and complete137-comment673 board read;18:46 remote125refs have14 foreignIDrefs and foreign role-merge5ce27, no root duty newly claimed. Old c3 memory-rolefdcd is actually released6044247560, not a current blocker. Current68098779 READ component is still unmerged/owner1df verifies;657 advanceda0ec, owner93 retains its producer.
 Role remains original C implementer/unblocker plus bounded independent reviewer. Activated existing using-superpowers, requesting-code-review/spec-to-code-compliance and verification-before-completion for source/spec/dependency review; Supabase guidance applies if SQL/schema implementation begins. No UI/AWS/deployment/new native producer or broad security audit is in scope. Own checkpoint has historical production base: use literal fetchedmain/publishedPR objects for current-source proof.
 Next ROOT: before code, inspect actual new679 API and callers against C03/C05 source requirements, current676/670/C217 vs main and2f checksum/GEN receipts; identify the first concrete missing delivery and exact path owner. Check three supported migration-manifest layers for a lawful independently reservable checksum component, preserving existing validators rather than bypassing them. Return a minimal verified reuse/delivery proposal or explicit named file-handoff request with exact source/SQL/checksum and acceptance condition. No competing CI/native rerun/ZIP download, no unknown failure cause inferred. Any genuinely new implementation requires fresh complete locks+checkpoint+673 CLAIM; read-only reviews require no foreign writer lock. Publish this START before further bounded analysis.
+
+### 2026-10-07 20:56 Europe/Stockholm (18:56 UTC) — verified C checksum handoff proposal; source-component applicability pending
+
+Current literal main d0a655ce, C6761b4 and GEN-owner6589d929 objects fetched/read. Main1099SQL/noC;6761100SQL includes C7709B/blob e6a631ccbd666851a8c0a876095ea8815a39484a/SHA9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086; owner9d9291102SQL/noC. Canonical/additions/runtime all lackCpin. Exact supported path refs read and receipts positive: canonical41a87fe18c0900aa5b5c65ad6adb1f303e2927c4 owner2f, additions73879a6500416d582ec619de2cf06623d299eb05 ownerb6, runtimecde7aa8811e0230f79d11adb7af9d87d649fcd80 owner2f. They remain foreign, no independently writable effective checksum layer established.
+Gate proof: check-migration-versions.cjs034db126 reads optional EDIEL additions at10/28 but also rejects pin-without-migration92; clean replay ff105a5d checks only canonical/additions/runtime164/181–185, inventory6f847ad4 reads those plus VERIFIED-TAIL16/27/57. EDIEL-only cannot unblock replay/inventory; verified-tail likewise has noCpin and tail-only cannot unblock integrity/replay. Do not invent another layer or modify the validators. Independent final_packet_review APPROVE with tail precision correction accepted; this proves scope/dependency only, not current native cause/parity/wholeC.
+Independent z18 single-requirement review: new679 blob745dd31c only inboundZ10/M/E58, own-object futureUTILTS true/null. Export searches yield module+componenttest only, currentpolicy still olderZ04 AD/H port. It produces no committed confirmed_by_grid_owner/ending period, exact C-original/timing or automatic L/C integration; c3 privateL+2f CORE remain concrete duties. Do not generalize M token into L/C. Current5head official check lists refreshed:66717fc all8mandatorySUCCESS but priorstrict30nativeFAIL;670ed573 and6761b4 remain currentmandatoryFAIL;6589d929 all8SUCCESS but originalnative67P22F;68098779 clean/certificate stillrunning, solehelper owns verification. No rerun/artifact download/newproducer performed.
+Exact full12 technical-file proposal export below expands preserved9-method subset into all published676 technical deltas vs9b (excluding uniquelyowned95CP). Original9-subset reportSHA4775891a remains preserved, successor4648B/full12SHAfac842603c31f2c404bd70d207977160bec5da30a830aeaf32c58dcb685e9d18 is MODE/OID/byte/SHA qualified only. It is NOT a composed-currentmain tree, schema/type capture, runtime/native proof or wholeapproval. Reuse source; preserve original12file controls, healthy-period witnesses and literal223 correction.
+Next2f named request: deliver a bounded coupled C source/checksum/GEN+clean/upgrade component using these immutable inputs, OR explicitly hand over exact supported checksum/GEN paths and remaining-duty/base/foreign-entry preservation conditions; verify own ref before actual owner-only release. Checksum alone onmain is invalid while CSQL absent. Root will fresh-claim before any edits; silence is not handoff. Meanwhile rootz15 independently checks whether the released strict32 public native test/config/workflow alone is a valid separate currentmain SOURCE component (no C217 API dependency), avoiding another blanket blocked stop. This plan check is read-only; no files/IDs claimed and no code copied.
+
+C_FULL12_SOURCE_CHECKSUM_PROPOSAL_BEGIN
+```json
+{
+  "task": "671f4972-92da-4764-974a-933a0f3ed6d0",
+  "scope": "READ_ONLY_FULL12_SCOPED_C_SOURCE_PINS_AND_REGISTRATION_PROPOSAL_NOT_COMPOSITION_NATIVE_OR_GEN_APPROVAL",
+  "main": "d0a655ce192f2c3d6cced06cab91898b0f7ad9b4",
+  "candidate": "1b4be1fb5b78a6ef357f16b304f112ad939ab6ed",
+  "genOwnerSource": "9d9292f2d60af236162f818de803ebb7fe88d071",
+  "registration": {
+    "20261007132500_ediel_switch_cancellation_original_method.sql": "9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086"
+  },
+  "coupledCandidatePaths": [
+    {
+      "path": "lib/ediel/production/switchCancellationSource.ts",
+      "mode": "100644",
+      "blob": "422be98448d287da320bd10dc30c1d3536484f44",
+      "bytes": 2767,
+      "sha256": "58a44b8ec0511444f8a273773b0aea55cd6cb9af99dd0b1ea9ca855ca24a1bf1"
+    },
+    {
+      "path": "lib/ediel/intent/renderers/switchCancellation.ts",
+      "mode": "100644",
+      "blob": "ebad6c42a567437883f670ab5f6cbcd8b4f5b727",
+      "bytes": 5332,
+      "sha256": "5f8ca16d7ce0121a2a11e85eef196b78caada76b2fdac66f5c59b01a7946c39c"
+    },
+    {
+      "path": "__tests__/ediel-switch-cancellation-source.test.ts",
+      "mode": "100644",
+      "blob": "a54189bfa9b74a858c23914a4c499767aedeac9d",
+      "bytes": 4750,
+      "sha256": "7c386f3ea588327f8dc69621bb9e49e690f677b2dfbf71119bf99bedc4116ed3"
+    },
+    {
+      "path": "scripts/ediel-switch-cancellation-sql-regression.mjs",
+      "mode": "100644",
+      "blob": "60533b705af6e508564dbaeed8fa759e9a0e555c",
+      "bytes": 33710,
+      "sha256": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e"
+    },
+    {
+      "path": "supabase/migrations/20261007132500_ediel_switch_cancellation_original_method.sql",
+      "mode": "100644",
+      "blob": "e6a631ccbd666851a8c0a876095ea8815a39484a",
+      "bytes": 7709,
+      "sha256": "9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086"
+    },
+    {
+      "path": "scripts/ediel-cancellation-original-method-native.test.ts",
+      "mode": "100644",
+      "blob": "313829f522f9efdd02df4b7279500b37638a58a1",
+      "bytes": 8800,
+      "sha256": "72201044d5caee315650d3c32fc862ecfcea7a5b6386fee6c5086cad158a78bc"
+    },
+    {
+      "path": "scripts/ediel-cancellation-original-method-native.config.ts",
+      "mode": "100644",
+      "blob": "6bc3c2f52beba603e00c6ddd840102d6ca1946be",
+      "bytes": 251,
+      "sha256": "7753ec3c7dac37f42f927727b61ca58f60ff4659737196fb6a6d0d1f279fb9dc"
+    },
+    {
+      "path": ".github/workflows/ediel-cancellation-original-method-native.yml",
+      "mode": "100644",
+      "blob": "4bed4d79411b9720388569742397b38f319ea5ce",
+      "bytes": 10708,
+      "sha256": "ad1ddd0b972e9298481dfc80ff433503ac01b9d1640c3ef5705c0edbd428d11e"
+    },
+    {
+      "path": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+      "mode": "100644",
+      "blob": "952dfed78a3270a69f254262973da84fe4cc1815",
+      "bytes": 10365,
+      "sha256": "6187b0a090f712e496e1aceceef182a079486bd95d44a8da24e6b33b4790cb4c"
+    },
+    {
+      "path": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "mode": "100644",
+      "blob": "c68d7344394c35d4fb7e74e8cf2b0a6ff13dcce9",
+      "bytes": 66637,
+      "sha256": "eefa55f89defa0d617b331b25c618e8fae7f865f0bd021bc32b4e6e607321abf"
+    },
+    {
+      "path": "scripts/ediel-cancellation-public-acceptance-native.config.ts",
+      "mode": "100644",
+      "blob": "1cf8c95750e6e24122a27aa77951a87d05928322",
+      "bytes": 256,
+      "sha256": "c1e8e88b42659c4faa348509fd13c0886943baa794799a7b4a882a8959e58f91"
+    },
+    {
+      "path": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "mode": "100644",
+      "blob": "03f3abd8fdaf42ac23c14720cef4001c9d76ac4c",
+      "bytes": 10799,
+      "sha256": "c8cd3248faf6a2e84a7c9b6387eb439ab86f96394c6aad87305d174fa4daeca1"
+    }
+  ],
+  "gates": [
+    {
+      "path": "scripts/check-migration-versions.cjs",
+      "blob": "034db1263187939bd5e48d009909b56686da7c54",
+      "sha256": "86129789716c55e21e083bbf5b4f6d42acb50d5a2e9f3dd59c5e3d39e5a70a3d"
+    },
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "blob": "ff105a5d6984a4a7631091151a7a6c279d404966",
+      "sha256": "1d96e4bfe030b37f5424ef4e4b20c633da1b90f485802a47039e479c36c2b1fa"
+    },
+    {
+      "path": "scripts/generate-canonical-migration-inventory.cjs",
+      "blob": "6f847ad49ca66844b51983d212a4aa41adb29446",
+      "sha256": "8c3e9362086e7d6cea7c1a6e11fb0ffc2889079b9c643c5690e6f32e7a8ab735"
+    }
+  ],
+  "methodSubsetCount": 9,
+  "scopedTechnicalCount": 12,
+  "publishedDeltaFromBase9b": "Exact12technicalfilesPlusOwn95Checkpoint;notCurrentMainComposition"
+}
+```
+C_FULL12_SOURCE_CHECKSUM_PROPOSAL_END
