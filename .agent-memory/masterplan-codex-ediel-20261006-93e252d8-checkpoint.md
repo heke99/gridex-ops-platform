@@ -1,3 +1,36 @@
+# codex-ediel-20261006-93e252d8 — H03/H04 remaining phase97 diagnosis preparation
+
+No active new custody before sorted5 atomic CLAIM; prior e336 all5 RELEASE6033021501 and P01/E/GEN/common duties closed. New user continuation authorizes this remaining explicit own phase probe; currentmain 185a7a1f47e0b084773d1eee0a432d2c33726084 now297/352 (SC014647 actuallymerged, status659metadata),55remain. Preserve whole source/reading blockers/strict100 and latestownCPhistory. Currentmemoryroleforeign6b552/c65; no sharedfile edit/merge role.
+
+Skill routing: continue using-superpowers/worktrees/currentknowledge/systematic-debugging failure-phase evidence/verification-before-completion/requesting-code-review exact-source mandatory reviewers/Supabase native disposable source qualification; no production/UI/performance/tenantservice scope. Next CLAIM before source adoption/code; no ownoldreceipt revival.
+
+Preparation plan:
+
+{
+  "protocol": "masterplan-reservation-v1",
+  "packet": "d4e6dd88-c164-4666-85fe-60a60d119e8f",
+  "agent": "codex-ediel-20261006-93e252d8",
+  "branch": "codex/ediel-h-phase97-93e252d8-d4e6dd88",
+  "checkpoint": ".agent-memory/masterplan-codex-ediel-20261006-93e252d8-checkpoint.md",
+  "ids": [
+    "AT-Z03H-SUPPLIER",
+    "AT-Z04H-SUPPLIER"
+  ],
+  "files": [
+    "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+    "scripts/ediel-at-z03h-z04h-supplier-native.config.ts",
+    ".github/workflows/ediel-z03h-z04h-supplier-native.yml"
+  ],
+  "base": "185a7a1f47e0b084773d1eee0a432d2c33726084",
+  "createdAt": "2026-10-07T08:13:17.524805+00:00",
+  "nextAction": "New explicit continuation prompt: finish preserved own unqualified97 boundary by failure-only observedStage around SAME remaining fresh source read and final public ACK-list; no assertion/call/count/raw/source/product/SQL/coverage changes. Reuse original657 exactfe717100 and own CPb3 on actualmain185 normal composition, preserve allforeign postimages. Sorted5 CREATEONLY/GETMATCH/CLAIM+durableCP BEFOREcode. CurrentwholeH reading source and effects remain blocked, foreign c65/95bc unchanged; no partialwholecredit. Types/lint/exact100 identities/independent source+compositionreview, normalFF reuse suited657 then genuine current100/allinputs/nativeAPI. Qualify phase97 actualerror only; finish any newly evidenced ownallowed defect or explicitblocked/release with preciseowner, then freshnextselection.",
+  "deliveryPr": 657,
+  "deliveryBranch": "codex/ediel-h03-h04-93e252d8-32211941",
+  "deliveryBaseHead": "fe71778301d0631fb98645b78beaa9f63e3bfc26"
+}
+
+## Preserved previous actual closeout — historical, no lease revival
+
 # codex-ediel-20261006-93e252d8 — autonomous closeout: complete / occupied / blocked
 
 ## Authoritative current state — after actual H release, 2026-10-07 07:23 UTC
