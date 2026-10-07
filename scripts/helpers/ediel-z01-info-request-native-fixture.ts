@@ -282,7 +282,7 @@ export async function originateZ01SupplierRequest(f: Z01SupplierNativeFixture,
  * matcher, tenant resolver, reception adapter and normal inbound kernel.
  * The result includes the actual decision, including honest held outcomes.
  */
-export async function receiveZ01SupplierReply(f: Z01SupplierNativeFixture, raw: string) {
+export async function attemptZ01SupplierMailIntake(f: Z01SupplierNativeFixture, raw: string) {
   const mailbox = await seedOriginalMailboxNative(sql, literal, {companyId: f.companyId, environment: 'test', raw,
     smtpFrom: edielSmtpConfig().from, senderEmail: 'recipient@example.invalid'})
   const parsed = mailbox.parsed
@@ -300,6 +300,11 @@ export async function receiveZ01SupplierReply(f: Z01SupplierNativeFixture, raw: 
   const id = await createInboundEdielMessage({companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test',
     inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId, parsed,
     outboundMatch: match, meteringPointMatch: pointMatch, tenantResolution: tenant})
+  return {id, mailbox, match, pointMatch, tenant}
+}
+
+export async function receiveZ01SupplierReply(f: Z01SupplierNativeFixture, raw: string) {
+  const {id, mailbox, match, pointMatch, tenant} = await attemptZ01SupplierMailIntake(f, raw)
   if (!id) phaseFailure('intake_no_message', {match, pointMatch, tenant})
   const initialProcessed = await processInboundEdielMessage({actorUserId: f.actorUserId, edielMessageId: id})
   const ownResponseJobs = () => sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(j) ORDER BY j.created_at,j.id),'[]')

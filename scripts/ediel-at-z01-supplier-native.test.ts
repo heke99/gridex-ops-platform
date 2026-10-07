@@ -19,9 +19,15 @@ import {PRODAT_APERAK_APPLICATION_TEXTS} from '@/lib/ediel/prodat/prodatAperakTe
 import {prodatNowDate203} from '@/lib/ediel/prodat/render/dates'
 import {segmentComposite, segmentElementCount, tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {parseCanonicalEdielPayload} from '@/lib/ediel/core/canonicalMessage'
+import {validateEdifactEnvelope, validateUnsmGrammar} from '@/lib/ediel/core/edifactValidation'
+import {stockholmBusinessDate} from '@/lib/ediel/core/executionContext'
+import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
+import {canonicalProdatProfileForMessage} from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import {resolveCanonicalTenantEdielIdentityWithEvidence} from '@/lib/ediel/tenant/tenantEdielIdentity'
 import {originalAckLegalNadSegment} from '@/lib/ediel/core/originalAckPartyIdentities'
 import {nativeSql as sql, literal, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
-import {createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply, exerciseZ01SupplierOutboundField, ensureZ01SupplierKnownWrongGridArea} from './helpers/ediel-z01-info-request-native-fixture'
+import {createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply, attemptZ01SupplierMailIntake, exerciseZ01SupplierOutboundField, ensureZ01SupplierKnownWrongGridArea} from './helpers/ediel-z01-info-request-native-fixture'
 import {externalZ01Aperak, externalZ01Contrl, externalZ02Reply, type ExternalZ02Overrides} from './helpers/ediel-z01-info-request-native-wire'
 import {assertZ01RolePreparationOnly, prepareZ01OptionalLkNetworkSuccessor} from './helpers/ediel-z01-proof-observations-native'
 import {createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
@@ -373,12 +379,74 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
       applicationReference: envelope.applicationReference, environment: 'test', acknowledgementRequest: true,
       ...references(), messages: [{messageReference: references().messageReference,
         messageTypeToken: original.wire.messageTypeToken, businessSegments: body}]})
-    const received = await receiveZ01SupplierReply(f, raw), decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message)
-    expect(decision.syntaxDecision).toBe('accepted')
-    expect(decision.issues.some(issue => issue.code === 'PRODAT_CANONICAL_DIRECTION_NOT_ALLOWED'
-      || issue.description.startsWith('canonical_source_direction_not_allowed:')), JSON.stringify(decision.issues)).toBe(true)
+    const sealed = sealedSource(original.originalZ01.id), calls = external.send.mock.calls.length
+    const outboundBefore = sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages
+      WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)
+    // Observe the actual production warning without replacing its behavior.
+    // This catalog has no inbound Z01 profile, so a received original cannot
+    // lawfully be born. Its processor is not reached on this refusal branch.
+    const warnings = vi.spyOn(console, 'warn')
+    const received = await attemptZ01SupplierMailIntake(f, raw)
+    expect(received.id).toBeNull()
+    expect(received.tenant).toMatchObject({status: 'ambiguous', companyId: null})
+    expect(received.tenant.evidence.some(e => e.companyId === f.companyId && e.source === 'verified_legal_identity')).toBe(false)
+    const retained = sql<{company: string; environment: string; raw: string; receivedAt: string; effectiveDate: string; parseId: string; parseRaw: string; parseCode: string}>(`SELECT
+      jsonb_build_object('company',m.company_id,'environment',m.environment,'raw',m.raw_edifact_payload,
+        'receivedAt',m.received_at,'effectiveDate',m.received_at::date,'parseId',p.id,'parseRaw',p.raw_payload,'parseCode',p.message_code)
+      FROM public.inbound_email_messages m JOIN public.inbound_ediel_parse_results p
+        ON p.inbound_email_message_id=m.id AND p.company_id=m.company_id
+      WHERE m.id=${literal(received.mailbox.inboundEmailMessageId)} AND m.company_id=${literal(f.companyId)}
+        AND p.id=${literal(received.mailbox.parseResultId)}`)
+    expect(retained).toMatchObject({company: f.companyId, environment: 'test', raw,
+      parseId: received.mailbox.parseResultId, parseRaw: raw, parseCode: 'Z01'})
+    expect(sha(retained.raw)).toBe(received.mailbox.sourcePayloadHash)
+    // The physical receiver is our real SUPPLIER, whereas canonical incoming
+    // Z01 requires a grid owner. Prove the identity separately; the declared
+    // company adapter probe above does not turn this tenant hold into admission.
+    const receiver = await resolveCanonicalTenantEdielIdentityWithEvidence({companyId: f.companyId,
+      environment: 'test', asOf: retained.receivedAt, requireExactCounts: true})
+    expect(receiver.evidence.completeness).toBe('exact_count')
+    expect(receiver.identity).toMatchObject({companyId: f.companyId, environment: 'test',
+      legalEdielId: parties.legalSender.id, transportEdielId: envelope.sender})
+    expect(receiver.identity.roleCodes).toContain('electricity_supplier')
+    expect(receiver.identity.roleCodes).not.toContain('grid_owner')
+    expect(canonicalProdatProfileForMessage('Z01')?.receiverRole).toBe('grid_owner')
+    const refusal = warnings.mock.calls.filter(([label]) => label === '[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message')
+    expect(refusal, 'The real intake must expose this exact direction-specific catalog refusal').toHaveLength(1)
+    expect(refusal[0][1]).toMatchObject({code: '23514',
+      message: `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z01:${retained.effectiveDate}:0`})
+    warnings.mockRestore()
+    const catalog = sql<{inbound: number; outbound: number}>(`SELECT jsonb_build_object(
+      'inbound',count(*) FILTER(WHERE mp.direction IN('inbound','both')),
+      'outbound',count(*) FILTER(WHERE mp.direction IN('outbound','both')))
+      FROM public.ediel_message_profiles mp JOIN public.ediel_rule_packs rp ON rp.id=mp.rule_pack_id
+      WHERE mp.is_enabled AND mp.profile->>'family'='PRODAT' AND mp.message_code='Z01'
+        AND rp.status IN('active','future') AND rp.valid_from<=${literal(retained.effectiveDate)}::date
+        AND (rp.valid_to IS NULL OR rp.valid_to>=${literal(retained.effectiveDate)}::date)`)
+    expect(catalog.inbound).toBe(0); expect(catalog.outbound).toBeGreaterThan(0)
+    const envelopeSyntax = validateEdifactEnvelope(retained.raw), grammar = validateUnsmGrammar(retained.raw)
+    expect(envelopeSyntax.syntaxOk, JSON.stringify(envelopeSyntax.issues)).toBe(true)
+    expect(grammar.qualification).toBe('qualified'); expect(grammar.syntaxOk, JSON.stringify(grammar.issues)).toBe(true)
+    expect(grammar.sources).toHaveLength(1)
+    expect(grammar.sources).toEqual(validateUnsmGrammar(original.originalZ01.raw_payload!).sources)
+    const canonical = parseCanonicalEdielPayload({rawPayload: retained.raw, direction: 'inbound', standardHint: 'edifact'})
+    expect(canonical).toMatchObject({family: 'PRODAT', messageCode: 'Z01', subtype: original.wire.reason,
+      applicationReference: original.wire.parties.applicationReference})
+    // The same public source guard used by the registry runtime establishes
+    // the exact policy cause from retained raw/date; this is a detached raw
+    // assessment, without a fabricated received row or admitted capability.
+    await expect(resolveCanonicalRulePack({family: 'PRODAT', messageCode: canonical.messageCode!,
+      transactionSubtype: canonical.subtype, applicationReference: canonical.applicationReference,
+      direction: 'inbound', businessDate: stockholmBusinessDate(new Date(retained.receivedAt))}))
+      .rejects.toThrow('canonical_source_direction_not_allowed:Z01:inbound:outbound')
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
+      AND direction='inbound' AND inbound_email_message_id=${literal(received.mailbox.inboundEmailMessageId)}`)).toBe(0)
     expect(coreApplications(f, original.requestId)).toBe(0)
-    expect(customerState(f)).toEqual(before)
+    expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages
+      WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)).toEqual(outboundBefore)
+    expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
+    expect(external.send.mock.calls.length).toBe(calls)
   })
 
   it('native immutable original rejects raw-byte mutation and preserves all customer state', async () => {
