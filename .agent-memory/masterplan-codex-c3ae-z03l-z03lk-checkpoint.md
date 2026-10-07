@@ -1,3 +1,14 @@
+## ACTUAL TEST-FIRST RED / CENSUS CORRECTION / MINIMAL FIX GO — 2026-10-07
+
+Same soleL/LK26/newisolatedb556 main751. ONLY producer test changed by exact67-line append after whole275-line originalprefix; product SHA b0426e07 and direct2/native/fixture/auth unchanged. Actual Node22/default/canonicalguard run finished trueexit1: singleproducer file89 cases =77 originalPASS +12 newFAIL,5.244622s, logSHA4f15a697fd2e5d048519bc79c550eb6954f85ccd19cb6e5943adc6f2e746e2cf. Private filename red109 is an old plan label, NOT actual census. Earlier plan/file-level97/109 assumption is corrected by actual execution; no tests added/removed to fit counts. All original test source275-line prefix byteexact7edc4505, all original77pass.
+
+Intended RED: ediel-only issuer is quarantined before source; comm-only/neither/currentrevocation traces lack real ediel permission calls; alternate ediel transport failure is never requested and existingcomm path wrongly resolves. Native SQL separately unproved; tests use configured SDK and real TSissuer only. Both PLAN finiteAPP+self and docs preceded tracked authoring; literal exactproposal addendum3e56b90f preserves wholeprefix.
+
+GO ROOT: replace exactlyboth existing product guard argument permission:'communication.read' with typed permissionAnyOf:['communication.read','ediel.read']; COMMfirst. Update ONLYauthor-added two direct tracehelpers to exact13 includingnew2RPCs. Twelve tests/originalprefix remainunchanged; no fixture/native/auth/SQL/CORE/coverage edits. Execute actualsingle89 and unchanged combined250 expected onlyuntil real census, then current affected3TSC/lint/final SOURCE2/reader input closure. Published635 still7f; currentwhole9 ordinaryfailures/COREoriginal229252/nativeSQL/TRUE12cause prerequisites retained. Existingowner2f handoff6586045872116 remains namednext action, no takeover.
+
+
+---
+
 ## TWO PLAN APPROVALS / OWN TEST-FIRST GO — 2026-10-07
 
 Same L/LK26/6357f, unique isolated READORbranch ba2eb728/current b5563257 normallyadopts actual751; four unchanged preimages and delivered auth/readtest postimages checked. ROOT self full component-path preservation/FP no findings; private plan79e056e7/proposal70d59dde. Independent literal PLANAPP e31f435a (24source bindings) and independent FP finite PLANAPP delivered in agent message; its bound report follows. Both explicitly restrict TS+declaredSDK evidence and current native reception SQL blocker, with TDD/finalsource gates; no source/native/ZIP execution by reviewers.
