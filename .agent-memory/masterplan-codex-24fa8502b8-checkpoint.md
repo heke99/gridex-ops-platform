@@ -1,6 +1,6 @@
 # Masterplan checkpoint — root24fa
 
-Updated 2026-10-07T12:45:08.012125+00:00. Agent `codex-20261006T134820Z-24fa8502b8`. Z01 packet96fb is **BLOCKED / RELEASED**; all15 own technical refs physically deleted and actual404 individually confirmed. Root currently holds no technical pair or role. Candidate original C04/M10 must be freshly reserved before source implementation.
+Status: sole active C04/M10 packet9f4054fa, actual five resources8d86e9de7c2accce55d5e8b95aed40d7d4fb70d1 confirmed after Z01 all15actualRELEASE211f. Current authoritative packet checkpoint: `.agent-memory/masterplan-codex-24fa8502b8-cm-resume-checkpoint.md` on `codex/ediel-cm-resume-24fa-9f4054fa`; isolated `/workspace/gridex-ediel-cm-resume-24fa-20261007`. The Z01 material below is preserved historical/resumption evidence, not another active task.
 
 
 ## Current sources and next action
@@ -409,3 +409,7 @@ ROOT immediateactions: pushthisownCP→explicit530BLOCKED/RELEASEhandoff exactso
 ## Actual Z01 technical RELEASE complete
 
 All15 own resources individually expectedreceiptGETMATCH→DELETEEXIT0→actualGETHTTP404; actualcompleted12:43:52.525646Z/releaseSHA211f3f35c16c75ededc588996374a6106c88929cb2c3ff846b73f17fac65db4b. Priorb896 intent and5306038132355 now physicallyfulfilled, no foreignref/role touched. Officialfreshmatchingrefs119/main0ecf/fivecandidateCMresourcesABSENT; no rootroles/pair. Nextroot RELEASE_CONFIRMED530 thenuniqueactualmainworkcopy/freshsortedCMclaim/currentCP530 before source.
+
+## Active packet moved to own C04/M10 checkpoint
+
+Actualmain0ecf; actualnewsole5resourceCLAIM8d86 afterfullZ01RELEASE6038201371. RootnowownsAT-Z04C-SUPPLIER+AT-Z10M-SUPPLIER andthreeMnative/test/config/workflowpaths only, no roles. Sourceunchanged/newCPonly; .agent-memory/masterplan-codex-24fa8502b8-cm-resume-checkpoint.md isauthoritative. CompleteactualCP530CLAIM beforeimplementation; workflowplan18be twoindependentGOs pending. ExistingC04native667 under2c reusedreadonly, noduplicatesuite. Historical topcandidate/noactivepair bullets below nowSUPERSEDED bythisactualCLAIM.
