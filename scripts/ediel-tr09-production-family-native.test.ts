@@ -146,6 +146,15 @@ async function diagnoseProductionPrerequisites(s: Fixture) {
       console.info('TR09 actual readiness diagnostic', {stage,
         status: result.success ? 'READY_INPUTS' : 'BLOCKED', dryRunStatus: result.status,
         blockers: result.blockingIssues.map(issue => issue.code), wouldSend: result.previewMetadata.wouldSend})
+      if (result.blockingIssues.some(issue => issue.code === 'canonical_required_tests_unavailable')) {
+        const {error} = await supabaseService.rpc('gridex_company_go_live_readiness', {p_company_id: s.f.companyId})
+        // Report the real read failure without exposing query arguments,
+        // credentials or promoting an unavailable result to passed tests.
+        console.info('TR09 actual canonical actor-test diagnostic', {stage,
+          status: error ? 'DIAGNOSTIC_FAIL' : 'READ',
+          errorCode: error?.code.match(/^[A-Z0-9]{5,12}$/)?.[0] ?? null,
+          missingIdentifier: error?.message.match(/(?:column|relation|function)\s+"?([A-Za-z_][A-Za-z0-9_.]*)/)?.[1] ?? null})
+      }
       return null
     } catch (error) {
       console.info('TR09 actual readiness diagnostic', {stage, status: 'DIAGNOSTIC_FAIL',
