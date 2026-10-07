@@ -747,3 +747,26 @@ PUBLISHED final V644 ACTUALde7a009768dd87d22854698b20c02fca782d7490/tree531da035
 Currentown6474b95 fresh taggate `npm run ediel:masterplan-v2:test-coverage -- --check` TRUEEXIT0/defaultconfig/unchangedloopbackguard, exactHEADbefore/after, actual06:09:54-06:17:20 (445.65s) logSHA784df6e53c093d3d42d76beb5d215f05430eb78347aebb0bbc79cda3e13035a0, /tmp/c65-ACK-4b95-current-tagged.json/.log. Fresh4b95compoundmigrationtrue0b750; publishedGovCOMMENT5438331482 andindtransportattributed6032098911 anchorexact4b95. Allten+ownoriginalSC24 freshjobstillqueued andnoCI_GREEN/currentnativeassumed. Fulloriginalb174component725P1nonSCskip exactSC24PASS retained.
 Rootstarts sequentialnonincremental currentde7 scripts/tests/app thenactualunchangedtaggate, noheavyfullconcurrency/sourceedits; authenticde7/nativefreshcapture/backend gates waitofficial. Nextrootpublish exactheadattributedreviews+actualcurrentjobreceipts, expected-head normalmerge onlyunderfreerole onceallmandatorygreen. RemainingA210causalhandoff genuine27P2F independentlyall9354inputqualified; originalmissing210 holdnoeffects proven, typed210failandnegative/replay NOT_REACHED. Govproposes separatelysourcebound rejected-field stage preservingfullbusinessauthority; needsprotectedregistry/source/actor/ACKwitness, existing202-onlycapcannotrelabel210. Rootcontinues existingownproducer duty read-only thenmeaningfulTDD/freshpathclaimbeforeanyrepair. CooperativeZ02 GENdfa+COREfa3 exactimmutablehandoffs completed, all8/1095originalab6-to9cfmatch, ownerfourth/native89 stillneeded. Sharedmemoryaebf2f mirrordatedactual, no role/merge/release/newpair/external/VHcredit.
 
+
+
+### 2026-10-07T06:36:59.303767+00:00 — docs: record current native72 and bounded R210 producer claim
+CLAIM extension — SC-014 / AT-Z14V-ESCO — codex-aa4f29d3-c65 — packet 5874e7b5-1f58-4006-b311-70b9b2f379b6.
+
+Current PR644 head de7a009768dd87d22854698b20c02fca782d7490: all three nonincremental typechecks and the unchanged tagged coverage gate exit 0. Tagged log SHA a7c60da07ada9262b2a7fd01c272c5dd3b1d5bcf4e9477cab6ab53b5c68e50ec. Gov independently verified exact head, commands, log hashes and unchanged product/test/config bytes.
+
+Fresh actual native run 37580725151, job 112659511393, attempt 1, artifact 11465215148: 72/72 PASS (48 V + 24 SC), zero failure/error/skip, native exit 0 and job SUCCESS. Original ZIP SHA 47df2535253dabca136d78429771aa5f7baadb818f36b97ee8d462697560316d, 152258 bytes. Root and transport independently authenticated official repository/head/tree, three CRC members and all 2617 immutable Git input hashes. This is software verification; external market verification is not supplied. Ordinary current-head mandatory checks still pending; no merge receipt.
+
+Existing owned runtime/processor producer responsibility: original A/D native 7e63b40e46e1774083ec1cfd135a9f2363ce08f6 proved missing physical R210 is safely held but lacks its typed national diagnostic; later own negative ACK assertions were not reached. Gov and imp independently traced the genuine response-facet and source-owner gates. No complete business capability can be inferred from a missing start or catalog evidence.
+
+Additional four exact paths acquired and all 36 existing/new refs confirmed by atomic receipt a76aabb61409502b7b7b56bca2e55df5e6f985b5, based on actual main edf0b9d241b2d07c48209ec8ba62f43150543cfa:
+- lib/ediel/prodat/receivedZ04RequiredStartRejection.ts
+- __tests__/ediel-z04-required-start-rejection.test.ts
+- lib/ediel/core/receivedProdatResponseValidation.ts
+- lib/ediel/core/receivedSourceValidationEvidence.ts
+
+Exact resource refs are recorded in the reservation receipt and /tmp/c65-z04-rejection-claim-receipt.json. Existing runtimeDecision.ts, inboundProcessing.ts and canonicalPolicyFieldValidator.ts remain under owned receipt 0dec13122c42c98635c8b8b7a75ae1c1a1db50b4. No foreign ID, native test, SQL, GEN or coverage reservation is taken.
+
+TEST_ONLY GO in isolated branch codex/c65-z04-r210-producer-5874e7b5, parent exactly 7e63b40e46e1774083ec1cfd135a9f2363ce08f6. Imp owns delegated test-first work within these seven root-reserved paths; Gov independently reviews. First preserve genuine old RED through actual runtime/public processor. Then prove a private source/actor/birth/guide-bound rejection owner with real structural register and negative response facets, policy null and FUNCTION not_applicable. Suppress full-object/APP/sourceFunction approval and source-owner sessions. Capture genuine rule evidence and use existing negative ACK gateway before the unavailable bilateral business-policy lookup. Actual SQL/gateway effects, replay and zero business writes must be proved; if existing SQL refuses, document its precise dependency without fabricated acceptance or weakened guards.
+
+Next: root monitors exact current PR647/644 mandatory checks and composes newly changed main with fresh reviews/checks as required. Imp produces old behavioral RED before production. Gov independently checks the complete negative-only chain. Root retains all refs and will publish only immutable own-path handoffs to rightful A/D owner after review; no new pair or premature whole A/D approval.
+
