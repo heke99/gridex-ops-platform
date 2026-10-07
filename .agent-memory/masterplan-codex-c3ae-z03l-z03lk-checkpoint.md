@@ -1,3 +1,15 @@
+## Bounded fixture change reviewed and locally green — 2026-10-07
+
+Same sole L/LK packet and reservations. The committed four-file fixture change now has two independent complete source approvals, both with zero findings. Root actual checks all exit 0 on the clean committed version: 97 targeted tests, scoped lint and nonincremental type checks for tests, scripts and application. All 97 identities, 86 assertion sites and 17 untouched cases are preserved; the original 77 fixture/test bodies and the repeated-register and syntax-negative controls are unchanged. Exact commit and full receipts are kept in the private session checkpoint.
+
+This is bounded local source approval. PR #635 remains draft at its previously published version. Its genuine native result remains 32 passed and 2 failed; full-suite/current CI and whole effects/history/replay/negative causes are unresolved. No coverage or merge approval.
+
+GitHub documentation publication is blocked by actual remote server errors: both attempts to push the preceding checkpoint update failed; official remote readback remained at the earlier published checkpoint. Sanitized comments also returned connector errors and were not assumed posted. The new documentation is committed locally and preserved. Retry only normal publication after checking actual remote state; no force or credential workaround.
+
+Next: publish this current checkpoint when the service recovers, then a separately recorded source-only publication decision after fresh ownership/main/PR checks. Meanwhile the delegated author performs a read-only plan for the two remaining application/register-batch consumer suites, within the same L/LK responsibility. No code or new scope begins before confirmed locks and documentation. Runtime and shared-fixture owners retain their work; no new pair or foreign lock takeover.
+
+---
+
 ## Three bounded regressions installed locally — 2026-10-07
 
 Same L/LK responsibility and 20 reservations. Exactly four owned test/helper files are committed locally on the existing unique source branch. No production module, policy, runtime, native test or foreign file changed in this step. The original 77 test tail is byte-for-byte preserved, and all other tracked files match the parent. Exact commit and complete binding receipts are recorded in the private session checkpoint.
