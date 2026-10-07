@@ -1,3 +1,15 @@
+## Before bounded consumer authoring — 2026-10-07
+
+Same sole L/LK pair, draft PR #635 and 23 confirmed reservations. The amended application-validation/register-batch/shared-fixture plan now has two independent complete PLAN approvals with zero findings. The original rejected plan and both findings remain immutable. Exact plan, reviews, current source and file bindings remain private.
+
+AUTHOR_GO only after confirmed checkpoint and continuation readbacks plus fresh ownership/main/published-source checks: edit only the three additionally reserved consumer/test-fixture paths in an isolated own preview branch based on the clean published version. Keep the primary source frozen for independent artifact qualification. First execute the unchanged 68-test baseline with the canonical guard and defaults. Then implement opt-in physical prerequisites before source birth, real issuer/source-adapter reads and the existing shared SDK ports. The repeated positive register receives its own required fields and a distinct tariff; preserve all 68 cases, 160 assertions, original quantities/numbering, all unrelated bodies, default behavior and record-before-capture. No runtime, private authority, foreign fixture, policy, native, coverage or guard changes.
+
+Root has authenticated the current native artifact: 34 tests, 32 passed and 2 failed, native exit 1. Its two positive flows still stop at register validation. Independent qualification of the same original is running. No native-green, whole, intended-negative-cause or merge approval. Exact source commit and execution receipts are retained privately.
+
+Next responsible: bounded author runs the baseline and implements only the reviewed three paths; root inspects preservation, commits and verifies targeted tests/types/lint plus two complete installed-source reviews. Runtime integration remains with its existing owner. Actual mandatory CI and complete effects/history/replay remain required.
+
+---
+
 ## Before qualification of current native feedback — 2026-10-07
 
 Same sole L/LK pair, PR #635 and 23 confirmed reservations. Two independent complete current-version binding reviews approve the unchanged strict reader with zero findings. Exact commits, arguments, API windows, source/input maps, original archive and review receipts remain in the private session record. Main and the clean published source version are unchanged. The native execution failed; the completed upload is independently confirmed. No artifact has been opened yet.
