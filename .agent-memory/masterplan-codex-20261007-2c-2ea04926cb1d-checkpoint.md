@@ -6,7 +6,7 @@ Agent/session `codex-20261007-2c-2ea04926cb1d`; isolated branch `codex/c-prospec
 
 PR691 is OPEN, exact `80384cf5f8b5754fdfcde18634738b059205d1f6`, tree `a920d21780242dcef24751fe519fb03940306851`. Two independent source approvals+self, local135/6files, three typechecks and final lint0 are recorded below. Owned public30 is authentically completed: producer EXIT1 / 1PASS29FAIL, all9409Git matched/drift{}, independent proof reviews+self complete. Mandatory CI remains pending (last3of8SUCCESS); FP is the sole metadata watcher, ROOT read the original archive ONCE. No merge-role held. Whole C03/C05 and coverage remain unapproved/300of352; synthetic register111 does not supply receiver READ or healthy supply.
 
-Next ROOT: archive the genuine independent native proof reviews, require current mandatory greens and fresh independent delivery/main-composition review before normal expected-head merge under a fresh atomic role. Document actual delivery and release own six refs, or preserve and explicitly hand off the exact blocker. Shared summaries remain under 2f memory-role; no overlapping source/GEN/native work.
+Next ROOT: archive the genuine independent native proof reviews, require current mandatory greens and fresh independent delivery/main-composition review before normal expected-head merge under a fresh atomic role. Document actual delivery and release own six refs, or preserve and explicitly hand off the exact blocker. Shared summaries remain separately reserved; fresh role-memory c97fa80a belongs to 24fa for the actual PR689 memory closeout. No overlapping source/GEN/native work.
 
 Completed prior packet45a: PR686 actually merged to cce16a732c69c9f0562be5c2122c140fe55503aa and all own roles/files released404. Its historical phase below is superseded by the actual MERGED/RELEASE entries. PR683's old native1PASS29FAIL and C217 a7 source-only/GEN1 remain version-bound original evidence, not results of PR691.
 
@@ -120,3 +120,515 @@ Independent z18 AUTHENTIC_CURRENT_NATIVE_FAILURE_PROOF_APPROVE: /tmp/gridex-2ea-
 Refine prior shorthand without rewriting originals: canonicalglobal syntax/application/function ACCEPTED does not constitute protectedown APP admission. Actual lib/ediel/flows/inboundProcessing.ts360-368 requires acceptedown header and accepted ownobject; observed HELDheader/HELDobject yields domainObjectCount0. Guard1217 therefore excludes actual applySupplyMarketSource:28 cases cannotreach confirmedsupply prerequisite. Unknown214/218/259 readingconditions3 remaindistinctfrom genericdependentunknown0 and physicalcodepresence. Zero supplyeffects/periods/partitions does NOTprove zero all sideeffects, ACK, outbox or provider; actual publicsource/reception/assessment/APP/events already exist. SolePASS proves BOTH foreignactor and revoked current supplier/sender-role cannotoriginate cancellation of preserved ownoriginal, not merelysenderrole andnotrestorationdenial. OneLK actualcancellationZ03 missing217 afterownoriginalSENT remains2f C217selectedGEN/adoption/parity blocker.
 
 Currentboundedsource803 stillSOURCE2/self/135local/3types/lint0; all6c203claims motivated by open691 currentdelivery, no merge-role. Mandatory last23:32:55 3of8SUCCESS, fourinprogress/certnotcreated; FPsolewatch. NextROOT currentmandatorygreen thenfreshmain/refs/DELIVERY/currentcomposition review andnormalexpectedheadmerge onlyfourownedsourcefiles; actualmaindoc thenrelease6. WholeC retains exact2f protectedREAD/compiler/admission andC217fullGEN/method-native plusprospectivequalified259/historytiming requirements; helper1df has explicitcountermeaning6048919824. No coveragecredit/commonmemorywrite/newpair.
+
+
+## Fresh main composition and durable current evidence — 2026-10-07T23:41 UTC
+
+Fresh fetched main is `7c45f2b6134f9dd6b4222536d588c8337ff9fee4`: PR689 actually delivers ten transport/DB-consumer paths. Independent acc382 #6736048935172 already approved the exact SOURCE composition of current PR691803 with this main, preview tree `e30185ef1d16a6e50becfc3fb66e4238cee423d0`: all four own postimages, all ten incoming postimages, all other mode/type/OIDs, 1099 SQL paths, coverage and hardened30 oracle suffix preserved. Reuse that review; FP final delivery review must consider fresh main/PR/required checks without repeating the same composition analysis. Actual native1P29F qualifies only source803 on original fd039 inputs, not resulting7c45/e301 behavior. No sourcehead adoption/rebase or second native execution is claimed. Current main AGENTS/README read; no changed reservation/review gate.
+
+Fresh refs96: both own C IDs remain c2039f69; current role-memory c97fa80a immutable receipt names24fa/packet0a4d7da3 for own689 metadata. Former2f role has changed; current summaries are still foreign-held and not written here. No merge-role was held in the fresh snapshot. All six own691 reservations remain justified by current open source delivery; no new task or packet. Root native proof2/self published dec366bd and #6736049029178 FULL BODY GET MATCH. Genuine z15 semantic receipt now archived separately, SHAaf10efa33815b5e9910aa610473386491210bb00695ab65f3cd8e9eb01433bf0.
+
+Legacy own670 is now actually CLOSED_UNMERGED by explicit archive closeout #6736048955652/6048869347; original ed573 branch and a7 source handoff retained. No requirement accepted by closure, no original method-native/config/workflow loss. While mandatory691 runs, read-only next-eligibility preparation finds P08 confirmation already delivered556 and exact owner choice in decisions; do not reimplement. Old custody checkpoint/historical5990498953 remains a lead requiring a fresh explicit release assessment, not an automatic takeover from absent refs or silence. No P08 source/test/claim or second active pair started.
+
+Durable copies below preserve already executed redacted evidence and genuine review receipts. They add no runtime authority and do not rerun any verifier. The original archive stays at the recorded local immutable path and official artifact11518720188. Whole C still unapproved; next ROOT awaits sole FP current mandatory results, then fresh exact delivery gate/atomic normal merge/actualmain receipt and release.
+
+<!-- BEGIN:C41DD_CURRENT_READER -->
+
+Original local artifact `/tmp/gridex-2ea-c-native-qualifier/qualify_native.py`, SHA256 `6c5e720891f4d9c816442ff2c728cbfae8622dae2db2611f1e701787d0e77482`.
+
+```python
+import sys,json,pathlib,zipfile,hashlib,subprocess,collections,xml.etree.ElementTree as ET,datetime,io
+if not __debug__: raise RuntimeError('optimized_python_disallowed')
+archive,official,checkout,out,expected_head,expected_run,expected_job=sys.argv[1:]
+APPROVED_HEAD='80384cf5f8b5754fdfcde18634738b059205d1f6'
+APPROVED_TREE='a920d21780242dcef24751fe519fb03940306851'
+APPROVED_BRANCH='codex/c-prospective-source-2ea-41dd26fb'
+HARDENED_SOURCE='1b4be1fb5b78a6ef357f16b304f112ad939ab6ed'
+assert expected_head==APPROVED_HEAD, 'unreviewed_candidate_head'
+assert expected_run.isdecimal() and expected_job.isdecimal(), 'invalid_official_ids'
+assert int(expected_run)>0 and int(expected_job)>0
+APPROVED_INPUTS={'.github/workflows/ediel-cancellation-public-acceptance-native.yml': ('100644', '02f52e83f9208f81e5adfcb9f2047e309013e112'), 'scripts/ediel-cancellation-public-acceptance-native.config.ts': ('100644', '1cf8c95750e6e24122a27aa77951a87d05928322'), 'scripts/ediel-cancellation-public-acceptance-native.test.ts': ('100644', '4a31a161ade1cf6bd54ee4f1205954946dc995e8'), 'scripts/helpers/ediel-cancellation-prospective-source-2ea.ts': ('100644', '947b30241773a0e087cee291117992eb8b442f1b'), '__tests__/ediel-cancellation-prospective-source-2ea.test.ts': ('100644', '5d95f98dbbe73e0b196db7ece45c24ec7eb9df5a'), '__tests__/helpers/sourceOwnerFixtures.ts': ('100644', 'aeac4986152d720172d96bb543cabfada43c8938')}
+APPROVED_NATIVE_SHA256='ba82157aea9e794ecdde3b5e7f417e666f20fc97e585d40828db22609c83f140' 
+def unique(items):
+ d={}
+ for k,v in items:
+  assert k not in d,('duplicate_json_key',k)
+  d[k]=v
+ return d
+def read_json(p):return json.loads(pathlib.Path(p).read_text(),object_pairs_hook=unique)
+o=read_json(official);run,job=o['run'],o['job'];artifacts=o['artifacts']['artifacts']
+assert run['head_sha']==expected_head and run['id']==int(expected_run) and job['id']==int(expected_job)
+assert run['path']=='.github/workflows/ediel-cancellation-public-acceptance-native.yml'
+assert run['event']=='pull_request' and run['head_branch']==APPROVED_BRANCH, 'wrong_candidate_producer'
+assert type(run['run_attempt']) is int and run['run_attempt']>0
+instant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))
+current_artifacts=[a for a in artifacts if instant(job['started_at'])<=instant(a['created_at'])<=instant(job['completed_at'])]
+assert len(current_artifacts)==1,('current_job_window_artifact_count',len(current_artifacts));artifact=current_artifacts[0]
+assert artifact['name']=='ediel-cancellation-public-acceptance-native-'+expected_run
+assert run['repository']['full_name']=='heke99/gridex-ops-platform' and run['repository']['id']==1190539955
+assert run['head_repository']['full_name']==run['repository']['full_name'] and run['head_repository']['id']==artifact['workflow_run']['repository_id']==artifact['workflow_run']['head_repository_id']==1190539955
+assert job['run_id']==run['id'] and job['head_sha']==run['head_sha'] and job['run_attempt']==run['run_attempt']
+assert run['status']==job['status']=='completed'
+assert artifact['workflow_run']['id']==run['id'] and artifact['workflow_run']['head_sha']==run['head_sha'] and not artifact['expired']
+zip_bytes=pathlib.Path(archive).read_bytes();digest=hashlib.sha256(zip_bytes).hexdigest();assert len(zip_bytes)==artifact['size_in_bytes'] and artifact['digest']=='sha256:'+digest
+instant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))
+assert instant(job['started_at'])<=instant(artifact['created_at'])<=instant(job['completed_at'])
+with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
+ names=z.namelist();assert len(names)==len(set(names));assert set(names)=={'native.log','native-junit.xml','receipt.json'};assert z.testzip() is None
+ raw={name:z.read(name) for name in names}
+r=json.loads(raw['receipt.json'],object_pairs_hook=unique)
+assert r['purpose']=='supplemental_actual_native_feedback' and r['checkout_sha']==run['head_sha']
+assert r['repository']=='heke99/gridex-ops-platform' and r['repository_id']=='1190539955' and r['workflow_run_id']==str(run['id']) and r['workflow_run_attempt']==str(run['run_attempt'])
+assert r['input_identity']=='immutable_checkout_before_replay' and r['test_scope']==['scripts/ediel-cancellation-public-acceptance-native.test.ts']
+for key,value in {'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_c03_c05':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}.items():assert r[key]==value
+sha=r['checkout_sha'];git=lambda *args:subprocess.check_output(['git',*args],cwd=checkout,stderr=subprocess.DEVNULL)
+assert git('rev-parse',sha+'^{tree}').decode().strip()==r['checkout_tree']==APPROVED_TREE
+entries={}
+for line in git('ls-tree','-rz','--full-tree',sha).split(b'\0'):
+ if not line:continue
+ info,path=line.split(b'\t',1);mode,kind,oid=info.decode().split();assert kind=='blob';name=path.decode();assert name not in entries;entries[name]=(mode,oid)
+assert set(entries)==set(r['source_blobs'])==set(r['input_sha256'])
+assert len(entries)==9409, 'reviewed_candidate_source_census_changed'
+for name,identity in APPROVED_INPUTS.items(): assert entries[name]==identity, ('reviewed_source_pin_changed',name)
+process=subprocess.Popen(['git','cat-file','--batch'],cwd=checkout,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+for name,(mode,oid) in entries.items():
+ process.stdin.write((oid+'\n').encode());process.stdin.flush();header=process.stdout.readline().decode().split();assert header[:2]==[oid,'blob'];body=process.stdout.read(int(header[2]));assert process.stdout.read(1)==b'\n';digest_body=hashlib.sha256(body).hexdigest();assert r['source_blobs'][name]=={'mode':mode,'oid':oid,'sha256':digest_body};assert r['input_sha256'][name]==digest_body
+process.stdin.close();assert process.wait()==0
+assert r['runtime_generated_input_sha256']=={},'unexpected_runtime_input_drift_requires_individual_review'
+xml=raw['native-junit.xml'];assert b'<!DOCTYPE' not in xml and b'<!ENTITY' not in xml
+root=ET.fromstring(xml);cases=list(root.iter('testcase'));identities=collections.Counter((x.get('classname'),x.get('name')) for x in cases)
+# Expected identities derive independently from the preserved original source,
+# never from the candidate artifact's executed JUnit.
+legacy='ac26467f2285a0f6c738e8ebbfbc55a495363272'
+old=git('show',legacy+':scripts/ediel-at-z03c-z05c-supplier-native.test.ts').decode()
+new=git('show',sha+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()
+marker="describe('actual native supplier cancellation chains'"
+# Original case identities remain independently pinned to ac264. The reviewed
+# 676 successor strengthens premises/223 checks; it is intentionally not the
+# original byte-equal body. Admit only this independently SOURCE-approved body
+# and the exact current full source, never arbitrary candidate/JUnit content.
+hardened=git('show',HARDENED_SOURCE+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()
+assert hashlib.sha256(new.encode()).hexdigest()==APPROVED_NATIVE_SHA256, 'unreviewed_native_source'
+assert hardened[hardened.index(marker):]==new[new.index(marker):], 'reviewed_hardened30_body_changed'
+original_body_equal=old[old.index(marker):]==new[new.index(marker):]
+assert not original_body_equal, 'unexpected_original_body_claim' 
+import re
+body=old[old.index(marker):]
+expected_names=re.findall(r"\bit\('([^']+)'",body)
+for values,template in re.findall(r"it\.each\(\[([^\]]+)\]\)\('([^']+)'",body):
+ assert template.count('%s')==1
+ for value in re.findall(r"'([^']+)'",values):expected_names.append(template.replace('%s',value))
+assert len(expected_names)==len(set(expected_names))==30
+names=['actual native supplier cancellation chains > '+name for name in expected_names]
+expected=collections.Counter(('scripts/ediel-cancellation-public-acceptance-native.test.ts',name) for name in names)
+assert len(cases)==30 and identities==expected,'exact_original_strict30_identities_required'
+
+failed=sum(x.find('failure') is not None for x in cases);errors=sum(x.find('error') is not None for x in cases);skipped=sum(x.find('skipped') is not None for x in cases);passed=len(cases)-failed-errors-skipped
+for suite in root.iter('testsuite'):
+ if list(suite.iter('testsuite'))!=[suite]:continue
+ own=suite.findall('testcase');assert int(suite.get('tests','-1'))==len(own)
+ for tag,attr in [('failure','failures'),('error','errors'),('skipped','skipped')]:assert int(suite.get(attr,'0'))==sum(c.find(tag) is not None for c in own)
+assert skipped==0 and all(sum(c.find(tag) is not None for tag in ['failure','error','skipped'])<=1 for c in cases)
+assert type(r['native_exit_code']) is int and r['native_exit_code'] in [0,1]
+if r['native_exit_code']==0:assert passed==30 and failed==errors==skipped==0 and job['conclusion']=='success'
+else:assert failed+errors>0 and job['conclusion']=='failure'
+result={'classification':'AUTHENTIC_CURRENT_NATIVE_EXECUTION_NOT_WHOLE_APPROVAL','head':sha,'tree':r['checkout_tree'],'run':run['id'],'attempt':run['run_attempt'],'job':job['id'],'artifact':artifact['id'],'artifactBytes':len(zip_bytes),'artifactSha256':digest,'allOriginalGitBlobsMatched':len(entries),'runtimeGeneratedDrift':{},'bootstrap':'PASSED','nativeExit':r['native_exit_code'],'testsExecuted':len(cases),'passed':passed,'failed':failed,'errors':errors,'skipped':skipped,'exactOriginalStrict30Identities':True,'originalStrict30BodyByteEqual':False,'approvedHardened676BodyByteEqual':True,'approvedHardenedSource':HARDENED_SOURCE,'approvedNativeSourceSha256':APPROVED_NATIVE_SHA256,'originalSource':legacy,'wholeApproval':False,'marketEvidenceProvided':False,'failures':[{'name':c.get('name'),'message':c.find('failure').get('message','')[:400]} for c in cases if c.find('failure') is not None]}
+pathlib.Path(out).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({k:v for k,v in result.items() if k!='failures'}))
+```
+
+<!-- END:C41DD_CURRENT_READER -->
+
+<!-- BEGIN:C41DD_CURRENT_RESULT -->
+
+Original local artifact `/tmp/gridex-2ea-c-native-qualifier/result.json`, SHA256 `27c53d9b0c9c841877c2e88ba0df57ca181f55c6e3cf7ac8cd41a282c659066e`.
+
+```json
+{
+  "classification": "AUTHENTIC_CURRENT_NATIVE_EXECUTION_NOT_WHOLE_APPROVAL",
+  "head": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "tree": "a920d21780242dcef24751fe519fb03940306851",
+  "run": 37701653427,
+  "attempt": 1,
+  "job": 113066268243,
+  "artifact": 11518720188,
+  "artifactBytes": 1143125,
+  "artifactSha256": "7e4b677d0093f391d9d2d3f14c3afef985287650b0503f83afd80fecd3d3fbfc",
+  "allOriginalGitBlobsMatched": 9409,
+  "runtimeGeneratedDrift": {},
+  "bootstrap": "PASSED",
+  "nativeExit": 1,
+  "testsExecuted": 30,
+  "passed": 1,
+  "failed": 29,
+  "errors": 0,
+  "skipped": 0,
+  "exactOriginalStrict30Identities": true,
+  "originalStrict30BodyByteEqual": false,
+  "approvedHardened676BodyByteEqual": true,
+  "approvedHardenedSource": "1b4be1fb5b78a6ef357f16b304f112ad939ab6ed",
+  "approvedNativeSourceSha256": "ba82157aea9e794ecdde3b5e7f417e666f20fc97e585d40828db22609c83f140",
+  "originalSource": "ac26467f2285a0f6c738e8ebbfbc55a495363272",
+  "wholeApproval": false,
+  "marketEvidenceProvided": false,
+  "failures": [
+    {
+      "name": "actual native supplier cancellation chains > keeps requested after actual provider250 and physical ACKs; only causal Z04C completes the own future start",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > restores the same native period from its exact ordinary Z05 end, preserves original history and replays without duplicate replies",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > restoration, physical replies and replay preserve a real nonempty same-tenant permission draft",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > final partition failure preserves the real nonempty permission draft and rolls back all supply business state",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > a stale cancellation of restored end A cannot restore the current distinct end B",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > refuses raw and direction rewrites of a genuinely received Z05C without changing source, reception or effects",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 226 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 260 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 223 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 227 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 228 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 232 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 231 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 316 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 233 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 234 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds individually omitted required Z05C field 262 with its actual national diagnostic",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > concurrent invocation of the same received C restores once with one transition and one reply per family",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > a receiver supplier role expired after genuine C reception cannot restore the ending period",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > a genuine foreign execution actor cannot apply the own fresh C source",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > a sender grid-owner role revoked before fresh C reception cannot restore the ending period",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > failure at the final C partition insert rolls back restoration and receipts and records the named held warning",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds Z05C li without restoring its real ending decision",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds Z05C point without restoring its real ending decision",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds Z05C stop without restoring its real ending decision",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds Z05C required-date without restoring its real ending decision",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds Z05C required-user without restoring its real ending decision",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > holds Z05C selected-invoicee without restoring its real ending decision",
+      "message": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "name": "actual native supplier cancellation chains > uses actual prospective LK public input at its zero-day cancellation boundary",
+      "message": "Outbound PRODAT Z03 blockerades av canonical Ediel-policy: FIELD_MATRIX_REQUIRED_FIELD_MISSING - CCI++Z04/CAV kr\u00e4vs f\u00f6r PRODAT Z03."
+    }
+  ]
+}
+```
+
+<!-- END:C41DD_CURRENT_RESULT -->
+
+<!-- BEGIN:C41DD_AUTH_REVIEW_Z18 -->
+
+Original local artifact `/tmp/gridex-2ea-c-native-auth-z18-6463616e5aee40fa8ec3186aeb6e6e20.json`, SHA256 `90a95c43cf74dd2be4ec03201c292440ce78abe2f06c12bcef4645a56e3cc7d7`.
+
+```json
+{
+  "reviewer": "/root/z18v_contract_review",
+  "verdict": "AUTHENTIC_CURRENT_NATIVE_FAILURE_PROOF_APPROVE",
+  "head": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "tree": "a920d21780242dcef24751fe519fb03940306851",
+  "run": 37701653427,
+  "attempt": 1,
+  "job": 113066268243,
+  "artifact": 11518720188,
+  "archiveSha256": "7e4b677d0093f391d9d2d3f14c3afef985287650b0503f83afd80fecd3d3fbfc",
+  "archiveBytes": 1143125,
+  "officialMetadataSha256": "726d76e27311456ad93688b06bcf783c14f6843097f5b1fda811948e1ca903a8",
+  "receiptSha256": "f50037d5a6710ab70daaed6eb2297902fb1d8782da4d297ef349dab4407a13f3",
+  "junitSha256": "991ad910393c935c003dac1a900ca76115150c75c2d357545cc9142898fc85ce",
+  "nativeLogSha256": "4d7392405a5015c6778f91ade8e0bf9ea528a7dedc3decf0ec707118cec6d8bf",
+  "qualifierSha256": "6c5e720891f4d9c816442ff2c728cbfae8622dae2db2611f1e701787d0e77482",
+  "qualifierResultSha256": "27c53d9b0c9c841877c2e88ba0df57ca181f55c6e3cf7ac8cd41a282c659066e",
+  "zipMembers": [
+    {
+      "name": "native-junit.xml",
+      "crc": 1402359524,
+      "bytes": 74501
+    },
+    {
+      "name": "native.log",
+      "crc": 3847773422,
+      "bytes": 68776
+    },
+    {
+      "name": "receipt.json",
+      "crc": 1388814750,
+      "bytes": 3248057
+    }
+  ],
+  "independentFullMapModeOidPathCount": 9409,
+  "allInputSourceHashInternalMatches": 9409,
+  "allGitBodyHashMatches": "9409: delegated to already approved exact reader execution, not repeated",
+  "runtimeGeneratedDrift": {},
+  "nativeExit": 1,
+  "counts": {
+    "executed": 30,
+    "passed": 1,
+    "failed": 29,
+    "errors": 0,
+    "skipped": 0
+  },
+  "passedIdentities": [
+    "actual native supplier cancellation chains > current sender-role revocation and a foreign actor cannot originate a cancellation of the preserved own original"
+  ],
+  "strictOriginalIdentities": true,
+  "hardenedBodyByteEqual": true,
+  "bootstrap": "native actually reached all 30 cases; no bootstrap failure",
+  "limits": [
+    "No native/reader rerun or producer/download",
+    "Failure-stage/domain-effect interpretation belongs to independent z15 review",
+    "No wholeC/market/CI green/delivery/merge approval"
+  ]
+}
+```
+
+<!-- END:C41DD_AUTH_REVIEW_Z18 -->
+
+<!-- BEGIN:C41DD_SEMANTIC_REVIEW_Z15 -->
+
+Original local artifact `/tmp/gridex-z15c-review-691-803-semantic-receipt.json`, SHA256 `af10efa33815b5e9910aa610473386491210bb00695ab65f3cd8e9eb01433bf0`.
+
+```json
+{
+  "version": 1,
+  "reviewer": "/root/z15c_contract_review",
+  "verdict": "APPROVE_CURRENT_NATIVE_SEMANTIC_CLASSIFICATION_ONLY",
+  "head": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "tree": "a920d21780242dcef24751fe519fb03940306851",
+  "base": "fd039ae391b53814ed7baa65fc237c5376990511",
+  "evidence": {
+    "originalArchive": "/workspace/attachments/4cfba620-5962-4bfe-93fe-ffb43d27cacc/gridex-c-source-41dd26fb-803-current-native-sealed.zip",
+    "parentQualification": "/tmp/gridex-2ea-c-native-qualifier/result.json",
+    "parentObservations": "/tmp/gridex-2ea-c-native-qualifier/observations.json",
+    "run": 37701653427,
+    "attempt": 1,
+    "job": 113066268243,
+    "artifact": 11518720188,
+    "artifactSha256": "7e4b677d0093f391d9d2d3f14c3afef985287650b0503f83afd80fecd3d3fbfc",
+    "scope": "Independent semantic inspection of original JUnit/native log and exact current source. Full Git/input authentication is the separate z18 review; no independent duplicate full-input hashing claimed.",
+    "performed": "Read original archive once, inspect testcase statuses/first stops/stacks/28 observer rows; compare original ac264 case-name census and current caller/guard/renderer. No native, tests, reader, CI rerun or download."
+  },
+  "actual": {
+    "bootstrap": "PASSED",
+    "nativeExit": 1,
+    "tests": 30,
+    "passed": 1,
+    "failed": 29,
+    "errors": 0,
+    "skipped": 0,
+    "exactOriginal30IdentityCensus": true,
+    "originalIdentitySource": "ac26467f2285a0f6c738e8ebbfbc55a495363272:scripts/ediel-at-z03c-z05c-supplier-native.test.ts",
+    "original30BodyByteEqual": false,
+    "hardened676BodyPreserved": true,
+    "ordinaryFirstStop": {
+      "count": 28,
+      "firstStop": "native_cancellation_confirmed_supply_precondition: expected [] to have a length of 1 but got +0",
+      "observerCount": 28,
+      "allObserversIdentical": true,
+      "observed": {
+        "canonicalSyntax": "accepted",
+        "canonicalApplication": "accepted",
+        "canonicalFunction": "accepted",
+        "status": "validated",
+        "hasFailureReason": false,
+        "sourceCount": 1,
+        "sourceHashMatches": true,
+        "assessments": 1,
+        "leaves": 1,
+        "applicationFacets": 1,
+        "headerHeld": 1,
+        "objectsHeld": 1,
+        "headerAccepted": 0,
+        "objectsAccepted": 0,
+        "headerRejected": 0,
+        "objectsRejected": 0,
+        "contextReady": 1,
+        "contextHeld": 0,
+        "receptions": 1,
+        "assessmentBindingMismatches": 0,
+        "applicationBindingMismatches": 0,
+        "contextBindingMismatches": 0,
+        "receptionBindingMismatches": 0,
+        "effectBindingMismatches": 0,
+        "partitionBindingMismatches": 0,
+        "registerReadingsUnknownIssueCount": 3,
+        "effects": 0,
+        "partitions": 0,
+        "sourcePeriods": 0,
+        "preBusinessActorTestingHandledEvents": 0,
+        "preBusinessActorTestingWarningEvents": 0,
+        "validatedEvents": 2,
+        "warningEvents": 1,
+        "rolledBackEvents": 0,
+        "validatedAppliedEvents": 0,
+        "validatedFullyAppliedEvents": 0
+      },
+      "mechanism": {
+        "registerPolicy": "lib/ediel/rulebook/prodatRegisterPolicy.ts emits local_unknown PRODAT_DEPENDENT_CONDITION_UNDETERMINED with sourceRule PRODAT26A:register-readings when receiver-local readings condition is undetermined.",
+        "globalProjection": "Local-unknown findings are warnings in global canonical diagnostics; global accepted does not grant own APP admission.",
+        "applicationProjection": "lib/ediel/prodat/prodatApplicationObjectValidation.ts:35-56 holds the complete APP header for blocking findings without qualified national wire diagnostics and propagates held to own objects.",
+        "admission": "lib/ediel/flows/inboundProcessing.ts:360-368 requires syntax/function accepted, protected own APP header accepted and at least one accepted own object with empty reasonCodes for domainObjectCount; observed headerHeld=1/objectsAccepted=0 therefore yields domainObjectCount=0.",
+        "consumer": "lib/ediel/flows/inboundProcessing.ts:1217 guards applySupplyMarketSource. This guard is not entered for the 28 observed held-only sources; lines1277-1279 return after the separate ACK handling when own objects are nonaccepted.",
+        "inferenceLimit": "No exact missing upstream READ row/source root is inferred from the count of three alone. Physical declarations 1/6/111 do not supply independently qualified receiver inventory/READ."
+      }
+    },
+    "lkFirstStop": {
+      "count": 1,
+      "identity": "actual native supplier cancellation chains > uses actual prospective LK public input at its zero-day cancellation boundary",
+      "error": "Outbound PRODAT Z03 blockerades av canonical Ediel-policy: FIELD_MATRIX_REQUIRED_FIELD_MISSING - CCI++Z04/CAV krävs för PRODAT Z03.",
+      "actualStack": [
+        "assertOutboundDraftAllowedByCanonicalPolicy lib/ediel/core/kernel.ts:314",
+        "finalizeCanonicalOutboundDraft lib/ediel/core/kernel.ts:703",
+        "renderAndQueueSwitchCancellation lib/ediel/intent/switchCancellationGateway.ts:36",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts:704"
+      ],
+      "reachedBeforeFailure": [
+        "Actual prospective LK original prepareAndQueueEdielZ03 and sendEdielMessageViaSmtp completed.",
+        "Saved original was read; zero-day date equality assertion completed.",
+        "readSwitchCancellationSource returned authorized and the assertion for originalSubtype LK, actual originalMessageId, actual wire LI and deadline completed before cancellation was attempted."
+      ],
+      "sourceCorrespondence": "Current lib/ediel/intent/renderers/switchCancellation.ts passes identity/start/reason but no meteringMethod into renderProdat; kernel rejects the missing required field217. Current actual stack confirms this independently of older failure causes.",
+      "notReached": "Queued cancellation/status assertion and downstream cancellation transport/reception/effects."
+    },
+    "solePass": {
+      "identity": "actual native supplier cancellation chains > current sender-role revocation and a foreign actor cannot originate a cancellation of the preserved own original",
+      "actualAssertions": [
+        "Foreign actor prepareAndQueueSwitchCancellation rejects with code42501/switch_cancellation_actor_forbidden.",
+        "After prospective current supplier-role revocation, origination rejects with P0001/ediel_inbound_legal_context_required.",
+        "Saved switch state and original archive/raw/hash state remain equal; own cancellation origins count is zero."
+      ],
+      "boundary": "Combined origination denial only; does not prove received-C execution-role suffixes."
+    }
+  },
+  "notReached": [
+    "Ordinary Z05C restoration and historical cancellation effects",
+    "Z05C field omissions including physical223 refusal",
+    "Z05C correlation, raw/direction mutation and selected-invoicee suffixes",
+    "Received-C receiver/sender-role and foreign-executor denials",
+    "Concurrent restoration, final partition rollback and permission-preservation suffixes",
+    "C suffix physical ACK, transport and business replay assertions"
+  ],
+  "effectLimits": [
+    "Observed zero source-bound supply-object receipts, partitions and source periods; own-company period assertion is empty.",
+    "Source, reception, assessment, APP facet and validated/warning events are actual side effects.",
+    "Fixture original transport executes; no claim of zero all ACKs, outbox entries, provider calls, intent/reservation effects or all writes from the finite observer.",
+    "Prospective guide-valid Z12/Z31/physical1/6/111 input reached actual public intake/processing; it creates no qualified READ/business authority."
+  ],
+  "approvalsExcluded": [
+    "whole C03/C05",
+    "coverage promotion",
+    "market/external verification",
+    "all-current mandatory CI green",
+    "delivery/merge",
+    "resulting-main native execution"
+  ],
+  "preservation": "This receipt preserves the completed review only; creation did not perform a new review, artifact read or test."
+}
+```
+
+<!-- END:C41DD_SEMANTIC_REVIEW_Z15 -->
+
+<!-- BEGIN:C41DD_ROOT_SELF -->
+
+Original local artifact `/tmp/gridex-2ea-c-native-qualifier/root-self-actual-proof.json`, SHA256 `b1d3c69d094e6bf810a0a178921a2bc3b7bc8da856705058d2a5384a810e4bd0`.
+
+```json
+{
+  "reviewer": "/root",
+  "kind": "root self-review of actual current native and observed source path",
+  "head": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "tree": "a920d21780242dcef24751fe519fb03940306851",
+  "resultSha256": "27c53d9b0c9c841877c2e88ba0df57ca181f55c6e3cf7ac8cd41a282c659066e",
+  "observationSha256": "ca097b5f5f3374b16452eae040cd442c9f19975b34c56685e81cea0bc7a24a93",
+  "observedIdenticalRows": 28,
+  "actualFirstStops": {
+    "native_cancellation_confirmed_supply_precondition": 28,
+    "Outbound PRODAT Z03 blockerades av canonical Ediel-policy: FIELD_MATRIX_REQUIRED_FIELD_MISSING - CCI++Z04/CAV kr\u00e4vs f\u00f6r PRODAT Z03.": 1
+  },
+  "protectedAdmissionPath": "lib/ediel/flows/inboundProcessing.ts:360-368 requires accepted own APP header and accepted own object; domainObjectCount>0 at1217 gates applySupplyMarketSource",
+  "solePass": "actual native supplier cancellation chains > current sender-role revocation and a foreign actor cannot originate a cancellation of the preserved own original",
+  "limits": [
+    "zero supply effects/periods/partitions does not prove zero ACK/outbox/provider/all side effects",
+    "all downstream28 tests NOT_REACHED",
+    "authentic result0 qualifies true producer1, no whole/CI/delivery approval"
+  ]
+}
+```
+
+<!-- END:C41DD_ROOT_SELF -->
