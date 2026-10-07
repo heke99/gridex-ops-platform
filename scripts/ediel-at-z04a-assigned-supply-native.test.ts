@@ -20,6 +20,7 @@ import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { readSourceQualifiedProdatBilateralCapability } from '@/lib/ediel/core/prodatBilateralSourceCapability'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 
 const provider = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: provider }) } }))
@@ -49,6 +50,17 @@ async function createAssignedGroundWithoutOwnZ03(){
  const signed=(version='1')=>{const payload=Buffer.from(JSON.stringify({format:'ediel_regulated_supply_ground_receipt_v1',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',scope:scoped.scope,sourceHash,sourceReference:submission.source.reference,sourceVersion:version,legalDecisionReference:'SYNTHETIC DECLARED MECHANISM ONLY',issuedAt:new Date(Date.now()-1000).toISOString(),expiresAt:'2099-01-01T00:00:00Z'}));return {...submission,source:{...submission.source,version},issuerReceipt:{keyId,representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',key).update(payload).digest('hex')}}}
  return {...f,...owner,reviewer,agreement,representationId,scoped,bytes,sourceHash,submission,signed}
 }
+
+type SourceGuard = { raw: string; direction: string; receipt: string; created: string; document: string | null; context: unknown }
+function readSourceGuard(id: string, company: string, wire: string) {
+  const snapshot = sql<SourceGuard>(`SELECT jsonb_build_object('raw',raw_payload,'direction',direction,
+    'receipt',message_received_at,'created',created_at,'document',message_created_at,'context',execution_context_snapshot)
+    FROM public.ediel_messages WHERE id=${literal(id)} AND company_id=${literal(company)}`)
+  expect(snapshot).toMatchObject({ raw: wire, direction: 'inbound' })
+  expect(snapshot.receipt).not.toBeNull()
+  return snapshot
+}
+
 function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
   // Independent literal P26.A wire facts, not the production renderer. Field
   // 223 is Z26 and 210 is the archived ground's exact Swedish standard time.
@@ -139,7 +151,7 @@ async function source(options: WireOptions = {}) {
   expect(error).toBeNull()
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(data as EdielMessageRow)
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify(decision.issues)).toEqual(['accepted', 'accepted', 'accepted'])
-  return { ...f, sourceId }
+  return { ...f, sourceId, sourceGuard: readSourceGuard(sourceId, f.companyId, f.wire) }
 }
 
 function state(f: Awaited<ReturnType<typeof source>>) {
@@ -156,6 +168,42 @@ function state(f: Awaited<ReturnType<typeof source>>) {
     'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'wire',raw_payload,'company',company_id,'route',communication_route_id,'profile',route_profile_id) ORDER BY message_family),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(f.sourceId)}),
     'outbox',(SELECT coalesce(jsonb_agg(jsonb_build_object('message',ediel_message_id,'company',company_id,'source',source_message_id,'status',status,'hash',immutable_payload_hash) ORDER BY ediel_message_id),'[]') FROM public.ediel_outbox WHERE source_message_id=${literal(f.sourceId)}))`)
 }
+
+function assertSourceGuard(f: Awaited<ReturnType<typeof source>>) {
+  expect(readSourceGuard(f.sourceId, f.companyId, f.wire)).toEqual(f.sourceGuard)
+  expect(provider).not.toHaveBeenCalled()
+}
+function assertOwnedAckOutputs(f: Awaited<ReturnType<typeof source>>, result: ReturnType<typeof state>) {
+  expect(result.outbox.map(item => item.message).sort()).toEqual(result.acks.map(ack => ack.id).sort())
+  expect(new Set(result.outbox.map(item => item.message)).size).toBe(result.outbox.length)
+  for (const item of result.outbox) {
+    const ack = result.acks.find(candidate => candidate.id === item.message)
+    expect(ack).toBeDefined()
+    expect(item).toMatchObject({ company: f.companyId, source: f.sourceId, status: 'queued',
+      hash: createHash('sha256').update(ack!.wire, 'utf8').digest('hex') })
+  }
+  const source = tokenizeEdifact(f.wire), originalUNB = source.segments.filter(token => token.tag === 'UNB')
+  const originalUNH = source.segments.filter(token => token.tag === 'UNH')
+  expect(originalUNB).toHaveLength(1)
+  expect(originalUNH).toHaveLength(1)
+  for (const ack of result.acks.filter(candidate => candidate.family === 'CONTRL')) {
+    const physical = tokenizeEdifact(ack.wire), uci = physical.segments.filter(token => token.tag === 'UCI')
+    expect(uci).toHaveLength(1)
+    expect(segmentComposite(uci[0], 1, physical.una)).toEqual(segmentComposite(originalUNB[0], 5, source.una))
+    expect(segmentComposite(uci[0], 2, physical.una)).toEqual(segmentComposite(originalUNB[0], 2, source.una))
+    expect(segmentComposite(uci[0], 3, physical.una)).toEqual(segmentComposite(originalUNB[0], 3, source.una))
+    // These existing sources all have accepted full syntax, including sources
+    // rejected by the separate application owner. The UCI result remains1.
+    expect(segmentComposite(uci[0], 4, physical.una)).toEqual(['1'])
+    const ucm = physical.segments.filter(token => token.tag === 'UCM')
+    expect(ucm.length).toBeLessThanOrEqual(1)
+    for (const message of ucm) {
+      expect(segmentComposite(message, 1, physical.una)).toEqual(segmentComposite(originalUNH[0], 1, source.una))
+      expect(segmentComposite(message, 2, physical.una)).toEqual(segmentComposite(originalUNH[0], 2, source.una))
+    }
+  }
+}
+
 function preserves(f: Awaited<ReturnType<typeof ground>>) {
   expect(sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(f.switchId)}`)).toEqual(f.beforeSwitch)
   expect(sql(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(f.contractId)}`)).toEqual(f.beforeContract)
@@ -178,7 +226,7 @@ async function adapterSource(options: WireOptions = {}) {
   expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const row = sql<{ raw: string; mail: string; mailbox: string; profile: string }>(`SELECT jsonb_build_object('raw',raw_payload,'mail',inbound_email_message_id,'mailbox',mailbox_message_id,'profile',rule_profile_key) FROM public.ediel_messages WHERE id=${literal(id)}`)
   expect(row).toEqual({ raw: f.wire, mail: f.mail.inboundEmailMessageId, mailbox: f.mail.inboundEmailMessageId, profile: 'PRODAT:Z04:A:26.A:r3' })
-  return { ...f, sourceId: id! }
+  return { ...f, sourceId: id!, sourceGuard: readSourceGuard(id!, f.companyId, f.wire) }
 }
 
 it('actual unmatched mail adapter must admit physical A with genuine custody and no own sent Z03', async () => {
@@ -232,9 +280,12 @@ async function processWithDiagnostics(f: Awaited<ReturnType<typeof source>>) {
 }
 
 async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
+  assertSourceGuard(f)
   const input = { actorUserId: f.actorUserId, edielMessageId: f.sourceId }
   await processWithDiagnostics(f)
   const first = state(f)
+  assertSourceGuard(f)
+  assertOwnedAckOutputs(f, first)
   expect(first).toMatchObject({ raw: f.wire, effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
   expect(first.periods[0]).toMatchObject({ customer: f.customerId, point: f.pointId, process: 'assigned_supply', date: f.requestedStartDate,
@@ -250,6 +301,8 @@ async function assertAssignedEffects(f: Awaited<ReturnType<typeof source>>) {
   preserves(f)
   await processInboundEdielMessage(input)
   expect(state(f)).toEqual(first)
+  assertSourceGuard(f)
+  assertOwnedAckOutputs(f, state(f))
   preserves(f)
 }
 
@@ -271,8 +324,10 @@ it.each(['raw', 'direction', 'clock'] as const)('actual A original rejects %s mu
 }, 120000)
 
 function holds(f: Awaited<ReturnType<typeof source>>) {
+  assertSourceGuard(f)
   const result = state(f)
   expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
+  assertOwnedAckOutputs(f, result)
   expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
   preserves(f)
 }
@@ -303,11 +358,14 @@ it.each([
   expect(decision.syntaxDecision).toBe('accepted')
   expect(decision.applicationDecision).not.toBe('accepted')
   const first = state(f)
+  expect(first.acks.filter(ack => ack.family === 'CONTRL')).toHaveLength(1)
   expect(first.acks.some(a => a.family === 'APERAK' && /ERC\+(?:41|42)::260/.test(a.wire)
     && a.wire.includes(`RFF+LI:${f.reference}`) && a.wire.includes(`RFF+Z07:${f.external}`))).toBe(true)
   expect(first.acks.every(a => a.company === f.companyId && a.route === f.ackRoute && a.profile === f.ackProfile)).toBe(true)
   await processWithDiagnostics(f)
   expect(state(f)).toEqual(first)
+  assertSourceGuard(f)
+  assertOwnedAckOutputs(f, state(f))
 }, 120000)
 
 it('physically complete invoicee is accepted by the declared prospective-source control, without billing/customer mutation', async () => {
@@ -398,6 +456,8 @@ it('revoked separate reviewer permission holds current ground with no source eff
   expect(sql(`SELECT to_jsonb(gridex_regulated_supply.ground_current_v1(${literal(f.authorized.groundId)},${literal(f.companyId)},${literal(f.pointId)},${literal(f.submission.startAt)}))`)).toBe(false)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: f.sourceId })
   const result = state(f)
+  assertSourceGuard(f)
+  assertOwnedAckOutputs(f, result)
   expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, transitions: 0, normalConfirmations: 0 })
   expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
   preserves(f)
@@ -417,6 +477,8 @@ it('actual final partition failure rolls back assigned period/effect/audit befor
     expect(rollbacks).toHaveLength(1)
     expect(rollbacks[0].reason).toContain(constraint)
     const result = state(f)
+    assertSourceGuard(f)
+    assertOwnedAckOutputs(f, result)
     expect(result).toMatchObject({ raw: f.wire, periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
     expect(result.acks.some(a => a.family === 'APERAK' && a.wire.includes('ERC+100'))).toBe(false)
     preserves(f)

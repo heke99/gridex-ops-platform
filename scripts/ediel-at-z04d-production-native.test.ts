@@ -1,7 +1,7 @@
 // Bounded D-native feedback; no whole-contract coverage tag or market approval.
 // Consumption uses the retained declared synthetic L control. D intake uses
 // actual mailbox parsing, adapter, processor, ground, effect and ACK owners.
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createProductionReceiptNativeFixture, createConsumptionPrecondition, productionReceiptWire } from './helpers/ediel-z04d-production-native-fixture'
 import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
@@ -15,11 +15,23 @@ import { readRegulatedSupplyGroundScope } from '@/lib/ediel/production/regulated
 import { supabaseService } from '@/lib/supabase/service'
 import { readSourceQualifiedProdatBilateralCapability } from '@/lib/ediel/core/prodatBilateralSourceCapability'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 
 const smtp = vi.hoisted(() => ({ provider: vi.fn() }))
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp.provider }) } }))
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); smtp.provider.mockReset() })
 type Fixture = Awaited<ReturnType<typeof createProductionReceiptNativeFixture>>
+
+
+type SourceGuard = { raw: string; direction: string; receipt: string; created: string; document: string | null; context: unknown }
+function readSourceGuard(id: string, company: string, wire: string) {
+  const snapshot = sql<SourceGuard>(`SELECT jsonb_build_object('raw',raw_payload,'direction',direction,
+    'receipt',message_received_at,'created',created_at,'document',message_created_at,'context',execution_context_snapshot)
+    FROM public.ediel_messages WHERE id=${literal(id)} AND company_id=${literal(company)}`)
+  expect(snapshot).toMatchObject({ raw: wire, direction: 'inbound' })
+  expect(snapshot.receipt).not.toBeNull()
+  return snapshot
+}
 
 function externalTransport() {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false',
@@ -39,6 +51,7 @@ function graph(f: Awaited<ReturnType<typeof createConsumptionPrecondition>>, pro
 }
 
 async function source(f: Fixture, options: NonNullable<Parameters<typeof productionReceiptWire>[2]> = {}) {
+  const providerBefore = smtp.provider.mock.calls.length
   const reference = `D${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
   const wire = productionReceiptWire(f, reference, options)
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
@@ -56,7 +69,9 @@ async function source(f: Fixture, options: NonNullable<Parameters<typeof product
   expect(original).toMatchObject({ raw_payload: wire, rule_profile_key: 'PRODAT:Z04:D:26.A:r3',
     inbound_email_message_id: mail.inboundEmailMessageId, mailbox_message_id: mail.inboundEmailMessageId })
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(original)
-  return { ...f, sourceId: id!, reference, wire, decision, original: structuredClone(original) }
+  expect(smtp.provider).toHaveBeenCalledTimes(providerBefore)
+  return { ...f, sourceId: id!, reference, wire, decision, original: structuredClone(original),
+    sourceGuard: readSourceGuard(id!, f.companyId, wire), providerBefore }
 }
 
 function effects(f: Awaited<ReturnType<typeof source>>) {
@@ -73,9 +88,47 @@ function effects(f: Awaited<ReturnType<typeof source>>) {
     'outbox',(SELECT coalesce(jsonb_agg(jsonb_build_object('message',ediel_message_id,'company',company_id,'source',source_message_id,'status',status,'hash',immutable_payload_hash) ORDER BY ediel_message_id),'[]') FROM public.ediel_outbox WHERE source_message_id=${literal(f.sourceId)}))`)
 }
 
+
+function assertSourceGuard(f: Awaited<ReturnType<typeof source>>) {
+  expect(readSourceGuard(f.sourceId, f.companyId, f.wire)).toEqual(f.sourceGuard)
+  expect(smtp.provider).toHaveBeenCalledTimes(f.providerBefore)
+}
+function assertOwnedAckOutputs(f: Awaited<ReturnType<typeof source>>, result: ReturnType<typeof effects>) {
+  expect(result.outbox.map(item => item.message).sort()).toEqual(result.acks.map(ack => ack.id).sort())
+  expect(new Set(result.outbox.map(item => item.message)).size).toBe(result.outbox.length)
+  for (const item of result.outbox) {
+    const ack = result.acks.find(candidate => candidate.id === item.message)
+    expect(ack).toBeDefined()
+    expect(item).toMatchObject({ company: f.companyId, source: f.sourceId, status: 'queued',
+      hash: createHash('sha256').update(ack!.wire, 'utf8').digest('hex') })
+  }
+  const source = tokenizeEdifact(f.wire), originalUNB = source.segments.filter(token => token.tag === 'UNB')
+  const originalUNH = source.segments.filter(token => token.tag === 'UNH')
+  expect(originalUNB).toHaveLength(1)
+  expect(originalUNH).toHaveLength(1)
+  for (const ack of result.acks.filter(candidate => candidate.family === 'CONTRL')) {
+    const physical = tokenizeEdifact(ack.wire), uci = physical.segments.filter(token => token.tag === 'UCI')
+    expect(uci).toHaveLength(1)
+    expect(segmentComposite(uci[0], 1, physical.una)).toEqual(segmentComposite(originalUNB[0], 5, source.una))
+    expect(segmentComposite(uci[0], 2, physical.una)).toEqual(segmentComposite(originalUNB[0], 2, source.una))
+    expect(segmentComposite(uci[0], 3, physical.una)).toEqual(segmentComposite(originalUNB[0], 3, source.una))
+    // These existing sources all have accepted full syntax, including sources
+    // rejected by the separate application owner. The UCI result remains1.
+    expect(segmentComposite(uci[0], 4, physical.una)).toEqual(['1'])
+    const ucm = physical.segments.filter(token => token.tag === 'UCM')
+    expect(ucm.length).toBeLessThanOrEqual(1)
+    for (const message of ucm) {
+      expect(segmentComposite(message, 1, physical.una)).toEqual(segmentComposite(originalUNH[0], 1, source.una))
+      expect(segmentComposite(message, 2, physical.una)).toEqual(segmentComposite(originalUNH[0], 2, source.una))
+    }
+  }
+}
+
 function noEffects(f: Awaited<ReturnType<typeof source>>) {
+  assertSourceGuard(f)
   const result = effects(f)
   expect(result).toMatchObject({ periods: [], effects: 0, partitions: 0, transitions: 0, normalConfirmations: 0 })
+  assertOwnedAckOutputs(f, result)
   expect(result.acks.some(ack => ack.family === 'APERAK' && ack.wire.includes('ERC+100'))).toBe(false)
   return result
 }
@@ -83,8 +136,11 @@ function noEffects(f: Awaited<ReturnType<typeof source>>) {
 it('actual D intake commits a distinct production relation through its reviewed ground and own319, preserving consumption on retry', async () => {
   const f = await createProductionReceiptNativeFixture(externalTransport()), before = graph(f, f)
   const input = await source(f)
+  assertSourceGuard(input)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   const first = effects(input)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, first)
   expect(first).toMatchObject({ effects: 1, partitions: 1, transitions: 1, normalConfirmations: 0 })
   expect(first.periods).toHaveLength(1)
   expect(first.periods[0]).toMatchObject({ company: f.companyId, customer: f.customerId, point: f.productionPointId,
@@ -101,6 +157,8 @@ it('actual D intake commits a distinct production relation through its reviewed 
   expect(graph(f, f)).toEqual(before)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
 }, 120000)
 
@@ -125,12 +183,15 @@ it.each([
   expect(input.decision.syntaxDecision).toBe('accepted')
   expect(input.decision.applicationDecision).not.toBe('accepted')
   expect(input.decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === field)).toBe(true)
+  expect(first.acks.filter(ack => ack.family === 'CONTRL')).toHaveLength(1)
   expect(first.acks.some(ack => ack.family === 'APERAK' && /ERC\+(?:41|42)::260/.test(ack.wire)
     && ack.wire.includes(`RFF+LI:${input.reference}`) && ack.wire.includes(`RFF+Z07:${f.productionExternal}`))).toBe(true)
   expect(first.acks.every(ack => ack.company === f.companyId && ack.route === f.ackRoute && ack.profile === f.ackProfile)).toBe(true)
   expect(graph(f, f)).toEqual(before)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
 }, 120000)
 
@@ -189,12 +250,16 @@ it('actual D intake cannot borrow another customer and company consumption319; b
   }))
   expect(applied.error).toBeNull()
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
   expect(original()).toEqual(originalBefore)
   expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
   expect(original()).toEqual(originalBefore)
@@ -229,6 +294,8 @@ it('dated supplier role loss before actual D birth holds its genuine ground with
   expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(input.sourceId)}`)).toBe(input.wire)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
   expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
 }, 120000)
@@ -246,6 +313,8 @@ it('revoked separate D reviewer permission holds an accepted genuine source with
   expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(input.sourceId)}`)).toBe(input.wire)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: input.sourceId })
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
   expect(smtp.provider).toHaveBeenCalledTimes(providerCalls)
 }, 120000)
@@ -282,11 +351,15 @@ it('actual D processor rejects a foreign company actor while preserving both gen
   expect(denied.error).toBeNull()
   expect(denied.data).toMatchObject({ applied: false, reason: 'supply_execution_actor_unqualified' })
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
   expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(original)
   await attempt()
   expect(effects(input)).toEqual(first)
+  assertSourceGuard(input)
+  assertOwnedAckOutputs(input, effects(input))
   expect(graph(f, f)).toEqual(before)
   expect(graph(other)).toEqual(otherBefore)
   expect(sql(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(input.sourceId)}`)).toEqual(original)
