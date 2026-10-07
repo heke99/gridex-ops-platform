@@ -1278,3 +1278,19 @@ Next95bc publishthisexactCP+CLAIM530, freshunder-role guard+threads/head/main,
 normalexpected9bc merge, authenticateactualmain/PR/tree/orderedparents/own2
 coverage, CP+MERGED530 THEN owner-onlymergeroleDELETE404FIRST; lawfulshared
 mirror/handoff2c andmatched12technicalrelease, owncleanupfreshscope afterward.
+
+## MERGED actual Z05 contract delivery / before merge-role release
+
+ActualPR636 MERGED 2026-10-07T00:52:21Z fromsource9bcf13a8b8a0304b5d997255537372a65566b094
+into main600bb61e383868000270a13d9bcc1857cea3b744, tree0d560728011cb4ca54ced2abe09175d3dfa12de5, exact
+orderedparents60ffde10+9bc (normalexpectedheadmerge; noforce/admin). GitHub
+closed/mergedPR+actualmainref/Gitcommit/cleanpreviewtree independentlyGET
+confirmed. Actualcoverage115VERIFIEDrules+178PASSEDcontracts=293/352,59remain;
+ONLYAT-Z05L-SUPPLIER+AT-Z05LK-SUPPLIER approved/all350foreignrows preserved.
+ALL12source9bc mandatorySUCCESS/bothcurrentWHOLEreviews/strict39all9284/
+authentic705=704PASS1existingSKIPZ22PASS/all24supplementals/browser31/types/
+currentfull12045PASS; actual resultingmain726fullCI/externalmarket NOT_RUN.
+Next95bc publishMERGED530 withthisexactnormalpushedCP, thenownf10mergerole
+GETMATCH→DELETE→GET404 FIRST (no memoryroleheld); lawfulsharedmirror/handoff
+2c memoryroleb0a thenown12technicalGETMATCH→DELETE404/documentRELEASE.
+Ownconfirmedpreflightcleanup remainsnextresponsibility underfreshfileclaims.
