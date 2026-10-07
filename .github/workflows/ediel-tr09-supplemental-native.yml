@@ -45,7 +45,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Execute BASE56 clean, both owned forwards and all current TR21 cases
+      - name: Execute BASE56 clean, two transport and three profile forwards and all current TR21 cases
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -74,6 +74,12 @@ jobs:
               'de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36',
             'supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql':
               'd774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba',
+            'supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql':
+              'a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c',
+            'supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql':
+              'f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc',
+            'supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql':
+              '38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b',
           }
           tests = ['scripts/ediel-transport-exception-native.test.ts',
             'scripts/ediel-tr-09-reserve-source-native.test.ts',
@@ -144,7 +150,7 @@ jobs:
           for path, digest in forwards.items():
               if current['blobs'][path]['sha256'] != digest:
                   raise RuntimeError('owned forward identity changed: '+path)
-          receipt = {'purpose':'TR09_supplemental_BASE56_plus_two_owned_forwards_actual_native',
+          receipt = {'purpose':'TR09_supplemental_BASE56_plus_two_transport_and_three_profile_forwards_actual_native',
             'root_path':str(root),'base_path':str(pathlib.Path(os.environ['TR09_BASE_ROOT']).resolve()),
             'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
             'workflow_run_id':os.environ['GITHUB_RUN_ID'],
@@ -153,7 +159,7 @@ jobs:
             'required_base_input_paths':base_required,
             'composition':[{'path':p,**current['blobs'][p]} for p in forwards],
             'phases':{p:{'status':'NOT_RUN','exit_code':None} for p in
-              ['baseline_clean','smime_forward','legacy_address_forward','current_native','junit_qualification']},
+              ['baseline_clean','smime_forward','legacy_address_forward','profile_fields_forward','profile_replay_forward','profile_legal_forward','current_native','junit_qualification']},
             'test_scope':tests,'expected_test_count':21,'native_exit_code':None,
             'ordinary_required_gates':'NOT_REPLACED','canonical_current_clean':'NOT_RUN',
             'canonical_current_schema_capture':'NOT_RUN','canonical_upgrade_parity':'NOT_RUN',
@@ -207,6 +213,19 @@ jobs:
               >> "$TR09_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
             update_phase legacy_address_forward "$forward_exit"
             if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            for phase in profile_fields_forward profile_replay_forward profile_legal_forward; do
+              case "$phase" in
+                profile_fields_forward) forward=supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql ;;
+                profile_replay_forward) forward=supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql ;;
+                profile_legal_forward) forward=supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql ;;
+              esac
+              update_phase "$phase" -1
+              forward_exit=0
+              psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+                -f "$CURRENT_ROOT/$forward" >> "$TR09_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
+              update_phase "$phase" "$forward_exit"
+              if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            done
             update_phase current_native -1
             native_exit=0
             npx vitest run --config scripts/ediel-tr09-current-native.config.ts \

@@ -126,10 +126,124 @@ async function productionContrl(encrypted: boolean) {
     AND r.evidence=${literal(evidence)}::jsonb) FROM gridex_ediel_technical_ack.sources s
     JOIN gridex_ediel_technical_ack.replies r USING(source_message_id) WHERE s.source_message_id=${literal(sourceId)}`)).toBe(true)
   const fixture = {f, source: source!, ack, evidence, trust, certificateId, routeId, profileId}
+  await configureProspectiveProfiles(fixture)
   await diagnoseProductionPrerequisites(fixture)
   return fixture
 }
 type Fixture = Awaited<ReturnType<typeof productionContrl>>
+async function configureProspectiveProfiles(s: Fixture) {
+  const tables = ['ediel_actor_settings', 'canonical_ediel_profile_identities', 'ediel_configuration_snapshots',
+    'canonical_command_results', 'canonical_audit_events', 'company_provisioning_jobs', 'ediel_test_runs',
+    'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state',
+    'company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles']
+  const image = (own: boolean) => sql<Record<string, Json[]>>(`SELECT jsonb_build_object(${tables.map(table =>
+    `${literal(table)},${rows(`public.${table}`, `t.company_id${own ? '=' : ' IS DISTINCT FROM '}${literal(s.f.companyId)}`)}`).join(',')})`)
+  const company = () => sql<Json>(`SELECT to_jsonb(c) FROM public.companies c WHERE id=${literal(s.f.companyId)}`)
+  const prior = before(s), oldCompany = company(), old = image(true), foreign = image(false)
+  const profiles = old.ediel_actor_settings.filter(p => p.is_active === true && (p.role ?? p.actor_role) === 'supplier')
+  expect(profiles).toHaveLength(2)
+  const testProfile = profiles.find(p => p.environment === 'test'), productionProfile = profiles.find(p => p.environment === 'production')
+  expect(testProfile?.actor_ediel_id).toBe(s.f.sender); expect(productionProfile?.actor_ediel_id).toBe(s.f.sender)
+  const idempotencyKey = `TR09-profile-${randomUUID()}`, mailbox = assertEdielSmtpReadiness().from
+  const command = {company_id: s.f.companyId, actor_user_id: s.f.actorUserId, idempotency_key: idempotencyKey,
+    actor_role: 'supplier', ediel_id: s.f.sender, test_profile_id: testProfile!.id, production_profile_id: productionProfile!.id,
+    test_ediel_id: s.f.sender, production_ediel_id: s.f.sender,
+    test_actor_name: testProfile!.actor_name, production_actor_name: productionProfile!.actor_name,
+    test_application_reference: '23-DDQ-PRODAT', production_application_reference: '23-DDQ-PRODAT',
+    test_mailbox: mailbox, production_mailbox: mailbox, smtp_from_email: mailbox,
+    test_counterparty_ediel_id: s.f.receiver, production_counterparty_ediel_id: s.f.receiver,
+    test_primary_route_id: s.f.routeProfileId, production_primary_route_id: s.profileId,
+    brp_ediel_id: s.f.brpEdielId, brp_name: 'Synthetic BRP',
+    technical_contact_name: 'Declared TR09 configuration contact', technical_contact_email: mailbox}
+  await withOwnSnapshotPermission(s, async () => {
+    const first = await supabaseService.rpc('canonical_save_ediel_actor_profile', {p_command: command})
+    if (first.error) {
+      console.info('TR09 actual public profile configuration', {status: 'FAIL', errorCode: first.error.code})
+      throw first.error
+    }
+    const result = first.data as Json, nextCompany = company(), next = image(true)
+    expect(result).toMatchObject({changed: true, company_id: s.f.companyId, actor_role: 'supplier'})
+    expect(nextCompany).toEqual({...oldCompany, actor_role: 'supplier', market_role: 'supplier', ediel_id: s.f.sender,
+      test_ediel_id: s.f.sender, production_ediel_id: s.f.sender,
+      test_application_reference: command.test_application_reference, production_application_reference: command.production_application_reference,
+      test_mailbox: mailbox, production_mailbox: mailbox,
+      test_counterparty_ediel_id: s.f.receiver, production_counterparty_ediel_id: s.f.receiver,
+      ediel_primary_test_route_profile_id: s.f.routeProfileId, ediel_primary_production_route_profile_id: s.profileId,
+      brp_ediel_id: s.f.brpEdielId, brp_name: 'Synthetic BRP',
+      technical_contact_name: command.technical_contact_name, technical_contact_email: mailbox,
+      updated_at: nextCompany.updated_at})
+    const assertTime = (value: unknown, priorValue?: unknown) => {
+      expect(typeof value).toBe('string')
+      expect(Number.isFinite(Date.parse(String(value)))).toBe(true)
+      expect(Date.parse(String(value))).toBeLessThanOrEqual(Date.now())
+      if (priorValue) expect(Date.parse(String(value))).toBeGreaterThanOrEqual(Date.parse(String(priorValue)))
+    }
+    assertTime(nextCompany.updated_at, oldCompany.updated_at)
+    for (const table of ['company_capabilities', 'ediel_certification_evidence', 'tenant_legal_profiles']) expect(next[table]).toEqual(old[table])
+    const added = (table: string) => next[table].filter(row => !old[table].some(previous => previous.id === row.id))
+    for (const table of ['ediel_configuration_snapshots', 'canonical_command_results', 'canonical_audit_events', 'company_provisioning_jobs']) {
+      for (const row of old[table]) expect(next[table].find(current => current.id === row.id)).toEqual(row)
+    }
+    const snapshots = added('ediel_configuration_snapshots')
+    expect(snapshots).toHaveLength(2)
+    const snapshotIds = snapshots.map(row => row.id)
+    expect(snapshotIds).toContain(result.configuration_snapshot_id)
+    for (const snapshot of snapshots) {
+      const payload = sql<string>(`SELECT to_jsonb(payload::text) FROM public.ediel_configuration_snapshots WHERE id=${literal(String(snapshot.id))}`)
+      expect(snapshot.configuration_hash).toBe(sha(payload))
+    }
+    expect(snapshots.find(row => row.id === result.configuration_snapshot_id)?.configuration_hash).toBe(result.configuration_hash)
+    const jobs = added('company_provisioning_jobs').filter(row => row.job_key === 'ediel_readiness_revalidate')
+    expect(added('company_provisioning_jobs')).toHaveLength(2)
+    expect(jobs).toHaveLength(2)
+    expect(jobs.map(row => row.idempotency_key).sort()).toEqual([...snapshotIds].sort())
+    for (const job of jobs) expect(job.status).toBe('pending')
+    expect(added('canonical_command_results')).toHaveLength(1)
+    expect(added('canonical_command_results')[0]).toMatchObject({command_type: 'ediel.actor_profile.save', idempotency_key: idempotencyKey,
+      actor_user_id: s.f.actorUserId, result_payload: result})
+    expect(added('canonical_audit_events')).toHaveLength(1)
+    expect(added('canonical_audit_events')[0]).toMatchObject({event_type: 'EDIEL_ACTOR_PROFILE_UPDATED', actor_user_id: s.f.actorUserId})
+    expect(next.canonical_ediel_profile_identities.filter(row => row.actor_role === 'supplier').map(row => row.profile_id).sort())
+      .toEqual([testProfile!.id, productionProfile!.id].sort())
+    expect(next.ediel_actor_settings).toHaveLength(old.ediel_actor_settings.length)
+    for (const previous of old.ediel_actor_settings) {
+      const profile = next.ediel_actor_settings.find(p => p.id === previous.id)!
+      if (!profiles.some(p => p.id === previous.id)) {expect(profile).toEqual(previous); continue}
+      expect(profile).toEqual({...previous, actor_name: previous.actor_name, legal_name: previous.actor_name,
+        sender_name: oldCompany.name, actor_role: 'supplier', role: 'supplier', actor_ediel_id: s.f.sender, ediel_id: s.f.sender,
+        is_active: true, default_application_reference: '23-DDQ-PRODAT', application_reference: '23-DDQ-PRODAT',
+        mailbox, default_test_flag: previous.environment === 'production' ? 0 : 1,
+        smtp_from_email: mailbox, smtp_reply_to_email: mailbox, brp_name: 'Synthetic BRP', brp_ediel_id: s.f.brpEdielId,
+        brp_status: 'missing', esett_status: 'missing', updated_by: s.f.actorUserId, updated_at: profile.updated_at})
+      assertTime(profile.updated_at, previous.updated_at)
+    }
+    expect(next.ediel_production_state).toHaveLength(old.ediel_production_state.length)
+    for (const state of old.ediel_production_state) {
+      const current = next.ediel_production_state.find(row => row.id === state.id)!
+      expect(current).toEqual({...state, configuration_snapshot_id: result.configuration_snapshot_id, updated_at: current.updated_at})
+      assertTime(current.updated_at, state.updated_at)
+    }
+    for (const table of ['ediel_test_runs', 'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events']) {
+      expect(next[table]).toHaveLength(old[table].length)
+      for (const previous of old[table]) {
+        const current = next[table].find(row => row.id === previous.id)!, changed = previous.configuration_snapshot_id !== result.configuration_snapshot_id
+        const applies = changed && (table !== 'ediel_test_runs' || previous.completed_at !== null)
+          && (table !== 'ediel_go_live_events' || previous.event_type === 'production_dry_run')
+        const expected = applies ? {...previous, is_stale: true, stale_reason: 'configuration_changed'} : previous
+        if (applies && table === 'ediel_test_runs') {expected.stale_at = current.stale_at; assertTime(current.stale_at)}
+        if (applies && table === 'actor_test_results') {expected.updated_at = current.updated_at; assertTime(current.updated_at, previous.updated_at)}
+        expect(current).toEqual(expected)
+      }
+    }
+    expect(image(false)).toEqual(foreign)
+    preserved(s, prior, true)
+    const replay = await supabaseService.rpc('canonical_save_ediel_actor_profile', {p_command: command})
+    expect(replay.error).toBeNull(); expect(replay.data).toEqual(first.data)
+    expect(company()).toEqual(nextCompany); expect(image(true)).toEqual(next); expect(image(false)).toEqual(foreign)
+    console.info('TR09 actual public profile configuration', {status: 'PASS', profiles: 2, snapshots: snapshots.length,
+      revalidationJobs: jobs.length, replayEffects: 0, certificationSupplied: false, liveTransition: false})
+  })
+}
 async function diagnoseProductionPrerequisites(s: Fixture) {
   // Exercise the supported evaluator, never attest certification, transition
   // LIVE or substitute a system actor. Diagnosis precedes transport oracles.
