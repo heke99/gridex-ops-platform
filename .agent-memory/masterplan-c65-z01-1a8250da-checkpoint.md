@@ -42,3 +42,11 @@ Activated using-superpowers, using-git-worktrees, acquire-codebase-knowledge, sy
 Unchanged original12-case test blob installed; two existing-worker refusal cases actually executed on source base825d79. Both FAIL at unchanged-domain assertion (customer process summary and site quality/confidence mutated), ten unselected cases explicitly SKIPPED. No missing-export/setup error. Actual exit1; logSHA `696cf5dad5b6e21c8c7f9822dacace6e5d97e2585a59d18016d6af4b602f4294` at `/tmp/c65-z01-main-worker-red.log`; receipt `/tmp/c65-z01-main-worker-red.json`. Production source still main-identical. Root cause directly confirmed: mutable resolver precedes queue authorization.
 
 Next c65: apply only the three original4389 production postimages; unchanged full12 tests + existing authorization/queue/worker regressions. Whole94 remains historical90P4F and not executed here.
+
+## Reused source verified; independent review identified point-borrowing defect
+
+Exact reused source `ee217222858bbf3caf81a113265818b3f780a582`: eight files163PASS0FAIL, including unchanged12 worker cases. LogSHA569f535bea74abcf491546c70d5b6c6191b2b6ce2dd06fccc78dcd030a6566e1. Local component only.
+
+Independent reviewer IMP found a material authorization bypass: denied job point B reuses a still-live same-site CIR A because requestForSite lacks point filtering. Two new behavioral cases actuallyFAIL: unauthorized B mutates domain; authorized B changes A's original CIR. Source ee217; actualexit1, logSHA `a9db424c19e4516311c2b3412fce4235a5cbd9895d3d43b4d44aba413bfcb38d`, `/tmp/c65-z01-different-point-red.log`. No missing API/setup failures.
+
+Next c65: optional exact meteringPointId filter in BOTH requestForSite query branches; BOTH worker calls supply actual job anchor, explicit null uses IS NULL and undefined preserves other callers. Expand controls for exact-operation/fallback and explicit-null. Original12 guards/ports/oracles remain unchanged. Fresh full affected verification and two exact final source reviews after correction; no whole94/coverage/CI green yet.
