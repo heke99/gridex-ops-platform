@@ -19,3 +19,9 @@ Next: publish CLAIM on #673, update central operational references, verify exact
 CLAIM is published and read back at #673 comment6041053415; checkpoint branch and atomic file receipt matched before editing. AGENTS.md now identifies #673 as the active board, preserves #530 historical links, and explicitly interprets old new-receipt instructions against the active board. Reservation, ownership, coverage, review and merge requirements remain unchanged.
 
 Local git diff --check passes. Next: independent bounded source reviews and publication; current CI, merge and release remain pending.
+
+## Published review-ready source
+
+PR: https://github.com/heke99/gridex-ops-platform/pull/675. Frozen source: 2721affd66813f194ea5c9c9683db35c3f9a68b2. Both independent bounded source reviews APPROVE with no findings; attributed parent summary: PR675 comment6041115624. Local exact two-file scope, clean worktree, unchanged coverage/reservation/workflow blobs and diff checks pass. READY receipt: #673 comment6041130326.
+
+Root is the sole CI/delivery reader for this metadata PR. Mandatory current-head checks remain pending; no merge or resource release is claimed. Own source is frozen. This separate checkpoint branch preserves progress without restarting PR CI. Next: qualify all required checks, acquire immediately-free merge role, verify exact head/current-main compatibility, merge, record actual delivery and release own role and AGENTS.md resource by exact owner-SHA checks. Foreign memory-role and all technical packet owners remain untouched.
