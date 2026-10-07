@@ -1,3 +1,13 @@
+## Campaign-status component ready for publication — 2026-10-07
+
+Same technical L/LK pair; its 23 reservations remain unchanged. Separate bounded memory operation holds only role-memory and two exact shared status paths. Its committed three-path metadata component has two complete independent source approvals, zero findings, complete previous-state suffix/23 JSON property values preserved, all 352 coverage rows and every other tracked object unchanged. Exact source/review/protocol bindings remain in the private operation record and published operation checkpoint. The earlier automatic-review rejection of the lock receipt was resolved after official verification that its parent/tree were actual current main as the protocol requires; no foreign branch publication occurred.
+
+PUBLICATION_GO after this checkpoint and a continuation receipt have exact readbacks plus fresh memory-resource/main/clean-version checks: normal nonforce publication of the reviewed metadata version on its unique branch and one draft metadata PR. Keep technical source/PR #635 separate and frozen. Current mandatory checks and expected-head/free-merge-role gate remain required before delivery. No technical/native/whole/coverage/external approval.
+
+Local consumer composition of the newly delivered fixture is now committed separately with owned postimages preserved. Current affected 179 tests pass and compatibility remains299/300 with the unchanged SC012 failure; types and two exact composition source reviews are progressing. Next root: metadata publication/current gates/release, alongside finishing the current consumer composition verification and lawful runtime-owner reuse coordination. No new technical pair or foreign edits.
+
+---
+
 ## Consumer source approved; before delivered-fixture composition — 2026-10-07
 
 Same sole L/LK pair and 23 technical reservations. The committed isolated three-path component now has two complete independent installed-source approvals with zero new findings. Root actual 165 tests, lint and all three nonincremental typechecks exit 0. The broader 300-test compatibility process exits 1:299 pass and the same SC012 failure remains, with its entire failure block byte-identical to the unchanged baseline. Exact commit, full code/check/review receipts remain private. No full/native/whole/CI-green/coverage/merge credit.
