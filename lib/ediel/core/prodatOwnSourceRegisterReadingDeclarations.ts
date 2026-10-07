@@ -61,7 +61,7 @@ function physicalSource(source:EdielMessageRow) {
   if(!reasons.every(reason=>reason==='L'||reason==='LK')||new Set(reasons).size!==1)return null
   const subtype=reasons[0] as 'L'|'LK'
   const canonical=parseCanonicalMessageRow(source)
-  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.subtype!==subtype
+  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.subtype!==(subtype==='L'?'Z22':'Z23')
     ||canonical.applicationReference!==application[0]||canonical.version!=='E2SE6A')return null
   return {wire,first,groups:grouped.groups,subtype,canonical,interchange:interchanges[0]}
 }

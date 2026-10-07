@@ -9,6 +9,7 @@ import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ed
 import {sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 import {sourceProdatRegisterReadingDeclarations} from './prodatSourceRegisterReadingDeclarations'
 import {sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
+import {canonicalProdatSubtypeAlias} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 
 // Shared protocol date selection; receipt/object matching must not reselect a guide.
 function normalizeDate(value: unknown): string | null {
@@ -129,8 +130,9 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   if(deathStatusContext)assertDeathStatusContextMatches(message,deathStatusContext)
   const family = canonical.family
   const messageCode = canonical.messageCode
+  const subtype=family==='PRODAT'?canonicalProdatSubtypeAlias(canonical.subtype,messageCode):null
   const ownReadingPolicy=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'
-    &&(canonical.subtype==='L'||canonical.subtype==='LK')
+    &&(subtype==='L'||subtype==='LK')
   const byCell=readObjectFact(message,'byCell')
   const ownReadingByCell=byCell?Object.fromEntries(Object.entries(byCell).filter(([cell])=>!['Z04:214','Z04:218','Z04:259'].includes(cell))):undefined
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
