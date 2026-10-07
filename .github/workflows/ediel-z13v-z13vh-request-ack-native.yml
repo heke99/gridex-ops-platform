@@ -190,14 +190,26 @@ jobs:
           junit=work/'native-junit.xml'
           summary['redacted_junit_sha256']=hashlib.sha256(junit.read_bytes()).hexdigest() if junit.exists() else 'NOT_PROVIDED'
           notice('Gridex native receipt',summary)
+          cases=[]
           if junit.exists():
               for case in ET.parse(junit).getroot().findall('.//testcase'):
                   failure=case.find('failure')
                   if failure is None:failure=case.find('error')
                   status='failed' if failure is not None else 'skipped' if case.find('skipped') is not None else 'passed'
-                  notice('Gridex native case',{'name':case.get('name'),'status':status,
+                  cases.append({'name':case.get('name'),'status':status,
                       'message':failure.get('message','')[:1000] if failure is not None else None,
                       'detail':(failure.text or '')[-2000:] if failure is not None else None})
+          # GitHub stores at most ten notices per step. Two bounded bundles
+          # retain all fourteen dispositions alongside receipt/diagnostics.
+          for offset in range(0,len(cases),7):notice('Gridex native cases '+str(offset//7+1),cases[offset:offset+7])
+          log=work/'native.log'
+          if log.exists():
+              observations=[]
+              for line in log.read_text(errors='replace').splitlines():
+                  if 'NATIVE_ACK_OBSERVATION ' in line:
+                      try:observations.append(json.loads(line.split('NATIVE_ACK_OBSERVATION ',1)[1]))
+                      except json.JSONDecodeError:pass
+              if observations:notice('Gridex native observations',observations[-14:])
           # Import/config failures can have no testcase; retain their redacted
           # diagnostics. A failed replay remains explicitly native NOT_RUN.
           if receipt['component_exit_code']!=0:

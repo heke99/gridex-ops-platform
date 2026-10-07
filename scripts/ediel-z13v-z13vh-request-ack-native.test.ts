@@ -156,7 +156,8 @@ async function intake(f:Fixture,p:Pending,raw:string){
 async function consume(f:Fixture,message:EdielMessageRow){
  const before=fullOutbox(f)
  const committed=await readCommittedInboundAck({actorUserId:f.ids.actor,message})
- await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:message.id})
+ try{await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:message.id})}
+ catch(error){observeAckFailure(f,message);throw error}
  const after=fullOutbox(f)
  // APERAK receives its own syntax CONTRL through the real public processor.
  // Preserve every old/foreign queue row; admit only that one source-bound
@@ -164,6 +165,7 @@ async function consume(f:Fixture,message:EdielMessageRow){
  for(const row of before)expect(after.find(candidate=>candidate.id===row.id)).toEqual(row)
  const added=after.filter(row=>!before.some(previous=>previous.id===row.id))
  if(message.message_family==='APERAK'&&!committed){
+  if(added.length!==1)observeAckFailure(f,message)
   expect(added).toHaveLength(1)
   const queued=added[0]
   expect(queued).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:message.id,
@@ -179,6 +181,26 @@ async function consume(f:Fixture,message:EdielMessageRow){
  const stored=(await getEdielMessageById(message.id))!
  expect(stored.raw_payload).toBe(message.raw_payload)
  return readCommittedInboundAck({actorUserId:f.ids.actor,message:stored})
+}
+
+// Failure observations disclose only fixed decision states and known counts.
+// They never seed authority, repair a source or replace the original failure.
+function observeAckFailure(f:Fixture,message:EdielMessageRow){
+ try{
+  const state=(name:string)=>`CASE WHEN v.facts_text::jsonb->>${lit(name)} IN ('accepted','rejected','not_applicable','manual_review') THEN v.facts_text::jsonb->>${lit(name)} ELSE 'unrecognized' END`
+  const observed=sql(`SELECT jsonb_build_object(
+   'family',${lit(message.message_family)},
+   'canonical',(SELECT coalesce(jsonb_agg(jsonb_build_object('syntax',${state('syntaxDecision')},
+    'application',${state('applicationDecision')},'functional',${state('functionalDecision')})),'[]')
+    FROM gridex_received_sources.validation_assessments v WHERE v.source_message_id=${lit(message.id)}
+    AND v.company_id=${lit(f.ids.company)} AND v.environment='test'
+    AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)),
+   'technicalBlocked',(SELECT count(*) FROM public.ediel_message_events e WHERE e.ediel_message_id=${lit(message.id)}
+    AND e.company_id=${lit(f.ids.company)} AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard'),
+   'technicalRouteZero',(SELECT count(*) FROM public.ediel_message_events e WHERE e.ediel_message_id=${lit(message.id)}
+    AND e.company_id=${lit(f.ids.company)} AND e.message LIKE '%ediel_technical_ack_route_count:0%'))`)
+  console.info('NATIVE_ACK_OBSERVATION '+JSON.stringify(observed))
+ }catch{console.info('NATIVE_ACK_OBSERVATION '+JSON.stringify({diagnosticAvailable:false}))}
 }
 
 for(const mode of ['V','VH'] as const){
