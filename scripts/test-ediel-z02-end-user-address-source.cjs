@@ -374,3 +374,130 @@ test(`finite scalar ${proposed ? 'isolated proposed-forward' : 'immutable old SQ
 });
 
 }
+
+// Additive correlation refusal regression. Public rows below are declared synthetic SQL I/O.
+// Full captured facility table and all fiveFKs are retained; other tables are minimal inputs.
+// No authoritative message producer, private accepted facts, full-schema/native/whole proof.
+{
+const repoSql = file => readFileSync(path.join(__dirname,'../supabase/migrations',file),'utf8');
+const functionSql = (file,name) => {
+ const source=repoSql(file),marker=`create or replace function public.${name}(`;
+ const start=source.indexOf(marker),end=source.indexOf('$$;',start);
+ assert.ok(start>=0&&end>start,`actual immutable function ${name} must exist`);
+ return source.slice(start,end+3);
+};
+const correlationDdl=repoSql('20260821142000_typed_z02_operation_job_correlation_gate.sql');
+const correlationTrigger=correlationDdl.match(/create trigger trg_customer_operation_job_z02_correlation[\s\S]*?\(\);/);
+assert.ok(correlationTrigger,'actual immutable correlation trigger must exist');
+const chain=[
+ functionSql('20260821142000_typed_z02_operation_job_correlation_gate.sql','gridex_prodat_variant_from_raw'),
+ functionSql('20260821142500_typed_z02_rff_extractor_hotfix.sql','gridex_edifact_rff_value'),
+ functionSql('20260821145500_atomic_correlated_z02_core_apply.sql','gridex_edifact_first_lin_item_id'),
+ repoSql('20260821165300_prodat_identity_and_z02_li_compliance.sql'),
+ correlationTrigger[0],
+ repoSql('20260903070000_harden_inbound_z02_required_payload_gate.sql')
+].join('\n\n');
+const forward=repoSql('20261007074502_received_z02_payload_scalar_readers.sql');
+let candidate=null;
+try{candidate=repoSql('20261007085618_received_z02_blocking_correlation_issue.sql');}
+catch(error){if(error.code!=='ENOENT')throw error;}
+// A missing future forward runs the actual legacy SQL and fails at its real23514 INSERT.
+const schema=readFileSync(path.join(__dirname,'../supabase/schema.sql'),'utf8');
+const facilityTable=schema.match(/CREATE TABLE public\.facility_data_quality_issues \([\s\S]*?\n\);/);
+const facilityConstraints=[...schema.matchAll(/ALTER TABLE ONLY public\.facility_data_quality_issues\n    ADD CONSTRAINT facility_data_quality_issues[^;]+;/g)].map(m=>m[0]);
+assert.ok(facilityTable,'captured actual facility table must exist');
+assert.equal(facilityConstraints.length,6,'actual PK and fiveFKs must be present');
+const fullFacility=facilityTable[0]+'\n'+facilityConstraints.join('\n');
+const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const ids = { company:uuid(1),customer:uuid(2),site:uuid(3),request:uuid(4),source:uuid(5),inbound:uuid(6),job:uuid(7),foreign:uuid(8),wrongCustomer:uuid(9) };
+// Only referenced columns are declared. Full captured schema/FKs/other triggers are NOT installed.
+// The actual captured facility status/severity checks are retained, including rejection of 'critical'.
+const tables = `
+CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+CREATE TABLE public.companies(id uuid PRIMARY KEY);
+CREATE TABLE public.customers(id uuid PRIMARY KEY,company_id uuid NOT NULL,org_number text,personal_number text,UNIQUE(id,company_id));
+CREATE TABLE public.customer_sites(id uuid PRIMARY KEY,company_id uuid NOT NULL,customer_id uuid NOT NULL,normalized_facility_id text,facility_id text,street text,postal_code text,city text,country text);
+CREATE TABLE public.customer_info_requests(id uuid PRIMARY KEY,company_id uuid NOT NULL,customer_id uuid NOT NULL,site_id uuid,grid_owner_id uuid,ediel_message_id uuid,grid_owner_data_request_id uuid,status text NOT NULL,blocker_code text,blocker_reason text,blocker_details jsonb,next_required_action text,updated_at timestamptz NOT NULL);
+CREATE TABLE public.ediel_messages(id uuid PRIMARY KEY,company_id uuid NOT NULL,direction text,message_family text,message_code text,customer_id uuid,site_id uuid,grid_owner_id uuid,grid_owner_data_request_id uuid,status text,created_at timestamptz,sender_ediel_id text,receiver_ediel_id text,raw_payload text,parsed_payload jsonb,validation_report jsonb);
+CREATE TABLE public.ediel_business_references(id uuid PRIMARY KEY,company_id uuid NOT NULL,source_message_id uuid,message_family text,message_code text,reference_type text,reference_value text);
+CREATE TABLE public.customer_operation_jobs(id uuid PRIMARY KEY,company_id uuid NOT NULL,customer_id uuid NOT NULL,customer_site_id uuid,job_type text NOT NULL,status text NOT NULL CHECK(status IN ('queued','running','waiting_response','completed','needs_review','failed','skipped','cancelled')),payload jsonb NOT NULL,result jsonb NOT NULL);
+CREATE TABLE public.metering_points(id uuid PRIMARY KEY,company_id uuid NOT NULL,customer_site_id uuid,synthetic_sentinel jsonb NOT NULL);
+`;
+const ud = ['NAD','UD','199001011234:SE2:260','','Original Name','Original Street','Original City','','12345','SE'];
+const it = ['NAD','IT','735123456789508946::9','','Site Name','Site Street','Site City','','54321','SE'];
+function raw({reason='Z22',method=true,udValues=ud,itValues=it}={}) {
+  return ["LIN+1++735123456789508946",'RFF+LI:OWN-LI','RFF+Z05:AAA',...(method?['CCI++Z04','CAV+Z04']:[]),...(reason?['CCI++Z13',`CAV+${reason}`]:[]),udValues.join('+'),itValues.join('+')].join("'")+"'";
+}
+const mutate = (values,index,value) => values.map((v,i)=>i===index?value:v);
+const cases = [
+ {name:'physical L complete',input:{},reason:null},
+ {name:'physical LK complete',input:{reason:'Z23'},reason:null},
+ {name:'missing method 217',input:{method:false},reason:'z02_required_measure_method_missing'},
+ {name:'missing reason 223',input:{reason:null},reason:'z02_required_reason_missing'},
+ {name:'UD wrong identity',input:{udValues:mutate(ud,2,'199001011235:SE2:260')},reason:'z02_end_user_identity_conflict'},
+ {name:'UD wrong qualifier',input:{udValues:mutate(ud,2,'199001011234:SE1:260')},reason:'z02_end_user_qualifier_conflict'},
+ ...[4,6,8,9].map(index=>({name:`UD omitted index ${index}`,input:{udValues:mutate(ud,index,'')},reason:'z02_required_end_user_fields_missing'})),
+ {name:'IT omitted street index 5',input:{itValues:mutate(it,5,'')},reason:'z02_required_installation_fields_missing'},
+ {name:'IT wrong ID index 2',input:{itValues:mutate(it,2,'735123456789508947::9')},reason:'z02_installation_id_line_item_mismatch'},
+ {name:'IT wrong street index 5',input:{itValues:mutate(it,5,'Wrong Street')},reason:'z02_installation_address_conflict'},
+ {name:'IT wrong city index 6',input:{itValues:mutate(it,6,'Wrong City')},reason:'z02_installation_city_conflict'},
+ {name:'IT wrong postcode index 8',input:{itValues:mutate(it,8,'54322')},reason:'z02_installation_postcode_conflict'},
+ {name:'IT wrong country index 9',input:{itValues:mutate(it,9,'NO')},reason:'z02_installation_country_conflict'},
+ {name:'completed stage bypasses both gates',input:{},status:'completed',reason:null,bypass:true},
+ {name:'different job type bypasses both gates',input:{},jobType:'synthetic_other_job',reason:null,bypass:true},
+ {name:'existing wrong job customer persists scoped mismatch refusal',input:{},wrongCustomer:true},
+];
+
+const stableTables=['customers','customer_sites','ediel_messages','ediel_business_references','metering_points'];
+const snapshot=async(db,t)=>JSON.stringify((await db.query(`SELECT to_jsonb(t) AS row FROM public.${t} t ORDER BY id`)).rows);
+test(`finite correlation refusal ${candidate ? 'forward' : 'legacy SQL RED'} (synthetic public inputs; not native or authority)`,async t=>{
+ for (const c of cases) await t.test(c.name,async()=>{
+  const fixed=Boolean(candidate);
+  const db=new PGlite();
+  const record={initial_result:{}};
+  try {
+    await db.exec('SET standard_conforming_strings=on;'+tables+fullFacility+chain+forward);
+    const procMeta=async()=> (await db.query("SELECT oid::text,proowner::text,proacl::text,prosecdef,provolatile,proconfig,pg_get_function_identity_arguments(oid) AS args FROM pg_proc WHERE oid='public.gridex_gate_inbound_z02_operation_job()'::regprocedure")).rows[0];
+    const beforeProc=await procMeta();if(fixed)await db.exec(candidate);const afterProc=await procMeta();assert.deepEqual(afterProc,beforeProc);record.correlation_oid_acl_owner_security_metadata_preserved=true;record.correlation_metadata=afterProc;
+    await db.query('INSERT INTO companies VALUES($1),($2)',[ids.company,ids.foreign]);
+    await db.query('INSERT INTO customers VALUES($1,$2,NULL,$3)',[ids.wrongCustomer,ids.company,'199001011235']);
+    await db.query('INSERT INTO customers VALUES($1,$2,NULL,$3)',[ids.customer,ids.company,'199001011234']);
+    await db.query('INSERT INTO customer_sites VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8)',[ids.site,ids.company,ids.customer,'735123456789508946','Site Street','54321','Site City','SE']);
+    await db.query('INSERT INTO metering_points VALUES($1,$2,$3,$4)',[uuid(10),ids.company,ids.site,{preserved:'synthetic meter facts'}]);
+    for(const [id,direction,code,sender,receiver,wire] of [[ids.source,'outbound','Z01','SUPPLIER','OWNER',raw({reason:c.input.reason??'Z22'})],[ids.inbound,'inbound','Z02','OWNER','SUPPLIER',raw(c.input)]]) {
+      await db.query("INSERT INTO ediel_messages VALUES($1,$2,$3,'PRODAT',$4,$5,$6,NULL,NULL,'received','2026-01-01',$7,$8,$9,'{}','{}')",[id,ids.company,direction,code,ids.customer,ids.site,sender,receiver,wire]);
+    }
+    await db.query("INSERT INTO customer_info_requests VALUES($1,$2,$3,$4,NULL,$5,NULL,'waiting_for_z02',NULL,NULL,'{}',NULL,'2026-01-01')",[ids.request,ids.company,ids.customer,ids.site,ids.source]);
+    await db.query("INSERT INTO customer_info_requests VALUES($1,$2,$3,$4,NULL,$5,NULL,'waiting_for_z02',NULL,NULL,'{}',NULL,'2026-01-01')",[uuid(11),ids.foreign,ids.customer,ids.site,ids.source]);
+    // The declared public reference index is derived through the actual SQL RFF extractor.
+    await db.query("INSERT INTO ediel_business_references SELECT $1,$2,id,'PRODAT','Z01','RFF_LI',public.gridex_edifact_rff_value(raw_payload,'LI') FROM ediel_messages WHERE id=$3",[uuid(12),ids.company,ids.source]);
+    record.actual_helper_read=(await db.query("SELECT public.gridex_prodat_variant_from_raw($1) AS variant,public.gridex_edifact_rff_value($1,'LI') AS li,public.gridex_edifact_cci_cav_value($1,'Z04') AS method,public.gridex_edifact_cci_cav_value($1,'Z13') AS reason",[raw(c.input)])).rows[0];
+    assert.equal(record.actual_helper_read.li,'OWN-LI');
+    const before=Object.fromEntries(await Promise.all([...stableTables,'customer_info_requests','facility_data_quality_issues'].map(async t=>[t,await snapshot(db,t)])));
+    // Actual INSERT is the target operation. Legacy23514 is an undesired failed refusal, not an expected GREEN oracle.
+    await db.query('INSERT INTO customer_operation_jobs VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[ids.job,ids.company,c.wrongCustomer?ids.wrongCustomer:ids.customer,ids.site,c.jobType??'apply_inbound_grid_owner_response',c.status??'queued',{customer_info_request_id:ids.request,ediel_message_id:ids.inbound},{}]);
+    for(const t of stableTables)assert.equal(await snapshot(db,t),before[t],`${t} changed`);
+    const requests=(await db.query('SELECT * FROM customer_info_requests ORDER BY id')).rows;
+    const job=(await db.query('SELECT * FROM customer_operation_jobs')).rows[0];
+    record.job=job??null;record.requests=requests;record.asset_and_message_tables_unchanged=true;
+    if(c.bypass){assert.equal(job.status,c.status??'queued');assert.deepEqual(job.result,{});assert.equal(await snapshot(db,'customer_info_requests'),before.customer_info_requests);}
+    else {
+      if(!c.wrongCustomer){assert.equal(job.result.z02_correlation_status,'exact','not produced by real correlation trigger');assert.equal(job.result.correlation.exact_li_match,true);assert.equal(job.result.correlation.source_li_registry_matches,1);}
+      else {assert.equal(job.result.z02_correlation_status,undefined);assert.equal(job.result.z02_payload_validation,undefined);}
+      const expected=c.wrongCustomer?'request_site_customer_mismatch':c.reason;
+      assert.equal(job.result.reason_code??null,expected);assert.equal(job.status,expected?'needs_review':'queued');
+      const own=requests.find(r=>r.id===ids.request),foreign=requests.find(r=>r.id===uuid(11));
+      assert.equal(foreign.status,'waiting_for_z02');assert.equal(foreign.blocker_code,null);
+      if(expected){assert.equal(own.status,'manual_review_required');assert.equal(own.blocker_code,expected);if(!c.wrongCustomer)assert.equal(own.blocker_details.z02_payload_validation.gate,'gridex_gate_inbound_z02_required_payload');}
+      else{assert.equal(job.result.z02_payload_validation_status,'valid');assert.equal(job.result.z02_payload_validation.measure_method,'Z04');assert.equal(job.result.z02_payload_validation.reason_for_transaction,c.input.reason??'Z22');assert.equal(await snapshot(db,'customer_info_requests'),before.customer_info_requests);}
+      if(!c.wrongCustomer)assert.equal(await snapshot(db,'facility_data_quality_issues'),before.facility_data_quality_issues);
+      else {
+        const issue=(await db.query('SELECT * FROM facility_data_quality_issues')).rows;assert.equal(issue.length,1);assert.equal(issue[0].severity,'blocking');assert.equal(issue[0].source_error_code,expected);assert.equal(issue[0].company_id,ids.company);assert.equal(issue[0].customer_id,ids.wrongCustomer);assert.equal(issue[0].customer_site_id,ids.site);assert.equal(issue[0].retry_allowed,false);assert.equal(issue[0].next_readiness_required,true);record.real_issue=issue[0];
+        await db.query("UPDATE customer_operation_jobs SET status='queued' WHERE id=$1",[ids.job]);assert.equal((await db.query('SELECT count(*)::int AS n FROM facility_data_quality_issues')).rows[0].n,1);record.real_update_replay_deduplicated=true;
+        for(const t of stableTables)assert.equal(await snapshot(db,t),before[t],`${t} changed after retry`);
+      }
+    }
+  } finally {await db.close();}
+ });
+});
+}
