@@ -1,3 +1,13 @@
+## Actual canonical GHA started; isolated copy prepared without services — 2026-10-07 03:58 UTC
+
+SoleL14/635published167f/tree6c3c33d7/main1ac295/no roles/newpair; allsource/full/type/lint/reviewreceipts unchanged. Independentofficialwatch confirms GHA37568134521/job112620457788 actualIN_PROGRESS/start03:54:36Z/allcheckoutNodeinstallCLIstepsSUCCESS/canonicalclean+nativecompositestep6start03:55:10Z. No result/artifact yet; supersedesqueuedlabel0e5835b8. Nativecurrent32stillUNQUALIFIED, notwhole/CI_GREEN/merge/external.
+
+Afterprecode0e5835b8/5306030594913 ownunique detachedverificationcopy /workspace/gridex-c3ae-l-native-167f prepared actual167f/tree6c3c33d7/all3401committedinputSHAworkingMATCH/depslinkonly; NOsourcechanges/servicesstarted/DB/nativeexecuted. Receipt /tmp/gridex-c3ae-l-local-copy-preparation.json. SupportedSUPABASE_HOME ownapplicationcache verifiedCLI2.1010 solvesinitialreadonlyglobalcachewithoutchangingHOME; noforeigncredential/configread. No localstackmarker orDockercontainercreated; preexistingPG55439untouched. Now-activeofficialproofprioritized, optionalLOCALstart deferredpendingactualexecutiongap (freshresourceguard/docrequired). Do notduplicateorclaimlocalnative.
+
+Nextroot/independentqualifier actualofficialterminal→APIartifact/run/head/tree/digestCRC/3401hashes/exact32/allJUnitaggregate/nativeexit+fulleffectliteralreview; retainactualearliestfailures/notreachedtails/owners. Wholeapprovalbeforeown2rows/meaningfulcomponent+native tags/currentresultinghead allmandatory/newnative. CurrenttargetedSUCCESS/smokeRUNNING/restpending; personalCP/530actualstartedreceipt6030594913 authoritative; shared95bc mirrorsunderownrole.
+
+---
+
 ## BEFORE supplementary isolated canonical LOCAL native execution — 2026-10-07 03:56 UTC
 
 SoleL14refs66a70/actualpublished635167f0ff8/tree6c3c33d7/main1ac295/no roles/newpair. CurrenttargetedCIactualSUCCESS/smokeRUNNING; authentic32run37568134521/job112620457788 stillQUEUED. Allsource/localordinaryproofs unchanged. Freshreadonlynativeavailability f005b83e confirmsstandalonePG17/socket55439 lacksAuth/Storage/exactports andcannotprovenative; NOreuse/cleanupthatserver. RootreadonlyDockerinventory /tmp/gridex-c3ae-l-local-docker-readonly.json actualdaemon28.4/client28.4/EMPTYcontainers, loopback54321+54322 connectionREFUSED111, workspace17GB/tmp7.5GBfree/preexistingvendorimages only. CanonicalCLI2.101initialcacheat/home/agent/.supabaseEROFS; supportedbinaryConfig SUPABASE_HOME mapsapplicationcache (notglobalHOME), verifiedactualCLI --versionEXIT0 withown /tmp/gridex-c3ae-native-cli-cache/noKeyring/telemetrydisabled. No credentials/foreignconfigread/copied orremoteprojectaction.
