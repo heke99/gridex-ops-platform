@@ -4112,8 +4112,15 @@
     },
     {
       "id": "AT-Z14V-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z14v-esco-profile.test.ts",
+        "scripts/ediel-at-z14v-current-effects-native.test.ts",
+        "scripts/helpers/ediel-z14v-current-native-fixture.ts",
+        "lib/ediel/prodat/receivedZ14ReportingContext.ts",
+        "supabase/migrations/20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
+        ".agent-memory/masterplan-c65-sc014-z14v-checkpoint.md"
+      ]
     },
     {
       "id": "AT-Z15V-ESCO",
