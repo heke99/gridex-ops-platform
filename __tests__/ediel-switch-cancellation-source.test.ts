@@ -41,7 +41,7 @@ it.each([['L','Z03'],['LK','Z04']] as const)('preserves the qualified original21
  const f=fixture();f.basis.originalSubtype=subtype;f.basis.requestedMethod=method
  const {draft}=await buildSwitchCancellationDraft(f)
  expect(draft.rawPayload).toContain("CCI++Z04'CAV+"+method+"'")
- expect(draft.rawPayload.match(/CCI\+\+Z04'/g)).toHaveLength(1)
+ expect(draft.rawPayload?.match(/CCI\+\+Z04'/g)).toHaveLength(1)
  expect(draft.originalMessageId).toBe(f.basis.originalMessageId)
  expect(f.basis.requestedMethod).toBe(method)
 })
