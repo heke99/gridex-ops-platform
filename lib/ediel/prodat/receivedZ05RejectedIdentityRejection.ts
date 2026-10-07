@@ -8,7 +8,6 @@ import {segmentComposite, tokenizeEdifact} from '@/lib/ediel/core/edifactTokeniz
 import {DEFAULT_UNA, serializeUna, type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition'
 import {requireEdielInboundLegalContext} from '@/lib/ediel/tenant/sourceLegalContext'
-import {resolveSupplyEndBirthProfile} from '@/lib/inbound-mail/supplyEndBirthProfile'
 import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
 import {evidenceHash, isEvidenceRecord, isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
@@ -131,6 +130,9 @@ export async function loadReceivedZ05RejectedIdentityRejection(source: EdielMess
       || projection.transactionReasonCode !== 'Z25' || !['inbound', 'both'].includes(String(projection.direction))
       || !Array.isArray(projection.receiverRoles) || !projection.receiverRoles.some(r => ['supplier', 'electricity_supplier'].includes(r))
       || !Array.isArray(projection.applicationReferences) || !projection.applicationReferences.includes(legal.applicationReference)) return null
+    // Pure response projection needs no mail-birth adapter. Load the actual
+    // catalogue resolver only when this authenticated original READ reaches it.
+    const {resolveSupplyEndBirthProfile} = await import('@/lib/inbound-mail/supplyEndBirthProfile')
     const selected = await resolveSupplyEndBirthProfile({rawPayload: original.raw_payload, receivedAt: original.message_received_at!, purpose: 'rejected_identity'})
     if (!selected || !fresh(at) || !isDeepStrictEqual(selected, {canonical_rule_pack_id: original.canonical_rule_pack_id,
       rule_profile_key: original.rule_profile_key, rule_profile_version_id: original.rule_profile_version_id,
