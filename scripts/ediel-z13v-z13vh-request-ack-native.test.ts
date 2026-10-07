@@ -169,13 +169,17 @@ function counterpart(p:Pending,family:'CONTRL'|'APERAK',defect?:'unknown'|'wrong
  // Declared counterpart bytes, before mailbox birth. Do not fabricate a
  // qualified local negative-diagnostic capability for the production renderer.
  if(defect==='negative'){
-  // A synthetic external rejection of the actual field 202. This does not
+  // A synthetic external rejection of the actual object field 223. This does not
   // claim that our locally valid Z13 is invalid or mint a local diagnostic.
-  const receivedName=e.segments.find(s=>s.tag==='BGM')?.elements[1]
-  expect(receivedName).toBe('Z13')
-  segments=segments.map(s=>s.startsWith('BGM+')?s.replace(/\+34$/,'+27')
-   :s==='ERC+100::260'?'ERC+42::260'
-   :s==='FTX+AAO+++OK'?`FTX+AAO++202::260+Felaktigt Meddelandenamn ${receivedName}`:s)
+  const reasonIndex=e.segments.findIndex(s=>s.raw==='CCI++Z13')
+  expect(reasonIndex).toBeGreaterThanOrEqual(0)
+  const receivedReason=segmentComposite(e.segments[reasonIndex+1],1,e.una)[0]
+  expect(['S17','S18']).toContain(receivedReason)
+  expect(e.segments[reasonIndex+1].tag).toBe('CAV')
+  // BGM34 means processed object outcome. BGM27/header202 would reject the
+  // whole message and cannot assert this object's final refusal contract.
+  segments=segments.map(s=>s==='ERC+100::260'?'ERC+42::260'
+   :s==='FTX+AAO+++OK'?`FTX+AAO++223::260+Felaktigt Transaktionstyp (undertyp) ${receivedReason}`:s)
  }
  if(defect==='unknown')segments=segments.map(s=>s.startsWith('UCI+')?s.replace(/^(UCI\+)[^+]*/,'$1UNKNOWN'):s.startsWith('RFF+ACW:')?'RFF+ACW:UNKNOWN':s)
  if(defect==='wrongLI')segments=segments.map(s=>s.startsWith('RFF+LI:')?'RFF+LI:UNKNOWN':s)
@@ -192,6 +196,7 @@ function counterpart(p:Pending,family:'CONTRL'|'APERAK',defect?:'unknown'|'wrong
   expect(validateCanonicalAckGuide({policy,rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,sourceRawPayload:p.z13.raw_payload})).toEqual([])
   const physical=readPhysicalAckSourceCorrelation({...p.z13,direction:'inbound',message_family:'APERAK',raw_payload:raw},p.z13)
   expect(physical.classification.outcome).toBe('negative')
+  expect(physical.scope).toBe('object')
   expect(physical.acknowledgedReferences).toEqual([p.li])
  }
  return raw
@@ -312,6 +317,11 @@ for(const mode of ['V','VH'] as const){
  }
  it(`${mode}: received negative object APERAK records refusal, not customer permission`,async()=>{
   const{f,p,checkSentinel}=await request(mode),before=business(f,p),pending=await permission(f,p)
+  const contrl=await intake(f,p,counterpart(p,'CONTRL'))
+  expect(await consume(f,contrl)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
+   result:{outcome:'positive',sourceAccepted:false,finalAckReached:false}})
+  expect(await permission(f,p)).toEqual(pending)
+  expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
   const message=await intake(f,p,counterpart(p,'APERAK','negative'))
   expect(await consume(f,message)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
    result:{outcome:'negative',sourceAccepted:false,finalAckReached:true}})
