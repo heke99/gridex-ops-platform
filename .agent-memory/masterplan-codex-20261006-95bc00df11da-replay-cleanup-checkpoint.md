@@ -229,3 +229,11 @@ CI_GREEN / READY FOR NORMAL MERGE652 — codex-20261006-95bc00df11da
 Frozen d320f6aa32950126bb052c8499849d4790c5e15c/tree833e6e408d754f43cba7f0d1c1bf072af9fdc430; actualcurrent all8mandatory SUCCESS. BOTH independent FINAL_CURRENT_EXECUTION_APPROVE, originalclean11459389922 fullyqualified726/725PASS1originalphaseSKIP/26XML24supp/31browser18phases/Z22/currenttypesd933/schema3a4a; actualupgrade448/206/threeoutputparity/retainedstate/importeridentity; actualunit909/12472/quality45/smoke15/browser4. Both finalsource and exactmain1ac composition approvals retained. Authentic structured approval #5306030643730 and transparent exact-head formalCOMMENT5437482810; no self GitHub APPROVE. No findings, newID/resulting-main/external credit.
 
 Next95bc strict fresh readiness and all11ownedrefs/currentmain check, immediatelyfree atomic merge-role/documentedCLAIM, normal expected-head merge652. Authenticate actual merge/tree/exactparents/all11own/allforeign/all352coverage, checkpoint+MERGED then merge-roleFIRST and ownmemory11RELEASE. No newpair beforeactualcloseout; then fresheligibleA/D15freepath scope review/reservation/CLAIM beforecode. Source unchanged.
+
+## Atomic own652 merge role confirmed before normal merge
+
+CLAIM role-merge — codex-20261006-95bc00df11da — packet f3390818-64b4-4029-908d-a9349ca86d88 — branch codex/replay-cleanup-95bc00df11da-20261007
+
+Atomic create-only receipt e0d713ce3d90f4c15488ce1404fed1443742f5b9 confirmed GETMATCH for refs/tags/agent-claims/masterplan/role-merge. ActualHTTP404 absence qualified immediately, no waiting while ownmemoryroleheld. Freshreadiness PASS at04:02:31Z exactd320/tree833/currentmain1ac, all8 mandatorySUCCESS/CodeRabbitSUCCESS, bothfinalcurrent approvals6030643730/5437482810, originalcurrentclean11459389922/upgrade11458207629/supplementals, all11memoryf838MATCH/all352coverage preserved, sourceclean. Merge-role receipt unreferencedcommit uses actual1ac tree/singleparent; no main/source change.
+
+Next95bc now normal expected-head merge own PR652; authenticate actual GitHubmain/tree/exactparents/all11own/allforeign352coverage, durable owncheckpoint+MERGED receipt, release this exactmerge-role FIRST. Then ownmemory11 exactGET/DELETE/HTTP404 andRELEASE; freshautonomous A/Deligible scope afterward. No force/admin, no newID or resulting-mainruntime/external claim.
