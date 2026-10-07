@@ -22,7 +22,7 @@ export async function assertEdielTenantActor(input: {
   const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if(!uuid.test(input.companyId)||!uuid.test(input.actorUserId))throw new Error('ediel_tenant_actor_required')
   const permissions = input.permissionAnyOf ?? [input.permission]
-  if (!permissions.length || permissions.some(value => !['communication.read','communication.write','ediel_testing.write','ediel.send','communication.send','metering.read','metering.write','customers.write'].includes(value))) throw new Error('ediel_tenant_permission_required')
+  if (!permissions.length || permissions.some(value => !['ediel.read','communication.read','communication.write','ediel_testing.write','ediel.send','communication.send','metering.read','metering.write','customers.write'].includes(value))) throw new Error('ediel_tenant_permission_required')
   const [membership,profile,permissionResults]=await Promise.all([
     supabaseService.from('company_memberships').select('company_id,user_id,status,is_active,accepted_at').eq('company_id',input.companyId).eq('user_id',input.actorUserId).eq('status','active').eq('is_active',true).not('accepted_at','is',null).maybeSingle(),
     supabaseService.from('user_profiles').select('id,user_status').eq('id',input.actorUserId).eq('user_status','active').maybeSingle(),
@@ -34,4 +34,4 @@ export async function assertEdielTenantActor(input: {
   if (!permissionResults.some(result => result.data === true)) throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'},'ediel_tenant_permission_forbidden')
 }
 
-export type EdielTenantActorPermission = 'communication.read'|'communication.write'|'ediel_testing.write'|'ediel.send'|'communication.send'|'metering.read'|'metering.write'|'customers.write'
+export type EdielTenantActorPermission = 'ediel.read'|'communication.read'|'communication.write'|'ediel_testing.write'|'ediel.send'|'communication.send'|'metering.read'|'metering.write'|'customers.write'
