@@ -123,7 +123,8 @@ it.each(z14RequiredFields)('fresh pending private V omits required field %s befo
   expect(z14Market(p)).toEqual(before);return
  }
  const source=await receiveZ14(p,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
- await process(p,source)
+ if(field==='209')await expect(process(p,source)).rejects.toThrow(/^prodat_canonical_source_validation_unconfirmed$/)
+ else await process(p,source)
  expect(z14Market(p)).toEqual(before);noPositiveObjectAck(p,source)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify({field,issues:decision.issues})).not.toEqual(['accepted','accepted','accepted'])
  if(field==='233')expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UNSM_MANDATORY_ELEMENT_MISSING',layer:'syntax',severity:'error',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'})]))
@@ -215,7 +216,19 @@ it('actual Z14 permission still grants no access: separate public publication, g
  const link=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_assignment_permission_links WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)} AND permission_id=${lit(p.permissionId)}`)
  const grant=await f.command({action:'create_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,fields:{permission_link_id:link,object_ids:[f.point],product_ids:[f.product],fields:f.fields.field_sets,data_start:f.fields.data_start,data_end:f.fields.data_end,valid_from:f.fields.valid_from,valid_to:f.fields.valid_to}})
  expect(grant).toMatchObject({status:'held',accessGranted:false})
- expect(await f.command({action:'publish_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,grantId:grant.grantId,expectedGrantVersion:grant.grantVersion})).toMatchObject({status:'active'})
+ const published=await f.command({action:'publish_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,grantId:grant.grantId,expectedGrantVersion:grant.grantVersion})
+ // Read the actual guards and persisted terms for diagnosis only. This adds
+ // no caller readiness flag, source assessment or authority-bearing write.
+ const publicationEvidence=JSON.stringify({published,scope:sql(`SELECT jsonb_build_object(
+ 'sourceCurrent',public.ediel_permission_source_is_current_v1(a.company_id,mp.id,coalesce(mp.inbound_z14_message_id,mp.source_z14_message_id)),
+ 'assignmentMatches',gridex_service_administration.permission_matches_assignment_v1(a,mp),
+ 'assignment',jsonb_build_object('id',a.id,'version',a.version,'mode',a.mode,'environment',a.environment,'purpose',a.purpose,'dataStart',a.data_start,'dataEnd',a.data_end),
+ 'permission',jsonb_build_object('id',mp.id,'status',mp.status,'mode',mp.metadata#>>'{marketPermission,mode}','sourceZ14',coalesce(mp.inbound_z14_message_id,mp.source_z14_message_id)),
+ 'grant',(SELECT to_jsonb(g) FROM public.ediel_data_access_grants g WHERE g.company_id=a.company_id AND g.id=${lit(grant.grantId)}),
+ 'sites',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.metering_permission_sites s WHERE s.company_id=a.company_id AND s.metering_permission_id=mp.id))
+ FROM public.ediel_service_assignments a JOIN public.metering_permissions mp ON mp.company_id=a.company_id AND mp.id=${lit(p.permissionId)} WHERE a.company_id=${lit(f.ids.company)} AND a.id=${lit(f.assignment)}`)})
+ console.info('Z14 public grant publication evidence',publicationEvidence)
+ expect(published,publicationEvidence).toMatchObject({status:'active'})
  setOwnAckApplication(f,'23-DGI-E66-T')
  const incoming=await f.utilts('accepted','Z14-NATIVE-'+randomUUID().slice(0,8))
  expect(await incoming.persist()).toMatchObject([{disposition:'accepted',persistenceStatus:'persisted',contractVersion:2}])
