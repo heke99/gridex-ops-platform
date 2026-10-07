@@ -235,6 +235,8 @@ function ackSendFailureDiagnostic(f: Fixture, sourceId: string, ack: Original, o
         AND environment='test' AND direction='inbound' AND id=${literal(sourceId)}),
       ack AS (SELECT * FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
         AND environment='test' AND direction='outbound' AND id=${literal(ack.id)}),
+      own_requests AS (SELECT r.* FROM public.outbound_requests r JOIN ack m
+        ON r.id=m.outbound_request_id AND r.company_id=m.company_id),
       outbox AS (SELECT * FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}
         AND environment='test' AND id=${literal(outboxId)}),
       attempts AS (SELECT * FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)}
@@ -244,6 +246,13 @@ function ackSendFailureDiagnostic(f: Fixture, sourceId: string, ack: Original, o
         'ack',(SELECT jsonb_build_object('status',m.status,'processingStatus',m.processing_status,
           'sentAt',m.message_sent_at,'relatedSourceMatches',m.related_message_id=${literal(sourceId)},
           'originalHashMatches',m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')) FROM ack m),
+        'outboundRequestRelations',(SELECT jsonb_build_object('outboundRequestIdPresent',m.outbound_request_id IS NOT NULL,
+          'ownRequestCount',(SELECT count(*) FROM own_requests),
+          'ownCustomerMatches',(SELECT r.customer_id IS NOT DISTINCT FROM m.customer_id FROM own_requests r),
+          'ownSiteMatches',(SELECT r.site_id IS NOT DISTINCT FROM m.site_id FROM own_requests r),
+          'ownPointMatches',(SELECT r.metering_point_id IS NOT DISTINCT FROM m.metering_point_id FROM own_requests r),
+          'ackCustomerPresent',m.customer_id IS NOT NULL,'ackSitePresent',m.site_id IS NOT NULL,
+          'ackPointPresent',m.metering_point_id IS NOT NULL) FROM ack m),
         'outbox',(SELECT jsonb_build_object('status',o.status,'sentAt',o.sent_at,'attempts',o.attempts,
           'sendAttemptCount',o.send_attempt_count,'attemptIdPresent',o.current_send_attempt_id IS NOT NULL,
           'ackMatches',o.ediel_message_id=${literal(ack.id)},'sourceMatches',o.source_message_id=${literal(sourceId)},
@@ -893,6 +902,10 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
         // Keep that exact refusal; it is neither a NULL capability nor ACK proof.
         await expect(observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message)))
           .rejects.toMatchObject({code:'P0001',message:'ediel_inbound_legal_context_required'})
+      } else if(['227','233','262','250'].includes(field)) {
+        const capability=await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))
+        expect(control.capability).not.toBeNull();expect(capability).not.toBeNull()
+        expect(capability).toEqual({...control.capability,sourceMessageId:message.id,sourcePayloadHash:digest(message.raw_payload!)})
       } else {
         expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
       }
