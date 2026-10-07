@@ -13,7 +13,10 @@ import {afterAll,afterEach,beforeAll,beforeEach,expect,it} from 'vitest'
 
 const schema=readFileSync(resolve('supabase/schema.sql'),'utf8')
 const migration=resolve('supabase/migrations/20261007010849_ediel_received_z14_reporting_source_basis.sql')
+const clockForward=resolve('supabase/migrations/20261007035644_ediel_received_reporting_command_clock.sql')
 const rpc='public.gridex_ediel_received_z14_reporting_source_basis_v1'
+const readerSignature='gridex_received_sources.received_z14_reporting_source_basis_v1(uuid,uuid)'
+const oldReaderHash='aa595b1798a1d6ab9e99d5025dd8e112e20f73dc9085736fffe6a6419ad70036'
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
 const company=id(1),actor=id(2),customer=id(3),source=id(10),original=id(11),intent=id(12),assignment=id(13),permission=id(14)
 const point='735123456789012345',second='735123456789012352',li='RECEIVED:SOURCE',sha=(v:string)=>createHash('sha256').update(v).digest('hex')
@@ -21,6 +24,7 @@ const archiveAt='2026-10-01T08:00:00Z',reviewAt='2026-10-01T09:00:00Z',originAt=
 type Scope={lineIndex:number;objectId:string;identityAgency:string;lineItemReference:string;customer:{id:string;qualifier:string;agency:string};reason:string}
 type Basis={status:'qualified'|'held';companyId:string;sourceMessageId:string;environment:string;sourcePayloadHash:string;sourceReceivedAt:string;sourceContextHash:string;sourceReceivedContext:Record<string,unknown>;actorUserId:string;evaluationUtcMs:number;objects:{scope:Scope;classification:string;term:{kind:string;endMinute?:string};purpose:{kind:string;code?:string};original:Record<string,unknown>}[];heldObjects:unknown[];missing?:string[]}
 let db:PGlite
+let originalReaderCatalog:unknown,originalWrapperCatalog:unknown,originalReaderBody:string
 function capturedFunction(name:string){
  const start=schema.indexOf('CREATE FUNCTION '+name+'(')
  if(start<0)throw Error('captured_function_unavailable:'+name)
@@ -63,9 +67,8 @@ beforeAll(async()=>{
  CREATE FUNCTION public.gridex_actor_has_company_permission(p_actor_user_id uuid,p_company_id uuid,p_permission text) RETURNS boolean LANGUAGE plpgsql AS $$BEGIN
  IF p_permission NOT IN('ediel.read','communication.read') THEN RAISE EXCEPTION 'finite_send_permission_must_not_be_consulted';END IF;
  RETURN EXISTS(SELECT FROM public.probe_read_permissions WHERE actor_id=p_actor_user_id AND company_id=p_company_id AND permission=p_permission AND allowed);END$$;`)
- for(const table of ['gridex_service_permission.origins','gridex_service_administration.scope_versions','gridex_ediel_services.artifacts','gridex_ediel_services.reviews','public.ediel_service_evidence','public.ediel_service_assignments'])await db.exec(capturedTable(table))
+ for(const table of ['gridex_service_permission.origins','gridex_service_administration.scope_versions','gridex_service_administration.commands','gridex_ediel_services.artifacts','gridex_ediel_services.reviews','public.ediel_service_evidence','public.ediel_service_assignments'])await db.exec(capturedTable(table))
  await db.exec(`CREATE TABLE gridex_received_sources.sources(source_message_id uuid,company_id uuid,environment text,origin text,message_code text,source_received_at timestamptz,captured_at timestamptz,raw_payload text,payload_hash text,received_context jsonb);
- CREATE TABLE gridex_service_administration.commands(command_id uuid,company_id uuid,actor_user_id uuid,input jsonb,result jsonb,created_at timestamptz);
  CREATE FUNCTION gridex_ediel_ack_replay.require_current_source_role_v2(c uuid,env text,source_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE ctx jsonb;BEGIN SELECT context INTO ctx FROM public.probe_legal_context WHERE source_message_id=source_id;IF ctx IS NULL OR ctx->>'companyId' IS DISTINCT FROM c::text OR ctx->>'environment' IS DISTINCT FROM env THEN RAISE EXCEPTION 'ediel_ack_current_captured_role_unavailable' USING ERRCODE='42501';END IF;RETURN ctx;END$$;
  CREATE FUNCTION gridex_ediel_services.lock_evidence_graph_v1() RETURNS void LANGUAGE plpgsql AS $$BEGIN RETURN;END$$;
  CREATE FUNCTION gridex_ediel_services.actor_current_v1(c uuid,actor uuid,review boolean) RETURNS boolean LANGUAGE plpgsql AS $$BEGIN IF review IS NOT TRUE THEN RAISE EXCEPTION 'finite_review_port_not_send_authority';END IF;RETURN EXISTS(SELECT FROM public.probe_reviewer WHERE company_id=c AND actor_id=actor AND current);END$$;
@@ -83,6 +86,16 @@ beforeAll(async()=>{
  // A missing migration/function is a setup gap, never a business RED result.
  if(!existsSync(migration))throw Error('SOURCE_READER_SETUP_GAP: authorized forward remains absent; no business RED claimed')
  await db.exec(readFileSync(migration,'utf8'))
+ originalReaderBody=(await db.query<{body:string}>('SELECT prosrc body FROM pg_proc WHERE oid=$1::regprocedure',[readerSignature])).rows[0].body
+ expect(sha(originalReaderBody)).toBe(oldReaderHash)
+ // Nondefault finite ACL makes privilege loss observable. This role has no
+ // native actor, data or accepted-source authority and is never used to read.
+ await db.exec(`CREATE ROLE probe_reader_catalog;GRANT EXECUTE ON FUNCTION ${readerSignature} TO probe_reader_catalog`)
+ originalReaderCatalog=(await db.query<{metadata:unknown}>("SELECT to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid=$1::regprocedure",[readerSignature])).rows[0].metadata
+ originalWrapperCatalog=(await db.query<{metadata:unknown}>('SELECT to_jsonb(p) metadata FROM pg_proc p WHERE oid=$1::regprocedure',[rpc+'(uuid,uuid)'])).rows[0].metadata
+ // Before its authorized creation, the unchanged reader remains the business
+ // RED target. Missing forward-only catalog checks are setup gaps, not REDs.
+ if(existsSync(clockForward))await db.exec(readFileSync(clockForward,'utf8'))
 },30_000)
 afterAll(async()=>{await db?.close()})
 beforeEach(async()=>{await db.exec('BEGIN');await fixture()})
@@ -321,4 +334,64 @@ it.each(['unavailable','wrong role']as const)('an unrelated own LI needs no %s s
  // Its data cannot establish classification or a new generic READ obligation.
  await db.exec(`CREATE OR REPLACE FUNCTION gridex_ediel_ack_replay.require_current_source_role_v2(c uuid,env text,source_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'finite_nonservice_legal_read_must_not_be_consulted';END$$`)
  expect(await unchangedRead()).toBeNull()
+})
+
+it('uses the actual captured six-column command table and its recorded_at default/NOT NULL clock',async()=>{
+ const columns=(await db.query<{name:string;nullable:string;defaultValue:string|null}>(`SELECT column_name name,is_nullable nullable,column_default "defaultValue" FROM information_schema.columns WHERE table_schema='gridex_service_administration' AND table_name='commands' ORDER BY ordinal_position`)).rows
+ expect(columns.map(c=>c.name)).toEqual(['command_id','company_id','actor_user_id','input','result','recorded_at'])
+ expect(columns[5]).toEqual({name:'recorded_at',nullable:'NO',defaultValue:'now()'})
+})
+it.each([
+ ['earlier','2026-10-01T08:59:59.999999Z','qualified'],
+ ['equal','2026-10-01T09:00:00Z','qualified'],
+ ['one microsecond later','2026-10-01T09:00:00.000001Z','held'],
+]as const)('the actual recorded command clock %s (%s) yields %s',async(_name,clock,status)=>{
+ await db.query('UPDATE gridex_service_administration.commands SET recorded_at=$1 WHERE command_id=$2',[clock,id(300)])
+ const result=await unchangedRead()
+ expect(result?.status).toBe(status)
+ if(status==='qualified')expect(result?.objects).toMatchObject([{classification:'private',term:{kind:'bounded',endMinute:'202701010000'},purpose:{kind:'present',code:'B72'}}])
+ else{expect(result?.objects).toEqual([]);expect(result?.heldObjects).toHaveLength(1)}
+})
+it.each([
+ ['foreign company',`UPDATE gridex_service_administration.commands SET company_id='${id(9)}' WHERE command_id='${id(300)}'`],
+ ['different evidence',`UPDATE gridex_service_administration.commands SET result=jsonb_build_object('evidenceId','${id(999)}') WHERE command_id='${id(300)}'`],
+ ['wrong action',`UPDATE gridex_service_administration.commands SET input=jsonb_build_object('action','approve_assignment') WHERE command_id='${id(300)}'`],
+ ['reviewer submitted own command',`UPDATE gridex_service_administration.commands SET actor_user_id='${id(25)}' WHERE command_id='${id(300)}'`],
+ ['unrelated stage command',`UPDATE gridex_ediel_services.reviews SET stage_command_id='${id(999)}' WHERE evidence_id='${id(100)}'`],
+]as const)('%s cannot qualify the command-clock correspondence',async(_name,sql)=>{
+ await db.exec(sql);expect(await unchangedRead()).toMatchObject({status:'held',objects:[]})
+})
+function forwardSql(){
+ if(!existsSync(clockForward))throw Error('COMMAND_CLOCK_FORWARD_SETUP_GAP: no forward lifecycle result claimed')
+ return readFileSync(clockForward,'utf8')
+}
+function forwardWithinFixture(){
+ const sql=forwardSql()
+ expect(sql.match(/^BEGIN;$/gm)).toHaveLength(1);expect(sql.match(/^COMMIT;$/gm)).toHaveLength(1)
+ // The full forward runs at installation. Lifecycle controls execute its same
+ // DO body in the test's existing transaction so fixture rollback stays real.
+ return sql.replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')
+}
+async function catalog(){
+ return(await db.query<{reader:unknown;wrapper:unknown}>(`SELECT (SELECT to_jsonb(p) FROM pg_proc p WHERE oid=$1::regprocedure) reader,(SELECT to_jsonb(p) FROM pg_proc p WHERE oid=$2::regprocedure) wrapper`,[readerSignature,rpc+'(uuid,uuid)'])).rows[0]
+}
+it('the recognized clock forward changes only the reader clock token and preserves full metadata plus public wrapper',async()=>{
+ forwardSql()
+ const actual=(await db.query<{metadata:unknown;body:string}>("SELECT to_jsonb(p)-'prosrc' metadata,prosrc body FROM pg_proc p WHERE oid=$1::regprocedure",[readerSignature])).rows[0]
+ expect(originalReaderBody.split('stage.created_at<=v.reviewed_at')).toHaveLength(2)
+ expect(actual.body).toBe(originalReaderBody.replace('stage.created_at<=v.reviewed_at','stage.recorded_at<=v.reviewed_at'))
+ expect(actual.metadata).toEqual(originalReaderCatalog)
+ expect((await catalog()).wrapper).toEqual(originalWrapperCatalog)
+})
+it('exact recognized clock-forward replay preserves OID, owner, nondefault ACL, configuration and bodies',async()=>{
+ const before=await catalog(),tables=await snapshot();await db.exec(forwardWithinFixture())
+ expect(await catalog()).toEqual(before);expect(await snapshot()).toEqual(tables)
+})
+it('an unknown predecessor is refused without changing its catalog, public wrapper or any table',async()=>{
+ const sql=forwardWithinFixture(),f=(await db.query<{body:string;definition:string}>('SELECT prosrc body,pg_get_functiondef(oid) definition FROM pg_proc WHERE oid=$1::regprocedure',[readerSignature])).rows[0]
+ await db.exec(f.definition.replace(f.body,()=>f.body+'\n-- independently unknown reader predecessor\n'))
+ const before=await catalog(),tables=await snapshot();await db.exec('SAVEPOINT unknown_clock_predecessor')
+ await expect(db.exec(sql)).rejects.toThrow('received_reporting_command_clock_predecessor_unrecognized')
+ await db.exec('ROLLBACK TO SAVEPOINT unknown_clock_predecessor')
+ expect(await catalog()).toEqual(before);expect(await snapshot()).toEqual(tables)
 })
