@@ -88,4 +88,3 @@ it.each(['L','LK'] as const)('preserves the qualified %s original217 through pub
  expect(origin(cancellation.id)).toEqual(bound);expect(archives(cancellation.id)).toEqual(archived)
  expect(originalSnapshot(f,original.id)).toEqual(before)
 },180000)
-
