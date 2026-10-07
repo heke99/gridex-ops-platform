@@ -146,3 +146,32 @@ it('a retained prior READ token cannot supply D229 after the current executor is
  expect(decision.issues.some(i=>i.code===missingCode)).toBe(false)
  expect(decision.responsePlan.some(i=>i.family==='APERAK')).toBe(false)
 })
+
+// Additional syntax boundary only; no new source authority or whole-contract proof.
+it.each(['count', 'message reference'] as const)('malformed Z02 physical UNT %s rejects before current-executor address READ', async fault => {
+ const f=fixture(),before=f.message.raw_payload!,wire=tokenizeEdifact(before)
+ const unhs=wire.segments.filter(segment=>segment.tag==='UNH'),unts=wire.segments.filter(segment=>segment.tag==='UNT')
+ expect(unhs).toHaveLength(1);expect(unts).toHaveLength(1)
+ const unh=unhs[0]!,unt=unts[0]!,separator=wire.una.dataElementSeparator
+ expect(Number(unt.elements[1])).toBe(unt.index-unh.index+1)
+ expect(unt.elements[2]).toBe(unh.elements[1])
+ const changed=fault==='count'
+  ?unt.raw.replace(`UNT${separator}${unt.elements[1]}${separator}`,`UNT${separator}${Number(unt.elements[1])+1}${separator}`)
+  :unt.raw.replace(`${separator}${unt.elements[2]}`,`${separator}FOREIGN-M`)
+ expect(changed).not.toBe(unt.raw)
+ const after=before.replace(unt.raw,changed)
+ expect(after).not.toBe(before)
+ const mutated=tokenizeEdifact(after)
+ expect(mutated.una).toEqual(wire.una)
+ expect(mutated.segments.filter(segment=>segment.tag!=='UNT').map(segment=>segment.raw))
+  .toEqual(wire.segments.filter(segment=>segment.tag!=='UNT').map(segment=>segment.raw))
+ expect(mutated.segments.filter(segment=>segment.tag==='UNT').map(segment=>segment.raw)).toEqual([changed])
+ f.message.raw_payload=after;f.message.immutable_payload_hash=hash(after)
+ const facts={actorUserId:id(10)},decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.message,facts)
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['rejected','not_applicable','not_applicable'])
+ expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({layer:'syntax',severity:'error',
+  code:fault==='count'?'unt_count_mismatch':'unh_unt_reference_mismatch'})]))
+ expect(io.rpc.mock.calls.filter(([name])=>name==='gridex_ediel_received_z02_address_source_basis_v1')).toEqual([])
+ expect(io.rpc).not.toHaveBeenCalled()
+ expect(decision.responsePlan.some(response=>response.family==='APERAK')).toBe(false)
+})
