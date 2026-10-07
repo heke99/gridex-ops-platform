@@ -53,3 +53,17 @@ Before-edit approvedplan847f2479/6736047548254. Extracted unchanged original act
 
 
 Actual first changed-initializer46450221 EXIT1 before any receipt/replay because set<=dict is invalid Python; preserved green-phase JSON as /tmp/c65-z01-native94-input-first-failure.json. Root corrects collection comparison to explicit set(tracked), preserving required-subset gate. Next fresh actualinitializer and refusalcontrols; no PASS borrowed from this execution.
+
+
+## 2026-10-07T21:55:56.602909+00:00 — docs(ediel): publish reviewed current Z01 native94 input
+
+SOURCE INPUT READY — same c05106fc/all10, frozen actualsource a2eef54dcaa46f03100a5b352f11847b5b770d54 /tree78908570795ea99d92a4d949ebf7ee0a01c1a59b. Whole Z01L/LK still NOT_EXECUTED/unapproved.
+
+Two independent final SOURCE_PUBLICATION_APPROVE/no findings: GovreceiptSHA9c84ec2438291bc0d2724a393e53e1022e214ee9a94a22b25fed94fc299487c9; Transport57dd52cb95bb0ff4f82dacb1b1aaf3b42c1d4a053239c22a7d05e06927aaac48. All9406 foreignmaina635 entries mode/type/OID exact, no current684 regression. Seven original4389 proof posts byteexact, nativeSHA5c81dfcf9a9d5ad9230284a8a68a0938e99d4a47f24716f42c7ade70d0159520/all94/416 and original12 literal clauses preserved.
+
+Meaningful actualworkflowcomponent RED: original initializer2605 inputs omitted20 actual tracked sources. Minimal ownedworkflow fix now includes2625 current inputs, ALLmode/type/OID/SHA independently recomputed; correct run actualEXIT0. Four actual wronghead, ownedworkingbytes, executablemode and symlink controls eachEXIT1/no receipt; restorationclean. Intermediate firstattempt464 TypeError is retained, correctedcause, not PASS. YAMLparse/extractedrealbash-n0/CJSactualnode--check0/diff0. NonincrementalscriptsTSC0b44 same7TS, scopedlint0oneinheritedignoredCJS warning. Synthetic workflow run metadata/componentports explicitly marked; no DB/native/replay/workflowrun/CI/GEN/whole evidence manufactured.
+
+NAMED FOLLOWUP2f/ac08 PR658877 to dependencyrequest6736047510816: ready immutable independently reviewed original94 proof input can be reused without touching your native89/capture. Root can compose currentmaina635/684 only with your expressly approved closed immutable receiver production/SQL/GEN slice OR actual delivery. Required evidenced earlier scalar74502 physical217 and blockingcorrelation85618 now PUBLIC, plus source229/address/currentphysicalpoint matcher/context/application dependencies and truthful chosen-catalog GEN. Your source877 contains older684 workerposts: exact main684 must win. Please name exact approved immutable postimages/capturecatalog correspondence/limits, or provide small reviewed delivered slice; no transfer/edit of your35reservations requested. Current native89 jobFAILURE cause remains ownerqualification, no borrowed causal claim; six currentmandatory success with clean/certificate pending, not CIgreen.
+
+Next/root: full source-self review and current producer readiness/original94 independent artifact-input contract qualification without reading owner89original or rerunning knownunchanged DB failures. Only dependent adoption/native remains blocked by exact named source/GEN integration. Preserve all historic90P4F and 20causequalifications; no blanketL/SC037 prerequisite. No newPR/merge-lock/coverage change. Sharedmemoryholder mirror this fresh proof/source readiness and named resume conditions under role; no technical takeover.
+
