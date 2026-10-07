@@ -191,9 +191,10 @@ function observeProcessedSource(f: Fixture, source: EdielMessageRow) {
     'validatedEvents',(SELECT count(*) FROM events WHERE event_type='validated'),
     'warningEvents',(SELECT count(*) FROM events WHERE event_status='warning'),
     'rolledBackEvents',(SELECT count(*) FROM events WHERE payload->>'supplySourceApply'='rolled_back'),
-    'dependentUnknown214',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:214','Z05:214')),
-    'dependentUnknown218',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:218','Z05:218')),
-    'dependentUnknown259',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:259','Z05:259'))
+    'registerReadingsUnknownIssueCount',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,kind}'='local_unknown' AND x#>>'{prodatDiagnostic,sourceRule}'='PRODAT26A:register-readings'),
+    'genericDependentUnknown214',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:214','Z05:214')),
+    'genericDependentUnknown218',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:218','Z05:218')),
+    'genericDependentUnknown259',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:259','Z05:259'))
   );`)
   console.info('C_NATIVE_OBSERVER', JSON.stringify(observation))
 }
