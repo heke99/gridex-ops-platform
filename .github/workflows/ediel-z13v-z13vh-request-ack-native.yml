@@ -1,0 +1,151 @@
+name: Ediel Z13V Z13VH request ACK native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-z13v-z13vh-request-ack-native.*'
+      - 'scripts/fixtures/ediel-service-evidence-native.ts'
+      - 'scripts/helpers/originalMailboxNative.ts'
+      - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ediel-z13v-z13vh-request-ack-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z13-request-ack-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental boundary feedback. Later Z14/N and whole-card acceptance,
+# ordinary required gates, upgrade/browser/capture remain independent duties.
+jobs:
+  z13-request-ack-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install the PostgreSQL client for the canonical replay server
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "/usr/lib/postgresql/$server_major/bin" >> "$GITHUB_PATH"
+      - name: Run the sole assigned request and received ACK boundary
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          mkdir -p z13-request-ack-native-working
+          export Z13_NATIVE_WORK="$PWD/z13-request-ack-native-working"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z13-request-ack-status.json"
+          export Z13_NATIVE_STAGE="$RUNNER_TEMP/z13-request-ack-stage"
+          export Z13_NATIVE_EXIT_FILE="$RUNNER_TEMP/z13-request-ack-test-exit"
+          # The child retains canonical errexit and its own EXIT cleanup trap.
+          # Replay/status/credentials remain in RUNNER_TEMP, never artifacts.
+          component_exit=0
+          bash <<'NATIVE' > "$RUNNER_TEMP/z13-request-ack-session.log" 2>&1 || component_exit=$?
+          set -euo pipefail
+          printf clean_replay > "$Z13_NATIVE_STAGE"
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf native_execution > "$Z13_NATIVE_STAGE"
+          native_exit=0
+          npx vitest run --config scripts/ediel-z13v-z13vh-request-ack-native.config.ts \
+            scripts/ediel-z13v-z13vh-request-ack-native.test.ts \
+            --reporter=default --reporter=junit \
+            --outputFile="$Z13_NATIVE_WORK/native-junit.xml" \
+            > "$Z13_NATIVE_WORK/native.log" 2>&1 || native_exit=$?
+          printf '%s' "$native_exit" > "$Z13_NATIVE_EXIT_FILE"
+          printf native_completed > "$Z13_NATIVE_STAGE"
+          exit "$native_exit"
+          NATIVE
+          export Z13_COMPONENT_EXIT="$component_exit"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
+          stage=pathlib.Path(os.environ['Z13_NATIVE_STAGE'])
+          native_exit=pathlib.Path(os.environ['Z13_NATIVE_EXIT_FILE'])
+          tracked=subprocess.check_output(['git','ls-files','-s','-z']).decode().split('\0')
+          source=[]
+          for entry in filter(None,tracked):
+              head,path=entry.split('\t',1)
+              mode,oid,index=head.split()
+              if index!='0':raise RuntimeError('unmerged_native_source')
+              source.append({'path':path,'mode':mode,'git_oid':oid,
+                  'sha256':hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()})
+          sql=[r for r in source if r['path'].startswith('supabase/migrations/') and r['path'].endswith('.sql')]
+          junit=work/'native-junit.xml'
+          counts=None
+          if junit.exists():
+              root=ET.parse(junit).getroot()
+              cases=root.findall('.//testcase')
+              counts={'cases':len(cases),'failures':sum(c.find('failure') is not None for c in cases),
+                  'errors':sum(c.find('error') is not None for c in cases),
+                  'skipped':sum(c.find('skipped') is not None for c in cases)}
+          if native_exit.exists() and int(native_exit.read_text())==0:
+              if counts!={'cases':14,'failures':0,'errors':0,'skipped':0}:
+                  raise RuntimeError('complete_unskipped_z13_boundary_required')
+          receipt={'purpose':'supplemental_public_z13_request_received_ack_boundary',
+              'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'expected_source_sha':os.environ['EXPECTED_SOURCE_SHA'],
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'component_exit_code':int(os.environ['Z13_COMPONENT_EXIT']),
+              'stage':stage.read_text() if stage.exists() else 'NOT_STARTED',
+              'native_exit_code':int(native_exit.read_text()) if native_exit.exists() else 'NOT_RUN',
+              'junit_counts':counts,'test_scope':['scripts/ediel-z13v-z13vh-request-ack-native.test.ts'],
+              'tracked_source':source,'selected_sql':sql,
+              'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','browser_tests':'NOT_RUN',
+              'upgrade_parity':'NOT_RUN','authentic_market_evidence':'NOT_PROVIDED','whole_card_approval':'NOT_PROVIDED'}
+          (work/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          if test -f "$GRIDEX_NATIVE_STATUS"; then
+            python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$Z13_NATIVE_WORK"
+          else
+            # No replay/session log is present in the publishable directory.
+            python3 scripts/gridex-redact-native-evidence.py --root "$Z13_NATIVE_WORK"
+          fi
+          mv "$Z13_NATIVE_WORK" z13-request-ack-native-evidence
+          if test -f z13-request-ack-native-evidence/native.log; then
+            cat z13-request-ack-native-evidence/native.log
+          fi
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$component_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z13-request-ack-native-${{ github.event.pull_request.head.sha }}
+          path: z13-request-ack-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
