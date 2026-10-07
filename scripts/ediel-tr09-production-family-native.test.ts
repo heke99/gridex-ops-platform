@@ -17,6 +17,7 @@ import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {extractSmimeDer} from '@/lib/ediel/transport/smimeTransportArchive'
 import {inspectCmsRecipientCertificateSet} from '@/lib/ediel/transport/cmsRecipientSet'
 import {resolveEdielCertificateTrustAuthority} from '@/lib/ediel/security/certificateTrust'
+import {runProductionDryRun} from '@/lib/ediel/productionReadiness'
 import {literal, nativeSql as sql, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {recordOriginalMailboxNativeReception, seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {publishSyntheticRecipientTrust} from './helpers/syntheticCertificateTrust'
@@ -124,9 +125,46 @@ async function productionContrl(encrypted: boolean) {
     AND s.evidence#>>'{originalUNB,testIndicator}'='' AND r.environment='production' AND r.payload_sha256=s.payload_sha256
     AND r.evidence=${literal(evidence)}::jsonb) FROM gridex_ediel_technical_ack.sources s
     JOIN gridex_ediel_technical_ack.replies r USING(source_message_id) WHERE s.source_message_id=${literal(sourceId)}`)).toBe(true)
-  return {f, source: source!, ack, evidence, trust, certificateId, routeId, profileId}
+  const fixture = {f, source: source!, ack, evidence, trust, certificateId, routeId, profileId}
+  await diagnoseProductionPrerequisites(fixture)
+  return fixture
 }
 type Fixture = Awaited<ReturnType<typeof productionContrl>>
+async function diagnoseProductionPrerequisites(s: Fixture) {
+  // Exercise the supported evaluator, never attest certification, transition
+  // LIVE or substitute a system actor. Diagnosis precedes transport oracles.
+  const prior = before(s)
+  const admission = () => sql<Json>(`SELECT jsonb_build_object(
+    'company', (SELECT to_jsonb(c) FROM public.companies c WHERE c.id=${literal(s.f.companyId)}),
+    'capabilities', ${rows('public.company_capabilities', `t.company_id=${literal(s.f.companyId)}`)},
+    'production', ${rows('public.ediel_production_state', `t.company_id=${literal(s.f.companyId)}`)},
+    'certification', ${rows('public.ediel_certification_evidence', `t.company_id=${literal(s.f.companyId)}`)})`)
+  const authority = admission()
+  try {
+    const result = await runProductionDryRun(s.f.companyId, s.f.actorUserId, s.ack)
+    console.info('TR09 actual readiness diagnostic', {
+      status: result.success ? 'READY_INPUTS' : 'BLOCKED',
+      dryRunStatus: result.status,
+      blockers: result.blockingIssues.map(issue => issue.code),
+      wouldSend: result.previewMetadata.wouldSend,
+    })
+  } catch (error) {
+    console.info('TR09 actual readiness diagnostic', {status: 'DIAGNOSTIC_FAIL',
+      errorCode: errorMessage(error).match(/^[A-Za-z0-9_]+/)?.[0] ?? 'unclassified',
+      wouldSend: 'NOT_REACHED'})
+  } finally {
+    // Partial snapshots/readiness journals may exist after an actual failure.
+    // They may not manufacture business effects or production admission.
+    expect(admission()).toEqual(authority)
+    preserved(s, prior, true)
+  }
+  const readiness = sql<Json>(`SELECT public.canonical_company_readiness(${literal(s.f.companyId)},NULL,
+    (SELECT id FROM public.ediel_production_readiness_checks WHERE company_id=${literal(s.f.companyId)} ORDER BY checked_at DESC,id LIMIT 1),
+    (SELECT id FROM public.ediel_go_live_events WHERE company_id=${literal(s.f.companyId)} AND event_type='production_dry_run' ORDER BY created_at DESC,id LIMIT 1),'live')`)
+  const evidence = sql<Json>(`SELECT public.canonical_ediel_production_evidence_readiness(${literal(s.f.companyId)})`)
+  console.info('TR09 actual canonical prerequisites', {ready: readiness.ready,
+    blockers: readiness.blockers, evidenceReady: evidence.ready, missingEvidence: evidence.missing})
+}
 const rows = (table: string, predicate: string) => `(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]') FROM ${table} t WHERE ${predicate})`
 function graph(s: Fixture) {
   const company = `t.company_id=${literal(s.f.companyId)}`
