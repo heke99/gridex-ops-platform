@@ -1,0 +1,144 @@
+{
+  "nativeExit": 0,
+  "decoderSqlExit": 0,
+  "schemaCaptureExit": 0,
+  "generatedOutputHashes": {
+    "database.types.ts": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+    "schema.fingerprint.json": "d30870bb73d981b4128f29e47409bfdfd44838665ffabc7076742865d341b404",
+    "schema.sql": "1ea1fba0d175f22e1698bd1fbcd8e5ec8213b033fccebcf7f1b464cab480eb51"
+  },
+  "head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+  "tree": "920fff9ccc9e6fbbc8bc77cc401abc9194bda2f5",
+  "run": "37551097436",
+  "artifact": 11452324730,
+  "zipSha256": "256a1fe3ff12e14340a64c69bf301c0ec667fc69b6e1f6e7098540f73069aa4f",
+  "inputHashesMatched": 3337,
+  "executed": 22,
+  "pass": 22,
+  "fail": 0,
+  "skip": 0,
+  "errors": 0,
+  "tests": [
+    {
+      "name": "prospective original bankruptcy reaches actual processor and its own committed primary ACK, retry stable",
+      "status": "PASS"
+    },
+    {
+      "name": "prospective original customer_change reaches actual processor and its own committed primary ACK, retry stable",
+      "status": "PASS"
+    },
+    {
+      "name": "prospectively expired supplier role permits only correlated technical CONTRL and holds fresh physical original before business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh physical original missing own field 216 has its actual diagnostic and no customer effect or positive APERAK",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh physical original missing own field 251 has its actual diagnostic and no customer effect or positive APERAK",
+      "status": "PASS"
+    },
+    {
+      "name": "native bankruptcy classification commits a future customer version and its own primary receipt without current customer or supply mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "native customer_change classification commits a future customer version and its own primary receipt without current customer or supply mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "same-tenant signed authority for original A cannot classify or apply original B, with actual correct-A review control",
+      "status": "PASS"
+    },
+    {
+      "name": "actual REST raw mutation cannot change the sealed E original, ledger or business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "actual REST direction mutation cannot change the sealed E original, ledger or business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "actual REST receipt_time mutation cannot change the sealed E original, ledger or business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "modern catalog rejects outbound Z06E semantics; the actual kernel separately refuses unqualified source with no original or witness",
+      "status": "PASS"
+    },
+    {
+      "name": "actual sent Z09 receives same-original CONTRL then object APERAK, immutable retry and no automatic customer switch",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh received unknown UCI and wrong LI cannot correlate or accept the sent customer original",
+      "status": "PASS"
+    },
+    {
+      "name": "after actual Z09 send and same-original ACKs, an independent later Z06 commits its own confirmed history without changing the request or live customer",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine current company producer commits non-death customer/invoicee facet and separate availability; same native snapshot supplies dated AI with immutable originals and current revocation",
+      "status": "PASS"
+    },
+    {
+      "name": "actual non-death outgoing mandate archives missing authority, holds separate review and makes no event or queue",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine generic death archive and separate review reach the actual Z09 gateway and fresh SMTP send without automatic customer effects",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine reviewed death event qualifies only its own physical Z06 confirmed facet and committed history; orphan and retry have no primary customer effect",
+      "status": "PASS"
+    },
+    {
+      "name": "actual independent outgoing review publishes exact immutable non-death event; current issuer/reviewer revocation blocks every fresh consumer",
+      "status": "PASS"
+    },
+    {
+      "name": "actual qualified outgoing source reaches the existing atomic original/intent/outbox gateway and immutable retry",
+      "status": "PASS"
+    },
+    {
+      "name": "actual supplier role refuses a fresh DSO sender before source validation; the genuine current supplier queues its reviewed original",
+      "status": "PASS"
+    }
+  ],
+  "apiRunId": 37551097436,
+  "apiRunAttempt": 1,
+  "apiRunConclusion": "success",
+  "apiRepositoryId": 1190539955,
+  "artifactMetadata": {
+    "id": 11452324730,
+    "node_id": "MDg6QXJ0aWZhY3QxMTQ1MjMyNDczMA==",
+    "name": "ediel-z06e-z09e-native-f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "size_in_bytes": 174043,
+    "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11452324730",
+    "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11452324730/zip",
+    "expired": false,
+    "digest": "sha256:256a1fe3ff12e14340a64c69bf301c0ec667fc69b6e1f6e7098540f73069aa4f",
+    "created_at": "2026-10-07T00:27:41Z",
+    "updated_at": "2026-10-07T00:27:41Z",
+    "expires_at": "2026-10-21T00:27:40Z",
+    "workflow_run": {
+      "id": 37551097436,
+      "repository_id": 1190539955,
+      "head_repository_id": 1190539955,
+      "head_branch": "codex/ediel-e-native-93e252d8",
+      "head_sha": "f367778548c4e3b7d148d267c2244cbd712b4a5b"
+    }
+  },
+  "archiveBytes": 174043,
+  "archive": "/workspace/attachments/f8cfc89a-fcc8-4eab-bb7b-54203c031796/629-native-f367-redacted.zip",
+  "archiveCrc": "PASS",
+  "exactOriginalUniqueCaseNames": "ALL22MATCH",
+  "qualificationScope": "Authentic supplemental source-f367 native only; whole software reviews/current generated import and ordinary mandatory gates remain separate; external market evidence not provided.",
+  "actualStatus": "ALL22PASS_NATIVE_ALLSQL_CAPTURE_EXIT0",
+  "durableOriginalZipPath": "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/original-native-f367.zip",
+  "durableQualifiedProofPath": "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/qualified-native-f367.json",
+  "originalZipCopy": "BYTE_EXACT_ORIGINAL_AUTHENTIC_REDACTED_ARTIFACT"
+}
