@@ -7,22 +7,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
 
 type Row = Record<string, unknown>
-type Filter = { column: string; values: unknown[] }
+type Filter = { column: string; values: unknown[]; exclude?: boolean }
 type Read = { table: string; columns: string; filters: Filter[] }
 type Write = { table: string; rows: Row[] }
-const port = vi.hoisted(() => ({ from: null as null | ((table: string) => unknown) }))
+const port = vi.hoisted(() => ({ from: null as null | ((table: string) => unknown),
+  rpc: null as null | ((name: string, args: Row) => unknown) }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: (table: string) => {
     if (!port.from) throw new Error('DB01 declared database input port not initialized')
     return port.from(table)
   },
-  rpc: () => { throw new Error('DB01 unit inputs do not mint private authority or emulate RPC approval') },
+  rpc: (name: string, args: Row) => {
+    if (!port.rpc) throw new Error('DB01 declared RPC input port not initialized')
+    return port.rpc(name, args)
+  },
 } }))
 
 import { createEdielMessage, getEdielMessageById } from '@/lib/ediel/db'
 import * as messageDb from '@/lib/ediel/db'
 import { createEdielSupplierAgtOutboundCommand } from '@/lib/ediel/testing/agtEngine'
 import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
+import * as kernel from '@/lib/ediel/core/kernel'
+import * as validator from '@/lib/ediel/rulebook/validator'
 
 const COMPANY = '10000000-0000-4000-8000-000000000001'
 const FOREIGN_COMPANY = '10000000-0000-4000-8000-000000000002'
@@ -36,10 +42,55 @@ const LEGACY_ADDRESS = '80000000-0000-4000-8000-000000000001'
 const FOREIGN_ADDRESS = '80000000-0000-4000-8000-000000000002'
 const STALE_ADDRESS = '80000000-0000-4000-8000-000000000003'
 const NOW = '2026-10-06T20:00:00.000Z'
+const PACK = '90000000-0000-4000-8000-000000000001'
+const MESSAGE_PROFILE = '90000000-0000-4000-8000-000000000002'
+const WITNESS = '90000000-0000-4000-8000-000000000003'
+const PROFILE_KEY = 'PRODAT:Z09:G:26.A:r3'
 let tables: Record<string, Row[]>
 let reads: Read[]
 let writes: Write[]
 let nextId: number
+let rpcCalls: {name: string; args: Row}[]
+
+/** Declared serialized SDK responses only. Real kernel/validator interpret
+ * them. This neither executes protected SQL nor proves private custody,
+ * native authorization, publication, one-use consumption or certification. */
+function declaredRpc(name: string, args: Row) {
+  rpcCalls.push({name, args: structuredClone(args)})
+  if (name === 'gridex_actor_has_company_permission') {
+    return Promise.resolve({data: args.p_actor_user_id === USER && args.p_company_id === COMPANY
+      && ['communication.write', 'communication.send'].includes(String(args.p_permission)), error: null})
+  }
+  if (name === 'resolve_canonical_ediel_rule_pack_with_witness_v1') {
+    expect(args).toMatchObject({p_market: 'electricity', p_family: 'PRODAT', p_message_code: 'Z09',
+      p_transaction_subtype: 'G', p_direction: 'outbound', p_business_date: '2026-10-06'})
+    const rulePack = {id: PACK, source_hash: 'a'.repeat(64), guide_version: '26.A', guide_revision: '3'}
+    const profile = {family: 'PRODAT', messageCode: 'Z09', transactionSubtype: 'G', canonicalDirection: 'outbound',
+      reasonForTransaction: 'E32', guideVersion: '26.A', guideRevision: '3'}
+    const messageProfile = {id: MESSAGE_PROFILE, rule_pack_id: PACK, profile_key: PROFILE_KEY, profile}
+    return Promise.resolve({data: {rule_pack_id: PACK, message_profile_id: MESSAGE_PROFILE,
+      market: 'electricity', family: 'PRODAT', guide_version: '26.A', guide_revision: '3', unh_association_code: 'E2SE6A',
+      valid_from: '2026-04-01', valid_to: null, source_document: 'Declared finite registry response, not acquired source',
+      source_hash: rulePack.source_hash, field_matrix_version: '26A-r3', profile_key: PROFILE_KEY, business_process: 'masterdata',
+      phase: null, profile, parser_ready: true, builder_ready: true, validator_ready: true, ack_ready: true, state_machine_ready: true,
+      original_version: '26.A:r3', original_snapshot: {rulePack, messageProfile, guideSources: []}}, error: null})
+  }
+  if (name === 'ediel_registry_dispatch_source_v1') {
+    expect(args).toEqual({p_company_id: COMPANY, p_communication_route_id: ROUTE, p_route_profile_id: PROFILE,
+      p_environment: 'test', p_message_family: 'PRODAT', p_application_reference: '23-DDQ-PRODAT'})
+    // The test portal has no registered actor-market source in these explicit
+    // finite inputs. The existing nullable RPC contract remains unchanged.
+    return Promise.resolve({data: null, error: null})
+  }
+  if (name === 'ediel_prepare_outbound_owner_witness_v1') {
+    const input = args.p_input as Row
+    expect(input).toMatchObject({companyId: COMPANY, actorUserId: USER, environment: 'test',
+      rulePackEvidence: {rulePackId: PACK, messageProfileId: MESSAGE_PROFILE, profileKey: PROFILE_KEY}})
+    expect(input.rawPayload).toEqual(expect.stringContaining("CCI++Z13'CAV+E32'"))
+    return Promise.resolve({data: {version: 1, witnessId: WITNESS, evidence: input.rulePackEvidence}, error: null})
+  }
+  throw new Error(`DB01 undeclared RPC response: ${name}`)
+}
 
 /** Finite database adapter: applies actual tenant/id predicates and projection;
  * it does not repair a payload, validate a role, or choose a route for the code. */
@@ -56,7 +107,8 @@ function query(table: string) {
       writes.push({ table, rows: structuredClone(written) })
       tables[table].push(...written)
     }
-    const rows = (written ?? tables[table]).filter(row => filters.every(filter => filter.values.includes(row[filter.column]))).slice(0, limit)
+    const rows = (written ?? tables[table]).filter(row => filters.every(filter => filter.exclude
+      ? !filter.values.includes(row[filter.column]) : filter.values.includes(row[filter.column]))).slice(0, limit)
     reads.push({ table, columns, filters: structuredClone(filters) })
     const projected = rows.map(row => columns === '*' ? structuredClone(row) : Object.fromEntries(columns.split(',').map(column => [column, row[column]])))
     if (single && (rows.length > 1 || !optional && rows.length !== 1)) {
@@ -68,6 +120,10 @@ function query(table: string) {
     select(value = '*') { columns = value; return chain },
     eq(column: string, value: unknown) { filters.push({ column, values: [value] }); return chain },
     in(column: string, values: unknown[]) { filters.push({ column, values }); return chain },
+    not(column: string, operator: string, value: unknown) {
+      if (operator !== 'is') throw new Error(`DB01 undeclared NOT operator: ${operator}`)
+      filters.push({column, values: [value], exclude: true}); return chain
+    },
     order() { return chain },
     limit(value: number) { limit = value; return chain },
     insert(value: Row | Row[]) { pending = Array.isArray(value) ? value : [value]; return chain },
@@ -85,6 +141,8 @@ function seed(hint: string | null = LEGACY_ADDRESS, testCaseCode = 'L7') {
   tables = {
     ediel_messages: [], ediel_message_events: [], ediel_business_references: [],
     ediel_test_run_messages: [], ediel_test_artifacts: [],
+    company_memberships: [{company_id: COMPANY, user_id: USER, status: 'active', is_active: true, accepted_at: NOW}],
+    user_profiles: [{id: USER, user_status: 'active'}],
     ediel_parties: [{ id: PARTY, ediel_id: '24200', roles: ['supplier'], status: 'verified' }],
     // Contradictory and stale legacy facts are deliberately tempting, but no
     // current producer should consult them to choose an address or certificate.
@@ -138,9 +196,9 @@ async function createAgt(testCaseCode = 'L7', companyId = COMPANY) {
 
 beforeEach(() => {
   vi.useFakeTimers(); vi.setSystemTime(new Date(NOW))
-  reads = []; writes = []; nextId = 0; seed(); port.from = query
+  reads = []; writes = []; rpcCalls = []; nextId = 0; seed(); port.from = query; port.rpc = declaredRpc
 })
-afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); port.from = null })
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); port.from = null; port.rpc = null })
 
 describe('DB01 fresh message address retirement preserves current authority', () => {
   it.each([
@@ -191,9 +249,11 @@ describe('DB01 actual AGT producer uses current runtime while ignoring retired h
     // Observation only: the spy retains the actual implementation and all
     // persistence/reference/event effects; no creator is stubbed or replaced.
     const messageCreation = vi.spyOn(messageDb, 'createEdielMessage')
+    const canonicalCreation = vi.spyOn(kernel, 'createCanonicalOutboundMessage')
+    const nationalValidation = vi.spyOn(validator, 'validateRulebookMessageWithRegistry')
     const row = await createAgt()
     expect(row).toMatchObject({ company_id: COMPANY, environment: 'test', test_flag: 1, message_family: 'PRODAT', message_code: 'Z09',
-      communication_route_id: ROUTE, route_profile_id: null, mailbox: 'locked-mailbox', party_id: PARTY,
+      communication_route_id: ROUTE, mailbox: 'locked-mailbox', party_id: PARTY,
       sender_ediel_id: '24200', receiver_ediel_id: '91100', receiver_email: 'portal@example.invalid', application_reference: '23-DDQ-PRODAT',
       transport_security_mode: 'required_encrypted', route_transport_security_mode: 'required_encrypted' })
     expect(row.raw_payload).toContain("CCI++Z13'CAV+E32'")
@@ -210,6 +270,129 @@ describe('DB01 actual AGT producer uses current runtime while ignoring retired h
     // Keep the AGT caller check independent of the lower persistence fix:
     // merely ignoring the hint in db.ts must not hide continued forwarding.
     expect(messageCreation.mock.calls[0][0].partyAddressId).toBeUndefined()
+    // Stronger prospective source seam, after all previous rendering,
+    // security, linkage, reference and retirement oracles have executed.
+    expect.soft(canonicalCreation).toHaveBeenCalledOnce()
+    expect.soft(nationalValidation).toHaveBeenCalledOnce()
+    expect.soft(row).toMatchObject({route_profile_id: PROFILE, canonical_rule_pack_id: PACK,
+      rule_profile_version_id: MESSAGE_PROFILE, rule_profile_key: PROFILE_KEY,
+      rule_profile_version: '26.A:r3', rule_pack_checksum: 'a'.repeat(64),
+      execution_context_snapshot: {outboundOwnerWitnessId: WITNESS, executionContext: {
+        companyId: COMPANY, environment: 'test', direction: 'outbound', rulePackId: PACK,
+        communicationRouteId: ROUTE, routeProfileId: PROFILE, senderEdielId: '24200', senderRole: 'supplier'}}})
+    expect.soft(rpcCalls.map(call => call.name)).toContain('ediel_prepare_outbound_owner_witness_v1')
+  })
+
+  it.each(['missing', 'foreign'] as const)('an invalid %s locked profile cannot fall back to the valid runtime profile', async kind => {
+    const invalidProfile = '50000000-0000-4000-8000-000000000099'
+    tables.ediel_test_runs[0].route_profile_id = invalidProfile
+    if (kind === 'foreign') tables.ediel_route_profiles.push({...profile(), id: invalidProfile, company_id: FOREIGN_COMPANY})
+    // The ordinary runtime selector still has its own valid profile, so a
+    // refusal must come from the distinct selected locked-run scope.
+    expect(profile()).toMatchObject({id: PROFILE, company_id: COMPANY, is_enabled: true})
+    await expect.soft(createAgt()).rejects.toThrow('agt_run_route_profile_unavailable')
+    assertNoEffects()
+    expect(rpcCalls.some(call => call.name === 'ediel_prepare_outbound_owner_witness_v1')).toBe(false)
+  })
+
+  it('a manual command without a locked run selects its real named AGT runtime profile', async () => {
+    tables.ediel_test_runs = []
+    const row = await createEdielSupplierAgtOutboundCommand({actorUserId: USER, companyId: COMPANY, testCaseCode: 'L7'})
+    expect(row).toMatchObject({communication_route_id: ROUTE, route_profile_id: PROFILE,
+      mailbox: 'locked-mailbox', party_address_id: null, canonical_rule_pack_id: PACK})
+    expect(tables.ediel_test_run_messages).toEqual([])
+  })
+
+  it.each([
+    ['missing', () => { tables.ediel_test_runs = [] }],
+    ['foreign', () => { tables.ediel_test_runs[0].company_id = FOREIGN_COMPANY }],
+    ['finished', () => { tables.ediel_test_runs[0].status = 'passed' }],
+  ] as const)('an explicitly requested %s run cannot become an unlocked manual command', async (_name, change) => {
+    change()
+    await expect(createAgt()).rejects.toThrow('agt_run_unavailable')
+    assertNoEffects()
+    expect(rpcCalls).toEqual([])
+  })
+
+  it.each([
+    ['case', () => { tables.ediel_test_runs[0].test_case_code = 'L1' }],
+    ['suite', () => { tables.ediel_test_runs[0].test_suite = 'UTILTS' }],
+    ['role', () => { tables.ediel_test_runs[0].role_code = 'grid_owner' }],
+    ['version', () => { tables.ediel_test_runs[0].approval_version = 'UNSUPPORTED' }],
+  ] as const)('a selected run with a different %s cannot supply AGT source context', async (_name, change) => {
+    change()
+    await expect(createAgt()).rejects.toThrow('agt_run_scope_mismatch')
+    assertNoEffects()
+    expect(rpcCalls).toEqual([])
+  })
+
+  it.each([
+    ['missing id', 'route_profile_id', null],
+    ['disabled', 'is_enabled', false],
+    ['production environment', 'environment', 'production'],
+    ['non-test flag', 'default_test_flag', 0],
+    ['different family', 'message_family', 'UTILTS'],
+    ['different route', 'communication_route_id', '40000000-0000-4000-8000-000000000099'],
+    ['different sender', 'sender_ediel_id', '11900'],
+    ['different receiver', 'receiver_ediel_id', '11900'],
+    ['different APP', 'application_reference', 'WRONG-PRODAT'],
+    ['different sender subaddress', 'sender_sub_address', 'OTHER'],
+    ['different receiver subaddress', 'receiver_sub_address', 'OTHER'],
+  ] as const)('the actual locked-profile read refuses %s after valid runtime selection', async (_name, column, value) => {
+    if (column === 'route_profile_id') tables.ediel_test_runs[0][column] = value
+    else port.from = table => {
+      const current = query(table)
+      if (table === 'ediel_route_profiles') {
+        const eq = current.eq
+        current.eq = (key, selected) => {
+          // Physical table change at the distinct id-selected read. Earlier
+          // ordinary runtime reads keep their real returned row snapshots.
+          if (key === 'id') profile()[column] = value
+          return eq(key, selected)
+        }
+      }
+      return current
+    }
+    await expect(createAgt()).rejects.toThrow('agt_run_route_profile_unavailable')
+    assertNoEffects()
+    expect(rpcCalls).toEqual([])
+  })
+
+  it.each(['membership', 'permission', 'registry', 'witness'] as const)('actual canonical %s refusal leaves no message/run/artifact effects', async boundary => {
+    if (boundary === 'membership') tables.company_memberships = []
+    port.rpc = (name, args) => {
+      if (boundary === 'permission' && name === 'gridex_actor_has_company_permission') {
+        rpcCalls.push({name, args: structuredClone(args)})
+        return Promise.resolve({data: false, error: null})
+      }
+      if (boundary === 'registry' && name === 'resolve_canonical_ediel_rule_pack_with_witness_v1') {
+        rpcCalls.push({name, args: structuredClone(args)})
+        return Promise.resolve({data: [], error: null})
+      }
+      if (boundary === 'witness' && name === 'ediel_prepare_outbound_owner_witness_v1') {
+        rpcCalls.push({name, args: structuredClone(args)})
+        return Promise.resolve({data: null, error: new Error('Declared SDK witness unavailable')})
+      }
+      return declaredRpc(name, args)
+    }
+    const diagnostic = {membership: 'ediel_tenant_actor_forbidden', permission: 'ediel_tenant_permission_forbidden',
+      registry: 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE', witness: 'ediel_outbound_owner_witness_required'}[boundary]
+    await expect(createAgt()).rejects.toThrow(diagnostic)
+    assertNoEffects()
+    if (boundary !== 'witness') expect(rpcCalls.some(call => call.name === 'ediel_prepare_outbound_owner_witness_v1')).toBe(false)
+  })
+
+  it('the real public kernel and national validator refuse the rendered legacy AGT process label before a witness', async () => {
+    const messageCreation = vi.spyOn(messageDb, 'createEdielMessage')
+    await createAgt()
+    const actualRenderedInput = messageCreation.mock.calls[0][0]
+    for (const table of ['ediel_messages', 'ediel_message_events', 'ediel_business_references', 'ediel_test_run_messages', 'ediel_test_artifacts']) tables[table] = []
+    writes = []; rpcCalls = []
+    await expect(kernel.createCanonicalOutboundMessage({actorUserId: USER, requestType: 'customer_masterdata',
+      baseInput: {...actualRenderedInput, processType: 'agt_supplier_l7', communicationRouteId: ROUTE, routeProfileId: PROFILE}}))
+      .rejects.toThrow('CANONICAL_PROCESS_GROUP_MISMATCH')
+    assertNoEffects()
+    expect(rpcCalls.some(call => call.name === 'ediel_prepare_outbound_owner_witness_v1')).toBe(false)
   })
 
   it('the real L1 preflight retains its independent address/invoicee hold despite a legacy hint', async () => {
