@@ -70,6 +70,7 @@ jobs:
               'supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql',
               'supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql',
               'supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql',
+              'supabase/migrations/20261007154601_ediel_source_qualified_technical_contrl_admission.sql',
               'scripts/helpers/originalMailboxNative.ts', 'scripts/helpers/syntheticCertificateTrust.ts',
               'scripts/helpers/correctionContextNative.ts', '__tests__/helpers/closureWireFixtures.ts',
               'scripts/helpers/ediel-tr09-native-foreign-image.ts',
