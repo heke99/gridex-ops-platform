@@ -1,3 +1,15 @@
+## Before source-only draft publication — 2026-10-07
+
+Same L/LK pair and 20 resource reservations. The actual committed version has two independent complete four-file source approvals and all five bounded checks green: 97 tests, scoped lint and three nonincremental type checks. The separately reviewed native fixture prerequisites preserve all 34 identities and original assertions. Main is unchanged; previous source component posts and all foreign files are preserved. Exact version bindings remain in the private checkpoint.
+
+GitHub normal checkpoint publication has recovered and its remote state and content are confirmed. A fresh safe #530 comment attempt returned HTTP 403: commenting disabled above 2500 comments. The original #530 claim/history remains intact; the established #673 continuation has a confirmed safe finite receipt. Its same-owner comment carries this publication decision without changing reservations or protocol.
+
+GO only after exact own checkpoint and safe continuation readbacks, fresh confirmation of all 20 owned resources, unchanged current main/PR version and clean local reviewed source: normal nonforce publication of the current committed source to the existing unique PR #635 branch. Keep the PR OPEN/DRAFT; confirm actual branch and PR state afterwards. No main merge, CI_GREEN, coverage or whole/native approval. If any version/ownership check changes, stop publication and reconcile.
+
+This source-only feedback includes the three truthful fixture repairs and the reviewed native reading prerequisites. It does not repair the separately owned automatic runtime loader or supply their authority. Prior genuine native 32 passed/2 failed and full-suite failures remain historical facts; new CI results must be assessed for their actual current version. Next: record actual publication, make the reviewed SDK test support available for bounded inspection, continue the read-only plan for remaining consumers and coordinate lawful runtime integration. A new scope is not coded before fresh locks and documentation.
+
+---
+
 ## Bounded fixture change reviewed and locally green — 2026-10-07
 
 Same sole L/LK packet and reservations. The committed four-file fixture change now has two independent complete source approvals, both with zero findings. Root actual checks all exit 0 on the clean committed version: 97 targeted tests, scoped lint and nonincremental type checks for tests, scripts and application. All 97 identities, 86 assertion sites and 17 untouched cases are preserved; the original 77 fixture/test bodies and the repeated-register and syntax-negative controls are unchanged. Exact commit and full receipts are kept in the private session checkpoint.
