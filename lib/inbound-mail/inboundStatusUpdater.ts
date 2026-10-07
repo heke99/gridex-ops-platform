@@ -8,6 +8,9 @@ import { supabaseService } from '@/lib/supabase/service'
 import { resolveAssignedSupplyBirthProfile } from '@/lib/inbound-mail/assignedSupplyBirthProfile'
 import { resolveNormalSwitchBirthProfile } from '@/lib/inbound-mail/normalSwitchBirthProfile'
 import { resolveCustomerSourceBirthProfile } from '@/lib/inbound-mail/customerSourceBirthProfile'
+import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierDataBirthProfile'
+import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
+import { resolveSupplyEndBirthProfile } from '@/lib/inbound-mail/supplyEndBirthProfile'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
@@ -419,9 +422,18 @@ export async function createInboundEdielMessage(input: {
   if(mailSourceError)throw mailSourceError
   if(!mailSource||mailSource.id!==input.inboundEmailMessageId||(mailSource.company_id!==null&&mailSource.company_id!==input.companyId)||(mailSource.environment!==null&&mailSource.environment!==normalizedEnvironment)||typeof mailSource.received_at!=='string'||!Number.isFinite(Date.parse(mailSource.received_at)))throw new Error('ediel_actual_inbound_receipt_clock_required')
   insertPayload.message_received_at=new Date(mailSource.received_at).toISOString()
+  if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z02') {
+    const birthProfile = await resolveSupplierDataBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    if (birthProfile) Object.assign(insertPayload, birthProfile)
+  }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z04') {
     const birthProfile = await resolveAssignedSupplyBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
       ?? await resolveNormalSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+      ?? await resolveBilateralSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    if (birthProfile) Object.assign(insertPayload, birthProfile)
+  }
+  if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z05') {
+    const birthProfile = await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z06') {
