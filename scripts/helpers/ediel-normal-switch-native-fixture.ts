@@ -56,11 +56,15 @@ export function futureNativeSupplyDate(days=14){
  const date=new Date(`${today}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)
 }
 export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
-type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string}
+export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}
+export type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;bindingMonths?:number;billingAddress?:{street:string;postalCode:string;city:string;country:string};createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>}
 export function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal:true}):Promise<NormalSwitchStageNativeFixture>
 export function seedNormalSwitchNativeFixture(input?:NormalSwitchFixtureInput&{deferOriginal?:false}):Promise<NormalSwitchStageNativeFixture&{caseReference:string;originalZ03:EdielMessageRow}>
 export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal?:boolean}={}){
  const customerName=input.customerName??'Synthetic Own Customer'
+ const bindingMonths=input.bindingMonths??0
+ if(!Number.isInteger(bindingMonths)||bindingMonths<0)throw Error('native_switch_binding_months_invalid')
+ if(input.billingAddress&&Object.values(input.billingAddress).some(value=>!value.trim()))throw Error('native_switch_billing_address_incomplete')
  if(input.initialSubtype!==undefined&&!['L','H'].includes(input.initialSubtype))throw Error('native_switch_initial_subtype_unsupported')
  const companyId=randomUUID(),actorUserId=randomUUID(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID(),contractId=randomUUID(),gridId=randomUUID(),switchId=randomUUID(),routeId=randomUUID(),routeProfileId=randomUUID(),marketActor=randomUUID()
  const external=input.external??fixtureGsrn(),requestedStartDate=input.requestedStartDate??'2026-10-01'
@@ -98,7 +102,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
    {component_code:'monthly_fee',component_type:'fee',name:'Månadsavgift',calculation_type:'fixed_monthly',amount:49,unit:'sek_month',website_card_visible:true}]}
  const offer={name:`Synthetic archive ${contractId}`,slug:`synthetic-archive-${contractId}`,
   lifecycle_status:'draft',contract_type:'variable_hourly',customer_type:'both',pricing_model:'spot',energy_direction:'consumption',
-  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,
+  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:bindingMonths,
   default_notice_months:1,automatic_renewal:true,automatic_renewal_term_months:12,
   power_of_attorney_required:true,valid_from:'2026-09-24'}
  const organizationNumber=sql<string>(nativeFixtureCompanyIdentitySql(companyId,
@@ -163,7 +167,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
    customer_type,is_default,selection_required,created_by)
   SELECT ${literal(companyId)},contract_product_version_id,price_plan_version_id,
    'archive-default','archive-default','Synthetic hourly price','variable_hourly',
-   0,1,true,12,'active','both',true,false,${literal(actorUserId)}
+   ${bindingMonths},1,true,12,'active','both',true,false,${literal(actorUserId)}
   FROM public.contract_offers WHERE id=${literal(offerId)}
   RETURNING id,company_id,price_plan_version_id
  ) INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,
@@ -201,6 +205,18 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  expect(sql(`SELECT to_jsonb(contract_publication_version_id IS NOT NULL AND contract_product_version_id IS NOT NULL
   AND price_plan_version_id IS NOT NULL AND legal_bundle_version_id IS NOT NULL)
   FROM public.customer_contracts WHERE id=${literal(contractId)}`)).toBe(true)
+ // Optional synthetic source inputs belong to the original draft, before
+ // canonical signature, price snapshot and PDF/POA capture. Never change a
+ // signed contract to manufacture a conditional native branch.
+ if(input.billingAddress){
+  const address=input.billingAddress
+  sql(`UPDATE public.customer_contracts SET billing_address_same_as_site=false,
+   billing_street=${literal(address.street)},billing_postal_code=${literal(address.postalCode)},
+   billing_city=${literal(address.city)},billing_country=${literal(address.country)}
+   WHERE id=${literal(contractId)} AND company_id=${literal(companyId)} AND status='draft';`)
+  expect(sql(`SELECT jsonb_build_object('street',billing_street,'postalCode',billing_postal_code,'city',billing_city,'country',billing_country)
+   FROM public.customer_contracts WHERE id=${literal(contractId)} AND status='draft'`)).toEqual(address)
+ }
  {
   const signed=await signInvoiceTestContractCanonically({companyId,customerId,contractId,actorUserId})
   expect(signed).toMatchObject({status:'signed',signature_snapshot_sha256:expect.stringMatching(/^[a-f0-9]{64}$/)})
@@ -299,15 +315,22 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   endUser:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},address:invoiceeAddress},
   invoicee:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},nameLines:[customerName],address:invoiceeAddress,availability:'available'},
   event:{state:'none',reference:`fixture-invoicee:${switchId}`},source:{kind:'caller_selection',companyId,reference:`fixture-invoicee:${switchId}`}}]}}}
+ // An opt-in caller may exercise its public request creator before any case
+ // exists. Existing callers retain their exact prospective SQL input below.
+ let createdSwitchId:string=switchId
+ if(input.createSwitchRequest){
+  createdSwitchId=await input.createSwitchRequest({companyId,actorUserId,customerId,siteId,pointId,contractId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id,invoiceeSnapshot})
+ }else{
  sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked,validation_snapshot) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal(input.initialSubtype??'L')},${literal(input.initialSubtype==='H'?'Z25':'Z22')},false,${literal(JSON.stringify(invoiceeSnapshot))}::jsonb);`)
+ }
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions
  WHERE key IN('communication.read','communication.write','communication.send','metering.read','metering.write','operations.read','operations.write','contracts.read','contracts.write','customers.read','customers.write');
  DELETE FROM public.admin_users WHERE user_id=${literal(actorUserId)};`)
  for(const permission of ['communication.read','communication.write','communication.send','metering.read','metering.write'])expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(actorUserId)},${literal(companyId)},${literal(permission)}))`)).toBe(true)
- const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
+ const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId:createdSwitchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
  if(input.deferOriginal){expect(sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(companyId)}),'originals',(SELECT count(*) FROM gridex_received_sources.switch_originals WHERE company_id=${literal(companyId)}),'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(companyId)}))`)).toEqual({messages:0,originals:0,periods:0});return stage}
- const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:switchId,communicationRouteId:routeId,environment:'test'})
+ const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:createdSwitchId,communicationRouteId:routeId,environment:'test'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.switch_originals WHERE message_id=${literal(queued.id)}`)).toBe(1)
  if(input.provider){input.provider('recipient@example.invalid');await sendEdielMessageViaSmtp(queued,{actorUserId,smtpMimeMode:'nodemailer-attachment'})}
  const originalZ03=await getEdielMessageById(queued.id);expect(originalZ03).not.toBeNull()

@@ -29,6 +29,7 @@ import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdat
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger'
 import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
@@ -252,8 +253,156 @@ function effects(f: NormalSwitchStageNativeFixture) {
     'requests',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.outbound_requests s WHERE company_id=${literal(f.companyId)}),
     'providerAttempts',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM gridex_ediel_transport.attempts s WHERE company_id=${literal(f.companyId)}),
     'originals',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.message_id),'[]') FROM gridex_received_sources.switch_originals s WHERE company_id=${literal(f.companyId)}),
+    'ackCorrelations',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.ack_message_id),'[]') FROM gridex_ack_authority.source_correlations s WHERE s.company_id=${literal(f.companyId)}),
+    'ackReceipts',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.ack_message_id),'[]') FROM gridex_ack_authority.applied_receipts s JOIN gridex_ack_authority.source_correlations c ON c.ack_message_id=s.ack_message_id WHERE c.company_id=${literal(f.companyId)}),
+    'ackScopeOutcomes',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.source_message_id,s.ack_family,s.ack_scope,s.source_reference),'[]') FROM gridex_ack_authority.scope_outcomes s JOIN gridex_ack_authority.source_correlations c ON c.ack_message_id=s.ack_message_id AND c.source_message_id=s.source_message_id WHERE c.company_id=${literal(f.companyId)}),
+    'receptions',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM gridex_ediel_inbound_receptions.receptions s WHERE s.company_id=${literal(f.companyId)}),
+    'responseRequests',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM gridex_ediel_inbound_receptions.response_requests s WHERE s.company_id=${literal(f.companyId)}),
+    'receivedSources',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.source_message_id),'[]') FROM gridex_received_sources.sources s WHERE s.company_id=${literal(f.companyId)}),
+    'sourceValidations',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM gridex_received_sources.validation_assessments s WHERE s.company_id=${literal(f.companyId)}),
+    'supplyPartitions',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.source_message_id),'[]') FROM gridex_received_sources.supply_object_partitions s WHERE s.company_id=${literal(f.companyId)}),
+    'supplyEffectReceipts',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM gridex_received_sources.supply_object_effect_receipts s WHERE s.company_id=${literal(f.companyId)}),
+    'prodatIgnoredFields',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.canonical_assessment_id),'[]') FROM gridex_received_sources.prodat_ignored_field_facets s WHERE s.company_id=${literal(f.companyId)}),
+    'prodatObjectValidations',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.assessment_id),'[]') FROM gridex_received_sources.prodat_object_validation_facets s WHERE s.company_id=${literal(f.companyId)}),
+    'prodatResponseValidations',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.assessment_id),'[]') FROM gridex_received_sources.prodat_response_facets s WHERE s.company_id=${literal(f.companyId)}),
+    'prodatApplicationValidations',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.assessment_id),'[]') FROM gridex_received_sources.prodat_application_facets s WHERE s.company_id=${literal(f.companyId)}),
+    'prodatSourceFunctionValidations',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.assessment_id),'[]') FROM gridex_received_sources.prodat_source_function_facets s WHERE s.company_id=${literal(f.companyId)}),
     'events',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.supplier_switch_events s WHERE switch_request_id=${literal(f.switchId)}),
     'cases',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.customer_cases s WHERE company_id=${literal(f.companyId)}));`),providerCalls:smtp.mock.calls.length }
+}
+// Ordinary Z04 replay revalidates once. Its append-only audit may grow, while
+// every prior authority row and every non-audit effect must remain exact.
+function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baseline: ReturnType<typeof effects>, actual: ReturnType<typeof effects>,
+  replay: { startedAt:number; finishedAt:number; ackMessages:EdielMessageRow[]; inboundCaseId:string }) {
+  type AuditRows = Record<string,Record<string,unknown>[]>
+  const before=baseline.durable as AuditRows,normalized=structuredClone(actual),after=normalized.durable as AuditRows
+  expect(source).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04'})
+  const scope={company_id:f.companyId,environment:'test',source_message_id:source.id,
+    source_payload_hash:createHash('sha256').update(source.raw_payload!,'utf8').digest('hex')}
+  const own=before.sourceValidations.filter(row=>row.source_message_id===source.id)
+  const leaves=own.filter(row=>!own.some(child=>child.previous_assessment_id===row.id))
+  expect(leaves,'one actual baseline own-source validation leaf').toHaveLength(1)
+  const leaf=leaves[0]
+  expect(leaf).toMatchObject({...scope,owner:'canonical-runtime-with-registry-v1'})
+  const additions=(key:string,primaryKey:string)=>{
+    const previous=before[key],current=after[key],ids=new Set(previous.map(row=>row[primaryKey]))
+    expect(current.filter(row=>ids.has(row[primaryKey])),key+' immutable old primary-key rows').toEqual(previous)
+    const added=current.filter(row=>!ids.has(row[primaryKey]))
+    after[key]=previous
+    return added
+  }
+  const factsHash=(row:Record<string,unknown>,textKey:string,hashKey:string)=>{
+    expect(row[textKey],textKey).toEqual(expect.any(String))
+    expect(row[hashKey],hashKey).toBe(createHash('sha256').update(row[textKey] as string,'utf8').digest('hex'))
+  }
+  const clock=(value:unknown,previous?:unknown)=>{
+    expect(value).toEqual(expect.any(String))
+    const instant=Date.parse(value as string)
+    expect(Number.isFinite(instant)).toBe(true)
+    expect(instant).toBeGreaterThanOrEqual(replay.startedAt)
+    expect(instant).toBeLessThanOrEqual(replay.finishedAt)
+    if (previous!==undefined) {
+      const prior=Date.parse(previous as string)
+      expect(Number.isFinite(prior)).toBe(true)
+      expect(instant).toBeGreaterThanOrEqual(prior)
+    }
+  }
+  const assessments=additions('sourceValidations','id')
+  expect(assessments,'exactly one fresh own-source assessment').toHaveLength(1)
+  const assessment=assessments[0]
+  expect(assessment.id).toEqual(expect.stringMatching(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/))
+  expect(assessment.id).not.toBe(leaf.id)
+  expect(assessment).toMatchObject({...scope,previous_assessment_id:leaf.id,owner:'canonical-runtime-with-registry-v1'})
+  factsHash(assessment,'facts_text','facts_hash')
+  clock(assessment.assessed_at,leaf.assessed_at)
+  expect(JSON.parse(assessment.facts_text as string)).toMatchObject({
+    owner:'canonical-runtime-with-registry-v1',syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',
+  })
+  for (const [key,primaryKey,textKey,hashKey] of [
+    ['prodatIgnoredFields','canonical_assessment_id','fields_text','fields_hash'],
+    ['prodatObjectValidations','assessment_id','facts_text','facts_hash'],
+    ['prodatResponseValidations','assessment_id','response_facts_text','response_facts_hash'],
+    ['prodatApplicationValidations','assessment_id','application_facts_text','application_facts_hash'],
+    ['prodatSourceFunctionValidations','assessment_id','function_facts_text','function_facts_hash'],
+  ] as const) {
+    const established=before[key].filter(row=>row[primaryKey]===leaf.id)
+    if (established.length) {
+      expect(established,key+' single baseline leaf facet').toHaveLength(1)
+      expect(established[0]).toMatchObject({...scope,[primaryKey]:leaf.id})
+    }
+    // Normal Z04 has no customer-life-event source-function projection.
+    if (key==='prodatSourceFunctionValidations') expect(before[key].filter(row=>row.source_message_id===source.id)).toHaveLength(0)
+    const added=additions(key,primaryKey)
+    expect(added,key+' matches the actual baseline leaf facet presence').toHaveLength(established.length)
+    for (const row of added) {
+      expect(row).toMatchObject({...scope,[primaryKey]:assessment.id})
+      factsHash(row,textKey,hashKey)
+    }
+  }
+  // These protected business receipts retain the original execution actor,
+  // unlike the service client's nullable creator on a later operational event.
+  const partitions=before.supplyPartitions.filter(row=>row.source_message_id===source.id)
+  const effectReceipts=before.supplyEffectReceipts.filter(row=>row.source_message_id===source.id)
+  expect(partitions).toHaveLength(1); expect(effectReceipts).toHaveLength(1)
+  const partition=partitions[0],effect=effectReceipts[0]
+  const businessScope={company_id:f.companyId,environment:'test',source_message_id:source.id,payload_hash:scope.source_payload_hash}
+  expect(partition).toMatchObject({...businessScope,canonical_assessment_id:leaf.id,actor_user_id:f.actorUserId})
+  expect(effect).toMatchObject({...businessScope,canonical_assessment_id:partition.canonical_assessment_id})
+  factsHash(partition,'partition_text','partition_hash'); factsHash(effect,'effect_text','effect_hash')
+  const partitionObjects=JSON.parse(partition.partition_text as string)
+  expect(partitionObjects).toEqual([{object:effect.object_scope,disposition:'applied',effectReceiptId:effect.id,effectFactsHash:effect.effect_hash}])
+  expect(partition.result).toMatchObject({applied:true,partition:partitionObjects,effectReceiptIds:[effect.id],switchIds:[f.switchId]})
+  expect(JSON.parse(effect.effect_text as string)).toMatchObject({version:1,owner:'inbound-supply-object-v1',
+    sourceMessageId:source.id,sourcePayloadHash:scope.source_payload_hash,companyId:f.companyId,environment:'test',
+    canonicalAssessmentId:partition.canonical_assessment_id,object:effect.object_scope,plan:{switchId:f.switchId}})
+  expect(after.supplyPartitions).toEqual(before.supplyPartitions)
+  expect(after.supplyEffectReceipts).toEqual(before.supplyEffectReceipts)
+
+  // Only this source's projected receipt and two audit clocks may change.
+  const previousMessages=before.messages.filter(row=>row.id===source.id),currentMessages=after.messages.filter(row=>row.id===source.id)
+  expect(previousMessages).toHaveLength(1); expect(currentMessages).toHaveLength(1)
+  const previousMessage=previousMessages[0],currentMessage=currentMessages[0]
+  expect(Object.keys(currentMessage).sort()).toEqual(Object.keys(previousMessage).sort())
+  expect(previousMessage.updated_by).toBe(f.actorUserId); expect(currentMessage.updated_by).toBe(f.actorUserId)
+  const previousReport=previousMessage.validation_report as Record<string,unknown>,currentReport=currentMessage.validation_report as Record<string,unknown>
+  expect(previousReport.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:leaf.id,factsHash:leaf.facts_hash})
+  expect(currentReport.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:assessment.id,factsHash:assessment.facts_hash})
+  for (const key of ['validated_at','updated_at'] as const) {
+    clock(currentMessage[key],previousMessage[key])
+    currentMessage[key]=previousMessage[key]
+  }
+  currentReport.receivedSourceValidationEvidence=previousReport.receivedSourceValidationEvidence
+
+  const priorEvents=before.events.filter(row=>row.event_type==='ediel_inbound_processed'&&(row.payload as Record<string,unknown>).edielMessageId===source.id)
+  expect(priorEvents,'one genuine baseline source processing event').toHaveLength(1)
+  const priorEvent=priorEvents[0],priorPayload=priorEvent.payload as Record<string,unknown>
+  const eventDefaults={company_id:f.companyId,switch_request_id:f.switchId,event_type:'ediel_inbound_processed',event_status:'success',
+    message:'Inbound PRODAT behandlad via canonical inbound flow och staging-case skapades för eventuell admin-granskning.',
+    created_by:null,metadata:{},archived_at:null,archived_by:null,archive_reason:null}
+  expect(priorEvent).toMatchObject(eventDefaults)
+  expect(priorPayload).toMatchObject({edielMessageId:source.id,inboundCaseId:replay.inboundCaseId,
+    customerInfoRequestLink:{applied:false,targetId:null,reason:'not_z02'},meteringPermissionLink:{applied:false,targetId:null,reason:'not_z14'}})
+  expect(priorPayload.businessState).toMatchObject({outcome:'supplier_switch_accepted',reviewRequired:false,
+    updated:['supplier_switch_requests','customer_supply_periods'],metadata:{companyId:f.companyId,messageFamily:'PRODAT',messageCode:'Z04',
+      matchedSwitchRequestId:f.switchId,customerInfoRequestId:null,source:'prodat_with_strong_switch_match',
+      prodatProcess:'supplier_switch',prodatSubtype:f.variant,prodatState:'switch_accepted'}})
+  expect(replay.ackMessages.map(row=>row.message_family).sort()).toEqual(['APERAK','CONTRL'])
+  for (const ack of replay.ackMessages) expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',
+    related_message_id:source.id,status:'sent',ack_outcome:'positive'})
+  expect(replay.ackMessages.map(row=>row.id).sort()).toEqual(before.messages.filter(row=>row.related_message_id===source.id&&['CONTRL','APERAK'].includes(row.message_family as string)).map(row=>row.id).sort())
+  const events=additions('events','id')
+  expect(events,'exactly one processing audit attempt').toHaveLength(1)
+  const event=events[0]
+  expect(event.id).toEqual(expect.stringMatching(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/))
+  clock(event.created_at,priorEvent.created_at); clock(event.updated_at,priorEvent.updated_at)
+  expect(event).toEqual({...eventDefaults,id:event.id,created_at:event.created_at,updated_at:event.updated_at,payload:{
+    edielMessageId:source.id,createdAckMessageIds:[replay.ackMessages.find(row=>row.message_family==='CONTRL')!.id],
+    canonicalAckState:'ack_originals_qualified',ackMessages:replay.ackMessages.map(row=>({id:row.id,family:row.message_family,
+      code:row.message_code,status:row.status,outcome:row.ack_outcome})),safeApplyProposalChanges:[],inboundCaseId:replay.inboundCaseId,
+    customerInfoRequestLink:{applied:false,targetId:null,reason:'not_z02'},meteringPermissionLink:{applied:false,targetId:null,reason:'not_z14'},
+    businessState:priorPayload.businessState,
+  }})
+  return normalized
 }
 function noActivation(f: NormalSwitchStageNativeFixture) {
   expect(sql(`SELECT jsonb_build_object('periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)}),
@@ -301,6 +450,7 @@ async function physicalAck(f: Fixture, family:'CONTRL'|'APERAK') {
   const before=effects(f)
   expect(await processInboundAckMessage({ actorUserId:f.actorUserId,message:ack })).toMatchObject({ outcome:'positive',sourceMessage:{ id:f.original.id } })
   expect(effects(f)).toEqual(before)
+  return received
 }
 function draft(f: Fixture, raw=f.original.raw_payload!): CreateEdielMessageInput {
   const m=f.original
@@ -543,9 +693,22 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     expect(frozen.plan).toEqual({version:1,ruleId:'TM-CONTRL',offset:30,unit:'minutes',anchor:'actual_accepted_smtp_observed_at',timerKind:'internal_sender_watch',remoteReceiptKnown:false,policy:frozen.policy})
     expect(frozen.policy).toMatchObject({guideRevision:expect.any(String),referenceDate:expect.any(String),profileKey:expect.any(String),sourceTrace:expect.any(Array)})
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_business_expectations WHERE company_id=${literal(f.companyId)} AND environment='test' AND source_message_id=${literal(original.id)};`)).toBe(0)
-    await physicalAck(f,'CONTRL'); noActivation(f)
-    await physicalAck(f,'APERAK'); noActivation(f)
+    const contrlAck=await physicalAck(f,'CONTRL'); noActivation(f)
+    const aperakAck=await physicalAck(f,'APERAK'); noActivation(f)
     expect(await getEdielMessageById(original.id)).toMatchObject({contrl_status:'received',aperak_status:'received'})
+    // Each immutable receipt retains its own apply-time summary. Reading both
+    // after APERAK must not turn the earlier CONTRL into a final acceptance.
+    for (const [ack,finalAckReached,sourceAccepted] of [[contrlAck,false,false],[aperakAck,true,true]] as const) {
+      expect(await readCommittedInboundAck({actorUserId:f.actorUserId,message:ack})).toMatchObject({
+        kind:'exact_receipt',sourceMessageId:original.id,result:{outcome:'positive',finalAckReached,
+          sourceAccepted,wholeSourceRejected:false,failureReason:null,
+          sourceMessage:{id:original.id,company_id:f.companyId,environment:'test',direction:'outbound'}},
+      })
+    }
+    // Acknowledged original means both ACKs arrived; only the later causal Z04
+    // may confirm a supply period or accept the supplier switch.
+    expect(await getEdielMessageById(original.id)).toMatchObject({status:'acknowledged',failure_reason:null})
+    noActivation(f)
     const source=await receive(f,confirmation(f)),decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
     expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
@@ -564,8 +727,17 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(reply.id)}`)).toBe(true)
     }
     const confirmed=effects(f),replyIds=replies(f,source.id).map(m=>m.id),providerCalls=smtp.mock.calls.length
+    const ackMessages=await listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:source.id,actorUserId:f.actorUserId,environment:'test'})
+    const inboundCases=()=>sql<Array<{id:string;company_id:string;ediel_message_id:string}>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',c.id,'company_id',c.company_id,'ediel_message_id',c.ediel_message_id) ORDER BY c.id),'[]') FROM public.ediel_inbound_cases c WHERE c.company_id=${literal(f.companyId)} AND c.ediel_message_id=${literal(source.id)};`)
+    const baselineCases=inboundCases()
+    expect(baselineCases).toHaveLength(1)
+    expect(baselineCases[0]).toEqual({id:expect.stringMatching(/^[0-9a-f-]{36}$/),company_id:f.companyId,ediel_message_id:source.id})
+    const replayStartedAt=Date.now()
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
-    expect(effects(f)).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
+    const replayFinishedAt=Date.now()
+    expect(inboundCases()).toEqual(baselineCases)
+    expect(preserveZ04ValidationAudit(f,source,confirmed,effects(f),{startedAt:replayStartedAt,finishedAt:replayFinishedAt,
+      ackMessages,inboundCaseId:baselineCases[0].id})).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
     expect(smtp.mock.calls.length).toBe(providerCalls); expect(originalHistory(f)).toEqual(history)
   })
 
