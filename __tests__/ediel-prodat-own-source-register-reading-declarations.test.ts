@@ -12,13 +12,15 @@ import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {characteristic,line,qty,type Parts} from './fixtures/prodat-register'
+import {installProdatOwnSourceReadingFixture,resetProdatOwnSourceReadingSdk,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
 
-const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),rows:{} as Record<string,Record<string,unknown>[]>,
- legal:{} as Record<string,unknown>,reception:{} as Record<string,unknown>,
- calls:[] as {kind:'table'|'rpc';name:string;args:Record<string,unknown>}[],
- rpcErrors:{} as Record<string,unknown>,tableErrors:{} as Record<string,unknown>,
- permissions:new Set<string>(),permissionChecks:0,revokeAfter:Infinity}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}}))
+const fixtureSdk=vi.hoisted(()=>({value:null as ProdatOwnSourceReadingSdk|null}))
+vi.mock('@/lib/supabase/service',async()=>{
+ const {createProdatOwnSourceReadingSdk}=await import('./helpers/prodatOwnSourceReadingFixture')
+ fixtureSdk.value=createProdatOwnSourceReadingSdk()
+ return {supabaseService:{from:fixtureSdk.value.from,rpc:fixtureSdk.value.rpc}}
+})
+const io=fixtureSdk.value!
 
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const actor=id(3),point='735123456789012344',otherPoint='735123456789012351'
@@ -73,51 +75,8 @@ function fixture(options:FixtureOptions={}){
  return {row,variant,payloadHash}
 }
 
-function install(row:EdielMessageRow,variant:Variant){
- io.rows={ediel_messages:[structuredClone(row) as unknown as Record<string,unknown>],
-  user_profiles:[{id:actor,user_status:'active'}],
-  company_memberships:[{company_id:row.company_id,user_id:actor,status:'active',is_active:true,accepted_at:received}],
-  inbound_email_messages:[{id:id(4),company_id:row.company_id,environment:row.environment,received_at:received,raw_edifact_payload:row.raw_payload}],
-  inbound_ediel_parse_results:[{id:id(5),company_id:row.company_id,inbound_email_message_id:id(4),raw_payload:row.raw_payload,parse_status:'parsed'}]}
- io.legal={basisKind:'observed_source_persistence',companyId:row.company_id,environment:row.environment,direction:'inbound',
-  family:'PRODAT',code:'Z04',subtype:variant,legalActorId:id(8),legalEdielId:'12345',actorRole:'electricity_supplier',
-  transportActorId:id(8),transportEdielId:'12345',applicationReference:'23-DDQ-PRODAT',sourceEdition:'c'.repeat(64),
-  canonicalProjection:{family:'PRODAT',code:'Z04',subtype:variant,transactionReasonCode:variant==='L'?'Z22':'Z23',direction:'inbound',
-   senderRoles:['grid_owner'],receiverRoles:['supplier'],applicationReferences:['23-DDQ-PRODAT']},
-  observedAt:received,sourceReceivedAt:received}
- io.reception={companyId:row.company_id,sourceMessageId:row.id,inboundEmailMessageId:id(4),parseResultId:id(5),receptionId:id(6),
-  classification:'first_reception',isReplay:true,receivedAt:received,canonicalPayloadHash:hash(row.raw_payload!),receivedPayloadHash:hash(row.raw_payload!),
-  responseRequestId:null,status:'observed',reason:null,businessEffectAuthorized:false}
-}
-
-beforeEach(()=>{
- io.rpc.mockReset();io.from.mockReset();io.rows={};io.calls=[];io.rpcErrors={};io.tableErrors={}
- io.permissions=new Set(['communication.read','metering.write']);io.permissionChecks=0;io.revokeAfter=Infinity
- io.from.mockImplementation((table:string)=>{
-  if(!Object.hasOwn(io.rows,table))throw Error(`UNEXPECTED_UNIT_TABLE:${table}`)
-  const filters:Record<string,unknown>={},notNull:string[]=[]
-  const result=async()=>{
-   const matches=io.rows[table].filter(row=>Object.entries(filters).every(([key,value])=>row[key]===value)&&notNull.every(key=>row[key]!==null&&row[key]!==undefined))
-   io.calls.push({kind:'table',name:table,args:{...filters}})
-   return {data:matches.length===1?structuredClone(matches[0]):null,error:io.tableErrors[table]??null}
-  }
-  const query={select:(_columns:string)=>query,eq:(key:string,value:unknown)=>{filters[key]=value;return query},
-   not:(key:string,operator:string,value:unknown)=>{if(operator!=='is'||value!==null)throw Error('UNEXPECTED_UNIT_NOT');notNull.push(key);return query},
-   single:result,maybeSingle:result}
-  return query
- })
- io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
-  io.calls.push({kind:'rpc',name,args:{...args}})
-  if(io.rpcErrors[name])return {data:null,error:io.rpcErrors[name]}
-  if(name==='gridex_actor_has_company_permission'){
-   io.permissionChecks++
-   return {data:args.p_company_id===id(2)&&args.p_actor_user_id===actor&&io.permissionChecks<=io.revokeAfter&&io.permissions.has(String(args.p_permission)),error:null}
-  }
-  if(name==='ediel_require_inbound_legal_context_v1')return {data:args.p_company_id===id(2)&&args.p_message_id===id(1)?structuredClone(io.legal):null,error:null}
-  if(name==='ediel_inbound_reception_request_v1')return {data:Object.keys(io.reception).length&&args.p_company_id===id(2)&&args.p_message_id===id(1)&&args.p_actor_user_id===actor&&args.p_inbound_email_message_id===id(4)?structuredClone(io.reception):null,error:null}
-  throw Error(`UNEXPECTED_UNIT_RPC:${name}`)
- })
-})
+const install=(row:EdielMessageRow,variant:Variant)=>installProdatOwnSourceReadingFixture(io,row,variant)
+beforeEach(()=>resetProdatOwnSourceReadingSdk(io))
 
 function policy(row:EdielMessageRow,context?:ProdatOwnSourceReadingContext|null,actorUserId=actor){
  const result=resolveCanonicalMessagePolicy(row,parseCanonicalMessageRow(row),{
