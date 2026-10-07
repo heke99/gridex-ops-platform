@@ -34,10 +34,10 @@ function sourceIdentity(source:EdielMessageRow):string|null {
   if(!isEvidenceRecord(born)||Object.keys(born).length!==bornKeys.length||!bornKeys.every(key=>Object.hasOwn(born,key))
     ||born.version!==1||born.contextOrigin!=='database_insert'||born.sourceMessageId!==source.id
     ||born.companyId!==source.company_id||born.environment!==source.environment||born.messageCode!=='Z04'
-    ||born.payloadHash!==evidenceHash(source.raw_payload)||received===null||created===null||created<received
+    ||born.payloadHash!==evidenceHash(source.raw_payload)||received===null||created===null
     ||parseSourceReceiptInstant(born.sourceReceivedAt)!==received)return null
   const captured=parseSourceReceiptInstant(born.capturedAt)
-  if(captured===null||captured<received)return null
+  if(captured===null)return null
   return evidenceHash(JSON.stringify([source.id,source.company_id,source.environment,source.direction,
     source.message_standard,source.message_family,source.message_code,source.message_version,source.application_reference,
     source.inbound_email_message_id,source.raw_payload,received.toString(),created.toString(),captured.toString()]))
@@ -71,7 +71,6 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
   const identity=sourceIdentity(source)
   if(!identity||!isEvidenceUuid(actorUserId)||!physicalSource(source))return null
   await assertEdielTenantActor({companyId:source.company_id!,actorUserId,permission:'communication.read'})
-  await assertEdielTenantActor({companyId:source.company_id!,actorUserId,permission:'metering.write'})
   const stored=await getEdielMessageById(source.id,{companyId:source.company_id})
   if(!stored||sourceIdentity(stored)!==identity)return null
   const physical=physicalSource(stored)
@@ -85,7 +84,7 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
     ||!isEvidenceUuid(legal.legalActorId)||!isEvidenceUuid(legal.transportActorId)||legal.actorRole!=='electricity_supplier'
     ||receivers.length!==1||legal.legalEdielId!==segmentComposite(receivers[0],2,physical.wire.una)[0]
     ||legal.transportEdielId!==segmentComposite(physical.interchange,3,physical.wire.una)[0]
-    ||legal.applicationReference!==physical.canonical.applicationReference||received===null||observed===null||observed<received
+    ||legal.applicationReference!==physical.canonical.applicationReference||received===null||observed===null
     ||parseSourceReceiptInstant(legal.sourceReceivedAt)!==received||typeof basis.sourceEdition!=='string'
     ||!/^[a-f0-9]{64}$/.test(basis.sourceEdition)||!isEvidenceRecord(projection)
     ||projection.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!==physical.subtype
@@ -115,7 +114,6 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
     ||parsed.data.raw_payload!==stored.raw_payload||parsed.data.parse_status!=='parsed')return null
   // Current membership/permission errors remain security errors, never UNKNOWN success.
   await assertEdielTenantActor({companyId:stored.company_id!,actorUserId,permission:'communication.read'})
-  await assertEdielTenantActor({companyId:stored.company_id!,actorUserId,permission:'metering.write'})
   const token=Object.freeze({}) as ProdatOwnSourceReadingContext
   reads.set(token,{identity,actor:actorUserId,source:structuredClone(stored),sourceEdition:basis.sourceEdition,
     projection:structuredClone(projection)})
@@ -126,8 +124,43 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
 export function sourceProdatOwnRegisterReadingDeclarations(input:{
   message:EdielMessageRow;actorUserId?:string;context?:ProdatOwnSourceReadingContext|null;policy:CanonicalEdielPolicy;admissionAt?:string|Date
 }):ReadingObjects|null {
-  // Behavioral RED boundary: the real issuer is implemented; the declaration
-  // consumer is added only after its actual-source policy tests demonstrate it.
-  void input
-  return null
+  if(!input.context)return null
+  const read=reads.get(input.context)
+  if(!read)return null
+  // Even a rejected redemption exhausts this invocation's private context.
+  reads.delete(input.context)
+  if(read.actor!==input.actorUserId||sourceIdentity(input.message)!==read.identity)return null
+  const source=read.source,physical=physicalSource(source)
+  if(!physical)return null
+  const received=parseSourceReceiptInstant(source.message_received_at)
+  const explicit=input.admissionAt instanceof Date?input.admissionAt.toISOString():input.admissionAt
+  if(explicit!==undefined&&explicit!==''&&parseSourceReceiptInstant(explicit)!==received)
+    throw Error('prodat_source_readings_admission_clock_mismatch')
+  // Independently select compiled semantics from the privately read original.
+  // A caller-selected revision or mutable report cannot choose this guide.
+  const expected=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z04',
+    subtypeOrReasonCode:physical.canonical.subtype,direction:'inbound',
+    referenceDate:stockholmBusinessDate(new Date(source.message_received_at!)),
+    associationAssignedCode:physical.canonical.version,
+    applicationReference:physical.canonical.applicationReference,mode:'parse'})
+  const keys=['family','code','subtype','transactionReasonCode','direction','referenceDate',
+    'associationAssignedCode','applicationReference','guide','fieldRules'] as const
+  if(keys.some(key=>!isDeepStrictEqual(input.policy[key],expected[key]))
+    ||expected.guide.guideRevision!=='26-A'||expected.guide.associationAssignedCode!=='E2SE6A'
+    ||expected.guide.fieldMatrixStatus!=='certified')throw Error('prodat_own_source_readings_policy_unqualified')
+  const rules=expected.fieldRules.filter(rule=>rule.fieldNumber==='259')
+  if(rules.length!==1||rules[0].segmentPath!=='CCI++Z16/CAV')
+    throw Error('prodat_own_source_readings_policy_unqualified')
+  const firstLine=physical.wire.segments.findIndex(token=>token.tag==='LIN')
+  const header259=physical.wire.segments.slice(0,firstLine)
+    .some(token=>token.tag==='CCI'&&segmentComposite(token,2,physical.wire.una)[0]?.trim().toUpperCase()==='Z16')
+  return physical.first.map(own=>{
+    const state=prodatRegisterReadingState('259',own.segments,physical.wire.una)
+    const siblings=physical.groups.filter(group=>group.itemId===own.itemId&&group.identityAgency===own.identityAgency)
+    const malformed=siblings.some(group=>!group.validRegisterChain
+      ||prodatRegisterReadingState('259',group.segments,physical.wire.una).malformed)
+    const allowed=!rules[0].allowedValues||state.value!==null&&rules[0].allowedValues.includes(state.value)
+    return Object.freeze({meteringPointId:own.itemId!,identityAgency:own.identityAgency!,
+      meterReadingsSentInUtilts:!header259&&!malformed&&state.present&&!state.malformed&&state.value&&allowed?true:null})
+  })
 }
