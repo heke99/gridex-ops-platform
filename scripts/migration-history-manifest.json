@@ -860,7 +860,8 @@
     "20261007000503_ediel_technical_ack_long_reference_prefix.sql": "2800d3c35da6edf5ef4f3715b2876bd96fe8d05fd55e921f8c7ca4704316d22e",
     "20261007010849_ediel_received_z14_reporting_source_basis.sql": "9f923e87cbf973441f934ac8a86924b5aa0586be741ceeb6949cce3d763cc4f1",
     "20261007035644_ediel_received_reporting_command_clock.sql": "d3959a96d7c7c1b8b38d322b8681be3244cfe4777904fc55d9189eaab546521c",
-    "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f"
+    "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f",
+    "20261007210437_ediel_z04_legacy_activation_canonical_guard.sql": "a789ceba528b16fe8b67d462cb2dd4717f908c3632bc1ed565aa630a09c71593"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
