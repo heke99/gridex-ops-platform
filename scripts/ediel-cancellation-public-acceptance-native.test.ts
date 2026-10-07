@@ -172,7 +172,7 @@ async function refuseMissingReasonAtPublicIntake(f: Fixture, wire: string) {
       parsed:mail.parsed,outboundMatch,meteringPointMatch})
     expect(id).toBeNull()
     expect(warning.mock.calls).toContainEqual(['[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message',
-      expect.objectContaining({code:'23514',message:'canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05'})])
+      expect.objectContaining({code:'23514',message:expect.stringMatching(/^canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:\d{4}-\d{2}-\d{2}:(?:0|[2-9]|[1-9]\d+)$/)})])
   } finally { warning.mockRestore() }
   expect(custody()).toEqual(before)
   const retained = custody() as {mail:{raw_edifact_payload:string;received_at:string};parse:{inbound_email_message_id:string}}
