@@ -1,10 +1,16 @@
-name: Ediel Z02 L LK native catalog feedback
+name: Ediel Z02 L LK native contract feedback
 
 on:
   pull_request:
     paths:
       - 'scripts/ediel-at-z02-supplier-native.test.ts'
       - '__tests__/ediel-supplier-data-birth-profile.test.ts'
+      - '__tests__/ediel-received-z02-end-user-address-context.test.ts'
+      - '__tests__/ediel-received-z02-end-user-address-runtime.test.ts'
+      - 'scripts/test-ediel-z02-end-user-address-source.cjs'
+      - 'scripts/helpers/ediel-z02-supplier-native-*.ts'
+      - 'scripts/helpers/ediel-z02-supplier-field-refusal-native.ts'
+      - 'lib/ediel/prodat/**'
       - 'scripts/ediel-at-z02-supplier-native.config.ts'
       - '.github/workflows/ediel-z02-supplier-native.yml'
       - 'scripts/ediel-source-owner-native.config.ts'
@@ -114,7 +120,8 @@ concurrency:
   group: ediel-z02-supplier-native-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# Prospective catalog feedback only; public Z02 whole proof is still pending.
+# Executes prospective catalog and proposed whole Z02 consumer tests.
+# Actual producer failures stay failures; whole acceptance requires all clauses.
 # All ordinary OPS clean/upgrade/native/browser
 # and parity gates remain mandatory; this does not approve either contract.
 jobs:
@@ -132,10 +139,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify finite received Z02 address source guards
+        run: node --test --experimental-test-isolation=none scripts/test-ediel-z02-end-user-address-source.cjs
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Execute the supplier Z02 catalog component after disposable clean replay
+      - name: Execute supplier Z02 catalog and whole proposals after disposable clean replay
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -204,6 +213,8 @@ jobs:
               'lib/inbound-mail/inboundStatusUpdater.ts',
               'lib/inbound-mail/supplierDataBirthProfile.ts',
               '__tests__/ediel-supplier-data-birth-profile.test.ts',
+              '__tests__/ediel-received-z02-end-user-address-context.test.ts',
+              '__tests__/ediel-received-z02-end-user-address-runtime.test.ts',
               'lib/ediel/testing/invoiceTestContractLifecycle.ts',
               'lib/customer-contracts/documents.ts',
               'lib/customer-contracts/agreementPdf.ts',

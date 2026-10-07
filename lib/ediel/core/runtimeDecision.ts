@@ -1,3 +1,4 @@
+import {fetchReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import {readPeriodicReasonAuthority,type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
 import {bindReceivedProdatSourceFunction,type ReceivedProdatSourceFunctionValidation,ownProdatSourceFunctionAccepted} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
@@ -165,6 +166,8 @@ function addNegativeAperakIfAllowed(params: {
 function applyProdatPolicyDecision(params: {
   rawPayload?:string|null
   sourceFunctionContext?:DeathStatusValidationContext
+  sourceMessage:EdielMessageRow
+  receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext
   policy: CanonicalEdielPolicy
   canonical: CanonicalEdielMessage
   responsePlan: CanonicalResponsePlanItem[]
@@ -184,6 +187,8 @@ function applyProdatPolicyDecision(params: {
     scope: 'all',
     onRegisterValidation: evidence => { prodatRegisterValidation = evidence },
     sourceFunctionContext:params.sourceFunctionContext,
+    sourceMessage:params.sourceMessage,
+    receivedZ02EndUserAddressContext:params.receivedZ02EndUserAddressContext,
     onSourceFunctionObjects: evidence => {prodatSourceFunctionValidation=evidence},
     onApplicationObjects: evidence => { prodatApplicationValidation = evidence },
     onIgnoredField: field => { if (!prodatIgnoredFields.some(existing => JSON.stringify(existing) === JSON.stringify(field))) prodatIgnoredFields.push(field) },
@@ -425,7 +430,7 @@ function buildResult(params: {
   }
 }
 
-export type CanonicalRuntimeSourceFacts=EdielMessageTimeOptions&{deathStatusContext?:DeathStatusValidationContext}
+export type CanonicalRuntimeSourceFacts=EdielMessageTimeOptions&{deathStatusContext?:DeathStatusValidationContext;actorUserId?:string;receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext}
 export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):CanonicalRuntimeDecision {
   return resolveCanonicalRuntimeDecisionCore(message,facts)
 }
@@ -583,7 +588,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     utiltsHeaderValidation = utilts.utiltsHeaderValidation
     utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
-    const prodat = applyProdatPolicyDecision({ rawPayload:message.raw_payload,sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    const prodat = applyProdatPolicyDecision({ sourceMessage:message,receivedZ02EndUserAddressContext:facts.receivedZ02EndUserAddressContext,rawPayload:message.raw_payload,sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
     prodatSourceFunctionValidation=prodat.prodatSourceFunctionValidation
     prodatApplicationValidation=prodat.prodatApplicationValidation
     prodatRegisterValidation = prodat.prodatRegisterValidation
@@ -713,7 +718,31 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 }
 
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):Promise<CanonicalRuntimeDecision> {
-  let base=resolveCanonicalRuntimeDecisionCore(message,facts,{deferUtiltsRuntime:message.direction==='inbound'})
+  const currentFacts={...facts,receivedZ02EndUserAddressContext:undefined}
+  let base=resolveCanonicalRuntimeDecisionCore(message,currentFacts,{deferUtiltsRuntime:message.direction==='inbound'})
+  // Requalify the present executor's READ authority for each actual received
+  // Z02 assessment. A prior opaque token is not a cached permission grant.
+  if(message.direction==='inbound'&&base.canonical.family==='PRODAT'&&base.canonical.messageCode==='Z02'
+   &&base.syntaxDecision==='accepted'&&facts.actorUserId){
+   try{
+    const context=await fetchReceivedZ02EndUserAddressContext({message,actorUserId:facts.actorUserId})
+    if(!context)throw Error('received_z02_end_user_address_source_unavailable')
+    base=resolveCanonicalRuntimeDecisionCore(message,{...currentFacts,receivedZ02EndUserAddressContext:context})
+   }catch(error){
+    const description=error instanceof Error?error.message:String(error)
+    const issues=[...base.issues,issue({layer:'application',severity:'error',code:'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE',
+     title:'Källstyrd adresstillgänglighet saknas',description,source:'fetchReceivedZ02EndUserAddressContext'})]
+    const responsePlan=base.responsePlan.filter(response=>response.family==='CONTRL'
+     ||response.family==='APERAK'&&response.outcome==='negative'&&Boolean(response.applicationErrors?.length)
+      &&response.applicationErrors!.every(isQualifiedProdatApplicationError))
+    const applicationDecision:CanonicalDecisionState=base.applicationDecision==='rejected'?'rejected':'manual_review'
+    const prodatProcessingDisposition:ProdatProcessingDisposition={kind:'internal_review',reasons:[
+     ...(base.prodatProcessingDisposition?.reasons??[]),{code:'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE',sourceRule:'PRODAT26A:Z02/229',reason:description}]}
+    const decisionTrace=[...base.decisionTrace,'Z02-adressunderlaget hålls lokalt; inget nationellt fel fabriceras av saknad READ-källa.']
+    return {...base,applicationDecision,functionalDecision:'manual_review',issues,responsePlan,decisionTrace,prodatProcessingDisposition,
+     validationReport:{...base.validationReport,applicationDecision,functionalDecision:'manual_review',issues,responsePlan,decisionTrace,prodatProcessingDisposition}}
+   }
+  }
   // Never read a bilateral authority for an unknown or invalid full grammar.
   // A/D/H, or their reason code (Z26/Z70/Z25) where the national grammar has
   // no such subtype for this message code (bilateral Z04/Z05 H carry Z25).
@@ -721,7 +750,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   if(needsCapability&&base.syntaxDecision==='accepted'){
     try{
       const capability=await readSourceQualifiedProdatBilateralCapability(message)
-      if(capability)base=resolveCanonicalRuntimeDecisionCore(message,{...facts,prodatSourceCapability:capability})
+      if(capability)base=resolveCanonicalRuntimeDecisionCore(message,{...currentFacts,prodatSourceCapability:capability})
     }catch{return base}
   }
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
