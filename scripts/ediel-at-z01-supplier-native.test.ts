@@ -8,7 +8,7 @@ import {createHash, randomUUID} from 'node:crypto'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {archiveCustomerAuthorizationDocument} from '@/lib/operations/db'
-import {enqueueCustomerDataRequestAutomation} from '@/lib/customer-operations/automation'
+import {enqueueCustomerDataRequestAutomation, processCustomerOperationJobs} from '@/lib/customer-operations/automation'
 import {readEdielBusinessExpectations} from '@/lib/ediel/businessExpectations'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecisionWithRegistry, readReceivedCanonicalProdatApplicationObjects} from '@/lib/ediel/core/runtimeDecision'
@@ -432,11 +432,25 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
   })
 
   it('real duplicate enqueue retains one operation, source and physical send', async () => {
-    const {f, original} = await sent(variant), before = customerState(f), sealed = sealedSource(original.originalZ01.id)
-    const calls = external.send.mock.calls.length
-    const duplicate = await enqueueCustomerDataRequestAutomation({companyId: f.companyId, customerId: f.customerId,
-      siteId: f.siteId, meteringPointId: f.pointId, actorUserId: f.actorUserId, source: 'synthetic_z01_native_retry'})
+    const f = await createZ01SupplierNativeFixture(variant, provider)
+    vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', f.actorUserId)
+    let duplicate: Awaited<ReturnType<typeof enqueueCustomerDataRequestAutomation>> | undefined
+    const original = await originateZ01SupplierRequest(f, async queued => {
+      const beforeRetry = customerState(f)
+      expect(sql(`SELECT to_jsonb(j.status) FROM public.customer_operation_jobs j
+        WHERE id=${literal(queued.id)} AND company_id=${literal(f.companyId)}`)).toBe('queued')
+      expect(external.send).not.toHaveBeenCalled()
+      duplicate = await enqueueCustomerDataRequestAutomation({companyId: f.companyId, customerId: f.customerId,
+        siteId: f.siteId, meteringPointId: f.pointId, actorUserId: f.actorUserId, source: 'synthetic_z01_native_retry'})
+      expect(duplicate).toMatchObject({id: queued.id, operationId: queued.operationId, duplicate: true})
+      expect(customerState(f)).toEqual(beforeRetry)
+      expect(external.send).not.toHaveBeenCalled()
+    })
     expect(duplicate).toMatchObject({id: original.jobId, operationId: original.operationId, duplicate: true})
+    const before = customerState(f), sealed = sealedSource(original.originalZ01.id)
+    expect(external.send.mock.calls.length).toBe(1)
+    const calls = external.send.mock.calls.length
+    await processCustomerOperationJobs({workerId: `z01-native-duplicate-${f.companyId}`, limit: 100})
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z01'`)).toBe(1)
     expect(external.send.mock.calls.length).toBe(calls); expect(customerState(f)).toEqual(before)
     expect(sealedSource(original.originalZ01.id)).toEqual(sealed)

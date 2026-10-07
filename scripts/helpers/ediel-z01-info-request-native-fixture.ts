@@ -225,10 +225,14 @@ export async function ensureZ01SupplierKnownWrongGridArea(f: Z01SupplierNativeFi
 /** Enqueue/claim/worker/create/queue/render/outbox/provider are all real.
  * Nothing rewrites a blocked result or stamps a source ready for the test.
  */
-export async function originateZ01SupplierRequest(f: Z01SupplierNativeFixture) {
+export async function originateZ01SupplierRequest(f: Z01SupplierNativeFixture,
+  afterEnqueue?: (queued: Awaited<ReturnType<typeof enqueueCustomerDataRequestAutomation>>) => Promise<void>) {
   const queued = await enqueueCustomerDataRequestAutomation({companyId: f.companyId, customerId: f.customerId,
     siteId: f.siteId, meteringPointId: f.pointId, actorUserId: f.actorUserId, source: 'synthetic_z01_native_acceptance'})
   if (queued.redirectedToManualFacilityRequest) phaseFailure('enqueue_redirect', queued)
+  // Observe the real active-job window before any worker completes this job.
+  // This hook cannot replace the enqueue, worker, publication or physical send.
+  await afterEnqueue?.(queued)
   const worker = await processCustomerOperationJobs({workerId: `z01-native-${f.companyId}`, limit: 100})
   const job = sql<Row | null>(`SELECT to_jsonb(j) FROM public.customer_operation_jobs j WHERE id=${literal(queued.id)} AND company_id=${literal(f.companyId)}`)
   const requests = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_info_requests r
