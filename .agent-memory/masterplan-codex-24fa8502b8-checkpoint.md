@@ -1,6 +1,6 @@
 # Masterplan checkpoint — root24fa
 
-Updated 2026-10-07T01:17:33.653947+00:00. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All13 technical refs are held; no root memory/merge role. Do not start another pair.
+Updated 2026-10-07T01:17:33.653947+00:00. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All13 technical refs are held; merge role `5bf8ebb1bc49fef0b2c6183f3d506c355943c138` is held ONLY for current648 delivery; no memory role. Do not start another pair.
 
 ## Current sources and next action
 
@@ -81,3 +81,8 @@ That immutable history retains originalC/M components624/628, explicitwholeRELEA
 ## Current component CI_GREEN — 2026-10-07T01:20Z
 
 Root independently authenticated all9 terminal currentf350 SUCCESS, including clean112562791780 andcertificate112568467541. No source/head change; main600 actual293. Two independent peers now finalize exacthead COMPONENT_DELIVERY; rootholds no roles. Read-only preflight tightened beforeuse torequire an explicitpositive FINAL_COMPONENT_DELIVERY_APPROVE marker plus submitted_at afterALL9 completed_at, avoiding accidentalmatch ofoldSOURCEcomments mentioning withhelddelivery. SyntaxPASS; pendingready:false exit0 neverauthorizesmerge. Nextroot actualtwofinalreviewIDs→strictready:true/freshmain13/freeMERGErole→expectedf350 normalmerge/actualcomponentreceipt/rolefirstrelease; thenmain+authorizedcarrier/native94. Consolidatedcheckpoint preservesfullhistoricalbytes viaGitancestord2bfb4c825ee2b3b3ae893c6ffb40e6d1287a3ed, notdiscarded evidence.
+
+
+## Merge role CLAIM before action — 2026-10-07T01:23Z
+
+Both actualfinalreviews5436507822+5436512055 COMMENTED explicitFINAL_COMPONENT_DELIVERY_APPROVE atf350 afterall9terminalgreens. Strictpreflightready:true observed01:22:52Z/main600/preview5294/13owners/allforeignpreserved/fullhead12126receipt. Atomicrole-onlyreceipt 5bf8ebb1bc49fef0b2c6183f3d506c355943c138 base600bb61e383868000270a13d9bcc1857cea3b744/same-main-tree/singleparent, create-if-absent+GETMATCH confirmed. No memory role held. Nextroot immediatelyfreshunder-lock preflight andexpectedf350 normalmerge648 (noadmin/force), verify actualmain/PR/tree/orderedparents/coverage293+own3/foreignfiles, recordMERGED_COMPONENT thenownerDELETE/GET404 roleFIRST. WholeIDs/13technicalrefs remainunfinished/reserved.
