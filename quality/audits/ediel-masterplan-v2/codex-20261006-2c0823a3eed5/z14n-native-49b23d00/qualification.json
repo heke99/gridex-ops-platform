@@ -1,0 +1,37 @@
+{
+  "qualification": "AUTHENTIC_CURRENT_HEAD_NATIVE_GREEN",
+  "head": "49b23d00a79497316313ebabfe8a4193615ecf7a",
+  "tree": "9e8c35dd734155ac0348f252d908f07540eb862a",
+  "run": 37541207241,
+  "attempt": 1,
+  "job": 112534381285,
+  "job_conclusion": "success",
+  "artifact": 11448339694,
+  "zip_bytes": 1125657,
+  "zip_sha256": "31ce6d37ef510bf19bda3d3b5dd006c66f1334f2ae0209d5fbc1cc79cf80b760",
+  "receipt_sha256": "b6827cd768b618880a3ccb3ebc19e0845c516a6bfa9447d1b26260db0ef5fa87",
+  "junit_sha256": "944d4ca1fbdab84205c65a5ec5f3c08b790bdb33a71c9abedf061e40b03343ef",
+  "log_sha256": "c77b51293885a42ae42e7d31f348193c931d20105f8518fa3de5a81810d7a5b1",
+  "all_immutable_git_blobs_verified": 9285,
+  "runtime_generated_inputs": {},
+  "native_exit": 0,
+  "case_counts": {
+    "scripts/ediel-at-z14n-esco-native.test.ts": 19,
+    "scripts/ediel-at-z15c-z18v-esco-native.test.ts": 11,
+    "scripts/ediel-tr-05-recovery-native.test.ts": 19
+  },
+  "expected_case_counts": {
+    "scripts/ediel-at-z14n-esco-native.test.ts": 19,
+    "scripts/ediel-at-z15c-z18v-esco-native.test.ts": 11,
+    "scripts/ediel-tr-05-recovery-native.test.ts": 19
+  },
+  "complete_matrix": true,
+  "cases": 49,
+  "passed": 49,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "failure_details": [],
+  "whole_ops04": "BLOCKED",
+  "market_counterparty_deployment": "NOT_PROVIDED"
+}

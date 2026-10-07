@@ -3885,8 +3885,17 @@
     },
     {
       "id": "AT-Z05L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts",
+        "scripts/ediel-at-z05-supplier-native.test.ts",
+        "scripts/helpers/ediel-national-end-native-fixture.ts",
+        "scripts/helpers/ediel-bilateral-lk-native-fixture.ts",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/native-9a9775a0.zip"
+      ]
     },
     {
       "id": "AT-Z01LK-SUPPLIER",
@@ -3910,8 +3919,17 @@
     },
     {
       "id": "AT-Z05LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "__tests__/ediel-at-z05l-z05lk-supplier-profile.test.ts",
+        "scripts/ediel-at-z05-supplier-native.test.ts",
+        "scripts/helpers/ediel-national-end-native-fixture.ts",
+        "scripts/helpers/ediel-bilateral-lk-native-fixture.ts",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z05-supplier-95bc00df11da/native-9a9775a0.zip"
+      ]
     },
     {
       "id": "AT-Z03C-SUPPLIER",
@@ -4049,8 +4067,20 @@
     },
     {
       "id": "AT-Z14N-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z14n-esco-profile.test.ts",
+        "scripts/ediel-at-z14n-esco-native.test.ts",
+        "scripts/fixtures/ediel-service-evidence-native.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "lib/ediel/services/administration.ts",
+        "lib/ediel/core/kernel.ts",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/original-artifact.zip",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/native-junit.xml",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/artifact-metadata.json",
+        "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/z14n-native-49b23d00/qualification.json"
+      ]
     },
     {
       "id": "AT-Z15C-ESCO",
