@@ -134,6 +134,10 @@ jobs:
               errors=[line for line in session.read_text(errors='replace').splitlines()
                   if re.search(r'(^|\s)(ERROR:|Error:|RuntimeError:|Traceback)',line)
                   and not re.search(r'authorization|password|secret|token|anon_key|service_role',line,re.I)]
+              # Replay can fail before local status exists; its DB URI contains
+              # userinfo that the status-key redactor cannot yet discover.
+              errors=[re.sub(r'([A-Za-z][A-Za-z0-9+.-]*://)[^\s]*@',
+                  r'\1[REDACTED_URI_USERINFO]@',line) for line in errors]
               (work/'replay-failure.log').write_text('\n'.join(errors[-12:])+'\n')
           junit=work/'native-junit.xml'
           counts=None
