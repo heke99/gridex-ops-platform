@@ -1,3 +1,21 @@
+## Actual campaign observation — 2026-10-07T00:38:21.763560+00:00
+
+Observed main `60ffde10e4ec710620f9261d3037d60bbe2f0423` (tree `a0ef399cfd8b7e89039bceaa8900d936c56b5317`), coverage SHA256 `66cae57af66b9e2cc967e612c3e9e8cb172f6814292e42ef047a50794f7328a2`: **115/121 VERIFIED rules + 176/231 PASSED contracts = 291/352; 61 remain**. Counts are from actual main. #642 is merged; only AT-Z14N-ESCO was promoted. Earlier dated sections are historical and retain their original evidence. Resulting-main full CI/native, formal/live counterparty acceptance and deployment remain separate and unclaimed.
+
+Current ownership must be refreshed from live refs and #530. c3 explicitly released all17 Z02 resources (6028086835/6028093179) and then claimed H03/H04 (6028124709); these H IDs are occupied. E06/E09 f367 authentic22PASS and three whole software reviews (6028146627/6028193248) remain candidates pending adopted-main source, current-head checks and delivery. Z05 #636 has10/12 applicable current checks and independently reviewed main642 compatibility (6028133660); remaining clean/certificate and actual delivery are pending. TR09/DB01 #640 ddb retains whole-proof blockers and its original owner (6028176358/6028204167); SC014/Z14V #644/#647 and public Z01 #638/#648 retain their owners. #646 AT-P01 remains its original owner's delivery responsibility despite explicit finite-resource release. A free ref alone never transfers retained whole responsibility.
+
+OPS04/ATOPS04 BLOCKED: the delivered bounded recovery tests exercise real current-context worker/provider/readback/replay, including actor/network withdrawals. Existing certification/readiness consumers are present; independent review finds no additional internal code gap. The remaining literal controlled post-correction agreed counterparty trial requires authentic selected incident/route/certificate/profile/tenant/environment input and explicit LIVE mandate from the original incident/runbook/counterparty owner (FINAL_TEST_PHASE.md and frozen workmatrix). No fabricated agreement, blind/mass resend, new consent ledger or borrowed production certificate. After explicit technical RELEASE, a future owner must freshly claim and obtain that input before the minimum agreed real flow and original logs; current rows stay unapproved.
+
+## Actual delivered ledger — observed 2026-10-06T22:38:25.221028+00:00
+
+Observed main `356e153b64d83b84379791a4b4bda1e47ca464a0` (tree `75c93f2f8128c1a76166c62b50eb2fe3745220ac`), coverage SHA256 `9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1`: **115/121 VERIFIED rules + 175/231 PASSED contracts = 290/352; 62 remain**. Counts derive from main, excluding open-PR candidates. Source-head checks and merge receipts do not establish resulting-main full/native, external acceptance or deployment. Earlier dated snapshots remain historical.
+
+Actual #637 receipt [6026417007](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026417007); #641 receipt [6026666590](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026666590).
+
+Current original owners retain #638 Z01 (24fa), #629 E (93e), #640 TR09/DB01 (2f72), #642 N/OPS04 (2c0823), Z02 (c3ae) and SC014/Z14V (c65). #635 L/LK has explicit owner RELEASE6026519492; missing atomic refs alone never release a retained whole-contract/source responsibility. #636 Z05 remains a candidate pending its owner's final current-head delivery. Claims, successor heads and execution results must be refreshed from #530 before implementation.
+
+Owners finish their current whole effects, authentic proof, review and mandatory checks, then merge under role-merge or explicitly release with exact remaining scope. Free acceptance scope may be selected independently after the original-source/legacy assessment and confirmed ID/file reservations; no coordinator allocation is required.
+
 ## Current delivered ledger — observed 2026-10-06T21:25:05.808507+00:00
 
 Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and

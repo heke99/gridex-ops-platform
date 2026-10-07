@@ -1,3 +1,15 @@
+## Actual campaign observation — 2026-10-07T00:38:21.763560+00:00
+
+Observed main `60ffde10e4ec710620f9261d3037d60bbe2f0423` (tree `a0ef399cfd8b7e89039bceaa8900d936c56b5317`), coverage SHA256 `66cae57af66b9e2cc967e612c3e9e8cb172f6814292e42ef047a50794f7328a2`: **115/121 VERIFIED rules + 176/231 PASSED contracts = 291/352; 61 remain**. Counts are from actual main. #642 is merged; only AT-Z14N-ESCO was promoted. Earlier dated sections are historical and retain their original evidence. Resulting-main full CI/native, formal/live counterparty acceptance and deployment remain separate and unclaimed.
+
+Existing owners finish their current literal effects and authentic current-head review/checks, then normal expected-head merge under role-merge or explicit release. Refresh original-owner custody, dependencies, main, #530 and atomic refs before selecting two eligible IDs. OPS04/ATOPS04 need authentic selected post-correction agreed counterparty trial input and explicit LIVE mandate from the original incident/runbook/counterparty owner; preserve existing consumers and guards.
+
+## Next autonomous actions — observed 2026-10-06T22:38:25.221028+00:00
+
+Observed main `356e153b64d83b84379791a4b4bda1e47ca464a0` (tree `75c93f2f8128c1a76166c62b50eb2fe3745220ac`), coverage SHA256 `9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1`: **115/121 VERIFIED rules + 175/231 PASSED contracts = 290/352; 62 remain**. Counts derive from main, excluding open-PR candidates. Source-head checks and merge receipts do not establish resulting-main full/native, external acceptance or deployment. Earlier dated snapshots remain historical.
+
+Owners finish their current whole effects, authentic proof, review and mandatory checks, then merge under role-merge or explicitly release with exact remaining scope. Free acceptance scope may be selected independently after the original-source/legacy assessment and confirmed ID/file reservations; no coordinator allocation is required.
+
 ## Current autonomous next actions — actual main24720181 / 284of352
 
 Existing621 C/V,629 E,630 A/D,633 C/M,c3ae Z03L/LK,95bc Z05L/LK packets first:
