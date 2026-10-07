@@ -1835,3 +1835,212 @@ C217/TRDB SQLinputmap COMPLETE scope6736046600397/handoff6736046639650 exactmain
 Actualmain1099+C1+TRDB6=1106; publishedCORE9d threeextra SQL gives1109distinct10paths. AllexistingSQLbyteexacteachcarrier, no commonfunctiontargets Ccontext/bind/current+newreaders vsTRDBsnapshot/checkeduncheckedtransition/actor/transportprivateleaf vsCOREscalar/Z02gate/addressbasis. Staticdisjointnotruntimeindependence; actor/legalbasisfeedCoriginalvalidation andtechnicalCONTRLcannotgrantbusinessSEND. ExactSQLtail07154601/94d507; countalone/tailalonecannotprovechosen1109catalog. ReproduciblecatalogblobSHA/functiontargets/manifestdictdiff/tmp/gridex-released-c-trdb-inputs.json.
 CanonicalCaddsONE07132500; canonicalTRDBfirstFIVE; TRDBadditionsoverlaytechnicaltailONLY, alloldentries/topkeysequalmain. COREcanonical/overlaydictionarysamecurrentmain; own3remainexistinghistoryrules. Usefullcurrentdict+unionnew6keys/technicaloverlay, preserveoldpins/foreignposts/COREmanifestgeneratedrules; no wholemanifestreplacement/tailonlyhandtypedGEN. Existing1105TRDB/1102CORE/1100C receipts lackothers, cannotcomposequalification bylabels. ExactownerGEN2f/f046fourrefsforeignfreshindividualGETMATCH f0468525; chooseauthenticatelawfulselectedcatalog/reviews before ONEcoordinatedcompletegeneration/cleanupgrade/types/fullparity/currentmandatory ifoldfullSQLpostimageequivalencecannotbeproved. No actualcapture/GEN/native/CI/behavior executed; oldsourceAPPs reusedonlybounds. No technical/ID/memory/merge refs or sourcecoverage change; releasedC/TRDB scopes futureclaimantsownwholeacceptance, noinheritance.
 Nextfreshcurrentboard/source-readycandidate orboundedexplicitreleasedhandoff; avoid assignedP08/F-G/CORE/L/H/native/685CI/delivery and duplicateGEN. OwnCPpublicationfollows. Sharedmemoryroleholderretainsreconciliation.
+
+
+## Archive eligibility six groups — active 2026-10-08
+User explicitreview/archive task +owneraction6736048583456; read-onlyscope6736048700560. Exactmainfd039ae391b53814ed7baa65fc237c5376990511, currentAGENTS/orderedmemory/ownCP/673page5+6/78refs/heads read. No technical/sharedmemory/role claim; ownCP only. Exactcandidates628669670650654643640 and successors674676657677665658662689 currentmetadata/files saved /tmp/gridex-archive-pr-inputs.json. Next postimage+uniquecriteria+proof/custody+old/newZ02SQL/historicalGEN mapping before anyclose; branches preserved, no tagabsence takeover. 690 independentdelivery/CIreaders alreadyassigned;688delivered+released. Originalreportslocalseparatechatreports pathnotpresenthere, reconstructactualGit/API evidence without assumingabsence.
+
+
+# Archive eligibility mapping — review-20261007T110319Z-acc382d9 — 2026-10-08
+
+Read-only review against main fd039ae391b53814ed7baa65fc237c5376990511; scope #6736048700560, owner actionlist #6736048583456. Current AGENTS/ordered memory/workflow/reservations/legacy/own checkpoint and real refs read. Skill routing: reuse code-review, differential-review, verification-before-completion and source-bound Supabase guidance. This is bounded archival/source-provenance review; no broad audit, source edits, new implementation/merge/memory reservations, CI execution or large artifact download. Coverage unchanged115/121+185/231=300/352. Existing authentic qualifications are reused only for their original inputs/scopes. Administrative CLOSED_UNMERGED does not approve or discard whole requirements. Primary PR means documented remaining-work home; released custody requires fresh claims before implementation.
+
+## #628/#669 → #674
+
+Owner/next custody: 24fa preserves M/C source/evidence; whole packet released. Runtime 2f, compiled M/private L c3, current C03/C05 2ea, original Claude SC039; future whole claimant must reserve.
+
+Delivered: #633 at b155d8b789988cb008c9711c23df729112f60f97 repairs held response coherence; #679 at d0a655ce192f2c3d6cced06cab91898b0f7ad9b4 supplies the bounded Z10 own-source reader. Neither approves whole M10/C04.
+Reuse: #628/#669 test/config are byte-identical. #674 retains both strict case bodies/oracles and adds only bounded post-failure application-read observation plus source capture inputs. Its later read cannot substitute for the original normal read or resume processing.
+Preserved evidence: #628 fe844 run37492544314 =0P/2F; #669 d4e87 run37628902398/a1/job112817736403/art11485374503 ZIP f22e270472b70d38e769d8f76c83f3e2af84ad9c14cf4fe879dc459c69702d94 =0P/2F/0E/0S; #674 004c run37642851045/a1/job112865614028/art11493780001 ZIP173ebf9796418e17ba84faa19a013eb5fb9e7a9f00e76e58312903ad92842461 =0P/2F. Protected APP guard occurs before insertion; apply/history/final ACK/replay NOT_REACHED. #674 clean timeout is a distinct ESCO omission-matrix failure, not demonstrated GEN drift.
+Unique remaining home #674 + original branches: genuine accepted two-register own APP/REG with true/false/unknown authority; lawful past-period E66 old/boundary/new values/provenance and unchanged prior readings; crossing/wrong-old refusal; retry cardinality and physical final business APERAK. DSO actual replacement anchor and SEND within ten Swedish business days, holiday/tenth-day boundaries (not supplier late-arrival rejection). C04 executed controlled compensation/reversed causal retention/timely ACK/contact, original SC039 custodianship.
+Custody: #628 explicit full seven-resource release recorded #5306023306041 and original body; #669/#674 whole eight-resource release #5306040049445 and #674 current body/checkpoint. No archive claims a fresh whole reservation. Next: named source owners deliver qualified internal source/loading/redemption and compiled M/private L; future claimant freshly reserves and executes remaining literal requirements.
+
+### Immutable file homes
+
+|Original|Path|Original blob|Byte-exact home|
+|---|---|---|---|
+
+|#628|.agent-memory/masterplan-codex-24fa8502b8-checkpoint.md|672d4320855fbabbbcf23a9d86b3b0a0733035a5|evolved; preserve original branch + primary PR mapping|
+|#628|.github/workflows/ediel-z10m-supplier-native.yml|4df90bd9c026fe71a6ce61c6fb1031aafc02ec03|evolved; preserve original branch + primary PR mapping|
+|#628|scripts/ediel-at-z10m-supplier-acceptance-native.config.ts|2491ab363c1848e79250bb26ab3cc670cb153a5b|674|
+|#628|scripts/ediel-at-z10m-supplier-acceptance-native.test.ts|0d988cb70c5dc4c77e57874836247f545f93b9bb|evolved; preserve original branch + primary PR mapping|
+
+Original #628: head fe84419f374c4f19660cae7364834ce1baeacbff; preserved branch codex/ediel-z10m-native-24fa8502b8. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+
+|#669|.agent-memory/masterplan-codex-24fa8502b8-cm-resume-checkpoint.md|56aa0b84047a58fa503ed95c11a4b3546a2782f1|674|
+|#669|.github/workflows/ediel-z10m-supplier-native.yml|4379fa3f99007a3a081305e76fa00769ee75abf9|evolved; preserve original branch + primary PR mapping|
+|#669|scripts/ediel-at-z10m-supplier-acceptance-native.config.ts|2491ab363c1848e79250bb26ab3cc670cb153a5b|674|
+|#669|scripts/ediel-at-z10m-supplier-acceptance-native.test.ts|0d988cb70c5dc4c77e57874836247f545f93b9bb|evolved; preserve original branch + primary PR mapping|
+
+Original #669: head d4e87eacb875bb63e82492a0603bb4b951d9f33f; preserved branch codex/ediel-cm-resume-24fa-9f4054fa. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+## #670 → #676 (coupled C217); a7f46a8fc0e934df59355b485d038ee4828c2882 selected input
+
+Owner/next custody: Original 2c released; 95 preserves #676; GEN/CORE owner 2f; current prospective C component owner 2ea.
+
+Delivered common public C birth #663 and public30 source #683 remain bounded prerequisites. No C217 delivery inferred.
+Reuse: all NINE technical #670 postimages are EXACT #676; only checkpoint differs. Source/SQL/renderer/context must stay coupled. Current-main a7 input contains six original-method source/SQL/test paths plus checksum pin; the original-method native test/config/workflow omitted there remain required in #676/#670.
+Evidence: ed573f run37633126314/a1/job112832283354 ZIP79aa5a79d77b1a63d50a8d6e21381c417c75f32e7b9efbcfb06a3399f99d2ccc authentic BOOTSTRAP failure 'migration source is not checksum-pinned: 20261007132500_ediel_switch_cancellation_original_method.sql'. Native NOT_REACHED. 23 unit and90 mechanical SQL probes are source/component evidence only. Current pin/input solves composition, not complete GEN/native approval.
+Remaining home #676: original immutable meter method and signed declaration/source binding → public cancellation projection/rendering → final INSERT and fresh SEND matching physical217; preserve original payload/history/reservation basis, certifications/early returns/ACLs/replay and all original30 negative oracles. Actual healthy own L source/timing/private READ and current generated schema/types/fingerprint/manifest/clean+upgrade/parity then genuine native/mandatory gates still required.
+Custody: original ALL14 refs actual released 2026-10-07T14:48:32.982393Z, #5306040245152 + immutable original checkpoint5f491e97/body. Successor twelve-resource C handoff actual RELEASE #6736046553488. Current C03/C05 six-resource packet c203 belongs to 2ea, not archive reviewer. Next: GEN2f selects complete lawful candidate including coupled07132500, authenticates complete outputs/current strict gates; 2ea delivers ordinary prospective fixture correction separately, no duplicate large native/capture.
+
+### Immutable file homes
+
+|Original|Path|Original blob|Byte-exact home|
+|---|---|---|---|
+
+|#670|.agent-memory/masterplan-codex-20261006-2c0823a3eed5-checkpoint.md|1681757d342effb0328b66a07ae44cd0c4d821d6|evolved; preserve original branch + primary PR mapping|
+|#670|.github/workflows/ediel-cancellation-original-method-native.yml|4bed4d79411b9720388569742397b38f319ea5ce|676|
+|#670|__tests__/ediel-at-z03c-supplier-queue.test.ts|952dfed78a3270a69f254262973da84fe4cc1815|676|
+|#670|__tests__/ediel-switch-cancellation-source.test.ts|a54189bfa9b74a858c23914a4c499767aedeac9d|676|
+|#670|lib/ediel/intent/renderers/switchCancellation.ts|ebad6c42a567437883f670ab5f6cbcd8b4f5b727|676|
+|#670|lib/ediel/production/switchCancellationSource.ts|422be98448d287da320bd10dc30c1d3536484f44|676|
+|#670|scripts/ediel-cancellation-original-method-native.config.ts|6bc3c2f52beba603e00c6ddd840102d6ca1946be|676|
+|#670|scripts/ediel-cancellation-original-method-native.test.ts|313829f522f9efdd02df4b7279500b37638a58a1|676|
+|#670|scripts/ediel-switch-cancellation-sql-regression.mjs|60533b705af6e508564dbaeed8fa759e9a0e555c|676|
+|#670|supabase/migrations/20261007132500_ediel_switch_cancellation_original_method.sql|e6a631ccbd666851a8c0a876095ea8815a39484a|676|
+
+Original #670: head ed573f0f3579e3f72503e4e7f15b92ed4b5ded4a; preserved branch codex/ediel-c217-2c0823a3eed5-2bb5ffee. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+## #650 → #657 whole H03/H04; #677 source-only helper prerequisite
+
+Owner/next custody: 93e current H03/H04 packet88aa62fd; original c3ae full release; common CORE/GEN 2f.
+
+Delivered bilateral birth module/unit are exact main/#657/#677. Original workflow/config exact #657. No wholesale original stack import needed.
+Reuse: #657 preserves ALL original100 identities/clauses, corrects physically qualified own required/dependent source setup and preserves negatives; #677 carries shared reading-declaration helper, not whole H approval. New #688 ordinary explicit source-code fixture does not fix the distinct Z15/D rescission constructor or qualify synthetic259/111.
+Original genuine8cf run37562363367/a1/job112602272944/art11458540181 ZIP2a09fcd2a18e07f9a9b02bbca6fafa99aa1951fb4d572b7037ece0bb729d0697 =46P54F/0E0S/100, all4279 inputs. Earlier286a95 =32P63F remains distinct. #657 current382 run37698542149/a1/job113056149633/art11516569971 ZIP0d56e47459d46abe3dc65146a5d3af9a2679f20ba026e2662ec21d733b04424f =81P19F/0E0S/100, all4362 inputs/1099SQL (#6736048751028). These are genuine different compositions, never substitute historical counts.
+Remaining home #657: all100 physical field/role/direction/source mutation/correlation/ACK/review-loss/replay/no-effect clauses; literal controlled signed source + actual SMTP +30-minute watch/confirmation transition; D229 address/214218259 readings/private ACK/source authority, original202 negativeAPERAK and306 invalid-source negative. 306 currently canonical accepted with no intendedERC42; projection repair fails source-owned outbound relation. Four syntax-capability test oracle corrections are 93e-owned preapproved work, NOT validator relaxation or whole acceptance. #677 constructor mismatch is separate fixture error. Current missing context/healthy supply and unavailable runtime capture remain dependencies.
+Custody: original ALL7 released: producer2 #5306028728205 plus remaining5 e3cea actual MATCH→DELETE→404 in latest original checkpoint blob65abaef498d8912af6a9d4f0ac8bd8e03552eb92, first 'Actual full H reservation release confirmed', following intent #5306029953943. This corrects stale650 body custody text; old failed evidence stays.
+Next: 93e completes only approved four-oracle equality correction/failure-only diagnostic under existing9 refs, authenticates new100 once and mandatory gates; runtime2f qualifies real initial-response/source/private basis. No reviewer rerun or takeover.
+
+### Immutable file homes
+
+|Original|Path|Original blob|Byte-exact home|
+|---|---|---|---|
+
+|#650|.agent-memory/masterplan-codex-c3ae-z03h-z04h-checkpoint.md|2831dfe642a6ae32b34b9bcf21603db71a081eb9|evolved; preserve original branch + primary PR mapping|
+|#650|.github/workflows/ediel-z03h-z04h-supplier-native.yml|dba1dccc2017d3cbd10f8bc8db75b8fb3eb37a75|657|
+|#650|__tests__/ediel-bilateral-switch-birth-profile.test.ts|2cd7087ab81b3dcbdba224887bb19ca26b574871|main, 657, 677|
+|#650|lib/inbound-mail/bilateralSwitchBirthProfile.ts|7c05109ecc5d4253966092bfce4b74847f72dc17|main, 657, 677|
+|#650|scripts/ediel-at-z03h-z04h-supplier-native.config.ts|aaba4723b90c8ef9ec9dded0cfbc0fadfff75407|657|
+|#650|scripts/ediel-at-z03h-z04h-supplier-native.test.ts|b7115522a01492b6b14025edfa13616ac7cb89a8|evolved; preserve original branch + primary PR mapping|
+
+Original #650: head 8cf0289e0f35991f26b2b70d5343044f7ec30f65; preserved branch codex/ediel-z03h-z04h-c3ae376b9893. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+## #654 → #665 whole H05/H08; new95bc eleven-TS component delivery
+
+Owner/next custody: Original2c and laterc65 released. Current95bc packet40523d24/1971d06d reserves elevenTS+twoHIDs; runtime/GEN2f separately.
+
+Delivered #660 main1aef94be4758260e134bdc195a69312901bf8cb2 publishes four public-birth production/unit paths. Its default L2/2 and15 gates do NOT approve H.
+Reuse: #665 retains original93 (91 strict plus2 SOURCE_ONLY probes), adds3 declaration controls =96, supplies physical readings before birth and asserts real same-source H04 supply period. Seven old postimages exact665; three exact main. Normal-switch callback reuse was explicitly authorized by original c3ae request #6546030096837, and later bounded helper #672 delivered. OPS03 finite inverse source-pin fixture changes preserve original fault controls and are not a gate waiver. Current inboundStatusUpdater evolves; do not restore historical whole postimage.
+Evidence original96fd run37585950162/a1/job112675983175/art11467501508 ZIPb26e69b163d2e6b0c6d354bbb7fe6671bf943896cf8b76880138aeb18c375cc2 =2P91F/0E0S/93, all9354 inputs, original strict tails NOT_REACHED at held H04 APP. #6659c run37626497896/a1/job112809495074/art11485520958 ZIPc5380fd2eaf3530baa7aad1cbbddd4d9641b1a80615657411760b832043d6d12 =4P92F/96; absent H04 supply period,91 original target tails NOT_REACHED.
+Remaining home #665: literal bilateral H05 end agreement/profile/transition; own physical Z05/Z25 required/dependent fields and positive/negative ACK/timers/end/no automatic ordinary effect; documented legal H08 termination (payment flag alone insufficient), physical Z08/Z25 request, guarded watch/end and causalZ05L; all role/direction/omission/correlation/source-mutation/no-effects/history/replay. Frozen missing223 e61d88 source and H209 rejected-identity da688 source carriers remain supplementary, not complete acceptance. New11TS95 component supplies imports only; actual runtime hook/retained inbound clock+original capture, SQL07212410+chosenGEN, negativeAPERAK41/42/ownLI/noZ07/noeffects/replay and genuine96 remain open.
+Custody original ALL16 actual MATCH→DELETE0→404 after #5306034741210, original latest checkpoint blob b6bc76f6282ca342bbf6713afaa993bdde4bfb2e. Later c65 ALL9 actual RELEASE #6736045412116; 95 earlier released carriers #6736046201531. New95 explicit fresh claim #6736048729295 is distinct. Next95 finishes current169 targeted/app+tests typechecks/two install reviews and small source-only PR; 2f supplies integration/GEN. Native stays assigned original owner, no duplicate96.
+
+### Immutable file homes
+
+|Original|Path|Original blob|Byte-exact home|
+|---|---|---|---|
+
+|#654|.agent-memory/masterplan-codex-20261006-2c0823a3eed5-checkpoint.md|d07f38b3e1eb5fb649f5dcd184bb2566340c96d7|evolved; preserve original branch + primary PR mapping|
+|#654|.github/workflows/ediel-z05h-z08h-supplier-native.yml|12a262601847501dffa68b4f11b401c7b9eeaf9d|665|
+|#654|__tests__/ediel-inbound-physical-birth-intake.test.ts|017dc62b503f8d9debc683e742d5630822cbd975|main, 665|
+|#654|__tests__/ediel-ops-03-code-release-evidence.test.ts|98feef947dd214aa05ee1ced37e35079e14dd2ec|evolved; preserve original branch + primary PR mapping|
+|#654|__tests__/ediel-supply-end-birth-profile.test.ts|9ba58502919169a33d9f3f5c10bbf893dc12ff1b|main, 665|
+|#654|__tests__/ediel-supply-end-field-omissions.test.ts|a17d9c3eabac734bd99ce8fb56be04b05c043649|665|
+|#654|lib/inbound-mail/inboundStatusUpdater.ts|c8bf3701e794b5210accd2817d7166a6a4c3cc83|evolved; preserve original branch + primary PR mapping|
+|#654|lib/inbound-mail/supplyEndBirthProfile.ts|ce5c1182f7e17c3ec5e9adccb141203f61f286fd|main, 665|
+|#654|scripts/ediel-at-z05h-z08h-supplier-native.test.ts|dfb99d6c36271b1b512be5e0afc70cddd7d3de5f|evolved; preserve original branch + primary PR mapping|
+|#654|scripts/ediel-z05h-z08h-supplier-native.config.ts|a5328d04de12bf4447d746a24d3bf291652b24d4|665|
+|#654|scripts/helpers/ediel-normal-switch-native-fixture.ts|a46c8973ec6a928531a43baf598a2b6146f7c408|evolved; preserve original branch + primary PR mapping|
+|#654|scripts/helpers/ediel-supply-end-field-omissions.ts|c9d01596c82566542f5964a1968a240d6e7e4c68|665|
+
+Original #654: head 96fd8e681871671a7eb9c1bcecd9b4102e3e319a; preserved branch codex/ediel-z05h-z08h-2c0823a3eed5. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+## #643 → #658 whole Z02L/LK + GEN
+
+Owner/next custody: 2f72 current held Z02/CORE/GEN; originalc3ae ALL17 released.
+
+Delivered bilateral common birth module/unit exactmain; source-only prior catalog/physical source prerequisites preserved. Eight original paths have exact main/successor homes; #658 evolves runtime/validator/context, physical-point observation, enqueue-failure classification and birth-version guards. Original whole inboundProcessing postimage is not safe to restore.
+CRITICAL migration identity map: original20261006233239_received_z02_address_source_basis.sql and successor20261007093025_received_z02_address_source_basis.sql are BYTEEXACT blob55829ccaa6d8979c81110085fcddfe563389ba97. Preserve BOTH history names as provenance, but selected installed catalog must not install the duplicate function definition under both names. A rename is not proof of actual historical upgrade identity.
+Original evidence: old catalog5 authentic3374-source run37541452467/art11449561551 ZIP1d1907 (full digest remains original record) and59 finite source probes; currentaa97 run37550717970 stops checksum/bootstrap, no qualified89-case export. Partial PG17 ENOSPC is infrastructure, not a product assertion. #658877 run37687049116/a1/job113017445630 =69P20F/0E0S/89, earlier9d67P22F separate. 1102 capture run37687049076/a1/job113017444611 succeeds RAW3/CAPTURE only, five archives/all9422 inputs, NOT_RUN limits; eight mandatory green on877 do not approve whole89/selected current1111/1112 catalog.
+Remaining home #658: every original89 identity and source/address current-lawful point/version/correlation, fields18/264/280, role/tenant/source-mutation/refusal, final effect/no-effect/ACK/replay; actual valid private read/source registration and current protected source; classify23514 using authentic transaction evidence rather than assume production defect. Complete chosen SQL identity/pins, generated artifacts, genuine upgrade/clean/parity and current-head complete mandatory/whole review remain.
+Custody original ALL17 actual MATCH→DELETE→404 #5306028086835, original checkpointf9fbc146; earlier producer2+SQL1 separately released. Current2f held refs remain untouched. Next2f completes chosen complete-candidate GEN/native under its existing custody and confirms unique migration replay mapping; no second capture/review of already assigned large runs.
+
+### Immutable file homes
+
+|Original|Path|Original blob|Byte-exact home|
+|---|---|---|---|
+
+|#643|.agent-memory/masterplan-codex-c3ae-z02l-z02lk-checkpoint.md|cfbed43e0bf20ae982fd440b3fe8607c73e42fd8|evolved; preserve original branch + primary PR mapping|
+|#643|.github/workflows/ediel-z02-supplier-native.yml|deb379c4fbbd1f8acd0d10b07a61f95ee0c73381|evolved; preserve original branch + primary PR mapping|
+|#643|__tests__/ediel-received-z02-end-user-address-context.test.ts|cb8b4ff5a81149042b2eb4eecdbf3c44b7dc78ab|658|
+|#643|__tests__/ediel-received-z02-end-user-address-runtime.test.ts|8f95b9c792a731fc91f50cfacd02d8bd6b39e0bb|evolved; preserve original branch + primary PR mapping|
+|#643|__tests__/ediel-supplier-data-birth-profile.test.ts|fda95c1162ae38a1490f3693030445b7b86f07e4|main|
+|#643|lib/ediel/core/runtimeDecision.ts|047612e67a49e65457e325d66e495d7f5fa2e77f|evolved; preserve original branch + primary PR mapping|
+|#643|lib/ediel/flows/inboundProcessing.ts|a6405e3ef4388570edeee86acdc98e5d59bb7ecf|evolved; preserve original branch + primary PR mapping|
+|#643|lib/ediel/prodat/receivedZ02EndUserAddressContext.ts|2e4cd74dc799e2570bb2372790fa0757af3954ea|evolved; preserve original branch + primary PR mapping|
+|#643|lib/ediel/rulebook/canonicalPolicyFieldValidator.ts|2903fd0c783aca14b46cff3e87b51daea74ff472|evolved; preserve original branch + primary PR mapping|
+|#643|lib/ediel/rulebook/validator.ts|6a7f967256d5882ab539b98aca728388bd268dab|658|
+|#643|lib/inbound-mail/supplierDataBirthProfile.ts|a7e76e8b3f3b70c01b430446e94a957ec47e0da3|main|
+|#643|scripts/ediel-at-z02-supplier-native.config.ts|03e9d6cf5a28e7636b7dfe32e003c465f653d284|658|
+|#643|scripts/ediel-at-z02-supplier-native.test.ts|54716a950e13dd2def8b636545a5ec2f538f60eb|evolved; preserve original branch + primary PR mapping|
+|#643|scripts/helpers/ediel-z02-supplier-field-refusal-native.ts|0b572086487cb0513c9e4bf2f20c604a27625bff|658|
+|#643|scripts/helpers/ediel-z02-supplier-native-fixture.ts|12e40bcda3dc11f7b931eccc7e88f57e54c39cdf|658|
+|#643|scripts/helpers/ediel-z02-supplier-native-observations.ts|e0146675d3582e20043410f62690a5b0f7994ef1|658|
+|#643|scripts/helpers/ediel-z02-supplier-native-wire.ts|c9ffad4d59d614404430fccccb9637381e2f5cb9|evolved; preserve original branch + primary PR mapping|
+|#643|scripts/test-ediel-z02-end-user-address-source.cjs|5d121218df6ea79ed76fb392fe074393680e3760|evolved; preserve original branch + primary PR mapping|
+|#643|supabase/migrations/20261006233239_received_z02_address_source_basis.sql|55829ccaa6d8979c81110085fcddfe563389ba97|evolved; preserve original branch + primary PR mapping|
+
+Original #643: head aa97d1b70e70e94dc225e1ff1e260de8f94d5000; preserved branch codex/ediel-z02l-z02lk-c3ae376b9893. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+## #640 → #662 whole TR09/DB01 SQL/native; #689 ten-consumer delivery
+
+Owner/next custody: Original2f TRDB ALL4 released; b6 #662 ALL41 released. Current24fa TRDB consumers/proofs; GEN2f separately.
+
+Delivered #523 original DB prerequisite and #682 main0795314545214f6609d9a3b14113ae1e0bc07f46 bounded CI Git-history/digest preparation, not wholeTRDB.
+Reuse: ten #662 consumer/test postimages exact#689; original17 of30 paths have exact662/689 homes, two main. #689 fixes fresh retired party_address_id→NULL with historical reads preserved, AGT canonical gateway/source-qualified own original/run scope, mandatory all-family production S/MIME and explicit CRL signature-success. #662 retains original two SQL06231122/06235632 BYTEEXACT plus four actor/transport forwards and original native configurations/workflows/SQL controls; #689 omits SQL/GEN and does not replace whole662.
+Historical640 GEN home remains original64004750 + authentic5978e53d8db3234c9ddf38f54956f8418b242528 capture: run37564010427/art11457956848 ZIP698b51b54f76feba912f050c3e4a8881fe5ccd8364e0fecbc9c70aca1cfc1641,1096 SQL, latest235632, rawtypes unchanged, all61 prior manifest fields recoverable, four NOT_RUN flags. DO NOT replace current6581102 or selected1111/1112 outputs with this older RAW3; provenance not current complete-catalog parity.
+Original DB e21f run37567425256/art11459912460 =0P1F +13NOT_RUN P0001authentic_metering_method_change_origin_required; historical TR21 =18P3F42501actor_not_authorized/capability_not_ready after encrypted archive passed. #6623a bothTR21/21 andDB14/14 genuine own-source/effect proof separately qualified, but verify/clean/upgrade/cert staleGEN failures are real mandatory blockers. 1105 capture37650794160/art11497605282 +upgrade37650794048/art11498306840 remain original version-bounded, not selected-current parity.
+#6897ec source/component336/14 suites +three types/two independent reviews; C30 supplemental run37694604596/job113043096066 =1P29F,28 empty H04periods/LK missing217. Existing supplemental classification (predeclared workflow) does not erase C failures or prove whole acceptance. Ordinary required18 current SUCCESS now reported by owner in latest #5306040049445; fresh normal enforcement/review/main/version/merge-role still belongs owner24fa.
+Remaining home #662/#689: genuine original registration/current protected actor lifecycle/configuration/certification authority, own/foreign durable effects, immutable replay, all14/seven DB phases and21 production family controls, encrypted archive/trust/S-MIME/retired-route refusal; current complete chosen SQL+GEN types/schema/fingerprint/manifest/clean+upgrade/parity and whole coverage. Finite ports do not establish actual DB/SMTP/global zero-DML.
+Custody original673f fourID actual MATCH→DELETE→40404:35:08–04:35:13Z in correct TRDB checkpoint a1863e5350739942e4633342ab8c5e79af097602/blob6eaa5e21401ebb30ad5a6247078f6e4b9a9ec193 after#5306030994834. Later ALL41 released#6736046524511/#6736046379566. Current24fa fresh claims distinct. Next24fa delivers689 exact7ec under its own role/current enforcement and then qualifies additional twoSQLproof component; GEN2f chosen-source outputs unblock whole662. Original branches/failures retained.
+
+### Immutable file homes
+
+|Original|Path|Original blob|Byte-exact home|
+|---|---|---|---|
+
+|#640|.github/workflows/ediel-db01-current-native.yml|1a6be3c156cc4f918af141ca5b23a33659027cb2|evolved; preserve original branch + primary PR mapping|
+|#640|.github/workflows/ediel-tr09-current-native.yml|2eeaf76723cc8ba88c6c4c6a0d6f58220b725c09|evolved; preserve original branch + primary PR mapping|
+|#640|.github/workflows/ediel-tr09-supplemental-native.yml|a0dff168e1619aa9c37bfc955255b46089a39871|evolved; preserve original branch + primary PR mapping|
+|#640|.github/workflows/full-e2e.yml|83fba5e4e2e64f89696cf9fc698a0de45cb92cbd|main, 689|
+|#640|__tests__/ediel-checked-production-capability-convergence.test.ts|8f59a8544c648b6f19a1d49165a8cd5c0fd51edc|662|
+|#640|__tests__/ediel-db-01-current-authority-parity.test.ts|0b242c5a09f95007f768911e26ec759b68233d8e|evolved; preserve original branch + primary PR mapping|
+|#640|__tests__/ediel-test-configuration-route-source.test.ts|8d55a58e0ea31bcc66864fca0dd73670d02d3fe0|662|
+|#640|__tests__/ediel-tr09-current-stage-production.test.ts|e8642c01bdc5ef8d5d379ddbdad0741043fdf7b9|662|
+|#640|__tests__/ediel-tr09-production-family-consumers.test.ts|8dabf682d4c9ec653d2b261245c71f627c812794|662, 689|
+|#640|__tests__/ediel-transport-exception-crl.test.ts|5fa703a18dcb59601d83e0122157c86272be3a97|662, 689|
+|#640|lib/ediel/config.ts|10ee2634360fca385e609ed7dc01f4fc7d63f6a6|662, 689|
+|#640|lib/ediel/db.ts|8c24f089f867b1ab9def3419de64bf112b1ef83f|evolved; preserve original branch + primary PR mapping|
+|#640|lib/ediel/sendContextConsistency.ts|3299fd4939103c040e5c82798b6f12a54f5366e2|662, 689|
+|#640|lib/ediel/testing/agtEngine.ts|b156d14903c6c14d450d4b8c4088a3e14ea42997|evolved; preserve original branch + primary PR mapping|
+|#640|lib/ediel/transport/exception/previousCrl.ts|61d654c2320bdf111cba66d3a2641dc87793f956|662, 689|
+|#640|lib/ediel/transport/index.part-1.ts|acfc99a4931992e52731ac37fbbacb34bfd032c0|662, 689|
+|#640|lib/ediel/transport/index.part-2.ts|a218836057af2ee604a5fc49a3a5d96f1939aa2a|662, 689|
+|#640|scripts/ediel-db01-authority-parity-sql-regression.mjs|21a34f793e86db338eac299ad29d6cfbdae6a24f|662|
+|#640|scripts/ediel-db01-current-native.config.ts|32aa506032b2962822610d64dc96251b28a38c84|evolved; preserve original branch + primary PR mapping|
+|#640|scripts/ediel-db01-legacy-address-containment-native.test.ts|a261649507d49b7f13c34e59be9085631ac6f442|evolved; preserve original branch + primary PR mapping|
+|#640|scripts/ediel-tr-09-reserve-source-native.test.ts|fc95b639a9e9858a0aab9caa369f0e33912a3176|662|
+|#640|scripts/ediel-tr09-current-native.config.ts|0deacb2c119fde7b247618c337aca304ac422911|662|
+|#640|scripts/ediel-tr09-production-family-native.test.ts|9a793a20e47ab2f5975104f7629ad1a0d766ebc5|evolved; preserve original branch + primary PR mapping|
+|#640|scripts/gridex-full-production-e2e.cjs|6dfb1aff27caee2201ff49b0f019213bacc4de45|main, 689|
+|#640|scripts/migration-history-manifest.json|78eb8351edf0b072e4a13f9a9345ecf440b6a904|evolved; preserve original branch + primary PR mapping|
+|#640|scripts/supabase-types-manifest.json|1184df35473a11c5e2d6a8ca3bd0ad1768bc7dff|evolved; preserve original branch + primary PR mapping|
+|#640|supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql|88f66b2190aabc0a849b095e137b708ca0d18c94|662|
+|#640|supabase/migrations/20261006235632_ediel_checked_production_capability_convergence.sql|8a49c09568f43be2887e650b37dffab038abb610|662|
+|#640|supabase/schema.fingerprint.json|a249f9b05fb1d122a228789864dd782783296bf2|evolved; preserve original branch + primary PR mapping|
+|#640|supabase/schema.sql|0fbd027a3ce78bd7b1369860b3c00fc55545f199|evolved; preserve original branch + primary PR mapping|
+
+Original #640: head 04750f2b5045327ec788cde989be37793dd2e85f; preserved branch codex/ediel-tr09-db01-2f72c8ab. Successor/source evidence pins are mandatory; archive body will preserve full original text.
+
+## Closure gate and follow-up
+
+All seven candidates have explicit completed owner-release receipts, preserved original branches/full commits/bodies and mapped requirements/proof homes above. Before EACH close: fresh original/successor head/state, actual branch ref and live refs; if any relevant head changed, stop that candidate and remap. Update original body additively with durable mapping link; close unmerged without branch deletion. Read back original closed/unmerged/head/body and branch SAME SHA. No required CI bypass or merge occurs during archival. Shared-memory owner should mirror these distinct CLOSED_UNMERGED entries/primary homes into legacy register under its role; reviewer does not touch occupied shared files.
+
+Next independent review selection: #690 owner already has two exact delivery reviewers/CI reader; #689 has two source/classification reviews and its own current delivery; do not add competing CI reads. New95 H209 elevenTS component and2ea prospective-C fixture are current implementation/type/source-review-owned, not yet delivery-ready. Fresh board/heads will select a bounded unassigned delivery check or document exact ownership/ready condition. No stale blocker is used.
