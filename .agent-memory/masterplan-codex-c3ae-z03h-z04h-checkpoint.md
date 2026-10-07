@@ -1,3 +1,15 @@
+## Current main990 bounded composition review and scope clarification — 2026-10-07T01:44:51.604026+00:00
+
+Independent h_fresh_component_review reviewed600→990: exactlynewZ01 authorization/unit and modifiedinfoRequests, no SQL/Hsource/config/workflow/coverage changes; read-only merge preview conflictfree. Newresolver lies in H transitive runtime closure via inboundProcessing/mailboxPoller/customeroperationautomation/infoRequests, but changed entry executes only queueCustomerInfoRequestForDispatch, not direct Horigin/birth/process/ACK/activation. Whole-root future input receipt must capture allnewpaths; original286a4277 evidence remains oldexacthead. This is compatibility/source assessment, not full/currentnative approval.
+
+Clarification supersedes any inference that changing site address or invoicee snapshot alone necessarilystales groundscopehash: actualscope_v1 binds agreement/legalBinding/registrygrammar/time/grid scope, uses site existence/grid relation but does NOT include address/validation_snapshot invoicee. Prospective→publicaddress/snapshot→actualcreateGround/sign/archive/review order remains proper explicit fixture staging; only actual returnedscoped.scope fields may be claimed signed scope. Nativeauthor informed before100writes; readonlyscope/archive boundary scout checks actualAPI field/version/hash constraints. No new authority or accepted seed.
+
+Root independently read exactcorrected98 receipts: b96before/after match, scripts38.2864409s+lint2.7360508s EXIT0/empty; scoped diffSHA407368e1a1a816c493d8dcfcd0851c348ad2ccd72f1b5532a9d4bc56e4d20395; ASTsame27/data/title98 parseErrors0. Final99/100 source currentlyauthoring and NOT_RUN. Current650 head286a nativeFAIL, ordinary10SUCCESS/clean+certificateIN_PROGRESS; latestmain990/ledger293. Fiveheldrefs/no roles/nextpair.
+
+Nextnativeauthor frozen100/freshscriptslint; TWOindependent finalreviews plus rootactualselfreview/mainadoption/freshaffectedchecks and normal successor/currentactualproof. Producercommon93e2pathfreshclaim/integration pending AFTER ownEdelivery; rootbounded GEN213222 carrierrequest6028801284 remains pending for explicitlyreleased635, not currentpair. Wholecoverage unchanged.
+
+---
+
 ## Corrected98 source frozen; final99/100 authorized — 2026-10-07T01:42:46.771357+00:00
 
 Sole H03/H04 packet35000282/sessionc3ae, five reservations remain held/e3cea; producer2 actually released6028728205, no role/shared/GEN/product edits. Current published650 still286a/tree5f21 and originalnative95 remains authentic32PASS63FAIL/EXIT1; no current100/native or whole acceptance claim. Current main990/component648, coverage115+178=293/352 unchanged.
