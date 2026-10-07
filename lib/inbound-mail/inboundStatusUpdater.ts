@@ -11,6 +11,7 @@ import { resolveCustomerSourceBirthProfile } from '@/lib/inbound-mail/customerSo
 import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierDataBirthProfile'
 import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 import { resolveSupplyEndBirthProfile } from '@/lib/inbound-mail/supplyEndBirthProfile'
+import { resolveCancellationBirthProfile } from '@/lib/inbound-mail/cancellationBirthProfile'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
@@ -434,6 +435,10 @@ export async function createInboundEdielMessage(input: {
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z05') {
     const birthProfile = await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    if (birthProfile) Object.assign(insertPayload, birthProfile)
+  }
+  if (input.parsed.messageFamily === 'PRODAT' && (insertPayload.message_code === 'Z04' || insertPayload.message_code === 'Z05')) {
+    const birthProfile = await resolveCancellationBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at, messageCode: insertPayload.message_code })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z06') {
