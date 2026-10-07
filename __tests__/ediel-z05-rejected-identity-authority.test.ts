@@ -24,7 +24,9 @@ import {loadReceivedZ05RejectedIdentityRejection, observeReceivedZ05RejectedIden
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({source: {} as EdielMessageRow, rows: {} as Record<string, Row[]>,
   legal: {} as Row, catalog: [] as Row[], calls: [] as {name: string; args: Row}[], permission: true,
-  sourceError: false, legalError: false, catalogError: false, permissionError: null as unknown, delay: 0, clockReadHook: null as (() => void) | null}))
+  sourceError: false, legalError: false, catalogError: false, permissionError: null as unknown, delay: 0, clockReadHook: null as (() => void) | null,
+  bornSourceId: '', sourceQueryFilters: [] as {key: string; value: unknown}[],
+  actorReadHook: null as (() => void) | null, originalReadHook: null as (() => void) | null}))
 const actor = ownerId(50), company = ownerId(2)
 function table(name: string) {
   if (!Object.hasOwn(io.rows, name)) throw Error('UNDECLARED_REJECTION_READ:' + name)
@@ -33,17 +35,25 @@ function table(name: string) {
   const read = () => ({data: io.rows[name].filter(row => filters.every(f => f(row))).map(row => columns === '*' ? structuredClone(row)
     : Object.fromEntries(columns.split(',').map(k => [k, row[k]])))[0] ?? null,
     error: name === 'ediel_messages' && io.sourceError ? Error('DECLARED_ORIGINAL_READ_ERROR') : null})
-  const q = {select: (c = '*') => {columns = c; return q}, eq: (k: string, v: unknown) => {filters.push(row => row[k] === v); return q},
+  const q = {select: (c = '*') => {columns = c; return q}, eq: (k: string, v: unknown) => {
+    if (name === 'ediel_messages') io.sourceQueryFilters.push({key: k, value: v})
+    filters.push(row => row[k] === v); return q},
     not: (k: string, op: string, v: unknown) => {if (op !== 'is') throw Error('UNDECLARED_FILTER'); filters.push(row => row[k] !== v); return q},
-    single: async () => read(), maybeSingle: async () => read()}
+    single: async () => {const result = read()
+      if (name === 'ediel_messages') {const hook = io.originalReadHook; io.originalReadHook = null; hook?.()}
+      return result}, maybeSingle: async () => read()}
   return q
 }
 vi.mock('@/lib/supabase/service', () => ({supabaseService: {from: (name: string) => table(name), rpc: async (name: string, args: Row) => {
   io.calls.push({name, args: structuredClone(args)})
-  if (name === 'gridex_actor_has_company_permission') return {data: io.permission && args.p_actor_user_id === actor
-    && args.p_company_id === company && args.p_permission === 'communication.read', error: io.permissionError}
+  if (name === 'gridex_actor_has_company_permission') {
+    const result = {data: io.permission && args.p_actor_user_id === actor
+      && args.p_company_id === company && args.p_permission === 'communication.read', error: io.permissionError}
+    const hook = io.actorReadHook; io.actorReadHook = null; hook?.()
+    return result
+  }
   if (name === 'ediel_require_inbound_legal_context_v1') {
-    expect(args).toEqual({p_company_id: company, p_message_id: io.source.id})
+    expect(args).toEqual({p_company_id: company, p_message_id: io.bornSourceId})
     if (io.delay) vi.setSystemTime(new Date(Date.now() + io.delay))
     io.clockReadHook?.()
     return {data: structuredClone(io.legal), error: io.legalError ? Error('DECLARED_LEGAL_READ_ERROR') : null}
@@ -77,6 +87,7 @@ function setup(body = object()) {
     observedAt: io.source.message_received_at, canonicalProjection: {family: 'PRODAT', code: 'Z05', subtype: 'H', transactionReasonCode: 'Z25',
       direction: 'inbound', receiverRoles: ['supplier'], applicationReferences: ['23-DDQ-PRODAT']}}
   io.calls = []; io.permission = true
+  io.bornSourceId = io.source.id; io.sourceQueryFilters = []; io.actorReadHook = null; io.originalReadHook = null
   io.sourceError = false; io.legalError = false; io.catalogError = false; io.permissionError = null; io.delay = 0; io.clockReadHook = null
   expect(validateEdifactSyntax(io.source).ok).toBe(true)
 }
@@ -84,6 +95,26 @@ const input = () => {const wire = tokenizeEdifact(io.source.raw_payload!); retur
 const registryCalls = () => io.calls.filter(c => c.name === 'resolve_canonical_ediel_rule_pack_with_witness_v1')
 beforeEach(() => {vi.useFakeTimers({toFake: ['Date']}); vi.setSystemTime(new Date('2026-10-07T22:30:00Z')); setup()})
 afterEach(() => {vi.restoreAllMocks(); vi.useRealTimers()})
+
+it.each([
+  ['actor', 'id'], ['actor', 'company_id'], ['original-read', 'id'], ['original-read', 'company_id'],
+] as const)('caller %s-stage %s mutation cannot redirect an authorized original READ', async (stage, field) => {
+  const original = structuredClone(io.source)
+  const mutate = () => {io.source[field] = ownerId(999)}
+  if (stage === 'actor') io.actorReadHook = mutate
+  else io.originalReadHook = mutate
+  const token = await loadReceivedZ05RejectedIdentityRejection(io.source, actor)
+  expect(io.source[field]).toBe(ownerId(999))
+  expect(io.calls.filter(c => c.name === 'gridex_actor_has_company_permission')).toHaveLength(1)
+  expect(io.calls.find(c => c.name === 'gridex_actor_has_company_permission')?.args).toMatchObject({p_company_id: original.company_id})
+  expect(io.sourceQueryFilters).toEqual([{key: 'id', value: original.id}, {key: 'company_id', value: original.company_id}])
+  expect(io.calls.filter(c => c.name === 'ediel_require_inbound_legal_context_v1').map(c => c.args))
+    .toEqual([{p_company_id: original.company_id, p_message_id: original.id}])
+  if (token) {
+    expect(readReceivedZ05RejectedIdentityWitness(token, io.source, actor)).toBeNull()
+    expect(readReceivedZ05RejectedIdentityWitness(token, original, actor)).not.toBeNull()
+  }
+})
 
 it.each(['invalid', 'absent'])('observes actual own %s field209 without borrowing NAD identity', kind => {
   const body = object(); if (kind === 'absent') body[0] = ['LIN', '1']; setup(body)
