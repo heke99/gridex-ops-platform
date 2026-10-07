@@ -1,3 +1,11 @@
+## CURRENT — PR677 current-main composition and57-test verification
+
+Actual source-only PR677 published8ccb7c140044d948e4ba6aad319f792d846b9598, two independent source approvals/no findings, attached to task. Current-main composition293848d2b18e65f2f92445a4382a41b8dd16c3d4 includes actual fixture-only672/mainff50dfc756eba3fb7314ca673fc25c3024c34ae3; both foreign fixture postimages preserved exactly. Beforecomposition plan owncheckpointdd8cab5599675527252d1bfc5100a3c4fda4a26e/own530readback verified.
+
+Actual current57PASS0FAIL0SKIP: original H24 +A/D19 +new opt-in sourcefixture14, /tmp/gridex-h-producer-current-main-unit-result.json, unchanged Node22/canonical loopback/defaultworkers. Current nonincremental testsTSC0, helper/unitESLint0/diff0. MainTSC previous actual0 sourceinputs unchanged; mandatory fresh currenthead validation remains required. No source/test postimage changed except previously owned helper/unit; only three ownpaths differ from currentmain. Coverage/sourceSQL/foreign modes/types/OIDs preserved; whole approvalfalse.
+
+Status CURRENT_MAIN_SOURCE_REVIEW_READY, new exact twofinalreviews pending then normalFF677publication/currentmandatory CI; older8ccb gates cannot qualify newhead. Whole/native657 source1af remains frozen, genuine100 queued and unresolved firstsend/refusal fields retained. Next93 reviewed normalpublication then currentgreen/immediatefreemerge-role/actualreceipt/role-FIRST, only helper/unit release; original5Hresponsibility retained.
+
 ## CURRENT — exact source ready for review
 
 Actual implementation c63cfdf944eb1353868edbf6ee8bcc6c5011a11a; current-main composition 680fe67b60834edb0c22deea0926397be7266ebf includes actual metadata-only main7b47beb821cb8321c9de53efd3294f38a3d07971/PR671. All six newly delivered memory postimages are preserved exactly; source/typecheck/unit inputs unchanged. Exactly three own paths differ from current main, all foreign modes/types/OIDs preserved. New-base H24+A/D19=43PASS0FAIL0SKIP, nonincremental tests/main TSC0, scoped ESLint/diff0. Reports /tmp/gridex-h-producer-unit-result.json and /tmp/gridex-h-producer-checks.json. This section supersedes the historical pending/extracted-only labels below.
