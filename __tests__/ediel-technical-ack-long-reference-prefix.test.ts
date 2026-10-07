@@ -3,10 +3,11 @@
 // Public rows, captured-source basis and current-endpoint readers are declared
 // finite IO ports. No private accepted authority, native admission or SMTP is
 // seeded or claimed. Full-trigger/native qualification remains a separate gate.
+import {createHash} from 'node:crypto'
 import {existsSync,readFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {PGlite} from '@electric-sql/pglite'
-import {afterAll,afterEach,beforeAll,beforeEach,expect,it} from 'vitest'
+import {afterAll,afterEach,beforeAll,beforeEach,describe,expect,it} from 'vitest'
 
 const schema=readFileSync(resolve('supabase/schema.sql'),'utf8')
 const migration=resolve('supabase/migrations/20261007000503_ediel_technical_ack_long_reference_prefix.sql')
@@ -14,8 +15,10 @@ const signature='gridex_ediel_technical_ack.require_contrl_v1(public.ediel_messa
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
 const company=id(1),foreign=id(2),sourceId=id(10),ackId=id(11),prefix='ABCDEFGHIJKLMN'
 type Envelope={sender:string[];receiver:string[];interchangeReference:string;uciReference:string;applicationReference:string;environment:string;testIndicator:string}
-let db:PGlite
-let originalCatalog:unknown
+const forward=readFileSync(migration,'utf8')
+const epochHashes={old:'3232a29750f83738243ac958a500d572c21cdc0543c25a5bdcf46ea03869c2a3',new:'464abc12a297a8c6e6cd682499e1750f36f993b50abd1a97e311de5fb027551f'} as const
+type Epoch=keyof typeof epochHashes
+const digest=(text:string)=>createHash('sha256').update(text).digest('hex')
 function definition(name:string){
  const start=schema.indexOf('CREATE FUNCTION '+name+'(')
  if(start<0)throw Error('actual_function_missing:'+name)
@@ -24,6 +27,28 @@ function definition(name:string){
  const end=rest.indexOf(delimiter+';',rest.indexOf(delimiter)+delimiter.length)
  if(end<0)throw Error('actual_function_end_missing:'+name)
  return rest.slice(0,end+delimiter.length+1)
+}
+function functionBody(definition:string){
+ const delimiter=definition.match(/AS (\$[^$]*\$)/)?.[1]
+ if(!delimiter)throw Error('closed_capture_body_unavailable')
+ const start=definition.indexOf(delimiter)+delimiter.length,end=definition.indexOf(delimiter,start)
+ if(end<start)throw Error('closed_capture_body_unavailable')
+ return definition.slice(start,end)
+}
+function closedEpochDefinition(definition:string,epoch:Epoch){
+ const body=functionBody(definition),hash=digest(body)
+ if(hash!==epochHashes.old&&hash!==epochHashes.new)throw Error('closed_capture_epoch_unrecognized')
+ if(hash===epochHashes[epoch])return definition
+ // This single frozen inverse/forward is only a disposable capture/lifecycle
+ // fixture. The lexer, envelope and every other captured guard byte stay real.
+ const old=forward.match(/needle CONSTANT text:=\$needle\$([\s\S]*?)\$needle\$/)?.[1]
+ const current=forward.match(/replacement CONSTANT text:=\$replacement\$([\s\S]*?)\$replacement\$/)?.[1]
+ if(!old||!current)throw Error('closed_capture_transform_unavailable')
+ const needle=epoch==='old'?current:old,replacement=epoch==='old'?old:current
+ if(body.split(needle).length!==2)throw Error('closed_capture_transform_unrecognized')
+ const transformed=body.replace(needle,()=>replacement)
+ if(digest(transformed)!==epochHashes[epoch])throw Error('closed_capture_transform_unrecognized')
+ return definition.replace(body,()=>transformed)
 }
 function wire(reference:string,options:{advice?:string;separator?:string;terminator?:string;sender?:string;receiver?:string;application?:string;test?:boolean}={}){
  const {advice='',separator:s='+',terminator:t="'",sender='12345:14',receiver='54321:14',application='23-DGI-PRODAT',test=false}=options
@@ -35,6 +60,11 @@ const split=(framing:string)=>long().replaceAll(prefix,prefix.slice(0,6)+framing
 const customRelease=()=>wire(prefix+'123456',{advice:"UNA:+.! '"}).replaceAll('+'+prefix,'+!'+prefix)
 const alternate=()=>wire(prefix+'123456',{advice:'UNA:*.? ~',separator:'*',terminator:'~'})
 
+// Both epochs are closed disposable fixture copies of the actual captured
+// definition. This is not a claim that GEN has published either capture.
+describe.each(['old','new'] as const)('closed captured epoch %s',epoch=>{
+let db:PGlite
+let originalCatalog:unknown
 beforeAll(async()=>{
  db=new PGlite()
  await db.exec(`CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_ediel_technical_ack;
@@ -52,15 +82,27 @@ beforeAll(async()=>{
  RAISE EXCEPTION 'finite_retained_reader_not_selected';END$$;`)
  await db.exec(definition('gridex_utilts_binding.wire_tokens_v1'))
  await db.exec(definition('gridex_ediel_technical_ack.envelope'))
- await db.exec(definition('gridex_ediel_technical_ack.require_contrl_v1'))
+ await db.exec('BEGIN')
+ await db.exec(closedEpochDefinition(definition('gridex_ediel_technical_ack.require_contrl_v1'),epoch))
  // A nondefault finite ACL makes lost privileges observable; no native grant
  // or protected accepted authority is supplied by this disposable catalog.
  await db.exec(`CREATE ROLE probe_guard_role;REVOKE ALL ON FUNCTION ${signature} FROM PUBLIC;GRANT EXECUTE ON FUNCTION ${signature} TO probe_guard_role`)
  originalCatalog=(await db.query<{metadata:unknown}>(`SELECT to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid=$1::regprocedure`,[signature])).rows[0].metadata
  expect((await db.query<{hash:string}>(`SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') hash FROM pg_proc WHERE oid=$1::regprocedure`,[signature])).rows[0].hash)
-  .toBe('3232a29750f83738243ac958a500d572c21cdc0543c25a5bdcf46ea03869c2a3')
- // Test-first RED executes the unchanged real guard until the forward exists.
- if(existsSync(migration))await db.exec(readFileSync(migration,'utf8'))
+  .toBe(epochHashes[epoch])
+ if(epoch==='new'){
+  const definition=(await db.query<{definition:string}>('SELECT pg_get_functiondef(oid) definition FROM pg_proc WHERE oid=$1::regprocedure',[signature])).rows[0].definition
+  // Exercise old-to-forward catalog preservation even after a genuine new
+  // capture. The inverse exists only inside this disposable transaction.
+  await db.exec(closedEpochDefinition(definition,'old'))
+  expect((await db.query<{hash:string}>(`SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') hash FROM pg_proc WHERE oid=$1::regprocedure`,[signature])).rows[0].hash).toBe(epochHashes.old)
+ }
+ await db.exec(forward)
+ const installed=(await db.query<{metadata:unknown;prosrc:string}>(`SELECT to_jsonb(p)-'prosrc' metadata,prosrc FROM pg_proc p WHERE oid=$1::regprocedure`,[signature])).rows[0]
+ expect(installed.metadata).toEqual(originalCatalog)
+ expect(installed.prosrc).toBe(functionBody(closedEpochDefinition(definition('gridex_ediel_technical_ack.require_contrl_v1'),'new')))
+ expect(digest(installed.prosrc)).toBe(epochHashes.new)
+ await db.exec('COMMIT')
 },30_000)
 beforeEach(async()=>{await db.exec('BEGIN')})
 afterEach(async()=>{await db.exec('ROLLBACK')})
@@ -173,4 +215,10 @@ it('an independently changed predecessor is refused without altering its body or
  await expect(db.exec(readFileSync(migration,'utf8'))).rejects.toThrow('technical_ack_prefix_predecessor_required')
  await db.exec('ROLLBACK TO SAVEPOINT unknown_predecessor')
  expect((await db.query<{row:unknown}>('SELECT to_jsonb(p) row FROM pg_proc p WHERE oid=$1::regprocedure',[signature])).rows[0].row).toEqual(before)
+})
+it('a capture outside the two recognized bodies fails before guard installation',()=>{
+ const actual=definition('gridex_ediel_technical_ack.require_contrl_v1'),body=functionBody(actual)
+ const unknown=actual.replace(body,()=>body+'\n-- unrecognized capture\n')
+ expect(()=>closedEpochDefinition(unknown,epoch)).toThrow('closed_capture_epoch_unrecognized')
+})
 })
