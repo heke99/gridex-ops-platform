@@ -118,7 +118,7 @@ jobs:
               path = raw_path.decode()
               assert path not in tracked, 'duplicate_tracked_input'
               tracked[path] = {'mode': mode, 'type': kind, 'oid': oid}
-          assert set(required) <= tracked, 'required_input_missing_from_head'
+          assert set(required) <= set(tracked), 'required_input_missing_from_head'
           def consumed(path):
               return (
                   path.startswith(('lib/', 'types/', 'config/', 'e2e/production/helpers/', '__tests__/helpers/'))
