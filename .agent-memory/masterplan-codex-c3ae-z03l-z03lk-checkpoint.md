@@ -1,3 +1,15 @@
+## CLAIM two direct consumer paths before code — 2026-10-07
+
+Same sole AT-Z03L-SUPPLIER/AT-Z03LK-SUPPLIER pair, agent codex-20261006T134154Z-c3ae376b9893, technical branch codex/ediel-z03l-z03lk-c3ae376b9893; isolated clean source preview c0f939e2a6b0aad427589f79445e24ace50ebbf7 in /workspace/gridex-c3ae-l-consumer-preview. Current actual main ff50dfc756eba3fb7314ca673fc25c3024c34ae3. This is a file-scope extension, no new ID/whole ownership/coverage change.
+
+Canonical extension packet0983f4e5-fa9d-4e7f-8e4e-7fbcde25b0b5, unchanged actual-main tree/single-parent receipt bf529295df9657cf498bf12b4d6dd068e0f5aa25. Both sorted create-if-absent refs and separate official readbacks match: file-0d95e890db1a4d3fd1864fb961741c780029076268097173620d8b6ced8316d0 and file-9ce8c0b50d6d2864ea5f4817686c34631effc1219c535af3bc6f064565592f68. Exact new paths __tests__/ediel-received-prodat-response-validation.test.ts and __tests__/ediel-source-owner-runtime.test.ts; all23 prior resources retained, now25 technical resources. SDK helper path is already owned, no foreign helper/runtime/policy edit.
+
+Original current-main/published-source test postimages are identical and reusable. Actual full source records6+1 direct consumer failures; these consumers support explicit genuine ownReadingContext/dedicated-actor options already, unlike the blocked automatic processor. READONLY bounded plan is sealed privately and two complete independent PLAN reviews are underway. Only after both approvals, root self-review, this checkpoint/CLAIM readbacks and fresh all25 custody/source: author two test setups plus optional owned SDK fixture configuration, preserving all59 identities/94 original expect calls/22 unselected response bodies/default97 controls; real loader/public adapters, visible11-call READ phase, original unfiltered canonical/business IO and immutable stored-source clone. No code has started.
+
+Next root: confirm CLAIM documentation and complete both plan reviews before separate authorGO; actual baseline59 before change, minimal repair and appropriate97+179+59/regression/type/lint/source reviews. Native V3 is separately under review with earlier first-refusal descriptor blocks; no native authorGO. Status678 still requires current mandatory greens/immediately-free merge role before delivery/release. No other pair/coverage/main/external approval.
+
+---
+
 ## Actual current full result and precise remaining dependencies — 2026-10-07
 
 Exact frozen local source c0f939e2a6b0aad427589f79445e24ace50ebbf7, tree b491b3279b4b5458147bd6e5aa325aca263c2a4f; published technical PR635 remains7fbb6aaca9ec15756f712bb2e4bf4c253f714fc5. Status-only PR678 is published at c0ab68a5a09b5ad92e9b07fff42f74e578817c5b, current main ff50dfc756eba3fb7314ca673fc25c3024c34ae3. Same sole L/LK pair and23 technical reservations; separate metadata operation retains3 resources and no merge role.
