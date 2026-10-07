@@ -117,9 +117,28 @@ async function publicHStart(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|
  const body:Parts[]=[...parties(f),line('1',f.external,undefined,'9'),qty('1000'),...common(f.external,'Synthetic',start),...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],point(f),['NAD','Z02',[f.brpEdielId,'160','SVK']]]
  const own=body.map(p=>p[0]==='CAV'&&Array.isArray(p[1])&&p[1][0]==='Z22'?['CAV',['Z25']]:p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='LI'?['RFF',['LI',li]]:p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='Z05'?['RFF',['Z05',f.gridAreaCode]]:p[0]==='NAD'&&p[1]==='UD'?endUser(f):p) as Parts[]
  const received=await accepted(f,wire(f,'Z04',own)),sourceBefore=custody(received.sourceId)
- await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.sourceId})
+ const processed=await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.sourceId})
  const period=sql<{id:string;source_message_id:string;source_end_message_id:string|null}>(`SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(received.sourceId)}`)
- expect(period).toMatchObject({source_message_id:received.sourceId,source_end_message_id:null})
+ // Observe the first actual outcome without applying again or manufacturing
+ // its prerequisite. Every positive still requires the committed period.
+ const diagnostic=period?undefined:sql(`WITH source AS (
+  SELECT * FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND id=${literal(received.sourceId)}
+ ), leaf AS (
+  SELECT a.* FROM gridex_received_sources.validation_assessments a JOIN source m ON m.company_id=a.company_id AND m.id=a.source_message_id
+  WHERE NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id)
+ ) SELECT jsonb_build_object(
+  'phase','public_h04_predecessor_no_period',
+  'sourceId',${literal(received.sourceId)},
+  'persisted',(SELECT jsonb_build_object('status',m.status,'failureReason',m.failure_reason,'tenantResolutionStatus',m.tenant_resolution_status) FROM source m),
+  'events',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',e.event_type,'status',e.event_status,'payload',e.payload) ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e JOIN source m ON m.company_id=e.company_id AND m.id=e.ediel_message_id),
+  'partition',(SELECT p.result FROM gridex_received_sources.supply_object_partitions p JOIN source m ON m.company_id=p.company_id AND m.id=p.source_message_id),
+  'canonicalLeafCount',(SELECT count(*) FROM leaf),
+  'canonical',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',a.id,'syntax',a.facts_text::jsonb->>'syntaxDecision','application',a.facts_text::jsonb->>'applicationDecision','functional',a.facts_text::jsonb->>'functionalDecision','factsHashMatches',a.facts_hash=encode(sha256(convert_to(a.facts_text,'UTF8')),'hex'),'sourceHashMatches',a.source_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),'applicationFacetCount',(SELECT count(*) FROM gridex_received_sources.prodat_application_facets p WHERE p.company_id=m.company_id AND p.source_message_id=m.id AND p.assessment_id=a.id),'functionFacetCount',(SELECT count(*) FROM gridex_received_sources.prodat_source_function_facets p WHERE p.company_id=m.company_id AND p.source_message_id=m.id AND p.assessment_id=a.id)) ORDER BY a.id),'[]') FROM leaf a JOIN source m ON m.company_id=a.company_id AND m.id=a.source_message_id),
+  'context',(SELECT jsonb_build_object('status',c.status,'reason',c.reason) FROM gridex_ediel_inbound_context.receipts c JOIN source m ON m.company_id=c.company_id AND m.id=c.source_message_id),
+  'effectCount',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts e JOIN source m ON m.company_id=e.company_id AND m.id=e.source_message_id),
+  'periodCount',(SELECT count(*) FROM public.customer_supply_periods p JOIN source m ON m.company_id=p.company_id AND m.id=p.source_message_id)
+ )`)
+ expect(period,JSON.stringify({returned:{status:processed.status,failureReason:processed.failure_reason,tenantResolutionStatus:processed.tenant_resolution_status},diagnostic})).toMatchObject({source_message_id:received.sourceId,source_end_message_id:null})
  expect(custody(original.id)).toEqual(originalBefore);expect(custody(received.sourceId)).toEqual(sourceBefore)
  expect(await retainedTransportBytes(f,original.id)).toEqual(originalTransport)
  return{...f,startSourceId:received.sourceId,startWire:received.wire,periodId:period.id,originalZ03:original}
