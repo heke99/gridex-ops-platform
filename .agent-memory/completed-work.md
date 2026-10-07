@@ -1,3 +1,21 @@
+## Actual campaign observation — 2026-10-07T01:10:35.275251+00:00
+
+- ACTUAL MERGED #636, complete owned Z05L/Z05LK: Observed actual main `600bb61e383868000270a13d9bcc1857cea3b744` (tree `0d560728011cb4ca54ced2abe09175d3dfa12de5`), coverage SHA256 `bf3b5bc12bcd2ae034606e774ee4cb8b20221843d176b0580acf3110378acded`: **115/121 VERIFIED rules + 178/231 PASSED contracts = 293/352; 59 remain**. PR #636 merged on2026-10-07T00:52:21Z from exact9bcf13a8; only AT-Z05L-SUPPLIER/AT-Z05LK-SUPPLIER promoted, all350 foreign rows/order/metadata preserved. All12 current source-head mandatory checks SUCCESS; independent source/final-current whole approvals, authentic39 native/all9284 Git inputs, actual705 clean=704PASS+one original phase skip/browser31, directZ22 task tail, strict upgrade/types/schema/retained state qualified. Actual [merge receipt](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028476555), merge role released FIRST, all12 technical refs [released](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028519488). Resulting-main726/full CI, market/counterparty acceptance and deployment remain separate and NOT_VERIFIED. Earlier dated sections are historical; this observation supersedes their current labels.
+
+Own maintenance1981286b is locally verified/source approved only; not listed as delivered. Shared metadata reuse649/645 is reconciled under own memory role and awaits its own PR checks/merge.
+
+## Actual campaign observation — 2026-10-07T00:38:21.763560+00:00
+
+- ACTUAL MERGED PR #642: AT-Z14N-ESCO delivered at `60ffde10e4ec710620f9261d3037d60bbe2f0423` on2026-10-07T00:22:52Z from1256add696e64d6d4369f9d712908b89b8787b50/treea0ef; all16 applicable source-head checks SUCCESS, genuine49/all9290 inputs, strictclean725PASS+1originalphaseSKIP/browser31/F3/parity, upgrade retained-state proof, technical certificate GREEN with full-card NOT_VERIFIED/formal/live false, independent whole/bounded/final merge reviews APPROVE. Actual115+176=291/352;351 foreign rows preserved. Receipt6028075439; merge-role GET/DELETE/4046028201551. Whole OPS04/ATOPS04 remains unapproved; technical-resource release has its own later receipt.
+
+Only the approved N contract and bounded recovery proof are delivered here; whole OPS04 is not completed.
+
+## Authenticated actual deliveries — observed 2026-10-06T22:38:25.221028+00:00
+
+Observed main `356e153b64d83b84379791a4b4bda1e47ca464a0` (tree `75c93f2f8128c1a76166c62b50eb2fe3745220ac`), coverage SHA256 `9b8c6c24822e02f26225f6ea924c54b085d07aaee3c6458a50e1e1026012f3f1`: **115/121 VERIFIED rules + 175/231 PASSED contracts = 290/352; 62 remain**. Counts derive from main, excluding open-PR candidates. Source-head checks and merge receipts do not establish resulting-main full/native, external acceptance or deployment. Earlier dated snapshots remain historical.
+
+#637 delivered IMP05/DB04 and their AT rows at `fd4a6a06f0cb462cfa15c3ee4a038d557dd559e0`; #641 delivered only the dated memory snapshot at `356e153b64d83b84379791a4b4bda1e47ca464a0`. Actual #637 receipt [6026417007](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026417007); #641 receipt [6026666590](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6026666590).
+
 ## Delivered source and archive qualification — observed 2026-10-06T21:25:05.808507+00:00
 
 Actual main `56e58b95518ec4d5eef210ba16ba46228afb40ac` (tree `c67b2d57bfbe1eba9cd2ba9512f295f13e82e19a`) contains delivered #621 and
