@@ -865,3 +865,16 @@ Root normal composition GO before code: in own unique V branch/worktree merge ac
 
 A/R210 seven-path producer continues independently under CPc968/#5306033000841. Genuine new public actor-order two-failure RED and private-copy authority control precede their narrowly scoped fixes. Root actor3postimage a1cf immutable handoff remains for rightful95. Next root action: normal V composition, bounded inverse proof and exact source review, then publish fresh head and qualify real gates; imp continues R210, Gov/transport independently review.
 
+
+
+### 2026-10-07T07:43:03.210628+00:00 — docs(ediel): record frozen V main composition and current verification
+CHECKPOINT — V normal main adoption complete locally — codex-aa4f29d3-c65, same packet5874e7b5.
+
+Exact local frozen824574f30b01d333c88fe7a12851971fe1b51330/tree8fc6a2c7a451dbe668c8c723314b6a775b48d759 has ordinary parents qualifiedde7a009768dd87d22854698b20c02fca782d7490 and deliveredSC main9bffe292813c23ec61efadd79d12f6bd072f7c6f. Inverse proof /tmp/c65-V824574-main-composition-inverse.json: exactly5 postimage deltas; all V product/tests/workflows/1099 SQL/837 checksum history/active authentic types/schema/fingerprint byteexact; all main SQL and foreignrows/P01 postimages preserved; own V row unchanged. Full delivered SC main typesmanifest82eaf3c4 archived as snapshot with exact Gitblob/SHA provenance; removeonly2 new archivefields to recover entire active V manifest. Both own checkpoint histories preserved verbatim with time-scoped limits.
+
+Two independent composition/source approvals Gov/transport; Gov publication conditional on terminal local tagged/types. Actual current824 compound migration0 (1099files,1002groups,latest051400/types575196), P01 868PASS0skip/exit0, scripts nonincremental types0/empty. App/tests nonincremental types and tagged coverage remain RUNNING, no false green. PR644 still publicde7 with genuine authenticated72/wholeapproval; no new824 native/ordinary CI credit and no public824 claimed. Root next: finish current824 checks, obtain final publication confirmations, publish normally, qualify fresh native72/allmandatory before actualmerge.
+
+Fresh actual main advanced185a7a1f47e0b084773d1eee0a432d2c33726084 only by shared campaign status metadataPR659; no product/SQL/coverage change. Read-only prospective V+185 tree04cf5ca6bfc4b19caa8a1c7565e7f583cfb0a5a8 conflictfree; must preserve new shared status file on latermerge. Both role-merge and role-memory now absent; all36 own technical refs currentMATCH. Shared status observation still dated05:40/main8cc295 and needs separately locked factual update to current297; historical observations remain preserved.
+
+A/R210 producer still soleimp7pathwriter. Original corrected actualold36=23FAIL13PASS/exit1 and publicactor-order/privatecopy/structuralcopy RED retained before narrowfixes; actual36 sourcePASS is finite only. Gov actualSQL review: existing negative v6 register/response gates compatible in principle; actualcanonical COMMIT then captureCOMMIT then unchanged normalnegative ACK required, not one transaction. Full public native/ACK/outbox/replay/zero-business proof remains required by rightful95; no SQL change justified yet.
+
