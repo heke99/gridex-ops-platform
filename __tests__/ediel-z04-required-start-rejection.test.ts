@@ -1,4 +1,3 @@
-// masterplan: SC-014, AT-Z14V-ESCO
 // Cooperative producer regression, not acceptance of the foreign A/D contracts.
 // Actual syntax, canonical runtime, actor/tenant resolution and public receiver
 // execute. Database transport is explicitly finite. The canonical writer refuses
