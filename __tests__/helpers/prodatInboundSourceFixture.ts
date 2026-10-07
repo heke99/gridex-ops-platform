@@ -3,6 +3,9 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 import {originalRuleWitnessFixture} from './originalRuleWitnessFixture'
 import {contrlSourceEnvelope} from '@/lib/ediel/contrlEngine'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
 export const PRODAT_FIXTURE_COMPANY='00000000-0000-4000-8000-000000000002'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
@@ -12,6 +15,8 @@ const original={...originalWitness,snapshot:{...originalWitness.snapshot,rulePac
 /** Declared synthetic registry transport response; not authentic source approval. */
 export const prodatFixtureRegistryResolution={...original,originalVersion:original.version,originalSnapshot:original.snapshot}
 const originals=new Map<string,EdielMessageRow>()
+type OwnReadingSource={actor:string;legal:Record<string,unknown>;reception:Record<string,unknown>;mail:Record<string,unknown>;parse:Record<string,unknown>}
+const ownReadingSources=new Map<string,OwnReadingSource>()
 const recorded=new Map<string,string>()
 const syntaxFacets=new Map<string,string>()
 const applicationFacets=new Map<string,Record<string,unknown>>()
@@ -23,6 +28,7 @@ const protectedBasis={rulePackId:original.rulePackId,messageProfileId:original.m
  * No persisted report or parsed-payload approval is promoted into authority. */
 export function withProdatFixtureInsertContext(row:EdielMessageRow):EdielMessageRow {
  if(typeof row.raw_payload!=='string')throw Error('fixture_raw_required')
+ ownReadingSources.delete(row.id)
  const received='2026-09-20T00:00:00.000000Z'
  const original={...row,company_id:PRODAT_FIXTURE_COMPANY,message_received_at:received,created_at:received,
   execution_context_snapshot:{receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:row.id,
@@ -51,6 +57,12 @@ export function prodatFixtureSourceRpc(name:string,args:Record<string,unknown>) 
  const original=originals.get(String(args.p_source_message_id??args.p_message_id)),primary=name==='gridex_record_prodat_source_validation_v6'||name==='gridex_record_source_validation_v1'
  // This declared unit fixture has no immutable ESCO service origin. Model only
  // the named protected READ's explicit unrelated result, never private facts.
+ if(name==='ediel_require_inbound_legal_context_v1'||name==='ediel_inbound_reception_request_v1'){
+  const own=original&&ownReadingSources.get(original.id)
+  if(!original||!own||args.p_company_id!==original.company_id
+   ||(name==='ediel_inbound_reception_request_v1'&&(args.p_actor_user_id!==own.actor||args.p_inbound_email_message_id!==original.inbound_email_message_id)))throw Error('DECLARED_OWN_READING_SOURCE_REQUIRED')
+  return Promise.resolve({data:structuredClone(name==='ediel_require_inbound_legal_context_v1'?own.legal:own.reception),error:null})
+ }
  if(name==='gridex_ediel_received_z14_reporting_source_basis_v1'){
   if(!original||original.company_id!==PRODAT_FIXTURE_COMPANY||args.p_actor_user_id!==id(2))throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
   const result=Promise.resolve({data:null,error:null})
@@ -129,9 +141,93 @@ export function prodatFixtureSourceRpc(name:string,args:Record<string,unknown>) 
 /** Finite current membership/profile IO; native permission results are scoped
  * to the same explicit unit actor. This does not establish native RBAC proof. */
 export const prodatFixtureSourceDatabase={rpc:prodatFixtureSourceRpc,from:(table:string)=>{
+ const own=prodatFixtureOwnReadingQuery(table)
+ if(own)return own
  if(!['company_memberships','user_profiles'].includes(table))throw Error(`UNEXPECTED_FIXTURE_TABLE:${table}`)
  const row=table==='user_profiles'?{id:id(2),user_status:'active'}:{company_id:PRODAT_FIXTURE_COMPANY,user_id:id(2),status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}
  const filters:Record<string,unknown>={}
  const q={select:()=>q,eq:(key:string,value:unknown)=>{filters[key]=value;return q},not:()=>q,maybeSingle:async()=>({data:Object.entries(filters).every(([key,value])=>row[key as keyof typeof row]===value)?row:null,error:null})}
  return q
 }}
+
+
+/** Explicit local values for a new counted batch fixture, never authority or
+ * independent register inventory. Existing first-object fixture stays separate. */
+export function withProdatFixtureRegisterReadings(raw:string,rows:readonly {
+ objectId:string;identityAgency:string;lineNumber:string;registerIndex:string|null;constant:string;digits:string;tariff:string
+}[]):string {
+ const wire=tokenizeEdifact(raw),groups=prodatRegisterGroups(wire.segments,wire.una,'Z04')
+ const messages=wire.segments.filter(token=>token.tag==='UNH'),interchanges=wire.segments.filter(token=>token.tag==='UNB')
+ if(messages.length!==1||interchanges.length!==1||groups.problems.length||groups.groups.length!==rows.length)throw Error('DECLARED_READING_REGISTER_SCOPE_REQUIRED')
+ const insertions=new Map<number,string[]>()
+ for(const [index,group] of groups.groups.entries()){
+  const row=rows[index]
+  if(group.itemId!==row.objectId||group.identityAgency!==row.identityAgency||group.lineNumber!==row.lineNumber||group.registerIndex!==row.registerIndex)throw Error('DECLARED_READING_REGISTER_SCOPE_REQUIRED')
+  if(group.segments.some(token=>token.tag==='CCI'&&['Z02','Z05','Z16'].includes(segmentComposite(token,2,wire.una)[0])))throw Error('DECLARED_READING_PAIRS_ALREADY_PRESENT')
+  const after=group.segments.find(token=>token.tag==='RFF'||token.tag==='NAD')??wire.segments.find(token=>token.index>group.segments.at(-1)!.index)
+  if(!after)throw Error('DECLARED_READING_INSERTION_REQUIRED')
+  insertions.set(after.index,['CCI++Z02',`CAV+:::${row.constant}`,'CCI++Z05',`CAV+:::${row.digits}`,'CCI++Z16',`CAV+:::${row.tariff}`])
+ }
+ const business:string[]=[]
+ for(const token of wire.segments){
+  if(insertions.has(token.index))business.push(...insertions.get(token.index)!)
+  if(!['UNB','UNH','UNT','UNZ'].includes(token.tag))business.push(token.raw)
+ }
+ const party=(role:string)=>{
+  const token=wire.segments.find(token=>token.tag==='NAD'&&segmentComposite(token,1,wire.una)[0]===role)
+  if(!token)throw Error('DECLARED_READING_PARTY_REQUIRED')
+  return segmentComposite(token,2,wire.una)[0]
+ }
+ return EdifactEnvelopeCodec.encode({sender:party('FR'),receiver:party('DO'),senderQualifier:'14',receiverQualifier:'14',
+  interchangeReference:segmentComposite(interchanges[0],5,wire.una)[0],applicationReference:'23-DDQ-PRODAT',
+  environment:'test',acknowledgementRequest:true,createdAt:new Date('2026-09-17T12:00:00Z'),timeZone:'UTC',
+  messages:[{messageReference:segmentComposite(messages[0],1,wire.una)[0],messageTypeToken:segmentComposite(messages[0],2,wire.una).join(':'),businessSegments:business}]})
+}
+
+/** Opt-in synthetic source READ ports. Actual loader/legal/reception/policy
+ * adapters remain real; these rows establish no native custody or effects. */
+export function withProdatFixtureOwnReadingInsertContext(source:EdielMessageRow,options:{actorUserId:string;sourceEdition:string}):EdielMessageRow {
+ const row=withProdatFixtureInsertContext({...source,message_version:'E2SE6A',inbound_email_message_id:id(60),
+  status:'received',syntax_check_status:'not_checked',failure_reason:null} as EdielMessageRow)
+ const wire=tokenizeEdifact(row.raw_payload!),receiver=wire.segments.find(token=>token.tag==='NAD'&&segmentComposite(token,1,wire.una)[0]==='DO')
+ const interchange=wire.segments.find(token=>token.tag==='UNB')
+ if(!receiver||!interchange||options.actorUserId!==id(2)||!/^[a-f0-9]{64}$/.test(options.sourceEdition))throw Error('DECLARED_OWN_READING_SOURCE_REQUIRED')
+ const received=row.message_received_at!,payloadHash=hash(row.raw_payload!)
+ ownReadingSources.set(row.id,{actor:options.actorUserId,
+  mail:{id:id(60),company_id:row.company_id,environment:row.environment,received_at:received,raw_edifact_payload:row.raw_payload},
+  parse:{id:id(61),company_id:row.company_id,inbound_email_message_id:id(60),raw_payload:row.raw_payload,parse_status:'parsed'},
+  legal:{basisKind:'observed_source_persistence',companyId:row.company_id,environment:row.environment,direction:'inbound',
+   family:'PRODAT',code:'Z04',subtype:'L',legalActorId:id(63),legalEdielId:segmentComposite(receiver,2,wire.una)[0],actorRole:'electricity_supplier',
+   transportActorId:id(63),transportEdielId:segmentComposite(interchange,3,wire.una)[0],applicationReference:'23-DDQ-PRODAT',sourceEdition:options.sourceEdition,
+   canonicalProjection:{family:'PRODAT',code:'Z04',subtype:'L',transactionReasonCode:'Z22',direction:'inbound',senderRoles:['grid_owner'],receiverRoles:['supplier'],applicationReferences:['23-DDQ-PRODAT']},
+   observedAt:received,sourceReceivedAt:received},
+  reception:{companyId:row.company_id,sourceMessageId:row.id,inboundEmailMessageId:id(60),parseResultId:id(61),receptionId:id(62),
+   classification:'first_reception',isReplay:true,receivedAt:received,canonicalPayloadHash:payloadHash,receivedPayloadHash:payloadHash,
+   responseRequestId:null,status:'observed',reason:null,businessEffectAuthorized:false}})
+ return row
+}
+
+/** Finite query for opted-in READ rows only; plain fixture defaults use their
+ * existing dispatcher. Each filter, including accepted_at IS NOT NULL, applies. */
+export function prodatFixtureOwnReadingQuery(table:string){
+ if(!['ediel_messages','inbound_email_messages','inbound_ediel_parse_results','company_memberships','user_profiles'].includes(table)||!ownReadingSources.size)return null
+ const rows:Record<string,unknown>[]=[]
+ for(const [sourceId,own] of ownReadingSources){
+  const source=originals.get(sourceId)!
+  if(table==='ediel_messages')rows.push(structuredClone(source) as unknown as Record<string,unknown>)
+  else if(table==='inbound_email_messages')rows.push(own.mail)
+  else if(table==='inbound_ediel_parse_results')rows.push(own.parse)
+  else if(table==='company_memberships')rows.push({company_id:source.company_id,user_id:own.actor,status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'})
+  else rows.push({id:own.actor,user_status:'active'})
+ }
+ const unique=Array.from(new Map(rows.map(row=>[JSON.stringify(row),row])).values())
+ const filters:Record<string,unknown>={},notNull:string[]=[]
+ const result=async()=>{
+  const matches=unique.filter(row=>Object.entries(filters).every(([key,value])=>row[key]===value)&&notNull.every(key=>row[key]!==null&&row[key]!==undefined))
+  return {data:matches.length===1?structuredClone(matches[0]):null,error:null}
+ }
+ const query={select:()=>query,eq:(key:string,value:unknown)=>{filters[key]=value;return query},
+  not:(key:string,operator:string,value:unknown)=>{if(operator!=='is'||value!==null)throw Error('UNEXPECTED_FIXTURE_READ_NOT');notNull.push(key);return query},
+  maybeSingle:result,single:result}
+ return query
+}

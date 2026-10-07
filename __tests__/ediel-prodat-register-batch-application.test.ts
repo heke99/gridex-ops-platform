@@ -6,7 +6,8 @@ import { line, qty, common, characteristic, type Parts } from './fixtures/prodat
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {head,source} from './fixtures/prodat-identity'
 import {ownerRulePack,ownerId} from './helpers/sourceOwnerFixtures'
-import {withProdatFixtureInsertContext,prodatFixtureSourceRpc} from './helpers/prodatInboundSourceFixture'
+import {withProdatFixtureOwnReadingInsertContext,withProdatFixtureRegisterReadings,prodatFixtureOwnReadingQuery,prodatFixtureSourceRpc} from './helpers/prodatInboundSourceFixture'
+import {loadProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import { approveEdielInboundCaseAction } from '@/app/admin/ediel/actions.part-5'
@@ -20,7 +21,11 @@ vi.mock('@/app/admin/ediel/actions.part-1',()=>({formString:(v:unknown)=>typeof 
 const boundary=vi.hoisted(()=>({from:vi.fn(),rpc:vi.fn(),read:vi.fn(),graph:vi.fn(),event:vi.fn(),link:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:boundary.from,rpc:boundary.rpc}}))
 vi.mock('@/lib/customers/canonicalOnboarding',async importOriginal=>({...await importOriginal<typeof import('@/lib/customers/canonicalOnboarding')>(),onboardCustomerGraph:boundary.graph}))
-vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:boundary.event,linkEdielMessage:boundary.link,getEdielMessageById:boundary.read}))
+vi.mock('@/lib/ediel/db',async importOriginal=>{
+ const actual=await importOriginal<typeof import('@/lib/ediel/db')>()
+ boundary.read.mockImplementation(actual.getEdielMessageById)
+ return {...actual,createEdielMessageEvent:boundary.event,linkEdielMessage:boundary.link,getEdielMessageById:boundary.read}
+})
 const raw=(body:readonly Parts[],code='Z04')=>{
  const enhanced:Parts[]=[]
  for(let i=0;i<body.length;i++){const p=body[i];enhanced.push(p);if(p[0]==='CAV'&&body[i-1]?.[0]==='CCI'&&body[i-1]?.[2]==='Z04')enhanced.push(...characteristic('Z07','E22'),...characteristic('Z12','W',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']]);if(p[0]==='NAD'&&p[1]==='UD'){const id=(p[2] as readonly string[])[0].replace('CUSTOMER-','');enhanced.push(['NAD','IT',[id,'','89'],'','','Street','City','','12345','SE'],['NAD','Z02',['11111','160','SVK']])}}
@@ -36,13 +41,17 @@ const keyValue=(row:Record<string,unknown>,key:string)=>{
 }
 beforeEach(async()=>{
  vi.clearAllMocks();boundary.event.mockResolvedValue(undefined);clock=0;failB=false;loseAResponse=false;committed=new Map();writes=[];graphRows={customers:[],customer_sites:[],metering_points:[]}
- message=withProdatFixtureInsertContext({...source(raw([line('1','A','1'),qty('10'),...common('A','Customer A'),line('2','A','2'),qty('20'),line('3','B'),qty('30'),...common('B','Customer B')],'Z04'),'Z04'),parsed_payload:{subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}})
+ const physical=withProdatFixtureRegisterReadings(raw([line('1','A','1'),qty('10'),...common('A','Customer A'),line('2','A','2'),qty('20'),line('3','B'),qty('30'),...common('B','Customer B')],'Z04'),[
+  {objectId:'A',identityAgency:'89',lineNumber:'1',registerIndex:'1',constant:'1',digits:'6',tariff:'111'},
+  {objectId:'A',identityAgency:'89',lineNumber:'2',registerIndex:'2',constant:'1',digits:'6',tariff:'222'},
+  {objectId:'B',identityAgency:'89',lineNumber:'3',registerIndex:null,constant:'1',digits:'6',tariff:'111'},
+ ])
+ message=withProdatFixtureOwnReadingInsertContext({...source(physical,'Z04'),parsed_payload:{subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}},{actorUserId:ownerId(2),sourceEdition:'c'.repeat(64)})
  const original=structuredClone(message)
  let actorActive=true,sourceAvailable=true
- boundary.read.mockImplementation(async(id:string)=>id===message.id?structuredClone(message):null)
  boundary.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>{
   if(name==='resolve_canonical_ediel_rule_pack_with_witness_v1')return Promise.resolve({data:[ownerRulePack()],error:null})
-  if(name==='gridex_actor_has_company_permission')return Promise.resolve({data:actorActive&&args.p_company_id===message.company_id&&args.p_actor_user_id===ownerId(2)&&['communication.write','customers.write'].includes(String(args.p_permission)),error:null})
+  if(name==='gridex_actor_has_company_permission')return Promise.resolve({data:actorActive&&args.p_company_id===message.company_id&&args.p_actor_user_id===ownerId(2)&&['communication.read','communication.write','customers.write'].includes(String(args.p_permission)),error:null})
   if(name==='ediel_read_completed_prodat_object_batch_v1'){
    if(!actorActive||args.p_actor_user_id!==ownerId(2)||args.p_company_id!==original.company_id||args.p_case_id!==stored.id||args.p_source_message_id!==stored.ediel_message_id)return Promise.resolve({data:null,error:Error('prodat_object_batch_current_read_actor_required')})
    if(stored.status!=='applied'||committed.size!==2||JSON.stringify(args.p_decisions)!==JSON.stringify((stored.review_decision?.objectApplication as {decisions:unknown})?.decisions))return Promise.resolve({data:null,error:Error('declared_native_completed_receipt_required')})
@@ -68,6 +77,7 @@ beforeEach(async()=>{
  const parsed=parseInboundProdatBusinessData(message)
  stored={id:'00000000-0000-4000-8000-000000000003',company_id:'00000000-0000-4000-8000-000000000002',ediel_message_id:'00000000-0000-4000-8000-000000000001',case_type:parsed.caseType,message_family:'PRODAT',message_code:'Z04',transaction_type:parsed.transactionType,status:'pending_review',customer_id:null,site_id:null,metering_point_id:null,match_confidence:0,parsed_customer:parsed.customer,parsed_site:parsed.site,parsed_metering_point:parsed.meteringPoint,parsed_contract:parsed.contract,parsed_production:parsed.production,proposed_action:parsed.proposedAction,review_decision:null,reviewed_by:null,reviewed_at:null,applied_at:null,failure_reason:null,created_at:'0',updated_at:'0',created_by:'00000000-0000-4000-8000-000000000002',updated_by:'00000000-0000-4000-8000-000000000002'}
  boundary.from.mockImplementation((table:string)=>{
+  if(table!=='ediel_messages'){const own=prodatFixtureOwnReadingQuery(table);if(own)return own}
   let change:Record<string,unknown>|null=null;const filters:((row:Record<string,unknown>)=>boolean)[]=[]
   const query={select:vi.fn(()=>query),update:vi.fn((p:Record<string,unknown>)=>{change=p;return query}),insert:vi.fn(()=>query),eq:vi.fn((k:string,v:unknown)=>{filters.push(row=>k==='review_decision' ? JSON.stringify(keyValue(row,k))===JSON.stringify(JSON.parse(v as string)) : v!==null && keyValue(row,k)===v);return query}),is:vi.fn((k:string,v:unknown)=>{filters.push(row=>keyValue(row,k)===v);return query}),in:vi.fn((k:string,v:unknown[])=>{filters.push(row=>v.includes(keyValue(row,k)));return query}),or:vi.fn(()=>query),limit:vi.fn(()=>query),maybeSingle:vi.fn(async()=>execute()),single:vi.fn(async()=>execute()),then:undefined as unknown}
   function execute(){
@@ -93,7 +103,9 @@ beforeEach(async()=>{
   if(id==='A' && loseAResponse){loseAResponse=false;throw new Error('response lost after A commit')}
   return result
  })
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+ const context=await loadProdatOwnSourceReadingContext(message,ownerId(2))
+ if(!context)throw Error('DECLARED_OWN_READING_CONTEXT_REQUIRED')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:ownerId(2)})
  const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:message.company_id!,decision})
  expect(recorded.status,JSON.stringify({syntax:decision.syntaxDecision,app:decision.applicationDecision,issues:decision.issues})).toBe('recorded')
 })
