@@ -35,3 +35,13 @@ Gov actual current input closure review identifies config/,scripts/lib/,scripts/
 
 Next/root: originalunchanged94 on currentmain scripts nonincremental typecheck/scopedlint and exactAST/call/assertion preservation; complete two current source-plan reviews, bounded fail-closed receipt closure improvement if confirmed, preserve negativefirststops. Rightful GEN/runtime2f dependency request6047510816 remains public; only dependent adoption/native awaits exact approved closed immutable slice or delivered source. Independent proof/source work continues, no waiting merge/memoryrole or owner89/capture duplicate.
 
+
+
+## 2026-10-07T21:49:57.481070+00:00 — docs(ediel): approve complete Z01 native input provenance plan
+
+BEFORE WORKFLOW CLOSURE CHANGE — same c05106fc/all10/currentb44ca051. Two independent minimalproof SOURCE PLAN approvals: Gov65b6309c352d15b0f9a91fdeeea08e2131d135650534ff460cb286edbf9d56fd; Transport3a97a1e94a51ae1e5442070b5d074ef304de8f0554307a65f51d69b64f9c1048. Frozenoriginal8compiled on currentmain: nonincremental scriptsTSC actualEXIT0 atb44ca051, unchangedHEADbeforeafter, emptylogSHAe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855. ScopedTS lintEXIT0/noTSwarnings; inheritedCJS is ignored by existinglintconfig (one truthfulwarning), not lint-verified. No nativeexecution inferred.
+
+Next/root ownedworkflowONLY: add config/**,scripts/lib/**,scripts/fixtures/**,exactGENmanifest to triggers; add these actualcurrent consumed sources plus explicit typesmanifest/schemafingerprint to pre-replay originalGit receipt. Decode actualHEAD ls-tree mode/type/OID, require regular100644/100755blob, verify actualworking bytes/executablemode and batchheaderOID; record only modes/OIDs/hashes. No subset/staticoldinputcount/credentialcontents. Keep all7otherproof files byteexactoriginal94/416 and all684mainposts; unchangedcanonicalreplay/pins/credentials/timeouts/exits/redaction/3exports/strictnegativeeffects. Original artifact full94unique/cause/counters belongs later independentauthenticator; no speculativeXML/actororacle changes.
+
+Meaningful original closure RED required: extracted actualinitializer beforeedit must lack current config/scriptslib/fixtures/GENmanifest/fingerprint input coverage on actualtracked currentHEAD, without replay/native. Afterfix realinitializer must cover complete actualinputs; mutatedownedworkingfile/mode/unsupportedmode controls must fail beforeoutputs, ports clearly synthetic onlyfornegativecatalogcontrol. Then freezecommit, exacttwofinal SOURCE reviews and currentstatic/sourcehash checks. Receiver877 approvedclosedimmutable reuse/delivery request6047510816 stillpending; no foreignsourcechanges/newPR/producer/native89/captureduplication.
+
