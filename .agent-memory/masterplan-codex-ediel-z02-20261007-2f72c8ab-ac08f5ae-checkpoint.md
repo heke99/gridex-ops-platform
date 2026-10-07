@@ -70,3 +70,9 @@ Potential futureV051400 merge would make address050001 olderthanmain; no orderin
 Externalmarket/deployment/resultingmain runtime unverified. No merge-role until actual currenthead required review and allmandatorygreen. No nextpair until actualmerge+release or explicitdurableblockedhandoff+allownrelease.
 Sharedstatus roles were c65 then actuallyreleased6034896490; sharedmirror requires freshlegitimate role/fileclaim. Owncheckpoint+#530 are authoritative immediate documentation, no foreign shared edit.
 Next owner ROOT executes reviewed composition gates; remainingagent finalseverityplan; c65 rightfulfreshGENoutputs; newactual89 diagnoses remainingeffects. Continue independently, preserve failed observations.
+
+## CLAIM extension — actual20 locks, SQL085618 not installed
+Updated 2026-10-07T09:26:51.226Z. Additive severity scope packet3be2db4f-3d8e-4852-98a0-0a7d545e556e, receipt47b4ddfc9174bc007d2184adddda36bf36cdab52, exactactualmainfc3 tree1c2098 singleparent/no mainchanges.
+Exact new file supabase/migrations/20261007085618_received_z02_blocking_correlation_issue.sql resourcefile-6b0a63191dfc6c8f5b7004cdd9173c455424cdf324f02422ee9943a801896494: officialfree404→actualGitData POST EXIT0→individualofficialGETMATCH. ALL19 priorrefs freshlyMATCHED too; now20 own resources. Same pair/branch; no newID or role/filetakeover.
+Actual outsideGit permanent test candidate RED332=330PASS2FAIL0skip/cancel/todo/true1, actualexistingcustomer23514+parent only; original312 unchangedPASS. Missing85618 executesactuallegacySQL, never ENOENT. CandidateGREEN/full sourceplan/finalreviews still pending. No ROOTsourceinstallation or GO.
+Next ROOT gets frozen permanent candidate and twofreshcomplete-source reviews; documents exact GO before installedRED→forwardSQL+newruntimechecksumGREEN. Actualmain/carrier composition still separately readonly awaiting exacttree twoAPP; neither gate is skipped. Otherhistory/failedobservations and nextowners retained above.
