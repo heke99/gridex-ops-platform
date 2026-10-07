@@ -28,7 +28,7 @@ $oldslot$
       billing_contact_email = nullif(p_command->>'billing_contact_email', '')
     where id = v_company_id
       and (org_number, support_email, billing_contact_email) is distinct from
-        (nullif(btrim(p_command->>'organization_number'), ''),
+        (public.gridex_normalize_swedish_organization_number(nullif(p_command->>'organization_number', '')),
          nullif(p_command->>'support_email', ''),
          nullif(p_command->>'billing_contact_email', ''));
 

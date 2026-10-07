@@ -865,7 +865,7 @@
     "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f",
     "20261007111843_ediel_actor_profile_current_authority.sql": "a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c",
     "20261007114453_ediel_actor_profile_immutable_replay.sql": "f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc",
-    "20261007114513_ediel_actor_profile_legal_noop_preservation.sql": "ecec168cbb1e295beb52e0b85e4dc485e5052ef09ff99b207d9ad6003af8c368"
+    "20261007114513_ediel_actor_profile_legal_noop_preservation.sql": "38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

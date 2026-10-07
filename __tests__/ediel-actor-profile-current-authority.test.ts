@@ -45,6 +45,7 @@ async function setup(withLegalTrigger = false) {
     CREATE TABLE public.permissions(id uuid,key text);`)
   await db.exec(declaration('CREATE TYPE', 'ediel_environment_type AS ENUM (', '\n);'))
   for (const name of functions.slice(0, 5)) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
+  for (const name of ['gridex_luhn_valid', 'gridex_normalize_swedish_organization_number']) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
   for (const name of tables) await db.exec(declaration('CREATE TABLE', `${name} (`, '\n);'))
   // Exact captured primary/unique constraints make the real ON CONFLICT paths
   // meaningful. No private command-result, identity or accepted evidence seeds.
@@ -76,7 +77,7 @@ async function setup(withLegalTrigger = false) {
       'gridex_sync_company_legal_profile_trigger']) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
     for (const name of ['gridex_jsonb_valid_email', 'gridex_jsonb_valid_phone', 'gridex_contact_address',
       'gridex_address_complete', 'gridex_legal_contact_complete', 'gridex_billing_information_complete', 'gridex_dispute_information_complete',
-      'gridex_luhn_valid', 'gridex_tenant_legal_profile_missing_fields',
+      'gridex_tenant_legal_profile_missing_fields',
       'gridex_refresh_legal_profile_completeness']) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
     const completeness = schema.match(/CREATE TRIGGER tenant_legal_profiles_completeness [^;]+;/)
     if (!completeness) throw new Error('captured_legal_profile_completeness_trigger_missing')
@@ -85,6 +86,10 @@ async function setup(withLegalTrigger = false) {
     const orgTrigger = schema.match(/CREATE TRIGGER companies_canonical_org_number [^;]+;/)
     if (!orgTrigger) throw new Error('captured_company_org_number_trigger_missing')
     await db.exec(orgTrigger[0])
+    await db.exec(declaration('CREATE FUNCTION', 'gridex_validate_company_legal_fields_trigger(', '\n--\n'))
+    const validation = schema.match(/CREATE TRIGGER gridex_companies_legal_field_validation [^;]+;/)
+    if (!validation) throw new Error('captured_company_legal_validation_trigger_missing')
+    await db.exec(validation[0])
     const trigger = schema.match(/CREATE TRIGGER gridex_companies_legal_profile_sync [^;]+;/)
     if (!trigger) throw new Error('captured_company_legal_profile_sync_trigger_missing')
     await db.exec(trigger[0])
@@ -277,4 +282,21 @@ it('still invokes the enabled legal projection and completeness triggers on a re
 it('rolls back an actual changed legal projection together with profile/identity/snapshot/audit/receipt on late failure', async () => {
   const db = await setup(true); await apply(db)
   await refused(db, command({support_email: 'changed-legal@example.invalid', production_default_charset: null}), {code: '23502'})
+})
+it('preserves the full legal projection when the genuine validation trigger normalizes a format-only organization-number change', async () => {
+  const db = await setup(true); await apply(db)
+  await db.exec(`UPDATE companies SET org_number='5560160680' WHERE id='${uid(1)}'`)
+  expect(await one(db, 'SELECT org_number FROM companies WHERE id=$1', [uid(1)])).toEqual({org_number: '556016-0680'})
+  const projection = () => one(db, 'SELECT to_jsonb(t) legal FROM tenant_legal_profiles t WHERE company_id=$1', [uid(1)])
+  const before = await projection()
+  await save(db, command({organization_number: '5560160680'}))
+  expect(await projection()).toEqual(before)
+})
+it('retains genuine organization validation and legal sync for changed or invalid organization input', async () => {
+  const db = await setup(true); await apply(db)
+  await refused(db, command({organization_number: '5560160681'}), {code: '23514', message: 'invalid_swedish_organization_number'})
+  await save(db, command({organization_number: '5560160680'}))
+  expect(await one(db, 'SELECT org_number FROM companies WHERE id=$1', [uid(1)])).toEqual({org_number: '556016-0680'})
+  expect(await one(db, 'SELECT organization_number FROM tenant_legal_profiles WHERE company_id=$1', [uid(1)]))
+    .toEqual({organization_number: '556016-0680'})
 })
