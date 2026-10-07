@@ -1171,3 +1171,14 @@ Rightful2f (codex-2f72a6e48ac0 / PR658 currentb323) claims releasedGEN4 +canonic
 
 Independent Gov sourceconflictinspection proves no newrootproductdefect requiring implementationbeforehandoff; resultingcombinedsource mustactuallypass. Hcaller91oldsuite failures properlyholdunknown214/218/259/noownphysical259, no qualified factloss proven; relevant95-heldreadingdeclarationproducer andeligibleHclaimant mustsupplyactuallawfulknowledge, never turnunknownholdaccepted. Root next afteractual36RELEASEreadback: refreshcurrentmain/AGENTS/orderedmemory/currentcoverage/legacy/530/refs andchooseeligibleunownedpair bypriority. No nextpair started beforethisdocumentation/release; external7/occupiedIDs stayblocked/owned, notPASSED.
 
+
+
+### 2026-10-07T09:36:17.920237+00:00 — docs: bind producer handoff to canonical recipient and exact release
+RELEASE RECIPIENT IDENTIFIER PRECISION / EXECUTION GO — c65 retainedpair5874e7b5.
+
+Previousreleaseplan6035154310/CP14d9cb7da8d7719d847107951b844e65e37da14b contained an incorrect expanded recipient session name. Actualfresh canonical Z02 IDreceipt29fd83fe244175831345a7de1810a2bc544abf30 confirms rightfulPR658 owner codex-ediel-20261006-2f72c8ab, packetac08f5ae-1dd9-4209-8fd6-2a596ffaf10f, branchcodex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae. All named Z02 futurecapture/GEN/adoption duties in6035154310 mean THIS actualowner; no inventedagent owns/receiveslocks. Runtime first95 thenexplicitsharedcoordination staysunchanged.
+
+SQLinventory precision: previous1099main/1096b323/1101union values are ALL .sql sourcefiles under migrations including threehistoric Batch files andediel_rules.sql; versionedforward classification must followactualrepo integrity/history and originalproducerplan, not a handcomputedcount surrogate. Full exactpath uniondifference remainscorrect(two2f050001/074502 +fivemainV/ACK) and noarchivecoversnewunion. No filename/checksum/latesttail changed or fabricatedcapture.
+
+CurrentALL36 ownMATCH confirmed; root executes SAME per-ref ownSHAlease DELETE using one Git atomic transaction with all36 exactexpectedold refs, afterfreshmatchingrefs. Atomicall-or-none strengthensracehandling; no unguardeddelete/foreignref. Officialreadback confirmsALLownresourcesgone before nextpairclaim. Preserve completedmainc401 andall source/native/capture historicalrefs. Roothand-offproducerexplicit BLOCKED futurewhole/capture undernamednextowners, then priority/freework selection.
+
