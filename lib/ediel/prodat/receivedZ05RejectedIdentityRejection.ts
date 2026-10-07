@@ -32,10 +32,16 @@ declare const rejectionBrand: unique symbol
 /** This private READ is a rejection basis, never an operational H capability. */
 export type ReceivedZ05RejectedIdentityRejection = Readonly<{[rejectionBrand]: true}>
 const contextKeys = ['version', 'contextOrigin', 'sourceMessageId', 'companyId', 'environment', 'messageCode', 'payloadHash', 'sourceReceivedAt', 'capturedAt']
-const reads = new WeakMap<ReceivedZ05RejectedIdentityRejection, {identity: string; actor: string; at: number; witness: Witness}>()
-const structures = new WeakMap<object, {wire: string; facts: string; at: number}>()
+type FreshClock = {wall: number; monotonic: number}
+const clock = (): FreshClock => ({wall: Date.now(), monotonic: performance.now()})
+const reads = new WeakMap<ReceivedZ05RejectedIdentityRejection, {identity: string; actor: string; at: FreshClock; witness: Witness}>()
+const structures = new WeakMap<object, {wire: string; facts: string; at: FreshClock}>()
 const owners = new WeakMap<object, {identity: string; actor: string; decisionHash: string}>()
-const fresh = (at: number) => {const now = Date.now(); return now >= at && now - at <= 2000}
+const fresh = (at: FreshClock) => {
+  const now = clock()
+  return now.wall >= at.wall && now.wall - at.wall <= 2000
+    && now.monotonic >= at.monotonic && now.monotonic - at.monotonic <= 2000
+}
 const wireIdentity = (input: Input) => evidenceHash(JSON.stringify([input.rawSegments, serializeUna(input.una ?? DEFAULT_UNA)]))
 function bornIdentity(value: unknown): string | null {
   if (!isEvidenceRecord(value) || value.direction !== 'inbound' || value.message_standard !== 'edifact'
@@ -90,14 +96,14 @@ export function validateReceivedZ05RejectedIdentityStructure(input: Input): {evi
   const register = validateProdatRegisterPolicy({code: 'Z05', direction: 'inbound', rawSegments: input.rawSegments, una, rules, requireIndependentInventory: false})
   const evidence = projectProdatRegisterValidation({code: 'Z05', rawSegments: input.rawSegments, una, registerIssues: register.issues,
     fieldIssues: fields, handledFields: register.handledFields, completeRuleSelection: true})
-  structures.set(evidence, {wire: wireIdentity(input), facts: evidenceHash(JSON.stringify(evidence)), at: Date.now()})
+  structures.set(evidence, {wire: wireIdentity(input), facts: evidenceHash(JSON.stringify(evidence)), at: clock()})
   return {evidence, issues: [...fields, ...register.issues]}
 }
 
 /** Fresh actor, stored original and private legal receipt; the catalogue merely
  * compares the actual born guide. No event, point or bilateral ground is made. */
 export async function loadReceivedZ05RejectedIdentityRejection(source: EdielMessageRow, actor: string): Promise<ReceivedZ05RejectedIdentityRejection | null> {
-  const at = Date.now(), identity = bornIdentity(source)
+  const at = clock(), identity = bornIdentity(source)
   if (!identity || !validateEdifactSyntax({...source, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null}).ok) return null
   const wire = tokenizeEdifact(source.raw_payload!), input = {rawSegments: wire.segments.map(s => s.raw), una: wire.una}
   if (!observeReceivedZ05RejectedIdentity(input).length || !await assertRejectedSourceActor(source, actor)) return null
