@@ -1,3 +1,13 @@
+## Current native independently authenticated; consumer baseline executed — 2026-10-07
+
+Same L/LK pair, PR #635 and 23 reservations; primary published source stays clean and frozen. Root and independent reviewer ran the same unchanged reviewed reader on the same original with independently refreshed official API. Both authentication processes exit 0 and the complete reports are byte-for-byte identical. Actual native: 34 tests, 32 passed, 2 failed, no errors/skips, native exit 1. Later positive business effects/history/replay remain unreached. The negative no-effect checks retain UNKNOWN causes; their intended specific denial is not proved. No whole, coverage, CI-green or merge credit. Exact committed source, archive/API/report/review bindings remain private.
+
+After the confirmed two amended PLAN approvals, author GO documentation and fresh ownership/source checks, the isolated own preview executed the unchanged consumer baseline: 68 tests, 39 passed and 29 failed, process exit 1; no import/setup failure. Application validation: 9 passed/2 failed. Register batch: 30 passed/27 failed. Exact untouched baseline snapshots/log/commit are preserved privately.
+
+Next: bounded author changes only the three confirmed consumer/test-fixture paths under the reviewed plan, preserving every original assertion and default. Root checks actual preservation and tests/types/lint, commits and obtains two complete source reviews. Independent whole-proof gap review maps reached effects and any vacuous negative cases; runtime integration remains with its existing owner. No new pair, role, foreign edit or approval.
+
+---
+
 ## Before bounded consumer authoring — 2026-10-07
 
 Same sole L/LK pair, draft PR #635 and 23 confirmed reservations. The amended application-validation/register-batch/shared-fixture plan now has two independent complete PLAN approvals with zero findings. The original rejected plan and both findings remain immutable. Exact plan, reviews, current source and file bindings remain private.
