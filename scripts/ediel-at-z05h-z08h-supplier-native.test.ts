@@ -250,6 +250,46 @@ function commercialEnd(before:ReturnType<typeof graph>,after:ReturnType<typeof g
  for(const key of ['events','domain','tasks'])expect(after[key].filter(row=>before[key].some(old=>old.id===row.id)),key).toEqual(before[key])
 }
 const clock=()=>sql<string>('SELECT to_jsonb(clock_timestamp())')
+// Limited source proof, separate from the 91 strict whole-H effect cases below.
+// normal_start_h fixture authority never grants an own_end_h mandate here.
+for(const reason of ['Z25','Z22'] as const)it('SOURCE_ONLY actual public Z05/'+reason+' catalog birth and same-mail replay preserve custody without end effects',async()=>{
+ const f=await authorized();smtp();provider.mockClear()
+ const raw=wire(f,'Z05',endBody(f,reason,'H-BIRTH-'+randomUUID().slice(0,8)))
+ const business=()=>({graph:graph(),effects:effects(f.companyId),owned:sql(`SELECT jsonb_build_object(
+  'partitions',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY source_message_id),'[]') FROM gridex_received_sources.supply_object_partitions p WHERE company_id=${literal(f.companyId)}),
+  'objectEffects',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM gridex_received_sources.supply_object_effect_receipts p WHERE company_id=${literal(f.companyId)}),
+  'permissions',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}),
+  'permissionSites',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permission_sites p WHERE company_id=${literal(f.companyId)}))`)})
+ const before=business(),originalsBefore=protectedOriginals(),m=await receive(f,raw)
+ const proof=sql<{catalog:{pack:Row;profile:Row;guideSources:Row[]};captured:Row;mail:Row;parse:Row;context:Row;receptions:Row[]}>(`SELECT jsonb_build_object(
+  'catalog',(SELECT jsonb_build_object('pack',to_jsonb(pack),'profile',to_jsonb(p),'guideSources',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY id),'[]') FROM public.ediel_rule_pack_sources s WHERE rule_pack_id=pack.id)) FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs pack ON pack.id=p.rule_pack_id WHERE p.id=${literal(m.source.rule_profile_version_id)}),
+  'captured',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}),
+  'mail',(SELECT to_jsonb(x) FROM public.inbound_email_messages x WHERE id=${literal(m.inboundEmailMessageId)}),
+  'parse',(SELECT to_jsonb(x) FROM public.inbound_ediel_parse_results x WHERE id=${literal(m.parseResultId)}),
+  'context',(SELECT to_jsonb(x) FROM gridex_ediel_inbound_context.receipts x WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}),
+  'receptions',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_ediel_inbound_receptions.receptions x WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}))`)
+ const {pack,profile,guideSources}=proof.catalog,version=String(pack.guide_version)+':r'+String(pack.guide_revision)
+ expect(profile.profile_key).toBe('PRODAT:Z05:'+(reason==='Z25'?'H':'L')+':26.A:r3')
+ expect(m.source).toMatchObject({canonical_rule_pack_id:pack.id,rule_profile_key:profile.profile_key,rule_profile_version_id:profile.id,rule_profile_version:version,rule_pack_checksum:pack.source_hash})
+ expect(m.source.rule_pack_snapshot).toEqual({rulePack:pack,messageProfile:profile,guideSources,profileKey:profile.profile_key,profileVersionId:profile.id,version,checksum:pack.source_hash})
+ expect(proof.mail).toMatchObject({id:m.inboundEmailMessageId,company_id:f.companyId,environment:'test',raw_edifact_payload:raw})
+ expect(proof.parse).toMatchObject({id:m.parseResultId,company_id:f.companyId,inbound_email_message_id:m.inboundEmailMessageId,raw_payload:raw,message_family:'PRODAT',message_code:'Z05'})
+ expect(proof.captured).toMatchObject({source_message_id:m.sourceId,company_id:f.companyId,environment:'test',origin:'database_insert',message_code:'Z05',raw_payload:raw,payload_hash:hash(raw)})
+ expect(proof.context).toMatchObject({source_message_id:m.sourceId,company_id:f.companyId,environment:'test',direction:'inbound',payload_sha256:hash(raw)})
+ expect(proof.context.status).toMatch(/^(ready|held)$/)
+ if(proof.context.status==='held')expect(proof.context.reason).toEqual(expect.any(String))
+ expect(proof.receptions).toHaveLength(1)
+ expect(proof.receptions[0]).toMatchObject({source_message_id:m.sourceId,company_id:f.companyId,environment:'test',inbound_email_message_id:m.inboundEmailMessageId,parse_result_id:m.parseResultId,actor_user_id:f.actorUserId,classification:'first_reception',canonical_payload_hash:hash(raw),received_payload_hash:hash(raw)})
+ for(const receivedAt of [m.source.message_received_at,proof.captured.source_received_at,proof.context.source_received_at,proof.receptions[0].received_at])expect(Date.parse(String(receivedAt))).toBe(Date.parse(String(proof.mail.received_at)))
+ expect(business()).toEqual(before);expect(provider).not.toHaveBeenCalled()
+ const originals=protectedOriginals()
+ for(const [table,rows]of Object.entries(originals))expect(table==='public.ediel_message_payloads'?rows.filter(row=>row.ediel_message_id!==m.sourceId):rows,table).toEqual(originalsBefore[table])
+ const born=custody(m.sourceId),outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:m.parsed,inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:m.parsed})
+ const replay=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:m.inboundEmailMessageId,parseResultId:m.parseResultId,parsed:m.parsed,outboundMatch,meteringPointMatch})
+ expect(replay).toBe(m.sourceId);expect(custody(m.sourceId)).toEqual(born)
+ expect(sql(`SELECT to_jsonb(x) FROM gridex_ediel_inbound_context.receipts x WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}`)).toEqual(proof.context)
+ expect(business()).toEqual(before);expect(protectedOriginals()).toEqual(originals);expect(provider).not.toHaveBeenCalled()
+})
 it('public H05 reception commits the same supply/history and only its actual commercial end before exact physical ACKs; replay preserves originals and effects',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li))),before=graph(),inputBefore=custody(m.sourceId),startBefore=custody(f.startSourceId),started=clock()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
