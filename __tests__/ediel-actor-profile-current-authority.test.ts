@@ -15,13 +15,13 @@ const fields = ['market_role', 'brp_name', 'brp_status', 'esett_status', 'techni
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const databases: PGlite[] = []
 const functions = ['gridex_normalize_org_number', 'gridex_new_external_tenant_reference', 'gridex_normalize_platform_role',
-  'canonical_actor_is_platform_admin', 'canonical_actor_is_authorized', 'canonical_json_sha256',
+  'canonical_actor_is_platform_admin', 'canonical_actor_is_authorized', 'canonical_json_sha256', 'canonical_command_request_hash_guard',
   'canonical_capture_ediel_configuration_snapshot_v1_unchecked', 'canonical_capture_ediel_configuration_snapshot',
   'canonical_save_ediel_actor_profile_v1_unchecked', 'canonical_save_ediel_actor_profile']
 const tables = ['companies', 'ediel_actor_settings', 'canonical_ediel_profile_identities', 'canonical_command_results',
   'canonical_audit_events', 'ediel_configuration_snapshots', 'ediel_route_profiles', 'ediel_mailboxes', 'ediel_certificates',
   'ediel_active_test_configurations', 'ediel_rule_versions', 'ediel_rule_packs', 'ediel_message_profiles',
-  'ediel_rule_profile_versions', 'company_provisioning_jobs', 'ediel_test_runs', 'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state']
+  'ediel_rule_profile_versions', 'company_provisioning_jobs', 'ediel_test_runs', 'actor_test_results', 'ediel_production_readiness_checks', 'ediel_go_live_events', 'ediel_production_state', 'ediel_send_locks']
 function declaration(prefix: string, name: string, end: string) {
   const start = schema.indexOf(`${prefix} public.${name}`), stop = schema.indexOf(end, start)
   if (start < 0 || stop <= start) throw new Error(`captured_declaration_missing:${name}`)
@@ -50,6 +50,9 @@ async function setup() {
     if (tables.some(name => sql.startsWith(`ALTER TABLE ONLY public.${name}\n`))) await db.exec(sql)
   }
   for (const name of functions.slice(5)) await db.exec(declaration('CREATE FUNCTION', `${name}(`, '\n--\n'))
+  const hashTrigger = schema.match(/CREATE TRIGGER canonical_command_results_request_hash_guard [^;]+;/)
+  if (!hashTrigger) throw new Error('captured_command_request_hash_trigger_missing')
+  await db.exec(hashTrigger[0])
   for (const sql of schema.split('\n').filter(line => /^(GRANT|REVOKE) /.test(line) && functions.some(name => line.includes(`FUNCTION public.${name}(`)))) await db.exec(sql)
   await db.exec(`INSERT INTO companies(id,name,actor_role,primary_contact_email) VALUES
     ('${uid(1)}','Declared configuration tenant','supplier','own@example.invalid'),
@@ -86,6 +89,10 @@ async function refused(db: PGlite, payload: ReturnType<typeof command>, expected
   expect(error).toMatchObject(expected)
   expect(await state(db)).toEqual(before)
 }
+const admission = (db: PGlite) => one(db, `SELECT jsonb_build_object('live',live_ediel_enabled,'status',production_status,
+  'approvedBy',live_approved_by,'approvedAt',live_approved_at,'blocked',live_blocked_reason,
+  'locks',(SELECT coalesce(jsonb_agg(to_jsonb(l) ORDER BY l.id),'[]') FROM ediel_send_locks l WHERE l.company_id=c.id))
+  admission FROM companies c WHERE id=$1`, [uid(1)])
 beforeAll(() => {expect(createHash('sha256').update(schema).digest('hex')).toBe('e7b55509430bc0ab2416ffd65120299f74f27201bcd0b239012b2e1bfc85d852')})
 afterAll(async () => {for (const db of databases) await db.close()})
 
@@ -106,6 +113,7 @@ it('restores exactly the original six nullable text fields, keeps unknown status
 })
 it('lets the unchanged public producer persist both independent environment identities, an actual snapshot hash, audit and command receipt', async () => {
   const db = await setup(); await apply(db)
+  const admissionBefore = await admission(db)
   const result = (await save(db)).result
   expect(result).toMatchObject({changed: true, company_id: uid(1), actor_role: 'supplier'})
   const actors = (await db.query('SELECT environment,actor_ediel_id,application_reference,brp_status,esett_status FROM ediel_actor_settings ORDER BY environment')).rows
@@ -119,6 +127,7 @@ it('lets the unchanged public producer persist both independent environment iden
   expect((await db.query('SELECT * FROM canonical_command_results')).rows).toHaveLength(1)
   expect((await db.query('SELECT * FROM canonical_audit_events')).rows).toHaveLength(1)
   expect((await db.query('SELECT * FROM ediel_production_state')).rows).toEqual([])
+  expect(await admission(db)).toEqual(admissionBefore)
 })
 it('does not change existing columns, data, authorization or public function metadata, and a second application is inert', async () => {
   const db = await setup(), before = await state(db)
@@ -139,6 +148,37 @@ it('preserves already expanded definitions, defaults, nulls and stored values ra
   await apply(db); await apply(db)
   expect(await state(db)).toEqual(before)
   expect((await db.query("SELECT to_jsonb(a) metadata FROM pg_attribute a WHERE attrelid='public.companies'::regclass ORDER BY attnum")).rows).toEqual(metadata)
+})
+it('expands a partial old layout without filling existing nulls or replacing its custom defaults and contact', async () => {
+  const db = await setup()
+  await db.exec(`ALTER TABLE companies ADD COLUMN esett_status text DEFAULT 'declared_old_default';
+    ALTER TABLE companies ADD COLUMN technical_contact_email text;
+    UPDATE companies SET esett_status=NULL,technical_contact_email='existing@example.invalid' WHERE id='${uid(1)}'`)
+  const attrs = async () => (await db.query(`SELECT to_jsonb(a) attribute,pg_get_expr(d.adbin,d.adrelid) default_expr
+    FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+    WHERE a.attrelid='public.companies'::regclass AND a.attname=ANY($1) ORDER BY a.attnum`, [['esett_status', 'technical_contact_email']])).rows
+  const before = await attrs()
+  await apply(db); await apply(db)
+  expect(await attrs()).toEqual(before)
+  expect(await one(db, 'SELECT esett_status,technical_contact_email,brp_status FROM companies WHERE id=$1', [uid(1)]))
+    .toEqual({esett_status: null, technical_contact_email: 'existing@example.invalid', brp_status: 'missing'})
+})
+it('binds actual existing unique profiles and refuses an explicit foreign identity with no durable effects', async () => {
+  const db = await setup(); await apply(db)
+  await db.exec(`INSERT INTO ediel_actor_settings(id,company_id,environment,actor_name,actor_role,role,actor_ediel_id,is_active) VALUES
+    ('${uid(30)}','${uid(1)}','test','Declared test identity','supplier','supplier','12345',true),
+    ('${uid(31)}','${uid(1)}','production','Declared production identity','supplier','supplier','67890',true),
+    ('${uid(32)}','${uid(2)}','production','Declared foreign identity','supplier','supplier','24680',true)`)
+  await refused(db, command({test_profile_id: uid(30), production_profile_id: uid(32)}), {message: 'canonical_profile_identity_mismatch:production'})
+  const payload = command({test_profile_id: uid(30), production_profile_id: uid(31)})
+  const first = await save(db, payload), before = await state(db)
+  expect(await save(db, payload)).toEqual(first); expect(await state(db)).toEqual(before)
+  expect((await db.query('SELECT profile_id FROM canonical_ediel_profile_identities ORDER BY profile_id')).rows)
+    .toEqual([{profile_id: uid(30)}, {profile_id: uid(31)}])
+})
+it('rolls back a genuine late public-save constraint failure after the unchecked producer staged its durable effects', async () => {
+  const db = await setup(); await apply(db)
+  await refused(db, command({production_default_charset: null}), {code: '23502'})
 })
 it('retains tenant authorization failures and rolls back all public-save effects on foreign-company refusal', async () => {
   const db = await setup(); await apply(db)
