@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-06T17:32:36.116516+00:00",
-  "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37503523389",
-  "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
-  "latest_migration": "20261006172500_ediel_missing_object_rejection_reason.sql",
-  "latest_migration_schema_effect": "Authentic1082 capture ed908c6d/run37503523389/artifact11430358745 imported byte-exact. Rejected missing209 reason consumer changed; public types byte-identical. Resulting-head full-source/clean/upgrade/native/type-schema/parity remain mandatory.",
+  "generated_at": "2026-10-07T00:25:03.586842+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-complete-tail-capture-run37551097476",
+  "sha256": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+  "latest_migration": "20261006235000_ediel_confirmed_death_application_scope.sql",
+  "latest_migration_schema_effect": "Authentic complete1094 qualified_source tail imported byte-exact: own231000/235000 committed confirmed-death response and actual APP/conditional-modern source-owner scope plus explicitly released225500 Z01 producer status compatibility; all previous qualified site and producer forwards retained. Current consumers and whole E/native/mandatory gates remain separately required.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-06T17:32:36.116516+00:00",
-    "checkout_sha": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
-    "checkout_tree": "824cdeae52428f832311c4e171288d5dabb83299",
-    "workflow_run_id": "37503523389",
+    "captured_at": "2026-10-07T00:25:03.586842+00:00",
+    "checkout_sha": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "checkout_tree": "920fff9ccc9e6fbbc8bc77cc401abc9194bda2f5",
+    "workflow_run_id": "37551097476",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261006172500_ediel_missing_object_rejection_reason.sql",
-      "sha256": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21"
+      "name": "20261006235000_ediel_confirmed_death_application_scope.sql",
+      "sha256": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -44,6 +44,7 @@
       "gridex_ediel_exports",
       "gridex_ediel_inbound_context",
       "gridex_ediel_inbound_receptions",
+      "gridex_ediel_legacy_archive",
       "gridex_ediel_outbound_owner",
       "gridex_ediel_readiness",
       "gridex_ediel_retention",
@@ -78,18 +79,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "77a30f489d47004be0d5e7b250a04c9a3e5f17ddca1ad9d660cb412269f5ae36",
+    "schema_fingerprint": "3a4ac405191bad56a133b4f1b1795c08361ef4b6fedd372e731a0b67e7345fbb",
     "artifact_sha256": {
-      "database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
-      "schema.sql": "8dc63eaab63bae12a267e3e2a45c16c6bdb8d729b26e8e454791b66fcd08f38f",
-      "schema.fingerprint.json": "119539784588e694b4d654a4aaf0c101d4a14e8fd00c005a1f9247c19a422a38"
+      "database.types.ts": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+      "schema.sql": "1ea1fba0d175f22e1698bd1fbcd8e5ec8213b033fccebcf7f1b464cab480eb51",
+      "schema.fingerprint.json": "d30870bb73d981b4128f29e47409bfdfd44838665ffabc7076742865d341b404"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
-      "scripts/migration-history-manifest.json": "bd6eae63217a8ab796f6325f8ed6601bf39a265c115a507208c4899eb807e618",
+      "scripts/migration-history-manifest.json": "c0aa78e8de98402b7534a3530370ceb3c8b5c70cf565c4763fafe28b91fe811e",
       "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
-      "scripts/migration-history-manifest.runtime.additions.json": "bb28016eae365bcdcf97096dd57c18280c6d3f38a145932546114d060825bb1b",
-      "scripts/supabase-types-manifest.json": "758167b675f6ac238573f2068ddd60c3a7134e7d35e1d3b1677734962ccb3ebc",
+      "scripts/migration-history-manifest.runtime.additions.json": "f37ebd22f10cde7c0c6666c611a591aa9d1c68b191488ac9d05d4085883421d2",
+      "scripts/supabase-types-manifest.json": "2e673300722699baaf0c65fc9804c25867c9573d248d13fbc068e97e4d984335",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
@@ -100,7 +101,7 @@
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
-  "composition_note": "Authentic1082 raw schema/fingerprint/receipt imported byte-exact; all previous captures/failed-native originals and historicalmanifestgroups retained. Actual supplemental11native PASS has separate originalreceipt; resulting-head mandatory gates still pending.",
+  "composition_note": "Authentic raw3 byte-exact, all prior historical metadata retained and replaced active fields preserved under pre_confirmed_death_response_capture_active_state. Fresh resulting-head checks and whole E approval pending.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -110,26 +111,26 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "authentic_missing_object_capture_imported_actual_supplemental_native_pass_resulting_head_gates_pending",
-    "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
-    "source_tree": "824cdeae52428f832311c4e171288d5dabb83299",
-    "actual_capture_run": 37503523389,
-    "SQL_files": 1082,
+    "kind": "authentic_complete1094_tail_imported_resulting_head_checks_pending",
+    "source_head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "source_tree": "920fff9ccc9e6fbbc8bc77cc401abc9194bda2f5",
+    "actual_capture_run": 37551097476,
+    "SQL_files": 1094,
     "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
     "actual_supplemental_native": {
-      "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
-      "run_id": 37503523124,
-      "artifact_id": 11430763164,
-      "tests": 11,
-      "failures": 0,
-      "errors": 0,
-      "skips": 0,
-      "exit_code": 0,
-      "ordinary_required_gates": "NOT_REPLACED"
+      "source_head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+      "run_id": 37551097436,
+      "status": "AUTHENTIC_SOURCE_F367_ALL22PASS_ALLSQL_CAPTURE0_RESULTING_HEAD_GATES_PENDING",
+      "ordinary_required_gates": "NOT_REPLACED",
+      "artifact_id": 11452324730,
+      "zip_sha256": "256a1fe3ff12e14340a64c69bf301c0ec667fc69b6e1f6e7098540f73069aa4f",
+      "input_hashes_matched": 3337,
+      "original_case_names": "ALL22_UNIQUE_MATCH",
+      "current_generated_raw3_matches_all_native_outputs": true
     },
     "requirements": [
-      "Current resulting-head ordinary/full-source/clean/upgrade/native/type-schema/parity before merge.",
-      "Retain capture-only NOT_RUN flags; actual supplemental native execution has a separate source/run receipt."
+      "Current resulting-head mandatory clean/upgrade/native/type-schema/parity gates before merge.",
+      "Whole E literal review and original capture-only NOT_RUN flags remain separate; foreign whole IDs retained."
     ]
   },
   "superseded_capture": {
@@ -225,21 +226,21 @@
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
   "capture_artifact": {
-    "run_id": 37503523389,
-    "artifact_id": 11430358745,
-    "name": "staff-schema-capture-ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
-    "receipt_path": "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/missing-object-capture-receipt.json",
-    "receipt_sha256": "e15882c321e5267759ae0c33f188ce8d6b796e885d2a544063f1b4b37bff4f37",
-    "archive_sha256": "b22b8cc7f00397428587596e2e5335949c61a593743b6209dcc45cc63fc63667",
-    "archive_size_bytes": 1644841,
+    "run_id": 37551097476,
+    "artifact_id": 11453008042,
+    "name": "staff-schema-capture-f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "receipt_sha256": "22af7cd1756e452c5c801b3dea8dba7fb8130ad1cd973c5c6fd5f09e5c8f3eb0",
+    "archive_sha256": "9851651632be6c19761e21d92726ff7f8b64528576efb3ad39b27350213a1531",
+    "archive_size_bytes": 1648583,
     "authenticated_workflow_run": {
-      "id": 37503523389,
+      "id": 37551097476,
       "repository_id": 1190539955,
       "head_repository_id": 1190539955,
-      "head_branch": "codex/ediel-codex-20261006-2c0823a3eed5",
-      "head_sha": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6"
+      "head_branch": "codex/ediel-e-native-93e252d8",
+      "head_sha": "f367778548c4e3b7d148d267c2244cbd712b4a5b"
     },
-    "raw3": "BYTE_EXACT_AUTHENTIC_ARTIFACT"
+    "raw3": "BYTE_EXACT_AUTHENTIC_ARTIFACT",
+    "receipt_storage": "Original capture-only receipt/NOT_RUN flags unchanged; current native authenticated separately."
   },
   "inherited_main7edef_current_prefix_verification": {
     "kind": "mandatory_actual_composed_head_proof",
@@ -292,7 +293,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "FALSE only for authentic1081 capture imported byte-exact; ordinary/native/type-schema/upgrade-parity/current-head merge gates remain pending.",
+  "composition_capture_pending_scope": "False only for authenticated1094 qualified_source complete-tail capture imported byte-exact; current native, resulting-head mandatory gates, whole software and external acceptance are separate.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -747,7 +748,7 @@
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
-  "source_latest_migration": "20261006160000_ediel_rejected_permission_scope_capture.sql",
+  "source_latest_migration": "20261006235000_ediel_confirmed_death_application_scope.sql",
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -1480,26 +1481,26 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
-    "source_head": "cbdc7413d31a062e0d87604c80856f35b3e19b72",
-    "source_tree": "bfadb24ac6d1495520ac0a97e75cf4b3406d623c",
-    "run_id": 37494897589,
-    "artifact_id": 11426729281,
+    "source_head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "source_tree": "920fff9ccc9e6fbbc8bc77cc401abc9194bda2f5",
+    "run_id": 37551097476,
+    "artifact_id": 11453008042,
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
-      "scripts/migration-history-manifest.json": "bd6eae63217a8ab796f6325f8ed6601bf39a265c115a507208c4899eb807e618",
+      "scripts/migration-history-manifest.json": "c0aa78e8de98402b7534a3530370ceb3c8b5c70cf565c4763fafe28b91fe811e",
       "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
-      "scripts/migration-history-manifest.runtime.additions.json": "1b8bbcedc905cb4e6bcd563ec570215c99026cdf51aa549526613a6d61fd5179",
-      "scripts/supabase-types-manifest.json": "ea16f2ebee1102fd65902b62d93c1258a7b2c107210e028317b1f8d1d1306651",
+      "scripts/migration-history-manifest.runtime.additions.json": "f37ebd22f10cde7c0c6666c611a591aa9d1c68b191488ac9d05d4085883421d2",
+      "scripts/supabase-types-manifest.json": "2e673300722699baaf0c65fc9804c25867c9573d248d13fbc068e97e4d984335",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
     },
     "raw3_sha256": {
-      "database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
-      "schema.sql": "1f77cf07f0a0b41d25acbdde3f34dd974899c14588528fa394ca10c7c445dc18",
-      "schema.fingerprint.json": "6b5d52a92efd19e183cb056fb291382c35f1730139b91649d89e1c9cef806c55"
+      "database.types.ts": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+      "schema.sql": "1ea1fba0d175f22e1698bd1fbcd8e5ec8213b033fccebcf7f1b464cab480eb51",
+      "schema.fingerprint.json": "d30870bb73d981b4128f29e47409bfdfd44838665ffabc7076742865d341b404"
     },
-    "scope": "Authentic raw3 with original capture-only NOT_RUN flags; resulting-head verification pending."
+    "scope": "Authentic complete1094 raw3; capture-only NOT_RUN flags preserved; actual current-head native and whole approval remain separately qualified."
   },
   "pre_intake_export_capture_manifest": {
     "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
@@ -3465,13 +3466,768 @@
     }
   },
   "pending_forward_capture": {
-    "migration": "20261006172500_ediel_missing_object_rejection_reason.sql",
-    "sha256": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21",
-    "status": "AUTHENTIC_1082_CAPTURE_IMPORTED",
-    "native_status": "ACTUAL_SUPPLEMENTAL_NATIVE_11_PASS_RESULTING_HEAD_GATES_PENDING",
-    "required_gates": "Current full-source/clean/upgrade/native/type-schema/parity remain mandatory",
-    "capture_run": 37503523389,
-    "artifact_id": 11430358745,
-    "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6"
+    "migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+    "sha256": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
+    "status": "AUTHENTIC_COMPLETE1094_TAIL_CAPTURE_IMPORTED",
+    "native_status": "AUTHENTIC_SOURCE_F367_ALL22PASS_ALLSQL_CAPTURE0_CURRENT_RESULTING_HEAD_GATES_PENDING",
+    "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
+    "previous_authentic_capture_source": "3094ee19d23031195a9e7dae0c8512930de2a828",
+    "capture_run": 37551097476,
+    "artifact_id": 11453008042,
+    "source_head": "f367778548c4e3b7d148d267c2244cbd712b4a5b"
+  },
+  "pre_generic_e_current_bridge_active_state": {
+    "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+    "whole_previous_manifest_sha256": "fc08d2cb21aad26a1171e096f9ca28ad5e90df599171763f5bc2a1ed76961aa3",
+    "upstream_main": "56e58b95518ec4d5eef210ba16ba46228afb40ac",
+    "fields": {
+      "generated_at": "2026-10-06T17:32:36.116516+00:00",
+      "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37503523389",
+      "sha256": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+      "latest_migration": "20261006172500_ediel_missing_object_rejection_reason.sql",
+      "source_latest_migration": "20261006160000_ediel_rejected_permission_scope_capture.sql",
+      "latest_migration_schema_effect": "Authentic1082 capture ed908c6d/run37503523389/artifact11430358745 imported byte-exact. Rejected missing209 reason consumer changed; public types byte-identical. Resulting-head full-source/clean/upgrade/native/type-schema/parity remain mandatory.",
+      "composition_capture_pending": false,
+      "composition_capture_pending_scope": "FALSE only for authentic1081 capture imported byte-exact; ordinary/native/type-schema/upgrade-parity/current-head merge gates remain pending.",
+      "capture": {
+        "purpose": "capture_only",
+        "captured_at": "2026-10-06T17:32:36.116516+00:00",
+        "checkout_sha": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
+        "checkout_tree": "824cdeae52428f832311c4e171288d5dabb83299",
+        "workflow_run_id": "37503523389",
+        "workflow_run_attempt": "1",
+        "supabase_cli_version": "2.101.0",
+        "postgres_server_version": "17.6",
+        "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "latest_replay_migration": {
+          "name": "20261006172500_ediel_missing_object_rejection_reason.sql",
+          "sha256": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21"
+        },
+        "schema_names": [
+          "gridex_ack_authority",
+          "gridex_ai_processing",
+          "gridex_ai_purpose_sources",
+          "gridex_bilateral_customer_sources",
+          "gridex_bilateral_prodat",
+          "gridex_billing_source",
+          "gridex_brp_changes",
+          "gridex_brp_declaration_intake",
+          "gridex_brp_sources",
+          "gridex_business_expectations",
+          "gridex_certificate_trust",
+          "gridex_contract_source_intake",
+          "gridex_correction_process",
+          "gridex_customer_life_events",
+          "gridex_customer_masterdata",
+          "gridex_ediel_ack_guide",
+          "gridex_ediel_ack_replay",
+          "gridex_ediel_business_incidents",
+          "gridex_ediel_common_header",
+          "gridex_ediel_duplicate_responses",
+          "gridex_ediel_exports",
+          "gridex_ediel_inbound_context",
+          "gridex_ediel_inbound_receptions",
+          "gridex_ediel_outbound_owner",
+          "gridex_ediel_readiness",
+          "gridex_ediel_retention",
+          "gridex_ediel_services",
+          "gridex_ediel_source_rules",
+          "gridex_ediel_technical_ack",
+          "gridex_ediel_transport",
+          "gridex_ediel_wire_namespace",
+          "gridex_internal",
+          "gridex_metering_method_changes",
+          "gridex_method_expectations",
+          "gridex_negative_fixtures",
+          "gridex_network_registry_sources",
+          "gridex_outbound_dispatch",
+          "gridex_private",
+          "gridex_prodat_object_batch",
+          "gridex_received_err_response",
+          "gridex_received_reading_expectations",
+          "gridex_received_sources",
+          "gridex_registry_import",
+          "gridex_regulated_supply",
+          "gridex_requested_changes",
+          "gridex_requested_customer_changes",
+          "gridex_requested_method_watches",
+          "gridex_service_administration",
+          "gridex_service_permission",
+          "gridex_supply_rescission",
+          "gridex_switch_cancellations",
+          "gridex_transport_exception",
+          "gridex_unattributed_intake",
+          "gridex_utilts_binding",
+          "gridex_utilts_issuer",
+          "public"
+        ],
+        "schema_fingerprint": "77a30f489d47004be0d5e7b250a04c9a3e5f17ddca1ad9d660cb412269f5ae36",
+        "artifact_sha256": {
+          "database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+          "schema.sql": "8dc63eaab63bae12a267e3e2a45c16c6bdb8d729b26e8e454791b66fcd08f38f",
+          "schema.fingerprint.json": "119539784588e694b4d654a4aaf0c101d4a14e8fd00c005a1f9247c19a422a38"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "bd6eae63217a8ab796f6325f8ed6601bf39a265c115a507208c4899eb807e618",
+          "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+          "scripts/migration-history-manifest.runtime.additions.json": "bb28016eae365bcdcf97096dd57c18280c6d3f38a145932546114d060825bb1b",
+          "scripts/supabase-types-manifest.json": "758167b675f6ac238573f2068ddd60c3a7134e7d35e1d3b1677734962ccb3ebc",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+      },
+      "composition_note": "Authentic1082 raw schema/fingerprint/receipt imported byte-exact; all previous captures/failed-native originals and historicalmanifestgroups retained. Actual supplemental11native PASS has separate originalreceipt; resulting-head mandatory gates still pending.",
+      "capture_artifact": {
+        "run_id": 37503523389,
+        "artifact_id": 11430358745,
+        "name": "staff-schema-capture-ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
+        "receipt_path": "quality/audits/ediel-masterplan-v2/codex-20261006-2c0823a3eed5/missing-object-capture-receipt.json",
+        "receipt_sha256": "e15882c321e5267759ae0c33f188ce8d6b796e885d2a544063f1b4b37bff4f37",
+        "archive_sha256": "b22b8cc7f00397428587596e2e5335949c61a593743b6209dcc45cc63fc63667",
+        "archive_size_bytes": 1644841,
+        "authenticated_workflow_run": {
+          "id": 37503523389,
+          "repository_id": 1190539955,
+          "head_repository_id": 1190539955,
+          "head_branch": "codex/ediel-codex-20261006-2c0823a3eed5",
+          "head_sha": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6"
+        },
+        "raw3": "BYTE_EXACT_AUTHENTIC_ARTIFACT"
+      },
+      "active_generated_outputs_origin": {
+        "source_head": "cbdc7413d31a062e0d87604c80856f35b3e19b72",
+        "source_tree": "bfadb24ac6d1495520ac0a97e75cf4b3406d623c",
+        "run_id": 37494897589,
+        "artifact_id": 11426729281,
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "bd6eae63217a8ab796f6325f8ed6601bf39a265c115a507208c4899eb807e618",
+          "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+          "scripts/migration-history-manifest.runtime.additions.json": "1b8bbcedc905cb4e6bcd563ec570215c99026cdf51aa549526613a6d61fd5179",
+          "scripts/supabase-types-manifest.json": "ea16f2ebee1102fd65902b62d93c1258a7b2c107210e028317b1f8d1d1306651",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "raw3_sha256": {
+          "database.types.ts": "aa2a124e30f681d9ae04a46724097d02655355f07689675e69bfa24e9a99e46a",
+          "schema.sql": "1f77cf07f0a0b41d25acbdde3f34dd974899c14588528fa394ca10c7c445dc18",
+          "schema.fingerprint.json": "6b5d52a92efd19e183cb056fb291382c35f1730139b91649d89e1c9cef806c55"
+        },
+        "scope": "Authentic raw3 with original capture-only NOT_RUN flags; resulting-head verification pending."
+      },
+      "current_prefix_verification": {
+        "kind": "authentic_missing_object_capture_imported_actual_supplemental_native_pass_resulting_head_gates_pending",
+        "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
+        "source_tree": "824cdeae52428f832311c4e171288d5dabb83299",
+        "actual_capture_run": 37503523389,
+        "SQL_files": 1082,
+        "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
+        "actual_supplemental_native": {
+          "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6",
+          "run_id": 37503523124,
+          "artifact_id": 11430763164,
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skips": 0,
+          "exit_code": 0,
+          "ordinary_required_gates": "NOT_REPLACED"
+        },
+        "requirements": [
+          "Current resulting-head ordinary/full-source/clean/upgrade/native/type-schema/parity before merge.",
+          "Retain capture-only NOT_RUN flags; actual supplemental native execution has a separate source/run receipt."
+        ]
+      },
+      "pending_forward_capture": {
+        "migration": "20261006172500_ediel_missing_object_rejection_reason.sql",
+        "sha256": "932b560516b2335d759ca21de51b43e280f4508305fd5cc3b274d226a82b5d21",
+        "status": "AUTHENTIC_1082_CAPTURE_IMPORTED",
+        "native_status": "ACTUAL_SUPPLEMENTAL_NATIVE_11_PASS_RESULTING_HEAD_GATES_PENDING",
+        "required_gates": "Current full-source/clean/upgrade/native/type-schema/parity remain mandatory",
+        "capture_run": 37503523389,
+        "artifact_id": 11430358745,
+        "source_head": "ed908c6d06df4f7d435f37a820fd8c6b20fd87c6"
+      }
+    }
+  },
+  "pre_requested_change_owned_site_pending_state": {
+    "source_head": "234d13268b2d62bb25156446c8b7eb6207b76908",
+    "fields": {
+      "source_latest_migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+      "composition_capture_pending": false,
+      "composition_capture_pending_scope": "False for the authentic complete 3094 migration-tail capture imported byte-exact; resulting-head checks and whole-contract approval remain separate.",
+      "pending_forward_capture": {
+        "migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+        "sha256": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa",
+        "status": "AUTHENTIC_COMPLETE_TAIL_CAPTURE_IMPORTED",
+        "native_status": "CURRENT_NATIVE_IN_PROGRESS",
+        "required_gates": "Current resulting-head clean/upgrade/native/type-schema/parity remain mandatory",
+        "capture_run": 37532651197,
+        "artifact_id": 11445058303,
+        "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828"
+      },
+      "current_prefix_verification": {
+        "kind": "complete_tail_capture_imported_current_execution_and_resulting_head_checks_pending",
+        "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+        "source_tree": "879dcc8c1c615d241c945333e6b279e10204d850",
+        "actual_capture_run": 37532651197,
+        "SQL_files": 1086,
+        "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
+        "actual_supplemental_native": {
+          "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+          "run_id": 37532651137,
+          "status": "IN_PROGRESS",
+          "ordinary_required_gates": "NOT_REPLACED"
+        },
+        "requirements": [
+          "Current resulting-head mandatory clean/upgrade/native/type-schema/parity gates before merge.",
+          "Original capture-only NOT_RUN flags remain unchanged; current native must have a separate authenticated receipt."
+        ]
+      }
+    }
+  },
+  "pending_shared_producer_forward_capture": {
+    "status": "AUTHENTIC_COMPLETE1094_TAIL_CAPTURE_IMPORTED_CURRENT_GATES_PENDING",
+    "producer_files": [
+      {
+        "path": "supabase/migrations/20261006205324_ediel_production_all_family_smime.sql",
+        "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+        "gitBlob": "48a3eb587869fecf7cdb23cba97b6d376ac0bc95",
+        "sha256": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+        "bytes": 4744
+      },
+      {
+        "path": "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+        "gitBlob": "c3c0d6983cf0be7b6d92ee01142c8390a3a0411e",
+        "sha256": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+        "bytes": 9403
+      },
+      {
+        "path": "supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql",
+        "source": "6f2bd2c9663b62f46e27f2623f9b54bc8b421a38",
+        "gitBlob": "c5ff03633279491dffcc478ef9678e03a1d66727",
+        "sha256": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
+        "bytes": 878
+      }
+    ],
+    "prior_runtime_entries_preserved": 135,
+    "current_runtime_entries": 143,
+    "foreign_whole_ids": "NOT_APPROVED_OWNER_RETAINED",
+    "related_consumer_dependency": "Explicitly handed byte-exact actor admin consumer source/lint/confirmed post-copy app check qualified. Actual1094 capture imported; resulting-head consumer/types/native/mandatory gates and original author whole TR/DB/L qualification remain separate.",
+    "related_consumer_input": {
+      "path": "app/admin/ediel/actors/page.tsx",
+      "source": "fb4f9d3e9fad2abbe7ce6eb6b98bf12e2053970a",
+      "gitBlob": "d58fc51971f624814e40d4b80548cfd8b8c75d48",
+      "sha256": "c58267cabc9ac86665e3e01074a188da6e9fe231767023c41be3ec05b02f8fbb",
+      "bytes": 38632
+    },
+    "capture_run": 37551097476,
+    "artifact_id": 11453008042,
+    "source_head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "native_status": "AUTHENTIC_SOURCE_F367_ALL22PASS_ALLSQL_CAPTURE0_CURRENT_RESULTING_HEAD_GATES_PENDING"
+  },
+  "pre_request_site_forward_pending_state": {
+    "source_latest_migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
+    "composition_capture_pending_scope": "Fresh214250 site forward plus authorized immutable205324 allproductionS/MIME and210116 legacy address containment producers require a new authentic complete1089-file tail capture. Original3094 raw3 and NOT_RUN flags preserved. aec3 predecessor native/capture covers only preceding1087-file tail; cannot cover newly adopted two forwards.",
+    "pending_forward_capture": {
+      "migration": "20261006214250_ediel_requested_change_owned_site_origin.sql",
+      "sha256": "b70fbf5ff8d8f7bd78ad8ac8b4ae08cfee7e2ee2f0ae374400ac43127a111f19",
+      "status": "GENUINE_COMPLETE_TAIL_CAPTURE_PENDING",
+      "native_status": "NEW_SOURCE_NOT_PUBLISHED",
+      "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
+      "previous_authentic_capture_source": "3094ee19d23031195a9e7dae0c8512930de2a828"
+    }
+  },
+  "pre_request_site_capture_active_state": {
+    "source_head": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+    "whole_previous_manifest_sha256": "83cdec1ad4b18f33f255016cf429bad546b3d118c3df11a5e719b08e995022a0",
+    "fields": {
+      "generated_at": "2026-10-06T21:23:40.728393+00:00",
+      "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37532651197",
+      "sha256": "404c60184c1367af9cdcc5a97660055277dc132df8bc42dd9028522b6ef1d9fd",
+      "latest_migration": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+      "source_latest_migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+      "latest_migration_schema_effect": "Authentic complete 1086-file migration tail capture at 3094ee19d23031195a9e7dae0c8512930de2a828 imported byte-exact. Includes delivered main152/160/1725 and own1731/184/1955/2058. Current requested-change facts RPC and private wire/current-owner consumers captured; original capture-only NOT_RUN flags preserved. Resulting-head full/current native/clean/upgrade/type-schema/parity checks remain required.",
+      "composition_capture_pending": true,
+      "composition_capture_pending_scope": "Actual1091-file tail includes own214250/221015 and three explicitly handed immutable205324 S/MIME,210116 legacy-address containment,213222 supplier-route columns. New authentic complete-tail capture required. Original3094 raw3 and capture-only NOT_RUN flags remain historical; successfulAEC capture covers only old1087tail. Related DB01 admin consumer delivery/handoff is required before coherent merge.",
+      "capture": {
+        "purpose": "capture_only",
+        "captured_at": "2026-10-06T21:23:40.728393+00:00",
+        "checkout_sha": "3094ee19d23031195a9e7dae0c8512930de2a828",
+        "checkout_tree": "879dcc8c1c615d241c945333e6b279e10204d850",
+        "workflow_run_id": "37532651197",
+        "workflow_run_attempt": "1",
+        "supabase_cli_version": "2.101.0",
+        "postgres_server_version": "17.6",
+        "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "latest_replay_migration": {
+          "name": "20261006205800_ediel_generic_requested_change_current_bridge.sql",
+          "sha256": "c02509418402ad52f214ac0e7f7668b0e554bc4d6877ab95fb9b7c49a87553aa"
+        },
+        "schema_names": [
+          "gridex_ack_authority",
+          "gridex_ai_processing",
+          "gridex_ai_purpose_sources",
+          "gridex_bilateral_customer_sources",
+          "gridex_bilateral_prodat",
+          "gridex_billing_source",
+          "gridex_brp_changes",
+          "gridex_brp_declaration_intake",
+          "gridex_brp_sources",
+          "gridex_business_expectations",
+          "gridex_certificate_trust",
+          "gridex_contract_source_intake",
+          "gridex_correction_process",
+          "gridex_customer_life_events",
+          "gridex_customer_masterdata",
+          "gridex_ediel_ack_guide",
+          "gridex_ediel_ack_replay",
+          "gridex_ediel_business_incidents",
+          "gridex_ediel_common_header",
+          "gridex_ediel_duplicate_responses",
+          "gridex_ediel_exports",
+          "gridex_ediel_inbound_context",
+          "gridex_ediel_inbound_receptions",
+          "gridex_ediel_outbound_owner",
+          "gridex_ediel_readiness",
+          "gridex_ediel_retention",
+          "gridex_ediel_services",
+          "gridex_ediel_source_rules",
+          "gridex_ediel_technical_ack",
+          "gridex_ediel_transport",
+          "gridex_ediel_wire_namespace",
+          "gridex_internal",
+          "gridex_metering_method_changes",
+          "gridex_method_expectations",
+          "gridex_negative_fixtures",
+          "gridex_network_registry_sources",
+          "gridex_outbound_dispatch",
+          "gridex_private",
+          "gridex_prodat_object_batch",
+          "gridex_received_err_response",
+          "gridex_received_reading_expectations",
+          "gridex_received_sources",
+          "gridex_registry_import",
+          "gridex_regulated_supply",
+          "gridex_requested_changes",
+          "gridex_requested_customer_changes",
+          "gridex_requested_method_watches",
+          "gridex_service_administration",
+          "gridex_service_permission",
+          "gridex_supply_rescission",
+          "gridex_switch_cancellations",
+          "gridex_transport_exception",
+          "gridex_unattributed_intake",
+          "gridex_utilts_binding",
+          "gridex_utilts_issuer",
+          "public"
+        ],
+        "schema_fingerprint": "c1a60b8f108ef18189064adfd04bd0e8e1aaa9d0796d5ca5305d03cae0d84a22",
+        "artifact_sha256": {
+          "database.types.ts": "404c60184c1367af9cdcc5a97660055277dc132df8bc42dd9028522b6ef1d9fd",
+          "schema.sql": "b8dd2fdb128467f3e6dadb2e3f22274c69b8e94eb42173ac4462070bc5165be2",
+          "schema.fingerprint.json": "f77a14b762360e15705b855b2a82ce65b2769cb03e5aec6ae907b97f7fac6480"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "6052e1a49ec74d08574f284e7f42915cc3b1a31068252a7cd8a011f010fd1814",
+          "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+          "scripts/migration-history-manifest.runtime.additions.json": "bb28016eae365bcdcf97096dd57c18280c6d3f38a145932546114d060825bb1b",
+          "scripts/supabase-types-manifest.json": "fc08d2cb21aad26a1171e096f9ca28ad5e90df599171763f5bc2a1ed76961aa3",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+      },
+      "capture_artifact": {
+        "run_id": 37532651197,
+        "artifact_id": 11445058303,
+        "name": "staff-schema-capture-3094ee19d23031195a9e7dae0c8512930de2a828",
+        "receipt_sha256": "de10c43dcffa38185f3a5b51d868139e7784d5f1b8e9fc83d397b9f95246f28d",
+        "archive_sha256": "fa54dca7f333758fb2ed11f54f4b3209550937394483a8640ecb7e1372e2e651",
+        "archive_size_bytes": 1645769,
+        "authenticated_workflow_run": {
+          "id": 37532651197,
+          "repository_id": 1190539955,
+          "head_repository_id": 1190539955,
+          "head_branch": "codex/ediel-e-native-93e252d8",
+          "head_sha": "3094ee19d23031195a9e7dae0c8512930de2a828"
+        },
+        "raw3": "BYTE_EXACT_AUTHENTIC_ARTIFACT",
+        "receipt_storage": "capture field retains the original capture-only receipt; no native flags relabelled"
+      },
+      "active_generated_outputs_origin": {
+        "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+        "source_tree": "879dcc8c1c615d241c945333e6b279e10204d850",
+        "run_id": 37532651197,
+        "artifact_id": 11445058303,
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "6052e1a49ec74d08574f284e7f42915cc3b1a31068252a7cd8a011f010fd1814",
+          "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+          "scripts/migration-history-manifest.runtime.additions.json": "bb28016eae365bcdcf97096dd57c18280c6d3f38a145932546114d060825bb1b",
+          "scripts/supabase-types-manifest.json": "fc08d2cb21aad26a1171e096f9ca28ad5e90df599171763f5bc2a1ed76961aa3",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "raw3_sha256": {
+          "database.types.ts": "404c60184c1367af9cdcc5a97660055277dc132df8bc42dd9028522b6ef1d9fd",
+          "schema.sql": "b8dd2fdb128467f3e6dadb2e3f22274c69b8e94eb42173ac4462070bc5165be2",
+          "schema.fingerprint.json": "f77a14b762360e15705b855b2a82ce65b2769cb03e5aec6ae907b97f7fac6480"
+        },
+        "scope": "Authentic raw3 with original capture-only NOT_RUN flags; resulting-head verification and current native remain separate."
+      },
+      "composition_note": "Authentic raw3 byte-exact; all existing historical metadata retained, previous modified active fields preserved under pre_generic_e_current_bridge_active_state. Actual current native execution and resulting-head mandatory checks remain pending.",
+      "current_prefix_verification": {
+        "kind": "prospective_owned_site_source_pending_authentic_capture",
+        "status": "CAPTURE_PENDING",
+        "actual_previous_supplemental_native": {
+          "source_head": "3094ee19d23031195a9e7dae0c8512930de2a828",
+          "run_id": 37532651137,
+          "artifact_id": 11446130764,
+          "status": "FAILURE",
+          "tests": 22,
+          "passed": 21,
+          "failed": 1,
+          "failure": "ediel_native_validated_intent_required"
+        },
+        "requirements": [
+          "Fresh native22 with all original guards and same strict send oracle.",
+          "New complete-tail official capture and byte-exact import preserving previous receipts.",
+          "All mandatory current-head gates and whole-contract independent review before coverage/merge."
+        ]
+      },
+      "pending_forward_capture": {
+        "migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+        "sha256": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
+        "status": "GENUINE_COMPLETE_TAIL_CAPTURE_PENDING",
+        "native_status": "NEW_SOURCE_NOT_PUBLISHED",
+        "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
+        "previous_authentic_capture_source": "3094ee19d23031195a9e7dae0c8512930de2a828"
+      },
+      "pending_shared_producer_forward_capture": {
+        "status": "EXACT_AUTHORIZED_PRODUCER_ADOPTION_NEW_CAPTURE_PENDING",
+        "producer_files": [
+          {
+            "path": "supabase/migrations/20261006205324_ediel_production_all_family_smime.sql",
+            "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+            "gitBlob": "48a3eb587869fecf7cdb23cba97b6d376ac0bc95",
+            "sha256": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+            "bytes": 4744
+          },
+          {
+            "path": "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+            "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+            "gitBlob": "c3c0d6983cf0be7b6d92ee01142c8390a3a0411e",
+            "sha256": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+            "bytes": 9403
+          },
+          {
+            "path": "supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql",
+            "source": "6f2bd2c9663b62f46e27f2623f9b54bc8b421a38",
+            "gitBlob": "c5ff03633279491dffcc478ef9678e03a1d66727",
+            "sha256": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
+            "bytes": 878
+          }
+        ],
+        "prior_runtime_entries_preserved": 135,
+        "current_runtime_entries": 138,
+        "foreign_whole_ids": "NOT_APPROVED_OWNER_RETAINED",
+        "related_consumer_dependency": "Resolved explicit narrow UI RELEASE6026530951, fresh own CLAIM6026614680/db3f56, original reviewedfb4 actor admin page byte-exact adopted. Current app/lint/review and genuine1091 complete-tailcapture/type-schema/mandatory checks remain required; no whole DB01 credit.",
+        "related_consumer_input": {
+          "path": "app/admin/ediel/actors/page.tsx",
+          "source": "fb4f9d3e9fad2abbe7ce6eb6b98bf12e2053970a",
+          "gitBlob": "d58fc51971f624814e40d4b80548cfd8b8c75d48",
+          "sha256": "c58267cabc9ac86665e3e01074a188da6e9fe231767023c41be3ec05b02f8fbb",
+          "bytes": 38632
+        }
+      }
+    }
+  },
+  "authenticated_requested_customer_source_native": {
+    "head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "tree": "920fff9ccc9e6fbbc8bc77cc401abc9194bda2f5",
+    "run": "37551097436",
+    "artifact": 11452324730,
+    "zipSha256": "256a1fe3ff12e14340a64c69bf301c0ec667fc69b6e1f6e7098540f73069aa4f",
+    "inputHashesMatched": 3337,
+    "executed": 22,
+    "pass": 22,
+    "fail": 0,
+    "skip": 0,
+    "errors": 0,
+    "nativeExit": 0,
+    "decoderSqlExit": 0,
+    "schemaCaptureExit": 0,
+    "status": "AUTHENTIC22_SOURCE_F367_PASS_RESULTING_HEAD_GATES_PENDING",
+    "ordinary_required_gates": "NOT_REPLACED",
+    "whole_contract_approval": "PENDING_INDEPENDENT_LITERAL_REVIEW_AND_CURRENT_RESULTING_HEAD_GATES",
+    "durable_original_zip": "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/original-native-f367.zip",
+    "durable_qualified_receipt": "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/qualified-native-f367.json"
+  },
+  "pre_confirmed_death_response_capture_active_state": {
+    "source_head": "f367778548c4e3b7d148d267c2244cbd712b4a5b",
+    "whole_previous_manifest_sha256": "2e673300722699baaf0c65fc9804c25867c9573d248d13fbc068e97e4d984335",
+    "fields": {
+      "generated_at": "2026-10-06T22:41:07.495078+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-complete-tail-capture-run37541468839",
+      "sha256": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+      "latest_migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+      "source_latest_migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+      "latest_migration_schema_effect": "Authentic complete1091 source4508 tail imported byte-exact: own214250/221015 qualified intent/request site and three explicitly handed production S/MIME/legacy address containment/supplier route columns. Current consumers and whole E/native/mandatory gates remain separately required.",
+      "composition_capture_pending": false,
+      "composition_capture_pending_scope": "False only for authenticated1091 source4508 complete-tail capture imported byte-exact; current native, resulting-head mandatory gates, whole software and external acceptance are separate.",
+      "capture": {
+        "purpose": "capture_only",
+        "captured_at": "2026-10-06T22:41:07.495078+00:00",
+        "checkout_sha": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+        "checkout_tree": "c205073433be8014b6ccb291e63cabad02c6364d",
+        "workflow_run_id": "37541468839",
+        "workflow_run_attempt": "1",
+        "supabase_cli_version": "2.101.0",
+        "postgres_server_version": "17.6",
+        "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "latest_replay_migration": {
+          "name": "20261006221015_ediel_requested_change_owned_request_site.sql",
+          "sha256": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b"
+        },
+        "schema_names": [
+          "gridex_ack_authority",
+          "gridex_ai_processing",
+          "gridex_ai_purpose_sources",
+          "gridex_bilateral_customer_sources",
+          "gridex_bilateral_prodat",
+          "gridex_billing_source",
+          "gridex_brp_changes",
+          "gridex_brp_declaration_intake",
+          "gridex_brp_sources",
+          "gridex_business_expectations",
+          "gridex_certificate_trust",
+          "gridex_contract_source_intake",
+          "gridex_correction_process",
+          "gridex_customer_life_events",
+          "gridex_customer_masterdata",
+          "gridex_ediel_ack_guide",
+          "gridex_ediel_ack_replay",
+          "gridex_ediel_business_incidents",
+          "gridex_ediel_common_header",
+          "gridex_ediel_duplicate_responses",
+          "gridex_ediel_exports",
+          "gridex_ediel_inbound_context",
+          "gridex_ediel_inbound_receptions",
+          "gridex_ediel_legacy_archive",
+          "gridex_ediel_outbound_owner",
+          "gridex_ediel_readiness",
+          "gridex_ediel_retention",
+          "gridex_ediel_services",
+          "gridex_ediel_source_rules",
+          "gridex_ediel_technical_ack",
+          "gridex_ediel_transport",
+          "gridex_ediel_wire_namespace",
+          "gridex_internal",
+          "gridex_metering_method_changes",
+          "gridex_method_expectations",
+          "gridex_negative_fixtures",
+          "gridex_network_registry_sources",
+          "gridex_outbound_dispatch",
+          "gridex_private",
+          "gridex_prodat_object_batch",
+          "gridex_received_err_response",
+          "gridex_received_reading_expectations",
+          "gridex_received_sources",
+          "gridex_registry_import",
+          "gridex_regulated_supply",
+          "gridex_requested_changes",
+          "gridex_requested_customer_changes",
+          "gridex_requested_method_watches",
+          "gridex_service_administration",
+          "gridex_service_permission",
+          "gridex_supply_rescission",
+          "gridex_switch_cancellations",
+          "gridex_transport_exception",
+          "gridex_unattributed_intake",
+          "gridex_utilts_binding",
+          "gridex_utilts_issuer",
+          "public"
+        ],
+        "schema_fingerprint": "97a653d65248b720a33de987007440894d11120ed08d63efa5f5ea945e84e52c",
+        "artifact_sha256": {
+          "database.types.ts": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+          "schema.sql": "628305e9a1b6de48291d418785724ae4e7431f91d29104ca4678217dc59c0573",
+          "schema.fingerprint.json": "dede929d194e75ac537331012ef7778a0294f09765631a5640abf0a860d2eb5e"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "486e396d6458c787f2dc45421930a069b7f9adc106d70dff0ab256cf3b6cec55",
+          "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+          "scripts/migration-history-manifest.runtime.additions.json": "3c054169a81fc6fae1afb93e25679bb6b11a9a25209fcdc78c715d18d2b8ff53",
+          "scripts/supabase-types-manifest.json": "83cdec1ad4b18f33f255016cf429bad546b3d118c3df11a5e719b08e995022a0",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+      },
+      "capture_artifact": {
+        "run_id": 37541468839,
+        "artifact_id": 11449441444,
+        "name": "staff-schema-capture-4508d8ea335ad9998d6816e214e90c852a955c6f",
+        "receipt_sha256": "1ee01aa35fa33e60b4018f411632ada3659870f71fe81ecae6e6fbfcd7c2de4d",
+        "archive_sha256": "588ae505cb92083c60d0d59b7eb031f7610476a77bbc6021d34c1a107a9a25f5",
+        "archive_size_bytes": 1646210,
+        "authenticated_workflow_run": {
+          "id": 37541468839,
+          "repository_id": 1190539955,
+          "head_repository_id": 1190539955,
+          "head_branch": "codex/ediel-e-native-93e252d8",
+          "head_sha": "4508d8ea335ad9998d6816e214e90c852a955c6f"
+        },
+        "raw3": "BYTE_EXACT_AUTHENTIC_ARTIFACT",
+        "receipt_storage": "Original capture-only receipt/NOT_RUN flags unchanged; current native authenticated separately."
+      },
+      "active_generated_outputs_origin": {
+        "source_head": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+        "source_tree": "c205073433be8014b6ccb291e63cabad02c6364d",
+        "run_id": 37541468839,
+        "artifact_id": 11449441444,
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "486e396d6458c787f2dc45421930a069b7f9adc106d70dff0ab256cf3b6cec55",
+          "scripts/migration-history-manifest.additions.json": "2be494b7a619a642ee9621dc27038d4aaaa88bd210234a88a1473b6d10b92f11",
+          "scripts/migration-history-manifest.runtime.additions.json": "3c054169a81fc6fae1afb93e25679bb6b11a9a25209fcdc78c715d18d2b8ff53",
+          "scripts/supabase-types-manifest.json": "83cdec1ad4b18f33f255016cf429bad546b3d118c3df11a5e719b08e995022a0",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "raw3_sha256": {
+          "database.types.ts": "d933dcc94ba22350943ce9b197cf049ae0ab9ef1252aa508a04afd8cdcd45a59",
+          "schema.sql": "628305e9a1b6de48291d418785724ae4e7431f91d29104ca4678217dc59c0573",
+          "schema.fingerprint.json": "dede929d194e75ac537331012ef7778a0294f09765631a5640abf0a860d2eb5e"
+        },
+        "scope": "Authentic1091 raw3; capture-only NOT_RUN flags preserved; resulting-head/current native proof separate."
+      },
+      "composition_note": "Authentic raw3 byte-exact, all prior historical metadata retained and replaced active fields preserved under pre_request_site_capture_active_state. Fresh resulting-head checks and whole E approval pending.",
+      "current_prefix_verification": {
+        "kind": "authentic_complete1091_tail_imported_resulting_head_checks_pending",
+        "source_head": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+        "source_tree": "c205073433be8014b6ccb291e63cabad02c6364d",
+        "actual_capture_run": 37541468839,
+        "SQL_files": 1091,
+        "status": "CAPTURE_IMPORTED_RESULTING_HEAD_GATES_PENDING",
+        "actual_supplemental_native": {
+          "head": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+          "tree": "c205073433be8014b6ccb291e63cabad02c6364d",
+          "run": "37541468955",
+          "artifact": 11448757936,
+          "zipSha256": "bd219b9c2467cea815b277655eae32ff3c12d27e9ffeeacb1ce8690d14c0f6a7",
+          "inputHashesMatched": 3330,
+          "executed": 22,
+          "pass": 22,
+          "fail": 0,
+          "skip": 0,
+          "errors": 0,
+          "nativeExit": 0,
+          "decoderSqlExit": 0,
+          "schemaCaptureExit": 0,
+          "status": "AUTHENTIC22_SOURCE4508_PASS_RESULTING_HEAD_GATES_PENDING",
+          "ordinary_required_gates": "NOT_REPLACED",
+          "whole_contract_approval": "NOT_YET_APPROVED_INDEPENDENT_WHOLE_REVIEW_AND_CURRENT_GATES_REQUIRED"
+        },
+        "requirements": [
+          "Current resulting-head mandatory clean/upgrade/native/type-schema/parity gates before merge.",
+          "Whole E literal review and original capture-only NOT_RUN flags remain separate; foreign whole IDs retained."
+        ]
+      },
+      "pending_forward_capture": {
+        "migration": "20261006221015_ediel_requested_change_owned_request_site.sql",
+        "sha256": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
+        "status": "AUTHENTIC_COMPLETE1091_TAIL_CAPTURE_IMPORTED",
+        "native_status": "AUTHENTIC22_SOURCE4508_PASS_RESULTING_HEAD_GATES_PENDING",
+        "required_gates": "New source native22 plus resulting-head mandatory clean/upgrade/type-schema/parity required",
+        "previous_authentic_capture_source": "3094ee19d23031195a9e7dae0c8512930de2a828",
+        "capture_run": 37541468839,
+        "artifact_id": 11449441444,
+        "source_head": "4508d8ea335ad9998d6816e214e90c852a955c6f"
+      },
+      "pending_shared_producer_forward_capture": {
+        "status": "AUTHENTIC_COMPLETE1091_TAIL_CAPTURE_IMPORTED_CURRENT_GATES_PENDING",
+        "producer_files": [
+          {
+            "path": "supabase/migrations/20261006205324_ediel_production_all_family_smime.sql",
+            "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+            "gitBlob": "48a3eb587869fecf7cdb23cba97b6d376ac0bc95",
+            "sha256": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36",
+            "bytes": 4744
+          },
+          {
+            "path": "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+            "source": "6ba4512c913cb0a5622a9f58b724bdb1b1c763ae",
+            "gitBlob": "c3c0d6983cf0be7b6d92ee01142c8390a3a0411e",
+            "sha256": "d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba",
+            "bytes": 9403
+          },
+          {
+            "path": "supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql",
+            "source": "6f2bd2c9663b62f46e27f2623f9b54bc8b421a38",
+            "gitBlob": "c5ff03633279491dffcc478ef9678e03a1d66727",
+            "sha256": "4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5",
+            "bytes": 878
+          }
+        ],
+        "prior_runtime_entries_preserved": 135,
+        "current_runtime_entries": 140,
+        "foreign_whole_ids": "NOT_APPROVED_OWNER_RETAINED",
+        "related_consumer_dependency": "Explicitly handed byte-exact actor admin consumer source/lint/confirmed post-copy app check qualified. Actual1091 capture imported; resulting-head consumer/types/native/mandatory gates and original author whole TR/DB/L qualification remain separate.",
+        "related_consumer_input": {
+          "path": "app/admin/ediel/actors/page.tsx",
+          "source": "fb4f9d3e9fad2abbe7ce6eb6b98bf12e2053970a",
+          "gitBlob": "d58fc51971f624814e40d4b80548cfd8b8c75d48",
+          "sha256": "c58267cabc9ac86665e3e01074a188da6e9fe231767023c41be3ec05b02f8fbb",
+          "bytes": 38632
+        },
+        "capture_run": 37541468839,
+        "artifact_id": 11449441444,
+        "source_head": "4508d8ea335ad9998d6816e214e90c852a955c6f"
+      }
+    }
+  },
+  "pre_confirmed_death_application_native_record": {
+    "head": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+    "tree": "c205073433be8014b6ccb291e63cabad02c6364d",
+    "run": "37541468955",
+    "artifact": 11448757936,
+    "zipSha256": "bd219b9c2467cea815b277655eae32ff3c12d27e9ffeeacb1ce8690d14c0f6a7",
+    "inputHashesMatched": 3330,
+    "executed": 22,
+    "pass": 22,
+    "fail": 0,
+    "skip": 0,
+    "errors": 0,
+    "nativeExit": 0,
+    "decoderSqlExit": 0,
+    "schemaCaptureExit": 0,
+    "status": "AUTHENTIC22_SOURCE4508_PASS_RESULTING_HEAD_GATES_PENDING",
+    "ordinary_required_gates": "NOT_REPLACED",
+    "whole_contract_approval": "NOT_YET_APPROVED_INDEPENDENT_WHOLE_REVIEW_AND_CURRENT_GATES_REQUIRED"
   }
 }

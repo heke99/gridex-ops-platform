@@ -1,0 +1,169 @@
+{
+  "status": "AUTHENTIC22_22PASS_0FAIL_0SKIP_ERROR_NATIVE_SQL_CAPTURE_EXIT0",
+  "head": "4508d8ea335ad9998d6816e214e90c852a955c6f",
+  "tree": "c205073433be8014b6ccb291e63cabad02c6364d",
+  "run": "37541468955",
+  "artifact": 11448757936,
+  "zipSha256": "bd219b9c2467cea815b277655eae32ff3c12d27e9ffeeacb1ce8690d14c0f6a7",
+  "inputHashesMatched": 3330,
+  "executed": 22,
+  "pass": 22,
+  "fail": 0,
+  "skip": 0,
+  "errors": 0,
+  "nativeExit": 0,
+  "decoderSqlExit": 0,
+  "schemaCaptureExit": 0,
+  "tests": [
+    {
+      "name": "prospective original bankruptcy reaches actual processor and its own committed primary ACK, retry stable",
+      "status": "PASS"
+    },
+    {
+      "name": "prospective original customer_change reaches actual processor and its own committed primary ACK, retry stable",
+      "status": "PASS"
+    },
+    {
+      "name": "prospectively expired supplier role permits only correlated technical CONTRL and holds fresh physical original before business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh physical original missing own field 216 has its actual diagnostic and no customer effect or positive APERAK",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh physical original missing own field 251 has its actual diagnostic and no customer effect or positive APERAK",
+      "status": "PASS"
+    },
+    {
+      "name": "native bankruptcy classification commits a future customer version and its own primary receipt without current customer or supply mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "native customer_change classification commits a future customer version and its own primary receipt without current customer or supply mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "same-tenant signed authority for original A cannot classify or apply original B, with actual correct-A review control",
+      "status": "PASS"
+    },
+    {
+      "name": "actual REST raw mutation cannot change the sealed E original, ledger or business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "actual REST direction mutation cannot change the sealed E original, ledger or business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "actual REST receipt_time mutation cannot change the sealed E original, ledger or business effects",
+      "status": "PASS"
+    },
+    {
+      "name": "modern catalog rejects outbound Z06E semantics; the actual kernel separately refuses unqualified source with no original or witness",
+      "status": "PASS"
+    },
+    {
+      "name": "actual sent Z09 receives same-original CONTRL then object APERAK, immutable retry and no automatic customer switch",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh received unknown UCI and wrong LI cannot correlate or accept the sent customer original",
+      "status": "PASS"
+    },
+    {
+      "name": "after actual Z09 send and same-original ACKs, an independent later Z06 commits its own confirmed history without changing the request or live customer",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine current company producer commits non-death customer/invoicee facet and separate availability; same native snapshot supplies dated AI with immutable originals and current revocation",
+      "status": "PASS"
+    },
+    {
+      "name": "actual non-death outgoing mandate archives missing authority, holds separate review and makes no event or queue",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine generic death archive and separate review reach the actual Z09 gateway and fresh SMTP send without automatic customer effects",
+      "status": "PASS"
+    },
+    {
+      "name": "genuine reviewed death event qualifies only its own physical Z06 confirmed facet and committed history; orphan and retry have no primary customer effect",
+      "status": "PASS"
+    },
+    {
+      "name": "actual independent outgoing review publishes exact immutable non-death event; current issuer/reviewer revocation blocks every fresh consumer",
+      "status": "PASS"
+    },
+    {
+      "name": "actual qualified outgoing source reaches the existing atomic original/intent/outbox gateway and immutable retry",
+      "status": "PASS"
+    },
+    {
+      "name": "actual supplier role refuses a fresh DSO sender before source validation; the genuine current supplier queues its reviewed original",
+      "status": "PASS"
+    }
+  ],
+  "protocol": "gridex-ediel-original-native-qualification-v1",
+  "originalZIP": "quality/audits/ediel-masterplan-v2/e-supplier-native-93e252d8/original-native-4508.zip",
+  "archiveBytes": 173655,
+  "testScope": [
+    "scripts/ediel-confirmed-customer-bilateral-native.test.ts",
+    "scripts/ediel-requested-customer-change-source-native.test.ts",
+    "scripts/ediel-at-z06e-primary-effect-native.test.ts",
+    "scripts/ediel-at-z06e-physical-intake-native.test.ts",
+    "scripts/ediel-at-z09e-received-ack-native.test.ts"
+  ],
+  "inputSet": {
+    "prefixes": [
+      "lib/",
+      "scripts/",
+      "supabase/",
+      "__tests__/helpers/",
+      "__tests__/fixtures/",
+      "e2e/production/helpers/"
+    ],
+    "exact": [
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "tsconfig.scripts.json",
+      ".github/workflows/ediel-z06e-z09e-native.yml"
+    ],
+    "additional": [
+      "scripts/ediel-confirmed-customer-bilateral-native.test.ts",
+      "scripts/ediel-requested-customer-change-source-native.test.ts",
+      "scripts/ediel-at-z06e-primary-effect-native.test.ts",
+      "scripts/ediel-at-z06e-physical-intake-native.test.ts",
+      "scripts/ediel-at-z09e-received-ack-native.test.ts"
+    ],
+    "verified": "Complete set equals frozen tracked Git input definition; every SHA256 independently matches original Git blob."
+  },
+  "authenticArtifact": {
+    "id": 11448757936,
+    "name": "ediel-z06e-z09e-native-4508d8ea335ad9998d6816e214e90c852a955c6f",
+    "size_in_bytes": 173655,
+    "digest": "sha256:bd219b9c2467cea815b277655eae32ff3c12d27e9ffeeacb1ce8690d14c0f6a7",
+    "workflow_run": {
+      "id": 37541468955,
+      "repository_id": 1190539955,
+      "head_repository_id": 1190539955,
+      "head_branch": "codex/ediel-e-native-93e252d8",
+      "head_sha": "4508d8ea335ad9998d6816e214e90c852a955c6f"
+    }
+  },
+  "zipCRC": "ALL_ORIGINAL_ENTRIES_VERIFIED",
+  "originalEntries": [
+    "receipt.json",
+    "native-junit.xml",
+    "native.log",
+    "decoder-sql.log"
+  ],
+  "qualification": {
+    "API": "Repository/head/tree/run/attempt1/artifact/size/digest matched",
+    "JUnit": "Original22 unique names match preserved previous authentic22 scope;22PASS/0FAIL/ERROR/SKIP",
+    "SQL": "Original decoder/selected-facts/current-source/ACL/nonservice/message-scope actualSQL EXIT0",
+    "wholeApproval": "Independent literal/effect review and current resulting-head mandatory gates still required",
+    "provider": "Declared synthetic SMTP adapter; actual native source/REST/SQL/journal/current consumers and effects exercised; no external delivery or deployment acceptance."
+  }
+}
