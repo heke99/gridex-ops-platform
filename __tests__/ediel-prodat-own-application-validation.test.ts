@@ -19,6 +19,12 @@ import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSo
 import {ownerSource} from './helpers/sourceOwnerFixtures'
 import {raw,line,input} from './fixtures/prodat-register'
 import {head} from './fixtures/prodat-identity'
+import {withProdatOwnSourceReadings} from './helpers/prodatOwnSourceReadingFixture'
+import {withProdatFixtureOwnReadingInsertContext} from './helpers/prodatInboundSourceFixture'
+import {loadProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
+vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/prodatInboundSourceFixture')).prodatFixtureSourceDatabase}))
+const ownReadingActor='00000000-0000-4000-8000-000000000002'
+const ownReadingSourceEdition='c'.repeat(64)
 
 function pure(){
   const source=raw([...head(),line('1','A',undefined,'9'),line('2','B',undefined,'9')]),wire=tokenizeEdifact(source)
@@ -57,10 +63,15 @@ describe('complete same-invocation PRODAT application scope',()=>{
   })
 })
 
-// Only registry IO is synthetic. Actual syntax, full field owner and immutable
-// source handoff run together; this is not a native original/registry proof.
+// Registry and finite source READ transport IO are synthetic. Actual issuer,
+// syntax, full field owner and immutable source handoff run together; no native
+// original, database authority or registry proof is established.
 it('actual full canonical owner marks its application facet and refuses copied authority',async()=>{
-  const message=ownerSource(),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  const original=ownerSource()
+  const message=withProdatFixtureOwnReadingInsertContext({...original,raw_payload:withProdatOwnSourceReadings(original.raw_payload!)},{actorUserId:ownReadingActor,sourceEdition:ownReadingSourceEdition})
+  const context=await loadProdatOwnSourceReadingContext(message,ownReadingActor)
+  if(!context)throw Error('DECLARED_OWN_READING_CONTEXT_REQUIRED')
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:ownReadingActor})
   const facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
   expect(facet?.objects.map(o=>o.applicationDecision)).toEqual(['accepted'])
   const evidence=buildReceivedSourceValidationEvidence({original:message,validated:message,resolvedCompanyId:message.company_id,decision})
@@ -72,12 +83,14 @@ it('actual full canonical owner marks its application facet and refuses copied a
 })
 
 it('actual complete invocation accepts the good object while rejecting a sibling missing its own quantity',async()=>{
-  const message=ownerSource(),wire=tokenizeEdifact(message.raw_payload!),first=wire.segments.findIndex(t=>t.tag==='LIN'),end=wire.segments.findIndex(t=>t.tag==='UNT')
+  const original=ownerSource(),wire=tokenizeEdifact(original.raw_payload!),first=wire.segments.findIndex(t=>t.tag==='LIN'),end=wire.segments.findIndex(t=>t.tag==='UNT')
   const body=wire.segments.slice(first,end).map(t=>t.raw),second=body.map(segment=>segment.replace('LIN+1+','LIN+2+').replaceAll('735123456789012345','735123456789012346').replaceAll('CASE-1','CASE-2'))
   const all=[...wire.segments.slice(0,first).map(t=>t.raw),...body.filter(segment=>!segment.startsWith('QTY+31')), ...second]
   const unh=all.findIndex(segment=>segment.startsWith('UNH+')),rawPayload="UNA:+.? '"+all.join("'")+"'UNT+"+(all.length-unh+1)+"+M'UNZ+1+I'"
-  message.raw_payload=rawPayload
-  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message),facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
+  const message=withProdatFixtureOwnReadingInsertContext({...original,raw_payload:withProdatOwnSourceReadings(rawPayload)},{actorUserId:ownReadingActor,sourceEdition:ownReadingSourceEdition})
+  const context=await loadProdatOwnSourceReadingContext(message,ownReadingActor)
+  if(!context)throw Error('DECLARED_OWN_READING_CONTEXT_REQUIRED')
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:ownReadingActor}),facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
   expect(decision.applicationDecision).toBe('rejected')
   expect(facet?.headerDecision).toBe('accepted')
   expect(facet?.objects.map(o=>[o.objectId,o.applicationDecision])).toEqual([['735123456789012345','rejected'],['735123456789012346','accepted']])

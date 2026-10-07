@@ -92,7 +92,7 @@ BEGIN
     OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=a AND user_id=target AND role_key='operations_agent')
   THEN RAISE EXCEPTION 'staff_actor_guard_denial_wrote'; END IF;
 
-  UPDATE auth.users SET banned_until=clock_timestamp()-interval '1 second' WHERE id=actor;
+  UPDATE auth.users SET banned_until=now()-interval '1 second' WHERE id=actor;
   IF public.canonical_change_tenant_user_access(command) IS DISTINCT FROM first_access
     OR public.canonical_create_tenant_invitation(invitation) IS DISTINCT FROM first_invitation
   THEN RAISE EXCEPTION 'staff_actor_guard_valid_expiry_denied'; END IF;

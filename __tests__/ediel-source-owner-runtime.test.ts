@@ -1,8 +1,16 @@
 import {beforeEach,expect,it,vi} from 'vitest'
 import {OWNER,ownerId,ownerRows,ownerSource} from './helpers/sourceOwnerFixtures'
-const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false}))
-vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
-vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
+const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false,message:undefined as ReturnType<typeof ownerSource>|undefined}))
+const reading=vi.hoisted(()=>({sdk:null as import('./helpers/prodatOwnSourceReadingFixture').ProdatOwnSourceReadingSdk|null,phase:'canonical' as 'read'|'canonical'}))
+vi.mock('@/lib/supabase/service',async()=>{
+ reading.sdk=(await import('./helpers/prodatOwnSourceReadingFixture')).createProdatOwnSourceReadingSdk()
+ const business=(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)
+ return {supabaseService:{
+  from:(table:string)=>reading.phase==='read'?reading.sdk!.from(table):business.from(table),
+  rpc:(name:string,args:Record<string,unknown>)=>reading.phase==='read'?reading.sdk!.rpc(name,args):business.rpc(name,args),
+ }}
+})
+vi.mock('@/lib/ediel/db',async importOriginal=>({...await importOriginal<typeof import('@/lib/ediel/db')>(),createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
@@ -11,11 +19,50 @@ import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSour
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit'
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
-import {timelineAssessment,timelineBody,timelineReceipt,timelineSource,timelineScope} from './helpers/sourceDecisionTimelineFixtures'
+import {timelineAssessment,timelineBody,timelineReceipt,timelineSource as sourceTimeline,timelineScope} from './helpers/sourceDecisionTimelineFixtures'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
-const record=async(row=ownerSource())=>{
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row)
+const timelineSource=(overrides:Record<string,unknown>={})=>{
+ const rawPayload=io.message?.raw_payload
+ if(!rawPayload)throw Error('TIMELINE_TEST_SOURCE_MISSING')
+ return sourceTimeline({rawPayload,payloadHash:evidenceHash(rawPayload),...overrides})
+}
+
+import {loadProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
+import {installProdatOwnSourceReadingFixture,resetProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
+
+// The bootstrap READ trace is separate from the unchanged canonical/business IO.
+const readingScope={actorUserId:ownerId(50),receivedAt:'2026-09-22T10:00:00.000000Z',
+ mailId:ownerId(60),parseId:ownerId(61),receptionId:ownerId(62),legalActorId:ownerId(9)}
+const assertProtectedReadTrace=()=>{
+ const sdk=reading.sdk!
+ const permission={kind:'rpc',name:'gridex_actor_has_company_permission',args:{p_actor_user_id:ownerId(50),p_company_id:ownerId(2),p_permission:'communication.read'}}
+ const edielPermission={kind:'rpc',name:'gridex_actor_has_company_permission',args:{p_actor_user_id:ownerId(50),p_company_id:ownerId(2),p_permission:'ediel.read'}}
+ const membership={kind:'table',name:'company_memberships',args:{company_id:ownerId(2),user_id:ownerId(50),status:'active',is_active:true},notNull:['accepted_at']}
+ const profile={kind:'table',name:'user_profiles',args:{id:ownerId(50),user_status:'active'},notNull:[]}
+ const expected=[permission,permission,edielPermission,edielPermission,membership,membership,profile,profile,
+  {kind:'table',name:'ediel_messages',args:{id:ownerId(1),company_id:ownerId(2)},notNull:[]},
+  {kind:'rpc',name:'ediel_require_inbound_legal_context_v1',args:{p_company_id:ownerId(2),p_message_id:ownerId(1)}},
+  {kind:'rpc',name:'ediel_inbound_reception_request_v1',args:{p_company_id:ownerId(2),p_message_id:ownerId(1),p_actor_user_id:ownerId(50),p_inbound_email_message_id:ownerId(60)}},
+  {kind:'table',name:'inbound_email_messages',args:{id:ownerId(60),company_id:ownerId(2),environment:'test'},notNull:[]},
+  {kind:'table',name:'inbound_ediel_parse_results',args:{id:ownerId(61),company_id:ownerId(2)},notNull:[]}]
+ expect(sdk.calls).toHaveLength(13)
+ // JSON sorts call records, not query fields: exact request keys/order stay visible.
+ expect(sdk.calls.map(call=>JSON.stringify(call)).sort()).toEqual(expected.map(call=>JSON.stringify(call)).sort())
+}
+
+const record=async(row=ownerSource({readingDeclarations:true}))=>{
+ io.message=structuredClone(row)
+ installProdatOwnSourceReadingFixture(reading.sdk!,row,'L',readingScope)
+ reading.sdk!.permissions=new Set(['communication.read'])
+ reading.phase='read'
+ let context:Awaited<ReturnType<typeof loadProdatOwnSourceReadingContext>>
+ try{context=await loadProdatOwnSourceReadingContext(row,readingScope.actorUserId)}finally{reading.phase='canonical'}
+ expect(context).not.toBeNull()
+ assertProtectedReadTrace()
+ expect(io.calls).toEqual([])
+ expect(reading.sdk!.rows.ediel_messages).toEqual([io.message])
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row,{prodatOwnSourceReadingContext:context!,prodatOwnSourceReadingActorUserId:readingScope.actorUserId})
  const receipt=await recordReceivedSourceValidation({original:row,validated:row,resolvedCompanyId:OWNER.company,decision})
  return {row,decision,receipt,session:createReceivedSourceOwnerSession(receipt)}
 }
@@ -25,7 +72,9 @@ const apply=async(state:Awaited<ReturnType<typeof record>>)=>{
  return state.session.finish()
 }
 const objectFacts=()=>JSON.parse(String(io.calls.find(c=>c.name==='gridex_record_source_object_decisions_v1')?.args.p_facts_text??'null'))
-beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false})
+beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false
+ delete io.message;reading.phase='canonical';resetProdatOwnSourceReadingSdk(reading.sdk!)
+})
 it('uses a real fully accepted canonical register source as the positive oracle',async()=>{
  const {decision,receipt}=await record()
  expect(decision.issues).toEqual([])

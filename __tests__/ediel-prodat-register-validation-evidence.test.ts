@@ -3,7 +3,18 @@ import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
-import {describe, expect, it} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {installProdatOwnSourceReadingFixture,resetProdatOwnSourceReadingSdk,prodatOwnSourceReadingMessage,withProdatOwnSourceReadings,prodatOwnSourceReadingActor,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
+import {loadProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
+const fixtureSdk=vi.hoisted(()=>({value:null as ProdatOwnSourceReadingSdk|null}))
+vi.mock('@/lib/supabase/service',async()=>{
+ const {createProdatOwnSourceReadingSdk}=await import('./helpers/prodatOwnSourceReadingFixture')
+ fixtureSdk.value=createProdatOwnSourceReadingSdk()
+ return {supabaseService:{from:fixtureSdk.value.from,rpc:fixtureSdk.value.rpc}}
+})
+const io=fixtureSdk.value!
+beforeEach(()=>resetProdatOwnSourceReadingSdk(io))
+
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {input, raw, line, characteristic, qty} from './fixtures/prodat-register'
@@ -66,11 +77,15 @@ describe('actual canonical register validation evidence', () => {
   })
 })
 
-it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', () => {
+it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', async () => {
   const message = {direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z04',
     raw_payload:raw([line('1','A'),qty('10'),...reason]),created_at:'2026-09-17T12:00:00Z',
     parsed_payload:{prodatDependentFacts:{meterReadingsSentInUtilts:false}},validation_report:{}} as unknown as EdielMessageRow
-  const decision = resolveCanonicalRuntimeDecision(message)
+  const qualifiedMessage=prodatOwnSourceReadingMessage(withProdatOwnSourceReadings(message.raw_payload!,{addLegalHeader:true}))
+  installProdatOwnSourceReadingFixture(io,qualifiedMessage,'L')
+  const context=await loadProdatOwnSourceReadingContext(qualifiedMessage,prodatOwnSourceReadingActor)
+  if(!context)throw Error('OWN_READING_FIXTURE_CONTEXT_NOT_ISSUED')
+  const decision = resolveCanonicalRuntimeDecision(qualifiedMessage,{prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:prodatOwnSourceReadingActor})
   expect(decision.applicationDecision).toBe('rejected')
   expect(decision.prodatRegisterValidation?.objects[0].disposition).toBe('accepted')
   const bad = resolveCanonicalRuntimeDecision({...message,raw_payload:message.raw_payload!.replace('UNT+9','UNT+999')})

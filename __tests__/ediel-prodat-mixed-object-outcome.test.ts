@@ -1,5 +1,16 @@
 // masterplan: ACK-08, AT-ACK-08
-import {expect,it} from 'vitest'
+import {beforeEach,expect,it,vi} from 'vitest'
+import {installProdatOwnSourceReadingFixture,resetProdatOwnSourceReadingSdk,prodatOwnSourceReadingMessage,withProdatOwnSourceReadings,prodatOwnSourceReadingActor,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
+import {loadProdatOwnSourceReadingContext} from '@/lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations'
+const fixtureSdk=vi.hoisted(()=>({value:null as ProdatOwnSourceReadingSdk|null}))
+vi.mock('@/lib/supabase/service',async()=>{
+ const {createProdatOwnSourceReadingSdk}=await import('./helpers/prodatOwnSourceReadingFixture')
+ fixtureSdk.value=createProdatOwnSourceReadingSdk()
+ return {supabaseService:{from:fixtureSdk.value.from,rpc:fixtureSdk.value.rpc}}
+})
+const io=fixtureSdk.value!
+beforeEach(()=>resetProdatOwnSourceReadingSdk(io))
+
 import {source} from './fixtures/prodat-identity'
 import {guideOrderedFixtureRaw as raw} from './helpers/prodatGuideOrderedFixture'
 import {mixedZ04Parts} from './helpers/mixedZ04Fixture'
@@ -43,11 +54,14 @@ it('retains shared header errors even where the register-only facade accepted an
  expect(projectReceivedProdatObjectValidation(wire,d)).toMatchObject({sharedAccepted:false})
  expect(projectReceivedProdatObjectValidation(wire,d)?.objects.some(o=>o.disposition==='accepted')).toBe(false)
 })
-it('qualifies a complete synthetic own-field context per object without borrowing sibling outcomes',()=>{
- const wire=raw(mixedZ04Parts(),'Z04'),m=source(wire,'Z04')
+it('qualifies a complete synthetic own-field context per object without borrowing sibling outcomes',async()=>{
+ const wire=withProdatOwnSourceReadings(raw(mixedZ04Parts(),'Z04')),m=prodatOwnSourceReadingMessage(wire)
  m.parsed_payload={prodatDependentFacts:{meterReadingsSentInUtilts:false,endUserAddressAvailable:true,invoiceeAddressDiffersFromEndUser:false,
   byCell:Object.fromEntries(Array.from({length:600},(_,n)=>[`Z04:${n}`,false]))}}
- const d=resolveCanonicalRuntimeDecision(m),facet=projectReceivedProdatObjectValidation(wire,d)
+ installProdatOwnSourceReadingFixture(io,m,'L')
+ const context=await loadProdatOwnSourceReadingContext(m,prodatOwnSourceReadingActor)
+ if(!context)throw Error('OWN_READING_FIXTURE_CONTEXT_NOT_ISSUED')
+ const d=resolveCanonicalRuntimeDecision(m,{prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:prodatOwnSourceReadingActor}),facet=projectReceivedProdatObjectValidation(wire,d)
  expect(facet?.objects.map(o=>o.disposition)).toEqual(['rejected','accepted'])
 })
 
@@ -63,9 +77,12 @@ it('full-guide shared fields and unrelated own fields cannot borrow register acc
 })
 
 import {mixedProdatNativeWire} from '../scripts/helpers/ediel-mixed-prodat-native-wire'
-it('native source oracle is full-guide mixed with every own field actual, without wholesale dependent overrides',()=>{
- const wire=mixedProdatNativeWire({external:'735123456789012352',negativePoint:'735123456789012345',sender:'54321',receiver:'12345',caseReference:'EXACT-NATIVE-LI',customerIdentity:{id:'199001011234',qualifier:'SE2',agency:'260'},startMinute:'202610010000'})
- const m=source(wire,'Z04');m.parsed_payload={subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}
- const d=resolveCanonicalRuntimeDecision(m),facet=projectReceivedProdatObjectValidation(wire,d)
+it('native source oracle is full-guide mixed with every own field actual, without wholesale dependent overrides',async()=>{
+ const wire=withProdatOwnSourceReadings(mixedProdatNativeWire({external:'735123456789012352',negativePoint:'735123456789012345',sender:'54321',receiver:'12345',caseReference:'EXACT-NATIVE-LI',customerIdentity:{id:'199001011234',qualifier:'SE2',agency:'260'},startMinute:'202610010000'}))
+ const m=prodatOwnSourceReadingMessage(wire);m.parsed_payload={subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}
+ installProdatOwnSourceReadingFixture(io,m,'L')
+ const context=await loadProdatOwnSourceReadingContext(m,prodatOwnSourceReadingActor)
+ if(!context)throw Error('OWN_READING_FIXTURE_CONTEXT_NOT_ISSUED')
+ const d=resolveCanonicalRuntimeDecision(m,{prodatOwnSourceReadingContext:context,prodatOwnSourceReadingActorUserId:prodatOwnSourceReadingActor}),facet=projectReceivedProdatObjectValidation(wire,d)
  expect(facet?.objects.map(o=>o.disposition),JSON.stringify(d.issues)).toEqual(['rejected','accepted'])
 })
